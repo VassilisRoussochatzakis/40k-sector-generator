@@ -1,0 +1,11 @@
+//! GUI module: egui-based viewer for generated sectors. Modular by entity:
+//! `palette` owns colors, `sector_view` / `system_view` are pure render widgets,
+//! `info_panel` formats text, `app` wires everything together.
+
+pub mod app;
+pub mod info_panel;
+pub mod palette;
+pub mod sector_view;
+pub mod system_view;
+
+pub use app::App;

@@ -135,6 +135,7 @@ fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
     }
 
     let mut placed: Vec<HexCoord> = Vec::with_capacity(target);
+    let mut leftover: Vec<HexCoord> = Vec::new();
     let min_dist = g.placement.minimum_system_distance;
     for c in all {
         if placed.len() >= target {
@@ -142,24 +143,38 @@ fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
         }
         if min_dist <= 1 || placed.iter().all(|p| hex_distance(*p, c) >= min_dist) {
             placed.push(c);
+        } else {
+            leftover.push(c);
         }
     }
 
     if placed.len() < target {
-        // Couldn't satisfy minimum distance — fall back to filling without constraint.
-        for r in 0..height {
-            for q in 0..width {
-                let c = HexCoord { q, r };
-                if !placed.contains(&c) {
+        // Couldn't satisfy minimum distance — relax constraint by progressively
+        // shrinking it, still consuming the shuffled leftover pool so fill stays
+        // spatially scattered rather than packed in grid order.
+        let mut relaxed = min_dist;
+        while placed.len() < target && relaxed > 1 {
+            relaxed -= 1;
+            let mut still_blocked: Vec<HexCoord> = Vec::new();
+            for c in leftover.drain(..) {
+                if placed.len() >= target {
+                    still_blocked.push(c);
+                    continue;
+                }
+                if relaxed <= 1 || placed.iter().all(|p| hex_distance(*p, c) >= relaxed) {
                     placed.push(c);
-                    if placed.len() >= target {
-                        break;
-                    }
+                } else {
+                    still_blocked.push(c);
                 }
             }
+            leftover = still_blocked;
+        }
+        // Final fallback: any remaining shuffled cells.
+        for c in leftover {
             if placed.len() >= target {
                 break;
             }
+            placed.push(c);
         }
     }
 

@@ -1,0 +1,57 @@
+[project]
+id = "big-test-sector"
+title = "Big Test Sector"
+description = "Large sector with 300 systems for scale testing."
+version = "0.1.0"
+
+[inputs]
+world_data_dir = "data/worlds"
+system_names = "data/names/system_names.toml"
+world_names = "data/names/world_names.toml"
+factions = "data/factions/factions.toml"
+route_rules = "data/routes/route_rules.toml"
+
+[generation]
+seed = "big-test-default-seed"
+sector_width = 32
+sector_height = 32
+subsector_width = 8
+subsector_height = 4
+system_count = 200
+min_worlds_per_system = 2
+max_worlds_per_system = 6
+allow_empty_hexes = true
+world_feature_count = 3
+strict_world_rows = true
+
+[generation.placement]
+mode = "uniform_grid"
+cluster_bias = 0.0
+minimum_system_distance = 3
+
+[generation.world_selection]
+mode = "weighted_rows"
+require_complete_rows = true
+allow_partial_rows = false
+same_star_colour_bias = 1.25
+strict_same_star_colour = false
+avoid_duplicate_world_type_in_system = false
+
+[generation.routes]
+enabled = true
+max_route_distance = 4
+route_density = 0.12
+ensure_connected_graph = true
+
+[outputs]
+directory = "out"
+formats = ["json", "markdown", "csv"]
+pretty_json = true
+write_per_system_files = true
+write_manifest = true
+
+[outputs.bitmap]
+sector_scale = 3
+system_scale = 2
+render_systems = true
+

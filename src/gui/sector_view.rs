@@ -1,10 +1,11 @@
 //! Sector hex-grid widget: pointy-top hexes, routes, system disks. Clickable.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
 use crate::sector_model::GeneratedSector;
+use crate::subsectors::Subsector;
 
 use super::palette::{
     self, darken, draw_route_line, stability_color, star_color, HEX_EMPTY, HEX_OUTLINE,
@@ -19,7 +20,13 @@ pub struct SectorView<'a> {
     pub path_route_ids: Option<&'a HashSet<String>>,
     /// System ids on the planned path. Rendered with a glowing ring.
     pub path_waypoints: Option<&'a HashSet<String>>,
+    /// Subsector overlay: tile boundaries, labels, and capital markers.
+    pub subsectors: Option<&'a [Subsector]>,
 }
+
+const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
+const SUBSECTOR_LABEL: Color32 = Color32::from_rgb(230, 195, 120);
+const CAPITAL_MARKER: Color32 = Color32::from_rgb(255, 220, 100);
 
 pub struct SectorClick {
     pub system_id: String,
@@ -35,10 +42,64 @@ impl<'a> SectorView<'a> {
 
         painter.rect_filled(rect, 0.0, palette::BG);
 
+        // Map each hex coord to its subsector id so we know where to paint
+        // borders. Clusters are arbitrary shapes — use the per-subsector
+        // `hex_cells` membership rather than a rectangular bounding box.
+        let mut hex_subsector: HashMap<(i32, i32), &str> = HashMap::new();
+        if let Some(subs) = self.subsectors {
+            for s in subs {
+                for &(q, r) in &s.hex_cells {
+                    hex_subsector.insert((q as i32, r as i32), s.id.as_str());
+                }
+            }
+        }
+
         for r in 0..self.sector.height as i32 {
             for q in 0..self.sector.width as i32 {
                 let c = hex_center(q, r, &g) + origin.to_vec2();
                 draw_hex(&painter, c, g.hex_size, HEX_EMPTY, HEX_OUTLINE);
+            }
+        }
+
+        // Subsector tile borders: draw thick line along each hex edge that
+        // separates two different subsectors (or the sector outer rim).
+        if !hex_subsector.is_empty() {
+            let border_thick = (g.hex_size * 0.10).max(2.5);
+            // Pointy-top edge i (vertex i → vertex i+1) faces neighbor:
+            // 0:E (q+1,r), 1:SE (q,r+1), 2:SW (q-1,r+1),
+            // 3:W (q-1,r), 4:NW (q,r-1), 5:NE (q+1,r-1).
+            let neighbor_deltas: [(i32, i32); 6] =
+                [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)];
+            for r in 0..self.sector.height as i32 {
+                for q in 0..self.sector.width as i32 {
+                    let here = hex_subsector.get(&(q, r)).copied();
+                    let Some(here_id) = here else { continue };
+                    let c = hex_center(q, r, &g) + origin.to_vec2();
+                    let v = hex_vertices(c, g.hex_size);
+                    for (i, (dq, dr)) in neighbor_deltas.iter().enumerate() {
+                        let other = hex_subsector.get(&(q + dq, r + dr)).copied();
+                        let differs = match other {
+                            Some(id) => id != here_id,
+                            None => true, // sector rim
+                        };
+                        if differs {
+                            let a = v[i];
+                            let b = v[(i + 1) % 6];
+                            let edge_len = a.distance(b);
+                            let dot_radius = (border_thick * 0.8).max(2.0);
+                            let spacing = dot_radius * 2.5;
+                            let segments = (edge_len / spacing).ceil() as usize;
+                            for j in 0..=segments {
+                                let t = j as f32 / segments as f32;
+                                let mid = Pos2::new(
+                                    a.x + (b.x - a.x) * t,
+                                    a.y + (b.y - a.y) * t,
+                                   );
+                                painter.circle_filled(mid, dot_radius, SUBSECTOR_BORDER);
+                               }
+                         }
+                    }
+                }
             }
         }
 
@@ -49,7 +110,7 @@ impl<'a> SectorView<'a> {
         }
 
         let route_thickness = (g.hex_size * 0.08).max(2.0);
-        let star_r = g.hex_size * 0.336;
+        let star_r = g.hex_size * 0.2016;
         let shorten = |a: Pos2, b: Pos2| -> Option<(Pos2, Pos2)> {
             let delta = b - a;
             let len = delta.length();
@@ -126,6 +187,16 @@ impl<'a> SectorView<'a> {
             painter.circle_filled(c, r, fill);
             painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
 
+            // Subsector capital marker: small filled diamond above the star.
+            if let Some(subs) = self.subsectors {
+                let is_capital = subs.iter().any(|s| {
+                    s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
+                });
+                if is_capital {
+                    draw_capital_marker(&painter, c, g.hex_size);
+                }
+            }
+
             let pip = sys.worlds.len();
             if pip > 0 {
                 let tx = c.x + g.hex_size * 0.55;
@@ -137,6 +208,62 @@ impl<'a> SectorView<'a> {
                     FontId::monospace((g.hex_size * 0.34).max(10.0)),
                     TEXT,
                 );
+            }
+        }
+
+        // Subsector labels: name chip anchored at top-left hex of each cluster.
+        // Uses cluster name ("Subsector Aurelia" → shown as "AURELIA") rather
+        // than the spreadsheet letter so the map reads politically. Skip
+        // clusters with no member systems so empty frontier regions stay
+        // uncluttered.
+        if let Some(subs) = self.subsectors {
+            let sub_label_size = (g.hex_size * 0.36).max(11.0);
+            let font = FontId::monospace(sub_label_size);
+            for s in subs {
+                if s.system_ids.is_empty() || s.hex_cells.is_empty() {
+                    continue;
+                }
+                // Pick anchor hex: the cluster's topmost row, then leftmost q
+                // within that row. Avoids label drift across irregular shapes.
+                let mut anchor = s.hex_cells[0];
+                for &(q, r) in &s.hex_cells {
+                    if r < anchor.1 || (r == anchor.1 && q < anchor.0) {
+                        anchor = (q, r);
+                    }
+                }
+                let anchor_c = hex_center(anchor.0 as i32, anchor.1 as i32, &g) + origin.to_vec2();
+                let name_part = s
+                    .name
+                    .strip_prefix("Subsector ")
+                    .unwrap_or(s.name.as_str())
+                    .to_ascii_uppercase();
+                let top_galley =
+                    painter.layout_no_wrap("SUBSECTOR".to_string(), font.clone(), SUBSECTOR_LABEL);
+                let bot_galley =
+                    painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
+                let line_gap = 2.0;
+                let block_w = top_galley.size().x.max(bot_galley.size().x);
+                let block_h = top_galley.size().y + line_gap + bot_galley.size().y;
+                let block_top_y = anchor_c.y - g.hex_size - block_h - 2.0;
+                let top_pos = Pos2::new(
+                    anchor_c.x - top_galley.size().x / 2.0,
+                    block_top_y,
+                );
+                let bot_pos = Pos2::new(
+                    anchor_c.x - bot_galley.size().x / 2.0,
+                    block_top_y + top_galley.size().y + line_gap,
+                );
+                let pad = Vec2::new(6.0, 2.0);
+                let block_min = Pos2::new(anchor_c.x - block_w / 2.0, block_top_y);
+                let bg_rect =
+                    egui::Rect::from_min_size(block_min - pad, Vec2::new(block_w, block_h) + pad * 2.0);
+                painter.rect_filled(
+                    bg_rect,
+                    3.0,
+                    Color32::from_rgba_unmultiplied(20, 16, 28, 210),
+                );
+                painter.galley(top_pos, top_galley, SUBSECTOR_LABEL);
+                painter.galley(bot_pos, bot_galley, SUBSECTOR_LABEL);
             }
         }
 
@@ -236,6 +363,22 @@ fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline:
         pts,
         fill,
         Stroke::new(1.0, outline),
+    ));
+}
+
+fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {
+    let r = (hex_size * 0.15).max(3.5);
+    let cy = c.y - hex_size * 0.55;
+    let pts = vec![
+        Pos2::new(c.x, cy - r),
+        Pos2::new(c.x + r, cy),
+        Pos2::new(c.x, cy + r),
+        Pos2::new(c.x - r, cy),
+    ];
+    painter.add(egui::Shape::convex_polygon(
+        pts,
+        CAPITAL_MARKER,
+        Stroke::new(1.2, Color32::from_rgb(60, 40, 10)),
     ));
 }
 

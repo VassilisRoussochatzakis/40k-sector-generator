@@ -9,6 +9,7 @@ use rfd::FileDialog;
 use crate::{
     export,
     sector_model::{GeneratedSector, GeneratedSystem},
+    subsectors::{build_subsectors, Subsector, SubsectorConfig},
 };
 
 use super::data_editor::DataEditor;
@@ -21,6 +22,7 @@ use super::system_view::{SystemClick, SystemSelection, SystemView};
 
 pub struct App {
     sector: Option<GeneratedSector>,
+    subsectors: Vec<Subsector>,
     view: View,
     sector_selected: Option<String>,
     sector_hex_size: f32,
@@ -47,8 +49,10 @@ enum View {
 
 impl App {
     pub fn new(sector: GeneratedSector) -> Self {
+        let subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
         Self {
             sector: Some(sector),
+            subsectors,
             view: View::Sector,
             sector_selected: None,
             sector_hex_size: 44.0,
@@ -65,6 +69,7 @@ impl App {
     pub fn new_empty() -> Self {
         Self {
             sector: None,
+            subsectors: Vec::new(),
             view: View::Edit,
             sector_selected: None,
             sector_hex_size: 44.0,
@@ -517,6 +522,7 @@ impl App {
                         hex_size: self.planner_hex_size,
                         path_route_ids: Some(&route_ids),
                         path_waypoints: Some(&waypoints),
+                        subsectors: None,
                     }
                     .show(ui);
                     if let Some(c) = click {
@@ -779,6 +785,7 @@ impl App {
                 hex_size: self.sector_hex_size,
                 path_route_ids: None,
                 path_waypoints: None,
+                subsectors: Some(self.subsectors.as_slice()),
             }
             .show(ui);
             if let Some(c) = click {

@@ -22,6 +22,7 @@ pub mod render;
 pub mod rng;
 pub mod routes;
 pub mod sector_model;
+pub mod subsectors;
 pub mod system_map;
 pub mod taxonomy;
 pub mod validation;
@@ -32,6 +33,9 @@ pub use errors::SectorError;
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
+pub use subsectors::{
+    build_subsectors, ControlDenominator, Subsector, SubsectorBuildError, SubsectorConfig,
+};
 pub use validation::{ValidationIssue, ValidationReport};
 
 pub const GENERATOR_NAME: &str = "sectorforge";

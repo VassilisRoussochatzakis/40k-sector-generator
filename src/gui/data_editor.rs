@@ -603,6 +603,7 @@ const WORLD_TYPE_OPTS: &[&str] = &[
     "Forge World",
     "Frontier World",
     "Hive World",
+    "Imperial World",
     "Industrial World",
     "Orbital",
     "Penal World",

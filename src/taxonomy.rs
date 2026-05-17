@@ -58,6 +58,7 @@ pub fn parse_world_type_variant(s: &str) -> Option<WorldType> {
         "ForgeWorld" => WorldType::ForgeWorld,
         "FrontierWorld" => WorldType::FrontierWorld,
         "HiveWorld" => WorldType::HiveWorld,
+        "ImperialWorld" => WorldType::ImperialWorld,
         "IndustrialWorld" => WorldType::IndustrialWorld,
         "Orbital" => WorldType::Orbital,
         "PenalWorld" => WorldType::PenalWorld,

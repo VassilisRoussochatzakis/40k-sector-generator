@@ -256,6 +256,7 @@ fn world_type_color(t: &str) -> Rgba<u8> {
         "ForgeWorld" => Rgba([220, 110, 50, 255]),
         "FrontierWorld" => Rgba([210, 190, 130, 255]),
         "HiveWorld" => Rgba([200, 80, 200, 255]),
+        "ImperialWorld" => Rgba([230, 220, 90, 255]),
         "IndustrialWorld" => Rgba([180, 110, 60, 255]),
         "Orbital" => Rgba([110, 200, 230, 255]),
         "PenalWorld" => Rgba([130, 60, 60, 255]),

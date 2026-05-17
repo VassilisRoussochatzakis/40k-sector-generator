@@ -100,6 +100,7 @@ pub fn world_type_color(t: &str) -> Color32 {
         "ForgeWorld" => Color32::from_rgb(220, 110, 50),
         "FrontierWorld" => Color32::from_rgb(210, 190, 130),
         "HiveWorld" => Color32::from_rgb(200, 80, 200),
+        "ImperialWorld" => Color32::from_rgb(230, 220, 90),
         "IndustrialWorld" => Color32::from_rgb(180, 110, 60),
         "Orbital" => Color32::from_rgb(110, 200, 230),
         "PenalWorld" => Color32::from_rgb(130, 60, 60),

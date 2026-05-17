@@ -29,6 +29,7 @@ pub const WORLD_TYPES: &[&str] = &[
     "ForgeWorld",
     "FrontierWorld",
     "HiveWorld",
+    "ImperialWorld",
     "IndustrialWorld",
     "Orbital",
     "PenalWorld",

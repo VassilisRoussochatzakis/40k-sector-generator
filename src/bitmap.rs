@@ -10,10 +10,31 @@
 use std::collections::HashMap;
 
 use camino::Utf8Path;
-use image::{Rgba, RgbaImage};
+use image::codecs::png::{CompressionType, FilterType, PngEncoder};
+use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
 
 use crate::errors::SectorError;
-use crate::sector_model::{GeneratedSector, RoutePattern, RouteStability, RouteType};
+use crate::sector_model::{
+    offset_r_neighbors, GeneratedSector, RoutePattern, RouteStability, RouteType,
+};
+use crate::subsectors::Subsector;
+
+/// Save an RGBA image as PNG using fast (low-CPU) deflate. Lossless.
+pub(crate) fn save_png_fast(img: &RgbaImage, path: &Utf8Path) -> Result<(), SectorError> {
+    let file = std::fs::File::create(path.as_std_path())
+        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+    let writer = std::io::BufWriter::new(file);
+    let encoder = PngEncoder::new_with_quality(writer, CompressionType::Fast, FilterType::NoFilter);
+    encoder
+        .write_image(
+            img.as_raw(),
+            img.width(),
+            img.height(),
+            ExtendedColorType::Rgba8,
+        )
+        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+    Ok(())
+}
 
 // ── Shared palette ──────────────────────────────────────────────────────────
 
@@ -23,6 +44,11 @@ pub(crate) const HEX_EMPTY: Rgba<u8> = Rgba([28, 26, 38, 255]);
 pub(crate) const HEX_OUTLINE: Rgba<u8> = Rgba([60, 55, 78, 255]);
 pub(crate) const TEXT: Rgba<u8> = Rgba([232, 228, 240, 255]);
 pub(crate) const TEXT_DIM: Rgba<u8> = Rgba([150, 145, 165, 255]);
+pub(crate) const SUBSECTOR_BORDER: Rgba<u8> = Rgba([160, 160, 160, 255]);
+pub(crate) const SUBSECTOR_LABEL: Rgba<u8> = Rgba([230, 195, 120, 255]);
+pub(crate) const SUBSECTOR_LABEL_BG: Rgba<u8> = Rgba([20, 16, 28, 255]);
+pub(crate) const CAPITAL_MARKER: Rgba<u8> = Rgba([255, 220, 100, 255]);
+pub(crate) const CAPITAL_OUTLINE: Rgba<u8> = Rgba([60, 40, 10, 255]);
 
 // ── Geometry ────────────────────────────────────────────────────────────────
 
@@ -61,8 +87,11 @@ pub fn write_bitmap(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
     scale: u32,
+    subsectors: Option<&[Subsector]>,
 ) -> Result<(), SectorError> {
-    write_image(sector, output_dir, "sector.png", scale)
+    let path = output_dir.join("sector.png");
+    let img = render(sector, scale, subsectors);
+    save_png_fast(&img, &path)
 }
 
 /// Render the sector PNG to an explicit file path (caller chooses the name).
@@ -70,29 +99,15 @@ pub fn write_sector_png_to(
     sector: &GeneratedSector,
     path: &Utf8Path,
     scale: u32,
+    subsectors: Option<&[Subsector]>,
 ) -> Result<(), SectorError> {
-    let img = render(sector, scale);
-    img.save(path.as_std_path())
-        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
-    Ok(())
-}
-
-fn write_image(
-    sector: &GeneratedSector,
-    output_dir: &Utf8Path,
-    filename: &str,
-    scale: u32,
-) -> Result<(), SectorError> {
-    let path = output_dir.join(filename);
-    let img = render(sector, scale);
-    img.save(path.as_std_path())
-        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
-    Ok(())
+    let img = render(sector, scale, subsectors);
+    save_png_fast(&img, path)
 }
 
 // ── Rendering ───────────────────────────────────────────────────────────────
 
-fn render(sector: &GeneratedSector, scale: u32) -> RgbaImage {
+fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>) -> RgbaImage {
     let g = Geom::new(scale);
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
@@ -102,9 +117,13 @@ fn render(sector: &GeneratedSector, scale: u32) -> RgbaImage {
     // when height > 1 to cover the staggered odd rows.
     let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
     let map_w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
+    // Extra band at the bottom for the system name label that sits under
+    // each hex (matches `map_size` in the GUI's sector_view).
+    let label_band = (g.hex_size * 0.55) as i32;
     let map_h = (g.margin as f32 * 2.0
         + (sector.height.saturating_sub(1)) as f32 * vert_step
-        + 2.0 * g.hex_size) as i32;
+        + 2.0 * g.hex_size) as i32
+        + label_band;
 
     let legend_h = legend_height(sector, &g);
     let total_w = map_w + g.legend_width;
@@ -112,9 +131,18 @@ fn render(sector: &GeneratedSector, scale: u32) -> RgbaImage {
 
     let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, BG);
 
+    let subs = subsectors.unwrap_or(&[]);
+
     draw_hex_grid(&mut img, sector, &g);
+    if !subs.is_empty() {
+        draw_subsector_borders(&mut img, sector, subs, &g);
+    }
     draw_routes(&mut img, sector, &g);
-    draw_systems(&mut img, sector, &g);
+    draw_systems(&mut img, sector, subs, &g);
+    if !subs.is_empty() {
+        draw_subsector_labels(&mut img, subs, &g);
+    }
+    draw_system_labels(&mut img, sector, &g);
 
     // Legend painted last so any overflow from the map gets clipped behind it.
     fill_rect(&mut img, map_w, 0, g.legend_width, total_h, PANEL_BG);
@@ -138,7 +166,9 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         centers.insert(sys.id.as_str(), (cx, cy));
     }
-    let thickness = 2 * g.scale;
+    // Match GUI: thickness scales with hex size, not just scale factor.
+    let thickness = ((g.hex_size * 0.08).max(2.0)) as i32;
+    let star_r = g.hex_size * star_radius_ratio();
     for route in &sector.routes {
         let (Some(&a), Some(&b)) = (
             centers.get(route.from_system_id.as_str()),
@@ -146,18 +176,45 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
         ) else {
             continue;
         };
+        let Some(((sx, sy), (ex, ey))) = shorten_to_star(a, b, star_r) else {
+            continue;
+        };
         let color = stability_color(route.stability);
         draw_route_line_thick(
             img,
-            a.0,
-            a.1,
-            b.0,
-            b.1,
+            sx,
+            sy,
+            ex,
+            ey,
             color,
             thickness,
             route.route_type.pattern(),
         );
     }
+}
+
+fn star_radius_ratio() -> f32 {
+    0.2016
+}
+
+fn shorten_to_star(a: (i32, i32), b: (i32, i32), star_r: f32) -> Option<((i32, i32), (i32, i32))> {
+    let dx = (b.0 - a.0) as f32;
+    let dy = (b.1 - a.1) as f32;
+    let len = (dx * dx + dy * dy).sqrt();
+    if len <= star_r * 2.0 {
+        return None;
+    }
+    let ux = dx / len;
+    let uy = dy / len;
+    let s = (
+        (a.0 as f32 + ux * star_r).round() as i32,
+        (a.1 as f32 + uy * star_r).round() as i32,
+    );
+    let e = (
+        (b.0 as f32 - ux * star_r).round() as i32,
+        (b.1 as f32 - uy * star_r).round() as i32,
+    );
+    Some((s, e))
 }
 
 /// Draws a line styled by `pattern`. For `Solid`, falls back to `draw_line_thick`.
@@ -212,33 +269,194 @@ pub(crate) fn draw_route_line_thick(
     }
 }
 
-fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
+fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, subsectors: &[Subsector], g: &Geom) {
+    let star_r = (g.hex_size * star_radius_ratio()) as i32;
+    let pip_scale = pip_text_scale(g);
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         let fill = star_color(&sys.star.colour_code);
-        // Slightly tinted hex fill behind the star.
-        draw_hex(img, cx, cy, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
-        // Star disk.
-        fill_circle(img, cx, cy, (g.hex_size * 0.42) as i32, fill);
-        // Outline ring.
-        draw_circle(img, cx, cy, (g.hex_size * 0.42) as i32, darken(fill, 0.55));
-        // Small world-count pip on the lower-right.
-        let pip = sys.worlds.len().min(99);
+        // Star disk (no tinted hex fill; matches GUI sector view).
+        fill_circle(img, cx, cy, star_r, fill);
+        draw_circle(img, cx, cy, star_r, darken(fill, 0.55));
+
+        // Subsector capital marker: gold diamond above the star.
+        if subsectors
+            .iter()
+            .any(|s| s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str()))
+        {
+            draw_capital_marker(img, cx, cy, g.hex_size);
+        }
+
+        // World-count pip on the lower-right of the hex.
+        let pip = sys.worlds.len();
         if pip > 0 {
             let label = format!("{pip}");
-            let scale = g.text_scale;
-            let (tw, th) = text_size(&label, scale);
+            let (tw, th) = text_size(&label, pip_scale);
             let tx = cx + (g.hex_size * 0.55) as i32 - tw;
             let ty = cy + (g.hex_size * 0.55) as i32 - th;
-            draw_text(img, tx, ty, &label, TEXT, scale);
+            draw_text(img, tx, ty, &label, TEXT, pip_scale);
         }
-        // Short system label under the hex (numeric tail only, e.g. "0017").
-        let label = short_system_label(&sys.id);
-        let scale = g.text_scale;
-        let (tw, _) = text_size(&label, scale);
+    }
+}
+
+fn pip_text_scale(g: &Geom) -> i32 {
+    (((g.hex_size * 0.34) / GLYPH_H as f32).round() as i32).max(1)
+}
+
+fn system_label_scale(g: &Geom) -> i32 {
+    (((g.hex_size * 0.28) / GLYPH_H as f32).round() as i32).max(1)
+}
+
+fn subsector_label_scale(g: &Geom) -> i32 {
+    (((g.hex_size * 0.36) / GLYPH_H as f32).round() as i32).max(1)
+}
+
+fn draw_system_labels(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
+    let scale = system_label_scale(g);
+    let pad_x = 3 * g.scale;
+    let pad_y = 1 * g.scale;
+    for sys in &sector.systems {
+        let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
+        let label = sys.name.to_ascii_uppercase();
+        let (tw, th) = text_size(&label, scale);
         let tx = cx - tw / 2;
-        let ty = cy + g.hex_size as i32 + 2 * g.scale;
+        let ty = cy + g.hex_size as i32 + 3 * g.scale;
+        // Pill background so the label stays readable when an adjacent
+        // row's hex tip pokes through.
+        fill_rect(
+            img,
+            tx - pad_x,
+            ty - pad_y,
+            tw + pad_x * 2,
+            th + pad_y * 2,
+            BG,
+        );
         draw_text(img, tx, ty, &label, TEXT_DIM, scale);
+    }
+}
+
+fn draw_capital_marker(img: &mut RgbaImage, cx: i32, cy: i32, hex_size: f32) {
+    let r = ((hex_size * 0.15).max(3.5)).round() as i32;
+    let dy = -((hex_size * 0.55).round() as i32);
+    let center_y = cy + dy;
+    let pts = [
+        (cx, center_y - r),
+        (cx + r, center_y),
+        (cx, center_y + r),
+        (cx - r, center_y),
+    ];
+    fill_polygon(img, &pts, CAPITAL_MARKER);
+    for i in 0..4 {
+        let (ax, ay) = pts[i];
+        let (bx, by) = pts[(i + 1) % 4];
+        draw_line(img, ax, ay, bx, by, CAPITAL_OUTLINE);
+    }
+}
+
+fn draw_subsector_borders(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    subsectors: &[Subsector],
+    g: &Geom,
+) {
+    let mut owner: HashMap<(i32, i32), &str> = HashMap::new();
+    for s in subsectors {
+        for &(q, r) in &s.hex_cells {
+            owner.insert((q as i32, r as i32), s.id.as_str());
+        }
+    }
+    if owner.is_empty() {
+        return;
+    }
+    let border_thick = (g.hex_size * 0.10).max(2.5);
+    let dot_radius = ((border_thick * 0.8).max(2.0)).round() as i32;
+    let spacing = dot_radius as f32 * 2.5;
+    for r in 0..sector.height as i32 {
+        let deltas = offset_r_neighbors(r);
+        for q in 0..sector.width as i32 {
+            let Some(here_id) = owner.get(&(q, r)).copied() else {
+                continue;
+            };
+            let (cx, cy) = hex_center(q, r, g);
+            let v = hex_vertices(cx, cy, g.hex_size);
+            for (i, (dq, dr)) in deltas.iter().enumerate() {
+                let other = owner.get(&(q + dq, r + dr)).copied();
+                let differs = match other {
+                    Some(id) => id != here_id,
+                    None => true,
+                };
+                if !differs {
+                    continue;
+                }
+                let a = v[i];
+                let b = v[(i + 1) % 6];
+                let edge_len = (((b.0 - a.0) as f32).powi(2) + ((b.1 - a.1) as f32).powi(2)).sqrt();
+                let segments = (edge_len / spacing).ceil() as usize;
+                for j in 0..=segments {
+                    let t = j as f32 / segments as f32;
+                    let mx = (a.0 as f32 + (b.0 - a.0) as f32 * t).round() as i32;
+                    let my = (a.1 as f32 + (b.1 - a.1) as f32 * t).round() as i32;
+                    fill_circle(img, mx, my, dot_radius, SUBSECTOR_BORDER);
+                }
+            }
+        }
+    }
+}
+
+fn draw_subsector_labels(img: &mut RgbaImage, subsectors: &[Subsector], g: &Geom) {
+    let scale = subsector_label_scale(g);
+    let line_gap = 2 * g.scale;
+    let pad_x = 6 * g.scale;
+    let pad_y = 2 * g.scale;
+    for s in subsectors {
+        if s.system_ids.is_empty() || s.hex_cells.is_empty() {
+            continue;
+        }
+        // Anchor: topmost row, then leftmost q within that row.
+        let mut anchor = s.hex_cells[0];
+        for &(q, r) in &s.hex_cells {
+            if r < anchor.1 || (r == anchor.1 && q < anchor.0) {
+                anchor = (q, r);
+            }
+        }
+        let (cx, cy) = hex_center(anchor.0 as i32, anchor.1 as i32, g);
+        let top = "SUBSECTOR";
+        let bot_owned: String;
+        let bot: &str = {
+            let raw = s.name.strip_prefix("Subsector ").unwrap_or(s.name.as_str());
+            bot_owned = raw.to_ascii_uppercase();
+            bot_owned.as_str()
+        };
+        let (tw_top, th_top) = text_size(top, scale);
+        let (tw_bot, th_bot) = text_size(bot, scale);
+        let block_w = tw_top.max(tw_bot);
+        let block_h = th_top + line_gap + th_bot;
+        let block_top_y = cy - g.hex_size as i32 - block_h - 2 * g.scale;
+        let block_min_x = cx - block_w / 2;
+        fill_rect(
+            img,
+            block_min_x - pad_x,
+            block_top_y - pad_y,
+            block_w + pad_x * 2,
+            block_h + pad_y * 2,
+            SUBSECTOR_LABEL_BG,
+        );
+        draw_text(
+            img,
+            cx - tw_top / 2,
+            block_top_y,
+            top,
+            SUBSECTOR_LABEL,
+            scale,
+        );
+        draw_text(
+            img,
+            cx - tw_bot / 2,
+            block_top_y + th_top + line_gap,
+            bot,
+            SUBSECTOR_LABEL,
+            scale,
+        );
     }
 }
 
@@ -416,22 +634,78 @@ fn draw_hex(img: &mut RgbaImage, cx: i32, cy: i32, size: f32, fill: Rgba<u8>, ou
 
 // ── Drawing primitives (shared with system_map) ─────────────────────────────
 
+#[inline]
 pub(crate) fn put_pixel(img: &mut RgbaImage, x: i32, y: i32, color: Rgba<u8>) {
-    if x < 0 || y < 0 {
-        return;
-    }
     let (w, h) = (img.width() as i32, img.height() as i32);
-    if x >= w || y >= h {
+    if x < 0 || y < 0 || x >= w || y >= h {
         return;
     }
-    img.put_pixel(x as u32, y as u32, color);
+    let stride = w as usize * 4;
+    let idx = y as usize * stride + x as usize * 4;
+    let buf = img.as_mut();
+    buf[idx] = color.0[0];
+    buf[idx + 1] = color.0[1];
+    buf[idx + 2] = color.0[2];
+    buf[idx + 3] = color.0[3];
+}
+
+/// Fast horizontal span fill (inclusive end x1). Clipped, single row slice write.
+#[inline]
+pub(crate) fn fill_row(img: &mut RgbaImage, x0: i32, x1: i32, y: i32, color: Rgba<u8>) {
+    let iw = img.width() as i32;
+    let ih = img.height() as i32;
+    if y < 0 || y >= ih {
+        return;
+    }
+    let xs = x0.max(0);
+    let xe = (x1 + 1).min(iw);
+    if xs >= xe {
+        return;
+    }
+    let stride = iw as usize * 4;
+    let row_start = y as usize * stride + xs as usize * 4;
+    let row_end = y as usize * stride + xe as usize * 4;
+    let c = color.0;
+    let buf = img.as_mut();
+    for px in buf[row_start..row_end].chunks_exact_mut(4) {
+        px[0] = c[0];
+        px[1] = c[1];
+        px[2] = c[2];
+        px[3] = c[3];
+    }
 }
 
 pub(crate) fn fill_rect(img: &mut RgbaImage, x: i32, y: i32, w: i32, h: i32, color: Rgba<u8>) {
-    for yy in y..y + h {
-        for xx in x..x + w {
-            put_pixel(img, xx, yy, color);
+    if w <= 0 || h <= 0 {
+        return;
+    }
+    let iw = img.width() as i32;
+    let ih = img.height() as i32;
+    let x0 = x.max(0);
+    let y0 = y.max(0);
+    let x1 = (x + w).min(iw);
+    let y1 = (y + h).min(ih);
+    if x0 >= x1 || y0 >= y1 {
+        return;
+    }
+    let stride = iw as usize * 4;
+    let row_bytes = (x1 - x0) as usize * 4;
+    let c = color.0;
+    let buf = img.as_mut();
+    // Build the first row, then memcpy it to subsequent rows.
+    let first_start = y0 as usize * stride + x0 as usize * 4;
+    {
+        let row = &mut buf[first_start..first_start + row_bytes];
+        for px in row.chunks_exact_mut(4) {
+            px[0] = c[0];
+            px[1] = c[1];
+            px[2] = c[2];
+            px[3] = c[3];
         }
+    }
+    for yy in (y0 + 1)..y1 {
+        let dst_start = yy as usize * stride + x0 as usize * 4;
+        buf.copy_within(first_start..first_start + row_bytes, dst_start);
     }
 }
 
@@ -482,39 +756,56 @@ pub(crate) fn draw_line_thick(
     color: Rgba<u8>,
     thickness: i32,
 ) {
+    if thickness <= 1 {
+        draw_line(img, x0, y0, x1, y1, color);
+        return;
+    }
+    // Single Bresenham pass; stamp a `thickness × thickness` block at each step.
     let half = thickness / 2;
-    for ox in -half..=half {
-        for oy in -half..=half {
-            draw_line(img, x0 + ox, y0 + oy, x1 + ox, y1 + oy, color);
+    let dx = (x1 - x0).abs();
+    let dy = -(y1 - y0).abs();
+    let sx = if x0 < x1 { 1 } else { -1 };
+    let sy = if y0 < y1 { 1 } else { -1 };
+    let mut err = dx + dy;
+    let (mut x, mut y) = (x0, y0);
+    loop {
+        fill_rect(img, x - half, y - half, thickness, thickness, color);
+        if x == x1 && y == y1 {
+            break;
+        }
+        let e2 = 2 * err;
+        if e2 >= dy {
+            err += dy;
+            x += sx;
+        }
+        if e2 <= dx {
+            err += dx;
+            y += sy;
         }
     }
 }
 
 pub(crate) fn fill_circle(img: &mut RgbaImage, cx: i32, cy: i32, radius: i32, color: Rgba<u8>) {
+    if radius < 0 {
+        return;
+    }
     let r2 = radius * radius;
     for dy in -radius..=radius {
-        for dx in -radius..=radius {
-            if dx * dx + dy * dy <= r2 {
-                put_pixel(img, cx + dx, cy + dy, color);
-            }
+        let max_dx2 = r2 - dy * dy;
+        if max_dx2 < 0 {
+            continue;
         }
+        let dx = (max_dx2 as f32).sqrt() as i32;
+        fill_row(img, cx - dx, cx + dx, cy + dy, color);
     }
 }
 
 pub(crate) fn draw_circle(img: &mut RgbaImage, cx: i32, cy: i32, radius: i32, color: Rgba<u8>) {
-    let r2 = radius * radius;
-    let r2_in = (radius - 1).max(0) * (radius - 1).max(0);
-    for dy in -radius..=radius {
-        for dx in -radius..=radius {
-            let d = dx * dx + dy * dy;
-            if d <= r2 && d >= r2_in {
-                put_pixel(img, cx + dx, cy + dy, color);
-            }
-        }
-    }
+    // 1-px annulus between radius and radius-1.
+    draw_ring(img, cx, cy, radius, 1, color);
 }
 
-/// Draw a single-pixel circle stroke of the given thickness.
+/// Draw a circle stroke of the given thickness.
 pub(crate) fn draw_ring(
     img: &mut RgbaImage,
     cx: i32,
@@ -528,11 +819,18 @@ pub(crate) fn draw_ring(
     let outer2 = outer * outer;
     let inner2 = inner * inner;
     for dy in -outer..=outer {
-        for dx in -outer..=outer {
-            let d = dx * dx + dy * dy;
-            if d <= outer2 && d >= inner2 {
-                put_pixel(img, cx + dx, cy + dy, color);
-            }
+        let dy2 = dy * dy;
+        if dy2 > outer2 {
+            continue;
+        }
+        let outer_dx = ((outer2 - dy2) as f32).sqrt() as i32;
+        let y = cy + dy;
+        if dy2 >= inner2 {
+            fill_row(img, cx - outer_dx, cx + outer_dx, y, color);
+        } else {
+            let inner_dx = ((inner2 - dy2) as f32).sqrt() as i32;
+            fill_row(img, cx - outer_dx, cx - inner_dx - 1, y, color);
+            fill_row(img, cx + inner_dx + 1, cx + outer_dx, y, color);
         }
     }
 }
@@ -543,8 +841,9 @@ fn fill_polygon(img: &mut RgbaImage, pts: &[(i32, i32)], color: Rgba<u8>) {
     }
     let ymin = pts.iter().map(|p| p.1).min().unwrap();
     let ymax = pts.iter().map(|p| p.1).max().unwrap();
+    let mut xs: Vec<i32> = Vec::with_capacity(pts.len());
     for y in ymin..=ymax {
-        let mut xs: Vec<i32> = Vec::with_capacity(pts.len());
+        xs.clear();
         for i in 0..pts.len() {
             let (ax, ay) = pts[i];
             let (bx, by) = pts[(i + 1) % pts.len()];
@@ -557,9 +856,7 @@ fn fill_polygon(img: &mut RgbaImage, pts: &[(i32, i32)], color: Rgba<u8>) {
         xs.sort_unstable();
         let mut i = 0;
         while i + 1 < xs.len() {
-            for x in xs[i]..=xs[i + 1] {
-                put_pixel(img, x, y, color);
-            }
+            fill_row(img, xs[i], xs[i + 1], y, color);
             i += 2;
         }
     }
@@ -593,10 +890,10 @@ fn draw_glyph(img: &mut RgbaImage, x: i32, y: i32, c: char, color: Rgba<u8>, sca
             if bits & mask != 0 {
                 let px = x + col * scale;
                 let py = y + row as i32 * scale;
-                for dy in 0..scale {
-                    for dx in 0..scale {
-                        put_pixel(img, px + dx, py + dy, color);
-                    }
+                if scale == 1 {
+                    put_pixel(img, px, py, color);
+                } else {
+                    fill_rect(img, px, py, scale, scale, color);
                 }
             }
         }
@@ -801,12 +1098,6 @@ pub(crate) fn darken(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
     ])
 }
 
-fn short_system_label(id: &str) -> String {
-    // Use the tail after the last '-' if present, else the full id, uppercased.
-    let tail = id.rsplit('-').next().unwrap_or(id);
-    tail.to_ascii_uppercase()
-}
-
 pub(crate) fn short(s: &str, max: usize) -> String {
     if s.chars().count() <= max {
         s.to_string()
@@ -877,7 +1168,7 @@ mod tests {
     #[test]
     fn renders_without_panicking() {
         let s = sample_sector();
-        let img = render(&s, 1);
+        let img = render(&s, 1, None);
         assert!(img.width() > 0);
         assert!(img.height() > 0);
     }
@@ -885,8 +1176,8 @@ mod tests {
     #[test]
     fn scaled_render_is_larger() {
         let s = sample_sector();
-        let small = render(&s, 1);
-        let big = render(&s, 4);
+        let small = render(&s, 1, None);
+        let big = render(&s, 4, None);
         assert!(big.width() >= small.width() * 3);
         assert!(big.height() >= small.height() * 3);
     }

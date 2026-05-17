@@ -29,7 +29,7 @@ pub fn export_all(
             OutputFormat::Markdown => write_markdown(sector, output_dir)?,
             OutputFormat::Csv => write_csv(sector, output_dir)?,
             OutputFormat::Bitmap => {
-                crate::bitmap::write_bitmap(sector, output_dir, bm.sector_scale)?;
+                crate::bitmap::write_bitmap(sector, output_dir, bm.sector_scale, None)?;
                 wrote_image = true;
             }
         }

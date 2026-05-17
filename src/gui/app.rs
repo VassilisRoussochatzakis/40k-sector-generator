@@ -1005,7 +1005,12 @@ impl App {
                     self.export_status = "path is not valid utf-8".into();
                     return;
                 };
-                match crate::bitmap::write_sector_png_to(&sector, &p, scale) {
+                let subs = if self.subsectors.is_empty() {
+                    None
+                } else {
+                    Some(self.subsectors.as_slice())
+                };
+                match crate::bitmap::write_sector_png_to(&sector, &p, scale, subs) {
                     Ok(()) => self.export_status = format!("exported {}", p),
                     Err(e) => self.export_status = format!("export failed: {}", e),
                 }

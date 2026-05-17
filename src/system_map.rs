@@ -11,8 +11,8 @@ use camino::Utf8Path;
 use image::{Rgba, RgbaImage};
 
 use crate::bitmap::{
-    darken, draw_circle, draw_rect_outline, draw_ring, draw_text, fill_circle, fill_rect, short,
-    star_color, text_size, tint, BG, PANEL_BG, TEXT, TEXT_DIM,
+    darken, draw_circle, draw_rect_outline, draw_ring, draw_text, fill_circle, fill_rect,
+    save_png_fast, short, star_color, text_size, tint, BG, PANEL_BG, TEXT, TEXT_DIM,
 };
 use crate::errors::SectorError;
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
@@ -36,8 +36,7 @@ pub fn write_system_maps(
     for sys in &sector.systems {
         let path = systems_dir.join(format!("{}.png", sys.id));
         let img = render_system(sys, scale);
-        img.save(path.as_std_path())
-            .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+        save_png_fast(&img, &path)?;
     }
     Ok(())
 }
@@ -49,9 +48,7 @@ pub fn write_one_system_png(
     scale: u32,
 ) -> Result<(), SectorError> {
     let img = render_system(sys, scale);
-    img.save(path.as_std_path())
-        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
-    Ok(())
+    save_png_fast(&img, path)
 }
 
 struct SysGeom {
@@ -69,14 +66,23 @@ struct SysGeom {
 }
 
 impl SysGeom {
-    fn new(scale: u32) -> Self {
+    fn new(scale: u32, max_orbit: i32) -> Self {
         let s = (scale.clamp(1, MAX_SCALE)) as i32;
+        let side = 720 * s;
+        // Match the GUI: orbit_step is sized so the outermost orbit fits inside
+        // ~45% of the side, regardless of orbit count. Old code hard-coded 50
+        // and lost planets at orbit >= 7. Floor at 20*s so a 1-orbit system
+        // still has room for the planet disk.
+        let usable = (side as f32) * 0.45;
+        let orbit_base = ((side as f32) * 0.13) as i32;
+        let max_o = max_orbit.max(1) as f32;
+        let step_f = ((usable - orbit_base as f32) / max_o).max(20.0 * s as f32);
         Self {
             scale: s,
-            side: 720 * s,
+            side,
             star_r: 40 * s,
-            orbit_base: 90 * s,
-            orbit_step: 50 * s,
+            orbit_base,
+            orbit_step: step_f.round() as i32,
             planet_r: 22 * s,
             legend_w: 360 * s,
             legend_pad: 18 * s,
@@ -88,7 +94,8 @@ impl SysGeom {
 }
 
 fn render_system(sys: &GeneratedSystem, scale: u32) -> RgbaImage {
-    let g = SysGeom::new(scale);
+    let max_orbit = i32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0));
+    let g = SysGeom::new(scale, max_orbit);
     let total_w = g.side + g.legend_w;
     let total_h = g.side;
     let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, BG);
@@ -96,7 +103,6 @@ fn render_system(sys: &GeneratedSystem, scale: u32) -> RgbaImage {
     let cy = g.side / 2;
 
     // Orbits — one dim ring per occupied orbit slot.
-    let max_orbit = i32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0));
     for o in 1..=max_orbit.max(1) {
         let r = g.orbit_base + (o - 1) * g.orbit_step;
         draw_ring(&mut img, cx, cy, r, g.scale, Rgba([55, 50, 72, 255]));

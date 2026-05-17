@@ -7,8 +7,8 @@ use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 use crate::sector_model::GeneratedSector;
 
 use super::palette::{
-    self, darken, stability_color, star_color, HEX_EMPTY, HEX_OUTLINE, PATH_HIGHLIGHT,
-    PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
+    self, darken, draw_route_line, stability_color, star_color, HEX_EMPTY, HEX_OUTLINE,
+    PATH_HIGHLIGHT, PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
 };
 
 pub struct SectorView<'a> {
@@ -69,9 +69,13 @@ impl<'a> SectorView<'a> {
             let Some((a2, b2)) = shorten(a, b) else {
                 continue;
             };
-            painter.line_segment(
-                [a2, b2],
-                Stroke::new(route_thickness, stability_color(route.stability)),
+            draw_route_line(
+                &painter,
+                a2,
+                b2,
+                route_thickness,
+                stability_color(route.stability),
+                route.route_type.pattern(),
             );
         }
 
@@ -247,4 +251,3 @@ fn draw_hex_outline_only(
         painter.line_segment([pts[i], pts[(i + 1) % 6]], Stroke::new(thickness, color));
     }
 }
-

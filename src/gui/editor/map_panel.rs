@@ -45,12 +45,13 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
             centers.get(route.from_system_id.as_str()),
             centers.get(route.to_system_id.as_str()),
         ) {
-            painter.line_segment(
-                [a, b],
-                Stroke::new(
-                    route_thickness,
-                    crate::gui::palette::stability_color(route.stability),
-                ),
+            crate::gui::palette::draw_route_line(
+                &painter,
+                a,
+                b,
+                route_thickness,
+                crate::gui::palette::stability_color(route.stability),
+                route.route_type.pattern(),
             );
         }
     }

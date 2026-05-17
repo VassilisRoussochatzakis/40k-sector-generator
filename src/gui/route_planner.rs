@@ -4,7 +4,7 @@
 //!   * `Safest`   — Dijkstra with hazard weights (avoid Unstable/Hazardous/Dangerous).
 //!   * `Shortest` — BFS over hops, all passable routes equal weight.
 //!
-//! `Lost` routes are always treated as impassable.
+//! `Perilous` routes are always treated as impassable.
 
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
@@ -159,7 +159,7 @@ struct Edge<'a> {
 fn build_adjacency(sector: &GeneratedSector) -> HashMap<&str, Vec<Edge<'_>>> {
     let mut adj: HashMap<&str, Vec<Edge<'_>>> = HashMap::new();
     for r in &sector.routes {
-        if matches!(r.stability, RouteStability::Lost) {
+        if matches!(r.stability, RouteStability::Perilous) {
             continue;
         }
         let w = edge_weight(r);
@@ -182,7 +182,7 @@ fn edge_weight(r: &GeneratedRoute) -> f64 {
         RouteStability::Stable => 1.0,
         RouteStability::Unstable => 3.0,
         RouteStability::Hazardous => 8.0,
-        RouteStability::Lost => f64::INFINITY,
+        RouteStability::Perilous => f64::INFINITY,
     };
     if matches!(r.route_type, RouteType::DangerousPassage) {
         w += 2.0;
@@ -336,7 +336,7 @@ fn classify(r: &GeneratedRoute) -> (Severity, String) {
         RouteStability::Stable => "stable",
         RouteStability::Unstable => "unstable warp currents",
         RouteStability::Hazardous => "hazardous — high attrition",
-        RouteStability::Lost => "lost",
+        RouteStability::Perilous => "perilous",
     };
     let type_label = match r.route_type {
         RouteType::StableWarpLane => None,

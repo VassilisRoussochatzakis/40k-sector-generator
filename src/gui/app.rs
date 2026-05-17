@@ -728,7 +728,8 @@ impl App {
             Some(p) => self.planner.plan = Some(p),
             None => {
                 self.planner.status =
-                    "no passable route — try the other metric or check for Lost lanes".to_string();
+                    "no passable route — try the other metric or check for Perilous lanes"
+                        .to_string();
             }
         }
     }

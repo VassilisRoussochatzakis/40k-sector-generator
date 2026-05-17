@@ -924,6 +924,29 @@ fn generate_routes(
         })
         .collect();
 
+    // Cap perilous routes at 10% of total. Excess downgraded to Hazardous.
+    let perilous_limit = ((routes.len() as f64) * 0.10).round() as usize;
+    if routes
+        .iter()
+        .filter(|r| r.stability == RouteStability::Perilous)
+        .count()
+        > perilous_limit
+    {
+        let remaining = std::cell::Cell::new(
+            routes
+                .iter()
+                .filter(|r| r.stability == RouteStability::Perilous)
+                .count()
+                .saturating_sub(perilous_limit),
+        );
+        for r in &mut routes {
+            if r.stability == RouteStability::Perilous && remaining.get() > 0 {
+                r.stability = RouteStability::Hazardous;
+                remaining.set(remaining.get() - 1);
+            }
+        }
+    }
+
     routes.sort_by(|a, b| a.id.cmp(&b.id));
     routes
 }
@@ -942,16 +965,19 @@ fn classify_route(
         .collect();
     let has = |tag: &str| tags.iter().any(|t| t.as_str() == tag);
     if has("feature:warp_phenomena") || has("feature:daemonic_corruption") {
+        if dist >= max_dist - 2 && dist < max_dist {
+            return (RouteType::DangerousPassage, RouteStability::Perilous);
+        }
         return (RouteType::DangerousPassage, RouteStability::Hazardous);
     }
     if has("feature:war_zone") {
-        return (RouteType::DangerousPassage, RouteStability::Unstable);
-    }
-    if has("feature:trade_hub") || has("feature:administrative_hub") {
-        return (RouteType::StableWarpLane, RouteStability::Stable);
+        return (RouteType::DangerousPassage, RouteStability::Perilous);
     }
     if dist >= max_dist {
         return (RouteType::ChartedPassage, RouteStability::Unstable);
+    }
+    if has("feature:trade_hub") || has("feature:administrative_hub") {
+        return (RouteType::StableWarpLane, RouteStability::Stable);
     }
     (RouteType::ChartedPassage, RouteStability::Stable)
 }

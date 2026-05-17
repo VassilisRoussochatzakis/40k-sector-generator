@@ -112,13 +112,53 @@ pub enum RouteType {
     SecretPassage,
 }
 
+impl RouteType {
+    pub fn pattern(self) -> RoutePattern {
+        match self {
+            RouteType::StableWarpLane => RoutePattern::Solid,
+            RouteType::ChartedPassage => RoutePattern::Dashed,
+            RouteType::DangerousPassage => RoutePattern::DotDash,
+            RouteType::SecretPassage => RoutePattern::Dotted,
+        }
+    }
+}
+
+/// Visual line pattern used to encode a `RouteType` on maps and legends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoutePattern {
+    Solid,
+    Dashed,
+    DotDash,
+    Dotted,
+}
+
+impl RoutePattern {
+    /// Alternating on/off run-lengths in multiples of the stroke unit.
+    /// An empty slice means a solid line.
+    /// Runs whose length is `<= 1.5` units are rendered as a dot (filled disc)
+    /// rather than a short rectangle, so dotted styles read clearly at low
+    /// thickness.
+    pub fn strides(self) -> &'static [f32] {
+        match self {
+            RoutePattern::Solid => &[],
+            // Long bars: easy to read at a glance, period ~3x the dotted period.
+            RoutePattern::Dashed => &[10.0, 5.0],
+            // Dash + two dots: compound shape so it can't be confused with
+            // a plain dash or a plain dot trail.
+            RoutePattern::DotDash => &[5.0, 2.0, 1.0, 2.0, 1.0, 4.0],
+            // Tight fine stippling.
+            RoutePattern::Dotted => &[1.0, 2.0],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RouteStability {
     Stable,
     Unstable,
     Hazardous,
-    Lost,
+    Perilous,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

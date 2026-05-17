@@ -3,9 +3,9 @@
 //! Ported from `bitmap.rs` / `system_map.rs` so the GUI matches the PNG export
 //! aesthetic. Keep all colors here so future restyling is one-file.
 
-use egui::Color32;
+use egui::{Color32, Pos2, Stroke};
 
-use crate::sector_model::RouteStability;
+use crate::sector_model::{RoutePattern, RouteStability};
 
 pub const BG: Color32 = Color32::from_rgb(14, 12, 20);
 pub const PANEL_BG: Color32 = Color32::from_rgb(22, 18, 30);
@@ -32,12 +32,58 @@ pub fn star_color(code: &str) -> Color32 {
     }
 }
 
+/// Renders a line from `a` to `b` using the given `pattern`. Solid patterns
+/// emit a single `line_segment`; dashed/dotted patterns walk the segment and
+/// stamp alternating on/off runs whose lengths scale with `thickness`. Short
+/// "dot" runs render as filled discs so the dotted style stays visible at
+/// thin strokes.
+pub fn draw_route_line(
+    painter: &egui::Painter,
+    a: Pos2,
+    b: Pos2,
+    thickness: f32,
+    color: Color32,
+    pattern: RoutePattern,
+) {
+    let strides = pattern.strides();
+    if strides.is_empty() {
+        painter.line_segment([a, b], Stroke::new(thickness, color));
+        return;
+    }
+    let unit = thickness.max(2.0);
+    let delta = b - a;
+    let total = delta.length();
+    if total <= 0.0 {
+        return;
+    }
+    let dir = delta / total;
+    let mut t = 0.0_f32;
+    let mut idx: usize = 0;
+    while t < total {
+        let stride = strides[idx % strides.len()];
+        let seg = stride * unit;
+        let next_t = (t + seg).min(total);
+        if idx % 2 == 0 {
+            let p0 = a + dir * t;
+            let p1 = a + dir * next_t;
+            if stride <= 1.5 {
+                let mid = p0 + (p1 - p0) * 0.5;
+                painter.circle_filled(mid, thickness * 0.6, color);
+            } else {
+                painter.line_segment([p0, p1], Stroke::new(thickness, color));
+            }
+        }
+        t = next_t;
+        idx += 1;
+    }
+}
+
 pub fn stability_color(s: RouteStability) -> Color32 {
     match s {
         RouteStability::Stable => Color32::from_rgb(110, 210, 130),
         RouteStability::Unstable => Color32::from_rgb(240, 200, 90),
         RouteStability::Hazardous => Color32::from_rgb(235, 90, 90),
-        RouteStability::Lost => ROUTE_DIM,
+        RouteStability::Perilous => Color32::from_rgb(165, 100, 215),
     }
 }
 

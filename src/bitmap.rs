@@ -13,7 +13,7 @@ use camino::Utf8Path;
 use image::{Rgba, RgbaImage};
 
 use crate::errors::SectorError;
-use crate::sector_model::{GeneratedSector, RouteStability};
+use crate::sector_model::{GeneratedSector, RoutePattern, RouteStability, RouteType};
 
 // ── Shared palette ──────────────────────────────────────────────────────────
 
@@ -23,7 +23,6 @@ pub(crate) const HEX_EMPTY: Rgba<u8> = Rgba([28, 26, 38, 255]);
 pub(crate) const HEX_OUTLINE: Rgba<u8> = Rgba([60, 55, 78, 255]);
 pub(crate) const TEXT: Rgba<u8> = Rgba([232, 228, 240, 255]);
 pub(crate) const TEXT_DIM: Rgba<u8> = Rgba([150, 145, 165, 255]);
-pub(crate) const ROUTE_DIM: Rgba<u8> = Rgba([90, 88, 110, 255]);
 
 // ── Geometry ────────────────────────────────────────────────────────────────
 
@@ -137,7 +136,68 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
             continue;
         };
         let color = stability_color(route.stability);
-        draw_line_thick(img, a.0, a.1, b.0, b.1, color, thickness);
+        draw_route_line_thick(
+            img,
+            a.0,
+            a.1,
+            b.0,
+            b.1,
+            color,
+            thickness,
+            route.route_type.pattern(),
+        );
+    }
+}
+
+/// Draws a line styled by `pattern`. For `Solid`, falls back to `draw_line_thick`.
+/// Dashes are sized as multiples of a `unit` that scales with `thickness`, so the
+/// pattern stays readable at any zoom. Short "dot" runs render as filled discs.
+pub(crate) fn draw_route_line_thick(
+    img: &mut RgbaImage,
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+    color: Rgba<u8>,
+    thickness: i32,
+    pattern: RoutePattern,
+) {
+    let strides = pattern.strides();
+    if strides.is_empty() {
+        draw_line_thick(img, x0, y0, x1, y1, color, thickness);
+        return;
+    }
+    let unit = (thickness as f32).max(2.0);
+    let dx = (x1 - x0) as f32;
+    let dy = (y1 - y0) as f32;
+    let total = (dx * dx + dy * dy).sqrt();
+    if total <= 0.0 {
+        return;
+    }
+    let ux = dx / total;
+    let uy = dy / total;
+    let mut t = 0.0_f32;
+    let mut idx: usize = 0;
+    while t < total {
+        let stride = strides[idx % strides.len()];
+        let seg = stride * unit;
+        let next_t = (t + seg).min(total);
+        if idx % 2 == 0 {
+            let sx = (x0 as f32 + ux * t).round() as i32;
+            let sy = (y0 as f32 + uy * t).round() as i32;
+            let ex = (x0 as f32 + ux * next_t).round() as i32;
+            let ey = (y0 as f32 + uy * next_t).round() as i32;
+            if stride <= 1.5 {
+                let mx = (sx + ex) / 2;
+                let my = (sy + ey) / 2;
+                let r = ((thickness as f32) * 0.6).round() as i32;
+                fill_circle(img, mx, my, r.max(1), color);
+            } else {
+                draw_line_thick(img, sx, sy, ex, ey, color, thickness);
+            }
+        }
+        t = next_t;
+        idx += 1;
     }
 }
 
@@ -172,9 +232,11 @@ fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
 }
 
 fn legend_height(sector: &GeneratedSector, g: &Geom) -> i32 {
-    // Header (3 lines) + spacer + 7 star rows + spacer + header + 4 stab rows
-    // + spacer + 1 footer line, with vertical pad on each side.
-    let lines = 3 + 1 + 7 + 1 + 1 + 4 + 1 + 1 + factions_visible(sector);
+    // title block (3) + spacer + 7 star rows + spacer
+    // + ROUTE TYPE header + 4 type rows + spacer
+    // + ROUTE STABILITY header + 4 stab rows + spacer
+    // + footer line, with vertical pad on each side.
+    let lines = 3 + 1 + 7 + 1 + 1 + 4 + 1 + 1 + 4 + 1 + 1 + factions_visible(sector);
     g.legend_pad * 2 + lines as i32 * g.line_h
 }
 
@@ -241,13 +303,36 @@ fn draw_legend(img: &mut RgbaImage, sector: &GeneratedSector, map_w: i32, g: &Ge
     }
     y += 4 * g.scale;
 
+    draw_text(img, x0, y, "ROUTE TYPE", TEXT, body);
+    y += line_h;
+    for (rtype, name) in [
+        (RouteType::StableWarpLane, "STABLE WARP LANE"),
+        (RouteType::ChartedPassage, "CHARTED PASSAGE"),
+        (RouteType::DangerousPassage, "DANGEROUS PASSAGE"),
+        (RouteType::SecretPassage, "SECRET PASSAGE"),
+    ] {
+        draw_route_line_thick(
+            img,
+            x0,
+            y + 8 * g.scale,
+            x0 + 30 * g.scale,
+            y + 8 * g.scale,
+            TEXT,
+            3 * g.scale,
+            rtype.pattern(),
+        );
+        draw_text(img, x0 + 38 * g.scale, y, name, TEXT, body);
+        y += line_h;
+    }
+    y += 4 * g.scale;
+
     draw_text(img, x0, y, "ROUTE STABILITY", TEXT, body);
     y += line_h;
     for (stab, name) in [
         (RouteStability::Stable, "STABLE"),
         (RouteStability::Unstable, "UNSTABLE"),
         (RouteStability::Hazardous, "HAZARDOUS"),
-        (RouteStability::Lost, "LOST"),
+        (RouteStability::Perilous, "PERILOUS"),
     ] {
         let color = stability_color(stab);
         draw_line_thick(
@@ -677,7 +762,7 @@ fn stability_color(s: RouteStability) -> Rgba<u8> {
         RouteStability::Stable => Rgba([110, 210, 130, 255]),
         RouteStability::Unstable => Rgba([240, 200, 90, 255]),
         RouteStability::Hazardous => Rgba([235, 90, 90, 255]),
-        RouteStability::Lost => ROUTE_DIM,
+        RouteStability::Perilous => Rgba([165, 100, 215, 255]),
     }
 }
 

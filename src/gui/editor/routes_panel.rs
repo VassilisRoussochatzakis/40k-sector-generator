@@ -177,7 +177,7 @@ fn route_stab_str(rs: RouteStability) -> &'static str {
         RouteStability::Stable => "stable",
         RouteStability::Unstable => "unstable",
         RouteStability::Hazardous => "hazardous",
-        RouteStability::Lost => "lost",
+        RouteStability::Perilous => "perilous",
     }
 }
 
@@ -186,7 +186,7 @@ fn route_stab_from_str(s: &str) -> Option<RouteStability> {
         "stable" => RouteStability::Stable,
         "unstable" => RouteStability::Unstable,
         "hazardous" => RouteStability::Hazardous,
-        "lost" => RouteStability::Lost,
+        "perilous" => RouteStability::Perilous,
         _ => return None,
     })
 }

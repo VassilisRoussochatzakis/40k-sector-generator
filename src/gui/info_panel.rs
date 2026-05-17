@@ -1,12 +1,13 @@
 //! Right-side info panel. One pure render fn per entity kind so layout is easy
 //! to tweak in isolation.
 
-use egui::{Color32, FontId, RichText, Ui};
+use egui::{Color32, FontId, Pos2, RichText, Ui, Vec2};
 
-use crate::sector_model::{GeneratedSector, GeneratedSystem, GeneratedWorld};
+use crate::sector_model::{GeneratedSector, GeneratedSystem, GeneratedWorld, RoutePattern};
 
 use super::palette::{
-    darken, stability_color, star_color, world_type_color, STAR_LEGEND, TEXT, TEXT_DIM,
+    darken, draw_route_line, stability_color, star_color, world_type_color, TEXT,
+    TEXT_DIM,
 };
 
 pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
@@ -24,9 +25,26 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
     );
     ui.add_space(8.0);
 
-    section(ui, "STAR COLOURS");
-    for (code, name) in STAR_LEGEND {
-        legend_row(ui, star_color(code), &format!("{code} - {name}"));
+    section(ui, "ROUTE TYPE");
+    for (rtype, name) in [
+        (
+            crate::sector_model::RouteType::StableWarpLane,
+            "STABLE WARP LANE",
+        ),
+        (
+            crate::sector_model::RouteType::ChartedPassage,
+            "CHARTED PASSAGE",
+        ),
+        (
+            crate::sector_model::RouteType::DangerousPassage,
+            "DANGEROUS PASSAGE",
+        ),
+        (
+            crate::sector_model::RouteType::SecretPassage,
+            "SECRET PASSAGE",
+        ),
+    ] {
+        legend_route_row(ui, TEXT, rtype.pattern(), name);
     }
     ui.add_space(8.0);
 
@@ -35,27 +53,12 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
         (crate::sector_model::RouteStability::Stable, "STABLE"),
         (crate::sector_model::RouteStability::Unstable, "UNSTABLE"),
         (crate::sector_model::RouteStability::Hazardous, "HAZARDOUS"),
-        (crate::sector_model::RouteStability::Lost, "LOST"),
+        (crate::sector_model::RouteStability::Perilous, "PERILOUS"),
     ] {
         legend_row(ui, stability_color(stab), name);
     }
     ui.add_space(8.0);
 
-    if !sector.factions.is_empty() {
-        section(ui, "FACTIONS");
-        for f in &sector.factions {
-            ui.label(
-                RichText::new(format!(
-                    "{} ({} SYS, {} WORLDS)",
-                    short(&f.name.to_uppercase(), 22),
-                    f.system_presence.len(),
-                    f.world_presence.len(),
-                ))
-                .color(TEXT_DIM)
-                .font(mono(13.0)),
-            );
-        }
-    }
 }
 
 pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem) {
@@ -249,6 +252,17 @@ fn legend_row(ui: &mut Ui, color: Color32, text: &str) {
         ui.painter().rect_filled(rect, 1.0, color);
         ui.painter()
             .rect_stroke(rect, 1.0, egui::Stroke::new(1.0, darken(color, 0.5)));
+        ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
+    });
+}
+
+fn legend_route_row(ui: &mut Ui, color: Color32, pattern: RoutePattern, text: &str) {
+    ui.horizontal(|ui| {
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(36.0, 12.0), egui::Sense::hover());
+        let y = rect.center().y;
+        let a = Pos2::new(rect.left(), y);
+        let b = Pos2::new(rect.right(), y);
+        draw_route_line(ui.painter(), a, b, 2.5, color, pattern);
         ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
     });
 }

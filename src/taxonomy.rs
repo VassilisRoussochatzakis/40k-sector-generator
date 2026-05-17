@@ -4,22 +4,18 @@
 //! Configs in this app use *variant* names (e.g. "HiveWorld"). Helpers here
 //! bridge both directions and provide stable snake_case tag forms.
 
-use crate::worlds::{
-    Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
-    Temperature, WorldType,
-};
+use crate::worlds::{Government, NotableFeature, StarColour, WorldType};
 
 /// Convert a CamelCase variant name like "HiveWorld" to "hive_world".
 pub fn to_snake_case(name: &str) -> String {
     let mut out = String::with_capacity(name.len() + 4);
-    for (i, ch) in name.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            let prev = name.chars().nth(i - 1).unwrap();
-            if !prev.is_uppercase() {
-                out.push('_');
-            }
+    let mut prev_upper = true;
+    for ch in name.chars() {
+        if ch.is_uppercase() && !prev_upper {
+            out.push('_');
         }
         out.extend(ch.to_lowercase());
+        prev_upper = ch.is_uppercase();
     }
     out
 }
@@ -47,18 +43,6 @@ pub fn parse_star_colour_variant(s: &str) -> Option<StarColour> {
         "RedDwarf" => Some(StarColour::RedDwarf),
         _ => None,
     }
-}
-
-pub fn all_star_colours() -> &'static [StarColour] {
-    &[
-        StarColour::BlueHypergiant,
-        StarColour::BlueWhite,
-        StarColour::White,
-        StarColour::YellowWhite,
-        StarColour::Yellow,
-        StarColour::OrangeDwarf,
-        StarColour::RedDwarf,
-    ]
 }
 
 pub fn parse_world_type_variant(s: &str) -> Option<WorldType> {
@@ -232,41 +216,6 @@ pub fn parse_notable_feature_variant(s: &str) -> Option<NotableFeature> {
     })
 }
 
-/// Display impls in worlds.rs use the Debug variant name (e.g. "HiveWorld"),
-/// so format!("{}", x) works for all enums *except* StarColour. These helpers
-/// provide a unified accessor.
-pub fn world_type_name(w: &WorldType) -> String {
-    format!("{w}")
-}
-
-pub fn atmosphere_name(a: &Atmosphere) -> String {
-    format!("{a}")
-}
-
-pub fn temperature_name(t: &Temperature) -> String {
-    format!("{t}")
-}
-
-pub fn biosphere_name(b: &Biosphere) -> String {
-    format!("{b}")
-}
-
-pub fn population_name(p: &Population) -> String {
-    format!("{p}")
-}
-
-pub fn tech_level_name(t: &TechLevel) -> String {
-    format!("{t}")
-}
-
-pub fn government_name(g: &Government) -> String {
-    format!("{g}")
-}
-
-pub fn notable_feature_name(f: &NotableFeature) -> String {
-    format!("{f}")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -282,8 +231,7 @@ mod tests {
     #[test]
     fn variant_name_round_trip_for_world_type() {
         let v = WorldType::HiveWorld;
-        let name = world_type_name(&v);
-        let parsed = parse_world_type_variant(&name).unwrap();
+        let parsed = parse_world_type_variant(&v.to_string()).unwrap();
         assert_eq!(parsed, v);
     }
 }

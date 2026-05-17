@@ -7,7 +7,7 @@ use camino::Utf8Path;
 use crate::config::{OutputConfig, OutputFormat};
 use crate::errors::SectorError;
 use crate::render;
-use crate::sector_model::{GeneratedRoute, GeneratedSector, GeneratedWorld};
+use crate::sector_model::{GeneratedRoute, GeneratedSector};
 
 pub fn export_all(
     sector: &GeneratedSector,
@@ -190,7 +190,6 @@ fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sect
         }
     }
     fs::write(&path, s).map_err(|e| SectorError::io(path.as_str(), e))?;
-    let _ = std::marker::PhantomData::<GeneratedWorld>;
     Ok(())
 }
 

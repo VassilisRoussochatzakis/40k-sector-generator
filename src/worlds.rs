@@ -397,67 +397,53 @@ impl KeyTables {
         let mut tables = Self::default();
 
         for row in range.rows().skip(1) {
-            // skip header
             if row.is_empty() {
                 continue;
             }
-            let cols: Vec<_> = row.iter().collect();
-            let get = |idx| cols.get(idx).copied();
+            let col = |idx: usize| row.get(idx).and_then(cell_str);
 
-            let a: Option<&str> = get(0).and_then(cell_str);
-            let b: Option<&str> = get(1).and_then(cell_str);
-            let c: Option<&str> = get(2).and_then(cell_str);
-            let d: Option<&str> = get(3).and_then(cell_str);
-            let e: Option<&str> = get(4).and_then(cell_str);
-            let f: Option<&str> = get(5).and_then(cell_str);
-            let g: Option<&str> = get(6).and_then(cell_str);
-            let h: Option<&str> = get(7).and_then(cell_str);
-            let i: Option<&str> = get(8).and_then(cell_str);
-
-            // Column A maps short codes to star colour enums
-            if let Some(code) = a {
-                if let Ok(colour) = code.parse::<StarColour>() {
-                    tables.star_colours.insert(code.to_owned(), colour);
+            if let Some(s) = col(0) {
+                if let Ok(v) = s.parse::<StarColour>() {
+                    tables.star_colours.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = b {
-                if let Ok(wt) = name.parse::<WorldType>() {
-                    tables.world_types.insert(name.to_owned(), wt);
+            if let Some(s) = col(1) {
+                if let Ok(v) = s.parse::<WorldType>() {
+                    tables.world_types.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = c {
-                if let Ok(atmo) = name.parse::<Atmosphere>() {
-                    tables.atmospheres.insert(name.to_owned(), atmo);
+            if let Some(s) = col(2) {
+                if let Ok(v) = s.parse::<Atmosphere>() {
+                    tables.atmospheres.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = d {
-                if let Ok(temp) = name.parse::<Temperature>() {
-                    tables.temperatures.insert(name.to_owned(), temp);
+            if let Some(s) = col(3) {
+                if let Ok(v) = s.parse::<Temperature>() {
+                    tables.temperatures.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = e {
-                if let Ok(bio) = name.parse::<Biosphere>() {
-                    tables.biospheres.insert(name.to_owned(), bio);
+            if let Some(s) = col(4) {
+                if let Ok(v) = s.parse::<Biosphere>() {
+                    tables.biospheres.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = f {
-                if let Ok(pop) = name.parse::<Population>() {
-                    tables.populations.insert(name.to_owned(), pop);
+            if let Some(s) = col(5) {
+                if let Ok(v) = s.parse::<Population>() {
+                    tables.populations.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = g {
-                if let Ok(tl) = name.parse::<TechLevel>() {
-                    tables.tech_levels.insert(name.to_owned(), tl);
+            if let Some(s) = col(6) {
+                if let Ok(v) = s.parse::<TechLevel>() {
+                    tables.tech_levels.insert(s.to_owned(), v);
                 }
             }
-            if let Some(name) = h {
-                if let Ok(gov) = name.parse::<Government>() {
-                    tables.governments.insert(name.to_owned(), gov);
+            if let Some(s) = col(7) {
+                if let Ok(v) = s.parse::<Government>() {
+                    tables.governments.insert(s.to_owned(), v);
                 }
             }
-            // Column I is just the display name list (101 features)
-            if let Some(name) = i {
-                tables.notable_features.push(name.to_owned());
+            if let Some(s) = col(8) {
+                tables.notable_features.push(s.to_owned());
             }
         }
 
@@ -483,66 +469,26 @@ impl std::str::FromStr for StarColour {
 
 /// Parse a single row from the Generator Template into a GenerationRow.
 fn parse_generation_row(row: &[Data]) -> GenerationRow {
-    // row.get() returns Option<&Data> -- cell_str takes &Data, so .and_then chains naturally
-
-    let star_colour = row
-        .get(0)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<StarColour>().ok());
-    let world_type = row
-        .get(1)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<WorldType>().ok());
-    let atmosphere = row
-        .get(2)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<Atmosphere>().ok());
-    let temperature = row
-        .get(3)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<Temperature>().ok());
-    let biosphere = row
-        .get(4)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<Biosphere>().ok());
-    let population = row
-        .get(5)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<Population>().ok());
-    let tech = row
-        .get(6)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<TechLevel>().ok());
-    let government = row
-        .get(7)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<Government>().ok());
-    let notable_feature = row
-        .get(8)
-        .and_then(cell_str)
-        .and_then(|s| s.parse::<NotableFeature>().ok());
-
-    // Col J -- counter (integer from COUNTIF)
-    let counter = row.get(9).and_then(cell_int).map(|n| n as usize);
-    // Col K -- weight formula result stored as number
-    let weight = row.get(10).and_then(|v| match *v {
-        Data::Float(f) => Some(f),
-        Data::Int(n) => Some(n as f64),
-        _ => None,
-    });
+    fn parse<T: std::str::FromStr>(row: &[Data], idx: usize) -> Option<T> {
+        row.get(idx).and_then(cell_str).and_then(|s| s.parse().ok())
+    }
 
     GenerationRow {
-        star_colour,
-        world_type,
-        atmosphere,
-        temperature,
-        biosphere,
-        population,
-        tech,
-        government,
-        notable_feature,
-        counter,
-        weight,
+        star_colour: parse(row, 0),
+        world_type: parse(row, 1),
+        atmosphere: parse(row, 2),
+        temperature: parse(row, 3),
+        biosphere: parse(row, 4),
+        population: parse(row, 5),
+        tech: parse(row, 6),
+        government: parse(row, 7),
+        notable_feature: parse(row, 8),
+        counter: row.get(9).and_then(cell_int).map(|n| n as usize),
+        weight: row.get(10).and_then(|v| match *v {
+            Data::Float(f) => Some(f),
+            Data::Int(n) => Some(n as f64),
+            _ => None,
+        }),
     }
 }
 

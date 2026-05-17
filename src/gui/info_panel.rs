@@ -6,7 +6,7 @@ use egui::{Color32, FontId, RichText, Ui};
 use crate::sector_model::{GeneratedSector, GeneratedSystem, GeneratedWorld};
 
 use super::palette::{
-    self, darken, stability_color, star_color, world_type_color, STAR_LEGEND, TEXT, TEXT_DIM,
+    darken, stability_color, star_color, world_type_color, STAR_LEGEND, TEXT, TEXT_DIM,
 };
 
 pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
@@ -245,9 +245,4 @@ fn short(s: &str, max: usize) -> String {
         out.push('.');
         out
     }
-}
-
-#[allow(unused)]
-fn _silence(_c: Color32, _p: Color32) {
-    let _ = palette::BG;
 }

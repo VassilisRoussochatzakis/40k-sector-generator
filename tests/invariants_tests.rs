@@ -56,7 +56,7 @@ fn invariants_detect_manifest_count_tamper() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
     let mut sector = sectorforge::generate_sector(input).unwrap();
-    sector.manifest.system_count = sector.manifest.system_count + 1;
+    sector.manifest.system_count += 1;
     let report = sectorforge::validate_sector(&sector);
     assert!(!report.ok);
     assert!(report

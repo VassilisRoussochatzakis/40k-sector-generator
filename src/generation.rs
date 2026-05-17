@@ -194,7 +194,6 @@ pub fn build_system(
         pool,
         names,
         system_index,
-        &sys_id,
         &name,
         star_colour,
         &mut sys_rng,
@@ -329,7 +328,6 @@ fn generate_worlds_for_system(
     pool: &WorldCandidatePool,
     names: &NameTables,
     system_index: usize,
-    sys_id: &str,
     system_name: &str,
     star_colour: StarColour,
     sys_rng: &mut ChaCha8Rng,
@@ -363,7 +361,7 @@ fn generate_worlds_for_system(
             .world_selection
             .avoid_duplicate_world_type_in_system
         {
-            used_world_types.insert(taxonomy::world_type_name(&cand.world_type));
+            used_world_types.insert(cand.world_type.to_string());
         }
 
         let features = pick_features(
@@ -393,8 +391,6 @@ fn generate_worlds_for_system(
     }
     // Sort by orbit for stable output.
     worlds.sort_by(|a, b| a.id.cmp(&b.id));
-    // Mark suppress-unused warning for sys_id - actually used:
-    let _ = sys_id;
     Ok(worlds)
 }
 
@@ -412,7 +408,7 @@ fn choose_world_candidate<'a>(
             continue;
         }
         if cfg.avoid_duplicate_world_type_in_system
-            && used_world_types.contains(&taxonomy::world_type_name(&c.world_type))
+            && used_world_types.contains(&c.world_type.to_string())
         {
             continue;
         }
@@ -460,10 +456,10 @@ fn pick_features(
 
     if let Some(f) = &cand.primary_feature {
         chosen.push(f.clone());
-        seen.insert(taxonomy::notable_feature_name(f));
+        seen.insert(f.to_string());
     }
 
-    let by_wt_key = taxonomy::world_type_name(&cand.world_type);
+    let by_wt_key = cand.world_type.to_string();
     let by_sc_key = taxonomy::star_colour_variant_name(star_colour).to_string();
 
     let tiers: Vec<Vec<crate::world_pool::WeightedFeature>> = vec![
@@ -495,23 +491,16 @@ fn pick_features(
         }
         let mut filtered: Vec<(NotableFeature, f64)> = tier
             .into_iter()
-            .filter(|wf| !seen.contains(&taxonomy::notable_feature_name(&wf.feature)))
+            .filter(|wf| !seen.contains(&wf.feature.to_string()))
             .map(|wf| (wf.feature, wf.weight))
             .collect();
         while chosen.len() < target_count && !filtered.is_empty() {
-            let pool_slice: Vec<(&NotableFeature, f64)> =
-                filtered.iter().map(|(f, w)| (f, *w)).collect();
-            let pool_pairs: Vec<(NotableFeature, f64)> = pool_slice
-                .into_iter()
-                .map(|(f, w)| (f.clone(), w))
-                .collect();
-            let idx = match weighted_index(&pool_pairs, rng, "feature") {
+            let idx = match weighted_index(&filtered, rng, "feature") {
                 Ok(i) => i,
                 Err(_) => break,
             };
             let (feature, _) = filtered.remove(idx);
-            let key = taxonomy::notable_feature_name(&feature);
-            if seen.insert(key) {
+            if seen.insert(feature.to_string()) {
                 chosen.push(feature);
             }
         }
@@ -561,44 +550,22 @@ fn pick_world_name(
 // ── Tags ──────────────────────────────────────────────────────────────────────
 
 fn tags_for_world(world: &crate::worlds::World) -> Vec<String> {
-    let mut tags: Vec<String> = Vec::new();
-    tags.push(format!(
-        "world_type:{}",
-        taxonomy::to_snake_case(&taxonomy::world_type_name(&world.world_type))
-    ));
-    tags.push(format!(
-        "atmosphere:{}",
-        taxonomy::to_snake_case(&taxonomy::atmosphere_name(&world.atmosphere))
-    ));
-    tags.push(format!(
-        "temperature:{}",
-        taxonomy::to_snake_case(&taxonomy::temperature_name(&world.temperature))
-    ));
-    tags.push(format!(
-        "biosphere:{}",
-        taxonomy::to_snake_case(&taxonomy::biosphere_name(&world.biosphere))
-    ));
-    tags.push(format!(
-        "population:{}",
-        taxonomy::to_snake_case(&taxonomy::population_name(&world.population))
-    ));
-    tags.push(format!(
-        "tech:{}",
-        taxonomy::to_snake_case(&taxonomy::tech_level_name(&world.tech_level))
-    ));
-    tags.push(format!(
-        "gov:{}",
-        taxonomy::to_snake_case(&taxonomy::government_name(&world.government))
-    ));
-    tags.push(format!(
-        "star:{}",
-        taxonomy::to_snake_case(taxonomy::star_colour_variant_name(world.star_colour))
-    ));
+    let snake = |s: &str| taxonomy::to_snake_case(s);
+    let mut tags: Vec<String> = vec![
+        format!("world_type:{}", snake(&world.world_type.to_string())),
+        format!("atmosphere:{}", snake(&world.atmosphere.to_string())),
+        format!("temperature:{}", snake(&world.temperature.to_string())),
+        format!("biosphere:{}", snake(&world.biosphere.to_string())),
+        format!("population:{}", snake(&world.population.to_string())),
+        format!("tech:{}", snake(&world.tech_level.to_string())),
+        format!("gov:{}", snake(&world.government.to_string())),
+        format!(
+            "star:{}",
+            snake(taxonomy::star_colour_variant_name(world.star_colour))
+        ),
+    ];
     for f in &world.notable_features {
-        tags.push(format!(
-            "feature:{}",
-            taxonomy::to_snake_case(&taxonomy::notable_feature_name(f))
-        ));
+        tags.push(format!("feature:{}", snake(&f.to_string())));
     }
     tags.sort();
     tags
@@ -928,13 +895,14 @@ fn generate_routes(
     let mut routes: Vec<GeneratedRoute> = chosen
         .into_iter()
         .map(|(i, j, dist, tags)| {
-            let from = systems[i].id.clone();
-            let to = systems[j].id.clone();
+            let a = systems[i].id.clone();
+            let b = systems[j].id.clone();
+            let (from_id, to_id) = if a <= b { (a, b) } else { (b, a) };
             let (rt, stab) = classify_route(&systems[i], &systems[j], dist, max_distance);
             GeneratedRoute {
-                id: ids::route_id(&from, &to),
-                from_system_id: if from <= to { from.clone() } else { to.clone() },
-                to_system_id: if from <= to { to } else { from },
+                id: ids::route_id(&from_id, &to_id),
+                from_system_id: from_id,
+                to_system_id: to_id,
                 distance: dist,
                 route_type: rt,
                 stability: stab,

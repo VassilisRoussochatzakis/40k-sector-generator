@@ -110,43 +110,21 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         &input.config.generation.world_selection,
     );
 
-    let mut key_counts: BTreeMap<String, usize> = BTreeMap::new();
-    key_counts.insert(
-        "star_colours".to_string(),
-        input.world_tables.star_colours.len(),
-    );
-    key_counts.insert(
-        "world_types".to_string(),
-        input.world_tables.world_types.len(),
-    );
-    key_counts.insert(
-        "atmospheres".to_string(),
-        input.world_tables.atmospheres.len(),
-    );
-    key_counts.insert(
-        "temperatures".to_string(),
-        input.world_tables.temperatures.len(),
-    );
-    key_counts.insert(
-        "biospheres".to_string(),
-        input.world_tables.biospheres.len(),
-    );
-    key_counts.insert(
-        "populations".to_string(),
-        input.world_tables.populations.len(),
-    );
-    key_counts.insert(
-        "tech_levels".to_string(),
-        input.world_tables.tech_levels.len(),
-    );
-    key_counts.insert(
-        "governments".to_string(),
-        input.world_tables.governments.len(),
-    );
-    key_counts.insert(
-        "notable_features".to_string(),
-        input.world_tables.notable_features.len(),
-    );
+    let t = &input.world_tables;
+    let key_counts: BTreeMap<String, usize> = [
+        ("star_colours", t.star_colours.len()),
+        ("world_types", t.world_types.len()),
+        ("atmospheres", t.atmospheres.len()),
+        ("temperatures", t.temperatures.len()),
+        ("biospheres", t.biospheres.len()),
+        ("populations", t.populations.len()),
+        ("tech_levels", t.tech_levels.len()),
+        ("governments", t.governments.len()),
+        ("notable_features", t.notable_features.len()),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_string(), v))
+    .collect();
 
     for (name, n) in &key_counts {
         if *n == 0 {

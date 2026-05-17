@@ -168,7 +168,7 @@ pub fn build_pool(
             };
             pool.feature_pool
                 .by_world_type
-                .entry(taxonomy::world_type_name(&cand.world_type))
+                .entry(cand.world_type.to_string())
                 .or_default()
                 .push(wf.clone());
             pool.feature_pool
@@ -248,19 +248,20 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     let cfg = WorldSelectionConfig::default();
     let pool = build_pool(&rows, &tables, &cfg);
 
-    let mut key_counts: BTreeMap<String, usize> = BTreeMap::new();
-    key_counts.insert("star_colours".to_string(), tables.star_colours.len());
-    key_counts.insert("world_types".to_string(), tables.world_types.len());
-    key_counts.insert("atmospheres".to_string(), tables.atmospheres.len());
-    key_counts.insert("temperatures".to_string(), tables.temperatures.len());
-    key_counts.insert("biospheres".to_string(), tables.biospheres.len());
-    key_counts.insert("populations".to_string(), tables.populations.len());
-    key_counts.insert("tech_levels".to_string(), tables.tech_levels.len());
-    key_counts.insert("governments".to_string(), tables.governments.len());
-    key_counts.insert(
-        "notable_features".to_string(),
-        tables.notable_features.len(),
-    );
+    let key_counts: BTreeMap<String, usize> = [
+        ("star_colours", tables.star_colours.len()),
+        ("world_types", tables.world_types.len()),
+        ("atmospheres", tables.atmospheres.len()),
+        ("temperatures", tables.temperatures.len()),
+        ("biospheres", tables.biospheres.len()),
+        ("populations", tables.populations.len()),
+        ("tech_levels", tables.tech_levels.len()),
+        ("governments", tables.governments.len()),
+        ("notable_features", tables.notable_features.len()),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_string(), v))
+    .collect();
 
     let mut star_totals: BTreeMap<String, f64> = BTreeMap::new();
     let mut wt_totals: BTreeMap<String, f64> = BTreeMap::new();
@@ -269,12 +270,9 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     for c in &pool.candidates {
         let sc_name = taxonomy::star_colour_variant_name(c.star_colour).to_string();
         *star_totals.entry(sc_name).or_insert(0.0) += c.weight;
-        let wt_name = taxonomy::world_type_name(&c.world_type);
-        *wt_totals.entry(wt_name).or_insert(0.0) += c.weight;
+        *wt_totals.entry(c.world_type.to_string()).or_insert(0.0) += c.weight;
         if let Some(f) = &c.primary_feature {
-            *feat_counts
-                .entry(taxonomy::notable_feature_name(f))
-                .or_insert(0) += 1;
+            *feat_counts.entry(f.to_string()).or_insert(0) += 1;
         }
     }
 

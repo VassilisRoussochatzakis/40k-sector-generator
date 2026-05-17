@@ -355,7 +355,7 @@ mod tests {
     fn clamps_above_max_scale() {
         let sys = sample_system();
         let img = render_system(&sys, MAX_SCALE + 10);
-        let expected = (720 + 360) * MAX_SCALE as u32;
+        let expected = (720 + 360) * MAX_SCALE;
         assert_eq!(img.width(), expected);
     }
 

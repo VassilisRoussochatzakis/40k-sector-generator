@@ -45,7 +45,15 @@ ensure_connected_graph = true
 
 [outputs]
 directory = "out"
-formats = ["json", "markdown", "csv"]
+formats = ["json", "markdown", "csv", "bitmap", "bmp"]
 pretty_json = true
 write_per_system_files = true
 write_manifest = true
+
+[outputs.bitmap]
+# Integer scale multipliers over the base design size. Range: 1..=8.
+# sector_scale = 5 lands around 3600x2300 (≈ 4K width).
+# system_scale = 4 lands around 4320x2880.
+sector_scale = 5
+system_scale = 4
+render_systems = true

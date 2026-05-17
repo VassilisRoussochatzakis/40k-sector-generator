@@ -89,6 +89,17 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         ));
     }
 
+    let bm = &input.config.outputs.bitmap;
+    for (name, v) in [("sector_scale", bm.sector_scale), ("system_scale", bm.system_scale)] {
+        if v == 0 || v > 8 {
+            errors.push(issue(
+                "OUT_BITMAP_SCALE_RANGE",
+                &format!("outputs.bitmap.{name} = {v}; must be in 1..=8"),
+                Severity::Error,
+            ));
+        }
+    }
+
     // ── World workbook ──────────────────────────────────────────────────────
     let pool = world_pool::build_pool(
         &input.world_rows,

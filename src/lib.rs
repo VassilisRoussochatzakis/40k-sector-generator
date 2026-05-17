@@ -7,6 +7,7 @@
 
 pub mod worlds;
 
+pub mod bitmap;
 pub mod config;
 pub mod errors;
 pub mod export;
@@ -18,6 +19,7 @@ pub mod names;
 pub mod rng;
 pub mod routes;
 pub mod sector_model;
+pub mod system_map;
 pub mod taxonomy;
 pub mod validation;
 pub mod world_pool;

@@ -12,7 +12,7 @@
     "data/names/world_names.toml": "blake3:1e1bdfab995f5705ab0fe631a35d03081c82e2828c35ed953b4426bd8863f511",
     "data/routes/route_rules.toml": "blake3:643f427180d3f3f264aa070d70c7ef17e365f45a5ce8eb8b37555bfa7731d7ef",
     "data/worlds/m42_sector_generator.xlsx": "blake3:f4e5e67130e50865ebe81ae48290c949f2c459b039584f9627621020af03fe80",
-    "sectorforge.toml": "blake3:0c7230a114e3af4d838da2f04624ffaad31c7c6674be38c862313d56a9af45f7"
+    "sectorforge.toml": "blake3:e36693bea3e5c7eb1ffe45dfc9c8d5f892e573704a5fccb5f3327d86807456c8"
   },
   "settings_digest": "blake3:80b96526b42a77168cdc865c6c82f0badbfbae2a9ee536f420909568ecf4ebfc",
   "system_count": 24,

@@ -20,12 +20,28 @@ pub fn export_all(
         write_validation_placeholder(sector, output_dir, output_config.pretty_json)?;
     }
 
+    let bm = &output_config.bitmap;
+    let mut wrote_image = false;
     for fmt in &output_config.formats {
         match fmt {
             OutputFormat::Json => write_json(sector, output_dir, output_config)?,
             OutputFormat::Markdown => write_markdown(sector, output_dir)?,
             OutputFormat::Csv => write_csv(sector, output_dir)?,
+            OutputFormat::Bitmap => {
+                crate::bitmap::write_bitmap(sector, output_dir, bm.sector_scale)?;
+                wrote_image = true;
+            }
+            OutputFormat::Bmp => {
+                crate::bitmap::write_bmp(sector, output_dir, bm.sector_scale)?;
+                wrote_image = true;
+            }
         }
+    }
+
+    // System maps are written whenever any image format is enabled and
+    // `bitmap.render_systems` is on.
+    if wrote_image && bm.render_systems {
+        crate::system_map::write_system_maps(sector, output_dir, bm.system_scale)?;
     }
 
     Ok(())

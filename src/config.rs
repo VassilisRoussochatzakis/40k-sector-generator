@@ -183,6 +183,37 @@ pub struct OutputConfig {
     pub write_manifest: bool,
     #[serde(default)]
     pub write_diagnostics: bool,
+    #[serde(default)]
+    pub bitmap: BitmapConfig,
+}
+
+/// Image render options for the bitmap exporters.
+///
+/// `sector_scale` and `system_scale` are integer multipliers over the base
+/// design size. The base sector map is ~720x460 with an 8x10 grid; at
+/// `sector_scale = 5` it lands around 3600x2300, i.e. ~4K. Valid range 1..=8.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct BitmapConfig {
+    #[serde(default = "default_scale")]
+    pub sector_scale: u32,
+    #[serde(default = "default_scale")]
+    pub system_scale: u32,
+    #[serde(default = "default_true")]
+    pub render_systems: bool,
+}
+
+impl Default for BitmapConfig {
+    fn default() -> Self {
+        Self {
+            sector_scale: default_scale(),
+            system_scale: default_scale(),
+            render_systems: true,
+        }
+    }
+}
+
+fn default_scale() -> u32 {
+    1
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -191,6 +222,10 @@ pub enum OutputFormat {
     Json,
     Markdown,
     Csv,
+    /// PNG hex map with legend.
+    Bitmap,
+    /// Windows .bmp hex map with legend.
+    Bmp,
 }
 
 fn default_true() -> bool {

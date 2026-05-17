@@ -28,7 +28,7 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
 | [src/lib.rs](src/lib.rs) | Public API surface |
-| [src/bitmap.rs](src/bitmap.rs) | Bitmap rendering (PNG/BMP via image crate) |
+| [src/bitmap.rs](src/bitmap.rs) | PNG rendering (via image crate) |
 | [src/gui/app.rs](src/gui/app.rs) | Top-level eframe app + navigation |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |

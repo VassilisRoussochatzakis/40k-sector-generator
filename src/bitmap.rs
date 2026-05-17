@@ -1,4 +1,4 @@
-//! Bitmap export: renders the sector as a PNG hex map with a legend.
+//! PNG export: renders the sector as a PNG hex map with a legend.
 //!
 //! Pure pixel work — no external font files. A small 5x7 monospace bitmap
 //! font is embedded below. Hex layout is pointy-top with odd-r offset rows,
@@ -64,14 +64,6 @@ pub fn write_bitmap(
     scale: u32,
 ) -> Result<(), SectorError> {
     write_image(sector, output_dir, "sector.png", scale)
-}
-
-pub fn write_bmp(
-    sector: &GeneratedSector,
-    output_dir: &Utf8Path,
-    scale: u32,
-) -> Result<(), SectorError> {
-    write_image(sector, output_dir, "sector.bmp", scale)
 }
 
 fn write_image(

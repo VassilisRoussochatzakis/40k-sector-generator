@@ -32,10 +32,6 @@ pub fn export_all(
                 crate::bitmap::write_bitmap(sector, output_dir, bm.sector_scale)?;
                 wrote_image = true;
             }
-            OutputFormat::Bmp => {
-                crate::bitmap::write_bmp(sector, output_dir, bm.sector_scale)?;
-                wrote_image = true;
-            }
         }
     }
 

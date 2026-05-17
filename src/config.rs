@@ -225,8 +225,6 @@ pub enum OutputFormat {
     Csv,
     /// PNG hex map with legend.
     Bitmap,
-    /// Windows .bmp hex map with legend.
-    Bmp,
 }
 
 fn default_true() -> bool {

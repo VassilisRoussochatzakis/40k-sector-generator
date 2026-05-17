@@ -222,7 +222,7 @@ ensure_connected_graph = true
 
 [outputs]
 directory                  = "out"
-formats                    = ["json", "markdown", "csv", "bitmap", "bmp"]
+formats                    = ["json", "markdown", "csv", "bitmap"]
 pretty_json                 = true
 write_per_system_files      = true
 write_manifest              = true
@@ -600,7 +600,7 @@ input digest so you can verify match before running.
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/rng.rs](src/rng.rs) | Stage-based deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name string to enum bridge |
-| [src/bitmap.rs](src/bitmap.rs) | Bitmap rendering (PNG/BMP via image crate) |
+| [src/bitmap.rs](src/bitmap.rs) | PNG rendering (via image crate) |
 | [src/gui/app.rs](src/gui/app.rs) | Top-level eframe app + navigation |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |

@@ -5,6 +5,7 @@
 //! capitals, and produces deterministic per-tile summaries. Pure derivation —
 //! `GeneratedSector` is not mutated.
 
+use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
@@ -373,10 +374,8 @@ pub fn build_subsectors(
 
     // Summaries.
     for cell in &mut cells {
-        let cell_id = cell.id.clone();
         populate_summary(
             cell,
-            &cell_id,
             &sys_by_id,
             &route_by_id,
             &route_degree,
@@ -463,6 +462,7 @@ fn slugify(s: &str) -> String {
 
 /// Greedy farthest-first seeding + Lloyd refinement over hex distance. Returns
 /// `(assignment[sys_idx] = cluster_idx, seed_indices[cluster_idx] = sys_idx)`.
+#[allow(clippy::needless_range_loop)]
 fn cluster_systems(
     sector: &GeneratedSector,
     route_degree: &BTreeMap<&str, u32>,
@@ -525,8 +525,7 @@ fn cluster_systems(
             }
         }
         match best {
-            Some((_, _, idx, id)) => {
-                let _ = id;
+            Some((_, _, idx, _)) => {
                 let sys_idx = sector
                     .systems
                     .iter()
@@ -752,17 +751,8 @@ fn resolve_system_owners(systems: &[GeneratedSystem]) -> BTreeMap<String, System
                     ownership_influence_weight(p.influence);
             }
             // Capital-like world bonus.
-            let capital_like = w
-                .tags
-                .iter()
-                .chain(w.world.notable_features.iter())
-                .any(|t| {
-                    let l = t.to_ascii_lowercase();
-                    l.contains("capital")
-                        || l.contains("admin")
-                        || l.contains("bureaucratic")
-                        || l.contains("seat")
-                });
+            let capital_like =
+                any_capital_like(w.tags.iter().chain(w.world.notable_features.iter()));
             if capital_like {
                 if let Some(owner) = inferred_owner.as_ref() {
                     *scores.entry(owner.clone()).or_default() += 4;
@@ -856,7 +846,6 @@ fn influence_rank_inclusive(i: FactionInfluence) -> u8 {
 #[allow(clippy::too_many_arguments)]
 fn populate_summary(
     cell: &mut Subsector,
-    cell_id: &str,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_by_id: &BTreeMap<&str, &GeneratedRoute>,
     route_degree: &BTreeMap<&str, u32>,
@@ -970,7 +959,6 @@ fn populate_summary(
     summary.subsector_capital_world_id = cap_world;
 
     cell.summary = summary;
-    let _ = cell_id;
 }
 
 fn dominant_influence_weight(i: FactionInfluence) -> i32 {
@@ -1161,8 +1149,6 @@ fn control_tier(leader_bp: u32, runner_bp: u32) -> &'static str {
         "contested"
     } else if leader_bp >= 1_000 {
         "presence"
-    } else if leader_bp > 0 {
-        "trace"
     } else {
         "trace"
     }
@@ -1229,8 +1215,39 @@ fn pick_capital(
     owners: &BTreeMap<String, SystemOwnership>,
     controlling_faction: Option<&str>,
 ) -> (Option<String>, Option<String>) {
-    let mut best: Option<(i32, i32, i32, i32, u32, usize, String, Option<String>)> = None;
-    // tuple: (sys_score, best_world_score, max_pop, max_prosperity, stable_deg, sys_index, sys_id, world_id)
+    struct Cand {
+        sys_score: i32,
+        world_score: i32,
+        max_pop: i32,
+        max_prosperity: i32,
+        stable_deg: u32,
+        sys_index: usize,
+        sys_id: String,
+        world_id: Option<String>,
+    }
+    type CandKey<'a> = (
+        Reverse<i32>,
+        Reverse<i32>,
+        Reverse<i32>,
+        Reverse<i32>,
+        Reverse<u32>,
+        usize,
+        &'a str,
+    );
+    impl Cand {
+        fn key(&self) -> CandKey<'_> {
+            (
+                Reverse(self.sys_score),
+                Reverse(self.world_score),
+                Reverse(self.max_pop),
+                Reverse(self.max_prosperity),
+                Reverse(self.stable_deg),
+                self.sys_index,
+                self.sys_id.as_str(),
+            )
+        }
+    }
+    let mut best: Option<Cand> = None;
 
     for sid in &cell.system_ids {
         let Some(&sys) = sys_by_id.get(sid.as_str()) else {
@@ -1324,50 +1341,23 @@ fn pick_capital(
             continue;
         }
 
-        let cand = (
+        let cand = Cand {
             sys_score,
             world_score,
             max_pop,
             max_prosperity,
-            stable_deg as u32,
-            sys.index,
-            sys.id.clone(),
+            stable_deg: stable_deg as u32,
+            sys_index: sys.index,
+            sys_id: sys.id.clone(),
             world_id,
-        );
-        if best
-            .as_ref()
-            .map(|b| {
-                cand.0 > b.0
-                    || (cand.0 == b.0 && cand.1 > b.1)
-                    || (cand.0 == b.0 && cand.1 == b.1 && cand.2 > b.2)
-                    || (cand.0 == b.0 && cand.1 == b.1 && cand.2 == b.2 && cand.3 > b.3)
-                    || (cand.0 == b.0
-                        && cand.1 == b.1
-                        && cand.2 == b.2
-                        && cand.3 == b.3
-                        && cand.4 > b.4)
-                    || (cand.0 == b.0
-                        && cand.1 == b.1
-                        && cand.2 == b.2
-                        && cand.3 == b.3
-                        && cand.4 == b.4
-                        && cand.5 < b.5)
-                    || (cand.0 == b.0
-                        && cand.1 == b.1
-                        && cand.2 == b.2
-                        && cand.3 == b.3
-                        && cand.4 == b.4
-                        && cand.5 == b.5
-                        && cand.6 < b.6)
-            })
-            .unwrap_or(true)
-        {
+        };
+        if best.as_ref().is_none_or(|b| cand.key() < b.key()) {
             best = Some(cand);
         }
     }
 
     match best {
-        Some((_, _, _, _, _, _, sid, wid)) => (Some(sid), wid),
+        Some(c) => (Some(c.sys_id), c.world_id),
         None => (None, None),
     }
 }
@@ -1383,18 +1373,7 @@ fn score_world_as_capital(
     let tech = tech_rank(&w.world.tech_level);
     let mut score = pop * 8 + prosperity * 7 + tech * 4;
 
-    let lower = |s: &str| s.to_ascii_lowercase();
-    let capital_like = w
-        .tags
-        .iter()
-        .chain(w.world.notable_features.iter())
-        .any(|t| {
-            let l = lower(t);
-            l.contains("capital")
-                || l.contains("admin")
-                || l.contains("bureaucratic")
-                || l.contains("seat")
-        });
+    let capital_like = any_capital_like(w.tags.iter().chain(w.world.notable_features.iter()));
     if capital_like {
         score += 10;
     }
@@ -1473,6 +1452,17 @@ fn inferred_prosperity_rank(
         0
     };
     (pop + tech + bonus - penalty).clamp(0, 6)
+}
+
+/// Tag contains a "capital-like" keyword (system seat / admin world etc.).
+fn is_capital_like_tag(tag: &str) -> bool {
+    let l = tag.to_ascii_lowercase();
+    l.contains("capital") || l.contains("admin") || l.contains("bureaucratic") || l.contains("seat")
+}
+
+/// Any tag in `iter` matches `is_capital_like_tag`.
+fn any_capital_like<'a, I: IntoIterator<Item = &'a String>>(iter: I) -> bool {
+    iter.into_iter().any(|t| is_capital_like_tag(t))
 }
 
 fn population_rank(value: &str) -> i32 {

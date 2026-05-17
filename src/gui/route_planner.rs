@@ -10,16 +10,11 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use crate::sector_model::{GeneratedRoute, GeneratedSector, RouteStability, RouteType};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Metric {
+    #[default]
     Safest,
     Shortest,
-}
-
-impl Default for Metric {
-    fn default() -> Self {
-        Self::Safest
-    }
 }
 
 #[derive(Default, Debug, Clone)]

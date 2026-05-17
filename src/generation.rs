@@ -248,16 +248,6 @@ pub fn assign_factions_for_systems(
     assign_factions(systems, factions, &mut rng);
 }
 
-/// Build a per-system or per-faction-set summary from generated systems.
-pub fn aggregate_factions_for(
-    systems: &[GeneratedSystem],
-    factions: &[FactionDef],
-) -> Vec<GeneratedFaction> {
-    let mut v = aggregate_factions(systems, factions);
-    v.sort_by(|a, b| a.id.cmp(&b.id));
-    v
-}
-
 // ── System star colour ────────────────────────────────────────────────────────
 
 fn choose_system_star_colour(
@@ -416,39 +406,32 @@ fn choose_world_candidate<'a>(
     used_world_types: &BTreeSet<String>,
     rng: &mut ChaCha8Rng,
 ) -> Result<&'a WorldCandidate, SectorError> {
-    let mut weighted: Vec<(&WorldCandidate, f64)> = Vec::new();
+    let collect = |skip_dup: bool| -> Vec<(&'a WorldCandidate, f64)> {
+        pool.candidates
+            .iter()
+            .filter_map(|c| {
+                if cfg.strict_same_star_colour && c.star_colour != star_colour {
+                    return None;
+                }
+                if skip_dup
+                    && cfg.avoid_duplicate_world_type_in_system
+                    && used_world_types.contains(&c.world_type.to_string())
+                {
+                    return None;
+                }
+                let mut w = c.weight;
+                if c.star_colour == star_colour {
+                    w *= cfg.same_star_colour_bias.max(0.0);
+                }
+                (w.is_finite() && w > 0.0).then_some((c, w))
+            })
+            .collect()
+    };
 
-    for c in &pool.candidates {
-        if cfg.strict_same_star_colour && c.star_colour != star_colour {
-            continue;
-        }
-        if cfg.avoid_duplicate_world_type_in_system
-            && used_world_types.contains(&c.world_type.to_string())
-        {
-            continue;
-        }
-        let mut w = c.weight;
-        if c.star_colour == star_colour {
-            w *= cfg.same_star_colour_bias.max(0.0);
-        }
-        if w.is_finite() && w > 0.0 {
-            weighted.push((c, w));
-        }
-    }
+    let mut weighted = collect(true);
     if weighted.is_empty() {
         // Fallback: ignore avoid_duplicate constraint to keep generation moving.
-        for c in &pool.candidates {
-            if cfg.strict_same_star_colour && c.star_colour != star_colour {
-                continue;
-            }
-            let mut w = c.weight;
-            if c.star_colour == star_colour {
-                w *= cfg.same_star_colour_bias.max(0.0);
-            }
-            if w.is_finite() && w > 0.0 {
-                weighted.push((c, w));
-            }
-        }
+        weighted = collect(false);
     }
     if weighted.is_empty() {
         return Err(SectorError::WeightedSelectionFailed {

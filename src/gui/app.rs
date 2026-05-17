@@ -58,30 +58,8 @@ enum View {
     Planner,
 }
 
-impl App {
-    pub fn new(sector: GeneratedSector) -> Self {
-        let subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
-        Self {
-            sector: Some(sector),
-            subsectors,
-            view: View::Sector,
-            sector_selected: None,
-            sector_selected_subsector: None,
-            sector_hex_size: 44.0,
-            system_side: 700.0,
-            editor: EditorState::default(),
-            data_editor: DataEditor::default(),
-            project_dir: None,
-            planner: RoutePlannerState::default(),
-            planner_hex_size: 44.0,
-            export_status: String::new(),
-            pending_export: None,
-            sector_pick_export: false,
-            export_scale: 2,
-        }
-    }
-
-    pub fn new_empty() -> Self {
+impl Default for App {
+    fn default() -> Self {
         Self {
             sector: None,
             subsectors: Vec::new(),
@@ -100,6 +78,22 @@ impl App {
             sector_pick_export: false,
             export_scale: 2,
         }
+    }
+}
+
+impl App {
+    pub fn new(sector: GeneratedSector) -> Self {
+        let subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
+        Self {
+            sector: Some(sector),
+            subsectors,
+            view: View::Sector,
+            ..Self::default()
+        }
+    }
+
+    pub fn new_empty() -> Self {
+        Self::default()
     }
 
     /// Set the project directory and try to preload world-data CSVs.
@@ -1114,32 +1108,29 @@ impl App {
             .gen_path
             .as_ref()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()));
-        match FileDialog::new().pick_folder() {
-            Some(path) => {
-                let path = camino::Utf8Path::from_path(&path).unwrap();
-                match sector {
-                    Some(s) => {
-                        let data_dir = data_dir_pb.as_deref().and_then(camino::Utf8Path::from_path);
-                        let sector_subdir = path.join(&s.id);
-                        match export::export_bundle(&s, data_dir, path) {
-                            Ok(()) => {
-                                self.export_status = match data_dir {
-                                    Some(_) => {
-                                        format!("exported to {} (incl. data folder)", sector_subdir)
-                                    }
-                                    None => format!(
-                                        "exported to {} (no data folder — project not loaded)",
-                                        sector_subdir
-                                    ),
-                                };
-                            }
-                            Err(e) => self.export_status = format!("export failed: {}", e),
+        if let Some(path) = FileDialog::new().pick_folder() {
+            let path = camino::Utf8Path::from_path(&path).unwrap();
+            match sector {
+                Some(s) => {
+                    let data_dir = data_dir_pb.as_deref().and_then(camino::Utf8Path::from_path);
+                    let sector_subdir = path.join(&s.id);
+                    match export::export_bundle(&s, data_dir, path) {
+                        Ok(()) => {
+                            self.export_status = match data_dir {
+                                Some(_) => {
+                                    format!("exported to {} (incl. data folder)", sector_subdir)
+                                }
+                                None => format!(
+                                    "exported to {} (no data folder — project not loaded)",
+                                    sector_subdir
+                                ),
+                            };
                         }
+                        Err(e) => self.export_status = format!("export failed: {}", e),
                     }
-                    None => self.export_status = "no sector to export".into(),
                 }
+                None => self.export_status = "no sector to export".into(),
             }
-            None => {} // user cancelled
         }
     }
 }
@@ -1164,11 +1155,9 @@ fn system_combo(
         .selected_text(RichText::new(label).monospace())
         .width(220.0)
         .show_ui(ui, |ui| {
-            if ui.selectable_label(value.is_none(), "— none —").clicked() {
-                if value.is_some() {
-                    *value = None;
-                    changed = true;
-                }
+            if ui.selectable_label(value.is_none(), "— none —").clicked() && value.is_some() {
+                *value = None;
+                changed = true;
             }
             for (oid, name) in options {
                 let sel = value.as_deref() == Some(oid.as_str());

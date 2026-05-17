@@ -96,10 +96,6 @@ impl EditorState {
         self.dirty = true;
     }
 
-    pub fn sector_mut(&mut self) -> Option<&mut GeneratedSector> {
-        self.sector.as_mut()
-    }
-
     pub fn next_system_index(&self) -> usize {
         self.sector.as_ref().map_or(1, |s| {
             s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1

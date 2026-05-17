@@ -107,23 +107,32 @@ pub fn write_sector_png_to(
 
 // ── Rendering ───────────────────────────────────────────────────────────────
 
-fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>) -> RgbaImage {
-    let g = Geom::new(scale);
+/// Map pixel bounds matching the GUI's `sector_view` layout. Includes the
+/// bottom label band so system-name text fits under each hex.
+struct MapBounds {
+    w: i32,
+    h: i32,
+}
+
+fn map_bounds(sector: &GeneratedSector, g: &Geom) -> MapBounds {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
-
     // Pointy-top odd-r offset layout: odd rows shift right by half a step,
     // so the bounding rect is `width * horiz_step` wide plus a half-step
     // when height > 1 to cover the staggered odd rows.
     let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
-    let map_w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
-    // Extra band at the bottom for the system name label that sits under
-    // each hex (matches `map_size` in the GUI's sector_view).
+    let w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
     let label_band = (g.hex_size * 0.55) as i32;
-    let map_h = (g.margin as f32 * 2.0
+    let h = (g.margin as f32 * 2.0
         + (sector.height.saturating_sub(1)) as f32 * vert_step
         + 2.0 * g.hex_size) as i32
         + label_band;
+    MapBounds { w, h }
+}
+
+fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>) -> RgbaImage {
+    let g = Geom::new(scale);
+    let MapBounds { w: map_w, h: map_h } = map_bounds(sector, &g);
 
     let legend_h = legend_height(sector, &g);
     let total_w = map_w + g.legend_width;
@@ -220,6 +229,7 @@ fn shorten_to_star(a: (i32, i32), b: (i32, i32), star_r: f32) -> Option<((i32, i
 /// Draws a line styled by `pattern`. For `Solid`, falls back to `draw_line_thick`.
 /// Dashes are sized as multiples of a `unit` that scales with `thickness`, so the
 /// pattern stays readable at any zoom. Short "dot" runs render as filled discs.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn draw_route_line_thick(
     img: &mut RgbaImage,
     x0: i32,
@@ -250,7 +260,7 @@ pub(crate) fn draw_route_line_thick(
         let stride = strides[idx % strides.len()];
         let seg = stride * unit;
         let next_t = (t + seg).min(total);
-        if idx % 2 == 0 {
+        if idx.is_multiple_of(2) {
             let sx = (x0 as f32 + ux * t).round() as i32;
             let sy = (y0 as f32 + uy * t).round() as i32;
             let ex = (x0 as f32 + ux * next_t).round() as i32;
@@ -314,7 +324,7 @@ fn subsector_label_scale(g: &Geom) -> i32 {
 fn draw_system_labels(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
     let scale = system_label_scale(g);
     let pad_x = 3 * g.scale;
-    let pad_y = 1 * g.scale;
+    let pad_y = g.scale;
     let star_r = (g.hex_size * star_radius_ratio()) as i32;
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
@@ -431,21 +441,12 @@ fn draw_subsector_labels(
     let pad_x = 6 * g.scale;
     let pad_y = 2 * g.scale;
 
-    // Map bounds (must match `render`).
-    let horiz_step = g.hex_size * 3f32.sqrt();
-    let vert_step = g.hex_size * 1.5;
-    let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
-    let map_w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
-    let label_band = (g.hex_size * 0.55) as i32;
-    let map_h = (g.margin as f32 * 2.0
-        + (sector.height.saturating_sub(1)) as f32 * vert_step
-        + 2.0 * g.hex_size) as i32
-        + label_band;
+    let MapBounds { w: map_w, h: map_h } = map_bounds(sector, g);
 
     // Static obstacles: every system marker bbox + every system name label rect.
     let sys_label_scale = system_label_scale(g);
     let sys_pad_x = 3 * g.scale;
-    let sys_pad_y = 1 * g.scale;
+    let sys_pad_y = g.scale;
     let hex_half_w = (g.hex_size * 3f32.sqrt() / 2.0) as i32;
     let hex_half_h = g.hex_size as i32;
     let star_r = (g.hex_size * star_radius_ratio()) as i32;

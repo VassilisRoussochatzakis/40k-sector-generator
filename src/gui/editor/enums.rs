@@ -232,10 +232,3 @@ pub const ROUTE_STABILITIES: &[(&str, &str)] = &[
     ("hazardous", "hazardous"),
     ("perilous", "perilous"),
 ];
-
-pub const FACTION_INFLUENCES: &[(&str, &str)] = &[
-    ("hidden", "hidden"),
-    ("minor", "minor"),
-    ("significant", "significant"),
-    ("dominant", "dominant"),
-];

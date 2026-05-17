@@ -1,7 +1,25 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cargo check *)"
+      "Bash(cargo check *)",
+      "Bash(cargo --version)",
+      "Bash(rustc --version)",
+      "Bash(cargo build *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo rustc *)",
+      "Bash(cargo test *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Vassilis\\\\Documents\\\\RPG\\\\40k-sector-generator\\\\src\" -Recurse -Filter \"*.rs\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(grep -rn \"pub fn\\\\|pub struct\\\\|pub enum\\\\|pub const\\\\|pub trait\\\\|pub async fn\" src/)",
+      "Read(//tmp/**)",
+      "Bash(cat)",
+      "Bash(bash /tmp/check_refs.sh)",
+      "Bash(cat > *)",
+      "Bash(bash /tmp/fast_check.sh)",
+      "Bash(bash /tmp/find_single.sh)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

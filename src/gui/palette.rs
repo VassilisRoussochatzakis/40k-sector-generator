@@ -13,7 +13,6 @@ pub const HEX_EMPTY: Color32 = Color32::from_rgb(28, 26, 38);
 pub const HEX_OUTLINE: Color32 = Color32::from_rgb(60, 55, 78);
 pub const TEXT: Color32 = Color32::from_rgb(232, 228, 240);
 pub const TEXT_DIM: Color32 = Color32::from_rgb(150, 145, 165);
-pub const ROUTE_DIM: Color32 = Color32::from_rgb(90, 88, 110);
 pub const ORBIT_RING: Color32 = Color32::from_rgb(55, 50, 72);
 pub const SELECTION: Color32 = Color32::from_rgb(255, 240, 120);
 pub const PATH_HIGHLIGHT: Color32 = Color32::from_rgb(120, 220, 255);
@@ -63,7 +62,7 @@ pub fn draw_route_line(
         let stride = strides[idx % strides.len()];
         let seg = stride * unit;
         let next_t = (t + seg).min(total);
-        if idx % 2 == 0 {
+        if idx.is_multiple_of(2) {
             let p0 = a + dir * t;
             let p1 = a + dir * next_t;
             if stride <= 1.5 {

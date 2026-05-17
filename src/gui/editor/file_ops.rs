@@ -1,0 +1,57 @@
+//! Disk operations for the editor: list projects under `examples/`, load and
+//! save sector JSON.
+
+use std::fs;
+use std::path::PathBuf;
+
+const EXAMPLES_DIR: &str = "examples";
+
+/// Discover project directories that contain `out/sector.json`.
+pub fn list_projects() -> Vec<String> {
+    let mut out = Vec::new();
+    let Ok(entries) = fs::read_dir(EXAMPLES_DIR) else {
+        return out;
+    };
+    for entry in entries.flatten() {
+        let Ok(ft) = entry.file_type() else { continue };
+        if !ft.is_dir() {
+            continue;
+        }
+        let json = entry.path().join("out").join("sector.json");
+        if json.exists() {
+            if let Some(name) = entry.file_name().to_str() {
+                out.push(name.to_string());
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+pub fn project_sector_path(name: &str) -> PathBuf {
+    PathBuf::from(EXAMPLES_DIR).join(name).join("out").join("sector.json")
+}
+
+pub fn load_project_sector(name: &str) -> Result<(crate::sector_model::GeneratedSector, String), String> {
+    let path = project_sector_path(name);
+    let text = fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path.display(), e))?;
+    let sector: crate::sector_model::GeneratedSector =
+        serde_json::from_str(&text).map_err(|e| format!("parse {}: {}", path.display(), e))?;
+    Ok((sector, path.to_string_lossy().to_string()))
+}
+
+pub fn save_project_sector(name: &str, sector: &crate::sector_model::GeneratedSector) -> Result<String, String> {
+    if name.trim().is_empty() {
+        return Err("project name is empty".to_string());
+    }
+    if name.contains('/') || name.contains('\\') || name == "." || name == ".." {
+        return Err("project name contains forbidden characters".to_string());
+    }
+    let path = project_sector_path(name);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {}", parent.display(), e))?;
+    }
+    let text = serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {}", e))?;
+    fs::write(&path, text).map_err(|e| format!("write {}: {}", path.display(), e))?;
+    Ok(path.to_string_lossy().to_string())
+}

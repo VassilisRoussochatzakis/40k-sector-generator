@@ -25,33 +25,32 @@ struct Cli {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let path = resolve_sector_path(&cli);
-    let path = match path {
-        Some(p) => p,
+    let (app, title) = match path {
+        Some(p) => match sectorforge::load_sector_json(&p) {
+            Ok(s) => {
+                let t = format!("sectorforge — {}", s.id);
+                (App::new(s), t)
+            }
+            Err(e) => {
+                eprintln!("failed to load sector json '{}': {}", p, e);
+                return ExitCode::from(2);
+            }
+        },
         None => {
-            eprintln!(
-                "no sector.json found. pass a path, or --project <dir>, or run from a directory \
-                 where examples/m42_project/out/sector.json exists."
-            );
-            return ExitCode::from(2);
-        }
-    };
-    let sector = match sectorforge::load_sector_json(&path) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("failed to load sector json '{}': {}", path, e);
-            return ExitCode::from(2);
+            eprintln!("no sector.json found — launching editor with no sector loaded");
+            (App::new_empty(), "sectorforge — editor".to_string())
         }
     };
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1400.0, 900.0])
-            .with_title(format!("sectorforge — {}", sector.id)),
+            .with_title(title),
         ..Default::default()
     };
     let res = eframe::run_native(
         "sectorforge",
         native_options,
-        Box::new(move |_cc| Ok(Box::new(App::new(sector)))),
+        Box::new(move |_cc| Ok(Box::new(app))),
     );
     match res {
         Ok(()) => ExitCode::SUCCESS,

@@ -3,6 +3,7 @@
 //! `info_panel` formats text, `app` wires everything together.
 
 pub mod app;
+pub mod editor;
 pub mod info_panel;
 pub mod palette;
 pub mod sector_view;

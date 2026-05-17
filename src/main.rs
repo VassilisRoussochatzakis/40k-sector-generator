@@ -268,27 +268,36 @@ fn print_validation_report(report: &sectorforge::ValidationReport) {
         "  Excluded rows:        {}",
         report.world_workbook.excluded_row_count
     );
+    if !report.world_workbook.exclusion_reasons.is_empty() {
+        for (reason, count) in &report.world_workbook.exclusion_reasons {
+            println!("    - {reason}: {count}");
+        }
+    }
     println!("  Errors:               {}", report.errors.len());
     println!("  Warnings:             {}", report.warnings.len());
     for issue in &report.errors {
-        let path = issue.path.as_deref().unwrap_or("-");
-        println!(
-            "  [{}] {}: {} ({})",
-            severity_tag(issue.severity),
-            issue.code,
-            issue.message,
-            path
-        );
+        print_issue(issue);
     }
     for issue in &report.warnings {
-        let path = issue.path.as_deref().unwrap_or("-");
-        println!(
+        print_issue(issue);
+    }
+}
+
+fn print_issue(issue: &sectorforge::ValidationIssue) {
+    match &issue.path {
+        Some(path) => println!(
             "  [{}] {}: {} ({})",
             severity_tag(issue.severity),
             issue.code,
             issue.message,
             path
-        );
+        ),
+        None => println!(
+            "  [{}] {}: {}",
+            severity_tag(issue.severity),
+            issue.code,
+            issue.message
+        ),
     }
 }
 
@@ -299,8 +308,10 @@ fn print_invariant_report(report: &sectorforge::InvariantReport) {
     );
     println!("  Violations: {}", report.violations.len());
     for v in &report.violations {
-        let path = v.path.as_deref().unwrap_or("-");
-        println!("  [{}] {} ({})", v.code, v.message, path);
+        match &v.path {
+            Some(path) => println!("  [{}] {} ({})", v.code, v.message, path),
+            None => println!("  [{}] {}", v.code, v.message),
+        }
     }
 }
 

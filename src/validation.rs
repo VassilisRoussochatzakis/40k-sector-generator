@@ -38,6 +38,7 @@ pub struct WorldWorkbookValidation {
     pub row_count: usize,
     pub usable_candidate_count: usize,
     pub excluded_row_count: usize,
+    pub exclusion_reasons: BTreeMap<String, usize>,
     pub key_table_counts: BTreeMap<String, usize>,
 }
 
@@ -150,11 +151,20 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             Severity::Error,
         ));
     }
+    let mut exclusion_reasons: BTreeMap<String, usize> = BTreeMap::new();
+    for ex in &pool.excluded_rows {
+        *exclusion_reasons.entry(ex.reason.to_string()).or_insert(0) += 1;
+    }
     if !pool.excluded_rows.is_empty() {
         let n = pool.excluded_rows.len();
+        let breakdown = exclusion_reasons
+            .iter()
+            .map(|(r, c)| format!("{r}: {c}"))
+            .collect::<Vec<_>>()
+            .join(", ");
         warnings.push(issue(
             "WB_EXCLUDED_ROWS",
-            &format!("{n} workbook row(s) were excluded; see report"),
+            &format!("{n} workbook row(s) were excluded ({breakdown})"),
             Severity::Warning,
         ));
     }
@@ -299,6 +309,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             row_count: input.world_rows.len(),
             usable_candidate_count: pool.candidates.len(),
             excluded_row_count: pool.excluded_rows.len(),
+            exclusion_reasons,
             key_table_counts: key_counts,
         },
     }

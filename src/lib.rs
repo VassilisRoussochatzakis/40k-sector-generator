@@ -32,7 +32,7 @@ pub use errors::SectorError;
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
-pub use validation::ValidationReport;
+pub use validation::{ValidationIssue, ValidationReport};
 
 pub const GENERATOR_NAME: &str = "sectorforge";
 pub const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");

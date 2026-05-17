@@ -85,12 +85,12 @@ fn render(sector: &GeneratedSector, scale: u32) -> RgbaImage {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
 
-    // Pointy-top odd-r layout: each row shifts right by 0.5 * horiz_step,
-    // so the rightmost hex sits at q = (W-1) + 0.5 * (H-1) on the bottom row.
-    let max_q_offset =
-        (sector.width.saturating_sub(1)) as f32 + 0.5 * (sector.height.saturating_sub(1)) as f32;
+    // Pointy-top odd-r offset layout: odd rows shift right by half a step,
+    // so the bounding rect is `width * horiz_step` wide plus a half-step
+    // when height > 1 to cover the staggered odd rows.
+    let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
     let map_w =
-        (g.margin as f32 * 2.0 + horiz_step * (max_q_offset + 1.0) + horiz_step / 2.0) as i32;
+        (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
     let map_h = (g.margin as f32 * 2.0
         + (sector.height.saturating_sub(1)) as f32 * vert_step
         + 2.0 * g.hex_size) as i32;
@@ -376,7 +376,8 @@ fn draw_legend(img: &mut RgbaImage, sector: &GeneratedSector, map_w: i32, g: &Ge
 fn hex_center(q: i32, r: i32, g: &Geom) -> (i32, i32) {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
-    let x = g.margin as f32 + horiz_step * (q as f32 + 0.5 * r as f32) + horiz_step / 2.0;
+    let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
+    let x = g.margin as f32 + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
     let y = g.margin as f32 + vert_step * r as f32 + g.hex_size;
     (x.round() as i32, y.round() as i32)
 }

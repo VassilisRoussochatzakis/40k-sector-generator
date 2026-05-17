@@ -215,12 +215,38 @@ pub struct GenerationManifest {
     pub route_count: usize,
 }
 
-/// Axial hex distance.
+/// Hex distance for pointy-top odd-r offset coordinates.
+///
+/// HexCoord (q, r) stores the offset column/row of a rectangular grid.
+/// Converts to cube coordinates first and then takes the standard
+/// max(|dx|, |dy|, |dz|) cube distance.
 pub fn hex_distance(a: HexCoord, b: HexCoord) -> u32 {
-    let dq = (a.q - b.q).abs();
-    let dr = (a.r - b.r).abs();
-    let ds = ((-a.q - a.r) - (-b.q - b.r)).abs();
-    dq.max(dr).max(ds) as u32
+    let (ax, az) = offset_r_to_cube(a);
+    let ay = -ax - az;
+    let (bx, bz) = offset_r_to_cube(b);
+    let by = -bx - bz;
+    let dx = (ax - bx).abs();
+    let dy = (ay - by).abs();
+    let dz = (az - bz).abs();
+    dx.max(dy).max(dz) as u32
+}
+
+/// Pointy-top odd-r offset → cube (x, z). Odd rows are shifted right.
+fn offset_r_to_cube(c: HexCoord) -> (i32, i32) {
+    let x = c.q - (c.r - (c.r & 1)) / 2;
+    let z = c.r;
+    (x, z)
+}
+
+/// Pointy-top odd-r neighbor offsets for the given row parity.
+/// Edge index → (dq, dr) matches vertex i / i+1 in `hex_vertices`:
+/// 0:E, 1:SE, 2:SW, 3:W, 4:NW, 5:NE.
+pub fn offset_r_neighbors(r: i32) -> [(i32, i32); 6] {
+    if r & 1 == 0 {
+        [(1, 0), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1)]
+    } else {
+        [(1, 0), (1, 1), (0, 1), (-1, 0), (0, -1), (1, -1)]
+    }
 }
 
 #[cfg(test)]
@@ -233,21 +259,37 @@ mod tests {
             hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 0, r: 0 }),
             0
         );
+        // Same row → straight column delta.
         assert_eq!(
             hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 3, r: 0 }),
             3
         );
+        // Straight down 3 rows, same column → 3 hex steps (zigzag absorbs the
+        // odd-row half-shift).
         assert_eq!(
             hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 0, r: 3 }),
             3
         );
+        // Diagonal: (0,0) → (2,2) in odd-r offset.
         assert_eq!(
             hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 2, r: 2 }),
-            4
+            3
         );
-        assert_eq!(
-            hex_distance(HexCoord { q: 1, r: -2 }, HexCoord { q: 3, r: -3 }),
-            2
-        );
+    }
+
+    #[test]
+    fn neighbors_are_distance_one() {
+        for r in 0..4 {
+            for q in 0..4 {
+                let here = HexCoord { q, r };
+                for (dq, dr) in offset_r_neighbors(r) {
+                    let there = HexCoord {
+                        q: q + dq,
+                        r: r + dr,
+                    };
+                    assert_eq!(hex_distance(here, there), 1, "neighbor of {:?}", here);
+                }
+            }
+        }
     }
 }

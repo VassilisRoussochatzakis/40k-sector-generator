@@ -650,8 +650,8 @@ fn compute_neighbor_adjacency(
     cells: &[Subsector],
 ) -> Vec<Vec<String>> {
     let mut adjacency: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); cells.len()];
-    let neighbor_deltas: [(i32, i32); 6] = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)];
     for r in 0..sector.height {
+        let neighbor_deltas = crate::sector_model::offset_r_neighbors(r as i32);
         for q in 0..sector.width {
             let Some(&here) = hex_cluster.get(&(q, r)) else {
                 continue;

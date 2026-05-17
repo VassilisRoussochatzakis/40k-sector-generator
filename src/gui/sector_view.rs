@@ -65,12 +65,12 @@ impl<'a> SectorView<'a> {
         // separates two different subsectors (or the sector outer rim).
         if !hex_subsector.is_empty() {
             let border_thick = (g.hex_size * 0.10).max(2.5);
-            // Pointy-top edge i (vertex i → vertex i+1) faces neighbor:
-            // 0:E (q+1,r), 1:SE (q,r+1), 2:SW (q-1,r+1),
-            // 3:W (q-1,r), 4:NW (q,r-1), 5:NE (q+1,r-1).
-            let neighbor_deltas: [(i32, i32); 6] =
-                [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)];
+            // Pointy-top odd-r offset edges (vertex i → vertex i+1):
+            // 0:E, 1:SE, 2:SW, 3:W, 4:NW, 5:NE — neighbor offsets depend
+            // on row parity, see `offset_r_neighbors`.
             for r in 0..self.sector.height as i32 {
+                let neighbor_deltas =
+                    crate::sector_model::offset_r_neighbors(r);
                 for q in 0..self.sector.width as i32 {
                     let here = hex_subsector.get(&(q, r)).copied();
                     let Some(here_id) = here else { continue };
@@ -325,13 +325,11 @@ impl Geom {
 fn map_size(sector: &GeneratedSector, g: &Geom) -> Vec2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
-    // Rightmost cell sits at q=width-1, r=height-1. Its center x is
-    // margin + horiz_step*((width-1) + 0.5*(height-1)) + horiz_step/2.
-    // Add another horiz_step/2 for the hex's own right edge + right margin.
-    let w = g.margin * 2.0
-        + horiz_step * sector.width as f32
-        + 0.5 * horiz_step * (sector.height.saturating_sub(1) as f32);
-    // Add a label band below the bottom row.
+    // Odd-r offset layout: odd rows shift right by half a step, so the
+    // bounding rectangle is `width * horiz_step` wide plus one extra
+    // half-step when height > 1 to cover the staggered odd rows.
+    let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
+    let w = g.margin * 2.0 + horiz_step * (sector.width as f32 + odd_shift);
     let label_band = g.hex_size * 0.55;
     let h = g.margin * 2.0
         + sector.height.saturating_sub(1) as f32 * vert_step
@@ -343,7 +341,8 @@ fn map_size(sector: &GeneratedSector, g: &Geom) -> Vec2 {
 fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
-    let x = g.margin + horiz_step * (q as f32 + 0.5 * r as f32) + horiz_step / 2.0;
+    let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
+    let x = g.margin + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
     let y = g.margin + vert_step * r as f32 + g.hex_size;
     Pos2::new(x, y)
 }

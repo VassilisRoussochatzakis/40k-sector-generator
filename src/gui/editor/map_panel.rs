@@ -175,9 +175,8 @@ impl Geom {
 fn map_size(width: u32, height: u32, g: &Geom) -> Vec2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
-    let w = g.margin * 2.0
-        + horiz_step * width as f32
-        + 0.5 * horiz_step * (height.saturating_sub(1) as f32);
+    let odd_shift = if height > 1 { 0.5 } else { 0.0 };
+    let w = g.margin * 2.0 + horiz_step * (width as f32 + odd_shift);
     let label_band = g.hex_size * 0.55;
     let h = g.margin * 2.0
         + height.saturating_sub(1) as f32 * vert_step
@@ -189,7 +188,8 @@ fn map_size(width: u32, height: u32, g: &Geom) -> Vec2 {
 fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
-    let x = g.margin + horiz_step * (q as f32 + 0.5 * r as f32) + horiz_step / 2.0;
+    let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
+    let x = g.margin + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
     let y = g.margin + vert_step * r as f32 + g.hex_size;
     Pos2::new(x, y)
 }

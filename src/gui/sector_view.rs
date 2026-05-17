@@ -251,7 +251,7 @@ impl<'a> SectorView<'a> {
                 ));
                 let name = sys.name.to_ascii_uppercase();
                 let galley = painter.layout_no_wrap(name, sys_font.clone(), TEXT_DIM);
-                let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + g.hex_size + 3.0);
+                let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
                 obstacles.push(egui::Rect::from_min_size(
                     pos - sys_pad,
                     galley.size() + sys_pad * 2.0,
@@ -427,7 +427,8 @@ impl<'a> SectorView<'a> {
             // adjacent row's hex tip pokes through.
             let font = FontId::monospace(label_size);
             let galley = painter.layout_no_wrap(label.clone(), font.clone(), TEXT_DIM);
-            let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + g.hex_size + 3.0);
+            let star_r = g.hex_size * 0.2016;
+            let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
             let pad = Vec2::new(3.0, 1.0);
             let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
             painter.rect_filled(bg_rect, 2.0, palette::BG);

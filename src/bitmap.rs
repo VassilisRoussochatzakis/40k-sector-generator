@@ -315,12 +315,13 @@ fn draw_system_labels(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
     let scale = system_label_scale(g);
     let pad_x = 3 * g.scale;
     let pad_y = 1 * g.scale;
+    let star_r = (g.hex_size * star_radius_ratio()) as i32;
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         let label = sys.name.to_ascii_uppercase();
         let (tw, th) = text_size(&label, scale);
         let tx = cx - tw / 2;
-        let ty = cy + g.hex_size as i32 + 3 * g.scale;
+        let ty = cy + star_r + 3 * g.scale;
         // Pill background so the label stays readable when an adjacent
         // row's hex tip pokes through.
         fill_rect(
@@ -447,6 +448,7 @@ fn draw_subsector_labels(
     let sys_pad_y = 1 * g.scale;
     let hex_half_w = (g.hex_size * 3f32.sqrt() / 2.0) as i32;
     let hex_half_h = g.hex_size as i32;
+    let star_r = (g.hex_size * star_radius_ratio()) as i32;
     let mut obstacles: Vec<Rect> = Vec::with_capacity(sector.systems.len() * 2);
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
@@ -459,7 +461,7 @@ fn draw_subsector_labels(
         let name = sys.name.to_ascii_uppercase();
         let (tw, th) = text_size(&name, sys_label_scale);
         let tx = cx - tw / 2;
-        let ty = cy + hex_half_h + 3 * g.scale;
+        let ty = cy + star_r + 3 * g.scale;
         obstacles.push(Rect {
             x0: tx - sys_pad_x,
             y0: ty - sys_pad_y,

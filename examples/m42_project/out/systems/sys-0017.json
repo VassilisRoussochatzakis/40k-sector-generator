@@ -1,0 +1,269 @@
+{
+  "id": "sys-0017",
+  "index": 17,
+  "name": "Tarsus Span",
+  "coord": {
+    "q": 5,
+    "r": 7
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 6
+  },
+  "worlds": [
+    {
+      "id": "sys-0017-w01",
+      "index": 1,
+      "name": "Aethon",
+      "orbit": 1,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "CivilWar",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "free_traders",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "rebels",
+          "influence": "significant",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0017-w02",
+      "index": 2,
+      "name": "Pyriphlegethon Verge",
+      "orbit": 2,
+      "source_row_index": 7,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ElitistTyrant",
+        "notable_features": [
+          "ChaosCultists",
+          "AncientArchive",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:chaos_cultists",
+        "feature:civil_war",
+        "gov:elitist_tyrant",
+        "population:lightly_populated",
+        "star:blue_white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0017-w03",
+      "index": 3,
+      "name": "Verbis",
+      "orbit": 3,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "significant",
+          "relationship_to_government": "secretive"
+        },
+        {
+          "faction_id": "rebels",
+          "influence": "minor",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0017-w04",
+      "index": 4,
+      "name": "Solace Deep",
+      "orbit": 4,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "EugenicCult",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rebels",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "significant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "minor",
+          "relationship_to_government": "secretive"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0017-w05",
+      "index": 5,
+      "name": "Verbis",
+      "orbit": 5,
+      "source_row_index": 9,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Corrosive",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "GuildsCombine",
+        "notable_features": [
+          "ColdWar",
+          "AncientArchive",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mechanicus",
+          "influence": "dominant",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:corrosive",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:chaos_cultists",
+        "feature:cold_war",
+        "gov:guilds_combine",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "ecclesiarchy",
+    "inquisition",
+    "rebels"
+  ],
+  "tags": [],
+  "notes": []
+}

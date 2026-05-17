@@ -1,0 +1,118 @@
+{
+  "id": "sys-0005",
+  "index": 5,
+  "name": "Drusus Brink",
+  "coord": {
+    "q": 1,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 8
+  },
+  "worlds": [
+    {
+      "id": "sys-0005-w01",
+      "index": 1,
+      "name": "Velikoye Outer",
+      "orbit": 1,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AlteredHumans",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:altered_humans",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0005-w02",
+      "index": 2,
+      "name": "Solace",
+      "orbit": 2,
+      "source_row_index": 16,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "High",
+        "government": "MechanicusForgeLord",
+        "notable_features": [
+          "ExtremeEnvironment",
+          "FactionalFragmentation",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "significant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "minor",
+          "relationship_to_government": "secretive"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:mechanicus_forge_lord",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [],
+  "tags": [],
+  "notes": []
+}

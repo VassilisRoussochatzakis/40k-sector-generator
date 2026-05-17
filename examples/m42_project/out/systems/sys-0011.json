@@ -1,0 +1,185 @@
+{
+  "id": "sys-0011",
+  "index": 11,
+  "name": "Sepheris",
+  "coord": {
+    "q": 3,
+    "r": 1
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 18
+  },
+  "worlds": [
+    {
+      "id": "sys-0011-w01",
+      "index": 1,
+      "name": "Brontes",
+      "orbit": 1,
+      "source_row_index": 18,
+      "world": {
+        "star_colour": "fuchsia",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "MilitaryGovernor",
+        "notable_features": [
+          "FailedParadise",
+          "FlyingCities",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rebels",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "minor",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_dominance",
+        "feature:dangerous_wildlife",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:military_governor",
+        "population:extremely_dense",
+        "star:fuchsia",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:dead_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0011-w02",
+      "index": 2,
+      "name": "Dust Verbis",
+      "orbit": 2,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "fuchsia",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "significant",
+          "relationship_to_government": "secretive"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "minor",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:crumbling_arcologies",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:fuchsia",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0011-w03",
+      "index": 3,
+      "name": "Aethon",
+      "orbit": 3,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "DangerousWildlife",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "xenos_threat",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "significant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "rebels",
+          "influence": "minor",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "imperial_administration",
+    "rebels"
+  ],
+  "tags": [],
+  "notes": []
+}

@@ -1,0 +1,201 @@
+{
+  "id": "sys-0022",
+  "index": 22,
+  "name": "Heres",
+  "coord": {
+    "q": 6,
+    "r": 8
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 6
+  },
+  "worlds": [
+    {
+      "id": "sys-0022-w01",
+      "index": 1,
+      "name": "Saint Karthago",
+      "orbit": 1,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "BlindingMists",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "significant",
+          "relationship_to_government": "secretive"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0022-w02",
+      "index": 2,
+      "name": "Iron Solace",
+      "orbit": 2,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "significant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0022-w03",
+      "index": 3,
+      "name": "Bright Nymph",
+      "orbit": 3,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "orange dwarf",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "CelestialPhenomena",
+          "ArchaeotechRuins"
+        ]
+      },
+      "factions": [],
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:orange_dwarf",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0022-w04",
+      "index": 4,
+      "name": "Port Olbia",
+      "orbit": 4,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "orange dwarf",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "AlteredHumans",
+          "ArchaeotechRuins"
+        ]
+      },
+      "factions": [],
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:altered_humans",
+        "feature:archaeotech_ruins",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:orange_dwarf",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "imperial_administration"
+  ],
+  "tags": [],
+  "notes": []
+}

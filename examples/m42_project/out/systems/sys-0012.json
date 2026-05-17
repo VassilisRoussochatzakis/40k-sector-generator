@@ -1,0 +1,314 @@
+{
+  "id": "sys-0012",
+  "index": 12,
+  "name": "Malfi II",
+  "coord": {
+    "q": 3,
+    "r": 5
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 8
+  },
+  "worlds": [
+    {
+      "id": "sys-0012-w01",
+      "index": 1,
+      "name": "Dust Aethon",
+      "orbit": 1,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "CelestialPhenomena",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0012-w02",
+      "index": 2,
+      "name": "Karthago",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mechanicus",
+          "influence": "dominant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "minor",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0012-w03",
+      "index": 3,
+      "name": "Olbia",
+      "orbit": 3,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "EugenicCult",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rebels",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "significant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0012-w04",
+      "index": 4,
+      "name": "New Tarsi",
+      "orbit": 4,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "Abhumans",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mechanicus",
+          "influence": "dominant",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:ancient_archive",
+        "feature:civil_war",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0012-w05",
+      "index": 5,
+      "name": "Old Pyriphlegethon Deep",
+      "orbit": 5,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "CivilWar",
+          "AncientArchive"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "free_traders",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "significant",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_archive",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0012-w06",
+      "index": 6,
+      "name": "Verbis",
+      "orbit": 6,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "Abhumans",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rebels",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:abhumans",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "free_traders",
+    "imperial_administration",
+    "mechanicus",
+    "rebels"
+  ],
+  "tags": [],
+  "notes": []
+}

@@ -1,0 +1,164 @@
+{
+  "id": "sys-0019",
+  "index": 19,
+  "name": "Malfi Crown",
+  "coord": {
+    "q": 6,
+    "r": 1
+  },
+  "star": {
+    "colour_code": "F",
+    "colour_name": "fuchsia",
+    "spectral_type": "F",
+    "source_row_index": 8
+  },
+  "worlds": [
+    {
+      "id": "sys-0019-w01",
+      "index": 1,
+      "name": "Bright Solace Tertius",
+      "orbit": 1,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mechanicus",
+          "influence": "dominant",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0019-w02",
+      "index": 2,
+      "name": "Karthago",
+      "orbit": 2,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "DangerousWildlife",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "significant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0019-w03",
+      "index": 3,
+      "name": "New Lacuna Tertius",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "CelestialPhenomena",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "feature:cold_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "ecclesiarchy"
+  ],
+  "tags": [],
+  "notes": []
+}

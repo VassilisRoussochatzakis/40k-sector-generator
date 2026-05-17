@@ -1,0 +1,257 @@
+{
+  "id": "sys-0001",
+  "index": 1,
+  "name": "Vaxanide",
+  "coord": {
+    "q": 0,
+    "r": 0
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 0
+  },
+  "worlds": [
+    {
+      "id": "sys-0001-w01",
+      "index": 1,
+      "name": "Olbia Prime",
+      "orbit": 1,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "orange dwarf",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "BlindingMists",
+          "CivilWar"
+        ]
+      },
+      "factions": [],
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:orange_dwarf",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0001-w02",
+      "index": 2,
+      "name": "Yperion",
+      "orbit": 2,
+      "source_row_index": 15,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "DenselyPopulated",
+        "tech_level": "High",
+        "government": "MagistrateCouncil",
+        "notable_features": [
+          "EugenicCult",
+          "FactionalFragmentation",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "significant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "minor",
+          "relationship_to_government": "zealous"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:magistrate_council",
+        "population:densely_populated",
+        "star:amber",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0001-w03",
+      "index": 3,
+      "name": "Mourn Yperion",
+      "orbit": 3,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "minor",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0001-w04",
+      "index": 4,
+      "name": "Tarsi",
+      "orbit": 4,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "AlteredHumans",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rebels",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:altered_humans",
+        "feature:ancient_archive",
+        "feature:civil_war",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0001-w05",
+      "index": 5,
+      "name": "Last Meridian Inner",
+      "orbit": 5,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "BlindingMists",
+          "AncientTombs"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_tombs",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "imperial_administration",
+    "mechanicus"
+  ],
+  "tags": [],
+  "notes": []
+}

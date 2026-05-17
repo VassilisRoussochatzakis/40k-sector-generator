@@ -1,0 +1,206 @@
+{
+  "id": "sys-0002",
+  "index": 2,
+  "name": "Vaxanide II",
+  "coord": {
+    "q": 0,
+    "r": 1
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "amber",
+    "spectral_type": "A",
+    "source_row_index": 17
+  },
+  "worlds": [
+    {
+      "id": "sys-0002-w01",
+      "index": 1,
+      "name": "Port Kanak",
+      "orbit": 1,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mechanicus",
+          "influence": "dominant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "significant",
+          "relationship_to_government": "secretive"
+        },
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "minor",
+          "relationship_to_government": "zealous"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0002-w02",
+      "index": 2,
+      "name": "Velikoye",
+      "orbit": 2,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "AlteredHumans",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:altered_humans",
+        "feature:ancient_archive",
+        "feature:chaos_cultists",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0002-w03",
+      "index": 3,
+      "name": "Saint Yperion Prime",
+      "orbit": 3,
+      "source_row_index": 7,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ElitistTyrant",
+        "notable_features": [
+          "ChaosCultists",
+          "ColdWar",
+          "ArchaeotechRuins"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "free_traders",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic"
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:chaos_cultists",
+        "feature:cold_war",
+        "gov:elitist_tyrant",
+        "population:lightly_populated",
+        "star:blue_white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0002-w04",
+      "index": 4,
+      "name": "Kanak Station",
+      "orbit": 4,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rebels",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [],
+  "tags": [],
+  "notes": []
+}

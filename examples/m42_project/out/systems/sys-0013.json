@@ -1,0 +1,224 @@
+{
+  "id": "sys-0013",
+  "index": 13,
+  "name": "Zayth",
+  "coord": {
+    "q": 3,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 0
+  },
+  "worlds": [
+    {
+      "id": "sys-0013-w01",
+      "index": 1,
+      "name": "Olbia Station",
+      "orbit": 1,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "orange dwarf",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "AncientArchive",
+          "ArchaeotechRuins"
+        ]
+      },
+      "factions": [],
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:ancient_archive",
+        "feature:archaeotech_ruins",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:orange_dwarf",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0013-w02",
+      "index": 2,
+      "name": "Klybo Verge",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "significant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "free_traders",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0013-w03",
+      "index": 3,
+      "name": "Tarsi",
+      "orbit": 3,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "rebels",
+          "influence": "significant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "minor",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:amber",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0013-w04",
+      "index": 4,
+      "name": "Port Eboracum Inner",
+      "orbit": 4,
+      "source_row_index": 16,
+      "world": {
+        "star_colour": "amber",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "High",
+        "government": "MechanicusForgeLord",
+        "notable_features": [
+          "ExtremeEnvironment",
+          "FactionalFragmentation",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "mechanicus",
+          "influence": "significant",
+          "relationship_to_government": "insular"
+        },
+        {
+          "faction_id": "ecclesiarchy",
+          "influence": "minor",
+          "relationship_to_government": "zealous"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:mechanicus_forge_lord",
+        "population:extremely_dense",
+        "star:amber",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    }
+  ],
+  "primary_factions": [
+    "ecclesiarchy",
+    "imperial_administration",
+    "mechanicus"
+  ],
+  "tags": [],
+  "notes": []
+}

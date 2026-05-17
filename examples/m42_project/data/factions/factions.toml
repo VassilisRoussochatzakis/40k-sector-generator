@@ -1,0 +1,69 @@
+[[factions]]
+id = "imperial_administration"
+name = "Imperial Administration"
+kind = "imperial"
+weight = 10.0
+default_disposition = "lawful"
+preferred_world_types = ["HiveWorld", "BastionWorld", "IndustrialWorld"]
+preferred_governments = ["MilitaryGovernor", "MagistrateCouncil", "EcclesiarchicalAppointee"]
+preferred_notable_features = ["AdministrativeHub", "PoliceState", "ImportantShrine"]
+
+[[factions]]
+id = "mechanicus"
+name = "Adeptus Mechanicus"
+kind = "mechanicus"
+weight = 6.0
+default_disposition = "insular"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "ExploratorAuthority"]
+preferred_notable_features = ["ArchaeotechRuins", "ForbiddenTech", "MajorSpaceyard", "LocalTech"]
+
+[[factions]]
+id = "free_traders"
+name = "Free Trader Compact"
+kind = "merchant"
+weight = 4.0
+default_disposition = "opportunistic"
+preferred_world_types = ["FrontierWorld", "AgriWorld"]
+preferred_governments = ["RogueTraderDynasty", "Megacorporations", "GuildsCombine"]
+preferred_notable_features = ["Freeport", "TradeHub", "TheSilentTrade", "Prosperous"]
+
+[[factions]]
+id = "ecclesiarchy"
+name = "Adeptus Ministorum"
+kind = "imperial"
+weight = 5.0
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "ScholaProgenium", "Missionaries"]
+
+[[factions]]
+id = "inquisition"
+name = "The Inquisition"
+kind = "imperial"
+weight = 2.0
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "DeathWorld"]
+preferred_governments = []
+preferred_notable_features = ["InquisitionOutpost", "WitchHunt", "DaemonicCorruption", "Quarantined"]
+
+[[factions]]
+id = "rebels"
+name = "Separatist Movement"
+kind = "rebel"
+weight = 3.0
+default_disposition = "hostile"
+preferred_world_types = ["FrontierWorld", "PenalWorld"]
+preferred_governments = ["RevolutionaryJunta", "Demagogue", "Warlords"]
+preferred_notable_features = ["Separatists", "CivilWar", "WarZone", "PopularUprising"]
+
+[[factions]]
+id = "xenos_threat"
+name = "Xenos Incursion"
+kind = "xenos"
+weight = 2.0
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["HostileXenos", "XenoRuins", "XenosInfiltrators", "PrimitiveXenos"]

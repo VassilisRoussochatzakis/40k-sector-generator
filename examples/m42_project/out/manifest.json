@@ -1,0 +1,21 @@
+{
+  "project_id": "m42-sector",
+  "generated_at_policy": "not recorded by default",
+  "generator_name": "sectorforge",
+  "generator_version": "0.1.0",
+  "seed": "m42-default-seed",
+  "seed_hash": "blake3:68f11bc2d233cf9502b3369d2e5b9908efe2c57ba9b7ad7d006a90e36af76ab7",
+  "profile": null,
+  "input_digests": {
+    "data/factions/factions.toml": "blake3:0b4199a95822fc49fafbcf042608f6c0f80f5b008d40892ad6816e8329660a6e",
+    "data/names/system_names.toml": "blake3:c70b8bfb32c7b63761c3a4d0056f5dd0386daac4b46d17e07a651df6de81e716",
+    "data/names/world_names.toml": "blake3:1e1bdfab995f5705ab0fe631a35d03081c82e2828c35ed953b4426bd8863f511",
+    "data/routes/route_rules.toml": "blake3:643f427180d3f3f264aa070d70c7ef17e365f45a5ce8eb8b37555bfa7731d7ef",
+    "data/worlds/m42_sector_generator.xlsx": "blake3:f4e5e67130e50865ebe81ae48290c949f2c459b039584f9627621020af03fe80",
+    "sectorforge.toml": "blake3:0c7230a114e3af4d838da2f04624ffaad31c7c6674be38c862313d56a9af45f7"
+  },
+  "settings_digest": "blake3:80b96526b42a77168cdc865c6c82f0badbfbae2a9ee536f420909568ecf4ebfc",
+  "system_count": 24,
+  "world_count": 100,
+  "route_count": 38
+}

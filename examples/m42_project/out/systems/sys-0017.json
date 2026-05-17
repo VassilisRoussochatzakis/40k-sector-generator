@@ -1,14 +1,14 @@
 {
   "id": "sys-0017",
   "index": 17,
-  "name": "Tarsus Span",
+  "name": "Ossian Exile",
   "coord": {
     "q": 5,
     "r": 7
   },
   "star": {
     "colour_code": "A",
-    "colour_name": "amber",
+    "colour_name": "white",
     "spectral_type": "A",
     "source_row_index": 6
   },
@@ -16,7 +16,7 @@
     {
       "id": "sys-0017-w01",
       "index": 1,
-      "name": "Aethon",
+      "name": "Orphidia",
       "orbit": 1,
       "source_row_index": 6,
       "world": {
@@ -37,14 +37,14 @@
       },
       "factions": [
         {
-          "faction_id": "free_traders",
+          "faction_id": "forge_world_anvillus",
           "influence": "dominant",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "insular"
         },
         {
-          "faction_id": "rebels",
+          "faction_id": "tau_sept",
           "influence": "significant",
-          "relationship_to_government": "hostile"
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
@@ -65,7 +65,7 @@
     {
       "id": "sys-0017-w02",
       "index": 2,
-      "name": "Pyriphlegethon Verge",
+      "name": "Xanthia Crown",
       "orbit": 2,
       "source_row_index": 7,
       "world": {
@@ -86,9 +86,9 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "tau_client_worlds",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
@@ -109,11 +109,11 @@
     {
       "id": "sys-0017-w03",
       "index": 3,
-      "name": "Verbis",
+      "name": "Necropolia",
       "orbit": 3,
       "source_row_index": 17,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -130,17 +130,17 @@
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "waaagh_ghazghkull",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "inquisition",
+          "faction_id": "scion_drop_commandos",
           "influence": "significant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "rebels",
+          "faction_id": "xenarch",
           "influence": "minor",
           "relationship_to_government": "hostile"
         }
@@ -153,7 +153,7 @@
         "feature:factional_fragmentation",
         "gov:megacorporations",
         "population:extremely_dense",
-        "star:amber",
+        "star:white",
         "tech:xeno_hybrid",
         "temperature:hot",
         "world_type:death_world"
@@ -163,11 +163,11 @@
     {
       "id": "sys-0017-w04",
       "index": 4,
-      "name": "Solace Deep",
+      "name": "Vermillion Kanak Redoubt",
       "orbit": 4,
       "source_row_index": 17,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -184,19 +184,19 @@
       },
       "factions": [
         {
-          "faction_id": "rebels",
+          "faction_id": "speed_freeks",
           "influence": "dominant",
           "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "xenos_threat",
           "influence": "significant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "inquisition",
+          "faction_id": "hydraphur_naval_armsmen",
           "influence": "minor",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
@@ -207,7 +207,7 @@
         "feature:factional_fragmentation",
         "gov:megacorporations",
         "population:extremely_dense",
-        "star:amber",
+        "star:white",
         "tech:xeno_hybrid",
         "temperature:hot",
         "world_type:death_world"
@@ -217,11 +217,11 @@
     {
       "id": "sys-0017-w05",
       "index": 5,
-      "name": "Verbis",
+      "name": "Nemoria",
       "orbit": 5,
       "source_row_index": 9,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
         "atmosphere": "Corrosive",
@@ -238,7 +238,7 @@
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "spiritseer_circles",
           "influence": "dominant",
           "relationship_to_government": "insular"
         }
@@ -251,7 +251,7 @@
         "feature:cold_war",
         "gov:guilds_combine",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -260,9 +260,9 @@
     }
   ],
   "primary_factions": [
-    "ecclesiarchy",
-    "inquisition",
-    "rebels"
+    "forge_world_anvillus",
+    "spiritseer_circles",
+    "speed_freeks"
   ],
   "tags": [],
   "notes": []

@@ -1,14 +1,14 @@
 {
   "id": "sys-0024",
   "index": 24,
-  "name": "Vaxanide IV",
+  "name": "Prosperis II",
   "coord": {
     "q": 7,
     "r": 5
   },
   "star": {
     "colour_code": "A",
-    "colour_name": "amber",
+    "colour_name": "white",
     "spectral_type": "A",
     "source_row_index": 15
   },
@@ -16,11 +16,11 @@
     {
       "id": "sys-0024-w01",
       "index": 1,
-      "name": "New Aethon Outer",
+      "name": "Allecta Inner",
       "orbit": 1,
       "source_row_index": 15,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -37,19 +37,19 @@
       },
       "factions": [
         {
-          "faction_id": "inquisition",
+          "faction_id": "hive_fleet_moloch",
           "influence": "dominant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "elysian_drop_troops",
           "influence": "significant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "zoanthrope_choirs",
           "influence": "minor",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
@@ -60,7 +60,7 @@
         "feature:factional_fragmentation",
         "gov:magistrate_council",
         "population:densely_populated",
-        "star:amber",
+        "star:white",
         "tech:high",
         "temperature:hot",
         "world_type:death_world"
@@ -70,11 +70,11 @@
     {
       "id": "sys-0024-w02",
       "index": 2,
-      "name": "Sanguine Yperion",
+      "name": "Lucent Gravenor",
       "orbit": 2,
       "source_row_index": 10,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "BastionWorld",
         "atmosphere": "Exotic",
@@ -91,9 +91,9 @@
       },
       "factions": [
         {
-          "faction_id": "inquisition",
+          "faction_id": "house_lucaris",
           "influence": "dominant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
@@ -104,7 +104,7 @@
         "feature:dangerous_wildlife",
         "gov:hereteks",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:bastion_world"
@@ -113,7 +113,9 @@
     }
   ],
   "primary_factions": [
-    "inquisition"
+    "house_lucaris",
+    "hive_fleet_moloch",
+    "elysian_drop_troops"
   ],
   "tags": [],
   "notes": []

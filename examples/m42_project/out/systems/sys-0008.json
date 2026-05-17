@@ -1,57 +1,57 @@
 {
   "id": "sys-0008",
   "index": 8,
-  "name": "Tarsus Watch",
+  "name": "Phlegethon Sanctuary",
   "coord": {
     "q": 2,
     "r": 4
   },
   "star": {
-    "colour_code": "O",
-    "colour_name": "orange dwarf",
-    "spectral_type": "O-dwarf",
-    "source_row_index": 1
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 2
   },
   "worlds": [
     {
       "id": "sys-0008-w01",
       "index": 1,
-      "name": "Pyriphlegethon",
+      "name": "Ataraxia",
       "orbit": 1,
-      "source_row_index": 1,
+      "source_row_index": 2,
       "world": {
-        "star_colour": "orange dwarf",
-        "star_colour_code": "O",
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
         "world_type": "AgriWorld",
-        "atmosphere": "Airless",
+        "atmosphere": "Breathable",
         "temperature": "Cold",
         "biosphere": "Nonexistent",
         "population": "Minimal",
-        "tech_level": "Primitive",
-        "government": "ChaosCult",
+        "tech_level": "Low",
+        "government": "ClansTribes",
         "notable_features": [
-          "AlteredHumans",
+          "AncientArchive",
           "AncientTombs",
           "ColdWar"
         ]
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "ratling_scout_cadres",
           "influence": "dominant",
           "relationship_to_government": "lawful"
         }
       ],
       "tags": [
-        "atmosphere:airless",
+        "atmosphere:breathable",
         "biosphere:nonexistent",
-        "feature:altered_humans",
+        "feature:ancient_archive",
         "feature:ancient_tombs",
         "feature:cold_war",
-        "gov:chaos_cult",
+        "gov:clans_tribes",
         "population:minimal",
-        "star:orange_dwarf",
-        "tech:primitive",
+        "star:blue_white",
+        "tech:low",
         "temperature:cold",
         "world_type:agri_world"
       ],
@@ -60,55 +60,55 @@
     {
       "id": "sys-0008-w02",
       "index": 2,
-      "name": "Yperion",
+      "name": "Amaraxis",
       "orbit": 2,
-      "source_row_index": 9,
+      "source_row_index": 10,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
-        "world_type": "AgriWorld",
-        "atmosphere": "Corrosive",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
         "temperature": "Temperate",
         "biosphere": "Thriving",
         "population": "LightlyPopulated",
         "tech_level": "Standard",
-        "government": "GuildsCombine",
+        "government": "Hereteks",
         "notable_features": [
-          "ColdWar",
-          "CivilWar",
-          "CelestialPhenomena"
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
         ]
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "rot_fly_swarms",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
-        "atmosphere:corrosive",
+        "atmosphere:exotic",
         "biosphere:thriving",
-        "feature:celestial_phenomena",
-        "feature:civil_war",
-        "feature:cold_war",
-        "gov:guilds_combine",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
-        "world_type:agri_world"
+        "world_type:bastion_world"
       ],
       "notes": []
     },
     {
       "id": "sys-0008-w03",
       "index": 3,
-      "name": "Old Karthago",
+      "name": "Hallowed Rhadam",
       "orbit": 3,
       "source_row_index": 0,
       "world": {
-        "star_colour": "orange dwarf",
+        "star_colour": "blue hypergiant",
         "star_colour_code": "O",
         "world_type": "AgriWorld",
         "atmosphere": "Airless",
@@ -132,7 +132,7 @@
         "feature:archaeotech_ruins",
         "gov:balkanized_local_factions",
         "population:uninhabited",
-        "star:orange_dwarf",
+        "star:blue_hypergiant",
         "tech:primitive",
         "temperature:freezing",
         "world_type:agri_world"
@@ -142,9 +142,9 @@
     {
       "id": "sys-0008-w04",
       "index": 4,
-      "name": "Yperion",
+      "name": "Karthaxia",
       "orbit": 4,
-      "source_row_index": 4,
+      "source_row_index": 5,
       "world": {
         "star_colour": "blue-white",
         "star_colour_code": "B",
@@ -154,21 +154,21 @@
         "biosphere": "Minimal",
         "population": "SoleSettlement",
         "tech_level": "Low",
-        "government": "CorruptAristocrats",
+        "government": "Demagogue",
         "notable_features": [
-          "ArchaeotechRuins",
+          "BlindingMists",
           "CivilWar",
           "Abhumans"
         ]
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "kabal_of_the_poisoned_tongue",
           "influence": "dominant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "order_of_the_bloody_rose",
           "influence": "significant",
           "relationship_to_government": "zealous"
         }
@@ -177,9 +177,9 @@
         "atmosphere:breathable",
         "biosphere:minimal",
         "feature:abhumans",
-        "feature:archaeotech_ruins",
+        "feature:blinding_mists",
         "feature:civil_war",
-        "gov:corrupt_aristocrats",
+        "gov:demagogue",
         "population:sole_settlement",
         "star:blue_white",
         "tech:low",
@@ -190,7 +190,9 @@
     }
   ],
   "primary_factions": [
-    "imperial_administration"
+    "ratling_scout_cadres",
+    "rot_fly_swarms",
+    "kabal_of_the_poisoned_tongue"
   ],
   "tags": [],
   "notes": []

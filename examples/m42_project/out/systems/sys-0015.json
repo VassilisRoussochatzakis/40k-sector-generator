@@ -1,26 +1,26 @@
 {
   "id": "sys-0015",
   "index": 15,
-  "name": "Vaxanide III",
+  "name": "Benedica",
   "coord": {
     "q": 4,
     "r": 5
   },
   "star": {
-    "colour_code": "A",
-    "colour_name": "amber",
-    "spectral_type": "A",
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
     "source_row_index": 8
   },
   "worlds": [
     {
       "id": "sys-0015-w01",
       "index": 1,
-      "name": "Iocanthos",
+      "name": "Lacuna",
       "orbit": 1,
       "source_row_index": 8,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
         "atmosphere": "Breathable",
@@ -37,9 +37,9 @@
       },
       "factions": [
         {
-          "faction_id": "inquisition",
+          "faction_id": "ratling_scout_cadres",
           "influence": "dominant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
@@ -50,7 +50,7 @@
         "feature:civil_war",
         "gov:explorator_authority",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -60,42 +60,47 @@
     {
       "id": "sys-0015-w02",
       "index": 2,
-      "name": "Gilded Lacuna",
+      "name": "Grave Castravia",
       "orbit": 2,
-      "source_row_index": 7,
+      "source_row_index": 6,
       "world": {
         "star_colour": "blue-white",
         "star_colour_code": "B",
         "world_type": "AgriWorld",
         "atmosphere": "Breathable",
         "temperature": "Temperate",
-        "biosphere": "Thriving",
-        "population": "LightlyPopulated",
-        "tech_level": "Standard",
-        "government": "ElitistTyrant",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
         "notable_features": [
-          "ChaosCultists",
+          "CelestialPhenomena",
           "ArchaeotechRuins",
           "Abhumans"
         ]
       },
       "factions": [
         {
-          "faction_id": "free_traders",
+          "faction_id": "berzerker_warbands",
           "influence": "dominant",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "questor_imperialis_households",
+          "influence": "significant",
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
         "atmosphere:breathable",
-        "biosphere:thriving",
+        "biosphere:minimal",
         "feature:abhumans",
         "feature:archaeotech_ruins",
-        "feature:chaos_cultists",
-        "gov:elitist_tyrant",
-        "population:lightly_populated",
+        "feature:celestial_phenomena",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
         "star:blue_white",
-        "tech:standard",
+        "tech:low",
         "temperature:temperate",
         "world_type:agri_world"
       ],
@@ -104,7 +109,7 @@
     {
       "id": "sys-0015-w03",
       "index": 3,
-      "name": "Pyriphlegethon",
+      "name": "Zanthis",
       "orbit": 3,
       "source_row_index": 2,
       "world": {
@@ -125,7 +130,7 @@
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "salamanders",
           "influence": "dominant",
           "relationship_to_government": "zealous"
         }
@@ -148,11 +153,11 @@
     {
       "id": "sys-0015-w04",
       "index": 4,
-      "name": "Nymph",
+      "name": "Sollemnis",
       "orbit": 4,
-      "source_row_index": 12,
+      "source_row_index": 11,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "BastionWorld",
         "atmosphere": "Thin",
@@ -160,28 +165,28 @@
         "biosphere": "Poisoned",
         "population": "DenselyPopulated",
         "tech_level": "Standard",
-        "government": "InfractionistGang",
+        "government": "HereticalImperialCult",
         "notable_features": [
-          "DangerousWildlife",
+          "DaemonicCorruption",
           "CrumblingArcologies",
-          "DaemonicCorruption"
+          "DangerousWildlife"
         ]
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "alpha_legion",
           "influence": "dominant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "free_traders",
+          "faction_id": "kill_rig_convoys",
           "influence": "significant",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "adepta_famulous",
           "influence": "minor",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
@@ -190,9 +195,9 @@
         "feature:crumbling_arcologies",
         "feature:daemonic_corruption",
         "feature:dangerous_wildlife",
-        "gov:infractionist_gang",
+        "gov:heretical_imperial_cult",
         "population:densely_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:bastion_world"
@@ -201,8 +206,9 @@
     }
   ],
   "primary_factions": [
-    "ecclesiarchy",
-    "free_traders"
+    "salamanders",
+    "ratling_scout_cadres",
+    "alpha_legion"
   ],
   "tags": [],
   "notes": []

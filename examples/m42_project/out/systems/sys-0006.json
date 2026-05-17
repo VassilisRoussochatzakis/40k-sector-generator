@@ -1,22 +1,22 @@
 {
   "id": "sys-0006",
   "index": 6,
-  "name": "Wyrm Terminus",
+  "name": "Sorrow Pilgrim",
   "coord": {
     "q": 2,
     "r": 0
   },
   "star": {
-    "colour_code": "B",
-    "colour_name": "blue-white",
-    "spectral_type": "B",
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
     "source_row_index": 5
   },
   "worlds": [
     {
       "id": "sys-0006-w01",
       "index": 1,
-      "name": "Bright Aethon",
+      "name": "Junora Beta",
       "orbit": 1,
       "source_row_index": 5,
       "world": {
@@ -37,14 +37,14 @@
       },
       "factions": [
         {
-          "faction_id": "xenos_threat",
+          "faction_id": "kabal_of_the_broken_sigil",
           "influence": "dominant",
           "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "kindred_prospect_clans",
           "influence": "significant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
@@ -65,11 +65,11 @@
     {
       "id": "sys-0006-w02",
       "index": 2,
-      "name": "Verbis Deep",
+      "name": "Ysengrav",
       "orbit": 2,
       "source_row_index": 18,
       "world": {
-        "star_colour": "fuchsia",
+        "star_colour": "yellow-white",
         "star_colour_code": "F",
         "world_type": "DeadWorld",
         "atmosphere": "Tainted",
@@ -81,35 +81,35 @@
         "notable_features": [
           "FailedParadise",
           "FlyingCities",
-          "ArchaeotechRuins"
+          "ColdWar"
         ]
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "questor_imperialis_households",
           "influence": "dominant",
           "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "inquisition",
+          "faction_id": "promethium_combine",
           "influence": "significant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "opportunistic"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "acolyte_cells",
           "influence": "minor",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "secretive"
         }
       ],
       "tags": [
         "atmosphere:tainted",
         "biosphere:xeno_dominance",
-        "feature:archaeotech_ruins",
+        "feature:cold_war",
         "feature:failed_paradise",
         "feature:flying_cities",
         "gov:military_governor",
         "population:extremely_dense",
-        "star:fuchsia",
+        "star:yellow_white",
         "tech:xeno_hybrid",
         "temperature:hot",
         "world_type:dead_world"
@@ -119,11 +119,11 @@
     {
       "id": "sys-0006-w03",
       "index": 3,
-      "name": "Sanguine Meridian",
+      "name": "Dead Furoria Dolor",
       "orbit": 3,
       "source_row_index": 16,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -140,19 +140,19 @@
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "craftworld_dorhai",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "insular"
         },
         {
-          "faction_id": "inquisition",
+          "faction_id": "praetorian_guard",
           "influence": "significant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "xenos_threat",
+          "faction_id": "angels_penitent",
           "influence": "minor",
-          "relationship_to_government": "hostile"
+          "relationship_to_government": "zealous"
         }
       ],
       "tags": [
@@ -163,117 +163,18 @@
         "feature:factional_fragmentation",
         "gov:mechanicus_forge_lord",
         "population:extremely_dense",
-        "star:amber",
+        "star:white",
         "tech:high",
         "temperature:hot",
         "world_type:death_world"
       ],
       "notes": []
-    },
-    {
-      "id": "sys-0006-w04",
-      "index": 4,
-      "name": "Saint Nymph Shadow",
-      "orbit": 4,
-      "source_row_index": 5,
-      "world": {
-        "star_colour": "blue-white",
-        "star_colour_code": "B",
-        "world_type": "AgriWorld",
-        "atmosphere": "Breathable",
-        "temperature": "Cold",
-        "biosphere": "Minimal",
-        "population": "SoleSettlement",
-        "tech_level": "Low",
-        "government": "Demagogue",
-        "notable_features": [
-          "BlindingMists",
-          "Abhumans",
-          "CelestialPhenomena"
-        ]
-      },
-      "factions": [
-        {
-          "faction_id": "free_traders",
-          "influence": "dominant",
-          "relationship_to_government": "opportunistic"
-        },
-        {
-          "faction_id": "mechanicus",
-          "influence": "significant",
-          "relationship_to_government": "insular"
-        }
-      ],
-      "tags": [
-        "atmosphere:breathable",
-        "biosphere:minimal",
-        "feature:abhumans",
-        "feature:blinding_mists",
-        "feature:celestial_phenomena",
-        "gov:demagogue",
-        "population:sole_settlement",
-        "star:blue_white",
-        "tech:low",
-        "temperature:cold",
-        "world_type:agri_world"
-      ],
-      "notes": []
-    },
-    {
-      "id": "sys-0006-w05",
-      "index": 5,
-      "name": "Nymph Inner",
-      "orbit": 5,
-      "source_row_index": 4,
-      "world": {
-        "star_colour": "blue-white",
-        "star_colour_code": "B",
-        "world_type": "AgriWorld",
-        "atmosphere": "Breathable",
-        "temperature": "Cold",
-        "biosphere": "Minimal",
-        "population": "SoleSettlement",
-        "tech_level": "Low",
-        "government": "CorruptAristocrats",
-        "notable_features": [
-          "ArchaeotechRuins",
-          "CivilWar",
-          "AncientArchive"
-        ]
-      },
-      "factions": [
-        {
-          "faction_id": "imperial_administration",
-          "influence": "dominant",
-          "relationship_to_government": "lawful"
-        },
-        {
-          "faction_id": "inquisition",
-          "influence": "significant",
-          "relationship_to_government": "secretive"
-        }
-      ],
-      "tags": [
-        "atmosphere:breathable",
-        "biosphere:minimal",
-        "feature:ancient_archive",
-        "feature:archaeotech_ruins",
-        "feature:civil_war",
-        "gov:corrupt_aristocrats",
-        "population:sole_settlement",
-        "star:blue_white",
-        "tech:low",
-        "temperature:cold",
-        "world_type:agri_world"
-      ],
-      "notes": []
     }
   ],
   "primary_factions": [
-    "imperial_administration",
-    "inquisition",
-    "mechanicus",
-    "xenos_threat"
+    "questor_imperialis_households",
+    "craftworld_dorhai",
+    "kabal_of_the_broken_sigil"
   ],
   "tags": [],
   "notes": []

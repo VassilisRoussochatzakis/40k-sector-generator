@@ -1,26 +1,26 @@
 {
   "id": "sys-0013",
   "index": 13,
-  "name": "Zayth",
+  "name": "Octavia",
   "coord": {
     "q": 3,
     "r": 9
   },
   "star": {
-    "colour_code": "B",
-    "colour_name": "blue-white",
-    "spectral_type": "B",
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
     "source_row_index": 0
   },
   "worlds": [
     {
       "id": "sys-0013-w01",
       "index": 1,
-      "name": "Olbia Station",
+      "name": "Tollaris Hive",
       "orbit": 1,
       "source_row_index": 0,
       "world": {
-        "star_colour": "orange dwarf",
+        "star_colour": "blue hypergiant",
         "star_colour_code": "O",
         "world_type": "AgriWorld",
         "atmosphere": "Airless",
@@ -44,7 +44,7 @@
         "feature:archaeotech_ruins",
         "gov:balkanized_local_factions",
         "population:uninhabited",
-        "star:orange_dwarf",
+        "star:blue_hypergiant",
         "tech:primitive",
         "temperature:freezing",
         "world_type:agri_world"
@@ -54,65 +54,65 @@
     {
       "id": "sys-0013-w02",
       "index": 2,
-      "name": "Klybo Verge",
+      "name": "Silent Leontar Crypt",
       "orbit": 2,
-      "source_row_index": 12,
+      "source_row_index": 15,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
-        "world_type": "BastionWorld",
-        "atmosphere": "Thin",
-        "temperature": "Temperate",
-        "biosphere": "Poisoned",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
         "population": "DenselyPopulated",
-        "tech_level": "Standard",
-        "government": "InfractionistGang",
+        "tech_level": "High",
+        "government": "MagistrateCouncil",
         "notable_features": [
-          "DangerousWildlife",
-          "CrumblingArcologies",
-          "DaemonicCorruption"
+          "EugenicCult",
+          "ExtremeEnvironment",
+          "FactionalFragmentation"
         ]
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "montka_strike_cadres",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "opportunistic"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "corsair_voidreavers",
           "influence": "significant",
           "relationship_to_government": "insular"
         },
         {
-          "faction_id": "free_traders",
+          "faction_id": "rok_pirate_fleets",
           "influence": "minor",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
-        "atmosphere:thin",
-        "biosphere:poisoned",
-        "feature:crumbling_arcologies",
-        "feature:daemonic_corruption",
-        "feature:dangerous_wildlife",
-        "gov:infractionist_gang",
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:magistrate_council",
         "population:densely_populated",
-        "star:amber",
-        "tech:standard",
-        "temperature:temperate",
-        "world_type:bastion_world"
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
       ],
       "notes": []
     },
     {
       "id": "sys-0013-w03",
       "index": 3,
-      "name": "Tarsi",
+      "name": "Aethon",
       "orbit": 3,
       "source_row_index": 11,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "BastionWorld",
         "atmosphere": "Thin",
@@ -129,19 +129,19 @@
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "traitor_guard",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
-        },
-        {
-          "faction_id": "rebels",
-          "influence": "significant",
           "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "ordo_astartes",
+          "influence": "significant",
+          "relationship_to_government": "secretive"
+        },
+        {
+          "faction_id": "iron_snakes",
           "influence": "minor",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "zealous"
         }
       ],
       "tags": [
@@ -152,7 +152,7 @@
         "feature:dangerous_wildlife",
         "gov:heretical_imperial_cult",
         "population:densely_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:bastion_world"
@@ -162,11 +162,11 @@
     {
       "id": "sys-0013-w04",
       "index": 4,
-      "name": "Port Eboracum Inner",
+      "name": "Crypt Maccabia Decimus",
       "orbit": 4,
       "source_row_index": 16,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -183,19 +183,19 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "storm_giants",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
-        },
-        {
-          "faction_id": "mechanicus",
-          "influence": "significant",
-          "relationship_to_government": "insular"
-        },
-        {
-          "faction_id": "ecclesiarchy",
-          "influence": "minor",
           "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "mutant_brotherhoods",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "navigator_houses",
+          "influence": "minor",
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
@@ -206,7 +206,105 @@
         "feature:factional_fragmentation",
         "gov:mechanicus_forge_lord",
         "population:extremely_dense",
-        "star:amber",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0013-w05",
+      "index": 5,
+      "name": "Sanctified Ursae",
+      "orbit": 5,
+      "source_row_index": 9,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Corrosive",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "GuildsCombine",
+        "notable_features": [
+          "ColdWar",
+          "CivilWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "octarius_ork_empires",
+          "influence": "dominant",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:corrosive",
+        "biosphere:thriving",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "feature:cold_war",
+        "gov:guilds_combine",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0013-w06",
+      "index": 6,
+      "name": "Tomb Aquilon Pyre",
+      "orbit": 6,
+      "source_row_index": 15,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "DenselyPopulated",
+        "tech_level": "High",
+        "government": "MagistrateCouncil",
+        "notable_features": [
+          "EugenicCult",
+          "FactionalFragmentation",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "faceless_trade",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic"
+        },
+        {
+          "faction_id": "fallen_armiger_packs",
+          "influence": "significant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "house_devine_loyalist_claimants",
+          "influence": "minor",
+          "relationship_to_government": "lawful"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:magistrate_council",
+        "population:densely_populated",
+        "star:white",
         "tech:high",
         "temperature:hot",
         "world_type:death_world"
@@ -215,9 +313,9 @@
     }
   ],
   "primary_factions": [
-    "ecclesiarchy",
-    "imperial_administration",
-    "mechanicus"
+    "storm_giants",
+    "faceless_trade",
+    "traitor_guard"
   ],
   "tags": [],
   "notes": []

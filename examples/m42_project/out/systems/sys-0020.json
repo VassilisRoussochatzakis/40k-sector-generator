@@ -1,56 +1,56 @@
 {
   "id": "sys-0020",
   "index": 20,
-  "name": "Zaragoz Hold",
+  "name": "Xanthus Perdition",
   "coord": {
     "q": 6,
     "r": 3
   },
   "star": {
-    "colour_code": "B",
-    "colour_name": "blue-white",
-    "spectral_type": "B",
-    "source_row_index": 8
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 9
   },
   "worlds": [
     {
       "id": "sys-0020-w01",
       "index": 1,
-      "name": "Karthago",
+      "name": "Ravenna",
       "orbit": 1,
-      "source_row_index": 8,
+      "source_row_index": 9,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
-        "atmosphere": "Breathable",
+        "atmosphere": "Corrosive",
         "temperature": "Temperate",
         "biosphere": "Thriving",
         "population": "LightlyPopulated",
         "tech_level": "Standard",
-        "government": "ExploratorAuthority",
+        "government": "GuildsCombine",
         "notable_features": [
+          "ColdWar",
           "CivilWar",
-          "ChaosCultists",
-          "ColdWar"
+          "ChaosCultists"
         ]
       },
       "factions": [
         {
-          "faction_id": "free_traders",
+          "faction_id": "heretic_storm_troopers",
           "influence": "dominant",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
-        "atmosphere:breathable",
+        "atmosphere:corrosive",
         "biosphere:thriving",
         "feature:chaos_cultists",
         "feature:civil_war",
         "feature:cold_war",
-        "gov:explorator_authority",
+        "gov:guilds_combine",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -60,51 +60,51 @@
     {
       "id": "sys-0020-w02",
       "index": 2,
-      "name": "Sanguine Nymph Shadow",
+      "name": "Infernus Severia Cairn",
       "orbit": 2,
-      "source_row_index": 8,
+      "source_row_index": 10,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
-        "world_type": "AgriWorld",
-        "atmosphere": "Breathable",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
         "temperature": "Temperate",
         "biosphere": "Thriving",
         "population": "LightlyPopulated",
         "tech_level": "Standard",
-        "government": "ExploratorAuthority",
+        "government": "Hereteks",
         "notable_features": [
-          "CivilWar",
-          "Abhumans",
-          "ArchaeotechRuins"
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
         ]
       },
       "factions": [
         {
-          "faction_id": "rebels",
+          "faction_id": "kataphron_battle_congregations",
           "influence": "dominant",
-          "relationship_to_government": "hostile"
+          "relationship_to_government": "insular"
         }
       ],
       "tags": [
-        "atmosphere:breathable",
+        "atmosphere:exotic",
         "biosphere:thriving",
-        "feature:abhumans",
-        "feature:archaeotech_ruins",
-        "feature:civil_war",
-        "gov:explorator_authority",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
-        "world_type:agri_world"
+        "world_type:bastion_world"
       ],
       "notes": []
     },
     {
       "id": "sys-0020-w03",
       "index": 3,
-      "name": "Lacuna",
+      "name": "Vigilant Meridia",
       "orbit": 3,
       "source_row_index": 2,
       "world": {
@@ -125,9 +125,9 @@
       },
       "factions": [
         {
-          "faction_id": "inquisition",
+          "faction_id": "stompa_mobs",
           "influence": "dominant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
@@ -148,11 +148,11 @@
     {
       "id": "sys-0020-w04",
       "index": 4,
-      "name": "Solace",
+      "name": "Abraxion",
       "orbit": 4,
       "source_row_index": 10,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "BastionWorld",
         "atmosphere": "Exotic",
@@ -169,9 +169,9 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "house_delaque",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
@@ -182,71 +182,18 @@
         "feature:dangerous_wildlife",
         "gov:hereteks",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:bastion_world"
       ],
       "notes": []
-    },
-    {
-      "id": "sys-0020-w05",
-      "index": 5,
-      "name": "Eboracum Prime",
-      "orbit": 5,
-      "source_row_index": 17,
-      "world": {
-        "star_colour": "amber",
-        "star_colour_code": "A",
-        "world_type": "DeathWorld",
-        "atmosphere": "Tainted",
-        "temperature": "Hot",
-        "biosphere": "XenoHybrid",
-        "population": "ExtremelyDense",
-        "tech_level": "XenoHybrid",
-        "government": "Megacorporations",
-        "notable_features": [
-          "FactionalFragmentation",
-          "EugenicCult",
-          "ExtremeEnvironment"
-        ]
-      },
-      "factions": [
-        {
-          "faction_id": "free_traders",
-          "influence": "dominant",
-          "relationship_to_government": "opportunistic"
-        },
-        {
-          "faction_id": "imperial_administration",
-          "influence": "significant",
-          "relationship_to_government": "lawful"
-        },
-        {
-          "faction_id": "xenos_threat",
-          "influence": "minor",
-          "relationship_to_government": "hostile"
-        }
-      ],
-      "tags": [
-        "atmosphere:tainted",
-        "biosphere:xeno_hybrid",
-        "feature:eugenic_cult",
-        "feature:extreme_environment",
-        "feature:factional_fragmentation",
-        "gov:megacorporations",
-        "population:extremely_dense",
-        "star:amber",
-        "tech:xeno_hybrid",
-        "temperature:hot",
-        "world_type:death_world"
-      ],
-      "notes": []
     }
   ],
   "primary_factions": [
-    "free_traders",
-    "imperial_administration"
+    "kataphron_battle_congregations",
+    "house_delaque",
+    "heretic_storm_troopers"
   ],
   "tags": [],
   "notes": []

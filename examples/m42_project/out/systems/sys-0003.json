@@ -1,14 +1,14 @@
 {
   "id": "sys-0003",
   "index": 3,
-  "name": "Wyrm Crown",
+  "name": "Tantalus Cradle",
   "coord": {
     "q": 0,
     "r": 2
   },
   "star": {
     "colour_code": "A",
-    "colour_name": "amber",
+    "colour_name": "white",
     "spectral_type": "A",
     "source_row_index": 4
   },
@@ -16,7 +16,7 @@
     {
       "id": "sys-0003-w01",
       "index": 1,
-      "name": "Old Verbis",
+      "name": "Jade Benedica",
       "orbit": 1,
       "source_row_index": 4,
       "world": {
@@ -37,14 +37,14 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "baneblade_super_heavy_companies",
           "influence": "dominant",
           "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "plaguebearer_tallybands",
           "influence": "significant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
@@ -65,11 +65,11 @@
     {
       "id": "sys-0003-w02",
       "index": 2,
-      "name": "Yperion Prime",
+      "name": "Prometheon",
       "orbit": 2,
       "source_row_index": 1,
       "world": {
-        "star_colour": "orange dwarf",
+        "star_colour": "blue hypergiant",
         "star_colour_code": "O",
         "world_type": "AgriWorld",
         "atmosphere": "Airless",
@@ -86,9 +86,9 @@
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "phantine_air_corps",
           "influence": "dominant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
@@ -99,7 +99,7 @@
         "feature:blinding_mists",
         "gov:chaos_cult",
         "population:minimal",
-        "star:orange_dwarf",
+        "star:blue_hypergiant",
         "tech:primitive",
         "temperature:cold",
         "world_type:agri_world"
@@ -109,11 +109,11 @@
     {
       "id": "sys-0003-w03",
       "index": 3,
-      "name": "Old Verbis Deep",
+      "name": "Aurelian Nemoria",
       "orbit": 3,
       "source_row_index": 8,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
         "atmosphere": "Breathable",
@@ -130,9 +130,9 @@
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "br_khyr_thunderkyn",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
@@ -143,16 +143,116 @@
         "feature:civil_war",
         "gov:explorator_authority",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
       ],
       "notes": []
+    },
+    {
+      "id": "sys-0003-w04",
+      "index": 4,
+      "name": "Supplica",
+      "orbit": 4,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mentors",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0003-w05",
+      "index": 5,
+      "name": "Lamenta",
+      "orbit": 5,
+      "source_row_index": 15,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "DenselyPopulated",
+        "tech_level": "High",
+        "government": "MagistrateCouncil",
+        "notable_features": [
+          "EugenicCult",
+          "FactionalFragmentation",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "grey_knights",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "daemonhost_cabals",
+          "influence": "significant",
+          "relationship_to_government": "secretive"
+        },
+        {
+          "faction_id": "genetor_cults",
+          "influence": "minor",
+          "relationship_to_government": "insular"
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:magistrate_council",
+        "population:densely_populated",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "notes": []
     }
   ],
   "primary_factions": [
-    "mechanicus"
+    "mentors",
+    "grey_knights",
+    "phantine_air_corps"
   ],
   "tags": [],
   "notes": []

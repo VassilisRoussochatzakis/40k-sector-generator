@@ -1,24 +1,24 @@
 {
   "id": "sys-0023",
   "index": 23,
-  "name": "Tarsus Pass",
+  "name": "Nicomedia Pyre",
   "coord": {
     "q": 7,
     "r": 4
   },
   "star": {
-    "colour_code": "F",
-    "colour_name": "fuchsia",
-    "spectral_type": "F",
-    "source_row_index": 3
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 4
   },
   "worlds": [
     {
       "id": "sys-0023-w01",
       "index": 1,
-      "name": "Olbia",
+      "name": "Amaraxis",
       "orbit": 1,
-      "source_row_index": 3,
+      "source_row_index": 4,
       "world": {
         "star_colour": "blue-white",
         "star_colour_code": "B",
@@ -26,30 +26,35 @@
         "atmosphere": "Breathable",
         "temperature": "Cold",
         "biosphere": "Minimal",
-        "population": "Minimal",
+        "population": "SoleSettlement",
         "tech_level": "Low",
-        "government": "Communards",
+        "government": "CorruptAristocrats",
         "notable_features": [
-          "AncientTombs",
+          "ArchaeotechRuins",
           "CelestialPhenomena",
           "ColdWar"
         ]
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "imperial_tithe_authority",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "mutant_brotherhoods",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
         "atmosphere:breathable",
         "biosphere:minimal",
-        "feature:ancient_tombs",
+        "feature:archaeotech_ruins",
         "feature:celestial_phenomena",
         "feature:cold_war",
-        "gov:communards",
-        "population:minimal",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
         "star:blue_white",
         "tech:low",
         "temperature:cold",
@@ -60,41 +65,41 @@
     {
       "id": "sys-0023-w02",
       "index": 2,
-      "name": "Last Lacuna",
+      "name": "White Calibryx",
       "orbit": 2,
-      "source_row_index": 8,
+      "source_row_index": 9,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
-        "atmosphere": "Breathable",
+        "atmosphere": "Corrosive",
         "temperature": "Temperate",
         "biosphere": "Thriving",
         "population": "LightlyPopulated",
         "tech_level": "Standard",
-        "government": "ExploratorAuthority",
+        "government": "GuildsCombine",
         "notable_features": [
-          "CivilWar",
-          "BlindingMists",
-          "AlteredHumans"
+          "ColdWar",
+          "CelestialPhenomena",
+          "AncientArchive"
         ]
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "questor_mechanicus_households",
           "influence": "dominant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
-        "atmosphere:breathable",
+        "atmosphere:corrosive",
         "biosphere:thriving",
-        "feature:altered_humans",
-        "feature:blinding_mists",
-        "feature:civil_war",
-        "gov:explorator_authority",
+        "feature:ancient_archive",
+        "feature:celestial_phenomena",
+        "feature:cold_war",
+        "gov:guilds_combine",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -102,7 +107,11 @@
       "notes": []
     }
   ],
-  "primary_factions": [],
+  "primary_factions": [
+    "imperial_tithe_authority",
+    "questor_mechanicus_households",
+    "mutant_brotherhoods"
+  ],
   "tags": [],
   "notes": []
 }

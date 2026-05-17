@@ -94,8 +94,12 @@ fn render(sector: &GeneratedSector, scale: u32) -> RgbaImage {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
 
+    // Pointy-top odd-r layout: each row shifts right by 0.5 * horiz_step,
+    // so the rightmost hex sits at q = (W-1) + 0.5 * (H-1) on the bottom row.
+    let max_q_offset =
+        (sector.width.saturating_sub(1)) as f32 + 0.5 * (sector.height.saturating_sub(1)) as f32;
     let map_w =
-        (g.margin as f32 * 2.0 + sector.width as f32 * horiz_step + horiz_step / 2.0) as i32;
+        (g.margin as f32 * 2.0 + horiz_step * (max_q_offset + 1.0) + horiz_step / 2.0) as i32;
     let map_h = (g.margin as f32 * 2.0
         + (sector.height.saturating_sub(1)) as f32 * vert_step
         + 2.0 * g.hex_size) as i32;

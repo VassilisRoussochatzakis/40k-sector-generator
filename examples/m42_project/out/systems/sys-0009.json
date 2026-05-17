@@ -1,24 +1,24 @@
 {
   "id": "sys-0009",
   "index": 9,
-  "name": "Solomon II",
+  "name": "Prosperis",
   "coord": {
     "q": 2,
     "r": 8
   },
   "star": {
-    "colour_code": "B",
-    "colour_name": "blue-white",
-    "spectral_type": "B",
-    "source_row_index": 4
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 5
   },
   "worlds": [
     {
       "id": "sys-0009-w01",
       "index": 1,
-      "name": "Yperion",
+      "name": "Edicta",
       "orbit": 1,
-      "source_row_index": 4,
+      "source_row_index": 5,
       "world": {
         "star_colour": "blue-white",
         "star_colour_code": "B",
@@ -28,32 +28,32 @@
         "biosphere": "Minimal",
         "population": "SoleSettlement",
         "tech_level": "Low",
-        "government": "CorruptAristocrats",
+        "government": "Demagogue",
         "notable_features": [
-          "ArchaeotechRuins",
+          "BlindingMists",
           "ColdWar",
           "AlteredHumans"
         ]
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "orks",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "sagitaur_recon_convoys",
           "influence": "significant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "opportunistic"
         }
       ],
       "tags": [
         "atmosphere:breathable",
         "biosphere:minimal",
         "feature:altered_humans",
-        "feature:archaeotech_ruins",
+        "feature:blinding_mists",
         "feature:cold_war",
-        "gov:corrupt_aristocrats",
+        "gov:demagogue",
         "population:sole_settlement",
         "star:blue_white",
         "tech:low",
@@ -65,65 +65,65 @@
     {
       "id": "sys-0009-w02",
       "index": 2,
-      "name": "Verbis",
+      "name": "Nullion",
       "orbit": 2,
-      "source_row_index": 18,
+      "source_row_index": 17,
       "world": {
-        "star_colour": "fuchsia",
-        "star_colour_code": "F",
-        "world_type": "DeadWorld",
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
         "atmosphere": "Tainted",
         "temperature": "Hot",
-        "biosphere": "XenoDominance",
+        "biosphere": "XenoHybrid",
         "population": "ExtremelyDense",
         "tech_level": "XenoHybrid",
-        "government": "MilitaryGovernor",
+        "government": "Megacorporations",
         "notable_features": [
-          "FailedParadise",
-          "FlyingCities",
-          "BlindingMists"
+          "FactionalFragmentation",
+          "EugenicCult",
+          "ExtremeEnvironment"
         ]
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "iron_hands",
           "influence": "dominant",
           "relationship_to_government": "zealous"
         },
         {
-          "faction_id": "xenos_threat",
+          "faction_id": "rogue_trader_militant_houses",
           "influence": "significant",
-          "relationship_to_government": "hostile"
+          "relationship_to_government": "opportunistic"
         },
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "exodite_clans",
           "influence": "minor",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "insular"
         }
       ],
       "tags": [
         "atmosphere:tainted",
-        "biosphere:xeno_dominance",
-        "feature:blinding_mists",
-        "feature:failed_paradise",
-        "feature:flying_cities",
-        "gov:military_governor",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
         "population:extremely_dense",
-        "star:fuchsia",
+        "star:white",
         "tech:xeno_hybrid",
         "temperature:hot",
-        "world_type:dead_world"
+        "world_type:death_world"
       ],
       "notes": []
     },
     {
       "id": "sys-0009-w03",
       "index": 3,
-      "name": "Meridian Outer",
+      "name": "Night Arkhelia Exile",
       "orbit": 3,
       "source_row_index": 17,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -140,17 +140,17 @@
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "crimson_fists",
           "influence": "dominant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "zealous"
         },
         {
-          "faction_id": "inquisition",
+          "faction_id": "rok_pirate_fleets",
           "influence": "significant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "chem_dogs_of_savlar",
           "influence": "minor",
           "relationship_to_government": "lawful"
         }
@@ -163,7 +163,7 @@
         "feature:factional_fragmentation",
         "gov:megacorporations",
         "population:extremely_dense",
-        "star:amber",
+        "star:white",
         "tech:xeno_hybrid",
         "temperature:hot",
         "world_type:death_world"
@@ -173,11 +173,11 @@
     {
       "id": "sys-0009-w04",
       "index": 4,
-      "name": "Klybo",
+      "name": "Karthaxia Delta",
       "orbit": 4,
       "source_row_index": 19,
       "world": {
-        "star_colour": "fuchsia",
+        "star_colour": "yellow-white",
         "star_colour_code": "F",
         "world_type": "DeadWorld",
         "atmosphere": "Toxic",
@@ -189,35 +189,35 @@
         "notable_features": [
           "FlyingCities",
           "FailedParadise",
-          "ArchaeotechRuins"
+          "ColdWar"
         ]
       },
       "factions": [
         {
-          "faction_id": "inquisition",
+          "faction_id": "pyrovore_broods",
           "influence": "dominant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "revolutionary_cult_workers",
+          "influence": "significant",
           "relationship_to_government": "secretive"
         },
         {
-          "faction_id": "imperial_administration",
-          "influence": "significant",
-          "relationship_to_government": "lawful"
-        },
-        {
-          "faction_id": "rebels",
+          "faction_id": "dark_angels",
           "influence": "minor",
-          "relationship_to_government": "hostile"
+          "relationship_to_government": "zealous"
         }
       ],
       "tags": [
         "atmosphere:toxic",
         "biosphere:xeno_dominance",
-        "feature:archaeotech_ruins",
+        "feature:cold_war",
         "feature:failed_paradise",
         "feature:flying_cities",
         "gov:none",
         "population:extremely_dense",
-        "star:fuchsia",
+        "star:yellow_white",
         "tech:archaeotech",
         "temperature:boiling",
         "world_type:dead_world"
@@ -227,55 +227,11 @@
     {
       "id": "sys-0009-w05",
       "index": 5,
-      "name": "Meridian Verge",
+      "name": "Atropis Pilgrim",
       "orbit": 5,
-      "source_row_index": 10,
-      "world": {
-        "star_colour": "amber",
-        "star_colour_code": "A",
-        "world_type": "BastionWorld",
-        "atmosphere": "Exotic",
-        "temperature": "Temperate",
-        "biosphere": "Thriving",
-        "population": "LightlyPopulated",
-        "tech_level": "Standard",
-        "government": "Hereteks",
-        "notable_features": [
-          "CrumblingArcologies",
-          "DaemonicCorruption",
-          "DangerousWildlife"
-        ]
-      },
-      "factions": [
-        {
-          "faction_id": "rebels",
-          "influence": "dominant",
-          "relationship_to_government": "hostile"
-        }
-      ],
-      "tags": [
-        "atmosphere:exotic",
-        "biosphere:thriving",
-        "feature:crumbling_arcologies",
-        "feature:daemonic_corruption",
-        "feature:dangerous_wildlife",
-        "gov:hereteks",
-        "population:lightly_populated",
-        "star:amber",
-        "tech:standard",
-        "temperature:temperate",
-        "world_type:bastion_world"
-      ],
-      "notes": []
-    },
-    {
-      "id": "sys-0009-w06",
-      "index": 6,
-      "name": "Meridian Outer",
-      "orbit": 6,
       "source_row_index": 11,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "BastionWorld",
         "atmosphere": "Thin",
@@ -292,19 +248,19 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "iron_warriors_siege_auxilia",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "inquisition",
+          "faction_id": "legio_destructor",
           "influence": "significant",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "insular"
         },
         {
-          "faction_id": "free_traders",
+          "faction_id": "genomic_saboteur_cells",
           "influence": "minor",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "secretive"
         }
       ],
       "tags": [
@@ -315,7 +271,61 @@
         "feature:dangerous_wildlife",
         "gov:heretical_imperial_cult",
         "population:densely_populated",
-        "star:amber",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "notes": []
+    },
+    {
+      "id": "sys-0009-w06",
+      "index": 6,
+      "name": "Echo Zephona Majoris",
+      "orbit": 6,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "invaders",
+          "influence": "dominant",
+          "relationship_to_government": "zealous"
+        },
+        {
+          "faction_id": "savlar_chem_dogs",
+          "influence": "significant",
+          "relationship_to_government": "lawful"
+        },
+        {
+          "faction_id": "dark_compliance_militias",
+          "influence": "minor",
+          "relationship_to_government": "hostile"
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:bastion_world"
@@ -324,10 +334,9 @@
     }
   ],
   "primary_factions": [
-    "ecclesiarchy",
-    "imperial_administration",
-    "inquisition",
-    "rebels"
+    "iron_hands",
+    "crimson_fists",
+    "invaders"
   ],
   "tags": [],
   "notes": []

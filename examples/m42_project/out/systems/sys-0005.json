@@ -1,26 +1,26 @@
 {
   "id": "sys-0005",
   "index": 5,
-  "name": "Drusus Brink",
+  "name": "Radamanth Gate",
   "coord": {
     "q": 1,
     "r": 9
   },
   "star": {
-    "colour_code": "A",
-    "colour_name": "amber",
-    "spectral_type": "A",
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
     "source_row_index": 8
   },
   "worlds": [
     {
       "id": "sys-0005-w01",
       "index": 1,
-      "name": "Velikoye Outer",
+      "name": "Decimara Pyre",
       "orbit": 1,
       "source_row_index": 8,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
         "atmosphere": "Breathable",
@@ -37,9 +37,9 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "subjugators",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "zealous"
         }
       ],
       "tags": [
@@ -50,7 +50,7 @@
         "feature:civil_war",
         "gov:explorator_authority",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -60,40 +60,40 @@
     {
       "id": "sys-0005-w02",
       "index": 2,
-      "name": "Solace",
+      "name": "Harrowmere",
       "orbit": 2,
-      "source_row_index": 16,
+      "source_row_index": 15,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
         "temperature": "Hot",
         "biosphere": "XenoHybrid",
-        "population": "ExtremelyDense",
+        "population": "DenselyPopulated",
         "tech_level": "High",
-        "government": "MechanicusForgeLord",
+        "government": "MagistrateCouncil",
         "notable_features": [
+          "EugenicCult",
           "ExtremeEnvironment",
-          "FactionalFragmentation",
-          "EugenicCult"
+          "FactionalFragmentation"
         ]
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "warp_haunted_sacristans",
           "influence": "dominant",
+          "relationship_to_government": "hostile"
+        },
+        {
+          "faction_id": "white_scars",
+          "influence": "significant",
           "relationship_to_government": "zealous"
         },
         {
-          "faction_id": "mechanicus",
-          "influence": "significant",
-          "relationship_to_government": "insular"
-        },
-        {
-          "faction_id": "inquisition",
+          "faction_id": "ranger_kindreds",
           "influence": "minor",
-          "relationship_to_government": "secretive"
+          "relationship_to_government": "insular"
         }
       ],
       "tags": [
@@ -102,9 +102,9 @@
         "feature:eugenic_cult",
         "feature:extreme_environment",
         "feature:factional_fragmentation",
-        "gov:mechanicus_forge_lord",
-        "population:extremely_dense",
-        "star:amber",
+        "gov:magistrate_council",
+        "population:densely_populated",
+        "star:white",
         "tech:high",
         "temperature:hot",
         "world_type:death_world"
@@ -112,7 +112,11 @@
       "notes": []
     }
   ],
-  "primary_factions": [],
+  "primary_factions": [
+    "subjugators",
+    "warp_haunted_sacristans",
+    "white_scars"
+  ],
   "tags": [],
   "notes": []
 }

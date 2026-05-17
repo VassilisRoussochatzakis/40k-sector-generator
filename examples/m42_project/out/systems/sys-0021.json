@@ -1,26 +1,26 @@
 {
   "id": "sys-0021",
   "index": 21,
-  "name": "Scintilla Hold",
+  "name": "Ophidian Wreath",
   "coord": {
     "q": 6,
     "r": 5
   },
   "star": {
-    "colour_code": "B",
-    "colour_name": "blue-white",
-    "spectral_type": "B",
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
     "source_row_index": 0
   },
   "worlds": [
     {
       "id": "sys-0021-w01",
       "index": 1,
-      "name": "Gilded Olbia Tertius",
+      "name": "Ursae",
       "orbit": 1,
       "source_row_index": 0,
       "world": {
-        "star_colour": "orange dwarf",
+        "star_colour": "blue hypergiant",
         "star_colour_code": "O",
         "world_type": "AgriWorld",
         "atmosphere": "Airless",
@@ -44,7 +44,7 @@
         "feature:civil_war",
         "gov:balkanized_local_factions",
         "population:uninhabited",
-        "star:orange_dwarf",
+        "star:blue_hypergiant",
         "tech:primitive",
         "temperature:freezing",
         "world_type:agri_world"
@@ -54,11 +54,11 @@
     {
       "id": "sys-0021-w02",
       "index": 2,
-      "name": "New Meridian Shadow",
+      "name": "Aurelian Avitus Cairn",
       "orbit": 2,
       "source_row_index": 0,
       "world": {
-        "star_colour": "orange dwarf",
+        "star_colour": "blue hypergiant",
         "star_colour_code": "O",
         "world_type": "AgriWorld",
         "atmosphere": "Airless",
@@ -82,7 +82,7 @@
         "feature:blinding_mists",
         "gov:balkanized_local_factions",
         "population:uninhabited",
-        "star:orange_dwarf",
+        "star:blue_hypergiant",
         "tech:primitive",
         "temperature:freezing",
         "world_type:agri_world"
@@ -92,11 +92,11 @@
     {
       "id": "sys-0021-w03",
       "index": 3,
-      "name": "Velikoye",
+      "name": "Vigilant Junora",
       "orbit": 3,
       "source_row_index": 1,
       "world": {
-        "star_colour": "orange dwarf",
+        "star_colour": "blue hypergiant",
         "star_colour_code": "O",
         "world_type": "AgriWorld",
         "atmosphere": "Airless",
@@ -113,9 +113,9 @@
       },
       "factions": [
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "white_scars",
           "influence": "dominant",
-          "relationship_to_government": "lawful"
+          "relationship_to_government": "zealous"
         }
       ],
       "tags": [
@@ -126,7 +126,7 @@
         "feature:civil_war",
         "gov:chaos_cult",
         "population:minimal",
-        "star:orange_dwarf",
+        "star:blue_hypergiant",
         "tech:primitive",
         "temperature:cold",
         "world_type:agri_world"
@@ -134,7 +134,9 @@
       "notes": []
     }
   ],
-  "primary_factions": [],
+  "primary_factions": [
+    "white_scars"
+  ],
   "tags": [],
   "notes": []
 }

@@ -1,14 +1,14 @@
 {
   "id": "sys-0012",
   "index": 12,
-  "name": "Malfi II",
+  "name": "Heres",
   "coord": {
     "q": 3,
     "r": 5
   },
   "star": {
     "colour_code": "A",
-    "colour_name": "amber",
+    "colour_name": "white",
     "spectral_type": "A",
     "source_row_index": 8
   },
@@ -16,11 +16,11 @@
     {
       "id": "sys-0012-w01",
       "index": 1,
-      "name": "Dust Aethon",
+      "name": "Forlornia",
       "orbit": 1,
       "source_row_index": 8,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
         "atmosphere": "Breathable",
@@ -37,9 +37,9 @@
       },
       "factions": [
         {
-          "faction_id": "ecclesiarchy",
+          "faction_id": "canoptek_swarms",
           "influence": "dominant",
-          "relationship_to_government": "zealous"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
@@ -50,7 +50,7 @@
         "feature:civil_war",
         "gov:explorator_authority",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -60,11 +60,11 @@
     {
       "id": "sys-0012-w02",
       "index": 2,
-      "name": "Karthago",
+      "name": "Redemptia",
       "orbit": 2,
       "source_row_index": 12,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "BastionWorld",
         "atmosphere": "Thin",
@@ -81,17 +81,17 @@
       },
       "factions": [
         {
-          "faction_id": "mechanicus",
+          "faction_id": "brontian_longknives",
           "influence": "dominant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "free_traders",
+          "faction_id": "novamarines",
           "influence": "significant",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "zealous"
         },
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "battlefleet_koronus",
           "influence": "minor",
           "relationship_to_government": "lawful"
         }
@@ -104,7 +104,7 @@
         "feature:dangerous_wildlife",
         "gov:infractionist_gang",
         "population:densely_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:bastion_world"
@@ -114,11 +114,11 @@
     {
       "id": "sys-0012-w03",
       "index": 3,
-      "name": "Olbia",
+      "name": "Tormenta",
       "orbit": 3,
       "source_row_index": 17,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "DeathWorld",
         "atmosphere": "Tainted",
@@ -135,19 +135,19 @@
       },
       "factions": [
         {
-          "faction_id": "rebels",
+          "faction_id": "snakebites_clan",
           "influence": "dominant",
           "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "mechanicus",
+          "faction_id": "hive_fleet_hydra",
           "influence": "significant",
-          "relationship_to_government": "insular"
+          "relationship_to_government": "hostile"
         },
         {
-          "faction_id": "free_traders",
+          "faction_id": "death_guard",
           "influence": "minor",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "hostile"
         }
       ],
       "tags": [
@@ -158,7 +158,7 @@
         "feature:factional_fragmentation",
         "gov:megacorporations",
         "population:extremely_dense",
-        "star:amber",
+        "star:white",
         "tech:xeno_hybrid",
         "temperature:hot",
         "world_type:death_world"
@@ -168,7 +168,7 @@
     {
       "id": "sys-0012-w04",
       "index": 4,
-      "name": "New Tarsi",
+      "name": "Final Obdura",
       "orbit": 4,
       "source_row_index": 2,
       "world": {
@@ -212,7 +212,7 @@
     {
       "id": "sys-0012-w05",
       "index": 5,
-      "name": "Old Pyriphlegethon Deep",
+      "name": "Howling Wardis Extremis",
       "orbit": 5,
       "source_row_index": 6,
       "world": {
@@ -233,12 +233,12 @@
       },
       "factions": [
         {
-          "faction_id": "free_traders",
+          "faction_id": "schola_progenium",
           "influence": "dominant",
-          "relationship_to_government": "opportunistic"
+          "relationship_to_government": "lawful"
         },
         {
-          "faction_id": "imperial_administration",
+          "faction_id": "freeblade_knights",
           "influence": "significant",
           "relationship_to_government": "lawful"
         }
@@ -261,11 +261,11 @@
     {
       "id": "sys-0012-w06",
       "index": 6,
-      "name": "Verbis",
+      "name": "Necropolia",
       "orbit": 6,
       "source_row_index": 8,
       "world": {
-        "star_colour": "amber",
+        "star_colour": "white",
         "star_colour_code": "A",
         "world_type": "AgriWorld",
         "atmosphere": "Breathable",
@@ -282,9 +282,9 @@
       },
       "factions": [
         {
-          "faction_id": "rebels",
+          "faction_id": "house_devine_loyalist_claimants",
           "influence": "dominant",
-          "relationship_to_government": "hostile"
+          "relationship_to_government": "lawful"
         }
       ],
       "tags": [
@@ -295,7 +295,7 @@
         "feature:civil_war",
         "gov:explorator_authority",
         "population:lightly_populated",
-        "star:amber",
+        "star:white",
         "tech:standard",
         "temperature:temperate",
         "world_type:agri_world"
@@ -304,10 +304,9 @@
     }
   ],
   "primary_factions": [
-    "free_traders",
-    "imperial_administration",
     "mechanicus",
-    "rebels"
+    "schola_progenium",
+    "brontian_longknives"
   ],
   "tags": [],
   "notes": []

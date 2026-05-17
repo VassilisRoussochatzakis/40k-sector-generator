@@ -56,8 +56,8 @@ fn validate_fixture_project_succeeds() {
 
 #[test]
 fn inspect_worlds_reports_candidate_count() {
-    let workbook = fixture_workbook();
-    let stats = sectorforge::inspect_world_workbook(workbook.as_str()).unwrap();
+    let data_dir = fixture_world_data_dir();
+    let stats = sectorforge::inspect_world_workbook(data_dir.as_str()).unwrap();
     assert!(stats.generator_rows > 0);
     assert!(stats.usable_candidates > 0);
     assert!(stats.key_table_counts.contains_key("star_colours"));
@@ -120,6 +120,6 @@ fn fixture_project() -> Utf8PathBuf {
     Utf8PathBuf::from(manifest_dir).join("examples/m42_project")
 }
 
-fn fixture_workbook() -> Utf8PathBuf {
-    fixture_project().join("data/worlds/m42_sector_generator.xlsx")
+fn fixture_world_data_dir() -> Utf8PathBuf {
+    fixture_project().join("data/worlds")
 }

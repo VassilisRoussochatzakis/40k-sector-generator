@@ -12,8 +12,8 @@ pub enum SectorError {
     #[error("failed to parse config at {path}: {message}")]
     ConfigParse { path: String, message: String },
 
-    #[error("failed to load world workbook at {path}: {message}")]
-    WorldWorkbookLoad { path: String, message: String },
+    #[error("failed to load world data at {path}: {message}")]
+    WorldDataLoad { path: String, message: String },
 
     #[error("validation failed: {error_count} error(s), {warning_count} warning(s)")]
     ValidationFailed {

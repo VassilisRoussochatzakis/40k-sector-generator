@@ -3,8 +3,8 @@
 use camino::Utf8PathBuf;
 
 #[test]
-fn missing_workbook_fails_validation() {
-    // Build a temp project that points at a nonexistent workbook.
+fn missing_world_data_fails_validation() {
+    // Build a temp project that points at a nonexistent world-data dir.
     let tmp = tempfile::tempdir().unwrap();
     let root = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
     std::fs::write(
@@ -15,7 +15,7 @@ id = "x"
 title = "x"
 
 [inputs]
-world_workbook = "missing.xlsx"
+world_data_dir = "missing_dir"
 
 [generation]
 seed = "s"
@@ -32,7 +32,10 @@ formats = ["json"]
     )
     .unwrap();
     let result = sectorforge::load_project(&root);
-    assert!(result.is_err(), "load should fail when workbook is missing");
+    assert!(
+        result.is_err(),
+        "load should fail when world data dir is missing"
+    );
 }
 
 #[test]

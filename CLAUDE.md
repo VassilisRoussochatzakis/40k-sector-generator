@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an empty Rust project (40k Sector Generator for Warhammer 40k). No `Cargo.toml` or source files exist yet — the `.gitignore` confirms Cargo/rustfmt/mutation testing (`cargo-mutants`) are part of the toolchain.
 
+Ignore the old directory, don't ever read it or go into it.
+
+Update GUIDE.md after every change.
+
 ## Commands
 
 ```bash

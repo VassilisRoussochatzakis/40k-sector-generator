@@ -86,10 +86,11 @@ enum Command {
         #[arg(long)]
         out: Option<Utf8PathBuf>,
     },
-    /// Print workbook statistics for a standalone .xlsx file.
+    /// Print statistics for a standalone world-data directory
+    /// (containing key.csv + generator.csv).
     InspectWorlds {
         #[arg(long)]
-        workbook: String,
+        data_dir: String,
     },
 }
 
@@ -246,8 +247,8 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             }
             Ok(ExitCode::SUCCESS)
         }
-        Command::InspectWorlds { workbook } => {
-            let stats = sectorforge::inspect_world_workbook(&workbook)?;
+        Command::InspectWorlds { data_dir } => {
+            let stats = sectorforge::inspect_world_workbook(&data_dir)?;
             print_workbook_stats(&stats);
             Ok(ExitCode::SUCCESS)
         }
@@ -324,7 +325,7 @@ fn severity_tag(s: Severity) -> &'static str {
 }
 
 fn print_workbook_stats(stats: &sectorforge::world_pool::WorkbookStats) {
-    println!("World workbook: {}", stats.workbook_path);
+    println!("World data dir: {}", stats.data_dir);
     println!("Key tables:");
     for (name, n) in &stats.key_table_counts {
         println!("  {:<18} {}", name, n);

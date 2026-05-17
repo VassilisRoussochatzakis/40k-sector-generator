@@ -1,15 +1,18 @@
-/// World parameter types loaded from the M42 Sector Generator Excel file.
+/// World parameter types loaded from two CSV files in a project's worlds dir:
 ///
-/// The Key tab (columns A–I) serves as a reference lookup table:
-///   Star Colour · World Type · Atmosphere · Temperature · Biosphere
-///   Population · Tech Level · Government · Notable Feature
+///   key.csv       — reference lookup tables (one column per enum kind):
+///     star_colour, world_type, atmosphere, temperature, biosphere,
+///     population, tech_level, government, notable_feature
 ///
-/// The Generator Template provides generation rows with specific combinations
-/// of these parameters plus metadata like star type, location name, system
-/// coordinates, and weight formulas. This module parses both sheets at runtime
-/// using `calamine`.
-use calamine::{open_workbook, Data, Reader};
+///   generator.csv — weighted generator rows:
+///     star_colour, world_type, atmosphere, temperature, biosphere,
+///     population, tech_level, government, notable_feature, counter, weight
+///
+/// Both files have a header row. Empty cells are treated as missing. The CSV
+/// parser handles RFC 4180 quoted fields.
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
@@ -361,92 +364,151 @@ pub struct KeyTables {
     pub notable_features: Vec<String>,
 }
 
-/// Helper: extract a string value from a single `Data` cell.
-fn cell_str(cell: &Data) -> Option<&str> {
-    match cell {
-        Data::String(s) if !s.trim().is_empty() => Some(s.as_str()),
-        _ => None,
+/// Helper: trimmed non-empty string from a CSV cell.
+fn cell_str(cell: &str) -> Option<&str> {
+    let s = cell.trim();
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
     }
 }
 
-/// Helper: extract an integer from a single `Data` cell.
-fn cell_int(cell: &Data) -> Option<i64> {
-    match cell {
-        Data::Int(n) => Some(*n),
-        Data::Float(n) => Some(*n as i64),
-        _ => None,
+/// Parse a CSV file into header + rows (RFC 4180: quoted fields, "" escapes ").
+/// Returns (header, rows). Empty trailing lines skipped.
+pub fn parse_csv(text: &str) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+    let records = parse_csv_records(text)?;
+    let mut iter = records.into_iter();
+    let header = iter
+        .next()
+        .ok_or_else(|| "csv has no header row".to_string())?;
+    Ok((header, iter.collect()))
+}
+
+fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, String> {
+    let mut records: Vec<Vec<String>> = Vec::new();
+    let mut field = String::new();
+    let mut record: Vec<String> = Vec::new();
+    let mut in_quotes = false;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if in_quotes {
+            if c == '"' {
+                if chars.peek() == Some(&'"') {
+                    chars.next();
+                    field.push('"');
+                } else {
+                    in_quotes = false;
+                }
+            } else {
+                field.push(c);
+            }
+        } else {
+            match c {
+                '"' => in_quotes = true,
+                ',' => {
+                    record.push(std::mem::take(&mut field));
+                }
+                '\r' => {
+                    if chars.peek() == Some(&'\n') {
+                        chars.next();
+                    }
+                    record.push(std::mem::take(&mut field));
+                    if !is_empty_record(&record) {
+                        records.push(std::mem::take(&mut record));
+                    } else {
+                        record.clear();
+                    }
+                }
+                '\n' => {
+                    record.push(std::mem::take(&mut field));
+                    if !is_empty_record(&record) {
+                        records.push(std::mem::take(&mut record));
+                    } else {
+                        record.clear();
+                    }
+                }
+                _ => field.push(c),
+            }
+        }
     }
+    if in_quotes {
+        return Err("csv ended inside a quoted field".to_string());
+    }
+    if !field.is_empty() || !record.is_empty() {
+        record.push(std::mem::take(&mut field));
+        if !is_empty_record(&record) {
+            records.push(record);
+        }
+    }
+    Ok(records)
+}
+
+fn is_empty_record(record: &[String]) -> bool {
+    record.iter().all(|f| f.trim().is_empty())
 }
 
 impl KeyTables {
-    /// Parse the "Key" sheet from an .xlsx workbook.
-    pub fn from_xlsx(path: &str) -> Result<Self, String> {
-        let mut workbook: calamine::Xlsx<_> =
-            open_workbook(path).map_err(|e| format!("Failed to open workbook: {e}"))?;
+    /// Parse a `key.csv` file. Expected header (case-insensitive, order fixed):
+    ///   star_colour,world_type,atmosphere,temperature,biosphere,
+    ///   population,tech_level,government,notable_feature
+    pub fn from_csv_path(path: impl AsRef<Path>) -> Result<Self, String> {
+        let path = path.as_ref();
+        let text =
+            fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+        Self::from_csv_str(&text)
+    }
 
-        let sheets = workbook.sheet_names().to_vec();
-        let sheet_name = match sheets.iter().find(|s| **s == "Key") {
-            Some(name) => name.clone(),
-            None => return Err(format!("No 'Key' sheet found (available: {sheets:?})")),
-        };
-
-        let range = workbook
-            .worksheet_range(&sheet_name)
-            .map_err(|e| format!("Cannot read sheet '{sheet_name}': {e}"))?;
-
+    pub fn from_csv_str(text: &str) -> Result<Self, String> {
+        let (_header, rows) = parse_csv(text)?;
         let mut tables = Self::default();
+        for row in rows {
+            let get = |idx: usize| row.get(idx).map(|s| s.as_str()).and_then(cell_str);
 
-        for row in range.rows().skip(1) {
-            if row.is_empty() {
-                continue;
-            }
-            let col = |idx: usize| row.get(idx).and_then(cell_str);
-
-            if let Some(s) = col(0) {
+            if let Some(s) = get(0) {
                 if let Ok(v) = s.parse::<StarColour>() {
                     tables.star_colours.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(1) {
+            if let Some(s) = get(1) {
                 if let Ok(v) = s.parse::<WorldType>() {
                     tables.world_types.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(2) {
+            if let Some(s) = get(2) {
                 if let Ok(v) = s.parse::<Atmosphere>() {
                     tables.atmospheres.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(3) {
+            if let Some(s) = get(3) {
                 if let Ok(v) = s.parse::<Temperature>() {
                     tables.temperatures.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(4) {
+            if let Some(s) = get(4) {
                 if let Ok(v) = s.parse::<Biosphere>() {
                     tables.biospheres.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(5) {
+            if let Some(s) = get(5) {
                 if let Ok(v) = s.parse::<Population>() {
                     tables.populations.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(6) {
+            if let Some(s) = get(6) {
                 if let Ok(v) = s.parse::<TechLevel>() {
                     tables.tech_levels.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(7) {
+            if let Some(s) = get(7) {
                 if let Ok(v) = s.parse::<Government>() {
                     tables.governments.insert(s.to_owned(), v);
                 }
             }
-            if let Some(s) = col(8) {
+            if let Some(s) = get(8) {
                 tables.notable_features.push(s.to_owned());
             }
         }
-
         Ok(tables)
     }
 }
@@ -467,10 +529,13 @@ impl std::str::FromStr for StarColour {
     }
 }
 
-/// Parse a single row from the Generator Template into a GenerationRow.
-fn parse_generation_row(row: &[Data]) -> GenerationRow {
-    fn parse<T: std::str::FromStr>(row: &[Data], idx: usize) -> Option<T> {
-        row.get(idx).and_then(cell_str).and_then(|s| s.parse().ok())
+/// Parse a single CSV record into a GenerationRow.
+fn parse_generation_row(row: &[String]) -> GenerationRow {
+    fn parse<T: std::str::FromStr>(row: &[String], idx: usize) -> Option<T> {
+        row.get(idx)
+            .map(|s| s.as_str())
+            .and_then(cell_str)
+            .and_then(|s| s.parse().ok())
     }
 
     GenerationRow {
@@ -483,41 +548,34 @@ fn parse_generation_row(row: &[Data]) -> GenerationRow {
         tech: parse(row, 6),
         government: parse(row, 7),
         notable_feature: parse(row, 8),
-        counter: row.get(9).and_then(cell_int).map(|n| n as usize),
-        weight: row.get(10).and_then(|v| match *v {
-            Data::Float(f) => Some(f),
-            Data::Int(n) => Some(n as f64),
-            _ => None,
-        }),
+        counter: row
+            .get(9)
+            .map(|s| s.as_str())
+            .and_then(cell_str)
+            .and_then(|s| s.parse::<i64>().ok())
+            .map(|n| n as usize),
+        weight: row
+            .get(10)
+            .map(|s| s.as_str())
+            .and_then(cell_str)
+            .and_then(|s| s.parse::<f64>().ok()),
     }
 }
 
-pub fn load_generation_rows(path: &str) -> Result<(KeyTables, Vec<GenerationRow>), String> {
-    let mut workbook: calamine::Xlsx<_> =
-        open_workbook(path).map_err(|e| format!("Failed to open workbook: {e}"))?;
+/// Load a project's world data: `key.csv` + `generator.csv` from the given dir.
+pub fn load_generation_rows(
+    data_dir: impl AsRef<Path>,
+) -> Result<(KeyTables, Vec<GenerationRow>), String> {
+    let dir = data_dir.as_ref();
+    let key_path = dir.join("key.csv");
+    let gen_path = dir.join("generator.csv");
 
-    let sheets = workbook.sheet_names().to_vec();
-    let template_name = match sheets.iter().find(|s| **s == "Generator Template") {
-        Some(name) => name.clone(),
-        None => {
-            return Err(format!(
-                "No 'Generator Template' sheet found (available: {sheets:?})"
-            ))
-        }
-    };
+    let tables = KeyTables::from_csv_path(&key_path)?;
 
-    let tables = KeyTables::from_xlsx(path)?;
-
-    let range = workbook
-        .worksheet_range(&template_name)
-        .map_err(|e| format!("Cannot read sheet '{template_name}': {e}"))?;
-
-    let rows: Vec<GenerationRow> = range
-        .rows()
-        .skip(1) // skip header
-        .filter(|r| !r.is_empty())
-        .map(parse_generation_row)
-        .collect();
+    let gen_text = fs::read_to_string(&gen_path)
+        .map_err(|e| format!("read {}: {e}", gen_path.display()))?;
+    let (_header, records) = parse_csv(&gen_text)?;
+    let rows: Vec<GenerationRow> = records.iter().map(|r| parse_generation_row(r)).collect();
 
     Ok((tables, rows))
 }

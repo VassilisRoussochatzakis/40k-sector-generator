@@ -1,10 +1,13 @@
 //! Top-level eframe app: holds loaded sector + navigation state, dispatches
 //! between sector view, system view, and edit view.
 
+use std::path::PathBuf;
+
 use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
 
+use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
@@ -18,6 +21,8 @@ pub struct App {
     sector_hex_size: f32,
     system_side: f32,
     editor: EditorState,
+    data_editor: DataEditor,
+    project_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +33,7 @@ enum View {
         selection: SystemSelection,
     },
     Edit,
+    Data,
 }
 
 impl App {
@@ -39,6 +45,8 @@ impl App {
             sector_hex_size: 44.0,
             system_side: 700.0,
             editor: EditorState::default(),
+            data_editor: DataEditor::default(),
+            project_dir: None,
         }
     }
 
@@ -50,7 +58,18 @@ impl App {
             sector_hex_size: 44.0,
             system_side: 700.0,
             editor: EditorState::default(),
+            data_editor: DataEditor::default(),
+            project_dir: None,
         }
+    }
+
+    /// Set the project directory and try to preload world-data CSVs.
+    pub fn with_project_dir(mut self, dir: PathBuf) -> Self {
+        if let Err(e) = self.data_editor.load_from_project(&dir) {
+            self.data_editor.status = format!("load failed: {e}");
+        }
+        self.project_dir = Some(dir);
+        self
     }
 
     fn system_by_id(&self, id: &str) -> Option<&GeneratedSystem> {
@@ -68,6 +87,7 @@ impl eframe::App for App {
                 ui.horizontal(|ui| {
                     let on_sector = matches!(self.view, View::Sector);
                     let on_edit = matches!(self.view, View::Edit);
+                    let on_data = matches!(self.view, View::Data);
                     let has_sector = self.sector.is_some();
                     if ui
                         .add_enabled(
@@ -93,6 +113,15 @@ impl eframe::App for App {
                             }
                         }
                         self.view = View::Edit;
+                    }
+                    if ui
+                        .selectable_label(
+                            on_data,
+                            RichText::new("WORLD DATA").color(TEXT).monospace(),
+                        )
+                        .clicked()
+                    {
+                        self.view = View::Data;
                     }
                     if let View::System { system_id, .. } = &self.view {
                         ui.label(RichText::new("›").color(TEXT_DIM).monospace());
@@ -131,6 +160,7 @@ impl eframe::App for App {
                 self.draw_system_layout(ctx, &system_id, selection)
             }
             View::Edit => self.draw_edit_layout(ctx),
+            View::Data => self.draw_data_layout(ctx),
         }
     }
 }
@@ -286,6 +316,70 @@ impl App {
             });
 
         editor::draw_dialog(ctx, &mut self.editor);
+    }
+
+    fn draw_data_layout(&mut self, ctx: &egui::Context) {
+        TopBottomPanel::top("data_toolbar")
+            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(6.0))
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    let can_reload = self.project_dir.is_some();
+                    if ui
+                        .add_enabled(
+                            can_reload,
+                            egui::Button::new(RichText::new("RELOAD").monospace()),
+                        )
+                        .on_hover_text("re-read CSVs from disk (discards unsaved edits)")
+                        .clicked()
+                    {
+                        if let Some(dir) = self.project_dir.clone() {
+                            if let Err(e) = self.data_editor.load_from_project(&dir) {
+                                self.data_editor.status = format!("load failed: {e}");
+                            }
+                        }
+                    }
+                    let can_save = self.data_editor.key_path.is_some();
+                    if ui
+                        .add_enabled(
+                            can_save,
+                            egui::Button::new(RichText::new("SAVE").monospace()),
+                        )
+                        .clicked()
+                    {
+                        if let Err(e) = self.data_editor.save() {
+                            self.data_editor.status = format!("save failed: {e}");
+                        }
+                    }
+                    if let Some(dir) = &self.project_dir {
+                        ui.label(
+                            RichText::new(dir.display().to_string())
+                                .color(TEXT_DIM)
+                                .monospace(),
+                        );
+                    } else {
+                        ui.label(
+                            RichText::new(
+                                "no project loaded — pass --project <dir> when launching",
+                            )
+                            .color(TEXT_DIM)
+                            .monospace(),
+                        );
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.label(
+                            RichText::new(&self.data_editor.status)
+                                .color(TEXT_DIM)
+                                .monospace(),
+                        );
+                    });
+                });
+            });
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(8.0))
+            .show(ctx, |ui| {
+                crate::gui::data_editor::show(ui, &mut self.data_editor);
+            });
     }
 
     fn show_sector(&mut self, ui: &mut egui::Ui) {

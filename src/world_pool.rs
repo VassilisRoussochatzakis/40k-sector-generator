@@ -227,7 +227,7 @@ fn first_missing_field(row: &GenerationRow) -> Option<&'static str> {
 
 #[derive(Debug, Clone)]
 pub struct WorkbookStats {
-    pub workbook_path: String,
+    pub data_dir: String,
     pub key_table_counts: BTreeMap<String, usize>,
     pub generator_rows: usize,
     pub usable_candidates: usize,
@@ -238,12 +238,11 @@ pub struct WorkbookStats {
 }
 
 pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
-    let (tables, rows) = crate::worlds::load_generation_rows(path).map_err(|message| {
-        SectorError::WorldWorkbookLoad {
+    let (tables, rows) = crate::worlds::load_generation_rows(std::path::Path::new(path))
+        .map_err(|message| SectorError::WorldDataLoad {
             path: path.to_string(),
             message,
-        }
-    })?;
+        })?;
 
     let cfg = WorldSelectionConfig::default();
     let pool = build_pool(&rows, &tables, &cfg);
@@ -281,7 +280,7 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     let top_features = top_by_count(feat_counts, 10);
 
     Ok(WorkbookStats {
-        workbook_path: path.to_string(),
+        data_dir: path.to_string(),
         key_table_counts: key_counts,
         generator_rows: rows.len(),
         usable_candidates: pool.candidates.len(),

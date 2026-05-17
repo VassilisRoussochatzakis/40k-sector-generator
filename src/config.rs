@@ -22,7 +22,8 @@ pub struct ProjectConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InputConfig {
-    pub world_workbook: String,
+    /// Directory containing `key.csv` and `generator.csv`.
+    pub world_data_dir: String,
     #[serde(default)]
     pub system_names: Option<String>,
     #[serde(default)]

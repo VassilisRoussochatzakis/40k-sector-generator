@@ -162,7 +162,7 @@ pub fn export_sector(
     export::export_all(sector, output_config, output_dir.as_ref())
 }
 
-/// Inspect-worlds: load and summarize a workbook for the CLI.
+/// Inspect-worlds: load and summarize a world-data dir for the CLI.
 pub fn inspect_world_workbook(path: &str) -> Result<world_pool::WorkbookStats, SectorError> {
     world_pool::inspect_workbook(path)
 }

@@ -37,15 +37,20 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     let mut digests: BTreeMap<String, String> = BTreeMap::new();
     digests.insert("sectorforge.toml".to_string(), blake3_of(&config_text));
 
-    let workbook_rel = config.inputs.world_workbook.clone();
-    let workbook_path = root_dir.join(&workbook_rel);
-    let workbook_bytes =
-        fs::read(&workbook_path).map_err(|e| SectorError::io(workbook_path.as_str(), e))?;
-    digests.insert(workbook_rel.clone(), blake3_of_bytes(&workbook_bytes));
+    let data_dir_rel = config.inputs.world_data_dir.clone();
+    let data_dir = root_dir.join(&data_dir_rel);
+    let key_rel = format!("{}/key.csv", data_dir_rel.trim_end_matches('/'));
+    let gen_rel = format!("{}/generator.csv", data_dir_rel.trim_end_matches('/'));
+    let key_path = data_dir.join("key.csv");
+    let gen_path = data_dir.join("generator.csv");
+    let key_bytes = fs::read(&key_path).map_err(|e| SectorError::io(key_path.as_str(), e))?;
+    let gen_bytes = fs::read(&gen_path).map_err(|e| SectorError::io(gen_path.as_str(), e))?;
+    digests.insert(key_rel, blake3_of_bytes(&key_bytes));
+    digests.insert(gen_rel, blake3_of_bytes(&gen_bytes));
 
-    let (world_tables, world_rows) = crate::worlds::load_generation_rows(workbook_path.as_str())
-        .map_err(|message| SectorError::WorldWorkbookLoad {
-            path: workbook_path.to_string(),
+    let (world_tables, world_rows) = crate::worlds::load_generation_rows(data_dir.as_std_path())
+        .map_err(|message| SectorError::WorldDataLoad {
+            path: data_dir.to_string(),
             message,
         })?;
 

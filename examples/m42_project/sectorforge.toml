@@ -5,7 +5,7 @@ description = "A generated sector built from the M42 world workbook."
 version = "0.1.0"
 
 [inputs]
-world_workbook = "data/worlds/m42_sector_generator.xlsx"
+world_data_dir = "data/worlds"
 system_names = "data/names/system_names.toml"
 world_names = "data/names/world_names.toml"
 factions = "data/factions/factions.toml"

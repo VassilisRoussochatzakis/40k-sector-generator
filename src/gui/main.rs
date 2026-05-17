@@ -24,8 +24,9 @@ struct Cli {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    let project_dir = resolve_project_dir(&cli);
     let path = resolve_sector_path(&cli);
-    let (app, title) = match path {
+    let (mut app, title) = match path {
         Some(p) => match sectorforge::load_sector_json(&p) {
             Ok(s) => {
                 let t = format!("sectorforge — {}", s.id);
@@ -41,6 +42,9 @@ fn main() -> ExitCode {
             (App::new_empty(), "sectorforge — editor".to_string())
         }
     };
+    if let Some(dir) = project_dir {
+        app = app.with_project_dir(dir.into_std_path_buf());
+    }
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1400.0, 900.0])
@@ -73,6 +77,17 @@ fn resolve_sector_path(cli: &Cli) -> Option<Utf8PathBuf> {
     }
     let default = Utf8PathBuf::from("examples/m42_project/out/sector.json");
     if default.exists() {
+        return Some(default);
+    }
+    None
+}
+
+fn resolve_project_dir(cli: &Cli) -> Option<Utf8PathBuf> {
+    if let Some(dir) = &cli.project {
+        return Some(dir.clone());
+    }
+    let default = Utf8PathBuf::from("examples/m42_project");
+    if default.join("sectorforge.toml").exists() {
         return Some(default);
     }
     None

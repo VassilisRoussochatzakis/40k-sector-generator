@@ -131,6 +131,91 @@ pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<()
     Ok(())
 }
 
+/// Export everything for the sector EXCEPT images: all JSONs (sector,
+/// manifest, validation, per-system), markdown, CSVs, plus a recursive copy
+/// of the source data folder. Files with image extensions
+/// (.png/.bmp/.jpg/.jpeg/.gif/.webp/.tiff/.tif/.svg/.ico) are skipped during
+/// the data-folder copy.
+pub fn export_bundle(
+    sector: &GeneratedSector,
+    data_dir: Option<&Utf8Path>,
+    output_dir: &Utf8Path,
+) -> Result<(), SectorError> {
+    let sector_dir = output_dir.join(sanitize_dir_name(&sector.id));
+    fs::create_dir_all(&sector_dir).map_err(|e| SectorError::io(sector_dir.as_str(), e))?;
+
+    let out_dir = sector_dir.join("out");
+    fs::create_dir_all(&out_dir).map_err(|e| SectorError::io(out_dir.as_str(), e))?;
+
+    export_json(sector, &out_dir)?;
+    write_manifest(sector, &out_dir, true)?;
+    write_validation_placeholder(sector, &out_dir, true)?;
+    write_markdown(sector, &out_dir)?;
+    write_csv(sector, &out_dir)?;
+
+    if let Some(src) = data_dir {
+        let dest = sector_dir.join("data");
+        copy_dir_filtered(src, &dest)?;
+    }
+    Ok(())
+}
+
+fn sanitize_dir_name(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if cleaned.is_empty() {
+        "sector".to_string()
+    } else {
+        cleaned
+    }
+}
+
+fn copy_dir_filtered(src: &Utf8Path, dest: &Utf8Path) -> Result<(), SectorError> {
+    fs::create_dir_all(dest).map_err(|e| SectorError::io(dest.as_str(), e))?;
+    let entries = fs::read_dir(src).map_err(|e| SectorError::io(src.as_str(), e))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| SectorError::io(src.as_str(), e))?;
+        let file_name = entry.file_name();
+        let name = match file_name.to_str() {
+            Some(s) => s.to_string(),
+            None => continue,
+        };
+        let src_path = src.join(&name);
+        let dest_path = dest.join(&name);
+        let file_type = entry
+            .file_type()
+            .map_err(|e| SectorError::io(src_path.as_str(), e))?;
+        if file_type.is_dir() {
+            copy_dir_filtered(&src_path, &dest_path)?;
+        } else if file_type.is_file() {
+            if is_image_path(&src_path) {
+                continue;
+            }
+            fs::copy(&src_path, &dest_path)
+                .map_err(|e| SectorError::io(src_path.as_str(), e))?;
+        }
+    }
+    Ok(())
+}
+
+fn is_image_path(path: &Utf8Path) -> bool {
+    match path.extension() {
+        Some(ext) => matches!(
+            ext.to_ascii_lowercase().as_str(),
+            "png" | "bmp" | "jpg" | "jpeg" | "gif" | "webp" | "tiff" | "tif" | "svg" | "ico"
+        ),
+        None => false,
+    }
+}
+
 // ── Markdown ─────────────────────────────────────────────────────────────────
 
 fn write_markdown(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {

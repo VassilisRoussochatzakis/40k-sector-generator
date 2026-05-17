@@ -165,7 +165,10 @@ impl eframe::App for App {
                             has_sector,
                             egui::Button::new(RichText::new("EXPORT").color(TEXT).monospace()),
                         )
-                        .on_hover_text("Save sector.json + systems/*.json to a folder")
+                        .on_hover_text(
+                            "Save all JSONs, markdown, CSVs, and a copy of the data folder \
+                             (no images) to a folder",
+                        )
                         .clicked()
                     {
                         self.export_sector_json(ctx);
@@ -839,16 +842,36 @@ impl App {
 
     fn export_sector_json(&mut self, _ctx: &egui::Context) {
         let sector = self.sector.clone();
+        let data_dir_pb: Option<PathBuf> = self
+            .data_editor
+            .gen_path
+            .as_ref()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()));
         match FileDialog::new().pick_folder() {
             Some(path) => {
                 let path = camino::Utf8Path::from_path(&path).unwrap();
                 match sector {
-                    Some(s) => match export::export_json(&s, path) {
-                        Ok(()) => {
-                            self.export_status = format!("exported to {}", path);
+                    Some(s) => {
+                        let data_dir = data_dir_pb
+                            .as_deref()
+                            .and_then(camino::Utf8Path::from_path);
+                        let sector_subdir = path.join(&s.id);
+                        match export::export_bundle(&s, data_dir, path) {
+                            Ok(()) => {
+                                self.export_status = match data_dir {
+                                    Some(_) => format!(
+                                        "exported to {} (incl. data folder)",
+                                        sector_subdir
+                                    ),
+                                    None => format!(
+                                        "exported to {} (no data folder — project not loaded)",
+                                        sector_subdir
+                                    ),
+                                };
+                            }
+                            Err(e) => self.export_status = format!("export failed: {}", e),
                         }
-                        Err(e) => self.export_status = format!("export failed: {}", e),
-                    },
+                    }
                     None => self.export_status = "no sector to export".into(),
                 }
             }

@@ -4,7 +4,7 @@
 use egui::{RichText, Ui};
 
 use super::state::{empty_faction, EditorState};
-use super::ui_helpers::{combo_str, dim, label, mono, section, text_field};
+use super::ui_helpers::{combo_kv, combo_str, dim, label, mono, section, text_field};
 
 pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     let Some(sector) = state.sector.as_mut() else {
@@ -20,7 +20,15 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         .iter()
         .flat_map(|s| s.worlds.iter().map(|w| w.id.clone()))
         .collect();
-    let system_refs: Vec<&str> = system_ids.iter().map(|s| s.as_str()).collect();
+    let system_labels: Vec<(String, String)> = sector
+        .systems
+        .iter()
+        .map(|s| (s.id.clone(), s.name.clone()))
+        .collect();
+    let system_kv: Vec<(&str, &str)> = system_labels
+        .iter()
+        .map(|(id, name)| (id.as_str(), name.as_str()))
+        .collect();
     let world_refs: Vec<&str> = world_ids.iter().map(|s| s.as_str()).collect();
 
     let mut dirty = false;
@@ -62,7 +70,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         let mut remove_sys: Option<usize> = None;
         for (j, sid) in fac.system_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                if combo_str(ui, &format!("f_{i}_sys_{j}"), sid, &system_refs) {
+                if combo_kv(ui, &format!("f_{i}_sys_{j}"), sid, &system_kv) {
                     dirty = true;
                 }
                 if ui

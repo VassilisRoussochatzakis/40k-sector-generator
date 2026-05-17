@@ -22,6 +22,12 @@ pub enum Selection {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RouteEndpoint {
+    From,
+    To,
+}
+
 #[derive(Debug, Clone)]
 pub enum Dialog {
     None,
@@ -56,6 +62,7 @@ pub struct EditorState {
     pub dialog: Dialog,
     pub hex_size: f32,
     pub system_side: f32,
+    pub route_pick: Option<(usize, RouteEndpoint)>,
 }
 
 impl Default for EditorState {
@@ -69,6 +76,7 @@ impl Default for EditorState {
             dialog: Dialog::None,
             hex_size: 44.0,
             system_side: 700.0,
+            route_pick: None,
         }
     }
 }
@@ -81,6 +89,7 @@ impl EditorState {
         self.selection = Selection::None;
         self.tab = Tab::Map;
         self.dialog = Dialog::None;
+        self.route_pick = None;
     }
 
     pub fn mark_dirty(&mut self) {

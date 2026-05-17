@@ -328,7 +328,9 @@ impl App {
             .frame(egui::Frame::none().fill(palette::BG))
             .show(ctx, |ui| {
                 ScrollArea::both().show(ui, |ui| match self.editor.tab {
-                    editor::state::Tab::Map => editor::show_map(ui, &mut self.editor),
+                    editor::state::Tab::Map | editor::state::Tab::Routes => {
+                        editor::show_map(ui, &mut self.editor)
+                    }
                     _ => {
                         ui.label(
                             RichText::new("(switch to MAP tab to view the hex grid)")

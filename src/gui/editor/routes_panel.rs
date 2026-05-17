@@ -5,21 +5,32 @@ use egui::{RichText, Ui};
 use crate::sector_model::{HexCoord, RouteStability, RouteType};
 
 use super::enums::{ROUTE_STABILITIES, ROUTE_TYPES};
-use super::state::{empty_route, EditorState};
-use super::ui_helpers::{combo_kv, combo_str, dim, label, mono, section};
+use super::state::{empty_route, EditorState, RouteEndpoint};
+use super::ui_helpers::{combo_kv, dim, label, mono, section};
 
 pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
+    let current_pick = state.route_pick;
     let Some(sector) = state.sector.as_mut() else {
         dim(ui, "no sector loaded");
+        state.route_pick = None;
         return;
     };
     section(ui, &format!("ROUTES ({})", sector.routes.len()));
+    dim(ui, "tip: click PICK then click a system on the map");
 
     let system_options: Vec<String> = sector.systems.iter().map(|s| s.id.clone()).collect();
     if system_options.len() < 2 {
         dim(ui, "need ≥2 systems to add routes");
     }
-    let opt_refs: Vec<&str> = system_options.iter().map(|s| s.as_str()).collect();
+    let system_labels: Vec<(String, String)> = sector
+        .systems
+        .iter()
+        .map(|s| (s.id.clone(), s.name.clone()))
+        .collect();
+    let opt_kv: Vec<(&str, &str)> = system_labels
+        .iter()
+        .map(|(id, name)| (id.as_str(), name.as_str()))
+        .collect();
 
     let coord_lookup: std::collections::HashMap<String, HexCoord> = sector
         .systems
@@ -29,21 +40,46 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
 
     let mut dirty = false;
     let mut remove_idx: Option<usize> = None;
+    let mut new_pick: Option<Option<(usize, RouteEndpoint)>> = None;
 
     for (i, route) in sector.routes.iter_mut().enumerate() {
         ui.horizontal(|ui| {
             label(ui, "FROM");
-            if combo_str(
+            if combo_kv(
                 ui,
                 &format!("r_from_{i}"),
                 &mut route.from_system_id,
-                &opt_refs,
+                &opt_kv,
             ) {
                 dirty = true;
             }
+            let from_active = current_pick == Some((i, RouteEndpoint::From));
+            let from_btn = if from_active { "PICKING…" } else { "PICK" };
+            if ui
+                .small_button(RichText::new(from_btn).font(mono(10.0)))
+                .clicked()
+            {
+                new_pick = Some(if from_active {
+                    None
+                } else {
+                    Some((i, RouteEndpoint::From))
+                });
+            }
             label(ui, "TO");
-            if combo_str(ui, &format!("r_to_{i}"), &mut route.to_system_id, &opt_refs) {
+            if combo_kv(ui, &format!("r_to_{i}"), &mut route.to_system_id, &opt_kv) {
                 dirty = true;
+            }
+            let to_active = current_pick == Some((i, RouteEndpoint::To));
+            let to_btn = if to_active { "PICKING…" } else { "PICK" };
+            if ui
+                .small_button(RichText::new(to_btn).font(mono(10.0)))
+                .clicked()
+            {
+                new_pick = Some(if to_active {
+                    None
+                } else {
+                    Some((i, RouteEndpoint::To))
+                });
             }
         });
         ui.horizontal(|ui| {
@@ -82,6 +118,12 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     if let Some(i) = remove_idx {
         sector.routes.remove(i);
         dirty = true;
+        // Clear/reindex pick after deletion.
+        new_pick = Some(match current_pick {
+            Some((idx, _)) if idx == i => None,
+            Some((idx, ep)) if idx > i => Some((idx - 1, ep)),
+            other => other,
+        });
     }
 
     if system_options.len() >= 2
@@ -105,6 +147,9 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
             r.id = crate::ids::route_id(&r.from_system_id, &r.to_system_id);
         }
         state.mark_dirty();
+    }
+    if let Some(p) = new_pick {
+        state.route_pick = p;
     }
 }
 

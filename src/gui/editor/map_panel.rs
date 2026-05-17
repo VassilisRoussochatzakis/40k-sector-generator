@@ -8,9 +8,10 @@ use crate::gui::palette::{
 };
 use crate::sector_model::HexCoord;
 
-use super::state::{Dialog, EditorState, Selection};
+use super::state::{Dialog, EditorState, RouteEndpoint, Selection};
 
 pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
+    let route_pick = state.route_pick;
     let Some(sector) = state.sector.as_ref() else {
         ui.label(egui::RichText::new("no sector loaded — use NEW SECTOR or OPEN").color(TEXT_DIM));
         return;
@@ -97,6 +98,7 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     }
 
     // Click handling.
+    let mut pending_route_pick: Option<(usize, RouteEndpoint, String)> = None;
     if response.clicked() {
         if let Some(pos) = response.interact_pointer_pos() {
             // hit existing system?
@@ -110,17 +112,45 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 .filter(|(_, d)| *d <= g.hex_size * 0.95)
                 .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
             if let Some((sys, _)) = hit_sys {
-                state.selection = Selection::System(sys.id.clone());
-            } else if let Some(coord) = hex_pick(pos - origin, &g, sector.width, sector.height) {
-                let occupied = sector.systems.iter().any(|s| s.coord == coord);
-                if !occupied {
-                    state.dialog = Dialog::PlaceSystem {
-                        coord,
-                        name: String::new(),
-                    };
+                if let Some((idx, ep)) = route_pick {
+                    pending_route_pick = Some((idx, ep, sys.id.clone()));
+                } else {
+                    state.selection = Selection::System(sys.id.clone());
+                }
+            } else if route_pick.is_none() {
+                if let Some(coord) = hex_pick(pos - origin, &g, sector.width, sector.height) {
+                    let occupied = sector.systems.iter().any(|s| s.coord == coord);
+                    if !occupied {
+                        state.dialog = Dialog::PlaceSystem {
+                            coord,
+                            name: String::new(),
+                        };
+                    }
                 }
             }
         }
+    }
+
+    if let Some((idx, ep, sys_id)) = pending_route_pick {
+        if let Some(sector) = state.sector.as_mut() {
+            let coords: std::collections::HashMap<String, HexCoord> =
+                sector.systems.iter().map(|s| (s.id.clone(), s.coord)).collect();
+            if let Some(route) = sector.routes.get_mut(idx) {
+                match ep {
+                    RouteEndpoint::From => route.from_system_id = sys_id,
+                    RouteEndpoint::To => route.to_system_id = sys_id,
+                }
+                if let (Some(&a), Some(&b)) = (
+                    coords.get(&route.from_system_id),
+                    coords.get(&route.to_system_id),
+                ) {
+                    route.distance = crate::sector_model::hex_distance(a, b);
+                }
+                route.id = crate::ids::route_id(&route.from_system_id, &route.to_system_id);
+            }
+        }
+        state.route_pick = None;
+        state.mark_dirty();
     }
 }
 

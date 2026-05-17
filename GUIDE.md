@@ -5,7 +5,9 @@ a project directory (CSV data files plus TOML configuration files) and
 produces a reproducible sector as JSON, Markdown, CSV, and bitmap images.
 
 The world taxonomy and CSV parsing live in [src/worlds.rs](src/worlds.rs).
-Everything else in this crate builds a sector-scale layer around it.
+Everything else in this crate builds a sector-scale layer around it: candidate
+pools, deterministic placement, systems, worlds, routes, factions,
+subsector clustering, validation, export, and an interactive GUI viewer/editor.
 
 ---
 
@@ -31,7 +33,7 @@ cargo --version
 From the repository root:
 
 ```bash
-# Build
+# Build both binaries (sectorforge CLI + sectorforge-gui)
 cargo build --release
 
 # Validate the bundled example project (M42 world data + sample TOML files)
@@ -40,8 +42,11 @@ cargo run --bin sectorforge -- validate --project examples/m42_project
 # Generate a sector
 cargo run --bin sectorforge -- generate --project examples/m42_project --allow-warnings
 
-# Inspect world data directory contents
+# Inspect world-data directory contents
 cargo run --bin sectorforge -- inspect-worlds --data-dir examples/m42_project/data/worlds
+
+# Launch the GUI viewer/editor (cargo alias is `sgui`)
+cargo sgui --project examples/m42_project
 ```
 
 `generate` runs pre-generation validation, then sector generation, then
@@ -64,7 +69,7 @@ out/
     systems.csv
     worlds.csv
     routes.csv
-  sector.png                   # bitmap overview (if bitmap in output formats)
+  sector.png                   # bitmap overview (if `bitmap` in output formats)
   systems/sys-NNNN.png         # per-system bitmap renderings
 ```
 
@@ -84,7 +89,7 @@ warnings. Exits non-zero on any error.
 
 ### `sectorforge generate --project <DIR>`
 
-Runs validation, then generation, then writes output files. Will refuse to
+Runs validation, then generation, then writes output files. Refuses to
 continue if validation reports errors. Refuses to continue with warnings
 unless `--allow-warnings` is passed.
 
@@ -97,7 +102,7 @@ unless `--allow-warnings` is passed.
 ### `sectorforge generate-system --project <DIR>`
 
 Generate a single standalone system. Reuses the project's catalogs (world data,
-names, factions) but emits just one `GeneratedSystem`, with factions assigned,
+names, factions) but emits just one `GeneratedSystem` with factions assigned,
 not a full sector. Useful for one-off NPC system generation, scripted system
 seeding, or scratchpad work.
 
@@ -186,46 +191,47 @@ system_names          = "data/names/system_names.toml"     # optional
 world_names           = "data/names/world_names.toml"      # optional
 factions              = "data/factions/factions.toml"      # optional
 route_rules           = "data/routes/route_rules.toml"     # optional
-generation_profiles   = "data/generation/profiles.toml"    # optional
+generation_profiles   = "data/generation/profiles.toml"    # optional (digest tracked, content reserved)
 
 [generation]
-seed                      = "my-seed-string"
+seed                       = "my-seed-string"
 sector_width               = 8
 sector_height              = 10
-subsector_width            = 4     # optional: hexes across the X axis within a subsector
-subsector_height           = 5     # optional: hexes along the Y axis within a subsector
+subsector_width            = 4     # reserved; subsector layout is currently k-means clustered, not tile-sized
+subsector_height           = 5     # reserved (see above)
 system_count               = 24
-min_worlds_per_system = 2
-max_worlds_per_system = 6
+min_worlds_per_system      = 2
+max_worlds_per_system      = 6
 allow_empty_hexes          = true
 world_feature_count        = 3
 strict_world_rows          = true
 
 [generation.placement]
-mode                       = "uniform_grid"             # or "clustered"
+mode                       = "uniform_grid"             # "uniform_grid" | "weighted_grid" | "clustered"
 cluster_bias               = 0.0                        # attraction toward generation center (0 = none)
-minimum_system_distance = 1
+minimum_system_distance    = 1
 
 [generation.world_selection]
-mode                                = "weighted_rows"
-require_complete_rows               = true
-allow_partial_rows                  = false      # allow rows missing optional fields
-same_star_colour_bias              = 1.25         # bias toward matching star colours
-strict_same_star_colour             = false      # all worlds in a system share the primary star colour
+mode                                 = "weighted_rows"
+require_complete_rows                = true
+allow_partial_rows                   = false      # allow rows missing optional fields
+same_star_colour_bias                = 1.25       # bias toward matching star colours
+strict_same_star_colour              = false      # all worlds in a system share the primary star colour
 avoid_duplicate_world_type_in_system = false      # prevent repeated world types per system
 
 [generation.routes]
 enabled                    = true
 max_route_distance         = 4
 route_density              = 0.30
-ensure_connected_graph = true
+ensure_connected_graph     = true
 
 [outputs]
 directory                  = "out"
 formats                    = ["json", "markdown", "csv", "bitmap"]
-pretty_json                 = true
-write_per_system_files      = true
-write_manifest              = true
+pretty_json                = true
+write_per_system_files     = true
+write_manifest             = true
+write_diagnostics          = false   # reserved flag; no extra diagnostic files emitted yet
 
 [outputs.bitmap]
 sector_scale        = 5          # integer scale multiplier for the sector map (1..=8)
@@ -239,7 +245,7 @@ render_systems      = true       # generate per-system bitmap renders as well
 [system_names]
 prefixes      = ["Acheron", "Belisarius", ...]
 suffixes      = ["Reach", "Terminus", ...]
-single_names = ["Malfi", "Scintilla", ...]
+single_names  = ["Malfi", "Scintilla", ...]
 ```
 
 If only `single_names` is present, those names are used directly. If only
@@ -255,7 +261,7 @@ fallback_pattern = "{system_name} {roman}"
 
 [world_names]
 prefixes = ["Saint", "Port", ...]
-roots     = ["Iocanthos", "Solace", ...]    # required if you want non-fallback names
+roots    = ["Iocanthos", "Solace", ...]    # required if you want non-fallback names
 suffixes = ["Prime", "Secundus", ...]
 ```
 
@@ -280,14 +286,14 @@ preferred_governments        = ["MilitaryGovernor", "MagistrateCouncil"]
 preferred_notable_features   = ["AdministrativeHub", "PoliceState"]
 ```
 
-Assignment algorithm: base weight x 1.5 for matching world type, x 1.4 for
-matching government, x 1.3 per matching notable feature. Up to 3 factions
+Assignment algorithm: base weight × 1.5 for matching world type, × 1.4 for
+matching government, × 1.3 per matching notable feature. Up to 3 factions
 per world (capped by population density). Per-world factions are emitted
 sorted by influence (Dominant > Significant > Minor > Hidden) then catalog
 order.
 
 `primary_factions` for a system is the top-3 by **influence-weighted score**
-(spec x10.9): sum of `influence.weight()` over the faction's presence on
+(spec §10.9): sum of `influence.weight()` over the faction's presence on
 that system's worlds (Dominant=3, Significant=2, Minor=1, Hidden=0.5). Ties
 break by world-appearance count, then catalog order, then faction id.
 
@@ -295,10 +301,11 @@ break by world-appearance count, then catalog order, then faction id.
 
 ```toml
 [routes]
-default_weight        = 1.0
-max_distance          = 4
-prefer_trade_hubs     = true
-avoid_warp_phenomena = true
+default_weight          = 1.0
+max_distance            = 4
+prefer_populated_worlds = true
+prefer_trade_hubs       = true
+avoid_warp_phenomena    = true
 
 [[routes.modifiers]]
 when = { notable_feature = "TradeHub" }
@@ -313,10 +320,12 @@ when = { world_type = "ForgeWorld" }
 multiplier = 1.5
 ```
 
-Routes connect systems whose hex distance le `max_distance`. Weights factor
-in distance falloff, then standard hub/avoid bonuses, then your custom
-modifiers. With `ensure_connected_graph = true`, the generator adds bridge
-edges so every system reaches every other.
+`when` accepts any combination of `notable_feature`, `world_type`, and
+`government` keys. Routes connect systems whose hex distance ≤ `max_distance`.
+Weights factor in distance falloff, then the standard
+`prefer_populated_worlds` / `prefer_trade_hubs` / `avoid_warp_phenomena`
+bonuses, then your custom modifiers. With `ensure_connected_graph = true`,
+the generator adds bridge edges so every system reaches every other.
 
 ---
 
@@ -433,21 +442,71 @@ preserved.
 
 ---
 
-## 7. GUI viewer
+## 7. Subsectors
 
-`sectorforge-gui` is an interactive viewer for generated sectors, built with
-egui + eframe. It provides:
+After a sector is generated, `sectorforge::build_subsectors` groups its
+systems into clusters using greedy farthest-first seeding plus Lloyd
+refinement over hex distance (see [src/subsectors.rs](src/subsectors.rs)).
+Each cluster gets:
 
-- **Sector map** — hexagonal grid render with zoom/pan controls, color-coded by
-  primary star colour and faction presence.
-- **System detail** — click a hex to view worlds, coordinates, star type, tags,
-  and factions for that system.
-- **Data editor** — edit world data (CSV) from within the GUI and regenerate
-  sectors without leaving the application.
-- **Sector editor** — modify generated sectors: rename systems, add/remove worlds,
-  adjust tags and factions.
+- A spreadsheet-style label (`A`..`Z`, `AA`..) assigned row-major over capital coords.
+- A `name` derived from its chosen capital system (`"Subsector Aurelia"`).
+- The list of every (q, r) hex it covers, including empty ones — drives map borders.
+- Internal vs. border route classification.
+- Neighbor / connected subsector adjacency.
+- A summary: world-type counts, faction control basis-points, dominant
+  factions, controlling faction (if any), capital system + capital world,
+  per-faction `control_tier` (`absolute` / `clear` / `plurality` /
+  `contested` / `presence` / `trace`).
+
+Cluster count derives from `target_systems_per_subsector` (default 12):
+`K = ceil(system_count / target)`. Controllable via `SubsectorConfig`:
+
+```rust
+let subs = sectorforge::build_subsectors(&sector, sectorforge::SubsectorConfig {
+    target_systems_per_subsector: 12,
+    max_iterations: 24,
+    include_empty_subsectors: true,
+    faction_control_top_n: 5,
+    tracked_faction_ids: vec![],
+    control_denominator: sectorforge::ControlDenominator::InhabitedSystems,
+})?;
+```
+
+The GUI's sector view uses these clusters for the subsector overlay /
+detail panel. Subsectors are derived on demand from a `GeneratedSector` —
+they are not persisted into `sector.json`.
+
+Note: the `subsector_width` / `subsector_height` keys in `sectorforge.toml`
+are accepted by the config parser but the current clustering ignores them.
+
+---
+
+## 8. GUI viewer
+
+`sectorforge-gui` is an interactive viewer/editor for generated sectors,
+built with egui + eframe. It exposes the following views via the top
+navigation bar:
+
+- **Sector** — hex map with zoom/pan, colored by primary star colour,
+  faction tint, and subsector overlay. Click a hex to drill into the system.
+- **System** — per-system detail panel: worlds, coords, star type, tags,
+  factions, neighboring systems.
+- **Edit** — sector editor (rename systems, add/remove worlds, adjust tags
+  and per-world factions).
+- **Data** — CSV data editor for `key.csv` / `generator.csv` from inside
+  the app.
+- **Planner** — route planner: pick `from` / `to` systems and pathfind over
+  the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
+  weights — avoid Unstable / Hazardous / Dangerous) or `Shortest` (BFS over
+  hop count). `Perilous` routes are always impassable.
+
+The GUI also supports exporting bitmap PNGs at a configurable scale:
+sector overview, a single system map, or all per-system maps.
 
 ### Launching the GUI
+
+A `cargo sgui` alias is registered in [.cargo/config.toml](.cargo/config.toml):
 
 ```bash
 # From a project directory (auto-loads out/sector.json if present)
@@ -456,22 +515,27 @@ cargo sgui --project examples/m42_project
 # Direct path to a sector.json
 cargo sgui examples/m42_project/out/sector.json
 
-# Empty editor (no sector loaded — starts data editor mode)
+# Empty editor (no sector loaded — starts in edit mode)
 cargo sgui
 ```
 
+With no args, the GUI falls back to `examples/m42_project/out/sector.json`
+when that file exists, otherwise launches empty.
+
 **Note:** The GUI requires a graphical display (X11/Wayland on Linux, native on macOS/Windows).
-It will not run on headless servers. For CLI-only workflows, use `sectorforge generate` and inspect the output files.
+It will not run on headless servers. For CLI-only workflows, use `sectorforge generate`
+and inspect the output files.
 
 ### Library-level GUI usage
 
 The GUI module is exposed as `sectorforge::gui::App`. The struct takes a
 `GeneratedSector` in `App::new(sector)` or launches empty via `App::new_empty()`.
-Use `app.with_project_dir(dir)` to attach a project directory for regeneration.
+Use `app.with_project_dir(dir)` to attach a project directory for regeneration
+and data-editor preloading.
 
 ---
 
-## 8. Library use
+## 9. Library use
 
 `sectorforge` is also a library crate (`pub lib` named `sectorforge`).
 **This crate is not published on crates.io** — you must reference it via path.
@@ -497,6 +561,9 @@ assert!(report.ok);
 let output_cfg = input.config.outputs.clone();
 let sector = sectorforge::generate_sector(input)?;
 sectorforge::export_sector(&sector, &output_cfg, "out")?;
+
+let subs = sectorforge::build_subsectors(&sector, sectorforge::SubsectorConfig::default())?;
+println!("{} subsectors", subs.len());
 ```
 
 Public surface:
@@ -508,6 +575,7 @@ Public surface:
 | `generate_sector(input)` | Deterministic sector generation, returns `GeneratedSector` |
 | `generate_system_standalone(input, index, coord)` | Deterministic single-system generation, returns `GeneratedSystem` |
 | `validate_sector(&sector)` | Post-generation invariant check (spec §11.11), returns `InvariantReport` |
+| `build_subsectors(&sector, cfg)` | Derive subsector clusters from a generated sector |
 | `render_sector_markdown(&sector)` | Pure Markdown render, returns `String` |
 | `render_system_markdown(&system)` | Pure Markdown render for one standalone system |
 | `load_sector_json(path)` | Read a previously generated `sector.json` back into a `GeneratedSector` |
@@ -517,9 +585,14 @@ Public surface:
 | `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / CSV / manifest + bitmaps |
 | `inspect_world_workbook(path)` | World-data diagnostics (used by `inspect-worlds`) |
 
+Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`,
+`InvariantViolation`, `GeneratedSector`, `GeneratedSystem`, `HexCoord`,
+`Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
+`ValidationIssue`, `ValidationReport`.
+
 ---
 
-## 9. Validation reference
+## 10. Validation reference
 
 Validation runs over both project config and the world data. Errors block
 generation; warnings only block when `--strict` (validate) or absence of
@@ -536,14 +609,14 @@ Common codes:
 | `WB_EXCLUDED_ROWS` | At least one row was excluded (warning) |
 | `KEY_TABLE_EMPTY` | A key.csv column has no parseable entries |
 | `FACTION_DUPLICATE_ID` | Two factions share an `id` |
-| `FACTION_BAD_WEIGHT` | Faction weight is le 0 or non-finite |
+| `FACTION_BAD_WEIGHT` | Faction weight is ≤ 0 or non-finite |
 | `FACTION_UNKNOWN_*` | Faction references a string that isn't a variant name |
 | `ROUTE_BAD_DEFAULT_WEIGHT` / `ROUTE_BAD_MULTIPLIER` | Route weights / multipliers must be > 0 and finite |
 | `NAME_POOL_EMPTY` | All system name lists are empty (fallback names will be used) |
 
 ---
 
-## 10. Tests
+## 11. Tests
 
 ```bash
 cargo test           # all tests
@@ -552,16 +625,17 @@ cargo test --lib     # unit tests only
 
 Notable suites:
 
-- [src/world_pool.rs::tests](src/world_pool.rs#L257) — candidate filtering and conversion
-- [src/rng.rs::tests](src/rng.rs#L65) — stage seeds and weighted selection
-- [src/sector_model.rs::tests](src/sector_model.rs#L160) — axial hex distance
+- [src/world_pool.rs::tests](src/world_pool.rs) — candidate filtering and conversion
+- [src/rng.rs::tests](src/rng.rs) — stage seeds and weighted selection
+- [src/sector_model.rs::tests](src/sector_model.rs) — axial hex distance
+- [src/subsectors.rs::tests](src/subsectors.rs) — clustering coverage, capital naming, route classification, determinism
 - [tests/golden_generation.rs](tests/golden_generation.rs) — full end-to-end + determinism
 - [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
 
 ---
 
-## 11. Customization recipes
+## 12. Customization recipes
 
 **Generate a sparser frontier sector.**
 Lower `system_count`, drop `route_density` to `0.15`, raise
@@ -582,12 +656,21 @@ Pin the seed, keep `sectorforge.toml` unchanged, and keep every file
 referenced from `[inputs]` byte-identical. `manifest.json` lists every
 input digest so you can verify match before running.
 
+**Resize subsector clusters.**
+Pass a custom `SubsectorConfig` with a different `target_systems_per_subsector`
+to `build_subsectors`. There is currently no `sectorforge.toml` knob for
+this — it is a library-level setting consumed by the GUI and by external
+callers of the API.
+
 ---
 
-## 12. Where to look in the source
+## 13. Where to look in the source
 
 | File | Purpose |
 |---|---|
+| [src/lib.rs](src/lib.rs) | Public API surface and re-exports |
+| [src/main.rs](src/main.rs) | Clap-based CLI (`sectorforge` binary) |
+| [src/gui/main.rs](src/gui/main.rs) | GUI binary entry point (`sectorforge-gui`) |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser (do not modify casually) |
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
 | [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes. `build_system` is the unit reused by sector + standalone APIs |
@@ -595,16 +678,24 @@ input digest so you can verify match before running.
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
 | [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
 | [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system) |
-| [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest / bitmap writers |
-| [src/main.rs](src/main.rs) | Clap-based CLI |
+| [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers + bundle export |
+| [src/bitmap.rs](src/bitmap.rs) | Sector PNG rendering (via `image` crate) |
+| [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering |
+| [src/subsectors.rs](src/subsectors.rs) | Subsector clustering (k-means / Lloyd) + summaries |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
+| [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
+| [src/names.rs](src/names.rs) | Name table types |
+| [src/factions.rs](src/factions.rs) | Faction file types |
+| [src/routes.rs](src/routes.rs) | Route-rules file types |
 | [src/rng.rs](src/rng.rs) | Stage-based deterministic RNG |
-| [src/taxonomy.rs](src/taxonomy.rs) | Variant-name string to enum bridge |
-| [src/bitmap.rs](src/bitmap.rs) | PNG rendering (via image crate) |
+| [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
+| [src/ids.rs](src/ids.rs) | Canonical id-string formatting |
+| [src/errors.rs](src/errors.rs) | `SectorError` type |
 | [src/gui/app.rs](src/gui/app.rs) | Top-level eframe app + navigation |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
 | [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor UI |
+| [src/gui/route_planner.rs](src/gui/route_planner.rs) | Route planner (Safest / Shortest) |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
-| [src/gui/editor/](src/gui/editor/) | Sector/world editing UI |
+| [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI |

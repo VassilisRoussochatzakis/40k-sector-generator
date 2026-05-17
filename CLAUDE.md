@@ -1,5 +1,7 @@
 # CLAUDE.md
+Do not ever look in, or modify, anything in the "old" directory.
 
+When making changes, update GUIDE.md accordingly.
 ## Commands
 
 ```bash

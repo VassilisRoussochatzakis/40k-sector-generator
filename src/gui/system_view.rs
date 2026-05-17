@@ -38,13 +38,14 @@ impl<'a> SystemView<'a> {
         painter.rect_filled(rect, 0.0, palette::BG);
 
         // Orbit rings.
-        let max_orbit = self
-            .system
-            .worlds
-            .iter()
-            .map(|w| w.orbit)
-            .max()
-            .unwrap_or(0) as i32;
+        let max_orbit = i32::from(
+            self.system
+                .worlds
+                .iter()
+                .map(|w| w.orbit)
+                .max()
+                .unwrap_or(0),
+        );
         for o in 1..=max_orbit.max(1) {
             let r = g.orbit_base + (o - 1) as f32 * g.orbit_step;
             painter.circle_stroke(center, r, Stroke::new(1.0, ORBIT_RING));
@@ -62,7 +63,7 @@ impl<'a> SystemView<'a> {
         // Planets.
         let mut planet_positions: Vec<(usize, Pos2, f32)> = Vec::new();
         for w in &self.system.worlds {
-            let orbit = w.orbit.max(1) as i32;
+            let orbit = i32::from(w.orbit.max(1));
             let r = g.orbit_base + (orbit - 1) as f32 * g.orbit_step;
             let a = orbit_angle(w.index, orbit).to_radians();
             let p = Pos2::new(center.x + r * a.cos(), center.y + r * a.sin());
@@ -125,7 +126,7 @@ struct Geom {
 
 impl Geom {
     fn new(side: f32, sys: &GeneratedSystem) -> Self {
-        let max_orbit = sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(1).max(1) as f32;
+        let max_orbit = f32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(1).max(1));
         let usable = side * 0.45;
         let orbit_base = side * 0.13;
         let orbit_step = ((usable - orbit_base) / max_orbit).max(20.0);

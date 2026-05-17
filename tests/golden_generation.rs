@@ -107,8 +107,7 @@ fn route_ids_sort_with_lower_system_first() {
     for r in &sector.routes {
         assert!(
             r.from_system_id <= r.to_system_id,
-            "route from <= to: {:?}",
-            r
+            "route from <= to: {r:?}"
         );
     }
 }

@@ -540,9 +540,9 @@ fn pick_world_name(
     };
 
     match (prefix, suffix) {
-        (Some(p), Some(s)) => format!("{} {} {}", p, root, s),
-        (Some(p), None) => format!("{} {}", p, root),
-        (None, Some(s)) => format!("{} {}", root, s),
+        (Some(p), Some(s)) => format!("{p} {root} {s}"),
+        (Some(p), None) => format!("{p} {root}"),
+        (None, Some(s)) => format!("{root} {s}"),
         (None, None) => root,
     }
 }
@@ -602,7 +602,7 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
     for sys in systems.iter_mut() {
         // Per-system accumulator: faction_id -> (score, world_appearances)
         let mut scores: BTreeMap<String, (f64, usize)> = BTreeMap::new();
-        for world in sys.worlds.iter_mut() {
+        for world in &mut sys.worlds {
             let pop_tag = world
                 .tags
                 .iter()
@@ -795,7 +795,7 @@ fn generate_routes(
             }
             let mut w = rules.default_weight;
             // Distance falloff.
-            w *= 1.0 / (dist as f64);
+            w *= 1.0 / f64::from(dist);
 
             let combined_tags: Vec<&String> = systems[i]
                 .worlds

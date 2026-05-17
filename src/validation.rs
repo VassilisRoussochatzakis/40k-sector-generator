@@ -270,7 +270,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                 if taxonomy::parse_notable_feature_variant(s).is_none() {
                     warnings.push(ValidationIssue {
                         code: "ROUTE_UNKNOWN_FEATURE".to_string(),
-                        message: format!("route condition references unknown feature '{}'", s),
+                        message: format!("route condition references unknown feature '{s}'"),
                         path: Some(format!("routes.modifiers[{i}].when.notable_feature")),
                         row: None,
                         severity: Severity::Warning,
@@ -281,7 +281,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                 if taxonomy::parse_world_type_variant(s).is_none() {
                     warnings.push(ValidationIssue {
                         code: "ROUTE_UNKNOWN_WORLD_TYPE".to_string(),
-                        message: format!("route condition references unknown world type '{}'", s),
+                        message: format!("route condition references unknown world type '{s}'"),
                         path: Some(format!("routes.modifiers[{i}].when.world_type")),
                         row: None,
                         severity: Severity::Warning,

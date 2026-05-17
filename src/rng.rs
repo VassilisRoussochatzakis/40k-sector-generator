@@ -11,7 +11,7 @@ pub fn derive_stage_seed(root_seed: &str, stage: &str, discriminator: &str) -> [
     *blake3::hash(input.as_bytes()).as_bytes()
 }
 
-/// Build a ChaCha8 RNG from a stage seed.
+/// Build a `ChaCha8` RNG from a stage seed.
 pub fn stage_rng(root_seed: &str, stage: &str, discriminator: &str) -> ChaCha8Rng {
     ChaCha8Rng::from_seed(derive_stage_seed(root_seed, stage, discriminator))
 }
@@ -64,7 +64,7 @@ pub fn weighted_index<T>(
 pub fn hex(bytes: &[u8]) -> String {
     let mut s = String::with_capacity(bytes.len() * 2);
     for b in bytes {
-        s.push_str(&format!("{:02x}", b));
+        s.push_str(&format!("{b:02x}"));
     }
     s
 }

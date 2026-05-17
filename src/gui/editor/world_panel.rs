@@ -44,7 +44,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.horizontal(|ui| {
         label(ui, "ORBIT");
-        let mut orbit_i = w.orbit as i32;
+        let mut orbit_i = i32::from(w.orbit);
         if ui
             .add(egui::DragValue::new(&mut orbit_i).range(1..=99))
             .changed()
@@ -126,7 +126,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let mut remove: Option<usize> = None;
     for (i, feat) in w.world.notable_features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            if combo_str(ui, &format!("w_feat_{}", i), feat, NOTABLE_FEATURES) {
+            if combo_str(ui, &format!("w_feat_{i}"), feat, NOTABLE_FEATURES) {
                 dirty = true;
             }
             if ui

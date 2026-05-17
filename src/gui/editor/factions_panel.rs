@@ -62,7 +62,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         let mut remove_sys: Option<usize> = None;
         for (j, sid) in fac.system_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                if combo_str(ui, &format!("f_{}_sys_{}", i, j), sid, &system_refs) {
+                if combo_str(ui, &format!("f_{i}_sys_{j}"), sid, &system_refs) {
                     dirty = true;
                 }
                 if ui
@@ -90,7 +90,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         let mut remove_w: Option<usize> = None;
         for (j, wid) in fac.world_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                if combo_str(ui, &format!("f_{}_w_{}", i, j), wid, &world_refs) {
+                if combo_str(ui, &format!("f_{i}_w_{j}"), wid, &world_refs) {
                     dirty = true;
                 }
                 if ui

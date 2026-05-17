@@ -1,12 +1,12 @@
 /// World parameter types loaded from two CSV files in a project's worlds dir:
 ///
 ///   key.csv       — reference lookup tables (one column per enum kind):
-///     star_colour, world_type, atmosphere, temperature, biosphere,
-///     population, tech_level, government, notable_feature
+///     `star_colour`, `world_type`, atmosphere, temperature, biosphere,
+///     population, `tech_level`, government, `notable_feature`
 ///
 ///   generator.csv — weighted generator rows:
-///     star_colour, world_type, atmosphere, temperature, biosphere,
-///     population, tech_level, government, notable_feature, counter, weight
+///     `star_colour`, `world_type`, atmosphere, temperature, biosphere,
+///     population, `tech_level`, government, `notable_feature`, counter, weight
 ///
 /// Both files have a header row. Empty cells are treated as missing. The CSV
 /// parser handles RFC 4180 quoted fields.
@@ -414,18 +414,18 @@ fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, String> {
                         chars.next();
                     }
                     record.push(std::mem::take(&mut field));
-                    if !is_empty_record(&record) {
-                        records.push(std::mem::take(&mut record));
-                    } else {
+                    if is_empty_record(&record) {
                         record.clear();
+                    } else {
+                        records.push(std::mem::take(&mut record));
                     }
                 }
                 '\n' => {
                     record.push(std::mem::take(&mut field));
-                    if !is_empty_record(&record) {
-                        records.push(std::mem::take(&mut record));
-                    } else {
+                    if is_empty_record(&record) {
                         record.clear();
+                    } else {
+                        records.push(std::mem::take(&mut record));
                     }
                 }
                 _ => field.push(c),
@@ -450,8 +450,8 @@ fn is_empty_record(record: &[String]) -> bool {
 
 impl KeyTables {
     /// Parse a `key.csv` file. Expected header (case-insensitive, order fixed):
-    ///   star_colour,world_type,atmosphere,temperature,biosphere,
-    ///   population,tech_level,government,notable_feature
+    ///   `star_colour,world_type,atmosphere,temperature,biosphere`,
+    ///   `population,tech_level,government,notable_feature`
     pub fn from_csv_path(path: impl AsRef<Path>) -> Result<Self, String> {
         let path = path.as_ref();
         let text = fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
@@ -528,7 +528,7 @@ impl std::str::FromStr for StarColour {
     }
 }
 
-/// Parse a single CSV record into a GenerationRow.
+/// Parse a single CSV record into a `GenerationRow`.
 fn parse_generation_row(row: &[String]) -> GenerationRow {
     fn parse<T: std::str::FromStr>(row: &[String], idx: usize) -> Option<T> {
         row.get(idx)

@@ -116,7 +116,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             let report = sectorforge::validate_project(&input)?;
             if json {
                 let text = serde_json::to_string_pretty(&report).unwrap();
-                println!("{}", text);
+                println!("{text}");
             } else {
                 print_validation_report(&report);
             }
@@ -151,9 +151,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 return Ok(ExitCode::from(1));
             }
 
-            let output_dir = out
-                .clone()
-                .unwrap_or_else(|| project.join(&input.config.outputs.directory));
+            let output_dir = out.unwrap_or_else(|| project.join(&input.config.outputs.directory));
             let output_cfg = input.config.outputs.clone();
             let sector = sectorforge::generate_sector(input)?;
 
@@ -180,7 +178,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 sector.manifest.world_count,
                 sector.routes.len()
             );
-            println!("Output written to: {}", output_dir);
+            println!("Output written to: {output_dir}");
             Ok(ExitCode::SUCCESS)
         }
         Command::GenerateSystem {
@@ -209,7 +207,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             })?;
             match &out {
                 Some(p) => sectorforge::write_system_json(p, &system)?,
-                None => println!("{}", json),
+                None => println!("{json}"),
             }
             if markdown {
                 let md = sectorforge::render_system_markdown(&system);
@@ -219,7 +217,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                         std::fs::write(&md_path, md)
                             .map_err(|e| sectorforge::SectorError::io(md_path.as_str(), e))?;
                     }
-                    None => println!("\n{}", md),
+                    None => println!("\n{md}"),
                 }
             }
             Ok(ExitCode::SUCCESS)
@@ -229,7 +227,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             let report = sectorforge::validate_sector(&sec);
             if json {
                 let text = serde_json::to_string_pretty(&report).unwrap();
-                println!("{}", text);
+                println!("{text}");
             } else {
                 print_invariant_report(&report);
             }
@@ -244,7 +242,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             let md = sectorforge::render_sector_markdown(&sec);
             match out {
                 Some(p) => sectorforge::write_sector_markdown(&p, &sec)?,
-                None => print!("{}", md),
+                None => print!("{md}"),
             }
             Ok(ExitCode::SUCCESS)
         }
@@ -329,21 +327,21 @@ fn print_workbook_stats(stats: &sectorforge::world_pool::WorkbookStats) {
     println!("World data dir: {}", stats.data_dir);
     println!("Key tables:");
     for (name, n) in &stats.key_table_counts {
-        println!("  {:<18} {}", name, n);
+        println!("  {name:<18} {n}");
     }
     println!("Generator rows:    {}", stats.generator_rows);
     println!("Usable candidates: {}", stats.usable_candidates);
     println!("Excluded rows:     {}", stats.excluded_rows);
     println!("\nTop star colours by total weight:");
     for (n, w) in &stats.top_star_colours {
-        println!("  {:<14} {:.2}", n, w);
+        println!("  {n:<14} {w:.2}");
     }
     println!("\nTop world types by total weight:");
     for (n, w) in &stats.top_world_types {
-        println!("  {:<22} {:.2}", n, w);
+        println!("  {n:<22} {w:.2}");
     }
     println!("\nTop notable features by row count:");
     for (n, c) in &stats.top_features {
-        println!("  {:<28} {}", n, c);
+        println!("  {n:<28} {c}");
     }
 }

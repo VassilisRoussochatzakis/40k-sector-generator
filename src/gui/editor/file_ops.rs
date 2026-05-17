@@ -59,7 +59,7 @@ pub fn save_project_sector(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {}", parent.display(), e))?;
     }
-    let text = serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {}", e))?;
+    let text = serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {e}"))?;
     fs::write(&path, text).map_err(|e| format!("write {}: {}", path.display(), e))?;
     Ok(path.to_string_lossy().to_string())
 }

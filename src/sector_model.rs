@@ -59,8 +59,8 @@ pub struct GeneratedWorld {
     pub notes: Vec<String>,
 }
 
-/// Serializable view over crate::worlds::World. Variant names are stable
-/// because worlds.rs Display impls use Debug (e.g. "HiveWorld").
+/// Serializable view over `crate::worlds::World`. Variant names are stable
+/// because worlds.rs Display impls use Debug (e.g. "`HiveWorld`").
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldDto {
     pub star_colour: String,
@@ -87,11 +87,7 @@ impl From<&crate::worlds::World> for WorldDto {
             population: format!("{}", w.population),
             tech_level: format!("{}", w.tech_level),
             government: format!("{}", w.government),
-            notable_features: w
-                .notable_features
-                .iter()
-                .map(|f| format!("{}", f))
-                .collect(),
+            notable_features: w.notable_features.iter().map(|f| format!("{f}")).collect(),
         }
     }
 }

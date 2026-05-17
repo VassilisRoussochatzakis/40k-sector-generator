@@ -35,26 +35,21 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
             label(ui, "FROM");
             if combo_str(
                 ui,
-                &format!("r_from_{}", i),
+                &format!("r_from_{i}"),
                 &mut route.from_system_id,
                 &opt_refs,
             ) {
                 dirty = true;
             }
             label(ui, "TO");
-            if combo_str(
-                ui,
-                &format!("r_to_{}", i),
-                &mut route.to_system_id,
-                &opt_refs,
-            ) {
+            if combo_str(ui, &format!("r_to_{i}"), &mut route.to_system_id, &opt_refs) {
                 dirty = true;
             }
         });
         ui.horizontal(|ui| {
             let mut rtype = route_type_str(route.route_type).to_string();
             label(ui, "TYPE");
-            if combo_kv(ui, &format!("r_type_{}", i), &mut rtype, ROUTE_TYPES) {
+            if combo_kv(ui, &format!("r_type_{i}"), &mut rtype, ROUTE_TYPES) {
                 if let Some(rt) = route_type_from_str(&rtype) {
                     route.route_type = rt;
                     dirty = true;
@@ -62,7 +57,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
             }
             let mut stab = route_stab_str(route.stability).to_string();
             label(ui, "STAB");
-            if combo_kv(ui, &format!("r_stab_{}", i), &mut stab, ROUTE_STABILITIES) {
+            if combo_kv(ui, &format!("r_stab_{i}"), &mut stab, ROUTE_STABILITIES) {
                 if let Some(rs) = route_stab_from_str(&stab) {
                     route.stability = rs;
                     dirty = true;

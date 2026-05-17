@@ -216,7 +216,7 @@ fn write_routes_csv(routes: &[GeneratedRoute], dir: &Utf8Path) -> Result<(), Sec
 fn csv_escape(s: &str) -> String {
     if s.contains(',') || s.contains('"') || s.contains('\n') {
         let inner = s.replace('"', "\"\"");
-        format!("\"{}\"", inner)
+        format!("\"{inner}\"")
     } else {
         s.to_string()
     }

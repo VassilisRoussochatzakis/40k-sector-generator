@@ -1,16 +1,16 @@
 //! Deterministic, sortable string IDs.
 
 pub fn system_id(index: usize) -> String {
-    format!("sys-{:04}", index)
+    format!("sys-{index:04}")
 }
 
 pub fn world_id(system_index: usize, world_index: usize) -> String {
-    format!("sys-{:04}-w{:02}", system_index, world_index)
+    format!("sys-{system_index:04}-w{world_index:02}")
 }
 
 pub fn route_id(a: &str, b: &str) -> String {
     let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
-    format!("route-{}-{}", lo, hi)
+    format!("route-{lo}-{hi}")
 }
 
 #[cfg(test)]

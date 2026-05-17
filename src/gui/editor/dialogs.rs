@@ -42,7 +42,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     } else {
                         section(ui, "PROJECT");
                         let current = selected.clone().unwrap_or_default();
-                        let mut current_s = current.clone();
+                        let mut current_s = current;
                         let opts: Vec<&str> = projects.iter().map(|s| s.as_str()).collect();
                         if combo_str(ui, "open_project_combo", &mut current_s, &opts) {
                             selected = Some(current_s);
@@ -133,7 +133,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 let display_title = if title.trim().is_empty() {
                     name.clone()
                 } else {
-                    title.clone()
+                    title
                 };
                 let sector = super::state::empty_sector(
                     name.trim(),

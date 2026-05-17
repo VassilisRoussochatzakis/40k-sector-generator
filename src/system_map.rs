@@ -84,7 +84,7 @@ fn render_system(sys: &GeneratedSystem, scale: u32) -> RgbaImage {
     let cy = g.side / 2;
 
     // Orbits — one dim ring per occupied orbit slot.
-    let max_orbit = sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0) as i32;
+    let max_orbit = i32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0));
     for o in 1..=max_orbit.max(1) {
         let r = g.orbit_base + (o - 1) * g.orbit_step;
         draw_ring(&mut img, cx, cy, r, g.scale, Rgba([55, 50, 72, 255]));
@@ -98,7 +98,7 @@ fn render_system(sys: &GeneratedSystem, scale: u32) -> RgbaImage {
 
     // Planets.
     for w in &sys.worlds {
-        let orbit = w.orbit.max(1) as i32;
+        let orbit = i32::from(w.orbit.max(1));
         let r = g.orbit_base + (orbit - 1) * g.orbit_step;
         let a = orbit_angle(w.index, orbit).to_radians();
         let px = cx + (r as f32 * a.cos()).round() as i32;
@@ -273,7 +273,7 @@ fn world_type_color(t: &str) -> Rgba<u8> {
 }
 
 fn contrast_text(c: Rgba<u8>) -> Rgba<u8> {
-    let luma = 0.2126 * c.0[0] as f32 + 0.7152 * c.0[1] as f32 + 0.0722 * c.0[2] as f32;
+    let luma = 0.2126 * f32::from(c.0[0]) + 0.7152 * f32::from(c.0[1]) + 0.0722 * f32::from(c.0[2]);
     if luma > 140.0 {
         Rgba([20, 20, 30, 255])
     } else {
@@ -288,7 +288,7 @@ mod tests {
 
     fn world(orbit: u8, index: usize, name: &str, ty: &str) -> GeneratedWorld {
         GeneratedWorld {
-            id: format!("sys-x-w{:02}", index),
+            id: format!("sys-x-w{index:02}"),
             index,
             name: name.into(),
             orbit,

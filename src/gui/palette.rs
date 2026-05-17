@@ -71,16 +71,16 @@ pub fn world_type_color(t: &str) -> Color32 {
 pub fn darken(c: Color32, amount: f32) -> Color32 {
     let s = (1.0 - amount).clamp(0.0, 1.0);
     Color32::from_rgba_premultiplied(
-        (c.r() as f32 * s) as u8,
-        (c.g() as f32 * s) as u8,
-        (c.b() as f32 * s) as u8,
+        (f32::from(c.r()) * s) as u8,
+        (f32::from(c.g()) * s) as u8,
+        (f32::from(c.b()) * s) as u8,
         c.a(),
     )
 }
 
 pub fn tint(c: Color32, amount: f32) -> Color32 {
     let mix = |v: u8, base: u8| {
-        let f = v as f32 * amount + base as f32 * (1.0 - amount);
+        let f = f32::from(v) * amount + f32::from(base) * (1.0 - amount);
         f.round().clamp(0.0, 255.0) as u8
     };
     Color32::from_rgb(
@@ -91,7 +91,7 @@ pub fn tint(c: Color32, amount: f32) -> Color32 {
 }
 
 pub fn contrast_text(c: Color32) -> Color32 {
-    let luma = 0.2126 * c.r() as f32 + 0.7152 * c.g() as f32 + 0.0722 * c.b() as f32;
+    let luma = 0.2126 * f32::from(c.r()) + 0.7152 * f32::from(c.g()) + 0.0722 * f32::from(c.b());
     if luma > 140.0 {
         Color32::from_rgb(20, 20, 30)
     } else {

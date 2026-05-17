@@ -162,7 +162,7 @@ fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
         // Small world-count pip on the lower-right.
         let pip = sys.worlds.len().min(99);
         if pip > 0 {
-            let label = format!("{}", pip);
+            let label = format!("{pip}");
             let scale = g.text_scale;
             let (tw, th) = text_size(&label, scale);
             let tx = cx + (g.hex_size * 0.55) as i32 - tw;
@@ -241,7 +241,7 @@ fn draw_legend(img: &mut RgbaImage, sector: &GeneratedSector, map_w: i32, g: &Ge
             img,
             x0 + swatch + 8 * g.scale,
             y,
-            &format!("{} - {}", code, name),
+            &format!("{code} - {name}"),
             TEXT,
             body,
         );
@@ -691,7 +691,7 @@ fn stability_color(s: RouteStability) -> Rgba<u8> {
 
 pub(crate) fn tint(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
     let mix = |v: u8, base: u8| {
-        let f = v as f32 * amount + base as f32 * (1.0 - amount);
+        let f = f32::from(v) * amount + f32::from(base) * (1.0 - amount);
         f.round().clamp(0.0, 255.0) as u8
     };
     Rgba([
@@ -705,9 +705,9 @@ pub(crate) fn tint(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
 pub(crate) fn darken(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
     let scale = (1.0 - amount).clamp(0.0, 1.0);
     Rgba([
-        (c.0[0] as f32 * scale) as u8,
-        (c.0[1] as f32 * scale) as u8,
-        (c.0[2] as f32 * scale) as u8,
+        (f32::from(c.0[0]) * scale) as u8,
+        (f32::from(c.0[1]) * scale) as u8,
+        (f32::from(c.0[2]) * scale) as u8,
         c.0[3],
     ])
 }

@@ -26,7 +26,7 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
 
     section(ui, "STAR COLOURS");
     for (code, name) in STAR_LEGEND {
-        legend_row(ui, star_color(code), &format!("{} - {}", code, name));
+        legend_row(ui, star_color(code), &format!("{code} - {name}"));
     }
     ui.add_space(8.0);
 
@@ -154,7 +154,7 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         ui.add_space(8.0);
         section(ui, "NOTABLE FEATURES");
         for f in &w.world.notable_features {
-            dim(ui, &format!("- {}", f));
+            dim(ui, &format!("- {f}"));
         }
     }
     if !w.factions.is_empty() {
@@ -205,7 +205,7 @@ pub fn star_detail(ui: &mut Ui, sys: &GeneratedSystem) {
     }
     kv(ui, "WORLDS", &sys.worlds.len().to_string());
     if let Some(idx) = sys.star.source_row_index {
-        dim(ui, &format!("source row: {}", idx));
+        dim(ui, &format!("source row: {idx}"));
     }
 }
 
@@ -235,7 +235,7 @@ fn dim(ui: &mut Ui, s: &str) {
 fn kv(ui: &mut Ui, k: &str, v: &str) {
     ui.horizontal(|ui| {
         ui.label(
-            RichText::new(format!("{}:", k))
+            RichText::new(format!("{k}:"))
                 .color(TEXT_DIM)
                 .font(mono(12.0)),
         );

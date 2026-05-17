@@ -1,4 +1,4 @@
-//! AppConfig: the parsed sectorforge.toml.
+//! `AppConfig`: the parsed sectorforge.toml.
 
 use serde::{Deserialize, Serialize};
 

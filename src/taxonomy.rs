@@ -1,12 +1,12 @@
 //! Maps variant-name strings (used in user configs and tags) to worlds.rs enums.
 //!
-//! worlds.rs FromStr already accepts the *display* names (e.g. "Hive World").
-//! Configs in this app use *variant* names (e.g. "HiveWorld"). Helpers here
-//! bridge both directions and provide stable snake_case tag forms.
+//! worlds.rs `FromStr` already accepts the *display* names (e.g. "Hive World").
+//! Configs in this app use *variant* names (e.g. "`HiveWorld`"). Helpers here
+//! bridge both directions and provide stable `snake_case` tag forms.
 
 use crate::worlds::{Government, NotableFeature, StarColour, WorldType};
 
-/// Convert a CamelCase variant name like "HiveWorld" to "hive_world".
+/// Convert a CamelCase variant name like "`HiveWorld`" to "`hive_world`".
 pub fn to_snake_case(name: &str) -> String {
     let mut out = String::with_capacity(name.len() + 4);
     let mut prev_upper = true;

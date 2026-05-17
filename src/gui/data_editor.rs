@@ -160,7 +160,7 @@ fn serialize_csv(header: &[&str], rows: &[Vec<String>]) -> String {
     out.push('\n');
     for row in rows {
         let cells: Vec<String> = (0..header.len())
-            .map(|i| escape_cell(row.get(i).map(|s| s.as_str()).unwrap_or("")))
+            .map(|i| escape_cell(row.get(i).map_or("", |s| s.as_str())))
             .collect();
         out.push_str(&cells.join(","));
         out.push('\n');
@@ -307,7 +307,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
                                 row.get(WORLD_TYPE_COL).cloned().unwrap_or_default();
                             if new_world_type != prev_world_type && !new_world_type.is_empty() {
                                 let counter_empty =
-                                    row.get(COUNTER_COL).map(|s| s.is_empty()).unwrap_or(true);
+                                    row.get(COUNTER_COL).is_none_or(|s| s.is_empty());
                                 if counter_empty {
                                     if row.len() <= COUNTER_COL {
                                         row.resize(COUNTER_COL + 1, String::new());
@@ -412,7 +412,7 @@ fn row_matches_filter(row: &[String], filters: &(String, String, String)) -> boo
     if !wt.is_empty() && row.get(WORLD_TYPE_COL).map(|s| s.as_str()) != Some(wt.as_str()) {
         return false;
     }
-    if !sc.is_empty() && row.get(0).map(|s| s.as_str()) != Some(sc.as_str()) {
+    if !sc.is_empty() && row.first().map(|s| s.as_str()) != Some(sc.as_str()) {
         return false;
     }
     if !gov.is_empty() && row.get(7).map(|s| s.as_str()) != Some(gov.as_str()) {
@@ -469,7 +469,7 @@ fn cell_status(
         },
         "counter" => {
             let world_set = key_sets.get("world_type");
-            let in_world_types = world_set.map(|s| s.contains(value)).unwrap_or(true);
+            let in_world_types = world_set.is_none_or(|s| s.contains(value));
             if !in_world_types {
                 return CellStatus::Err;
             }
@@ -480,10 +480,7 @@ fn cell_status(
             }
         }
         _ => {
-            let in_set = key_sets
-                .get(column)
-                .map(|s| s.contains(value))
-                .unwrap_or(true);
+            let in_set = key_sets.get(column).is_none_or(|s| s.contains(value));
             if in_set {
                 CellStatus::Ok
             } else {

@@ -1,5 +1,5 @@
 //! Editable hex-grid map. Renders the sector hex grid and handles clicks:
-//! empty hex → open PlaceSystem dialog at that coord; system hex → select.
+//! empty hex → open `PlaceSystem` dialog at that coord; system hex → select.
 
 use egui::{Align2, Color32, FontId, Pos2, Sense, Stroke, Ui, Vec2};
 
@@ -161,7 +161,7 @@ fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
 }
 
 /// Reverse-pick: find the (q,r) whose center is nearest to `local_pos`, if it
-/// lies within hex_size of any grid cell.
+/// lies within `hex_size` of any grid cell.
 fn hex_pick(local_pos: Vec2, g: &Geom, width: u32, height: u32) -> Option<HexCoord> {
     let mut best: Option<(HexCoord, f32)> = None;
     for r in 0..height as i32 {
@@ -170,7 +170,7 @@ fn hex_pick(local_pos: Vec2, g: &Geom, width: u32, height: u32) -> Option<HexCoo
             let d = (Pos2::new(c.x, c.y) - Pos2::new(local_pos.x, local_pos.y)).length();
             if d <= g.hex_size * 0.95 {
                 let entry = (HexCoord { q, r }, d);
-                if best.map(|b| d < b.1).unwrap_or(true) {
+                if best.is_none_or(|b| d < b.1) {
                     best = Some(entry);
                 }
             }

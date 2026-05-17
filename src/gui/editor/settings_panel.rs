@@ -63,7 +63,7 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     dim(ui, &format!("factions: {}", sector.factions.len()));
     if let Some(path) = state.loaded_from.as_deref() {
         ui.add_space(6.0);
-        dim(ui, &format!("loaded from: {}", path));
+        dim(ui, &format!("loaded from: {path}"));
     }
 
     if dirty {

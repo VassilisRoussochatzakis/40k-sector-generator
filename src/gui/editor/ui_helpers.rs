@@ -31,11 +31,10 @@ pub fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[&str]) 
                 if ui
                     .selectable_label(current == opt, RichText::new(*opt).font(mono(12.0)))
                     .clicked()
+                    && current != opt
                 {
-                    if current != opt {
-                        *current = (*opt).to_string();
-                        changed = true;
-                    }
+                    *current = (*opt).to_string();
+                    changed = true;
                 }
             }
         });
@@ -49,8 +48,7 @@ pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &
     let shown: &str = options
         .iter()
         .find(|(v, _)| *v == current.as_str())
-        .map(|(_, l)| *l)
-        .unwrap_or(current.as_str());
+        .map_or(current.as_str(), |(_, l)| *l);
     ComboBox::from_id_salt(id)
         .selected_text(RichText::new(shown).font(mono(12.0)))
         .show_ui(ui, |ui| {
@@ -58,11 +56,10 @@ pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &
                 if ui
                     .selectable_label(current == v, RichText::new(*l).font(mono(12.0)))
                     .clicked()
+                    && current != v
                 {
-                    if current != v {
-                        *current = (*v).to_string();
-                        changed = true;
-                    }
+                    *current = (*v).to_string();
+                    changed = true;
                 }
             }
         });

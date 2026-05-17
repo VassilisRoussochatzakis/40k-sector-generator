@@ -1,4 +1,4 @@
-//! Route rules loaded from route_rules.toml.
+//! Route rules loaded from `route_rules.toml`.
 
 use serde::{Deserialize, Serialize};
 

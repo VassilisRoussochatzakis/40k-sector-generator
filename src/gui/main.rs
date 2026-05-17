@@ -3,7 +3,7 @@
 //! Usage:
 //!   sectorforge-gui <path/to/sector.json>
 //!   sectorforge-gui --project <project-dir>          # auto-loads out/sector.json
-//!   (no args)                                        # tries examples/m42_project/out/sector.json
+//!   (no args)                                        # tries `examples/m42_project/out/sector.json`
 
 use std::process::ExitCode;
 
@@ -29,21 +29,20 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let project_dir = resolve_project_dir(&cli);
     let path = resolve_sector_path(&cli);
-    let (mut app, title) = match path {
-        Some(p) => match sectorforge::load_sector_json(&p) {
+    let (mut app, title) = if let Some(p) = path {
+        match sectorforge::load_sector_json(&p) {
             Ok(s) => {
                 let t = format!("sectorforge — {}", s.id);
                 (App::new(s), t)
             }
             Err(e) => {
-                eprintln!("failed to load sector json '{}': {}", p, e);
+                eprintln!("failed to load sector json '{p}': {e}");
                 return ExitCode::from(2);
             }
-        },
-        None => {
-            eprintln!("no sector.json found — launching editor with no sector loaded");
-            (App::new_empty(), "sectorforge — editor".to_string())
         }
+    } else {
+        eprintln!("no sector.json found — launching editor with no sector loaded");
+        (App::new_empty(), "sectorforge — editor".to_string())
     };
     if let Some(dir) = project_dir {
         app = app.with_project_dir(dir.into_std_path_buf());

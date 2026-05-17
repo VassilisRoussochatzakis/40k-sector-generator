@@ -92,10 +92,9 @@ impl EditorState {
     }
 
     pub fn next_system_index(&self) -> usize {
-        self.sector
-            .as_ref()
-            .map(|s| s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1)
-            .unwrap_or(1)
+        self.sector.as_ref().map_or(1, |s| {
+            s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1
+        })
     }
 
     pub fn system_ids(&self) -> Vec<String> {

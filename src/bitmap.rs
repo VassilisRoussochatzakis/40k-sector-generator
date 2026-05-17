@@ -7,7 +7,7 @@
 //! All sizes are derived from a `Geom` struct built from an integer scale
 //! factor so the same renderer can produce a small thumbnail or a ~4K poster.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use camino::Utf8Path;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
@@ -140,7 +140,7 @@ fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>
     draw_routes(&mut img, sector, &g);
     draw_systems(&mut img, sector, subs, &g);
     if !subs.is_empty() {
-        draw_subsector_labels(&mut img, subs, &g);
+        draw_subsector_labels(&mut img, sector, subs, &g);
     }
     draw_system_labels(&mut img, sector, &g);
 
@@ -403,23 +403,85 @@ fn draw_subsector_borders(
     }
 }
 
-fn draw_subsector_labels(img: &mut RgbaImage, subsectors: &[Subsector], g: &Geom) {
+/// Axis-aligned rect in pixel space. Used for collision tests when placing
+/// subsector labels.
+#[derive(Clone, Copy)]
+struct Rect {
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+}
+
+impl Rect {
+    fn intersects(self, o: Rect) -> bool {
+        self.x0 < o.x1 && self.x1 > o.x0 && self.y0 < o.y1 && self.y1 > o.y0
+    }
+}
+
+fn draw_subsector_labels(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    subsectors: &[Subsector],
+    g: &Geom,
+) {
     let scale = subsector_label_scale(g);
     let line_gap = 2 * g.scale;
     let pad_x = 6 * g.scale;
     let pad_y = 2 * g.scale;
+
+    // Map bounds (must match `render`).
+    let horiz_step = g.hex_size * 3f32.sqrt();
+    let vert_step = g.hex_size * 1.5;
+    let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
+    let map_w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
+    let label_band = (g.hex_size * 0.55) as i32;
+    let map_h = (g.margin as f32 * 2.0
+        + (sector.height.saturating_sub(1)) as f32 * vert_step
+        + 2.0 * g.hex_size) as i32
+        + label_band;
+
+    // Static obstacles: every system marker bbox + every system name label rect.
+    let sys_label_scale = system_label_scale(g);
+    let sys_pad_x = 3 * g.scale;
+    let sys_pad_y = 1 * g.scale;
+    let hex_half_w = (g.hex_size * 3f32.sqrt() / 2.0) as i32;
+    let hex_half_h = g.hex_size as i32;
+    let mut obstacles: Vec<Rect> = Vec::with_capacity(sector.systems.len() * 2);
+    for sys in &sector.systems {
+        let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
+        obstacles.push(Rect {
+            x0: cx - hex_half_w,
+            y0: cy - hex_half_h,
+            x1: cx + hex_half_w,
+            y1: cy + hex_half_h,
+        });
+        let name = sys.name.to_ascii_uppercase();
+        let (tw, th) = text_size(&name, sys_label_scale);
+        let tx = cx - tw / 2;
+        let ty = cy + hex_half_h + 3 * g.scale;
+        obstacles.push(Rect {
+            x0: tx - sys_pad_x,
+            y0: ty - sys_pad_y,
+            x1: tx + tw + sys_pad_x,
+            y1: ty + th + sys_pad_y,
+        });
+    }
+
+    let mut placed_labels: Vec<Rect> = Vec::with_capacity(subsectors.len());
+
     for s in subsectors {
         if s.system_ids.is_empty() || s.hex_cells.is_empty() {
             continue;
         }
-        // Anchor: topmost row, then leftmost q within that row.
-        let mut anchor = s.hex_cells[0];
-        for &(q, r) in &s.hex_cells {
-            if r < anchor.1 || (r == anchor.1 && q < anchor.0) {
-                anchor = (q, r);
-            }
-        }
-        let (cx, cy) = hex_center(anchor.0 as i32, anchor.1 as i32, g);
+
+        let cells: HashSet<(i32, i32)> = s
+            .hex_cells
+            .iter()
+            .map(|&(q, r)| (q as i32, r as i32))
+            .collect();
+
+        // Label dimensions.
         let top = "SUBSECTOR";
         let bot_owned: String;
         let bot: &str = {
@@ -431,8 +493,111 @@ fn draw_subsector_labels(img: &mut RgbaImage, subsectors: &[Subsector], g: &Geom
         let (tw_bot, th_bot) = text_size(bot, scale);
         let block_w = tw_top.max(tw_bot);
         let block_h = th_top + line_gap + th_bot;
-        let block_top_y = cy - g.hex_size as i32 - block_h - 2 * g.scale;
-        let block_min_x = cx - block_w / 2;
+
+        // Centroid in pixel space — drives candidate ordering.
+        let mut sx: i64 = 0;
+        let mut sy: i64 = 0;
+        for &(q, r) in &s.hex_cells {
+            let (cx, cy) = hex_center(q as i32, r as i32, g);
+            sx += cx as i64;
+            sy += cy as i64;
+        }
+        let n = s.hex_cells.len() as i64;
+        let cen_x = (sx / n) as i32;
+        let cen_y = (sy / n) as i32;
+
+        // Candidates: cells without systems, sorted by pixel distance to centroid.
+        let sys_cells: HashSet<(i32, i32)> = sector
+            .systems
+            .iter()
+            .map(|sys| (sys.coord.q, sys.coord.r))
+            .collect();
+        let mut cands: Vec<(i32, i32, i64)> = s
+            .hex_cells
+            .iter()
+            .filter(|&&(q, r)| !sys_cells.contains(&(q as i32, r as i32)))
+            .map(|&(q, r)| {
+                let (cx, cy) = hex_center(q as i32, r as i32, g);
+                let dx = (cx - cen_x) as i64;
+                let dy = (cy - cen_y) as i64;
+                (q as i32, r as i32, dx * dx + dy * dy)
+            })
+            .collect();
+        cands.sort_by_key(|&(_, _, d)| d);
+
+        let try_place = |q: i32, r: i32, above: bool, placed: &[Rect]| -> Option<(i32, i32)> {
+            // Need same-subsector hexes covering label rect: above → NW + NE
+            // neighbors; below → SW + SE neighbors. Index per offset_r_neighbors:
+            // 0:E 1:SE 2:SW 3:W 4:NW 5:NE.
+            let nbrs = offset_r_neighbors(r);
+            if above {
+                let nw = (q + nbrs[4].0, r + nbrs[4].1);
+                let ne = (q + nbrs[5].0, r + nbrs[5].1);
+                if !cells.contains(&nw) || !cells.contains(&ne) {
+                    return None;
+                }
+            } else {
+                let se = (q + nbrs[1].0, r + nbrs[1].1);
+                let sw = (q + nbrs[2].0, r + nbrs[2].1);
+                if !cells.contains(&se) || !cells.contains(&sw) {
+                    return None;
+                }
+            }
+            let (cx, cy) = hex_center(q, r, g);
+            let block_top = if above {
+                cy - g.hex_size as i32 - block_h - 2 * g.scale
+            } else {
+                cy + g.hex_size as i32 + 2 * g.scale
+            };
+            let block_min_x = cx - block_w / 2;
+            let rect = Rect {
+                x0: block_min_x - pad_x,
+                y0: block_top - pad_y,
+                x1: block_min_x + block_w + pad_x,
+                y1: block_top + block_h + pad_y,
+            };
+            if rect.x0 < 0 || rect.y0 < 0 || rect.x1 > map_w || rect.y1 > map_h {
+                return None;
+            }
+            for o in obstacles.iter().chain(placed.iter()) {
+                if rect.intersects(*o) {
+                    return None;
+                }
+            }
+            Some((block_min_x, block_top))
+        };
+
+        // Try each candidate in centroid order, above first then below.
+        let mut chosen: Option<(i32, i32)> = None;
+        'outer: for &(q, r, _) in &cands {
+            for above in [true, false] {
+                if let Some(p) = try_place(q, r, above, &placed_labels) {
+                    chosen = Some(p);
+                    break 'outer;
+                }
+            }
+        }
+
+        // Fallback: anchor = cell nearest centroid (occupied or not), above,
+        // clamped to map bounds. Visual overlap acceptable as last resort.
+        let (block_min_x, block_top_y) = chosen.unwrap_or_else(|| {
+            let &(q0, r0) = s
+                .hex_cells
+                .iter()
+                .min_by_key(|&&(q, r)| {
+                    let (cx, cy) = hex_center(q as i32, r as i32, g);
+                    let dx = (cx - cen_x) as i64;
+                    let dy = (cy - cen_y) as i64;
+                    dx * dx + dy * dy
+                })
+                .expect("non-empty");
+            let (cx, cy) = hex_center(q0 as i32, r0 as i32, g);
+            let bt = cy - g.hex_size as i32 - block_h - 2 * g.scale;
+            let bmx = (cx - block_w / 2).max(pad_x).min(map_w - block_w - pad_x);
+            let bty = bt.max(pad_y).min(map_h - block_h - pad_y);
+            (bmx, bty)
+        });
+
         fill_rect(
             img,
             block_min_x - pad_x,
@@ -443,7 +608,7 @@ fn draw_subsector_labels(img: &mut RgbaImage, subsectors: &[Subsector], g: &Geom
         );
         draw_text(
             img,
-            cx - tw_top / 2,
+            block_min_x + (block_w - tw_top) / 2,
             block_top_y,
             top,
             SUBSECTOR_LABEL,
@@ -451,12 +616,19 @@ fn draw_subsector_labels(img: &mut RgbaImage, subsectors: &[Subsector], g: &Geom
         );
         draw_text(
             img,
-            cx - tw_bot / 2,
+            block_min_x + (block_w - tw_bot) / 2,
             block_top_y + th_top + line_gap,
             bot,
             SUBSECTOR_LABEL,
             scale,
         );
+
+        placed_labels.push(Rect {
+            x0: block_min_x - pad_x,
+            y0: block_top_y - pad_y,
+            x1: block_min_x + block_w + pad_x,
+            y1: block_top_y + block_h + pad_y,
+        });
     }
 }
 

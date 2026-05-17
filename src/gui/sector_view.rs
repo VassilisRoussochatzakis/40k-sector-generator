@@ -4,7 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
-use crate::sector_model::GeneratedSector;
+use crate::sector_model::{self, GeneratedSector};
+
 use crate::subsectors::Subsector;
 
 use super::palette::{
@@ -67,7 +68,7 @@ impl<'a> SectorView<'a> {
             let border_thick = (g.hex_size * 0.10).max(2.5);
             // Pointy-top odd-r offset edges (vertex i → vertex i+1):
             // 0:E, 1:SE, 2:SW, 3:W, 4:NW, 5:NE — neighbor offsets depend
-            // on row parity, see `offset_r_neighbors`.
+            // on row parity, see `sector_model::offset_r_neighbors`.
             for r in 0..self.sector.height as i32 {
                 let neighbor_deltas = crate::sector_model::offset_r_neighbors(r);
                 for q in 0..self.sector.width as i32 {
@@ -207,27 +208,61 @@ impl<'a> SectorView<'a> {
             }
         }
 
-        // Subsector labels: name chip anchored at top-left hex of each cluster.
-        // Uses cluster name ("Subsector Aurelia" → shown as "AURELIA") rather
+        // Subsector labels: name chip placed inside the subsector, avoiding
+        // system markers, system name labels, other subsector labels, and the
+        // map edges. Uses cluster name ("Subsector Aurelia" -> "AURELIA") rather
         // than the spreadsheet letter so the map reads politically. Skip
         // clusters with no member systems so empty frontier regions stay
         // uncluttered.
         if let Some(subs) = self.subsectors {
             let sub_label_size = (g.hex_size * 0.36).max(11.0);
             let font = FontId::monospace(sub_label_size);
+            let sys_label_size = (g.hex_size * 0.28).max(9.0);
+            let sys_font = FontId::monospace(sys_label_size);
+            let pad = Vec2::new(6.0, 2.0);
+            let sys_pad = Vec2::new(3.0, 1.0);
+            let line_gap = 2.0;
+            let hex_half_w = g.hex_size * 3f32.sqrt() / 2.0;
+
+            // Static obstacles: every system marker bbox + every system name
+            // label rect. Coordinates are screen-space (already include origin).
+            let mut obstacles: Vec<egui::Rect> = Vec::with_capacity(self.sector.systems.len() * 2);
+            for sys in &self.sector.systems {
+                let c = centers[sys.id.as_str()];
+                obstacles.push(egui::Rect::from_min_max(
+                    Pos2::new(c.x - hex_half_w, c.y - g.hex_size),
+                    Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
+                ));
+                let name = sys.name.to_ascii_uppercase();
+                let galley = painter.layout_no_wrap(name, sys_font.clone(), TEXT_DIM);
+                let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + g.hex_size + 3.0);
+                obstacles.push(egui::Rect::from_min_size(
+                    pos - sys_pad,
+                    galley.size() + sys_pad * 2.0,
+                ));
+            }
+
+            // Already-placed subsector labels (avoid stacking on each other).
+            let mut placed: Vec<egui::Rect> = Vec::with_capacity(subs.len());
+
+            let sys_cells: HashSet<(i32, i32)> = self
+                .sector
+                .systems
+                .iter()
+                .map(|sys| (sys.coord.q, sys.coord.r))
+                .collect();
+
             for s in subs {
                 if s.system_ids.is_empty() || s.hex_cells.is_empty() {
                     continue;
                 }
-                // Pick anchor hex: the cluster's topmost row, then leftmost q
-                // within that row. Avoids label drift across irregular shapes.
-                let mut anchor = s.hex_cells[0];
-                for &(q, r) in &s.hex_cells {
-                    if r < anchor.1 || (r == anchor.1 && q < anchor.0) {
-                        anchor = (q, r);
-                    }
-                }
-                let anchor_c = hex_center(anchor.0 as i32, anchor.1 as i32, &g) + origin.to_vec2();
+
+                let cells: HashSet<(i32, i32)> = s
+                    .hex_cells
+                    .iter()
+                    .map(|&(q, r)| (q as i32, r as i32))
+                    .collect();
+
                 let name_part = s
                     .name
                     .strip_prefix("Subsector ")
@@ -236,17 +271,108 @@ impl<'a> SectorView<'a> {
                 let top_galley =
                     painter.layout_no_wrap("SUBSECTOR".to_string(), font.clone(), SUBSECTOR_LABEL);
                 let bot_galley = painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
-                let line_gap = 2.0;
                 let block_w = top_galley.size().x.max(bot_galley.size().x);
                 let block_h = top_galley.size().y + line_gap + bot_galley.size().y;
-                let block_top_y = anchor_c.y - g.hex_size - block_h - 2.0;
-                let top_pos = Pos2::new(anchor_c.x - top_galley.size().x / 2.0, block_top_y);
-                let bot_pos = Pos2::new(
-                    anchor_c.x - bot_galley.size().x / 2.0,
-                    block_top_y + top_galley.size().y + line_gap,
-                );
-                let pad = Vec2::new(6.0, 2.0);
-                let block_min = Pos2::new(anchor_c.x - block_w / 2.0, block_top_y);
+
+                // Centroid in screen coords.
+                let mut sx: f32 = 0.0;
+                let mut sy: f32 = 0.0;
+                for &(q, r) in &s.hex_cells {
+                    let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
+                    sx += c.x;
+                    sy += c.y;
+                }
+                let n = s.hex_cells.len() as f32;
+                let cen = Pos2::new(sx / n, sy / n);
+
+                // Candidate empty cells sorted by distance to centroid.
+                let mut cands: Vec<(i32, i32, f32)> = s
+                    .hex_cells
+                    .iter()
+                    .filter(|&&(q, r)| !sys_cells.contains(&(q as i32, r as i32)))
+                    .map(|&(q, r)| {
+                        let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
+                        let d = (c - cen).length_sq();
+                        (q as i32, r as i32, d)
+                    })
+                    .collect();
+                cands.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+
+                let try_place =
+                    |q: i32, r: i32, above: bool, placed: &[egui::Rect]| -> Option<(f32, f32)> {
+                        // offset_r_neighbors order: 0:E 1:SE 2:SW 3:W 4:NW 5:NE.
+                        let nbrs = sector_model::offset_r_neighbors(r);
+                        if above {
+                            let nw = (q + nbrs[4].0, r + nbrs[4].1);
+                            let ne = (q + nbrs[5].0, r + nbrs[5].1);
+                            if !cells.contains(&nw) || !cells.contains(&ne) {
+                                return None;
+                            }
+                        } else {
+                            let se = (q + nbrs[1].0, r + nbrs[1].1);
+                            let sw = (q + nbrs[2].0, r + nbrs[2].1);
+                            if !cells.contains(&se) || !cells.contains(&sw) {
+                                return None;
+                            }
+                        }
+                        let anchor = hex_center(q, r, &g) + origin.to_vec2();
+                        let block_top_y = if above {
+                            anchor.y - g.hex_size - block_h - 2.0
+                        } else {
+                            anchor.y + g.hex_size + 2.0
+                        };
+                        let block_min_x = anchor.x - block_w / 2.0;
+                        let bg = egui::Rect::from_min_size(
+                            Pos2::new(block_min_x, block_top_y) - pad,
+                            Vec2::new(block_w, block_h) + pad * 2.0,
+                        );
+                        if !rect.contains_rect(bg) {
+                            return None;
+                        }
+                        for o in obstacles.iter().chain(placed.iter()) {
+                            if bg.intersects(*o) {
+                                return None;
+                            }
+                        }
+                        Some((block_min_x, block_top_y))
+                    };
+
+                let mut chosen: Option<(f32, f32)> = None;
+                'outer: for &(q, r, _) in &cands {
+                    for above in [true, false] {
+                        if let Some(p) = try_place(q, r, above, &placed) {
+                            chosen = Some(p);
+                            break 'outer;
+                        }
+                    }
+                }
+
+                // Fallback: nearest-centroid cell, above, clamped inside rect.
+                let (block_min_x, block_top_y) = chosen.unwrap_or_else(|| {
+                    let &(q0, r0) = s
+                        .hex_cells
+                        .iter()
+                        .min_by(|&&(q1, r1), &&(q2, r2)| {
+                            let c1 = hex_center(q1 as i32, r1 as i32, &g) + origin.to_vec2();
+                            let c2 = hex_center(q2 as i32, r2 as i32, &g) + origin.to_vec2();
+                            (c1 - cen)
+                                .length_sq()
+                                .partial_cmp(&(c2 - cen).length_sq())
+                                .unwrap()
+                        })
+                        .expect("non-empty");
+                    let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
+                    let bt = anchor.y - g.hex_size - block_h - 2.0;
+                    let bmx = (anchor.x - block_w / 2.0)
+                        .max(rect.left() + pad.x)
+                        .min(rect.right() - block_w - pad.x);
+                    let bty = bt
+                        .max(rect.top() + pad.y)
+                        .min(rect.bottom() - block_h - pad.y);
+                    (bmx, bty)
+                });
+
+                let block_min = Pos2::new(block_min_x, block_top_y);
                 let bg_rect = egui::Rect::from_min_size(
                     block_min - pad,
                     Vec2::new(block_w, block_h) + pad * 2.0,
@@ -256,8 +382,23 @@ impl<'a> SectorView<'a> {
                     3.0,
                     Color32::from_rgba_unmultiplied(20, 16, 28, 210),
                 );
-                painter.galley(top_pos, top_galley, SUBSECTOR_LABEL);
-                painter.galley(bot_pos, bot_galley, SUBSECTOR_LABEL);
+                painter.galley(
+                    Pos2::new(
+                        block_min_x + (block_w - top_galley.size().x) / 2.0,
+                        block_top_y,
+                    ),
+                    top_galley.clone(),
+                    SUBSECTOR_LABEL,
+                );
+                painter.galley(
+                    Pos2::new(
+                        block_min_x + (block_w - bot_galley.size().x) / 2.0,
+                        block_top_y + top_galley.size().y + line_gap,
+                    ),
+                    bot_galley,
+                    SUBSECTOR_LABEL,
+                );
+                placed.push(bg_rect);
             }
         }
 

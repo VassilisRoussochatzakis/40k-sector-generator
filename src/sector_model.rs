@@ -181,10 +181,25 @@ mod tests {
 
     #[test]
     fn hex_distance_known_examples() {
-        assert_eq!(hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 0, r: 0 }), 0);
-        assert_eq!(hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 3, r: 0 }), 3);
-        assert_eq!(hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 0, r: 3 }), 3);
-        assert_eq!(hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 2, r: 2 }), 4);
-        assert_eq!(hex_distance(HexCoord { q: 1, r: -2 }, HexCoord { q: 3, r: -3 }), 2);
+        assert_eq!(
+            hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 0, r: 0 }),
+            0
+        );
+        assert_eq!(
+            hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 3, r: 0 }),
+            3
+        );
+        assert_eq!(
+            hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 0, r: 3 }),
+            3
+        );
+        assert_eq!(
+            hex_distance(HexCoord { q: 0, r: 0 }, HexCoord { q: 2, r: 2 }),
+            4
+        );
+        assert_eq!(
+            hex_distance(HexCoord { q: 1, r: -2 }, HexCoord { q: 3, r: -3 }),
+            2
+        );
     }
 }

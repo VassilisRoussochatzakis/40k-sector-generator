@@ -238,11 +238,12 @@ pub struct WorkbookStats {
 }
 
 pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
-    let (tables, rows) =
-        crate::worlds::load_generation_rows(path).map_err(|message| SectorError::WorldWorkbookLoad {
+    let (tables, rows) = crate::worlds::load_generation_rows(path).map_err(|message| {
+        SectorError::WorldWorkbookLoad {
             path: path.to_string(),
             message,
-        })?;
+        }
+    })?;
 
     let cfg = WorldSelectionConfig::default();
     let pool = build_pool(&rows, &tables, &cfg);
@@ -256,7 +257,10 @@ pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     key_counts.insert("populations".to_string(), tables.populations.len());
     key_counts.insert("tech_levels".to_string(), tables.tech_levels.len());
     key_counts.insert("governments".to_string(), tables.governments.len());
-    key_counts.insert("notable_features".to_string(), tables.notable_features.len());
+    key_counts.insert(
+        "notable_features".to_string(),
+        tables.notable_features.len(),
+    );
 
     let mut star_totals: BTreeMap<String, f64> = BTreeMap::new();
     let mut wt_totals: BTreeMap<String, f64> = BTreeMap::new();
@@ -310,7 +314,7 @@ mod tests {
 
     fn row(weight: Option<f64>) -> GenerationRow {
         GenerationRow {
-            star_colour: Some(StarColour::Maroon),
+            star_colour: Some(StarColour::RedDwarf),
             world_type: Some(WorldType::HiveWorld),
             atmosphere: Some(Atmosphere::Toxic),
             temperature: Some(Temperature::Temperate),
@@ -343,7 +347,11 @@ mod tests {
     #[test]
     fn world_pool_excludes_rows_with_zero_or_negative_weight() {
         let rows = vec![row(Some(0.0)), row(Some(-1.5)), row(Some(2.0))];
-        let pool = build_pool(&rows, &KeyTables::default(), &WorldSelectionConfig::default());
+        let pool = build_pool(
+            &rows,
+            &KeyTables::default(),
+            &WorldSelectionConfig::default(),
+        );
         assert_eq!(pool.candidates.len(), 1);
         assert_eq!(pool.excluded_rows.len(), 2);
     }
@@ -351,7 +359,11 @@ mod tests {
     #[test]
     fn world_pool_requires_complete_rows_when_strict() {
         let rows = vec![missing_pop_row(), row(Some(1.0))];
-        let pool = build_pool(&rows, &KeyTables::default(), &WorldSelectionConfig::default());
+        let pool = build_pool(
+            &rows,
+            &KeyTables::default(),
+            &WorldSelectionConfig::default(),
+        );
         assert_eq!(pool.candidates.len(), 1);
         assert_eq!(pool.excluded_rows.len(), 1);
     }
@@ -359,7 +371,11 @@ mod tests {
     #[test]
     fn world_candidate_to_world_preserves_fields() {
         let rows = vec![row(Some(1.0))];
-        let pool = build_pool(&rows, &KeyTables::default(), &WorldSelectionConfig::default());
+        let pool = build_pool(
+            &rows,
+            &KeyTables::default(),
+            &WorldSelectionConfig::default(),
+        );
         let cand = &pool.candidates[0];
         let features = vec![NotableFeature::TradeHub, NotableFeature::PoliceState];
         let w = cand.to_world(features.clone());

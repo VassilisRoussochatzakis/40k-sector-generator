@@ -227,7 +227,10 @@ fn format_sector_map(sector: &GeneratedSector) -> String {
 fn format_system_section(sys: &GeneratedSystem) -> String {
     let mut s = String::new();
     s.push_str(&format!("## {} — {}\n\n", sys.id.to_uppercase(), sys.name));
-    s.push_str(&format!("- **Coordinates:** q={}, r={}\n", sys.coord.q, sys.coord.r));
+    s.push_str(&format!(
+        "- **Coordinates:** q={}, r={}\n",
+        sys.coord.q, sys.coord.r
+    ));
     s.push_str(&format!(
         "- **Star:** {} / {} / {}\n",
         sys.star.colour_code,
@@ -243,7 +246,9 @@ fn format_system_section(sys: &GeneratedSystem) -> String {
     s.push('\n');
 
     if !sys.worlds.is_empty() {
-        s.push_str("| Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |\n");
+        s.push_str(
+            "| Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |\n",
+        );
         s.push_str("|---:|---|---|---|---|---|---|---|\n");
         for w in &sys.worlds {
             let features = w.world.notable_features.join("; ");

@@ -90,7 +90,10 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 
     let bm = &input.config.outputs.bitmap;
-    for (name, v) in [("sector_scale", bm.sector_scale), ("system_scale", bm.system_scale)] {
+    for (name, v) in [
+        ("sector_scale", bm.sector_scale),
+        ("system_scale", bm.system_scale),
+    ] {
         if v == 0 || v > 8 {
             errors.push(issue(
                 "OUT_BITMAP_SCALE_RANGE",
@@ -108,14 +111,38 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     );
 
     let mut key_counts: BTreeMap<String, usize> = BTreeMap::new();
-    key_counts.insert("star_colours".to_string(), input.world_tables.star_colours.len());
-    key_counts.insert("world_types".to_string(), input.world_tables.world_types.len());
-    key_counts.insert("atmospheres".to_string(), input.world_tables.atmospheres.len());
-    key_counts.insert("temperatures".to_string(), input.world_tables.temperatures.len());
-    key_counts.insert("biospheres".to_string(), input.world_tables.biospheres.len());
-    key_counts.insert("populations".to_string(), input.world_tables.populations.len());
-    key_counts.insert("tech_levels".to_string(), input.world_tables.tech_levels.len());
-    key_counts.insert("governments".to_string(), input.world_tables.governments.len());
+    key_counts.insert(
+        "star_colours".to_string(),
+        input.world_tables.star_colours.len(),
+    );
+    key_counts.insert(
+        "world_types".to_string(),
+        input.world_tables.world_types.len(),
+    );
+    key_counts.insert(
+        "atmospheres".to_string(),
+        input.world_tables.atmospheres.len(),
+    );
+    key_counts.insert(
+        "temperatures".to_string(),
+        input.world_tables.temperatures.len(),
+    );
+    key_counts.insert(
+        "biospheres".to_string(),
+        input.world_tables.biospheres.len(),
+    );
+    key_counts.insert(
+        "populations".to_string(),
+        input.world_tables.populations.len(),
+    );
+    key_counts.insert(
+        "tech_levels".to_string(),
+        input.world_tables.tech_levels.len(),
+    );
+    key_counts.insert(
+        "governments".to_string(),
+        input.world_tables.governments.len(),
+    );
     key_counts.insert(
         "notable_features".to_string(),
         input.world_tables.notable_features.len(),
@@ -155,8 +182,8 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 
     // World feature count vs available pool
-    let feature_pool_size = pool.feature_pool.global.len()
-        + pool.feature_pool.key_table_features.len();
+    let feature_pool_size =
+        pool.feature_pool.global.len() + pool.feature_pool.key_table_features.len();
     if input.config.generation.world_feature_count > feature_pool_size.max(1) * 2 {
         warnings.push(issue(
             "GEN_FEATURE_POOL_SMALL",

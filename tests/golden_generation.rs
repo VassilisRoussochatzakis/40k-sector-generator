@@ -23,7 +23,10 @@ fn generate_same_seed_same_output() {
     let b = sectorforge::generate_sector(sectorforge::load_project(&project).unwrap()).unwrap();
     let a_json = serde_json::to_string(&a).unwrap();
     let b_json = serde_json::to_string(&b).unwrap();
-    assert_eq!(a_json, b_json, "byte-stable output expected for identical seed");
+    assert_eq!(
+        a_json, b_json,
+        "byte-stable output expected for identical seed"
+    );
 }
 
 #[test]
@@ -84,7 +87,10 @@ fn manifest_records_seed_and_input_digests() {
     let input = sectorforge::load_project(&project).unwrap();
     let sector = sectorforge::generate_sector(input).unwrap();
     assert_eq!(sector.manifest.seed, "m42-default-seed");
-    assert!(sector.manifest.input_digests.contains_key("sectorforge.toml"));
+    assert!(sector
+        .manifest
+        .input_digests
+        .contains_key("sectorforge.toml"));
     assert!(sector
         .manifest
         .input_digests
@@ -99,7 +105,11 @@ fn route_ids_sort_with_lower_system_first() {
     let input = sectorforge::load_project(&project).unwrap();
     let sector = sectorforge::generate_sector(input).unwrap();
     for r in &sector.routes {
-        assert!(r.from_system_id <= r.to_system_id, "route from <= to: {:?}", r);
+        assert!(
+            r.from_system_id <= r.to_system_id,
+            "route from <= to: {:?}",
+            r
+        );
     }
 }
 

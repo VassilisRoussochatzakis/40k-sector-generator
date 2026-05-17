@@ -8,7 +8,11 @@ use clap::{Parser, Subcommand};
 use sectorforge::validation::Severity;
 
 #[derive(Debug, Parser)]
-#[command(name = "sectorforge", version, about = "Generate a Warhammer 40k star sector from data files")]
+#[command(
+    name = "sectorforge",
+    version,
+    about = "Generate a Warhammer 40k star sector from data files"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -75,7 +79,11 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 print_validation_report(&report);
             }
             let has_blocking = !report.ok || (strict && !report.warnings.is_empty());
-            Ok(if has_blocking { ExitCode::from(1) } else { ExitCode::SUCCESS })
+            Ok(if has_blocking {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            })
         }
         Command::Generate {
             project,
@@ -129,7 +137,10 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
 
 fn print_validation_report(report: &sectorforge::ValidationReport) {
     println!("Validation: {}", if report.ok { "OK" } else { "FAILED" });
-    println!("  Workbook rows:        {}", report.world_workbook.row_count);
+    println!(
+        "  Workbook rows:        {}",
+        report.world_workbook.row_count
+    );
     println!(
         "  Usable candidates:    {}",
         report.world_workbook.usable_candidate_count

@@ -34,7 +34,11 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         ..
     } = project;
 
-    let pool = world_pool::build_pool(&world_rows, &world_tables, &config.generation.world_selection);
+    let pool = world_pool::build_pool(
+        &world_rows,
+        &world_tables,
+        &config.generation.world_selection,
+    );
     if pool.candidates.is_empty() {
         return Err(SectorError::NoWorldCandidates);
     }
@@ -305,7 +309,11 @@ fn generate_worlds_for_system(
             &mut w_rng,
         )?;
 
-        if config.generation.world_selection.avoid_duplicate_world_type_in_system {
+        if config
+            .generation
+            .world_selection
+            .avoid_duplicate_world_type_in_system
+        {
             used_world_types.insert(taxonomy::world_type_name(&cand.world_type));
         }
 
@@ -505,16 +513,43 @@ fn pick_world_name(
 
 fn tags_for_world(world: &crate::worlds::World) -> Vec<String> {
     let mut tags: Vec<String> = Vec::new();
-    tags.push(format!("world_type:{}", taxonomy::to_snake_case(&taxonomy::world_type_name(&world.world_type))));
-    tags.push(format!("atmosphere:{}", taxonomy::to_snake_case(&taxonomy::atmosphere_name(&world.atmosphere))));
-    tags.push(format!("temperature:{}", taxonomy::to_snake_case(&taxonomy::temperature_name(&world.temperature))));
-    tags.push(format!("biosphere:{}", taxonomy::to_snake_case(&taxonomy::biosphere_name(&world.biosphere))));
-    tags.push(format!("population:{}", taxonomy::to_snake_case(&taxonomy::population_name(&world.population))));
-    tags.push(format!("tech:{}", taxonomy::to_snake_case(&taxonomy::tech_level_name(&world.tech_level))));
-    tags.push(format!("gov:{}", taxonomy::to_snake_case(&taxonomy::government_name(&world.government))));
-    tags.push(format!("star:{}", taxonomy::to_snake_case(taxonomy::star_colour_variant_name(world.star_colour))));
+    tags.push(format!(
+        "world_type:{}",
+        taxonomy::to_snake_case(&taxonomy::world_type_name(&world.world_type))
+    ));
+    tags.push(format!(
+        "atmosphere:{}",
+        taxonomy::to_snake_case(&taxonomy::atmosphere_name(&world.atmosphere))
+    ));
+    tags.push(format!(
+        "temperature:{}",
+        taxonomy::to_snake_case(&taxonomy::temperature_name(&world.temperature))
+    ));
+    tags.push(format!(
+        "biosphere:{}",
+        taxonomy::to_snake_case(&taxonomy::biosphere_name(&world.biosphere))
+    ));
+    tags.push(format!(
+        "population:{}",
+        taxonomy::to_snake_case(&taxonomy::population_name(&world.population))
+    ));
+    tags.push(format!(
+        "tech:{}",
+        taxonomy::to_snake_case(&taxonomy::tech_level_name(&world.tech_level))
+    ));
+    tags.push(format!(
+        "gov:{}",
+        taxonomy::to_snake_case(&taxonomy::government_name(&world.government))
+    ));
+    tags.push(format!(
+        "star:{}",
+        taxonomy::to_snake_case(taxonomy::star_colour_variant_name(world.star_colour))
+    ));
     for f in &world.notable_features {
-        tags.push(format!("feature:{}", taxonomy::to_snake_case(&taxonomy::notable_feature_name(f))));
+        tags.push(format!(
+            "feature:{}",
+            taxonomy::to_snake_case(&taxonomy::notable_feature_name(f))
+        ));
     }
     tags.sort();
     tags
@@ -522,23 +557,19 @@ fn tags_for_world(world: &crate::worlds::World) -> Vec<String> {
 
 fn spectral_type_fallback(sc: StarColour) -> &'static str {
     match sc {
-        StarColour::OrangeDwarf => "O-dwarf",
+        StarColour::BlueHypergiant => "O",
         StarColour::BlueWhite => "B",
-        StarColour::Amber => "A",
-        StarColour::Fuchsia => "F",
-        StarColour::Green => "G",
-        StarColour::Khaki => "K",
-        StarColour::Maroon => "M",
+        StarColour::White => "A",
+        StarColour::YellowWhite => "F",
+        StarColour::Yellow => "G",
+        StarColour::OrangeDwarf => "K",
+        StarColour::RedDwarf => "M",
     }
 }
 
 // ── Factions ──────────────────────────────────────────────────────────────────
 
-fn assign_factions(
-    systems: &mut [GeneratedSystem],
-    factions: &[FactionDef],
-    rng: &mut ChaCha8Rng,
-) {
+fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng: &mut ChaCha8Rng) {
     if factions.is_empty() {
         return;
     }
@@ -629,7 +660,10 @@ fn assign_factions(
     }
 }
 
-fn aggregate_factions(systems: &[GeneratedSystem], factions: &[FactionDef]) -> Vec<GeneratedFaction> {
+fn aggregate_factions(
+    systems: &[GeneratedSystem],
+    factions: &[FactionDef],
+) -> Vec<GeneratedFaction> {
     if factions.is_empty() {
         return Vec::new();
     }
@@ -678,7 +712,11 @@ fn generate_routes(
     if systems.len() < 2 {
         return Vec::new();
     }
-    let max_distance = config.generation.routes.max_route_distance.max(rules.max_distance);
+    let max_distance = config
+        .generation
+        .routes
+        .max_route_distance
+        .max(rules.max_distance);
     let density = config.generation.routes.route_density.clamp(0.0, 1.0);
 
     let mut candidates: Vec<(usize, usize, f64, u32)> = Vec::new();
@@ -741,7 +779,8 @@ fn generate_routes(
 
     // Sort by descending weight for deterministic top selection.
     candidates.sort_by(|a, b| {
-        b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal)
+        b.2.partial_cmp(&a.2)
+            .unwrap_or(std::cmp::Ordering::Equal)
             .then(a.0.cmp(&b.0))
             .then(a.1.cmp(&b.1))
     });

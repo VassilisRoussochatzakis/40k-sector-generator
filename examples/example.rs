@@ -5,8 +5,8 @@
 //!
 //! Run with: cargo run --example example
 
-use tyche::{dice::Roller, Dice, Expr};
 use tyche::dice::roller::FastRand;
+use tyche::{dice::Roller, Dice, Expr};
 
 fn main() {
     let mut rng = FastRand::default();

@@ -26,38 +26,38 @@ pub fn to_snake_case(name: &str) -> String {
 
 pub fn star_colour_variant_name(sc: StarColour) -> &'static str {
     match sc {
-        StarColour::OrangeDwarf => "OrangeDwarf",
+        StarColour::BlueHypergiant => "BlueHypergiant",
         StarColour::BlueWhite => "BlueWhite",
-        StarColour::Amber => "Amber",
-        StarColour::Fuchsia => "Fuchsia",
-        StarColour::Green => "Green",
-        StarColour::Khaki => "Khaki",
-        StarColour::Maroon => "Maroon",
+        StarColour::White => "White",
+        StarColour::YellowWhite => "YellowWhite",
+        StarColour::Yellow => "Yellow",
+        StarColour::OrangeDwarf => "OrangeDwarf",
+        StarColour::RedDwarf => "RedDwarf",
     }
 }
 
 pub fn parse_star_colour_variant(s: &str) -> Option<StarColour> {
     match s {
-        "OrangeDwarf" => Some(StarColour::OrangeDwarf),
+        "BlueHypergiant" => Some(StarColour::BlueHypergiant),
         "BlueWhite" => Some(StarColour::BlueWhite),
-        "Amber" => Some(StarColour::Amber),
-        "Fuchsia" => Some(StarColour::Fuchsia),
-        "Green" => Some(StarColour::Green),
-        "Khaki" => Some(StarColour::Khaki),
-        "Maroon" => Some(StarColour::Maroon),
+        "White" => Some(StarColour::White),
+        "YellowWhite" => Some(StarColour::YellowWhite),
+        "Yellow" => Some(StarColour::Yellow),
+        "OrangeDwarf" => Some(StarColour::OrangeDwarf),
+        "RedDwarf" => Some(StarColour::RedDwarf),
         _ => None,
     }
 }
 
 pub fn all_star_colours() -> &'static [StarColour] {
     &[
-        StarColour::OrangeDwarf,
+        StarColour::BlueHypergiant,
         StarColour::BlueWhite,
-        StarColour::Amber,
-        StarColour::Fuchsia,
-        StarColour::Green,
-        StarColour::Khaki,
-        StarColour::Maroon,
+        StarColour::White,
+        StarColour::YellowWhite,
+        StarColour::Yellow,
+        StarColour::OrangeDwarf,
+        StarColour::RedDwarf,
     ]
 }
 

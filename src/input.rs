@@ -9,8 +9,8 @@ use crate::config::AppConfig;
 use crate::errors::SectorError;
 use crate::factions::{FactionDef, FactionsFile};
 use crate::names::NameTables;
-use crate::routes::{RouteRules, RouteRulesFile};
 use crate::rng;
+use crate::routes::{RouteRules, RouteRulesFile};
 
 #[derive(Debug)]
 pub struct ProjectInput {
@@ -29,8 +29,8 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     let root_dir = project_dir.to_path_buf();
     let config_path = root_dir.join("sectorforge.toml");
 
-    let config_text = fs::read_to_string(&config_path)
-        .map_err(|e| SectorError::io(config_path.as_str(), e))?;
+    let config_text =
+        fs::read_to_string(&config_path).map_err(|e| SectorError::io(config_path.as_str(), e))?;
     let config: AppConfig = toml::from_str(&config_text)
         .map_err(|e| SectorError::config_parse(config_path.as_str(), e.to_string()))?;
 
@@ -39,16 +39,14 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
 
     let workbook_rel = config.inputs.world_workbook.clone();
     let workbook_path = root_dir.join(&workbook_rel);
-    let workbook_bytes = fs::read(&workbook_path)
-        .map_err(|e| SectorError::io(workbook_path.as_str(), e))?;
+    let workbook_bytes =
+        fs::read(&workbook_path).map_err(|e| SectorError::io(workbook_path.as_str(), e))?;
     digests.insert(workbook_rel.clone(), blake3_of_bytes(&workbook_bytes));
 
-    let (world_tables, world_rows) =
-        crate::worlds::load_generation_rows(workbook_path.as_str()).map_err(|message| {
-            SectorError::WorldWorkbookLoad {
-                path: workbook_path.to_string(),
-                message,
-            }
+    let (world_tables, world_rows) = crate::worlds::load_generation_rows(workbook_path.as_str())
+        .map_err(|message| SectorError::WorldWorkbookLoad {
+            path: workbook_path.to_string(),
+            message,
         })?;
 
     let mut names = NameTables::default();

@@ -17,6 +17,15 @@ use crate::bitmap::{
 use crate::errors::SectorError;
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
 
+/// Common resolution presets. Map area is 720 × scale pixels tall; legend adds 360 × scale wide.
+/// Scale 1 = ~720p (1080px total width). Scale 2 = 1440p. Scale 3 = 4K (2160px).
+pub const RESOLUTION_720P: u32 = 1;
+pub const RESOLUTION_1440P: u32 = 2;
+pub const RESOLUTION_4K: u32 = 3;
+
+/// Maximum supported scale. Cap prevents memory issues at extreme scales.
+pub const MAX_SCALE: u32 = 5;
+
 pub fn write_system_maps(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
@@ -49,7 +58,7 @@ struct SysGeom {
 
 impl SysGeom {
     fn new(scale: u32) -> Self {
-        let s = scale.max(1) as i32;
+        let s = (scale.clamp(1, MAX_SCALE)) as i32;
         Self {
             scale: s,
             side: 720 * s,
@@ -340,5 +349,21 @@ mod tests {
         let sys = sample_system();
         let img = render_system(&sys, 4);
         assert_eq!(img.width(), (720 + 360) as u32 * 4);
+    }
+
+    #[test]
+    fn clamps_above_max_scale() {
+        let sys = sample_system();
+        let img = render_system(&sys, MAX_SCALE + 10);
+        let expected = (720 + 360) * MAX_SCALE as u32;
+        assert_eq!(img.width(), expected);
+    }
+
+    #[test]
+    fn resolution_presets_produce_expected_heights() {
+        let sys = sample_system();
+        assert_eq!(render_system(&sys, RESOLUTION_720P).height(), 720);
+        assert_eq!(render_system(&sys, RESOLUTION_1440P).height(), 1440);
+        assert_eq!(render_system(&sys, RESOLUTION_4K).height(), 2160);
     }
 }

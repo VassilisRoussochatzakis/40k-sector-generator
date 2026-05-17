@@ -7,6 +7,7 @@ pub mod data_editor;
 pub mod editor;
 pub mod info_panel;
 pub mod palette;
+pub mod route_planner;
 pub mod sector_view;
 pub mod system_view;
 

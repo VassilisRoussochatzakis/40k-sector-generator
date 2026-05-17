@@ -11,6 +11,7 @@ use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
+use super::route_planner::{self, Metric, PickTarget, RoutePlannerState, Severity};
 use super::sector_view::SectorView;
 use super::system_view::{SystemClick, SystemSelection, SystemView};
 
@@ -23,6 +24,8 @@ pub struct App {
     editor: EditorState,
     data_editor: DataEditor,
     project_dir: Option<PathBuf>,
+    planner: RoutePlannerState,
+    planner_hex_size: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +37,7 @@ enum View {
     },
     Edit,
     Data,
+    Planner,
 }
 
 impl App {
@@ -47,6 +51,8 @@ impl App {
             editor: EditorState::default(),
             data_editor: DataEditor::default(),
             project_dir: None,
+            planner: RoutePlannerState::default(),
+            planner_hex_size: 44.0,
         }
     }
 
@@ -60,6 +66,8 @@ impl App {
             editor: EditorState::default(),
             data_editor: DataEditor::default(),
             project_dir: None,
+            planner: RoutePlannerState::default(),
+            planner_hex_size: 44.0,
         }
     }
 
@@ -92,6 +100,7 @@ impl eframe::App for App {
                     let on_sector = matches!(self.view, View::Sector);
                     let on_edit = matches!(self.view, View::Edit);
                     let on_data = matches!(self.view, View::Data);
+                    let on_planner = matches!(self.view, View::Planner);
                     let has_sector = self.sector.is_some();
                     if ui
                         .add_enabled(
@@ -126,6 +135,18 @@ impl eframe::App for App {
                         .clicked()
                     {
                         self.view = View::Data;
+                    }
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::SelectableLabel::new(
+                                on_planner,
+                                RichText::new("ROUTE PLANNER").color(TEXT).monospace(),
+                            ),
+                        )
+                        .clicked()
+                    {
+                        self.view = View::Planner;
                     }
                     if let View::System { system_id, .. } = &self.view {
                         ui.label(RichText::new("›").color(TEXT_DIM).monospace());
@@ -166,6 +187,7 @@ impl eframe::App for App {
             } => self.draw_system_layout(ctx, &system_id, selection),
             View::Edit => self.draw_edit_layout(ctx),
             View::Data => self.draw_data_layout(ctx),
+            View::Planner => self.draw_planner_layout(ctx),
         }
     }
 }
@@ -412,6 +434,305 @@ impl App {
             });
     }
 
+    fn draw_planner_layout(&mut self, ctx: &egui::Context) {
+        let Some(sector) = self.sector.clone() else {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(palette::BG))
+                .show(ctx, |ui| {
+                    ui.label(
+                        RichText::new("no sector loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            return;
+        };
+
+        SidePanel::right("planner_panel")
+            .resizable(true)
+            .default_width(340.0)
+            .min_width(280.0)
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(14.0),
+            )
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    self.draw_planner_panel(ui, &sector);
+                });
+            });
+
+        TopBottomPanel::bottom("planner_controls")
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
+                    ui.add(
+                        egui::Slider::new(&mut self.planner_hex_size, 20.0..=80.0)
+                            .show_value(false),
+                    );
+                    ui.label(
+                        RichText::new("click hexes to set FROM, then TO  ·  third click resets")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            });
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG))
+            .show(ctx, |ui| {
+                ScrollArea::both().show(ui, |ui| {
+                    let route_ids = self.planner.highlighted_route_ids();
+                    let waypoints = self.planner.waypoint_set();
+                    let selected = self.planner.to.as_deref().or(self.planner.from.as_deref());
+                    let (_resp, click) = SectorView {
+                        sector: &sector,
+                        selected_system: selected,
+                        hex_size: self.planner_hex_size,
+                        path_route_ids: Some(&route_ids),
+                        path_waypoints: Some(&waypoints),
+                    }
+                    .show(ui);
+                    if let Some(c) = click {
+                        self.planner.click_system(&c.system_id);
+                        self.recompute_plan();
+                    }
+                });
+            });
+    }
+
+    fn draw_planner_panel(&mut self, ui: &mut egui::Ui, sector: &GeneratedSector) {
+        ui.label(
+            RichText::new("ROUTE PLANNER")
+                .color(TEXT)
+                .monospace()
+                .strong(),
+        );
+        ui.add_space(6.0);
+
+        let options: Vec<(String, String)> = sector
+            .systems
+            .iter()
+            .map(|s| (s.id.clone(), s.name.clone()))
+            .collect();
+
+        let mut dirty = false;
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("FROM").color(TEXT_DIM).monospace());
+            let armed = self.planner.picker == PickTarget::From;
+            if ui
+                .selectable_label(armed, RichText::new("◎ PICK").monospace())
+                .on_hover_text("arm picker — next map click sets FROM")
+                .clicked()
+            {
+                self.planner.picker = if armed {
+                    PickTarget::None
+                } else {
+                    PickTarget::From
+                };
+            }
+        });
+        dirty |= system_combo(ui, "planner_from", &mut self.planner.from, &options);
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("TO").color(TEXT_DIM).monospace());
+            let armed = self.planner.picker == PickTarget::To;
+            if ui
+                .selectable_label(armed, RichText::new("◎ PICK").monospace())
+                .on_hover_text("arm picker — next map click sets TO")
+                .clicked()
+            {
+                self.planner.picker = if armed {
+                    PickTarget::None
+                } else {
+                    PickTarget::To
+                };
+            }
+        });
+        dirty |= system_combo(ui, "planner_to", &mut self.planner.to, &options);
+
+        if self.planner.picker != PickTarget::None {
+            ui.add_space(4.0);
+            let target = match self.planner.picker {
+                PickTarget::From => "FROM",
+                PickTarget::To => "TO",
+                PickTarget::None => "",
+            };
+            ui.label(
+                RichText::new(format!("◉ click a hex to set {}", target))
+                    .color(palette::PATH_WAYPOINT)
+                    .monospace(),
+            );
+        }
+
+        ui.add_space(6.0);
+        ui.label(RichText::new("METRIC").color(TEXT_DIM).monospace());
+        ui.horizontal(|ui| {
+            if ui
+                .selectable_label(
+                    self.planner.metric == Metric::Safest,
+                    RichText::new("SAFEST").monospace(),
+                )
+                .clicked()
+            {
+                self.planner.metric = Metric::Safest;
+                dirty = true;
+            }
+            if ui
+                .selectable_label(
+                    self.planner.metric == Metric::Shortest,
+                    RichText::new("SHORTEST").monospace(),
+                )
+                .clicked()
+            {
+                self.planner.metric = Metric::Shortest;
+                dirty = true;
+            }
+        });
+
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            if ui.button(RichText::new("PLAN").monospace()).clicked() {
+                dirty = true;
+            }
+            if ui.button(RichText::new("CLEAR").monospace()).clicked() {
+                self.planner.clear();
+            }
+            if let (Some(a), Some(b)) = (self.planner.from.clone(), self.planner.to.clone()) {
+                if ui.button(RichText::new("SWAP").monospace()).clicked() {
+                    self.planner.from = Some(b);
+                    self.planner.to = Some(a);
+                    dirty = true;
+                }
+            }
+        });
+
+        if dirty {
+            self.recompute_plan();
+        }
+
+        if !self.planner.status.is_empty() {
+            ui.add_space(6.0);
+            ui.label(
+                RichText::new(&self.planner.status)
+                    .color(Color32::from_rgb(235, 90, 90))
+                    .monospace(),
+            );
+        }
+
+        ui.add_space(10.0);
+        ui.separator();
+
+        if let Some(plan) = self.planner.plan.clone() {
+            let name_of = |id: &str| -> String {
+                sector
+                    .systems
+                    .iter()
+                    .find(|s| s.id == id)
+                    .map(|s| s.name.clone())
+                    .unwrap_or_else(|| id.to_string())
+            };
+            let metric_label = match plan.metric {
+                Metric::Safest => "SAFEST",
+                Metric::Shortest => "SHORTEST",
+            };
+            let cost_label = match plan.metric {
+                Metric::Safest => format!("risk score {:.1}", plan.total_cost),
+                Metric::Shortest => format!("{} hops", plan.total_cost as i64),
+            };
+            ui.label(
+                RichText::new(format!("PATH ({}) — {}", metric_label, cost_label))
+                    .color(TEXT)
+                    .monospace()
+                    .strong(),
+            );
+            ui.add_space(4.0);
+            for (i, hop) in plan.hops.iter().enumerate() {
+                let prefix = if i == 0 {
+                    "◉"
+                } else if i == plan.hops.len() - 1 {
+                    "◎"
+                } else {
+                    "→"
+                };
+                ui.label(
+                    RichText::new(format!("{} {}", prefix, name_of(hop)))
+                        .color(TEXT)
+                        .monospace(),
+                );
+            }
+
+            ui.add_space(8.0);
+            if plan.hazards.is_empty() {
+                ui.label(
+                    RichText::new("no hazards along path")
+                        .color(palette::stability_color(
+                            crate::sector_model::RouteStability::Stable,
+                        ))
+                        .monospace(),
+                );
+            } else {
+                ui.label(RichText::new("HAZARDS").color(TEXT_DIM).monospace());
+                for h in &plan.hazards {
+                    let color = match h.severity {
+                        Severity::Danger => Color32::from_rgb(235, 90, 90),
+                        Severity::Caution => Color32::from_rgb(240, 200, 90),
+                        Severity::Info => TEXT_DIM,
+                    };
+                    ui.label(
+                        RichText::new(format!(
+                            "{}  {} ↔ {}",
+                            severity_tag(h.severity),
+                            name_of(&h.from),
+                            name_of(&h.to)
+                        ))
+                        .color(color)
+                        .monospace(),
+                    );
+                    ui.label(
+                        RichText::new(format!("   {}", h.note))
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                }
+            }
+        } else if self.planner.from.is_some() || self.planner.to.is_some() {
+            ui.label(
+                RichText::new("pick both endpoints to plan a route")
+                    .color(TEXT_DIM)
+                    .monospace(),
+            );
+        } else {
+            ui.label(
+                RichText::new("click a system hex to set the origin")
+                    .color(TEXT_DIM)
+                    .monospace(),
+            );
+        }
+    }
+
+    fn recompute_plan(&mut self) {
+        self.planner.status.clear();
+        self.planner.plan = None;
+        let Some(sector) = &self.sector else { return };
+        let (Some(from), Some(to)) = (self.planner.from.clone(), self.planner.to.clone()) else {
+            return;
+        };
+        if from == to {
+            self.planner.status = "origin and destination are the same".to_string();
+            return;
+        }
+        match route_planner::plan_route(sector, &from, &to, self.planner.metric) {
+            Some(p) => self.planner.plan = Some(p),
+            None => {
+                self.planner.status =
+                    "no passable route — try the other metric or check for Lost lanes".to_string();
+            }
+        }
+    }
+
     fn show_sector(&mut self, ui: &mut egui::Ui) {
         let Some(sector) = self.sector.clone() else {
             return;
@@ -431,6 +752,8 @@ impl App {
                 sector: &sector,
                 selected_system: self.sector_selected.as_deref(),
                 hex_size: self.sector_hex_size,
+                path_route_ids: None,
+                path_waypoints: None,
             }
             .show(ui);
             if let Some(c) = click {
@@ -480,6 +803,55 @@ impl App {
                 };
             }
         });
+    }
+}
+
+fn system_combo(
+    ui: &mut egui::Ui,
+    id: &str,
+    value: &mut Option<String>,
+    options: &[(String, String)],
+) -> bool {
+    let mut changed = false;
+    let label = value
+        .as_ref()
+        .and_then(|sel| {
+            options
+                .iter()
+                .find(|(oid, _)| oid == sel)
+                .map(|(_, name)| name.clone())
+        })
+        .unwrap_or_else(|| "—".to_string());
+    egui::ComboBox::from_id_salt(id)
+        .selected_text(RichText::new(label).monospace())
+        .width(220.0)
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(value.is_none(), "— none —").clicked() {
+                if value.is_some() {
+                    *value = None;
+                    changed = true;
+                }
+            }
+            for (oid, name) in options {
+                let sel = value.as_deref() == Some(oid.as_str());
+                if ui
+                    .selectable_label(sel, RichText::new(name).monospace())
+                    .clicked()
+                    && !sel
+                {
+                    *value = Some(oid.clone());
+                    changed = true;
+                }
+            }
+        });
+    changed
+}
+
+fn severity_tag(s: Severity) -> &'static str {
+    match s {
+        Severity::Danger => "[!!]",
+        Severity::Caution => "[!]",
+        Severity::Info => "[·]",
     }
 }
 

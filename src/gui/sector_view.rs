@@ -1,18 +1,24 @@
 //! Sector hex-grid widget: pointy-top hexes, routes, system disks. Clickable.
 
+use std::collections::HashSet;
+
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
 use crate::sector_model::GeneratedSector;
 
 use super::palette::{
-    self, darken, stability_color, star_color, tint, HEX_EMPTY, HEX_OUTLINE, SELECTION, TEXT,
-    TEXT_DIM,
+    self, darken, stability_color, star_color, HEX_EMPTY, HEX_OUTLINE, PATH_HIGHLIGHT,
+    PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
 };
 
 pub struct SectorView<'a> {
     pub sector: &'a GeneratedSector,
     pub selected_system: Option<&'a str>,
     pub hex_size: f32,
+    /// Route ids that belong to the active planned path. Drawn thick on top of the base routes.
+    pub path_route_ids: Option<&'a HashSet<String>>,
+    /// System ids on the planned path. Rendered with a glowing ring.
+    pub path_waypoints: Option<&'a HashSet<String>>,
 }
 
 pub struct SectorClick {
@@ -43,6 +49,16 @@ impl<'a> SectorView<'a> {
         }
 
         let route_thickness = (g.hex_size * 0.08).max(2.0);
+        let star_r = g.hex_size * 0.336;
+        let shorten = |a: Pos2, b: Pos2| -> Option<(Pos2, Pos2)> {
+            let delta = b - a;
+            let len = delta.length();
+            if len <= star_r * 2.0 {
+                return None;
+            }
+            let dir = delta / len;
+            Some((a + dir * star_r, b - dir * star_r))
+        };
         for route in &self.sector.routes {
             let (Some(&a), Some(&b)) = (
                 centers.get(route.from_system_id.as_str()),
@@ -50,10 +66,40 @@ impl<'a> SectorView<'a> {
             ) else {
                 continue;
             };
+            let Some((a2, b2)) = shorten(a, b) else {
+                continue;
+            };
             painter.line_segment(
-                [a, b],
+                [a2, b2],
                 Stroke::new(route_thickness, stability_color(route.stability)),
             );
+        }
+
+        if let Some(ids) = self.path_route_ids {
+            let glow_thick = route_thickness * 3.2;
+            let core_thick = route_thickness * 1.8;
+            for route in &self.sector.routes {
+                if !ids.contains(&route.id) {
+                    continue;
+                }
+                let (Some(&a), Some(&b)) = (
+                    centers.get(route.from_system_id.as_str()),
+                    centers.get(route.to_system_id.as_str()),
+                ) else {
+                    continue;
+                };
+                let Some((a2, b2)) = shorten(a, b) else {
+                    continue;
+                };
+                let glow = Color32::from_rgba_unmultiplied(
+                    PATH_HIGHLIGHT.r(),
+                    PATH_HIGHLIGHT.g(),
+                    PATH_HIGHLIGHT.b(),
+                    70,
+                );
+                painter.line_segment([a2, b2], Stroke::new(glow_thick, glow));
+                painter.line_segment([a2, b2], Stroke::new(core_thick, PATH_HIGHLIGHT));
+            }
         }
 
         // Pass 1: all system hex fills + stars + pips. So later hexes can't
@@ -61,12 +107,18 @@ impl<'a> SectorView<'a> {
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
             let fill = star_color(&sys.star.colour_code);
-            draw_hex(&painter, c, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
             let is_sel = self.selected_system == Some(sys.id.as_str());
             if is_sel {
                 draw_hex_outline_only(&painter, c, g.hex_size + 2.0, SELECTION, 2.5);
             }
-            let r = g.hex_size * 0.42;
+            if self
+                .path_waypoints
+                .map(|s| s.contains(&sys.id))
+                .unwrap_or(false)
+            {
+                draw_hex_outline_only(&painter, c, g.hex_size + 4.0, PATH_WAYPOINT, 2.5);
+            }
+            let r = star_r;
             painter.circle_filled(c, r, fill);
             painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
 
@@ -88,7 +140,7 @@ impl<'a> SectorView<'a> {
         let label_size = (g.hex_size * 0.28).max(9.0);
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
-            let label = short_id_tail(&sys.id);
+            let label = sys.name.to_ascii_uppercase();
             // Pill background behind label so it stays readable when an
             // adjacent row's hex tip pokes through.
             let font = FontId::monospace(label_size);
@@ -196,6 +248,3 @@ fn draw_hex_outline_only(
     }
 }
 
-fn short_id_tail(id: &str) -> String {
-    id.rsplit('-').next().unwrap_or(id).to_ascii_uppercase()
-}

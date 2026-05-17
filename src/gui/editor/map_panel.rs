@@ -133,8 +133,11 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
 
     if let Some((idx, ep, sys_id)) = pending_route_pick {
         if let Some(sector) = state.sector.as_mut() {
-            let coords: std::collections::HashMap<String, HexCoord> =
-                sector.systems.iter().map(|s| (s.id.clone(), s.coord)).collect();
+            let coords: std::collections::HashMap<String, HexCoord> = sector
+                .systems
+                .iter()
+                .map(|s| (s.id.clone(), s.coord))
+                .collect();
             if let Some(route) = sector.routes.get_mut(idx) {
                 match ep {
                     RouteEndpoint::From => route.from_system_id = sys_id,

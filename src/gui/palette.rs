@@ -16,6 +16,8 @@ pub const TEXT_DIM: Color32 = Color32::from_rgb(150, 145, 165);
 pub const ROUTE_DIM: Color32 = Color32::from_rgb(90, 88, 110);
 pub const ORBIT_RING: Color32 = Color32::from_rgb(55, 50, 72);
 pub const SELECTION: Color32 = Color32::from_rgb(255, 240, 120);
+pub const PATH_HIGHLIGHT: Color32 = Color32::from_rgb(120, 220, 255);
+pub const PATH_WAYPOINT: Color32 = Color32::from_rgb(255, 200, 90);
 
 pub fn star_color(code: &str) -> Color32 {
     match code.trim().to_ascii_uppercase().as_str() {

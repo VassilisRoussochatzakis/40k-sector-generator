@@ -5,6 +5,7 @@ use std::process::ExitCode;
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 
+use sectorforge::sector_model::HexCoord;
 use sectorforge::validation::Severity;
 
 #[derive(Debug, Parser)]
@@ -44,6 +45,46 @@ enum Command {
         /// Continue if validation produced warnings (but not errors).
         #[arg(long)]
         allow_warnings: bool,
+    },
+    /// Generate a single standalone system from a project directory.
+    GenerateSystem {
+        #[arg(long)]
+        project: Utf8PathBuf,
+        /// Override seed from sectorforge.toml.
+        #[arg(long)]
+        seed: Option<String>,
+        /// 1-based system index.
+        #[arg(long, default_value_t = 1)]
+        index: usize,
+        /// Axial hex coord q (defaults to 0).
+        #[arg(long, default_value_t = 0)]
+        coord_q: i32,
+        /// Axial hex coord r (defaults to 0).
+        #[arg(long, default_value_t = 0)]
+        coord_r: i32,
+        /// Output path for the system JSON (defaults to stdout).
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        /// Also write a Markdown snippet alongside the JSON.
+        #[arg(long)]
+        markdown: bool,
+    },
+    /// Load a previously generated sector JSON and check post-generation
+    /// invariants (spec §11.11).
+    ValidateSector {
+        #[arg(long)]
+        sector: Utf8PathBuf,
+        /// Emit report as JSON to stdout.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Render a Markdown overview from a previously generated sector JSON.
+    RenderMarkdown {
+        #[arg(long)]
+        sector: Utf8PathBuf,
+        /// Output path for the Markdown (defaults to stdout).
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
     },
     /// Print workbook statistics for a standalone .xlsx file.
     InspectWorlds {
@@ -114,6 +155,20 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 .unwrap_or_else(|| project.join(&input.config.outputs.directory));
             let output_cfg = input.config.outputs.clone();
             let sector = sectorforge::generate_sector(input)?;
+
+            // Spec §11.11: check invariants before writing.
+            let inv = sectorforge::validate_sector(&sector);
+            if !inv.ok {
+                eprintln!(
+                    "post-generation invariants failed ({} violation(s)):",
+                    inv.violations.len()
+                );
+                for v in &inv.violations {
+                    eprintln!("  {} {}", v.code, v.message);
+                }
+                return Ok(ExitCode::from(1));
+            }
+
             sectorforge::export_sector(&sector, &output_cfg, &output_dir)?;
 
             println!(
@@ -125,6 +180,70 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 sector.routes.len()
             );
             println!("Output written to: {}", output_dir);
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::GenerateSystem {
+            project,
+            seed,
+            index,
+            coord_q,
+            coord_r,
+            out,
+            markdown,
+        } => {
+            let mut input = sectorforge::load_project(&project)?;
+            if let Some(s) = seed {
+                input.config.generation.seed = s;
+            }
+            let coord = HexCoord {
+                q: coord_q,
+                r: coord_r,
+            };
+            let system = sectorforge::generate_system_standalone(input, index, coord)?;
+            let json = serde_json::to_string_pretty(&system)
+                .map_err(|e| sectorforge::SectorError::ExportFailed {
+                    path: "<stdout>".to_string(),
+                    message: e.to_string(),
+                })?;
+            match &out {
+                Some(p) => sectorforge::write_system_json(p, &system)?,
+                None => println!("{}", json),
+            }
+            if markdown {
+                let md = sectorforge::render_system_markdown(&system);
+                match &out {
+                    Some(p) => {
+                        let md_path = p.with_extension("md");
+                        std::fs::write(&md_path, md)
+                            .map_err(|e| sectorforge::SectorError::io(md_path.as_str(), e))?;
+                    }
+                    None => println!("\n{}", md),
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::ValidateSector { sector, json } => {
+            let sec = sectorforge::load_sector_json(&sector)?;
+            let report = sectorforge::validate_sector(&sec);
+            if json {
+                let text = serde_json::to_string_pretty(&report).unwrap();
+                println!("{}", text);
+            } else {
+                print_invariant_report(&report);
+            }
+            Ok(if report.ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            })
+        }
+        Command::RenderMarkdown { sector, out } => {
+            let sec = sectorforge::load_sector_json(&sector)?;
+            let md = sectorforge::render_sector_markdown(&sec);
+            match out {
+                Some(p) => sectorforge::write_sector_markdown(&p, &sec)?,
+                None => print!("{}", md),
+            }
             Ok(ExitCode::SUCCESS)
         }
         Command::InspectWorlds { workbook } => {
@@ -170,6 +289,18 @@ fn print_validation_report(report: &sectorforge::ValidationReport) {
             issue.message,
             path
         );
+    }
+}
+
+fn print_invariant_report(report: &sectorforge::InvariantReport) {
+    println!(
+        "Sector invariants: {}",
+        if report.ok { "OK" } else { "FAILED" }
+    );
+    println!("  Violations: {}", report.violations.len());
+    for v in &report.violations {
+        let path = v.path.as_deref().unwrap_or("-");
+        println!("  [{}] {} ({})", v.code, v.message, path);
     }
 }
 

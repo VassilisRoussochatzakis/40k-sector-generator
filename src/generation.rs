@@ -49,41 +49,14 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
 
     for (idx, coord) in placements.iter().enumerate() {
         let system_index = idx + 1;
-        let sys_id = ids::system_id(system_index);
-        let mut sys_rng = rng::stage_rng(&config.generation.seed, "system", &sys_id);
-
-        let star_colour = choose_system_star_colour(&pool, &mut sys_rng)?;
-        let name = pick_system_name(&names, system_index, &mut sys_rng, &used_names);
-        used_names.insert(name.clone());
-
-        let worlds = generate_worlds_for_system(
+        let system = build_system(
             &config,
             &pool,
             &names,
             system_index,
-            &sys_id,
-            &name,
-            star_colour,
-            &mut sys_rng,
-            &config.generation.seed,
+            *coord,
+            &mut used_names,
         )?;
-
-        let system = GeneratedSystem {
-            id: sys_id.clone(),
-            index: system_index,
-            name,
-            coord: *coord,
-            star: GeneratedStar {
-                colour_code: star_colour.code().to_string(),
-                colour_name: star_colour.short_name().to_string(),
-                spectral_type: Some(spectral_type_fallback(star_colour).to_string()),
-                source_row_index: worlds.first().map(|w| w.source_row_index),
-            },
-            worlds,
-            primary_factions: Vec::new(),
-            tags: Vec::new(),
-            notes: Vec::new(),
-        };
         systems.push(system);
     }
 
@@ -193,6 +166,82 @@ fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
     // Sort so output ordering is deterministic regardless of shuffle order.
     placed.sort();
     Ok(placed)
+}
+
+// ── Per-system builder (used by sector and standalone APIs) ────────────────────
+
+/// Build one fully populated `GeneratedSystem` for a given index and coordinate.
+/// Pure: depends only on the seed in `config.generation.seed` plus the inputs
+/// passed in. Used by sector generation and by standalone single-system
+/// generation.
+pub fn build_system(
+    config: &AppConfig,
+    pool: &WorldCandidatePool,
+    names: &NameTables,
+    system_index: usize,
+    coord: HexCoord,
+    used_system_names: &mut BTreeSet<String>,
+) -> Result<GeneratedSystem, SectorError> {
+    let sys_id = ids::system_id(system_index);
+    let mut sys_rng = rng::stage_rng(&config.generation.seed, "system", &sys_id);
+
+    let star_colour = choose_system_star_colour(pool, &mut sys_rng)?;
+    let name = pick_system_name(names, system_index, &mut sys_rng, used_system_names);
+    used_system_names.insert(name.clone());
+
+    let worlds = generate_worlds_for_system(
+        config,
+        pool,
+        names,
+        system_index,
+        &sys_id,
+        &name,
+        star_colour,
+        &mut sys_rng,
+        &config.generation.seed,
+    )?;
+
+    Ok(GeneratedSystem {
+        id: sys_id,
+        index: system_index,
+        name,
+        coord,
+        star: GeneratedStar {
+            colour_code: star_colour.code().to_string(),
+            colour_name: star_colour.short_name().to_string(),
+            spectral_type: Some(spectral_type_fallback(star_colour).to_string()),
+            source_row_index: worlds.first().map(|w| w.source_row_index),
+        },
+        worlds,
+        primary_factions: Vec::new(),
+        tags: Vec::new(),
+        notes: Vec::new(),
+    })
+}
+
+/// Apply faction assignment to one or more systems. Public so the standalone
+/// system generator can reuse the same logic the sector generator does.
+pub fn assign_factions_for_systems(
+    systems: &mut [GeneratedSystem],
+    factions: &[FactionDef],
+    seed: &str,
+    discriminator: &str,
+) {
+    if factions.is_empty() {
+        return;
+    }
+    let mut rng = rng::stage_rng(seed, "factions", discriminator);
+    assign_factions(systems, factions, &mut rng);
+}
+
+/// Build a per-system or per-faction-set summary from generated systems.
+pub fn aggregate_factions_for(
+    systems: &[GeneratedSystem],
+    factions: &[FactionDef],
+) -> Vec<GeneratedFaction> {
+    let mut v = aggregate_factions(systems, factions);
+    v.sort_by(|a, b| a.id.cmp(&b.id));
+    v
 }
 
 // ── System star colour ────────────────────────────────────────────────────────
@@ -569,12 +618,23 @@ fn spectral_type_fallback(sc: StarColour) -> &'static str {
 
 // ── Factions ──────────────────────────────────────────────────────────────────
 
+/// Spec §10.9: at most this many primary factions per system.
+const PRIMARY_FACTION_LIMIT: usize = 3;
+
 fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng: &mut ChaCha8Rng) {
     if factions.is_empty() {
         return;
     }
+    // Stable catalog order: ID-sorted index for deterministic tie-breaking.
+    let catalog_order: BTreeMap<String, usize> = factions
+        .iter()
+        .enumerate()
+        .map(|(i, f)| (f.id.clone(), i))
+        .collect();
+
     for sys in systems.iter_mut() {
-        let mut sys_faction_counts: BTreeMap<String, usize> = BTreeMap::new();
+        // Per-system accumulator: faction_id -> (score, world_appearances)
+        let mut scores: BTreeMap<String, (f64, usize)> = BTreeMap::new();
         for world in sys.worlds.iter_mut() {
             let pop_tag = world
                 .tags
@@ -644,19 +704,61 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
                         influence: *inf,
                         relationship_to_government: f.default_disposition.clone(),
                     });
-                    *sys_faction_counts.entry(f.id.clone()).or_insert(0) += 1;
+                    let entry = scores.entry(f.id.clone()).or_insert((0.0, 0));
+                    entry.0 += inf.weight();
+                    entry.1 += 1;
                 }
                 weighted.remove(idx);
             }
+            // Sort world.factions deterministically: by influence rank then catalog order.
+            world.factions.sort_by(|a, b| {
+                influence_rank(b.influence)
+                    .cmp(&influence_rank(a.influence))
+                    .then_with(|| {
+                        catalog_order
+                            .get(&a.faction_id)
+                            .copied()
+                            .unwrap_or(usize::MAX)
+                            .cmp(
+                                &catalog_order
+                                    .get(&b.faction_id)
+                                    .copied()
+                                    .unwrap_or(usize::MAX),
+                            )
+                    })
+                    .then_with(|| a.faction_id.cmp(&b.faction_id))
+            });
         }
-        // Promote faction IDs that appear on >= 2 worlds in the system to primary.
-        let mut primary: Vec<String> = sys_faction_counts
+        // Spec §10.9: primary factions = top by score, ties broken by world
+        // appearances, then catalog order, then faction id.
+        let mut entries: Vec<(String, f64, usize)> = scores
             .into_iter()
-            .filter(|(_, n)| *n >= 2)
-            .map(|(id, _)| id)
+            .map(|(id, (s, n))| (id, s, n))
             .collect();
-        primary.sort();
-        sys.primary_factions = primary;
+        entries.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| b.2.cmp(&a.2))
+                .then_with(|| {
+                    catalog_order
+                        .get(&a.0)
+                        .copied()
+                        .unwrap_or(usize::MAX)
+                        .cmp(&catalog_order.get(&b.0).copied().unwrap_or(usize::MAX))
+                })
+                .then_with(|| a.0.cmp(&b.0))
+        });
+        entries.truncate(PRIMARY_FACTION_LIMIT);
+        sys.primary_factions = entries.into_iter().map(|(id, _, _)| id).collect();
+    }
+}
+
+fn influence_rank(i: FactionInfluence) -> u8 {
+    match i {
+        FactionInfluence::Dominant => 3,
+        FactionInfluence::Significant => 2,
+        FactionInfluence::Minor => 1,
+        FactionInfluence::Hidden => 0,
     }
 }
 

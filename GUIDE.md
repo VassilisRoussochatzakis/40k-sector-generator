@@ -27,6 +27,10 @@ cargo run --bin sectorforge -- generate --project examples/m42_project --allow-w
 cargo run --bin sectorforge -- inspect-worlds --workbook "M42 Sector Generator.xlsx"
 ```
 
+`generate` runs pre-generation validation, then sector generation, then
+post-generation invariant checks (spec §11.11). If any invariant fails the
+sector is not written and the process exits non-zero.
+
 After `generate`, look in [examples/m42_project/out/](examples/m42_project/out/):
 
 ```
@@ -70,6 +74,54 @@ unless `--allow-warnings` is passed.
 | `--seed <SEED>` | Override `[generation].seed` from `sectorforge.toml` |
 | `--out <DIR>` | Override `[outputs].directory` |
 | `--allow-warnings` | Continue past warnings (errors still block) |
+
+### `sectorforge generate-system --project <DIR>`
+
+Generate a single standalone system. Reuses the project's catalogs (workbook,
+names, factions) but emits just one `GeneratedSystem`, with factions assigned,
+not a full sector. Useful for one-off NPC system generation, scripted system
+seeding, or scratchpad work.
+
+| Flag | Meaning |
+|---|---|
+| `--seed <SEED>` | Override `[generation].seed` |
+| `--index <N>` | 1-based system index (default `1`). Drives `sys-NNNN` id and the per-system RNG |
+| `--coord-q <Q>` | Axial hex `q` coord (default `0`) |
+| `--coord-r <R>` | Axial hex `r` coord (default `0`) |
+| `--out <PATH>` | Write JSON to this path. If omitted, JSON goes to stdout |
+| `--markdown` | Also emit a Markdown snippet. With `--out`, writes alongside as `<out>.md`; otherwise prints after the JSON |
+
+Example:
+
+```bash
+cargo run --bin sectorforge -- generate-system \
+    --project examples/m42_project \
+    --index 12 --coord-q 3 --coord-r 4 \
+    --seed scenario-A \
+    --out /tmp/sys-0012.json --markdown
+```
+
+### `sectorforge validate-sector --sector <PATH>`
+
+Load a previously generated `sector.json` and check the spec §11.11
+post-generation invariants: unique system/world IDs, coordinates in bounds and
+unique, route endpoints exist, route distances match `hex_distance`, undirected
+edges deduplicated, faction summary references coherent, world tag namespaces
+present, manifest counts match. Exits non-zero on any violation.
+
+| Flag | Meaning |
+|---|---|
+| `--json` | Emit the invariant report as JSON |
+
+### `sectorforge render-markdown --sector <PATH>`
+
+Load a previously generated `sector.json` and print the Markdown overview.
+Same output the `generate` command writes to `sector.md`; useful for
+regenerating Markdown from a stored JSON without rerunning generation.
+
+| Flag | Meaning |
+|---|---|
+| `--out <PATH>` | Write to a file instead of stdout |
 
 ### `sectorforge inspect-worlds --workbook <XLSX>`
 
@@ -197,8 +249,14 @@ preferred_notable_features  = ["AdministrativeHub", "PoliceState"]
 
 Assignment algorithm: base weight × 1.5 for matching world type, × 1.4 for
 matching government, × 1.3 per matching notable feature. Up to 3 factions
-per world (capped by population density). Faction IDs appearing on 2+
-worlds in a system are promoted to `primary_factions`.
+per world (capped by population density). Per-world factions are emitted
+sorted by influence (Dominant > Significant > Minor > Hidden) then catalog
+order.
+
+`primary_factions` for a system is the top-3 by **influence-weighted score**
+(spec §10.9): sum of `influence.weight()` over the faction's presence on
+that system's worlds (Dominant=3, Significant=2, Minor=1, Hidden=0.5). Ties
+break by world-appearance count, then catalog order, then faction id.
 
 ### `data/routes/route_rules.toml`
 
@@ -371,9 +429,17 @@ Public surface:
 | Function | Purpose |
 |---|---|
 | `load_project(dir)` | Read sectorforge.toml + all referenced files |
-| `validate_project(&input)` | Pure validation, returns `ValidationReport` |
-| `generate_sector(input)` | Deterministic generation, returns `GeneratedSector` |
-| `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / CSV / manifest |
+| `validate_project(&input)` | Pre-generation validation, returns `ValidationReport` |
+| `generate_sector(input)` | Deterministic sector generation, returns `GeneratedSector` |
+| `generate_system_standalone(input, index, coord)` | Deterministic single-system generation, returns `GeneratedSystem` |
+| `validate_sector(&sector)` | Post-generation invariant check (spec §11.11), returns `InvariantReport` |
+| `render_sector_markdown(&sector)` | Pure Markdown render, returns `String` |
+| `render_system_markdown(&system)` | Pure Markdown render for one standalone system |
+| `load_sector_json(path)` | Read a previously generated `sector.json` back into a `GeneratedSector` |
+| `write_sector_json(path, &sector)` | Pretty-JSON sector writer |
+| `write_system_json(path, &system)` | Pretty-JSON standalone system writer |
+| `write_sector_markdown(path, &sector)` | Markdown writer |
+| `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / CSV / manifest + bitmaps |
 | `inspect_world_workbook(path)` | Workbook diagnostics (used by `inspect-worlds`) |
 
 ---
@@ -415,6 +481,7 @@ Notable suites:
 - [src/rng.rs::tests](src/rng.rs#L65) — stage seeds and weighted selection
 - [src/sector_model.rs::tests](src/sector_model.rs#L160) — axial hex distance
 - [tests/golden_generation.rs](tests/golden_generation.rs) — full end-to-end + determinism
+- [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
 
 ---
@@ -448,11 +515,13 @@ input digest so you can verify match before running.
 |---|---|
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums + Excel parser (do not modify casually) |
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
-| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes |
-| [src/sector_model.rs](src/sector_model.rs) | Output DTOs (`GeneratedSector` etc.) |
+| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes. `build_system` is the unit reused by sector + standalone APIs |
+| [src/sector_model.rs](src/sector_model.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
+| [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
+| [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers |
-| [src/cli.rs](src/main.rs) | Clap-based CLI |
+| [src/main.rs](src/main.rs) | Clap-based CLI |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/rng.rs](src/rng.rs) | Stage-based deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name string ↔ enum bridge |

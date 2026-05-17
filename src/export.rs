@@ -6,7 +6,8 @@ use camino::Utf8Path;
 
 use crate::config::{OutputConfig, OutputFormat};
 use crate::errors::SectorError;
-use crate::sector_model::{GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld};
+use crate::render;
+use crate::sector_model::{GeneratedRoute, GeneratedSector, GeneratedWorld};
 
 pub fn export_all(
     sector: &GeneratedSector,
@@ -118,155 +119,10 @@ fn write_validation_placeholder(
 // ── Markdown ─────────────────────────────────────────────────────────────────
 
 fn write_markdown(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {
-    let mut s = String::new();
-    s.push_str(&format!("# {} — {}\n\n", sector.id, sector.title));
-    s.push_str(&format!("Seed: `{}`\n\n", sector.seed));
-    s.push_str(&format!(
-        "Generator: {} v{}\n\n",
-        sector.generator_name, sector.generator_version
-    ));
-    s.push_str(&format!(
-        "- **Sector size:** {}×{}\n",
-        sector.width, sector.height
-    ));
-    s.push_str(&format!("- **Systems:** {}\n", sector.systems.len()));
-    s.push_str(&format!(
-        "- **Worlds:** {}\n",
-        sector.systems.iter().map(|s| s.worlds.len()).sum::<usize>()
-    ));
-    s.push_str(&format!("- **Routes:** {}\n", sector.routes.len()));
-    s.push_str(&format!("- **Factions:** {}\n\n", sector.factions.len()));
-
-    s.push_str("## Sector map\n\n");
-    s.push_str(&format_sector_map(sector));
-    s.push('\n');
-
-    s.push_str("## System index\n\n");
-    s.push_str("| ID | Name | Coord | Star | Worlds |\n");
-    s.push_str("|---|---|---|---|---:|\n");
-    for sys in &sector.systems {
-        s.push_str(&format!(
-            "| {} | {} | (q={}, r={}) | {} / {} | {} |\n",
-            sys.id,
-            sys.name,
-            sys.coord.q,
-            sys.coord.r,
-            sys.star.colour_code,
-            sys.star.colour_name,
-            sys.worlds.len()
-        ));
-    }
-    s.push('\n');
-
-    for sys in &sector.systems {
-        s.push_str(&format_system_section(sys));
-    }
-
-    if !sector.routes.is_empty() {
-        s.push_str("## Routes\n\n");
-        s.push_str("| ID | From | To | Distance | Type | Stability |\n");
-        s.push_str("|---|---|---|---:|---|---|\n");
-        for r in &sector.routes {
-            s.push_str(&format!(
-                "| {} | {} | {} | {} | {:?} | {:?} |\n",
-                r.id, r.from_system_id, r.to_system_id, r.distance, r.route_type, r.stability
-            ));
-        }
-        s.push('\n');
-    }
-
-    if !sector.factions.is_empty() {
-        s.push_str("## Factions\n\n");
-        s.push_str("| ID | Name | Kind | Systems | Worlds |\n");
-        s.push_str("|---|---|---|---:|---:|\n");
-        for f in &sector.factions {
-            s.push_str(&format!(
-                "| {} | {} | {} | {} | {} |\n",
-                f.id,
-                f.name,
-                f.kind,
-                f.system_presence.len(),
-                f.world_presence.len()
-            ));
-        }
-        s.push('\n');
-    }
-
+    let text = render::render_sector_markdown(sector);
     let path = output_dir.join("sector.md");
-    fs::write(&path, s).map_err(|e| SectorError::io(path.as_str(), e))?;
+    fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
     Ok(())
-}
-
-fn format_sector_map(sector: &GeneratedSector) -> String {
-    use std::collections::HashMap;
-    let mut at: HashMap<(i32, i32), &str> = HashMap::new();
-    for s in &sector.systems {
-        at.insert((s.coord.q, s.coord.r), s.star.colour_code.as_str());
-    }
-    let mut out = String::new();
-    out.push_str("```\n");
-    for r in 0..(sector.height as i32) {
-        if r % 2 == 1 {
-            out.push(' ');
-        }
-        for q in 0..(sector.width as i32) {
-            match at.get(&(q, r)) {
-                Some(code) => {
-                    out.push_str(code);
-                    out.push(' ');
-                }
-                None => out.push_str(". "),
-            }
-        }
-        out.push('\n');
-    }
-    out.push_str("```\n");
-    out
-}
-
-fn format_system_section(sys: &GeneratedSystem) -> String {
-    let mut s = String::new();
-    s.push_str(&format!("## {} — {}\n\n", sys.id.to_uppercase(), sys.name));
-    s.push_str(&format!(
-        "- **Coordinates:** q={}, r={}\n",
-        sys.coord.q, sys.coord.r
-    ));
-    s.push_str(&format!(
-        "- **Star:** {} / {} / {}\n",
-        sys.star.colour_code,
-        sys.star.colour_name,
-        sys.star.spectral_type.as_deref().unwrap_or("?")
-    ));
-    if !sys.primary_factions.is_empty() {
-        s.push_str(&format!(
-            "- **Primary factions:** {}\n",
-            sys.primary_factions.join(", ")
-        ));
-    }
-    s.push('\n');
-
-    if !sys.worlds.is_empty() {
-        s.push_str(
-            "| Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |\n",
-        );
-        s.push_str("|---:|---|---|---|---|---|---|---|\n");
-        for w in &sys.worlds {
-            let features = w.world.notable_features.join("; ");
-            s.push_str(&format!(
-                "| {} | {} | {} | {} | {} | {} | {} | {} |\n",
-                w.orbit,
-                w.name,
-                w.world.world_type,
-                w.world.atmosphere,
-                w.world.population,
-                w.world.tech_level,
-                w.world.government,
-                features
-            ));
-        }
-        s.push('\n');
-    }
-    s
 }
 
 // ── CSV ───────────────────────────────────────────────────────────────────────

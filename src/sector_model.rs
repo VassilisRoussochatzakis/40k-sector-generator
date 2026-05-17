@@ -2,15 +2,15 @@
 
 use std::collections::BTreeMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct HexCoord {
     pub q: i32,
     pub r: i32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSector {
     pub id: String,
     pub title: String,
@@ -25,7 +25,7 @@ pub struct GeneratedSector {
     pub manifest: GenerationManifest,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSystem {
     pub id: String,
     pub index: usize,
@@ -38,7 +38,7 @@ pub struct GeneratedSystem {
     pub notes: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedStar {
     pub colour_code: String,
     pub colour_name: String,
@@ -46,7 +46,7 @@ pub struct GeneratedStar {
     pub source_row_index: Option<usize>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedWorld {
     pub id: String,
     pub index: usize,
@@ -61,7 +61,7 @@ pub struct GeneratedWorld {
 
 /// Serializable view over crate::worlds::World. Variant names are stable
 /// because worlds.rs Display impls use Debug (e.g. "HiveWorld").
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldDto {
     pub star_colour: String,
     pub star_colour_code: String,
@@ -96,7 +96,7 @@ impl From<&crate::worlds::World> for WorldDto {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedRoute {
     pub id: String,
     pub from_system_id: String,
@@ -107,7 +107,7 @@ pub struct GeneratedRoute {
     pub tags: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RouteType {
     StableWarpLane,
@@ -116,7 +116,7 @@ pub enum RouteType {
     SecretPassage,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RouteStability {
     Stable,
@@ -125,7 +125,7 @@ pub enum RouteStability {
     Lost,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedFaction {
     pub id: String,
     pub name: String,
@@ -135,14 +135,14 @@ pub struct GeneratedFaction {
     pub world_presence: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldFactionPresence {
     pub faction_id: String,
     pub influence: FactionInfluence,
     pub relationship_to_government: String,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FactionInfluence {
     Hidden,
@@ -151,7 +151,19 @@ pub enum FactionInfluence {
     Dominant,
 }
 
-#[derive(Debug, Clone, Serialize)]
+impl FactionInfluence {
+    /// Spec §10.9 scoring weight for primary-faction derivation.
+    pub fn weight(self) -> f64 {
+        match self {
+            FactionInfluence::Dominant => 3.0,
+            FactionInfluence::Significant => 2.0,
+            FactionInfluence::Minor => 1.0,
+            FactionInfluence::Hidden => 0.5,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerationManifest {
     pub project_id: String,
     pub generated_at_policy: String,

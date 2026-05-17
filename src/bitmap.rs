@@ -65,6 +65,18 @@ pub fn write_bitmap(
     write_image(sector, output_dir, "sector.png", scale)
 }
 
+/// Render the sector PNG to an explicit file path (caller chooses the name).
+pub fn write_sector_png_to(
+    sector: &GeneratedSector,
+    path: &Utf8Path,
+    scale: u32,
+) -> Result<(), SectorError> {
+    let img = render(sector, scale);
+    img.save(path.as_std_path())
+        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+    Ok(())
+}
+
 fn write_image(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
@@ -89,8 +101,7 @@ fn render(sector: &GeneratedSector, scale: u32) -> RgbaImage {
     // so the bounding rect is `width * horiz_step` wide plus a half-step
     // when height > 1 to cover the staggered odd rows.
     let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
-    let map_w =
-        (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
+    let map_w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
     let map_h = (g.margin as f32 * 2.0
         + (sector.height.saturating_sub(1)) as f32 * vert_step
         + 2.0 * g.hex_size) as i32;

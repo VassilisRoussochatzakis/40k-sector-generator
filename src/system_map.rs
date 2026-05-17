@@ -42,6 +42,18 @@ pub fn write_system_maps(
     Ok(())
 }
 
+/// Render a single system to a specific PNG path.
+pub fn write_one_system_png(
+    sys: &GeneratedSystem,
+    path: &Utf8Path,
+    scale: u32,
+) -> Result<(), SectorError> {
+    let img = render_system(sys, scale);
+    img.save(path.as_std_path())
+        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+    Ok(())
+}
+
 struct SysGeom {
     scale: i32,
     side: i32,

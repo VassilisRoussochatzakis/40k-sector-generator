@@ -33,6 +33,16 @@ pub struct App {
     planner: RoutePlannerState,
     planner_hex_size: f32,
     export_status: String,
+    pending_export: Option<PendingExport>,
+    sector_pick_export: bool,
+    export_scale: u32,
+}
+
+#[derive(Debug, Clone)]
+enum PendingExport {
+    SectorPng,
+    AllSystemPngs,
+    SystemPng(String),
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +73,9 @@ impl App {
             planner: RoutePlannerState::default(),
             planner_hex_size: 44.0,
             export_status: String::new(),
+            pending_export: None,
+            sector_pick_export: false,
+            export_scale: 2,
         }
     }
 
@@ -80,6 +93,9 @@ impl App {
             planner: RoutePlannerState::default(),
             planner_hex_size: 44.0,
             export_status: String::new(),
+            pending_export: None,
+            sector_pick_export: false,
+            export_scale: 2,
         }
     }
 
@@ -160,19 +176,69 @@ impl eframe::App for App {
                     {
                         self.view = View::Planner;
                     }
-                    if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::Button::new(RichText::new("EXPORT").color(TEXT).monospace()),
-                        )
-                        .on_hover_text(
-                            "Save all JSONs, markdown, CSVs, and a copy of the data folder \
-                             (no images) to a folder",
-                        )
-                        .clicked()
-                    {
-                        self.export_sector_json(ctx);
-                    }
+                    let systems_list: Vec<(String, String)> = self
+                        .sector
+                        .as_ref()
+                        .map(|s| {
+                            s.systems
+                                .iter()
+                                .map(|x| (x.id.clone(), x.name.clone()))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    ui.add_enabled_ui(has_sector, |ui| {
+                        ui.menu_button(RichText::new("EXPORT ▾").color(TEXT).monospace(), |ui| {
+                            if ui
+                                .button(RichText::new("Bundle (JSON / MD / CSV)").monospace())
+                                .on_hover_text(
+                                    "Save all JSONs, markdown, CSVs, and a copy of the data \
+                                         folder (no images) to a folder",
+                                )
+                                .clicked()
+                            {
+                                ui.close_menu();
+                                self.export_sector_json(ctx);
+                            }
+                            if ui
+                                .button(RichText::new("Sector Map PNG").monospace())
+                                .clicked()
+                            {
+                                ui.close_menu();
+                                self.pending_export = Some(PendingExport::SectorPng);
+                            }
+                            if ui
+                                .button(RichText::new("All System Maps PNG").monospace())
+                                .clicked()
+                            {
+                                ui.close_menu();
+                                self.pending_export = Some(PendingExport::AllSystemPngs);
+                            }
+                            ui.menu_button(
+                                RichText::new("Single System Map PNG ▸").monospace(),
+                                |ui| {
+                                    if ui
+                                        .button(RichText::new("Pick from sector map").monospace())
+                                        .clicked()
+                                    {
+                                        ui.close_menu();
+                                        self.sector_pick_export = true;
+                                        self.view = View::Sector;
+                                    }
+                                    ui.separator();
+                                    ScrollArea::vertical().max_height(280.0).show(ui, |ui| {
+                                        for (id, name) in &systems_list {
+                                            if ui.button(RichText::new(name).monospace()).clicked()
+                                            {
+                                                ui.close_menu();
+                                                self.pending_export =
+                                                    Some(PendingExport::SystemPng(id.clone()));
+                                            }
+                                        }
+                                    });
+                                },
+                            );
+                        });
+                    });
                     if let View::System { system_id, .. } = &self.view {
                         ui.label(RichText::new("›").color(TEXT_DIM).monospace());
                         ui.label(
@@ -221,6 +287,8 @@ impl eframe::App for App {
             View::Data => self.draw_data_layout(ctx),
             View::Planner => self.draw_planner_layout(ctx),
         }
+
+        self.draw_export_dialog(ctx);
     }
 }
 
@@ -779,6 +847,19 @@ impl App {
                     ui.add(
                         egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),
                     );
+                    if self.sector_pick_export {
+                        ui.label(
+                            RichText::new("◉ click a system hex to pick for PNG export")
+                                .color(Color32::from_rgb(235, 200, 90))
+                                .monospace(),
+                        );
+                        if ui
+                            .button(RichText::new("CANCEL PICK").monospace())
+                            .clicked()
+                        {
+                            self.sector_pick_export = false;
+                        }
+                    }
                 });
             });
         ScrollArea::both().show(ui, |ui| {
@@ -792,7 +873,10 @@ impl App {
             }
             .show(ui);
             if let Some(c) = click {
-                if self.sector_selected.as_deref() == Some(c.system_id.as_str()) {
+                if self.sector_pick_export {
+                    self.sector_pick_export = false;
+                    self.pending_export = Some(PendingExport::SystemPng(c.system_id));
+                } else if self.sector_selected.as_deref() == Some(c.system_id.as_str()) {
                     self.view = View::System {
                         system_id: c.system_id,
                         selection: SystemSelection::None,
@@ -805,6 +889,7 @@ impl App {
     }
 
     fn show_system(&mut self, ui: &mut egui::Ui, system_id: &str, selection: SystemSelection) {
+        let sys_id_owned = system_id.to_string();
         TopBottomPanel::bottom("system_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
@@ -813,6 +898,13 @@ impl App {
                     ui.add(
                         egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),
                     );
+                    if ui
+                        .button(RichText::new("EXPORT MAP PNG").monospace())
+                        .on_hover_text("export this system's map to a PNG")
+                        .clicked()
+                    {
+                        self.pending_export = Some(PendingExport::SystemPng(sys_id_owned));
+                    }
                 });
             });
         ScrollArea::both().show(ui, |ui| {
@@ -840,6 +932,128 @@ impl App {
         });
     }
 
+    fn draw_export_dialog(&mut self, ctx: &egui::Context) {
+        let Some(action) = self.pending_export.clone() else {
+            return;
+        };
+        let title = match &action {
+            PendingExport::SectorPng => "Export Sector Map (PNG)".to_string(),
+            PendingExport::AllSystemPngs => "Export All System Maps (PNG)".to_string(),
+            PendingExport::SystemPng(id) => format!("Export System Map: {}", id),
+        };
+        let mut confirm = false;
+        let mut cancel = false;
+        egui::Window::new(RichText::new(&title).monospace().strong())
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label(RichText::new("Resolution").color(TEXT_DIM).monospace());
+                ui.horizontal(|ui| {
+                    ui.selectable_value(
+                        &mut self.export_scale,
+                        1,
+                        RichText::new("720p").monospace(),
+                    );
+                    ui.selectable_value(
+                        &mut self.export_scale,
+                        2,
+                        RichText::new("1440p").monospace(),
+                    );
+                    ui.selectable_value(&mut self.export_scale, 3, RichText::new("4K").monospace());
+                    ui.selectable_value(
+                        &mut self.export_scale,
+                        5,
+                        RichText::new("Ultra (5x)").monospace(),
+                    );
+                });
+                ui.add_space(10.0);
+                ui.horizontal(|ui| {
+                    if ui.button(RichText::new("EXPORT").monospace()).clicked() {
+                        confirm = true;
+                    }
+                    if ui.button(RichText::new("CANCEL").monospace()).clicked() {
+                        cancel = true;
+                    }
+                });
+            });
+        if confirm {
+            let scale = self.export_scale.max(1);
+            self.execute_png_export(action, scale);
+            self.pending_export = None;
+        } else if cancel {
+            self.pending_export = None;
+        }
+    }
+
+    fn execute_png_export(&mut self, action: PendingExport, scale: u32) {
+        let Some(sector) = self.sector.clone() else {
+            self.export_status = "no sector to export".into();
+            return;
+        };
+        match action {
+            PendingExport::SectorPng => {
+                let default_name = format!("{}-sector.png", sector.id);
+                let Some(path) = FileDialog::new()
+                    .add_filter("PNG", &["png"])
+                    .set_file_name(&default_name)
+                    .save_file()
+                else {
+                    return;
+                };
+                let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
+                    self.export_status = "path is not valid utf-8".into();
+                    return;
+                };
+                match crate::bitmap::write_sector_png_to(&sector, &p, scale) {
+                    Ok(()) => self.export_status = format!("exported {}", p),
+                    Err(e) => self.export_status = format!("export failed: {}", e),
+                }
+            }
+            PendingExport::AllSystemPngs => {
+                let Some(dir) = FileDialog::new().pick_folder() else {
+                    return;
+                };
+                let Ok(p) = camino::Utf8PathBuf::from_path_buf(dir) else {
+                    self.export_status = "path is not valid utf-8".into();
+                    return;
+                };
+                match crate::system_map::write_system_maps(&sector, &p, scale) {
+                    Ok(()) => {
+                        self.export_status = format!(
+                            "exported {} system PNGs to {}/systems",
+                            sector.systems.len(),
+                            p
+                        )
+                    }
+                    Err(e) => self.export_status = format!("export failed: {}", e),
+                }
+            }
+            PendingExport::SystemPng(id) => {
+                let Some(sys) = sector.systems.iter().find(|s| s.id == id).cloned() else {
+                    self.export_status = format!("system {} not found", id);
+                    return;
+                };
+                let default_name = format!("{}.png", sys.id);
+                let Some(path) = FileDialog::new()
+                    .add_filter("PNG", &["png"])
+                    .set_file_name(&default_name)
+                    .save_file()
+                else {
+                    return;
+                };
+                let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
+                    self.export_status = "path is not valid utf-8".into();
+                    return;
+                };
+                match crate::system_map::write_one_system_png(&sys, &p, scale) {
+                    Ok(()) => self.export_status = format!("exported {}", p),
+                    Err(e) => self.export_status = format!("export failed: {}", e),
+                }
+            }
+        }
+    }
+
     fn export_sector_json(&mut self, _ctx: &egui::Context) {
         let sector = self.sector.clone();
         let data_dir_pb: Option<PathBuf> = self
@@ -852,17 +1066,14 @@ impl App {
                 let path = camino::Utf8Path::from_path(&path).unwrap();
                 match sector {
                     Some(s) => {
-                        let data_dir = data_dir_pb
-                            .as_deref()
-                            .and_then(camino::Utf8Path::from_path);
+                        let data_dir = data_dir_pb.as_deref().and_then(camino::Utf8Path::from_path);
                         let sector_subdir = path.join(&s.id);
                         match export::export_bundle(&s, data_dir, path) {
                             Ok(()) => {
                                 self.export_status = match data_dir {
-                                    Some(_) => format!(
-                                        "exported to {} (incl. data folder)",
-                                        sector_subdir
-                                    ),
+                                    Some(_) => {
+                                        format!("exported to {} (incl. data folder)", sector_subdir)
+                                    }
                                     None => format!(
                                         "exported to {} (no data folder — project not loaded)",
                                         sector_subdir

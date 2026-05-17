@@ -199,8 +199,7 @@ fn copy_dir_filtered(src: &Utf8Path, dest: &Utf8Path) -> Result<(), SectorError>
             if is_image_path(&src_path) {
                 continue;
             }
-            fs::copy(&src_path, &dest_path)
-                .map_err(|e| SectorError::io(src_path.as_str(), e))?;
+            fs::copy(&src_path, &dest_path).map_err(|e| SectorError::io(src_path.as_str(), e))?;
         }
     }
     Ok(())

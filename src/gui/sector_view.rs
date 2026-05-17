@@ -69,8 +69,7 @@ impl<'a> SectorView<'a> {
             // 0:E, 1:SE, 2:SW, 3:W, 4:NW, 5:NE — neighbor offsets depend
             // on row parity, see `offset_r_neighbors`.
             for r in 0..self.sector.height as i32 {
-                let neighbor_deltas =
-                    crate::sector_model::offset_r_neighbors(r);
+                let neighbor_deltas = crate::sector_model::offset_r_neighbors(r);
                 for q in 0..self.sector.width as i32 {
                     let here = hex_subsector.get(&(q, r)).copied();
                     let Some(here_id) = here else { continue };
@@ -91,13 +90,10 @@ impl<'a> SectorView<'a> {
                             let segments = (edge_len / spacing).ceil() as usize;
                             for j in 0..=segments {
                                 let t = j as f32 / segments as f32;
-                                let mid = Pos2::new(
-                                    a.x + (b.x - a.x) * t,
-                                    a.y + (b.y - a.y) * t,
-                                   );
+                                let mid = Pos2::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
                                 painter.circle_filled(mid, dot_radius, SUBSECTOR_BORDER);
-                               }
-                         }
+                            }
+                        }
                     }
                 }
             }
@@ -239,24 +235,22 @@ impl<'a> SectorView<'a> {
                     .to_ascii_uppercase();
                 let top_galley =
                     painter.layout_no_wrap("SUBSECTOR".to_string(), font.clone(), SUBSECTOR_LABEL);
-                let bot_galley =
-                    painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
+                let bot_galley = painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
                 let line_gap = 2.0;
                 let block_w = top_galley.size().x.max(bot_galley.size().x);
                 let block_h = top_galley.size().y + line_gap + bot_galley.size().y;
                 let block_top_y = anchor_c.y - g.hex_size - block_h - 2.0;
-                let top_pos = Pos2::new(
-                    anchor_c.x - top_galley.size().x / 2.0,
-                    block_top_y,
-                );
+                let top_pos = Pos2::new(anchor_c.x - top_galley.size().x / 2.0, block_top_y);
                 let bot_pos = Pos2::new(
                     anchor_c.x - bot_galley.size().x / 2.0,
                     block_top_y + top_galley.size().y + line_gap,
                 );
                 let pad = Vec2::new(6.0, 2.0);
                 let block_min = Pos2::new(anchor_c.x - block_w / 2.0, block_top_y);
-                let bg_rect =
-                    egui::Rect::from_min_size(block_min - pad, Vec2::new(block_w, block_h) + pad * 2.0);
+                let bg_rect = egui::Rect::from_min_size(
+                    block_min - pad,
+                    Vec2::new(block_w, block_h) + pad * 2.0,
+                );
                 painter.rect_filled(
                     bg_rect,
                     3.0,

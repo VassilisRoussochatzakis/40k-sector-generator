@@ -123,7 +123,10 @@ fn check_systems(
             if !w.id.starts_with(&sys.id) {
                 v.push(violation(
                     "WORLD_ID_PREFIX",
-                    &format!("world '{}' id does not begin with parent system id '{}'", w.id, sys.id),
+                    &format!(
+                        "world '{}' id does not begin with parent system id '{}'",
+                        w.id, sys.id
+                    ),
                     Some(&format!("systems.{}.worlds.{}.id", sys.id, w.id)),
                 ));
             }
@@ -185,16 +188,9 @@ fn check_systems(
     (sys_ids, all_world_ids)
 }
 
-fn check_routes(
-    s: &GeneratedSector,
-    sys_ids: &BTreeSet<String>,
-    v: &mut Vec<InvariantViolation>,
-) {
-    let coord_by_id: BTreeMap<&str, crate::sector_model::HexCoord> = s
-        .systems
-        .iter()
-        .map(|x| (x.id.as_str(), x.coord))
-        .collect();
+fn check_routes(s: &GeneratedSector, sys_ids: &BTreeSet<String>, v: &mut Vec<InvariantViolation>) {
+    let coord_by_id: BTreeMap<&str, crate::sector_model::HexCoord> =
+        s.systems.iter().map(|x| (x.id.as_str(), x.coord)).collect();
 
     let mut undirected_keys: BTreeSet<(String, String)> = BTreeSet::new();
 

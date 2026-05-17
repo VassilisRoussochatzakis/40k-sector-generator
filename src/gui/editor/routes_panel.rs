@@ -33,11 +33,21 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     for (i, route) in sector.routes.iter_mut().enumerate() {
         ui.horizontal(|ui| {
             label(ui, "FROM");
-            if combo_str(ui, &format!("r_from_{}", i), &mut route.from_system_id, &opt_refs) {
+            if combo_str(
+                ui,
+                &format!("r_from_{}", i),
+                &mut route.from_system_id,
+                &opt_refs,
+            ) {
                 dirty = true;
             }
             label(ui, "TO");
-            if combo_str(ui, &format!("r_to_{}", i), &mut route.to_system_id, &opt_refs) {
+            if combo_str(
+                ui,
+                &format!("r_to_{}", i),
+                &mut route.to_system_id,
+                &opt_refs,
+            ) {
                 dirty = true;
             }
         });
@@ -64,7 +74,10 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
                 route.distance = d.max(0) as u32;
                 dirty = true;
             }
-            if ui.small_button(RichText::new("x").font(mono(11.0))).clicked() {
+            if ui
+                .small_button(RichText::new("x").font(mono(11.0)))
+                .clicked()
+            {
                 remove_idx = Some(i);
             }
         });

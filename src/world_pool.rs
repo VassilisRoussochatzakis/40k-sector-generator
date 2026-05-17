@@ -238,10 +238,12 @@ pub struct WorkbookStats {
 }
 
 pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
-    let (tables, rows) = crate::worlds::load_generation_rows(std::path::Path::new(path))
-        .map_err(|message| SectorError::WorldDataLoad {
-            path: path.to_string(),
-            message,
+    let (tables, rows) =
+        crate::worlds::load_generation_rows(std::path::Path::new(path)).map_err(|message| {
+            SectorError::WorldDataLoad {
+                path: path.to_string(),
+                message,
+            }
         })?;
 
     let cfg = WorldSelectionConfig::default();

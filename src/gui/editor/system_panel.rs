@@ -39,11 +39,17 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.horizontal(|ui| {
         label(ui, "COORD Q");
-        if ui.add(egui::DragValue::new(&mut sys.coord.q).range(0..=63)).changed() {
+        if ui
+            .add(egui::DragValue::new(&mut sys.coord.q).range(0..=63))
+            .changed()
+        {
             dirty = true;
         }
         label(ui, "R");
-        if ui.add(egui::DragValue::new(&mut sys.coord.r).range(0..=63)).changed() {
+        if ui
+            .add(egui::DragValue::new(&mut sys.coord.r).range(0..=63))
+            .changed()
+        {
             dirty = true;
         }
     });
@@ -52,7 +58,12 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     section(ui, "STAR");
     ui.horizontal(|ui| {
         label(ui, "COLOUR");
-        if combo_str(ui, "sys_star_colour", &mut sys.star.colour_code, STAR_COLOUR_CODES) {
+        if combo_str(
+            ui,
+            "sys_star_colour",
+            &mut sys.star.colour_code,
+            STAR_COLOUR_CODES,
+        ) {
             sys.star.colour_name = star_colour_name(&sys.star.colour_code).to_string();
             sys.star.spectral_type = Some(sys.star.colour_code.clone());
             dirty = true;
@@ -80,7 +91,10 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
             {
                 select_world = Some(w.index);
             }
-            if ui.small_button(RichText::new("x").font(mono(11.0))).clicked() {
+            if ui
+                .small_button(RichText::new("x").font(mono(11.0)))
+                .clicked()
+            {
                 delete_world = Some(w.index);
             }
         });
@@ -107,7 +121,8 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     if let Some(w_idx) = delete_world {
         sys.worlds.retain(|w| w.index != w_idx);
         dirty = true;
-        if matches!(&state.selection, Selection::World { world_index, .. } if *world_index == w_idx) {
+        if matches!(&state.selection, Selection::World { world_index, .. } if *world_index == w_idx)
+        {
             state.selection = Selection::System(sys_id.clone());
         }
     }
@@ -131,7 +146,9 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     }
     if delete_system {
         sector.systems.retain(|s| s.id != sys_id);
-        sector.routes.retain(|r| r.from_system_id != sys_id && r.to_system_id != sys_id);
+        sector
+            .routes
+            .retain(|r| r.from_system_id != sys_id && r.to_system_id != sys_id);
         for f in &mut sector.factions {
             f.system_presence.retain(|x| x != &sys_id);
         }

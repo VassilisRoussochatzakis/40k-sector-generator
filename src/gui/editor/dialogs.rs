@@ -58,10 +58,16 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         {
                             load = selected.clone();
                         }
-                        if ui.button(RichText::new("REFRESH").font(mono(12.0))).clicked() {
+                        if ui
+                            .button(RichText::new("REFRESH").font(mono(12.0)))
+                            .clicked()
+                        {
                             projects = super::file_ops::list_projects();
                         }
-                        if ui.button(RichText::new("CANCEL").font(mono(12.0))).clicked() {
+                        if ui
+                            .button(RichText::new("CANCEL").font(mono(12.0)))
+                            .clicked()
+                        {
                             cancel = true;
                         }
                     });
@@ -115,7 +121,10 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         {
                             create = true;
                         }
-                        if ui.button(RichText::new("CANCEL").font(mono(12.0))).clicked() {
+                        if ui
+                            .button(RichText::new("CANCEL").font(mono(12.0)))
+                            .clicked()
+                        {
                             cancel = true;
                         }
                     });
@@ -168,7 +177,10 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         {
                             save = true;
                         }
-                        if ui.button(RichText::new("CANCEL").font(mono(12.0))).clicked() {
+                        if ui
+                            .button(RichText::new("CANCEL").font(mono(12.0)))
+                            .clicked()
+                        {
                             cancel = true;
                         }
                     });
@@ -217,7 +229,10 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         {
                             create = true;
                         }
-                        if ui.button(RichText::new("CANCEL").font(mono(12.0))).clicked() {
+                        if ui
+                            .button(RichText::new("CANCEL").font(mono(12.0)))
+                            .clicked()
+                        {
                             cancel = true;
                         }
                     });
@@ -225,7 +240,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             if create {
                 let index = state.next_system_index();
                 let id = crate::ids::system_id(index);
-                let sys = super::state::empty_system(id.clone(), index, name.trim().to_string(), coord);
+                let sys =
+                    super::state::empty_system(id.clone(), index, name.trim().to_string(), coord);
                 if let Some(sec) = state.sector.as_mut() {
                     sec.systems.push(sys);
                     state.mark_dirty();

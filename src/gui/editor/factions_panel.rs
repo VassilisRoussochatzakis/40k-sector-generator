@@ -32,7 +32,10 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             if text_field(ui, &mut fac.id, "faction_id").changed() {
                 dirty = true;
             }
-            if ui.small_button(RichText::new("x").font(mono(11.0))).clicked() {
+            if ui
+                .small_button(RichText::new("x").font(mono(11.0)))
+                .clicked()
+            {
                 remove = Some(i);
             }
         });
@@ -53,14 +56,19 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             }
         });
 
-        ui.label(RichText::new(format!("SYSTEMS ({})", fac.system_presence.len())).font(mono(12.0)));
+        ui.label(
+            RichText::new(format!("SYSTEMS ({})", fac.system_presence.len())).font(mono(12.0)),
+        );
         let mut remove_sys: Option<usize> = None;
         for (j, sid) in fac.system_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 if combo_str(ui, &format!("f_{}_sys_{}", i, j), sid, &system_refs) {
                     dirty = true;
                 }
-                if ui.small_button(RichText::new("x").font(mono(11.0))).clicked() {
+                if ui
+                    .small_button(RichText::new("x").font(mono(11.0)))
+                    .clicked()
+                {
                     remove_sys = Some(j);
                 }
             });
@@ -85,7 +93,10 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
                 if combo_str(ui, &format!("f_{}_w_{}", i, j), wid, &world_refs) {
                     dirty = true;
                 }
-                if ui.small_button(RichText::new("x").font(mono(11.0))).clicked() {
+                if ui
+                    .small_button(RichText::new("x").font(mono(11.0)))
+                    .clicked()
+                {
                     remove_w = Some(j);
                 }
             });

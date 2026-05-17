@@ -9,11 +9,11 @@ pub mod worlds;
 
 pub mod bitmap;
 pub mod config;
-pub mod gui;
 pub mod errors;
 pub mod export;
 pub mod factions;
 pub mod generation;
+pub mod gui;
 pub mod ids;
 pub mod input;
 pub mod invariants;

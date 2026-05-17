@@ -454,8 +454,7 @@ impl KeyTables {
     ///   population,tech_level,government,notable_feature
     pub fn from_csv_path(path: impl AsRef<Path>) -> Result<Self, String> {
         let path = path.as_ref();
-        let text =
-            fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+        let text = fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
         Self::from_csv_str(&text)
     }
 
@@ -572,8 +571,8 @@ pub fn load_generation_rows(
 
     let tables = KeyTables::from_csv_path(&key_path)?;
 
-    let gen_text = fs::read_to_string(&gen_path)
-        .map_err(|e| format!("read {}: {e}", gen_path.display()))?;
+    let gen_text =
+        fs::read_to_string(&gen_path).map_err(|e| format!("read {}: {e}", gen_path.display()))?;
     let (_header, records) = parse_csv(&gen_text)?;
     let rows: Vec<GenerationRow> = records.iter().map(|r| parse_generation_row(r)).collect();
 

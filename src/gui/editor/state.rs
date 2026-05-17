@@ -16,7 +16,10 @@ pub enum Tab {
 pub enum Selection {
     None,
     System(String),
-    World { system_id: String, world_index: usize },
+    World {
+        system_id: String,
+        world_index: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -91,14 +94,7 @@ impl EditorState {
     pub fn next_system_index(&self) -> usize {
         self.sector
             .as_ref()
-            .map(|s| {
-                s.systems
-                    .iter()
-                    .map(|sys| sys.index)
-                    .max()
-                    .unwrap_or(0)
-                    + 1
-            })
+            .map(|s| s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1)
             .unwrap_or(1)
     }
 
@@ -110,7 +106,13 @@ impl EditorState {
     }
 }
 
-pub fn empty_sector(name: &str, title: &str, seed: &str, width: u32, height: u32) -> GeneratedSector {
+pub fn empty_sector(
+    name: &str,
+    title: &str,
+    seed: &str,
+    width: u32,
+    height: u32,
+) -> GeneratedSector {
     use crate::sector_model::GenerationManifest;
     use std::collections::BTreeMap;
 

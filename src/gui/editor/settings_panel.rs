@@ -34,11 +34,17 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     });
     ui.horizontal(|ui| {
         label(ui, "WIDTH");
-        if ui.add(egui::DragValue::new(&mut sector.width).range(1..=64)).changed() {
+        if ui
+            .add(egui::DragValue::new(&mut sector.width).range(1..=64))
+            .changed()
+        {
             dirty = true;
         }
         label(ui, "HEIGHT");
-        if ui.add(egui::DragValue::new(&mut sector.height).range(1..=64)).changed() {
+        if ui
+            .add(egui::DragValue::new(&mut sector.height).range(1..=64))
+            .changed()
+        {
             dirty = true;
         }
     });
@@ -46,7 +52,13 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     ui.add_space(8.0);
     section(ui, "STATS (auto-updated on save)");
     dim(ui, &format!("systems: {}", sector.systems.len()));
-    dim(ui, &format!("worlds: {}", sector.systems.iter().map(|s| s.worlds.len()).sum::<usize>()));
+    dim(
+        ui,
+        &format!(
+            "worlds: {}",
+            sector.systems.iter().map(|s| s.worlds.len()).sum::<usize>()
+        ),
+    );
     dim(ui, &format!("routes: {}", sector.routes.len()));
     dim(ui, &format!("factions: {}", sector.factions.len()));
     if let Some(path) = state.loaded_from.as_deref() {

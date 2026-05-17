@@ -13,7 +13,10 @@ use clap::Parser;
 use sectorforge::gui::App;
 
 #[derive(Debug, Parser)]
-#[command(name = "sectorforge-gui", about = "Interactive viewer for a generated 40k sector")]
+#[command(
+    name = "sectorforge-gui",
+    about = "Interactive viewer for a generated 40k sector"
+)]
 struct Cli {
     /// Path to a generated sector.json file.
     sector: Option<Utf8PathBuf>,

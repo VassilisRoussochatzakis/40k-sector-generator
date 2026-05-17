@@ -21,10 +21,7 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                 height: 10,
             };
         }
-        if ui
-            .button(RichText::new("OPEN").font(mono(12.0)))
-            .clicked()
-        {
+        if ui.button(RichText::new("OPEN").font(mono(12.0))).clicked() {
             let projects = super::file_ops::list_projects();
             state.dialog = Dialog::OpenProject {
                 selected: projects.first().cloned(),
@@ -33,7 +30,10 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
         }
         let can_save = state.sector.is_some();
         if ui
-            .add_enabled(can_save, egui::Button::new(RichText::new("SAVE AS").font(mono(12.0))))
+            .add_enabled(
+                can_save,
+                egui::Button::new(RichText::new("SAVE AS").font(mono(12.0))),
+            )
             .clicked()
         {
             let default = state
@@ -56,7 +56,10 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
             (Tab::Settings, "SETTINGS"),
         ] {
             if ui
-                .selectable_label(state.tab == tab, RichText::new(label).font(mono(12.0)).color(TEXT))
+                .selectable_label(
+                    state.tab == tab,
+                    RichText::new(label).font(mono(12.0)).color(TEXT),
+                )
                 .clicked()
             {
                 state.tab = tab;

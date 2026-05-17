@@ -46,7 +46,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
         ) {
             painter.line_segment(
                 [a, b],
-                Stroke::new(route_thickness, crate::gui::palette::stability_color(route.stability)),
+                Stroke::new(
+                    route_thickness,
+                    crate::gui::palette::stability_color(route.stability),
+                ),
             );
         }
     }
@@ -194,7 +197,13 @@ fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline:
     ));
 }
 
-fn draw_hex_outline_only(painter: &egui::Painter, c: Pos2, size: f32, color: Color32, thickness: f32) {
+fn draw_hex_outline_only(
+    painter: &egui::Painter,
+    c: Pos2,
+    size: f32,
+    color: Color32,
+    thickness: f32,
+) {
     let pts = hex_vertices(c, size);
     for i in 0..6 {
         painter.line_segment([pts[i], pts[(i + 1) % 6]], Stroke::new(thickness, color));

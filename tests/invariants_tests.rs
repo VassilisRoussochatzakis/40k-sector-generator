@@ -27,10 +27,7 @@ fn sector_round_trips_through_json() {
     assert_eq!(parsed.id, sector.id);
     assert_eq!(parsed.systems.len(), sector.systems.len());
     assert_eq!(parsed.routes.len(), sector.routes.len());
-    assert_eq!(
-        parsed.manifest.world_count,
-        sector.manifest.world_count
-    );
+    assert_eq!(parsed.manifest.world_count, sector.manifest.world_count);
 }
 
 #[test]

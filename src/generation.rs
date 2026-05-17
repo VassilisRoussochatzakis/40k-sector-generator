@@ -698,10 +698,8 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
         }
         // Spec §10.9: primary factions = top by score, ties broken by world
         // appearances, then catalog order, then faction id.
-        let mut entries: Vec<(String, f64, usize)> = scores
-            .into_iter()
-            .map(|(id, (s, n))| (id, s, n))
-            .collect();
+        let mut entries: Vec<(String, f64, usize)> =
+            scores.into_iter().map(|(id, (s, n))| (id, s, n)).collect();
         entries.sort_by(|a, b| {
             b.1.partial_cmp(&a.1)
                 .unwrap_or(std::cmp::Ordering::Equal)

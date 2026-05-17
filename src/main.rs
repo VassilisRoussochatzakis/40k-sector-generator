@@ -201,11 +201,12 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 r: coord_r,
             };
             let system = sectorforge::generate_system_standalone(input, index, coord)?;
-            let json = serde_json::to_string_pretty(&system)
-                .map_err(|e| sectorforge::SectorError::ExportFailed {
+            let json = serde_json::to_string_pretty(&system).map_err(|e| {
+                sectorforge::SectorError::ExportFailed {
                     path: "<stdout>".to_string(),
                     message: e.to_string(),
-                })?;
+                }
+            })?;
             match &out {
                 Some(p) => sectorforge::write_system_json(p, &system)?,
                 None => println!("{}", json),

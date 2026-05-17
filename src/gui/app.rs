@@ -82,7 +82,11 @@ impl eframe::App for App {
         apply_theme(ctx);
 
         TopBottomPanel::top("nav")
-            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(8.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(8.0),
+            )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     let on_sector = matches!(self.view, View::Sector);
@@ -156,9 +160,10 @@ impl eframe::App for App {
 
         match self.view.clone() {
             View::Sector => self.draw_sector_layout(ctx),
-            View::System { system_id, selection } => {
-                self.draw_system_layout(ctx, &system_id, selection)
-            }
+            View::System {
+                system_id,
+                selection,
+            } => self.draw_system_layout(ctx, &system_id, selection),
             View::Edit => self.draw_edit_layout(ctx),
             View::Data => self.draw_data_layout(ctx),
         }
@@ -171,7 +176,11 @@ impl App {
             egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(palette::BG))
                 .show(ctx, |ui| {
-                    ui.label(RichText::new("no sector loaded").color(TEXT_DIM).monospace());
+                    ui.label(
+                        RichText::new("no sector loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
                 });
             return;
         };
@@ -179,7 +188,11 @@ impl App {
             .resizable(true)
             .default_width(320.0)
             .min_width(260.0)
-            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(14.0),
+            )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     if let Some(sel) = self.sector_selected.as_deref() {
@@ -217,7 +230,11 @@ impl App {
             .resizable(true)
             .default_width(320.0)
             .min_width(260.0)
-            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(14.0),
+            )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     let sys_opt = self.system_by_id(system_id).cloned();
@@ -255,7 +272,11 @@ impl App {
 
     fn draw_edit_layout(&mut self, ctx: &egui::Context) {
         TopBottomPanel::top("edit_toolbar")
-            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(6.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(6.0),
+            )
             .show(ctx, |ui| {
                 editor::editor_toolbar(ui, &mut self.editor);
             });
@@ -264,7 +285,11 @@ impl App {
             .resizable(true)
             .default_width(360.0)
             .min_width(300.0)
-            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(14.0),
+            )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     use editor::state::Selection as Sel;
@@ -294,8 +319,7 @@ impl App {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
                     ui.add(
-                        egui::Slider::new(&mut self.editor.hex_size, 20.0..=80.0)
-                            .show_value(false),
+                        egui::Slider::new(&mut self.editor.hex_size, 20.0..=80.0).show_value(false),
                     );
                 });
             });
@@ -320,7 +344,11 @@ impl App {
 
     fn draw_data_layout(&mut self, ctx: &egui::Context) {
         TopBottomPanel::top("data_toolbar")
-            .frame(egui::Frame::none().fill(palette::PANEL_BG).inner_margin(6.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(6.0),
+            )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     let can_reload = self.project_dir.is_some();
@@ -392,8 +420,7 @@ impl App {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
                     ui.add(
-                        egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0)
-                            .show_value(false),
+                        egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),
                     );
                 });
             });
@@ -424,8 +451,7 @@ impl App {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("SIZE").color(TEXT_DIM).monospace());
                     ui.add(
-                        egui::Slider::new(&mut self.system_side, 400.0..=1200.0)
-                            .show_value(false),
+                        egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),
                     );
                 });
             });

@@ -38,7 +38,13 @@ impl<'a> SystemView<'a> {
         painter.rect_filled(rect, 0.0, palette::BG);
 
         // Orbit rings.
-        let max_orbit = self.system.worlds.iter().map(|w| w.orbit).max().unwrap_or(0) as i32;
+        let max_orbit = self
+            .system
+            .worlds
+            .iter()
+            .map(|w| w.orbit)
+            .max()
+            .unwrap_or(0) as i32;
         for o in 1..=max_orbit.max(1) {
             let r = g.orbit_base + (o - 1) as f32 * g.orbit_step;
             painter.circle_stroke(center, r, Stroke::new(1.0, ORBIT_RING));

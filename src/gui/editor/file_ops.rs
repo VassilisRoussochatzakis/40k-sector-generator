@@ -29,10 +29,15 @@ pub fn list_projects() -> Vec<String> {
 }
 
 pub fn project_sector_path(name: &str) -> PathBuf {
-    PathBuf::from(EXAMPLES_DIR).join(name).join("out").join("sector.json")
+    PathBuf::from(EXAMPLES_DIR)
+        .join(name)
+        .join("out")
+        .join("sector.json")
 }
 
-pub fn load_project_sector(name: &str) -> Result<(crate::sector_model::GeneratedSector, String), String> {
+pub fn load_project_sector(
+    name: &str,
+) -> Result<(crate::sector_model::GeneratedSector, String), String> {
     let path = project_sector_path(name);
     let text = fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path.display(), e))?;
     let sector: crate::sector_model::GeneratedSector =
@@ -40,7 +45,10 @@ pub fn load_project_sector(name: &str) -> Result<(crate::sector_model::Generated
     Ok((sector, path.to_string_lossy().to_string()))
 }
 
-pub fn save_project_sector(name: &str, sector: &crate::sector_model::GeneratedSector) -> Result<String, String> {
+pub fn save_project_sector(
+    name: &str,
+    sector: &crate::sector_model::GeneratedSector,
+) -> Result<String, String> {
     if name.trim().is_empty() {
         return Err("project name is empty".to_string());
     }

@@ -12,13 +12,16 @@ use super::palette::{
 pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
     title(ui, &format!("SECTOR: {}", sector.id.to_uppercase()));
     dim(ui, &format!("SEED: {}", short(&sector.seed, 20)));
-    dim(ui, &format!(
-        "{}x{} - {} SYS, {} WORLDS",
-        sector.width,
-        sector.height,
-        sector.systems.len(),
-        sector.manifest.world_count,
-    ));
+    dim(
+        ui,
+        &format!(
+            "{}x{} - {} SYS, {} WORLDS",
+            sector.width,
+            sector.height,
+            sector.systems.len(),
+            sector.manifest.world_count,
+        ),
+    );
     ui.add_space(8.0);
 
     section(ui, "STAR COLOURS");
@@ -125,7 +128,15 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         world_type_color(&w.world.world_type),
         &w.world.world_type.to_uppercase(),
     );
-    kv(ui, "STAR COLOUR", &format!("{} - {}", w.world.star_colour_code.to_uppercase(), w.world.star_colour.to_uppercase()));
+    kv(
+        ui,
+        "STAR COLOUR",
+        &format!(
+            "{} - {}",
+            w.world.star_colour_code.to_uppercase(),
+            w.world.star_colour.to_uppercase()
+        ),
+    );
     ui.add_space(8.0);
 
     section(ui, "ENVIRONMENT");
@@ -223,7 +234,11 @@ fn dim(ui: &mut Ui, s: &str) {
 
 fn kv(ui: &mut Ui, k: &str, v: &str) {
     ui.horizontal(|ui| {
-        ui.label(RichText::new(format!("{}:", k)).color(TEXT_DIM).font(mono(12.0)));
+        ui.label(
+            RichText::new(format!("{}:", k))
+                .color(TEXT_DIM)
+                .font(mono(12.0)),
+        );
         ui.label(RichText::new(v).color(TEXT).font(mono(12.0)));
     });
 }
@@ -232,7 +247,8 @@ fn legend_row(ui: &mut Ui, color: Color32, text: &str) {
     ui.horizontal(|ui| {
         let (rect, _) = ui.allocate_exact_size(egui::Vec2::splat(12.0), egui::Sense::hover());
         ui.painter().rect_filled(rect, 1.0, color);
-        ui.painter().rect_stroke(rect, 1.0, egui::Stroke::new(1.0, darken(color, 0.5)));
+        ui.painter()
+            .rect_stroke(rect, 1.0, egui::Stroke::new(1.0, darken(color, 0.5)));
         ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
     });
 }

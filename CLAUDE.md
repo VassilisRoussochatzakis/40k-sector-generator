@@ -1,31 +1,38 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-This is an empty Rust project (40k Sector Generator for Warhammer 40k). No `Cargo.toml` or source files exist yet — the `.gitignore` confirms Cargo/rustfmt/mutation testing (`cargo-mutants`) are part of the toolchain.
-
-Ignore the old directory, don't ever read it or go into it.
-
-Update GUIDE.md after every change.
-
 ## Commands
 
 ```bash
-# Initialize the project (if not already done)
-cargo init
-
-# Build
-cargo build
-
-# Run tests
-cargo test
-
-# Format code
-cargo fmt
-
-# Check
-cargo check
-
-# Mutation testing (if cargo-mutants is installed)
-cargo mutants
+cargo build            # build all targets (sectorforge binary + sectorforge-gui)
+cargo test             # all tests
+cargo fmt              # format code
+cargo check            # compile check
+cargo run --bin sectorforge --help   # CLI help
+cargo run --bin sectorforge-gui --help   # GUI help
 ```
+
+## Source layout
+
+| File | Purpose |
+|---|---|
+| [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser |
+| [src/world_pool.rs](src/world_pool.rs) | GenerationRow → weighted candidate pool |
+| [src/generation.rs](src/generation.rs) | Sector generation: placement, systems, worlds, factions, routes |
+| [src/sector_model.rs](src/sector_model.rs) | Output DTOs with Serialize/Deserialize |
+| [src/validation.rs](src/validation.rs) | Pre-generation validation |
+| [src/invariants.rs](src/invariants.rs) | Post-generation invariants (spec §11.11) |
+| [src/render.rs](src/render.rs) | Markdown rendering (sector + standalone system) |
+| [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest / bitmap writers |
+| [src/main.rs](src/main.rs) | CLI (sectorforge binary) |
+| [src/config.rs](src/config.rs) | sectorforge.toml schema |
+| [src/rng.rs](src/rng.rs) | Deterministic RNG |
+| [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
+| [src/lib.rs](src/lib.rs) | Public API surface |
+| [src/bitmap.rs](src/bitmap.rs) | Bitmap rendering (PNG/BMP via image crate) |
+| [src/gui/app.rs](src/gui/app.rs) | Top-level eframe app + navigation |
+| [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
+| [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |
+| [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor |
+| [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
+| [src/gui/editor/](src/gui/editor/) | Sector/world editing UI |
+| [src/gui/palette.rs](src/gui/palette.rs) | Color palette |

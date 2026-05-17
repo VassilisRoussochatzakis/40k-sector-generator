@@ -4,8 +4,12 @@
 use std::path::PathBuf;
 
 use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
+use rfd::FileDialog;
 
-use crate::sector_model::{GeneratedSector, GeneratedSystem};
+use crate::{
+    export,
+    sector_model::{GeneratedSector, GeneratedSystem},
+};
 
 use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
@@ -26,6 +30,7 @@ pub struct App {
     project_dir: Option<PathBuf>,
     planner: RoutePlannerState,
     planner_hex_size: f32,
+    export_status: String,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +58,7 @@ impl App {
             project_dir: None,
             planner: RoutePlannerState::default(),
             planner_hex_size: 44.0,
+            export_status: String::new(),
         }
     }
 
@@ -68,6 +74,7 @@ impl App {
             project_dir: None,
             planner: RoutePlannerState::default(),
             planner_hex_size: 44.0,
+            export_status: String::new(),
         }
     }
 
@@ -148,6 +155,16 @@ impl eframe::App for App {
                     {
                         self.view = View::Planner;
                     }
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::Button::new(RichText::new("EXPORT").color(TEXT).monospace()),
+                        )
+                        .on_hover_text("Save sector.json + systems/*.json to a folder")
+                        .clicked()
+                    {
+                        self.export_sector_json(ctx);
+                    }
                     if let View::System { system_id, .. } = &self.view {
                         ui.label(RichText::new("›").color(TEXT_DIM).monospace());
                         ui.label(
@@ -172,6 +189,13 @@ impl eframe::App for App {
                             ui.label(
                                 RichText::new("NO SECTOR LOADED")
                                     .color(TEXT_DIM)
+                                    .monospace(),
+                            );
+                        }
+                        if !self.export_status.is_empty() {
+                            ui.label(
+                                RichText::new(&self.export_status)
+                                    .color(egui::Color32::from_rgb(235, 200, 90))
                                     .monospace(),
                             );
                         }
@@ -804,6 +828,25 @@ impl App {
                 };
             }
         });
+    }
+
+    fn export_sector_json(&mut self, _ctx: &egui::Context) {
+        let sector = self.sector.clone();
+        match FileDialog::new().pick_folder() {
+            Some(path) => {
+                let path = camino::Utf8Path::from_path(&path).unwrap();
+                match sector {
+                    Some(s) => match export::export_json(&s, path) {
+                        Ok(()) => {
+                            self.export_status = format!("exported to {}", path);
+                        }
+                        Err(e) => self.export_status = format!("export failed: {}", e),
+                    },
+                    None => self.export_status = "no sector to export".into(),
+                }
+            }
+            None => {} // user cancelled
+        }
     }
 }
 

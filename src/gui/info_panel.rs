@@ -6,8 +6,7 @@ use egui::{Color32, FontId, Pos2, RichText, Ui, Vec2};
 use crate::sector_model::{GeneratedSector, GeneratedSystem, GeneratedWorld, RoutePattern};
 
 use super::palette::{
-    darken, draw_route_line, stability_color, star_color, world_type_color, TEXT,
-    TEXT_DIM,
+    darken, draw_route_line, stability_color, star_color, world_type_color, TEXT, TEXT_DIM,
 };
 
 pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
@@ -58,7 +57,6 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
         legend_row(ui, stability_color(stab), name);
     }
     ui.add_space(8.0);
-
 }
 
 pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem) {

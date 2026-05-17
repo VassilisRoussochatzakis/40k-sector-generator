@@ -112,6 +112,25 @@ fn write_validation_placeholder(
     Ok(())
 }
 
+/// Export sector.json + systems/*.json to the given directory.
+/// Simpler than `write_json` — always writes per-system files.
+pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {
+    let sector_path = output_dir.join("sector.json");
+    let text = serde_json::to_string_pretty(sector)
+        .map_err(|e| SectorError::export(sector_path.as_str(), e.to_string()))?;
+    fs::write(&sector_path, text).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
+
+    let systems_dir = output_dir.join("systems");
+    fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
+    for sys in &sector.systems {
+        let path = systems_dir.join(format!("{}.json", sys.id));
+        let text = serde_json::to_string_pretty(sys)
+            .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+        fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
+    }
+    Ok(())
+}
+
 // ── Markdown ─────────────────────────────────────────────────────────────────
 
 fn write_markdown(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {

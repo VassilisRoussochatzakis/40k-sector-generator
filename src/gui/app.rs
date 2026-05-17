@@ -17,7 +17,7 @@ use super::editor::{self, EditorState};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
 use super::route_planner::{self, Metric, PickTarget, RoutePlannerState, Severity};
-use super::sector_view::SectorView;
+use super::sector_view::{SectorClick, SectorView};
 use super::system_view::{SystemClick, SystemSelection, SystemView};
 
 pub struct App {
@@ -25,6 +25,7 @@ pub struct App {
     subsectors: Vec<Subsector>,
     view: View,
     sector_selected: Option<String>,
+    sector_selected_subsector: Option<String>,
     sector_hex_size: f32,
     system_side: f32,
     editor: EditorState,
@@ -65,6 +66,7 @@ impl App {
             subsectors,
             view: View::Sector,
             sector_selected: None,
+            sector_selected_subsector: None,
             sector_hex_size: 44.0,
             system_side: 700.0,
             editor: EditorState::default(),
@@ -85,6 +87,7 @@ impl App {
             subsectors: Vec::new(),
             view: View::Edit,
             sector_selected: None,
+            sector_selected_subsector: None,
             sector_hex_size: 44.0,
             system_side: 700.0,
             editor: EditorState::default(),
@@ -340,6 +343,35 @@ impl App {
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::BG))
             .show(ctx, |ui| self.show_sector(ui));
+
+        self.draw_subsector_popup(ctx, &sector);
+    }
+
+    fn draw_subsector_popup(&mut self, ctx: &egui::Context, sector: &GeneratedSector) {
+        let Some(sub_id) = self.sector_selected_subsector.clone() else {
+            return;
+        };
+        let Some(sub) = self.subsectors.iter().find(|s| s.id == sub_id).cloned() else {
+            self.sector_selected_subsector = None;
+            return;
+        };
+        let mut open = true;
+        let title = format!("SUBSECTOR {} - {}", sub.label, sub.name);
+        egui::Window::new(RichText::new(&title).monospace().strong())
+            .open(&mut open)
+            .collapsible(true)
+            .resizable(true)
+            .default_width(340.0)
+            .default_height(520.0)
+            .anchor(egui::Align2::RIGHT_TOP, [-360.0, 60.0])
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    info_panel::subsector_summary(ui, &sub, sector);
+                });
+            });
+        if !open {
+            self.sector_selected_subsector = None;
+        }
     }
 
     fn draw_system_layout(
@@ -594,10 +626,11 @@ impl App {
                         path_route_ids: Some(&route_ids),
                         path_waypoints: Some(&waypoints),
                         subsectors: None,
+                        selected_subsector: None,
                     }
                     .show(ui);
-                    if let Some(c) = click {
-                        self.planner.click_system(&c.system_id);
+                    if let Some(SectorClick::System(id)) = click {
+                        self.planner.click_system(&id);
                         self.recompute_plan();
                     }
                 });
@@ -870,20 +903,35 @@ impl App {
                 path_route_ids: None,
                 path_waypoints: None,
                 subsectors: Some(self.subsectors.as_slice()),
+                selected_subsector: self.sector_selected_subsector.as_deref(),
             }
             .show(ui);
-            if let Some(c) = click {
-                if self.sector_pick_export {
-                    self.sector_pick_export = false;
-                    self.pending_export = Some(PendingExport::SystemPng(c.system_id));
-                } else if self.sector_selected.as_deref() == Some(c.system_id.as_str()) {
-                    self.view = View::System {
-                        system_id: c.system_id,
-                        selection: SystemSelection::None,
-                    };
-                } else {
-                    self.sector_selected = Some(c.system_id);
+            match click {
+                Some(SectorClick::System(id)) => {
+                    if self.sector_pick_export {
+                        self.sector_pick_export = false;
+                        self.pending_export = Some(PendingExport::SystemPng(id));
+                    } else if self.sector_selected.as_deref() == Some(id.as_str()) {
+                        self.view = View::System {
+                            system_id: id,
+                            selection: SystemSelection::None,
+                        };
+                    } else {
+                        self.sector_selected = Some(id);
+                        self.sector_selected_subsector = None;
+                    }
                 }
+                Some(SectorClick::Subsector(id)) => {
+                    if self.sector_pick_export {
+                        // empty hexes are not valid export targets
+                    } else if self.sector_selected_subsector.as_deref() == Some(id.as_str()) {
+                        self.sector_selected_subsector = None;
+                    } else {
+                        self.sector_selected_subsector = Some(id);
+                        self.sector_selected = None;
+                    }
+                }
+                None => {}
             }
         });
     }

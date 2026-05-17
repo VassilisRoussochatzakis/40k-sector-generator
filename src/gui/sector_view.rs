@@ -23,14 +23,18 @@ pub struct SectorView<'a> {
     pub path_waypoints: Option<&'a HashSet<String>>,
     /// Subsector overlay: tile boundaries, labels, and capital markers.
     pub subsectors: Option<&'a [Subsector]>,
+    /// When set, every hex of this subsector gets a faint grey tint.
+    pub selected_subsector: Option<&'a str>,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
 const SUBSECTOR_LABEL: Color32 = Color32::from_rgb(230, 195, 120);
+const SUBSECTOR_HIGHLIGHT: Color32 = Color32::from_rgba_premultiplied(40, 40, 44, 70);
 const CAPITAL_MARKER: Color32 = Color32::from_rgb(255, 220, 100);
 
-pub struct SectorClick {
-    pub system_id: String,
+pub enum SectorClick {
+    System(String),
+    Subsector(String),
 }
 
 impl<'a> SectorView<'a> {
@@ -59,6 +63,18 @@ impl<'a> SectorView<'a> {
             for q in 0..self.sector.width as i32 {
                 let c = hex_center(q, r, &g) + origin.to_vec2();
                 draw_hex(&painter, c, g.hex_size, HEX_EMPTY, HEX_OUTLINE);
+            }
+        }
+
+        // Selected subsector: faint grey wash over every hex in the cluster.
+        // Drawn after the base hex fills so it tints them, but before borders,
+        // routes, and stars so those remain crisp.
+        if let Some(sel) = self.selected_subsector {
+            for (&(q, r), &sid) in &hex_subsector {
+                if sid == sel {
+                    let c = hex_center(q, r, &g) + origin.to_vec2();
+                    draw_hex_fill(&painter, c, g.hex_size, SUBSECTOR_HIGHLIGHT);
+                }
             }
         }
 
@@ -432,9 +448,29 @@ impl<'a> SectorView<'a> {
                     .filter(|(_, d)| *d <= g.hex_size * 0.95)
                     .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
                 if let Some((sys, _)) = hit {
-                    click = Some(SectorClick {
-                        system_id: sys.id.clone(),
-                    });
+                    click = Some(SectorClick::System(sys.id.clone()));
+                } else if !hex_subsector.is_empty() {
+                    // No system under cursor — try empty hex inside a known
+                    // subsector. Nearest hex center wins as long as it's within
+                    // the hex's inscribed radius.
+                    let inscribed = g.hex_size * 3f32.sqrt() / 2.0;
+                    let mut best: Option<((i32, i32), f32)> = None;
+                    for r in 0..self.sector.height as i32 {
+                        for q in 0..self.sector.width as i32 {
+                            let c = hex_center(q, r, &g) + origin.to_vec2();
+                            let d = (c - pos).length();
+                            if best.map(|(_, bd)| d < bd).unwrap_or(true) {
+                                best = Some(((q, r), d));
+                            }
+                        }
+                    }
+                    if let Some(((q, r), d)) = best {
+                        if d <= inscribed {
+                            if let Some(&sid) = hex_subsector.get(&(q, r)) {
+                                click = Some(SectorClick::Subsector(sid.to_string()));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -498,6 +534,11 @@ fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline:
         fill,
         Stroke::new(1.0, outline),
     ));
+}
+
+fn draw_hex_fill(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32) {
+    let pts = hex_vertices(c, size).to_vec();
+    painter.add(egui::Shape::convex_polygon(pts, fill, Stroke::NONE));
 }
 
 fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {

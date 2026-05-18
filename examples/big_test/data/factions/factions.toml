@@ -1,4 +1,46 @@
 # Enhanced Warhammer 40,000-style faction list. Original entries preserved, expanded with major factions, subfactions, cults, dynasties, septs, chapters, regiments, warbands, and minor threats.
+#
+# Organized for game loading/readability: factions are grouped by their existing `kind` field.
+# Schema is unchanged: this remains a flat TOML array of [[factions]] tables.
+# Rust structs/deserializers expecting `factions: Vec<Faction>` should continue to work.
+#
+# Group counts:
+#   imperial = 41
+#   inquisition = 33
+#   talons_of_the_emperor = 14
+#   adeptus_astartes = 99
+#   grey_knights = 1
+#   deathwatch = 1
+#   adepta_sororitas = 29
+#   imperial_guard = 53
+#   imperial_knight = 21
+#   mechanicus = 41
+#   collegia_titanica = 18
+#   merchant = 29
+#   criminal = 36
+#   rebel = 21
+#   cult = 30
+#   genestealer_cult = 30
+#   chaos_space_marine = 61
+#   traitor_guard = 23
+#   dark_mechanicum = 20
+#   daemon = 30
+#   chaos_knight = 17
+#   traitor_titan_legion = 16
+#   xenos = 1
+#   aeldari = 49
+#   drukhari = 31
+#   harlequin = 17
+#   ork = 40
+#   tau = 42
+#   necron = 38
+#   tyranid = 36
+#   leagues_of_votann = 28
+#   minor_xenos = 49
+
+# ========================================================================================
+# Imperial Institutions & Authorities  (kind = "imperial", count = 41)
+# ========================================================================================
 
 [[factions]]
 id = "imperial_administration"
@@ -9,26 +51,6 @@ default_disposition = "lawful"
 preferred_world_types = ["HiveWorld", "BastionWorld", "IndustrialWorld"]
 preferred_governments = ["MilitaryGovernor", "MagistrateCouncil", "EcclesiarchicalAppointee"]
 preferred_notable_features = ["AdministrativeHub", "PoliceState", "ImportantShrine"]
-
-[[factions]]
-id = "mechanicus"
-name = "Adeptus Mechanicus"
-kind = "mechanicus"
-weight = 6.0
-default_disposition = "insular"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "ExploratorAuthority"]
-preferred_notable_features = ["ArchaeotechRuins", "ForbiddenTech", "MajorSpaceyard", "LocalTech"]
-
-[[factions]]
-id = "free_traders"
-name = "Free Trader Compact"
-kind = "merchant"
-weight = 4.0
-default_disposition = "opportunistic"
-preferred_world_types = ["FrontierWorld", "AgriWorld"]
-preferred_governments = ["RogueTraderDynasty", "Megacorporations", "GuildsCombine"]
-preferred_notable_features = ["Freeport", "TradeHub", "TheSilentTrade", "Prosperous"]
 
 [[factions]]
 id = "ecclesiarchy"
@@ -49,26 +71,6 @@ default_disposition = "secretive"
 preferred_world_types = ["HiveWorld", "ShrineWorld", "DeathWorld"]
 preferred_governments = []
 preferred_notable_features = ["InquisitionOutpost", "WitchHunt", "DaemonicCorruption", "Quarantined"]
-
-[[factions]]
-id = "rebels"
-name = "Separatist Movement"
-kind = "rebel"
-weight = 3.0
-default_disposition = "hostile"
-preferred_world_types = ["FrontierWorld", "PenalWorld"]
-preferred_governments = ["RevolutionaryJunta", "Demagogue", "Warlords"]
-preferred_notable_features = ["Separatists", "CivilWar", "WarZone", "PopularUprising"]
-
-[[factions]]
-id = "xenos_threat"
-name = "Xenos Incursion"
-kind = "xenos"
-weight = 2.0
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["HostileXenos", "XenoRuins", "XenosInfiltrators", "PrimitiveXenos"]
 
 [[factions]]
 id = "adeptus_terra"
@@ -450,6 +452,10 @@ preferred_world_types = ["HiveWorld", "BastionWorld", "IndustrialWorld"]
 preferred_governments = ["MilitaryGovernor", "MagistrateCouncil", "EcclesiarchicalAppointee"]
 preferred_notable_features = ["AdministrativeHub", "PoliceState", "ImportantShrine"]
 
+# ========================================================================================
+# Inquisition, Ordos & Agents  (kind = "inquisition", count = 33)
+# ========================================================================================
+
 [[factions]]
 id = "ordo_hereticus"
 name = "Ordo Hereticus"
@@ -780,6 +786,10 @@ preferred_world_types = ["HiveWorld", "ShrineWorld", "DeathWorld"]
 preferred_governments = []
 preferred_notable_features = ["InquisitionOutpost", "WitchHunt", "Quarantined"]
 
+# ========================================================================================
+# Talons of the Emperor  (kind = "talons_of_the_emperor", count = 14)
+# ========================================================================================
+
 [[factions]]
 id = "adeptus_custodes"
 name = "Adeptus Custodes"
@@ -919,6 +929,10 @@ default_disposition = "zealous"
 preferred_world_types = ["BastionWorld", "DeathWorld", "FrontierWorld"]
 preferred_governments = ["MilitaryGovernor"]
 preferred_notable_features = ["WarZone", "ImportantShrine", "ScholaProgenium"]
+
+# ========================================================================================
+# Adeptus Astartes Chapters  (kind = "adeptus_astartes", count = 99)
+# ========================================================================================
 
 [[factions]]
 id = "adeptus_astartes"
@@ -1910,6 +1924,10 @@ preferred_world_types = ["BastionWorld", "DeathWorld", "FrontierWorld"]
 preferred_governments = ["MilitaryGovernor"]
 preferred_notable_features = ["WarZone", "ImportantShrine", "ScholaProgenium"]
 
+# ========================================================================================
+# Grey Knights  (kind = "grey_knights", count = 1)
+# ========================================================================================
+
 [[factions]]
 id = "grey_knights"
 name = "Grey Knights"
@@ -1920,6 +1938,10 @@ preferred_world_types = ["BastionWorld", "DeathWorld", "FrontierWorld"]
 preferred_governments = ["MilitaryGovernor"]
 preferred_notable_features = ["WarZone", "ImportantShrine", "ScholaProgenium"]
 
+# ========================================================================================
+# Deathwatch  (kind = "deathwatch", count = 1)
+# ========================================================================================
+
 [[factions]]
 id = "deathwatch"
 name = "Deathwatch"
@@ -1929,6 +1951,304 @@ default_disposition = "zealous"
 preferred_world_types = ["BastionWorld", "DeathWorld", "FrontierWorld"]
 preferred_governments = ["MilitaryGovernor"]
 preferred_notable_features = ["WarZone", "ImportantShrine", "ScholaProgenium"]
+
+# ========================================================================================
+# Adepta Sororitas Orders  (kind = "adepta_sororitas", count = 29)
+# ========================================================================================
+
+[[factions]]
+id = "adepta_sororitas"
+name = "Adepta Sororitas"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_our_martyred_lady"
+name = "Order of Our Martyred Lady"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_valorous_heart"
+name = "Order of the Valorous Heart"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_bloody_rose"
+name = "Order of the Bloody Rose"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_ebon_chalice"
+name = "Order of the Ebon Chalice"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_argent_shroud"
+name = "Order of the Argent Shroud"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_sacred_rose"
+name = "Order of the Sacred Rose"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_ashen_shrine"
+name = "Order of the Ashen Shrine"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_wounded_heart"
+name = "Order of the Wounded Heart"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "order_of_the_thorn_eternal"
+name = "Order of the Thorn Eternal"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "repentia_hosts"
+name = "Repentia Hosts"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "dominion_squads"
+name = "Dominion Squads"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "seraphim_choirs"
+name = "Seraphim Choirs"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "zephyrim_orders"
+name = "Zephyrim Orders"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "hospitaller_convents"
+name = "Hospitaller Convents"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "dialogus_scriptoriums"
+name = "Dialogus Scriptoriums"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "famulous_diplomat_convents"
+name = "Famulous Diplomat-Convents"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "crusader_houses"
+name = "Crusader Houses"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "death_cult_assassins"
+name = "Death Cult Assassins"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "arco_flagellant_processions"
+name = "Arco-flagellant Processions"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "frateris_militia"
+name = "Frateris Militia"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "redemptionist_preachers"
+name = "Redemptionist Preachers"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "cardinal_worlds_guard"
+name = "Cardinal Worlds’ Guard"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "shrine_templar_orders"
+name = "Shrine Templar Orders"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "missionary_conclaves"
+name = "Missionary Conclaves"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "confessor_retinues"
+name = "Confessor Retinues"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "penitent_engine_choirs"
+name = "Penitent Engine Choirs"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "mortifier_covens"
+name = "Mortifier Covens"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+[[factions]]
+id = "ecclesiarchy_battle_choirs"
+name = "Ecclesiarchy Battle Choirs"
+kind = "adepta_sororitas"
+weight = 1.6
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+
+# ========================================================================================
+# Astra Militarum / Imperial Guard  (kind = "imperial_guard", count = 53)
+# ========================================================================================
 
 [[factions]]
 id = "astra_militarum"
@@ -2460,295 +2780,233 @@ preferred_world_types = ["BastionWorld", "HiveWorld", "IndustrialWorld"]
 preferred_governments = ["MilitaryGovernor", "MagistrateCouncil"]
 preferred_notable_features = ["WarZone", "PoliceState", "ScholaProgenium"]
 
-[[factions]]
-id = "adepta_sororitas"
-name = "Adepta Sororitas"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+# ========================================================================================
+# Imperial Knight Houses  (kind = "imperial_knight", count = 21)
+# ========================================================================================
 
 [[factions]]
-id = "order_of_our_martyred_lady"
-name = "Order of Our Martyred Lady"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "imperial_knights"
+name = "Imperial Knights"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_valorous_heart"
-name = "Order of the Valorous Heart"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_terryn"
+name = "House Terryn"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_bloody_rose"
-name = "Order of the Bloody Rose"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_griffith"
+name = "House Griffith"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_ebon_chalice"
-name = "Order of the Ebon Chalice"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_hawkshroud"
+name = "House Hawkshroud"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_argent_shroud"
-name = "Order of the Argent Shroud"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_raven"
+name = "House Raven"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_sacred_rose"
-name = "Order of the Sacred Rose"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_taranis"
+name = "House Taranis"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_ashen_shrine"
-name = "Order of the Ashen Shrine"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_krast"
+name = "House Krast"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_wounded_heart"
-name = "Order of the Wounded Heart"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_cadmus"
+name = "House Cadmus"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "order_of_the_thorn_eternal"
-name = "Order of the Thorn Eternal"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_vulker"
+name = "House Vulker"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "repentia_hosts"
-name = "Repentia Hosts"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_mortan"
+name = "House Mortan"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "dominion_squads"
-name = "Dominion Squads"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_vyronii"
+name = "House Vyronii"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "seraphim_choirs"
-name = "Seraphim Choirs"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_orhlacc"
+name = "House Orhlacc"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "zephyrim_orders"
-name = "Zephyrim Orders"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_malinax"
+name = "House Malinax"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "hospitaller_convents"
-name = "Hospitaller Convents"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_coldshroud"
+name = "House Coldshroud"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "dialogus_scriptoriums"
-name = "Dialogus Scriptoriums"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "house_devine_loyalist_claimants"
+name = "House Devine Loyalist Claimants"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "famulous_diplomat_convents"
-name = "Famulous Diplomat-Convents"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "freeblade_knights"
+name = "Freeblade Knights"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "crusader_houses"
-name = "Crusader Houses"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "questor_imperialis_households"
+name = "Questor Imperialis Households"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "death_cult_assassins"
-name = "Death Cult Assassins"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "questor_mechanicus_households"
+name = "Questor Mechanicus Households"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "arco_flagellant_processions"
-name = "Arco-flagellant Processions"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "knight_seneschal_courts"
+name = "Knight Seneschal Courts"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "frateris_militia"
-name = "Frateris Militia"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "armiger_bondsmen"
+name = "Armiger Bondsmen"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
 
 [[factions]]
-id = "redemptionist_preachers"
-name = "Redemptionist Preachers"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "knight_world_sacristans"
+name = "Knight World Sacristans"
+kind = "imperial_knight"
+weight = 1.2
+default_disposition = "lawful"
+preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
+preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
+
+# ========================================================================================
+# Adeptus Mechanicus & Forge Worlds  (kind = "mechanicus", count = 41)
+# ========================================================================================
 
 [[factions]]
-id = "cardinal_worlds_guard"
-name = "Cardinal Worlds’ Guard"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
-
-[[factions]]
-id = "shrine_templar_orders"
-name = "Shrine Templar Orders"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
-
-[[factions]]
-id = "missionary_conclaves"
-name = "Missionary Conclaves"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
-
-[[factions]]
-id = "confessor_retinues"
-name = "Confessor Retinues"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
-
-[[factions]]
-id = "penitent_engine_choirs"
-name = "Penitent Engine Choirs"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
-
-[[factions]]
-id = "mortifier_covens"
-name = "Mortifier Covens"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
-
-[[factions]]
-id = "ecclesiarchy_battle_choirs"
-name = "Ecclesiarchy Battle Choirs"
-kind = "adepta_sororitas"
-weight = 1.6
-default_disposition = "zealous"
-preferred_world_types = ["ShrineWorld", "HiveWorld", "FeudalWorld"]
-preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
-preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "Missionaries"]
+id = "mechanicus"
+name = "Adeptus Mechanicus"
+kind = "mechanicus"
+weight = 6.0
+default_disposition = "insular"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "ExploratorAuthority"]
+preferred_notable_features = ["ArchaeotechRuins", "ForbiddenTech", "MajorSpaceyard", "LocalTech"]
 
 [[factions]]
 id = "forge_world_mars"
@@ -3150,6 +3408,10 @@ preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
 preferred_governments = ["MechanicusForgeLord", "ExploratorAuthority"]
 preferred_notable_features = ["ArchaeotechRuins", "ForbiddenTech", "LocalTech"]
 
+# ========================================================================================
+# Collegia Titanica / Loyalist Titan Legions  (kind = "collegia_titanica", count = 18)
+# ========================================================================================
+
 [[factions]]
 id = "collegia_titanica"
 name = "Collegia Titanica"
@@ -3330,215 +3592,19 @@ preferred_world_types = ["ForgeWorld", "IndustrialWorld", "BastionWorld"]
 preferred_governments = ["MechanicusForgeLord", "MilitaryGovernor"]
 preferred_notable_features = ["MajorSpaceyard", "ForbiddenTech", "WarZone"]
 
-[[factions]]
-id = "imperial_knights"
-name = "Imperial Knights"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
+# ========================================================================================
+# Merchants, Rogue Traders & Free Traders  (kind = "merchant", count = 29)
+# ========================================================================================
 
 [[factions]]
-id = "house_terryn"
-name = "House Terryn"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_griffith"
-name = "House Griffith"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_hawkshroud"
-name = "House Hawkshroud"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_raven"
-name = "House Raven"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_taranis"
-name = "House Taranis"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_krast"
-name = "House Krast"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_cadmus"
-name = "House Cadmus"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_vulker"
-name = "House Vulker"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_mortan"
-name = "House Mortan"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_vyronii"
-name = "House Vyronii"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_orhlacc"
-name = "House Orhlacc"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_malinax"
-name = "House Malinax"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_coldshroud"
-name = "House Coldshroud"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "house_devine_loyalist_claimants"
-name = "House Devine Loyalist Claimants"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "freeblade_knights"
-name = "Freeblade Knights"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "questor_imperialis_households"
-name = "Questor Imperialis Households"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "questor_mechanicus_households"
-name = "Questor Mechanicus Households"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "knight_seneschal_courts"
-name = "Knight Seneschal Courts"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "armiger_bondsmen"
-name = "Armiger Bondsmen"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
-
-[[factions]]
-id = "knight_world_sacristans"
-name = "Knight World Sacristans"
-kind = "imperial_knight"
-weight = 1.2
-default_disposition = "lawful"
-preferred_world_types = ["FeudalWorld", "ForgeWorld", "AgriWorld"]
-preferred_governments = ["MilitaryGovernor", "MechanicusForgeLord"]
-preferred_notable_features = ["ImportantShrine", "LocalTech", "WarZone"]
+id = "free_traders"
+name = "Free Trader Compact"
+kind = "merchant"
+weight = 4.0
+default_disposition = "opportunistic"
+preferred_world_types = ["FrontierWorld", "AgriWorld"]
+preferred_governments = ["RogueTraderDynasty", "Megacorporations", "GuildsCombine"]
+preferred_notable_features = ["Freeport", "TradeHub", "TheSilentTrade", "Prosperous"]
 
 [[factions]]
 id = "rogue_trader_dynasties"
@@ -3819,6 +3885,10 @@ default_disposition = "opportunistic"
 preferred_world_types = ["FrontierWorld", "Orbital", "AgriWorld"]
 preferred_governments = ["RogueTraderDynasty", "Megacorporations", "GuildsCombine"]
 preferred_notable_features = ["TradeHub", "Freeport", "TheSilentTrade"]
+
+# ========================================================================================
+# Criminal Syndicates & Underworld Powers  (kind = "criminal", count = 36)
+# ========================================================================================
 
 [[factions]]
 id = "underhive_gangs"
@@ -4180,6 +4250,20 @@ preferred_world_types = ["HiveWorld", "PenalWorld", "FrontierWorld"]
 preferred_governments = ["GuildsCombine", "Warlords", "Demagogue"]
 preferred_notable_features = ["TheSilentTrade", "Freeport", "CivilWar"]
 
+# ========================================================================================
+# Rebels, Secessionists & Dissidents  (kind = "rebel", count = 21)
+# ========================================================================================
+
+[[factions]]
+id = "rebels"
+name = "Separatist Movement"
+kind = "rebel"
+weight = 3.0
+default_disposition = "hostile"
+preferred_world_types = ["FrontierWorld", "PenalWorld"]
+preferred_governments = ["RevolutionaryJunta", "Demagogue", "Warlords"]
+preferred_notable_features = ["Separatists", "CivilWar", "WarZone", "PopularUprising"]
+
 [[factions]]
 id = "secessionist_governors"
 name = "Secessionist Governors"
@@ -4379,6 +4463,618 @@ default_disposition = "hostile"
 preferred_world_types = ["FrontierWorld", "PenalWorld", "HiveWorld"]
 preferred_governments = ["RevolutionaryJunta", "Demagogue", "Warlords"]
 preferred_notable_features = ["Separatists", "CivilWar", "PopularUprising"]
+
+# ========================================================================================
+# Cults, Heretics & Secret Societies  (kind = "cult", count = 30)
+# ========================================================================================
+
+[[factions]]
+id = "chaos_cultists"
+name = "Chaos Cultists"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "khorne_blood_cults"
+name = "Khorne Blood Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "nurgle_plague_cults"
+name = "Nurgle Plague Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "tzeentch_covenants"
+name = "Tzeentch Covenants"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "slaanesh_pleasure_cults"
+name = "Slaanesh Pleasure Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "chaos_undivided_cults"
+name = "Chaos Undivided Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "the_lost_and_the_damned"
+name = "The Lost and the Damned"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "the_arch_enemy"
+name = "The Arch-enemy"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "dark_commune_cells"
+name = "Dark Commune Cells"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "accursed_cults"
+name = "Accursed Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "poxwalker_hordes"
+name = "Poxwalker Hordes"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "mutant_warbands"
+name = "Mutant Warbands"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "beastmen_fellgor_ravagers"
+name = "Beastmen Fellgor Ravagers"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "traitor_ogryn_bands"
+name = "Traitor Ogryn Bands"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "traitor_enforcer_cadres"
+name = "Traitor Enforcer Cadres"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "possessed_worker_cells"
+name = "Possessed Worker Cells"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "daemonhost_cabals"
+name = "Daemonhost Cabals"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "witch_covens"
+name = "Witch Covens"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "sanguinary_death_cults"
+name = "Sanguinary Death Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "corpse_grinder_heresies"
+name = "Corpse-grinder Heresies"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "eightfold_path_preachers"
+name = "Eightfold Path Preachers"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "cult_of_the_red_grail"
+name = "Cult of the Red Grail"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "pale_procession"
+name = "Pale Procession"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "plague_zombie_mobs"
+name = "Plague Zombie Mobs"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "warp_tainted_pilgrims"
+name = "Warp-tainted Pilgrims"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "ruinous_shrine_keepers"
+name = "Ruinous Shrine Keepers"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "heretek_prophet_cults"
+name = "Heretek Prophet Cults"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "forbidden_tome_circles"
+name = "Forbidden Tome Circles"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "malefic_choirs"
+name = "Malefic Choirs"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+[[factions]]
+id = "apostate_cardinalates"
+name = "Apostate Cardinalates"
+kind = "cult"
+weight = 1.5
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
+preferred_governments = ["Demagogue", "Warlords"]
+preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+
+# ========================================================================================
+# Genestealer Cults  (kind = "genestealer_cult", count = 30)
+# ========================================================================================
+
+[[factions]]
+id = "genestealer_cults"
+name = "Genestealer Cults"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "cult_of_the_four_armed_emperor"
+name = "Cult of the Four-Armed Emperor"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "the_bladed_cog"
+name = "The Bladed Cog"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "the_rusted_claw"
+name = "The Rusted Claw"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "the_twisted_helix"
+name = "The Twisted Helix"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "the_pauper_princes"
+name = "The Pauper Princes"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "the_hivecult"
+name = "The Hivecult"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "sons_of_jormungandr"
+name = "Sons of Jormungandr"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "cult_tenebrous"
+name = "Cult Tenebrous"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "voidbrood_cults"
+name = "Voidbrood Cults"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "brood_brothers"
+name = "Brood Brothers"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "neophyte_hybrids"
+name = "Neophyte Hybrids"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "acolyte_hybrids"
+name = "Acolyte Hybrids"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "aberrant_broods"
+name = "Aberrant Broods"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "purestrain_genestealer_cults"
+name = "Purestrain Genestealer Cults"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "magus_covens"
+name = "Magus Covens"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "primus_war_cells"
+name = "Primus War Cells"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "nexos_intelligence_cells"
+name = "Nexos Intelligence Cells"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "sanctus_assassin_cells"
+name = "Sanctus Assassin Cells"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "clamavus_propagandists"
+name = "Clamavus Propagandists"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "kelermorph_gunslingers"
+name = "Kelermorph Gunslingers"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "atalan_jackal_gangs"
+name = "Atalan Jackal Gangs"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "ridgerunner_convoys"
+name = "Ridgerunner Convoys"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "mining_guild_insurrectionists"
+name = "Mining Guild Insurrectionists"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "subterranean_broodkin"
+name = "Subterranean Broodkin"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "patriarch_courts"
+name = "Patriarch Courts"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "hybrid_metamorph_hosts"
+name = "Hybrid Metamorph Hosts"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "genomic_saboteur_cells"
+name = "Genomic Saboteur Cells"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "revolutionary_cult_workers"
+name = "Revolutionary Cult Workers"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+[[factions]]
+id = "planetary_uprising_broods"
+name = "Planetary Uprising Broods"
+kind = "genestealer_cult"
+weight = 1.1
+default_disposition = "secretive"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
+preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
+preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+
+# ========================================================================================
+# Chaos Space Marines & Warbands  (kind = "chaos_space_marine", count = 61)
+# ========================================================================================
 
 [[factions]]
 id = "heretic_astartes"
@@ -4990,305 +5686,447 @@ preferred_world_types = ["DeathWorld", "ForgeWorld", "HiveWorld"]
 preferred_governments = ["Warlords", "Demagogue"]
 preferred_notable_features = ["DaemonicCorruption", "WarZone", "Quarantined"]
 
-[[factions]]
-id = "chaos_cultists"
-name = "Chaos Cultists"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+# ========================================================================================
+# Traitor Guard & Lost-and-Damned Forces  (kind = "traitor_guard", count = 23)
+# ========================================================================================
 
 [[factions]]
-id = "khorne_blood_cults"
-name = "Khorne Blood Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "traitor_guard"
+name = "Traitor Guard"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "nurgle_plague_cults"
-name = "Nurgle Plague Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "blood_pact"
+name = "Blood Pact"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "tzeentch_covenants"
-name = "Tzeentch Covenants"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "sons_of_sek"
+name = "Sons of Sek"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "slaanesh_pleasure_cults"
-name = "Slaanesh Pleasure Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "vraksian_renegades"
+name = "Vraksian Renegades"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "chaos_undivided_cults"
-name = "Chaos Undivided Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "severan_dominate"
+name = "Severan Dominate"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "the_lost_and_the_damned"
-name = "The Lost and the Damned"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "moebian_sixth"
+name = "Moebian Sixth"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "the_arch_enemy"
-name = "The Arch-enemy"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "apostate_pdf"
+name = "Apostate PDF"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "dark_commune_cells"
-name = "Dark Commune Cells"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "renegade_militia"
+name = "Renegade Militia"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "accursed_cults"
-name = "Accursed Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "stigmartus_regiments"
+name = "Stigmartus Regiments"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "poxwalker_hordes"
-name = "Poxwalker Hordes"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "cultist_artillery_batteries"
+name = "Cultist Artillery Batteries"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "mutant_warbands"
-name = "Mutant Warbands"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "traitor_navy_armsmen"
+name = "Traitor Navy Armsmen"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "beastmen_fellgor_ravagers"
-name = "Beastmen Fellgor Ravagers"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "heretic_storm_troopers"
+name = "Heretic Storm Troopers"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "traitor_ogryn_bands"
-name = "Traitor Ogryn Bands"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "iron_warriors_siege_auxilia"
+name = "Iron Warriors Siege Auxilia"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "traitor_enforcer_cadres"
-name = "Traitor Enforcer Cadres"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "black_legion_mortal_auxilia"
+name = "Black Legion Mortal Auxilia"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "possessed_worker_cells"
-name = "Possessed Worker Cells"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "chaos_reaver_fleets"
+name = "Chaos Reaver Fleets"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "daemonhost_cabals"
-name = "Daemonhost Cabals"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "planetary_apostate_commands"
+name = "Planetary Apostate Commands"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "witch_covens"
-name = "Witch Covens"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "renegade_penal_legions"
+name = "Renegade Penal Legions"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "sanguinary_death_cults"
-name = "Sanguinary Death Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "dark_compliance_militias"
+name = "Dark Compliance Militias"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "corpse_grinder_heresies"
-name = "Corpse-grinder Heresies"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "daemon_bound_battle_tanks"
+name = "Daemon-bound Battle Tanks"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "eightfold_path_preachers"
-name = "Eightfold Path Preachers"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "traitor_commissariat"
+name = "Traitor Commissariat"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "cult_of_the_red_grail"
-name = "Cult of the Red Grail"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "blooded_kill_teams"
+name = "Blooded Kill Teams"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "pale_procession"
-name = "Pale Procession"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "unclean_siege_regiments"
+name = "Unclean Siege Regiments"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
 
 [[factions]]
-id = "plague_zombie_mobs"
-name = "Plague Zombie Mobs"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "ragged_helot_armies"
+name = "Ragged Helot Armies"
+kind = "traitor_guard"
+weight = 1.4
+default_disposition = "hostile"
+preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
+preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
+preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
+
+# ========================================================================================
+# Dark Mechanicum  (kind = "dark_mechanicum", count = 20)
+# ========================================================================================
 
 [[factions]]
-id = "warp_tainted_pilgrims"
-name = "Warp-tainted Pilgrims"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "dark_mechanicum"
+name = "Dark Mechanicum"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
 
 [[factions]]
-id = "ruinous_shrine_keepers"
-name = "Ruinous Shrine Keepers"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "dark_mechanicus"
+name = "Dark Mechanicus"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
 
 [[factions]]
-id = "heretek_prophet_cults"
-name = "Heretek Prophet Cults"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "heretek_priesthoods"
+name = "Heretek Priesthoods"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
 
 [[factions]]
-id = "forbidden_tome_circles"
-name = "Forbidden Tome Circles"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "hell_forge_xana_ii"
+name = "Hell-forge Xana II"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
 
 [[factions]]
-id = "malefic_choirs"
-name = "Malefic Choirs"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "hell_forge_sarum"
+name = "Hell-forge Sarum"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
 
 [[factions]]
-id = "apostate_cardinalates"
-name = "Apostate Cardinalates"
-kind = "cult"
-weight = 1.5
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "ShrineWorld", "IndustrialWorld"]
-preferred_governments = ["Demagogue", "Warlords"]
-preferred_notable_features = ["DaemonicCorruption", "WitchHunt", "PopularUprising"]
+id = "hell_forge_cyclothrathe"
+name = "Hell-forge Cyclothrathe"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "hell_forge_samech"
+name = "Hell-forge Samech"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "hell_forge_incendius"
+name = "Hell-forge Incendius"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "warpsmith_cabals"
+name = "Warpsmith Cabals"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "dark_skitarii"
+name = "Dark Skitarii"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "daemon_forge_masters"
+name = "Daemon Forge Masters"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "scrapcode_covens"
+name = "Scrapcode Covens"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "defiler_forge_cults"
+name = "Defiler Forge-Cults"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "soul_grinder_manufactoria"
+name = "Soul Grinder Manufactoria"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "negavolt_cultists"
+name = "Negavolt Cultists"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "heretek_explorators"
+name = "Heretek Explorators"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "silica_animus_cabals"
+name = "Silica Animus Cabals"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "men_of_iron_cultists"
+name = "Men of Iron Cultists"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "abominable_intelligence_cells"
+name = "Abominable Intelligence Cells"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+[[factions]]
+id = "warp_reactor_guilds"
+name = "Warp Reactor Guilds"
+kind = "dark_mechanicum"
+weight = 0.9
+default_disposition = "hostile"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "Warlords"]
+preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+# ========================================================================================
+# Daemons & Warp Entities  (kind = "daemon", count = 30)
+# ========================================================================================
 
 [[factions]]
 id = "daemons_of_chaos"
@@ -5590,435 +6428,9 @@ preferred_world_types = ["DeathWorld", "ShrineWorld", "XenosWorld"]
 preferred_governments = []
 preferred_notable_features = ["DaemonicCorruption", "WarZone", "Quarantined"]
 
-[[factions]]
-id = "traitor_guard"
-name = "Traitor Guard"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "blood_pact"
-name = "Blood Pact"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "sons_of_sek"
-name = "Sons of Sek"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "vraksian_renegades"
-name = "Vraksian Renegades"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "severan_dominate"
-name = "Severan Dominate"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "moebian_sixth"
-name = "Moebian Sixth"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "apostate_pdf"
-name = "Apostate PDF"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "renegade_militia"
-name = "Renegade Militia"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "stigmartus_regiments"
-name = "Stigmartus Regiments"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "cultist_artillery_batteries"
-name = "Cultist Artillery Batteries"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "traitor_navy_armsmen"
-name = "Traitor Navy Armsmen"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "heretic_storm_troopers"
-name = "Heretic Storm Troopers"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "iron_warriors_siege_auxilia"
-name = "Iron Warriors Siege Auxilia"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "black_legion_mortal_auxilia"
-name = "Black Legion Mortal Auxilia"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "chaos_reaver_fleets"
-name = "Chaos Reaver Fleets"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "planetary_apostate_commands"
-name = "Planetary Apostate Commands"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "renegade_penal_legions"
-name = "Renegade Penal Legions"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "dark_compliance_militias"
-name = "Dark Compliance Militias"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "daemon_bound_battle_tanks"
-name = "Daemon-bound Battle Tanks"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "traitor_commissariat"
-name = "Traitor Commissariat"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "blooded_kill_teams"
-name = "Blooded Kill Teams"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "unclean_siege_regiments"
-name = "Unclean Siege Regiments"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "ragged_helot_armies"
-name = "Ragged Helot Armies"
-kind = "traitor_guard"
-weight = 1.4
-default_disposition = "hostile"
-preferred_world_types = ["BastionWorld", "PenalWorld", "IndustrialWorld"]
-preferred_governments = ["RevolutionaryJunta", "Warlords", "Demagogue"]
-preferred_notable_features = ["CivilWar", "WarZone", "DaemonicCorruption"]
-
-[[factions]]
-id = "dark_mechanicum"
-name = "Dark Mechanicum"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "dark_mechanicus"
-name = "Dark Mechanicus"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "heretek_priesthoods"
-name = "Heretek Priesthoods"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "hell_forge_xana_ii"
-name = "Hell-forge Xana II"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "hell_forge_sarum"
-name = "Hell-forge Sarum"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "hell_forge_cyclothrathe"
-name = "Hell-forge Cyclothrathe"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "hell_forge_samech"
-name = "Hell-forge Samech"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "hell_forge_incendius"
-name = "Hell-forge Incendius"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "warpsmith_cabals"
-name = "Warpsmith Cabals"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "dark_skitarii"
-name = "Dark Skitarii"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "daemon_forge_masters"
-name = "Daemon Forge Masters"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "scrapcode_covens"
-name = "Scrapcode Covens"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "defiler_forge_cults"
-name = "Defiler Forge-Cults"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "soul_grinder_manufactoria"
-name = "Soul Grinder Manufactoria"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "negavolt_cultists"
-name = "Negavolt Cultists"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "heretek_explorators"
-name = "Heretek Explorators"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "silica_animus_cabals"
-name = "Silica Animus Cabals"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "men_of_iron_cultists"
-name = "Men of Iron Cultists"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "abominable_intelligence_cells"
-name = "Abominable Intelligence Cells"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
-
-[[factions]]
-id = "warp_reactor_guilds"
-name = "Warp Reactor Guilds"
-kind = "dark_mechanicum"
-weight = 0.9
-default_disposition = "hostile"
-preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
-preferred_governments = ["MechanicusForgeLord", "Warlords"]
-preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+# ========================================================================================
+# Chaos Knight Houses  (kind = "chaos_knight", count = 17)
+# ========================================================================================
 
 [[factions]]
 id = "chaos_knights"
@@ -6190,6 +6602,10 @@ preferred_world_types = ["FeudalWorld", "ForgeWorld", "DeathWorld"]
 preferred_governments = ["Warlords", "Demagogue"]
 preferred_notable_features = ["WarZone", "DaemonicCorruption", "ForbiddenTech"]
 
+# ========================================================================================
+# Traitor Titan Legions  (kind = "traitor_titan_legion", count = 16)
+# ========================================================================================
+
 [[factions]]
 id = "renegade_titans"
 name = "Renegade Titans"
@@ -6349,6 +6765,24 @@ default_disposition = "hostile"
 preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
 preferred_governments = ["MechanicusForgeLord", "Warlords"]
 preferred_notable_features = ["ForbiddenTech", "DaemonicCorruption", "MajorSpaceyard"]
+
+# ========================================================================================
+# General Xenos Threats  (kind = "xenos", count = 1)
+# ========================================================================================
+
+[[factions]]
+id = "xenos_threat"
+name = "Xenos Incursion"
+kind = "xenos"
+weight = 2.0
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["HostileXenos", "XenoRuins", "XenosInfiltrators", "PrimitiveXenos"]
+
+# ========================================================================================
+# Aeldari Craftworlds & Corsairs  (kind = "aeldari", count = 49)
+# ========================================================================================
 
 [[factions]]
 id = "aeldari"
@@ -6840,6 +7274,10 @@ preferred_world_types = ["XenosWorld", "FrontierWorld", "DeathWorld"]
 preferred_governments = ["XenosOverlords"]
 preferred_notable_features = ["XenoRuins", "XenosInfiltrators", "HostileXenos"]
 
+# ========================================================================================
+# Drukhari Kabals, Cults & Covens  (kind = "drukhari", count = 31)
+# ========================================================================================
+
 [[factions]]
 id = "drukhari"
 name = "Drukhari"
@@ -7150,6 +7588,10 @@ preferred_world_types = ["XenosWorld", "HiveWorld", "FrontierWorld"]
 preferred_governments = ["XenosOverlords", "Warlords"]
 preferred_notable_features = ["HostileXenos", "TheSilentTrade", "XenosInfiltrators"]
 
+# ========================================================================================
+# Harlequin Masques  (kind = "harlequin", count = 17)
+# ========================================================================================
+
 [[factions]]
 id = "harlequins"
 name = "Harlequins"
@@ -7319,6 +7761,10 @@ default_disposition = "secretive"
 preferred_world_types = ["XenosWorld", "ShrineWorld", "FrontierWorld"]
 preferred_governments = []
 preferred_notable_features = ["XenosInfiltrators", "XenoRuins", "ImportantShrine"]
+
+# ========================================================================================
+# Ork Clans, Waaaghs & Freebooterz  (kind = "ork", count = 40)
+# ========================================================================================
 
 [[factions]]
 id = "orks"
@@ -7720,1045 +8166,9 @@ preferred_world_types = ["DeathWorld", "FrontierWorld", "IndustrialWorld"]
 preferred_governments = ["Warlords", "XenosOverlords"]
 preferred_notable_features = ["HostileXenos", "WarZone", "PrimitiveXenos"]
 
-[[factions]]
-id = "necrons"
-name = "Necrons"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "szarekhan_dynasty"
-name = "Szarekhan Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "sautekh_dynasty"
-name = "Sautekh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "mephrit_dynasty"
-name = "Mephrit Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "nihilakh_dynasty"
-name = "Nihilakh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "nephrekh_dynasty"
-name = "Nephrekh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "novokh_dynasty"
-name = "Novokh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "maynarkh_dynasty"
-name = "Maynarkh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "oruscar_dynasty"
-name = "Oruscar Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "thokt_dynasty"
-name = "Thokt Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "ogdobekh_dynasty"
-name = "Ogdobekh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "ammunos_dynasty"
-name = "Ammunos Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "atun_dynasty"
-name = "Atun Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "charnovokh_dynasty"
-name = "Charnovokh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "nekthyst_dynasty"
-name = "Nekthyst Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "nodrekh_dynasty"
-name = "Nodrekh Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "sarnek_dynasty"
-name = "Sarnek Dynasty"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "tomb_world_courts"
-name = "Tomb World Courts"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "triarch_praetorians"
-name = "Triarch Praetorians"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "destroyer_cults"
-name = "Destroyer Cults"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "flayer_cults"
-name = "Flayer Cults"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "canoptek_swarms"
-name = "Canoptek Swarms"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "cryptek_conclaves"
-name = "Cryptek Conclaves"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "chronomancer_circles"
-name = "Chronomancer Circles"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "technomancer_workshops"
-name = "Technomancer Workshops"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "psychomancer_covens"
-name = "Psychomancer Covens"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "plasmancer_courts"
-name = "Plasmancer Courts"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "ctan_shard_cults"
-name = "C’tan Shard Cults"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "silent_kings_legions"
-name = "Silent King’s Legions"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "anrakyrs_pyrrhian_legions"
-name = "Anrakyr’s Pyrrhian Legions"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "imotekhs_stormhost"
-name = "Imotekh’s Stormhost"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "trazyns_solemnace_hosts"
-name = "Trazyn’s Solemnace Hosts"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "zahndrekhs_court"
-name = "Zahndrekh’s Court"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "obyrons_guard"
-name = "Obyron’s Guard"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "illuminor_szeras_laboratories"
-name = "Illuminor Szeras’ Laboratories"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "pariah_nexus_wardens"
-name = "Pariah Nexus Wardens"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "tomb_stalker_nests"
-name = "Tomb Stalker Nests"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "monolith_phalanxes"
-name = "Monolith Phalanxes"
-kind = "necron"
-weight = 1.2
-default_disposition = "hostile"
-preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
-preferred_governments = ["XenosOverlords"]
-preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
-
-[[factions]]
-id = "tyranids"
-name = "Tyranids"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_behemoth"
-name = "Hive Fleet Behemoth"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_kraken"
-name = "Hive Fleet Kraken"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_leviathan"
-name = "Hive Fleet Leviathan"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_gorgon"
-name = "Hive Fleet Gorgon"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_jormungandr"
-name = "Hive Fleet Jormungandr"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_hydra"
-name = "Hive Fleet Hydra"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_kronos"
-name = "Hive Fleet Kronos"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_tiamet"
-name = "Hive Fleet Tiamet"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_ouroboris"
-name = "Hive Fleet Ouroboris"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_naga"
-name = "Hive Fleet Naga"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_moloch"
-name = "Hive Fleet Moloch"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_dagon"
-name = "Hive Fleet Dagon"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_fleet_colossus"
-name = "Hive Fleet Colossus"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "splinter_fleet_ouroboris"
-name = "Splinter Fleet Ouroboris"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "splinter_fleet_medusa"
-name = "Splinter Fleet Medusa"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "splinter_fleet_scarabus"
-name = "Splinter Fleet Scarabus"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "splinter_fleet_tiamet_guardians"
-name = "Splinter Fleet Tiamet Guardians"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "genestealer_broods"
-name = "Genestealer Broods"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "lictor_vanguard_organisms"
-name = "Lictor Vanguard Organisms"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "norn_emissary_broods"
-name = "Norn Emissary Broods"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "norn_assimilator_broods"
-name = "Norn Assimilator Broods"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "carnifex_stampedes"
-name = "Carnifex Stampedes"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "trygon_tunnel_swarms"
-name = "Trygon Tunnel Swarms"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "mawloc_burrowers"
-name = "Mawloc Burrowers"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "harpy_wings"
-name = "Harpy Wings"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "harridan_sky_swarms"
-name = "Harridan Sky-swarms"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "biovore_spore_batteries"
-name = "Biovore Spore Batteries"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "pyrovore_broods"
-name = "Pyrovore Broods"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "zoanthrope_choirs"
-name = "Zoanthrope Choirs"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "neurotyrant_synapses"
-name = "Neurotyrant Synapses"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "tyrant_guard_broods"
-name = "Tyrant Guard Broods"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "hive_tyrant_synapse_nodes"
-name = "Hive Tyrant Synapse Nodes"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "ripper_swarms"
-name = "Ripper Swarms"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "spore_mine_clouds"
-name = "Spore Mine Clouds"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "bio_ship_hive_tendrils"
-name = "Bio-ship Hive Tendrils"
-kind = "tyranid"
-weight = 1.0
-default_disposition = "hostile"
-preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
-preferred_governments = []
-preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
-
-[[factions]]
-id = "genestealer_cults"
-name = "Genestealer Cults"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "cult_of_the_four_armed_emperor"
-name = "Cult of the Four-Armed Emperor"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "the_bladed_cog"
-name = "The Bladed Cog"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "the_rusted_claw"
-name = "The Rusted Claw"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "the_twisted_helix"
-name = "The Twisted Helix"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "the_pauper_princes"
-name = "The Pauper Princes"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "the_hivecult"
-name = "The Hivecult"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "sons_of_jormungandr"
-name = "Sons of Jormungandr"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "cult_tenebrous"
-name = "Cult Tenebrous"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "voidbrood_cults"
-name = "Voidbrood Cults"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "brood_brothers"
-name = "Brood Brothers"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "neophyte_hybrids"
-name = "Neophyte Hybrids"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "acolyte_hybrids"
-name = "Acolyte Hybrids"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "aberrant_broods"
-name = "Aberrant Broods"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "purestrain_genestealer_cults"
-name = "Purestrain Genestealer Cults"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "magus_covens"
-name = "Magus Covens"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "primus_war_cells"
-name = "Primus War Cells"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "nexos_intelligence_cells"
-name = "Nexos Intelligence Cells"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "sanctus_assassin_cells"
-name = "Sanctus Assassin Cells"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "clamavus_propagandists"
-name = "Clamavus Propagandists"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "kelermorph_gunslingers"
-name = "Kelermorph Gunslingers"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "atalan_jackal_gangs"
-name = "Atalan Jackal Gangs"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "ridgerunner_convoys"
-name = "Ridgerunner Convoys"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "mining_guild_insurrectionists"
-name = "Mining Guild Insurrectionists"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "subterranean_broodkin"
-name = "Subterranean Broodkin"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "patriarch_courts"
-name = "Patriarch Courts"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "hybrid_metamorph_hosts"
-name = "Hybrid Metamorph Hosts"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "genomic_saboteur_cells"
-name = "Genomic Saboteur Cells"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "revolutionary_cult_workers"
-name = "Revolutionary Cult Workers"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
-
-[[factions]]
-id = "planetary_uprising_broods"
-name = "Planetary Uprising Broods"
-kind = "genestealer_cult"
-weight = 1.1
-default_disposition = "secretive"
-preferred_world_types = ["HiveWorld", "IndustrialWorld", "FrontierWorld"]
-preferred_governments = ["Demagogue", "RevolutionaryJunta", "GuildsCombine"]
-preferred_notable_features = ["XenosInfiltrators", "PopularUprising", "HostileXenos"]
+# ========================================================================================
+# T’au Empire Septs & Auxiliaries  (kind = "tau", count = 42)
+# ========================================================================================
 
 [[factions]]
 id = "tau_empire"
@@ -9180,6 +8590,758 @@ preferred_world_types = ["XenosWorld", "FrontierWorld", "IndustrialWorld"]
 preferred_governments = ["XenosOverlords", "Megacorporations"]
 preferred_notable_features = ["XenosInfiltrators", "TradeHub", "Prosperous"]
 
+# ========================================================================================
+# Necron Dynasties  (kind = "necron", count = 38)
+# ========================================================================================
+
+[[factions]]
+id = "necrons"
+name = "Necrons"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "szarekhan_dynasty"
+name = "Szarekhan Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "sautekh_dynasty"
+name = "Sautekh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "mephrit_dynasty"
+name = "Mephrit Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "nihilakh_dynasty"
+name = "Nihilakh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "nephrekh_dynasty"
+name = "Nephrekh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "novokh_dynasty"
+name = "Novokh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "maynarkh_dynasty"
+name = "Maynarkh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "oruscar_dynasty"
+name = "Oruscar Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "thokt_dynasty"
+name = "Thokt Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "ogdobekh_dynasty"
+name = "Ogdobekh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "ammunos_dynasty"
+name = "Ammunos Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "atun_dynasty"
+name = "Atun Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "charnovokh_dynasty"
+name = "Charnovokh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "nekthyst_dynasty"
+name = "Nekthyst Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "nodrekh_dynasty"
+name = "Nodrekh Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "sarnek_dynasty"
+name = "Sarnek Dynasty"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "tomb_world_courts"
+name = "Tomb World Courts"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "triarch_praetorians"
+name = "Triarch Praetorians"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "destroyer_cults"
+name = "Destroyer Cults"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "flayer_cults"
+name = "Flayer Cults"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "canoptek_swarms"
+name = "Canoptek Swarms"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "cryptek_conclaves"
+name = "Cryptek Conclaves"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "chronomancer_circles"
+name = "Chronomancer Circles"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "technomancer_workshops"
+name = "Technomancer Workshops"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "psychomancer_covens"
+name = "Psychomancer Covens"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "plasmancer_courts"
+name = "Plasmancer Courts"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "ctan_shard_cults"
+name = "C’tan Shard Cults"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "silent_kings_legions"
+name = "Silent King’s Legions"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "anrakyrs_pyrrhian_legions"
+name = "Anrakyr’s Pyrrhian Legions"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "imotekhs_stormhost"
+name = "Imotekh’s Stormhost"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "trazyns_solemnace_hosts"
+name = "Trazyn’s Solemnace Hosts"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "zahndrekhs_court"
+name = "Zahndrekh’s Court"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "obyrons_guard"
+name = "Obyron’s Guard"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "illuminor_szeras_laboratories"
+name = "Illuminor Szeras’ Laboratories"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "pariah_nexus_wardens"
+name = "Pariah Nexus Wardens"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "tomb_stalker_nests"
+name = "Tomb Stalker Nests"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+[[factions]]
+id = "monolith_phalanxes"
+name = "Monolith Phalanxes"
+kind = "necron"
+weight = 1.2
+default_disposition = "hostile"
+preferred_world_types = ["XenosWorld", "DeathWorld", "ForgeWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["XenoRuins", "ArchaeotechRuins", "HostileXenos"]
+
+# ========================================================================================
+# Tyranid Hive Fleets  (kind = "tyranid", count = 36)
+# ========================================================================================
+
+[[factions]]
+id = "tyranids"
+name = "Tyranids"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_behemoth"
+name = "Hive Fleet Behemoth"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_kraken"
+name = "Hive Fleet Kraken"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_leviathan"
+name = "Hive Fleet Leviathan"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_gorgon"
+name = "Hive Fleet Gorgon"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_jormungandr"
+name = "Hive Fleet Jormungandr"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_hydra"
+name = "Hive Fleet Hydra"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_kronos"
+name = "Hive Fleet Kronos"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_tiamet"
+name = "Hive Fleet Tiamet"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_ouroboris"
+name = "Hive Fleet Ouroboris"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_naga"
+name = "Hive Fleet Naga"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_moloch"
+name = "Hive Fleet Moloch"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_dagon"
+name = "Hive Fleet Dagon"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_fleet_colossus"
+name = "Hive Fleet Colossus"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "splinter_fleet_ouroboris"
+name = "Splinter Fleet Ouroboris"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "splinter_fleet_medusa"
+name = "Splinter Fleet Medusa"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "splinter_fleet_scarabus"
+name = "Splinter Fleet Scarabus"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "splinter_fleet_tiamet_guardians"
+name = "Splinter Fleet Tiamet Guardians"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "genestealer_broods"
+name = "Genestealer Broods"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "lictor_vanguard_organisms"
+name = "Lictor Vanguard Organisms"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "norn_emissary_broods"
+name = "Norn Emissary Broods"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "norn_assimilator_broods"
+name = "Norn Assimilator Broods"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "carnifex_stampedes"
+name = "Carnifex Stampedes"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "trygon_tunnel_swarms"
+name = "Trygon Tunnel Swarms"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "mawloc_burrowers"
+name = "Mawloc Burrowers"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "harpy_wings"
+name = "Harpy Wings"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "harridan_sky_swarms"
+name = "Harridan Sky-swarms"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "biovore_spore_batteries"
+name = "Biovore Spore Batteries"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "pyrovore_broods"
+name = "Pyrovore Broods"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "zoanthrope_choirs"
+name = "Zoanthrope Choirs"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "neurotyrant_synapses"
+name = "Neurotyrant Synapses"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "tyrant_guard_broods"
+name = "Tyrant Guard Broods"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "hive_tyrant_synapse_nodes"
+name = "Hive Tyrant Synapse Nodes"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "ripper_swarms"
+name = "Ripper Swarms"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "spore_mine_clouds"
+name = "Spore Mine Clouds"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+[[factions]]
+id = "bio_ship_hive_tendrils"
+name = "Bio-ship Hive Tendrils"
+kind = "tyranid"
+weight = 1.0
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "AgriWorld", "FrontierWorld"]
+preferred_governments = []
+preferred_notable_features = ["HostileXenos", "WarZone", "Quarantined"]
+
+# ========================================================================================
+# Leagues of Votann  (kind = "leagues_of_votann", count = 28)
+# ========================================================================================
+
 [[factions]]
 id = "leagues_of_votann"
 name = "Leagues of Votann"
@@ -9459,6 +9621,10 @@ default_disposition = "opportunistic"
 preferred_world_types = ["FrontierWorld", "ForgeWorld", "Orbital"]
 preferred_governments = ["GuildsCombine", "Megacorporations"]
 preferred_notable_features = ["TradeHub", "ForbiddenTech", "ArchaeotechRuins"]
+
+# ========================================================================================
+# Minor Xenos Species & Enclaves  (kind = "minor_xenos", count = 49)
+# ========================================================================================
 
 [[factions]]
 id = "hrud"

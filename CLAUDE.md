@@ -29,9 +29,13 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/config.rs](src/config.rs) | sectorforge.toml schema |
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
-| [src/lib.rs](src/lib.rs) | Public API surface |
-| [src/bitmap.rs](src/bitmap.rs) | PNG rendering (via image crate) |
-| [src/gui/app.rs](src/gui/app.rs) | Top-level eframe app + navigation |
+| [src/lib.rs](src/lib.rs) | Public API surface (doc-tests + `# Errors`) |
+| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering |
+| [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
+| [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering + public API |
+| [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership, faction control, capital selection |
+| [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
+| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG/JSON export UI |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |
 | [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor |

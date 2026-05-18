@@ -212,13 +212,26 @@ impl<'a> SectorView<'a> {
 
             let pip = sys.worlds.len();
             if pip > 0 {
-                let tx = c.x + g.hex_size * 0.55;
-                let ty = c.y + g.hex_size * 0.55;
+                // Top-right corner of the hex. Name label sits below the
+                // star and the capital marker sits at top-center, so this
+                // corner stays clear.
+                let pip_font = FontId::monospace((g.hex_size * 0.36).max(11.0));
+                let pip_center = Pos2::new(
+                    c.x + g.hex_size * 0.55,
+                    c.y - g.hex_size * 0.55,
+                );
+                let disc_r = (g.hex_size * 0.22).max(8.0);
+                painter.circle_filled(pip_center, disc_r, palette::BG);
+                painter.circle_stroke(
+                    pip_center,
+                    disc_r,
+                    Stroke::new(1.2, darken(fill, 0.4)),
+                );
                 painter.text(
-                    Pos2::new(tx, ty),
-                    Align2::RIGHT_BOTTOM,
+                    pip_center,
+                    Align2::CENTER_CENTER,
                     pip.to_string(),
-                    FontId::monospace((g.hex_size * 0.34).max(10.0)),
+                    pip_font,
                     TEXT,
                 );
             }
@@ -312,7 +325,7 @@ impl<'a> SectorView<'a> {
                         (q as i32, r as i32, d)
                     })
                     .collect();
-                cands.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+                cands.sort_by(|a, b| a.2.total_cmp(&b.2));
 
                 let try_place =
                     |q: i32, r: i32, above: bool, placed: &[egui::Rect]| -> Option<(f32, f32)> {
@@ -371,10 +384,7 @@ impl<'a> SectorView<'a> {
                         .min_by(|&&(q1, r1), &&(q2, r2)| {
                             let c1 = hex_center(q1 as i32, r1 as i32, &g) + origin.to_vec2();
                             let c2 = hex_center(q2 as i32, r2 as i32, &g) + origin.to_vec2();
-                            (c1 - cen)
-                                .length_sq()
-                                .partial_cmp(&(c2 - cen).length_sq())
-                                .unwrap()
+                            (c1 - cen).length_sq().total_cmp(&(c2 - cen).length_sq())
                         })
                         .expect("non-empty");
                     let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
@@ -447,7 +457,7 @@ impl<'a> SectorView<'a> {
                         (s, (c - pos).length())
                     })
                     .filter(|(_, d)| *d <= g.hex_size * 0.95)
-                    .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+                    .min_by(|(_, a), (_, b)| a.total_cmp(b));
                 if let Some((sys, _)) = hit {
                     click = Some(SectorClick::System(sys.id.clone()));
                 } else if !hex_subsector.is_empty() {

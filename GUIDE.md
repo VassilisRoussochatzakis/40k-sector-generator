@@ -628,10 +628,20 @@ Notable suites:
 - [src/world_pool.rs::tests](src/world_pool.rs) — candidate filtering and conversion
 - [src/rng.rs::tests](src/rng.rs) — stage seeds and weighted selection
 - [src/sector_model.rs::tests](src/sector_model.rs) — axial hex distance
-- [src/subsectors.rs::tests](src/subsectors.rs) — clustering coverage, capital naming, route classification, determinism
+- [src/subsectors/mod.rs::tests](src/subsectors/mod.rs) — clustering coverage, capital naming, route classification, determinism
 - [tests/golden_generation.rs](tests/golden_generation.rs) — full end-to-end + determinism
 - [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
+- [tests/invariants_proptest.rs](tests/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
+
+Benchmarks (criterion):
+
+```bash
+cargo bench --bench generation            # full sample
+cargo bench --bench generation -- --quick # ~10s smoke
+```
+
+Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three sector sizes (8×10 / 16×20 / 24×30), `validate_project`, and `validate_sector_invariants`.
 
 ---
 
@@ -668,7 +678,7 @@ callers of the API.
 
 | File | Purpose |
 |---|---|
-| [src/lib.rs](src/lib.rs) | Public API surface and re-exports |
+| [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
 | [src/main.rs](src/main.rs) | Clap-based CLI (`sectorforge` binary) |
 | [src/gui/main.rs](src/gui/main.rs) | GUI binary entry point (`sectorforge-gui`) |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser (do not modify casually) |
@@ -679,9 +689,11 @@ callers of the API.
 | [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
 | [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers + bundle export |
-| [src/bitmap.rs](src/bitmap.rs) | Sector PNG rendering (via `image` crate) |
+| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + legend |
+| [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering |
-| [src/subsectors.rs](src/subsectors.rs) | Subsector clustering (k-means / Lloyd) + summaries |
+| [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
+| [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
 | [src/names.rs](src/names.rs) | Name table types |
@@ -691,7 +703,8 @@ callers of the API.
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
 | [src/ids.rs](src/ids.rs) | Canonical id-string formatting |
 | [src/errors.rs](src/errors.rs) | `SectorError` type |
-| [src/gui/app.rs](src/gui/app.rs) | Top-level eframe app + navigation |
+| [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
+| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG export dialog + sector JSON bundle export |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
 | [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor UI |

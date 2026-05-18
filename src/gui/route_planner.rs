@@ -217,13 +217,13 @@ fn dijkstra<'a>(
     from: &str,
     to: &str,
 ) -> Option<(Vec<String>, Vec<String>, f64)> {
-    if !adj.contains_key(from) || !adj.contains_key(to) {
+    if !adj.contains_key(to) {
         return None;
     }
     let mut dist: HashMap<&str, f64> = HashMap::new();
     let mut prev: HashMap<&str, (&str, &str)> = HashMap::new();
     let mut heap: BinaryHeap<HeapNode<'a>> = BinaryHeap::new();
-    let start: &str = adj.get_key_value(from).unwrap().0;
+    let start: &str = adj.get_key_value(from)?.0;
     dist.insert(start, 0.0);
     heap.push(HeapNode {
         cost: 0.0,
@@ -257,10 +257,10 @@ fn bfs<'a>(
     from: &str,
     to: &str,
 ) -> Option<(Vec<String>, Vec<String>, f64)> {
-    if !adj.contains_key(from) || !adj.contains_key(to) {
+    if !adj.contains_key(to) {
         return None;
     }
-    let start: &str = adj.get_key_value(from).unwrap().0;
+    let start: &str = adj.get_key_value(from)?.0;
     let mut prev: HashMap<&str, (&str, &str)> = HashMap::new();
     let mut visited: HashSet<&str> = HashSet::new();
     visited.insert(start);

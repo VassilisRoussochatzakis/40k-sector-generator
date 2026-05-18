@@ -103,7 +103,7 @@ impl<'a> SystemView<'a> {
                     .iter()
                     .map(|(idx, p, r)| (*idx, (*p - pos).length(), *r))
                     .filter(|(_, d, r)| *d <= *r * 1.25)
-                    .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+                    .min_by(|a, b| a.1.total_cmp(&b.1));
                 if let Some((idx, _, _)) = planet_hit {
                     click = Some(SystemClick::World(idx));
                 } else if star_d <= g.star_r * 1.2 {

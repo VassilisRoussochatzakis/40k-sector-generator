@@ -111,7 +111,7 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                     (s, (c - pos).length())
                 })
                 .filter(|(_, d)| *d <= g.hex_size * 0.95)
-                .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+                .min_by(|(_, a), (_, b)| a.total_cmp(b));
             if let Some((sys, _)) = hit_sys {
                 if let Some((idx, ep)) = route_pick {
                     pending_route_pick = Some((idx, ep, sys.id.clone()));

@@ -201,6 +201,14 @@ pub struct BitmapConfig {
     pub system_scale: u32,
     #[serde(default = "default_true")]
     pub render_systems: bool,
+    /// §8: tint each system's hex by the dominant faction's `FactionStyle.fill`.
+    #[serde(default = "default_true")]
+    pub faction_fill: bool,
+    /// §10: heatmap mode applied to the sector PNG. `Off` keeps the plain map.
+    /// When non-`Off`, `Control` mode still uses `faction_fill` colours; other
+    /// modes override the tint.
+    #[serde(default)]
+    pub heatmap: crate::heatmap::HeatmapMode,
 }
 
 impl Default for BitmapConfig {
@@ -209,6 +217,8 @@ impl Default for BitmapConfig {
             sector_scale: default_scale(),
             system_scale: default_scale(),
             render_systems: true,
+            faction_fill: true,
+            heatmap: crate::heatmap::HeatmapMode::Off,
         }
     }
 }

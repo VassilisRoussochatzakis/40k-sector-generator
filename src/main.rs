@@ -45,6 +45,14 @@ enum Command {
         /// Continue if validation produced warnings (but not errors).
         #[arg(long)]
         allow_warnings: bool,
+        /// PNG heatmap mode (§10). One of: off, control, military, trade,
+        /// industrial, covert, faith, threat, intel. Overrides the project's
+        /// `outputs.bitmap.heatmap` setting.
+        #[arg(long)]
+        heatmap: Option<String>,
+        /// Disable per-system faction tint in the PNG export (§8).
+        #[arg(long)]
+        no_faction_fill: bool,
     },
     /// Generate a single standalone system from a project directory.
     GenerateSystem {
@@ -132,10 +140,18 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             seed,
             out,
             allow_warnings,
+            heatmap,
+            no_faction_fill,
         } => {
             let mut input = sectorforge::load_project(&project)?;
             if let Some(s) = seed {
                 input.config.generation.seed = s;
+            }
+            if let Some(h) = heatmap.as_deref() {
+                input.config.outputs.bitmap.heatmap = parse_heatmap(h)?;
+            }
+            if no_faction_fill {
+                input.config.outputs.bitmap.faction_fill = false;
             }
             let report = sectorforge::validate_project(&input)?;
             if !report.ok {
@@ -312,6 +328,24 @@ fn print_invariant_report(report: &sectorforge::InvariantReport) {
             Some(path) => println!("  [{}] {} ({})", v.code, v.message, path),
             None => println!("  [{}] {}", v.code, v.message),
         }
+    }
+}
+
+fn parse_heatmap(s: &str) -> Result<sectorforge::heatmap::HeatmapMode, sectorforge::SectorError> {
+    use sectorforge::heatmap::HeatmapMode;
+    match s.to_ascii_lowercase().as_str() {
+        "off" => Ok(HeatmapMode::Off),
+        "control" => Ok(HeatmapMode::Control),
+        "military" => Ok(HeatmapMode::Military),
+        "trade" => Ok(HeatmapMode::Trade),
+        "industrial" | "industry" => Ok(HeatmapMode::Industrial),
+        "covert" => Ok(HeatmapMode::Covert),
+        "faith" => Ok(HeatmapMode::Faith),
+        "threat" => Ok(HeatmapMode::Threat),
+        "intel" => Ok(HeatmapMode::Intel),
+        other => Err(sectorforge::SectorError::InvalidConfig(format!(
+            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel)"
+        ))),
     }
 }
 

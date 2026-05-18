@@ -29,7 +29,11 @@ pub fn export_all(
             OutputFormat::Markdown => write_markdown(sector, output_dir)?,
             OutputFormat::Csv => write_csv(sector, output_dir)?,
             OutputFormat::Bitmap => {
-                crate::bitmap::write_bitmap(sector, output_dir, bm.sector_scale, None)?;
+                let opts = crate::bitmap::RenderOptions {
+                    faction_fill: bm.faction_fill,
+                    heatmap: bm.heatmap,
+                };
+                crate::bitmap::write_bitmap_with(sector, output_dir, bm.sector_scale, None, opts)?;
                 wrote_image = true;
             }
         }

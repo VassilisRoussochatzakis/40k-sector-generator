@@ -14,10 +14,32 @@ use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
 
 use crate::errors::SectorError;
+use crate::faction_style::faction_style_rgb_by_id;
+use crate::heatmap::{self, HeatCellRgb, HeatmapMode};
 use crate::sector_model::{
     offset_r_neighbors, GeneratedSector, RoutePattern, RouteStability, RouteType,
 };
 use crate::subsectors::Subsector;
+
+/// Per-render options independent of the project config. Mirrors the relevant
+/// bits of [`crate::config::BitmapConfig`] so callers (CLI, GUI export, tests)
+/// can override without touching the project's TOML.
+#[derive(Debug, Clone, Copy)]
+pub struct RenderOptions {
+    /// Tint each system's hex by the dominant faction (§8).
+    pub faction_fill: bool,
+    /// Overlay a heatmap tint per system (§10). `Off` disables it.
+    pub heatmap: HeatmapMode,
+}
+
+impl Default for RenderOptions {
+    fn default() -> Self {
+        Self {
+            faction_fill: true,
+            heatmap: HeatmapMode::Off,
+        }
+    }
+}
 
 /// Save an RGBA image as PNG using fast (low-CPU) deflate. Lossless.
 pub(crate) fn save_png_fast(img: &RgbaImage, path: &Utf8Path) -> Result<(), SectorError> {
@@ -89,8 +111,26 @@ pub fn write_bitmap(
     scale: u32,
     subsectors: Option<&[Subsector]>,
 ) -> Result<(), SectorError> {
+    write_bitmap_with(
+        sector,
+        output_dir,
+        scale,
+        subsectors,
+        RenderOptions::default(),
+    )
+}
+
+/// Variant of [`write_bitmap`] that takes [`RenderOptions`] (faction fill +
+/// heatmap mode).
+pub fn write_bitmap_with(
+    sector: &GeneratedSector,
+    output_dir: &Utf8Path,
+    scale: u32,
+    subsectors: Option<&[Subsector]>,
+    opts: RenderOptions,
+) -> Result<(), SectorError> {
     let path = output_dir.join("sector.png");
-    let img = render(sector, scale, subsectors);
+    let img = render(sector, scale, subsectors, opts);
     save_png_fast(&img, &path)
 }
 
@@ -101,7 +141,18 @@ pub fn write_sector_png_to(
     scale: u32,
     subsectors: Option<&[Subsector]>,
 ) -> Result<(), SectorError> {
-    let img = render(sector, scale, subsectors);
+    write_sector_png_to_with(sector, path, scale, subsectors, RenderOptions::default())
+}
+
+/// Variant of [`write_sector_png_to`] that takes [`RenderOptions`].
+pub fn write_sector_png_to_with(
+    sector: &GeneratedSector,
+    path: &Utf8Path,
+    scale: u32,
+    subsectors: Option<&[Subsector]>,
+    opts: RenderOptions,
+) -> Result<(), SectorError> {
+    let img = render(sector, scale, subsectors, opts);
     save_png_fast(&img, path)
 }
 
@@ -130,11 +181,16 @@ fn map_bounds(sector: &GeneratedSector, g: &Geom) -> MapBounds {
     MapBounds { w, h }
 }
 
-fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>) -> RgbaImage {
+fn render(
+    sector: &GeneratedSector,
+    scale: u32,
+    subsectors: Option<&[Subsector]>,
+    opts: RenderOptions,
+) -> RgbaImage {
     let g = Geom::new(scale);
     let MapBounds { w: map_w, h: map_h } = map_bounds(sector, &g);
 
-    let legend_h = legend_height(sector, &g);
+    let legend_h = legend_height(sector, &g, opts);
     let total_w = map_w + g.legend_width;
     let total_h = map_h.max(legend_h);
 
@@ -142,7 +198,15 @@ fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>
 
     let subs = subsectors.unwrap_or(&[]);
 
-    draw_hex_grid(&mut img, sector, &g);
+    // Per-system fill tint for §8 (faction colour) / §10 (heatmap overlay).
+    let heat = if matches!(opts.heatmap, HeatmapMode::Off) {
+        HashMap::new()
+    } else {
+        heatmap::compute_rgb(sector, opts.heatmap)
+    };
+    let sys_tints = compute_system_tints(sector, opts, &heat);
+
+    draw_hex_grid(&mut img, sector, &g, &sys_tints);
     if !subs.is_empty() {
         draw_subsector_borders(&mut img, sector, subs, &g);
     }
@@ -155,16 +219,57 @@ fn render(sector: &GeneratedSector, scale: u32, subsectors: Option<&[Subsector]>
 
     // Legend painted last so any overflow from the map gets clipped behind it.
     fill_rect(&mut img, map_w, 0, g.legend_width, total_h, PANEL_BG);
-    draw_legend(&mut img, sector, map_w, &g);
+    draw_legend(&mut img, sector, map_w, &g, opts);
 
     img
 }
 
-fn draw_hex_grid(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
+/// One hex tint per (q, r) where the system has a dominant faction (§8) or a
+/// heatmap intensity > 0 (§10). Empty hexes stay at `HEX_EMPTY`.
+fn compute_system_tints(
+    sector: &GeneratedSector,
+    opts: RenderOptions,
+    heat: &HashMap<String, HeatCellRgb>,
+) -> HashMap<(i32, i32), Rgba<u8>> {
+    let mut out = HashMap::new();
+    for sys in &sector.systems {
+        let key = (sys.coord.q, sys.coord.r);
+        // Heatmap overrides faction fill for non-Control modes. For Control
+        // mode the underlying score already drives `faction_style.fill`, so
+        // both paths agree.
+        if !matches!(opts.heatmap, HeatmapMode::Off) {
+            if let Some(cell) = heat.get(&sys.id) {
+                let strength = 0.18 + cell.intensity * 0.45;
+                let color = rgba(cell.rgb);
+                out.insert(key, tint(color, strength));
+                continue;
+            }
+        }
+        if opts.faction_fill {
+            if let Some(dom) = sys.control.dominant.as_deref() {
+                let style = faction_style_rgb_by_id(&sector.factions, dom);
+                out.insert(key, tint(rgba(style.fill), 0.35));
+            }
+        }
+    }
+    out
+}
+
+fn rgba(t: (u8, u8, u8)) -> Rgba<u8> {
+    Rgba([t.0, t.1, t.2, 255])
+}
+
+fn draw_hex_grid(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    g: &Geom,
+    sys_tints: &HashMap<(i32, i32), Rgba<u8>>,
+) {
     for r in 0..sector.height as i32 {
         for q in 0..sector.width as i32 {
             let (cx, cy) = hex_center(q, r, g);
-            draw_hex(img, cx, cy, g.hex_size, HEX_EMPTY, HEX_OUTLINE);
+            let fill = sys_tints.get(&(q, r)).copied().unwrap_or(HEX_EMPTY);
+            draw_hex(img, cx, cy, g.hex_size, fill, HEX_OUTLINE);
         }
     }
 }
@@ -635,25 +740,43 @@ fn draw_subsector_labels(
     }
 }
 
-fn legend_height(sector: &GeneratedSector, g: &Geom) -> i32 {
+fn legend_height(sector: &GeneratedSector, g: &Geom, opts: RenderOptions) -> i32 {
     // title block (3) + spacer + 7 star rows + spacer
     // + ROUTE TYPE header + 4 type rows + spacer
     // + ROUTE STABILITY header + 4 stab rows + spacer
-    // + footer line, with vertical pad on each side.
-    let lines = 3 + 1 + 7 + 1 + 1 + 4 + 1 + 1 + 4 + 1 + 1 + factions_visible(sector);
+    // + factions block + optional heatmap row + footer pad.
+    let heatmap_lines = if matches!(opts.heatmap, HeatmapMode::Off) {
+        0
+    } else {
+        2
+    };
+    let lines =
+        3 + 1 + 7 + 1 + 1 + 4 + 1 + 1 + 4 + 1 + 1 + factions_visible(sector) + heatmap_lines;
     g.legend_pad * 2 + lines as i32 * g.line_h
 }
 
+const FACTION_DISPLAY_CAP: usize = 6;
+const FACTION_MINOR_FRACTION: f32 = 0.12;
+
 fn factions_visible(sector: &GeneratedSector) -> usize {
-    // Show up to 6 factions in legend (+1 header line if any).
     if sector.factions.is_empty() {
-        0
-    } else {
-        1 + sector.factions.len().min(6)
+        return 0;
     }
+    let buckets = crate::importance::compute_display_buckets(
+        sector,
+        FACTION_MINOR_FRACTION,
+        FACTION_DISPLAY_CAP,
+    );
+    1 + buckets.len()
 }
 
-fn draw_legend(img: &mut RgbaImage, sector: &GeneratedSector, map_w: i32, g: &Geom) {
+fn draw_legend(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    map_w: i32,
+    g: &Geom,
+    opts: RenderOptions,
+) {
     let x0 = map_w + g.legend_pad;
     let mut y = g.legend_pad;
     let line_h = g.line_h;
@@ -756,22 +879,74 @@ fn draw_legend(img: &mut RgbaImage, sector: &GeneratedSector, map_w: i32, g: &Ge
     if !sector.factions.is_empty() {
         draw_text(img, x0, y, "FACTIONS", TEXT, body);
         y += line_h;
-        for f in sector.factions.iter().take(6) {
-            draw_text(
+        let buckets = crate::importance::compute_display_buckets(
+            sector,
+            FACTION_MINOR_FRACTION,
+            FACTION_DISPLAY_CAP,
+        );
+        for b in &buckets {
+            let (label, sys_n, world_n, swatch_rgb) = match b {
+                crate::importance::DisplayBucket::Faction {
+                    name,
+                    kind,
+                    id,
+                    system_count,
+                    world_count,
+                    ..
+                } => {
+                    let style = crate::faction_style::faction_style_rgb(kind, id, "lawful");
+                    (name.to_uppercase(), *system_count, *world_count, style.fill)
+                }
+                crate::importance::DisplayBucket::Aggregated {
+                    label,
+                    system_count,
+                    world_count,
+                    ..
+                } => (
+                    label.to_uppercase(),
+                    *system_count,
+                    *world_count,
+                    (140, 140, 150),
+                ),
+            };
+            let swatch_color = rgba(swatch_rgb);
+            fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, swatch_color);
+            draw_rect_outline(
                 img,
                 x0,
+                y + 2 * g.scale,
+                swatch,
+                swatch,
+                darken(swatch_color, 0.5),
+            );
+            draw_text(
+                img,
+                x0 + swatch + 8 * g.scale,
                 y,
-                &format!(
-                    "{} ({} SYS, {} WORLDS)",
-                    short(&f.name.to_uppercase(), 18),
-                    f.system_presence.len(),
-                    f.world_presence.len(),
-                ),
+                &format!("{} ({} SYS, {} W)", short(&label, 16), sys_n, world_n),
                 TEXT_DIM,
                 body,
             );
             y += line_h;
         }
+    }
+
+    if !matches!(opts.heatmap, HeatmapMode::Off) {
+        y += 4 * g.scale;
+        draw_text(img, x0, y, "HEATMAP", TEXT, body);
+        y += line_h;
+        let (r, gc, b) = opts.heatmap.base_color_rgb();
+        let chip = Rgba([r, gc, b, 255]);
+        fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, chip);
+        draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(chip, 0.5));
+        draw_text(
+            img,
+            x0 + swatch + 8 * g.scale,
+            y,
+            opts.heatmap.label(),
+            TEXT,
+            body,
+        );
     }
 }
 
@@ -944,7 +1119,7 @@ mod tests {
     #[test]
     fn renders_without_panicking() {
         let s = sample_sector();
-        let img = render(&s, 1, None);
+        let img = render(&s, 1, None, RenderOptions::default());
         assert!(img.width() > 0);
         assert!(img.height() > 0);
     }
@@ -952,8 +1127,8 @@ mod tests {
     #[test]
     fn scaled_render_is_larger() {
         let s = sample_sector();
-        let small = render(&s, 1, None);
-        let big = render(&s, 4, None);
+        let small = render(&s, 1, None, RenderOptions::default());
+        let big = render(&s, 4, None, RenderOptions::default());
         assert!(big.width() >= small.width() * 3);
         assert!(big.height() >= small.height() * 3);
     }

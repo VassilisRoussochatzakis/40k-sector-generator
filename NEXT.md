@@ -90,18 +90,20 @@ shown at full fidelity.
 **Deferred:** requires a player/observer concept and per-faction visibility
 tracking, neither of which exist in the generator today.
 
-## 8. Per-faction style auto-generation (§9.6) — partial
+## 8. Per-faction style auto-generation (§9.6) — done
 
-Implemented in [src/gui/palette.rs](src/gui/palette.rs):
-`faction_style(kind, id, disposition) -> FactionStyle { fill, accent, glyph,
-border }`. Hue is keyed by `kind`, jittered ±25° by a djb2 hash of `id`;
-disposition selects a `FactionBorder` (Clean / Jagged / Dotted / Thin). The
-style chip is wired into the GUI Edit → Factions panel and the heatmap
-`CONTROL` mode uses the per-faction fill colour.
+Core hue/glyph/border logic lives in [src/faction_style.rs](src/faction_style.rs)
+(pure-data, no GUI deps). The GUI wraps it as `Color32` in
+[src/gui/palette.rs](src/gui/palette.rs); the sector PNG exporter wraps it as
+`Rgba<u8>` and tints each system hex by the dominant faction's
+`FactionStyle.fill`. Toggleable via `outputs.bitmap.faction_fill` in
+`sectorforge.toml` or `--no-faction-fill` on the CLI. The bitmap legend now
+shows per-faction colour swatches sourced from the same palette as the GUI.
 
-**Still deferred:** the bitmap renderers (`src/bitmap/`, `src/system_map.rs`)
-still do not colour by faction at all — wiring `FactionStyle` into PNG export
-remains a follow-up.
+**Still deferred:** the per-system bitmap ([src/system_map.rs](src/system_map.rs))
+does not draw any faction tint yet — it is a per-planet view, so faction
+fill there would have to ride on world-level dominance rather than the
+system-level dominant aggregate.
 
 ## 9. Continuous sector area layers (§9.3)
 
@@ -114,12 +116,15 @@ the renderer because per-pixel influence is expensive.
 
 ## 10. Influence heatmaps (§9.5) — done
 
-Implemented in [src/gui/heatmap.rs](src/gui/heatmap.rs) and surfaced via the
-**HEATMAP** dropdown in the sector view controls. Modes: `Off`, `Control`,
-`Military`, `Trade`, `Industrial`, `Covert`, `Faith`, `Threat`, `Intel`.
-Scores are normalised across the sector each frame; `Control` uses the
-dominant faction's `FactionStyle.fill`, the other modes use a fixed
-per-mode tint. Bitmap export does not yet honour heatmap mode.
+Pure scoring lives in [src/heatmap.rs](src/heatmap.rs) (shared between GUI
+and PNG). The GUI wrapper is [src/gui/heatmap.rs](src/gui/heatmap.rs), surfaced
+via the **HEATMAP** dropdown in the sector view controls. Modes: `Off`,
+`Control`, `Military`, `Trade`, `Industrial`, `Covert`, `Faith`, `Threat`,
+`Intel`. Scores are normalised across the sector each frame; `Control` uses
+the dominant faction's `FactionStyle.fill`, the other modes use a fixed
+per-mode tint. The PNG exporter honours the same mode — set via
+`outputs.bitmap.heatmap` in `sectorforge.toml`, the CLI flag `--heatmap`, or
+the GUI export which inherits the current sector-view selection.
 
 ## 11. Special-faction archetype rules (§16)
 
@@ -177,13 +182,17 @@ kind / disposition dropdown filters, sort by total power (asc/desc) or
 name, and a star button per row to pin favourites to the top. Pin state
 lives on `EditorState` (`faction_pinned: BTreeSet<String>`).
 
-## 15. Display importance scoring (§10.3) and aggregated minor presences
+## 15. Display importance scoring (§10.3) and aggregated minor presences — done
 
-At sector zoom the renderer does not currently aggregate "Other Imperial",
-"Criminal Networks", "Minor Xenos" pills, nor compute a `display_importance`
-score per faction.
-
-**Deferred:** depends on (8) and (10).
+Implemented in [src/importance.rs](src/importance.rs):
+`display_importance(faction) = total_projection × √(1 + system_presence +
+world_presence)`. `compute_display_buckets(sector, minor_fraction,
+max_visible)` returns a ranked list mixing `DisplayBucket::Faction` entries
+(top N) with `DisplayBucket::Aggregated` rollups grouped by `KindGroup`
+("Other Imperial", "Minor Xenos", "Criminal Networks", etc.). The PNG
+legend in [src/bitmap/mod.rs](src/bitmap/mod.rs) renders these buckets with
+the same `FactionStyle.fill` swatches used on the map. Not yet wired into
+the Markdown renderer or the GUI sector overlay.
 
 ## 16. Hysteresis on control change (§11.3)
 
@@ -205,8 +214,9 @@ JSONs still load.
 
 If you pick up this file, the next meaningful step toward the visual
 grammar in the design doc is §3 (route control) — heatmaps (§10), faction
-styles (§8 in the GUI), the filter/pin UI (§14), and the industrial
-dimension (§17) have all landed. Wiring `FactionStyle` into the bitmap
-exporters (`src/bitmap/`, `src/system_map.rs`) is the obvious follow-up to
-§8, and §15 (display importance / aggregated minor pills) becomes
-straightforward once the heatmap data is available.
+styles (§8 in the GUI + bitmap), the filter/pin UI (§14), the industrial
+dimension (§17), and display-importance bucketing (§15) have all landed.
+Per-system bitmap faction tint (§8 inside [src/system_map.rs](src/system_map.rs))
+remains as a smaller follow-up, and §15 is currently legend-only — wiring
+the same buckets into the GUI sector-view overlay (and the Markdown
+renderer) is a low-effort win once the visual treatment is decided.

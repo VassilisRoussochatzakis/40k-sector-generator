@@ -237,7 +237,14 @@ write_diagnostics          = false   # reserved flag; no extra diagnostic files 
 sector_scale        = 5          # integer scale multiplier for the sector map (1..=8)
 system_scale        = 4          # integer scale multiplier for per-system maps (1..=8)
 render_systems      = true       # generate per-system bitmap renders as well
+faction_fill        = true       # §8: tint each system hex by dominant faction's FactionStyle.fill
+heatmap             = "off"      # §10: per-system heatmap tint applied to the PNG.
+                                 # one of: off | control | military | trade | industrial
+                                 #         covert | faith | threat | intel
 ```
+
+The CLI accepts `--heatmap <mode>` and `--no-faction-fill` on `generate` to
+override the project's bitmap settings without editing the TOML.
 
 ### `data/names/system_names.toml`
 
@@ -544,7 +551,8 @@ navigation bar:
   hop count). `Perilous` routes are always impassable.
 
 The GUI also supports exporting bitmap PNGs at a configurable scale:
-sector overview, a single system map, or all per-system maps.
+sector overview, a single system map, or all per-system maps. The current
+HEATMAP selection in the sector view is carried into the exported PNG.
 
 ### Launching the GUI
 
@@ -746,6 +754,9 @@ callers of the API.
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
 | [src/ids.rs](src/ids.rs) | Canonical id-string formatting |
 | [src/errors.rs](src/errors.rs) | `SectorError` type |
+| [src/faction_style.rs](src/faction_style.rs) | Pure-data per-faction style (RGB fill/accent + glyph + border); shared by GUI + PNG renderers |
+| [src/heatmap.rs](src/heatmap.rs) | Pure-data per-system heatmap scoring (`HeatmapMode`); GUI + bitmap consumers share scoring |
+| [src/importance.rs](src/importance.rs) | §10.3 / §15: `display_importance` per faction + kind-group aggregation into legend buckets |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
 | [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG export dialog + sector JSON bundle export |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
@@ -754,5 +765,5 @@ callers of the API.
 | [src/gui/route_planner.rs](src/gui/route_planner.rs) | Route planner (Safest / Shortest) |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
-| [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI; per-faction style (`faction_style`, glyph + border) |
-| [src/gui/heatmap.rs](src/gui/heatmap.rs) | Per-system heatmap aggregation (Control / Military / Trade / Industry / Covert / Faith / Threat / Intel) |
+| [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI; egui wrapper around [src/faction_style.rs](src/faction_style.rs) (`faction_style`, glyph + border) |
+| [src/gui/heatmap.rs](src/gui/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |

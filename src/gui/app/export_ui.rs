@@ -91,7 +91,11 @@ impl App {
                 } else {
                     Some(self.subsectors.as_slice())
                 };
-                match crate::bitmap::write_sector_png_to(&sector, &p, scale, subs) {
+                let opts = crate::bitmap::RenderOptions {
+                    faction_fill: true,
+                    heatmap: self.heatmap_mode,
+                };
+                match crate::bitmap::write_sector_png_to_with(&sector, &p, scale, subs, opts) {
                     Ok(()) => self.export_status = format!("exported {}", p),
                     Err(e) => self.export_status = format!("export failed: {}", e),
                 }

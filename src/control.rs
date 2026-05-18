@@ -68,6 +68,7 @@ pub fn presence_dimensions(
     let pop_factor = population_factor(&world.world.population);
     base.admin *= pop_factor;
     base.economic *= pop_factor;
+    base.industrial *= pop_factor;
     base.legitimacy *= pop_factor;
 
     clamp_dimensions(&mut base);
@@ -89,6 +90,7 @@ fn scale_dimensions(d: &mut PresenceDimensions, k: f32) {
     d.military *= k;
     d.orbital *= k;
     d.economic *= k;
+    d.industrial *= k;
     d.ideological *= k;
     d.covert *= k;
     d.logistics *= k;
@@ -102,6 +104,7 @@ fn clamp_dimensions(d: &mut PresenceDimensions) {
     c(&mut d.military);
     c(&mut d.orbital);
     c(&mut d.economic);
+    c(&mut d.industrial);
     c(&mut d.ideological);
     c(&mut d.covert);
     c(&mut d.logistics);
@@ -162,6 +165,7 @@ fn kind_profile(kind: &str) -> PresenceDimensions {
              military,
              orbital,
              economic,
+             industrial,
              ideological,
              covert,
              logistics,
@@ -172,6 +176,7 @@ fn kind_profile(kind: &str) -> PresenceDimensions {
             military,
             orbital,
             economic,
+            industrial,
             ideological,
             covert,
             logistics,
@@ -181,45 +186,45 @@ fn kind_profile(kind: &str) -> PresenceDimensions {
     };
     match kind {
         // Imperial civil authority.
-        "imperial" => p(80.0, 30.0, 20.0, 50.0, 45.0, 15.0, 50.0, 75.0, 90.0),
-        "adepta_sororitas" => p(30.0, 65.0, 25.0, 25.0, 90.0, 25.0, 35.0, 70.0, 80.0),
-        "inquisition" => p(20.0, 35.0, 15.0, 10.0, 30.0, 90.0, 25.0, 60.0, 20.0),
+        "imperial" => p(80.0, 30.0, 20.0, 50.0, 35.0, 45.0, 15.0, 50.0, 75.0, 90.0),
+        "adepta_sororitas" => p(30.0, 65.0, 25.0, 25.0, 10.0, 90.0, 25.0, 35.0, 70.0, 80.0),
+        "inquisition" => p(20.0, 35.0, 15.0, 10.0, 10.0, 30.0, 90.0, 25.0, 60.0, 20.0),
         // Imperial military / elite.
-        "adeptus_astartes" => p(15.0, 90.0, 70.0, 10.0, 40.0, 30.0, 55.0, 70.0, 75.0),
-        "imperial_guard" => p(30.0, 80.0, 25.0, 20.0, 35.0, 15.0, 60.0, 55.0, 90.0),
-        "imperial_knight" => p(25.0, 75.0, 15.0, 25.0, 50.0, 15.0, 35.0, 65.0, 75.0),
-        "collegia_titanica" => p(25.0, 85.0, 30.0, 25.0, 40.0, 15.0, 55.0, 65.0, 75.0),
+        "adeptus_astartes" => p(15.0, 90.0, 70.0, 10.0, 30.0, 40.0, 30.0, 55.0, 70.0, 75.0),
+        "imperial_guard" => p(30.0, 80.0, 25.0, 20.0, 55.0, 35.0, 15.0, 60.0, 55.0, 90.0),
+        "imperial_knight" => p(25.0, 75.0, 15.0, 25.0, 30.0, 50.0, 15.0, 35.0, 65.0, 75.0),
+        "collegia_titanica" => p(25.0, 85.0, 30.0, 25.0, 65.0, 40.0, 15.0, 55.0, 65.0, 75.0),
         "deathwatch" | "grey_knights" | "talons_of_the_emperor" => {
-            p(10.0, 80.0, 60.0, 5.0, 25.0, 80.0, 40.0, 50.0, 25.0)
+            p(10.0, 80.0, 60.0, 5.0, 15.0, 25.0, 80.0, 40.0, 50.0, 25.0)
         }
         // Mechanicus.
-        "mechanicus" => p(50.0, 35.0, 50.0, 70.0, 50.0, 25.0, 65.0, 60.0, 80.0),
-        "dark_mechanicum" => p(25.0, 50.0, 45.0, 55.0, 40.0, 65.0, 50.0, 5.0, 40.0),
+        "mechanicus" => p(50.0, 35.0, 50.0, 70.0, 95.0, 50.0, 25.0, 65.0, 60.0, 80.0),
+        "dark_mechanicum" => p(25.0, 50.0, 45.0, 55.0, 85.0, 40.0, 65.0, 50.0, 5.0, 40.0),
         // Chaos / traitor / warp.
-        "chaos_space_marine" => p(5.0, 85.0, 60.0, 10.0, 60.0, 50.0, 45.0, 5.0, 60.0),
-        "chaos_knight" => p(5.0, 75.0, 15.0, 10.0, 45.0, 35.0, 25.0, 5.0, 50.0),
-        "traitor_guard" => p(15.0, 70.0, 15.0, 15.0, 40.0, 40.0, 45.0, 5.0, 65.0),
-        "traitor_titan_legion" => p(10.0, 90.0, 30.0, 15.0, 40.0, 25.0, 45.0, 5.0, 60.0),
-        "daemon" => p(0.0, 75.0, 30.0, 5.0, 80.0, 70.0, 10.0, 0.0, 50.0),
-        "cult" => p(5.0, 25.0, 5.0, 15.0, 75.0, 80.0, 15.0, 5.0, 20.0),
+        "chaos_space_marine" => p(5.0, 85.0, 60.0, 10.0, 25.0, 60.0, 50.0, 45.0, 5.0, 60.0),
+        "chaos_knight" => p(5.0, 75.0, 15.0, 10.0, 25.0, 45.0, 35.0, 25.0, 5.0, 50.0),
+        "traitor_guard" => p(15.0, 70.0, 15.0, 15.0, 40.0, 40.0, 40.0, 45.0, 5.0, 65.0),
+        "traitor_titan_legion" => p(10.0, 90.0, 30.0, 15.0, 55.0, 40.0, 25.0, 45.0, 5.0, 60.0),
+        "daemon" => p(0.0, 75.0, 30.0, 5.0, 0.0, 80.0, 70.0, 10.0, 0.0, 50.0),
+        "cult" => p(5.0, 25.0, 5.0, 15.0, 10.0, 75.0, 80.0, 15.0, 5.0, 20.0),
         // Xenos polities.
-        "tau" => p(55.0, 55.0, 50.0, 55.0, 60.0, 35.0, 55.0, 40.0, 70.0),
-        "aeldari" => p(20.0, 60.0, 40.0, 25.0, 50.0, 80.0, 45.0, 30.0, 25.0),
-        "drukhari" => p(10.0, 70.0, 35.0, 25.0, 25.0, 75.0, 30.0, 5.0, 30.0),
-        "harlequin" => p(5.0, 50.0, 30.0, 10.0, 60.0, 90.0, 30.0, 20.0, 10.0),
-        "leagues_of_votann" => p(60.0, 55.0, 40.0, 70.0, 35.0, 30.0, 60.0, 50.0, 70.0),
+        "tau" => p(55.0, 55.0, 50.0, 55.0, 75.0, 60.0, 35.0, 55.0, 40.0, 70.0),
+        "aeldari" => p(20.0, 60.0, 40.0, 25.0, 30.0, 50.0, 80.0, 45.0, 30.0, 25.0),
+        "drukhari" => p(10.0, 70.0, 35.0, 25.0, 20.0, 25.0, 75.0, 30.0, 5.0, 30.0),
+        "harlequin" => p(5.0, 50.0, 30.0, 10.0, 10.0, 60.0, 90.0, 30.0, 20.0, 10.0),
+        "leagues_of_votann" => p(60.0, 55.0, 40.0, 70.0, 85.0, 35.0, 30.0, 60.0, 50.0, 70.0),
         // Hostile xenos.
-        "ork" => p(5.0, 80.0, 30.0, 15.0, 40.0, 20.0, 30.0, 10.0, 80.0),
-        "tyranid" => p(0.0, 90.0, 60.0, 0.0, 0.0, 30.0, 40.0, 0.0, 60.0),
-        "necron" => p(30.0, 80.0, 50.0, 20.0, 35.0, 55.0, 40.0, 25.0, 35.0),
-        "minor_xenos" | "xenos" => p(25.0, 40.0, 20.0, 25.0, 30.0, 35.0, 25.0, 25.0, 50.0),
+        "ork" => p(5.0, 80.0, 30.0, 15.0, 35.0, 40.0, 20.0, 30.0, 10.0, 80.0),
+        "tyranid" => p(0.0, 90.0, 60.0, 0.0, 0.0, 0.0, 30.0, 40.0, 0.0, 60.0),
+        "necron" => p(30.0, 80.0, 50.0, 20.0, 50.0, 35.0, 55.0, 40.0, 25.0, 35.0),
+        "minor_xenos" | "xenos" => p(25.0, 40.0, 20.0, 25.0, 20.0, 30.0, 35.0, 25.0, 25.0, 50.0),
         // Commercial / criminal.
-        "merchant" => p(30.0, 15.0, 35.0, 85.0, 20.0, 30.0, 75.0, 45.0, 70.0),
-        "criminal" => p(5.0, 20.0, 20.0, 60.0, 15.0, 80.0, 55.0, 5.0, 25.0),
+        "merchant" => p(30.0, 15.0, 35.0, 85.0, 40.0, 20.0, 30.0, 75.0, 45.0, 70.0),
+        "criminal" => p(5.0, 20.0, 20.0, 60.0, 30.0, 15.0, 80.0, 55.0, 5.0, 25.0),
         // Rebel insurgency.
-        "rebel" => p(15.0, 50.0, 10.0, 25.0, 55.0, 50.0, 25.0, 25.0, 55.0),
-        "genestealer_cult" => p(10.0, 35.0, 5.0, 25.0, 50.0, 90.0, 20.0, 5.0, 15.0),
-        _ => p(25.0, 25.0, 15.0, 25.0, 25.0, 25.0, 25.0, 25.0, 50.0),
+        "rebel" => p(15.0, 50.0, 10.0, 25.0, 20.0, 55.0, 50.0, 25.0, 25.0, 55.0),
+        "genestealer_cult" => p(10.0, 35.0, 5.0, 25.0, 25.0, 50.0, 90.0, 20.0, 5.0, 15.0),
+        _ => p(25.0, 25.0, 15.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 50.0),
     }
 }
 
@@ -565,7 +570,7 @@ pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<String, 
                 entry.military += d.military * sv;
                 entry.naval += d.orbital * sv;
                 entry.economic += d.economic * sv;
-                entry.industrial += d.economic * sv * 0.5; // proxy until industrial dim exists
+                entry.industrial += d.industrial * sv;
                 entry.ideological += d.ideological * sv;
                 entry.covert += d.covert * sv;
                 entry.logistical += d.logistics * sv;
@@ -711,6 +716,7 @@ mod tests {
             d.military,
             d.orbital,
             d.economic,
+            d.industrial,
             d.ideological,
             d.covert,
             d.logistics,
@@ -734,6 +740,7 @@ mod tests {
                 military: score,
                 orbital: score * 0.3,
                 economic: score * 0.6,
+                industrial: score * 0.5,
                 ideological: score * 0.5,
                 covert: 5.0,
                 logistics: score * 0.4,

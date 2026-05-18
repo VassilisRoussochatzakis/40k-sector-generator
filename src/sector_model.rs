@@ -287,6 +287,10 @@ pub struct PresenceDimensions {
     pub military: f32,
     pub orbital: f32,
     pub economic: f32,
+    /// Manufacturing / forge / industrial output (§4.3, §17). Distinct from
+    /// `economic`, which models trade + commercial activity.
+    #[serde(default)]
+    pub industrial: f32,
     pub ideological: f32,
     pub covert: f32,
     pub logistics: f32,
@@ -296,16 +300,18 @@ pub struct PresenceDimensions {
 }
 
 impl PresenceDimensions {
-    /// Spec §5.1: weighted local control score.
+    /// Spec §5.1: weighted local control score. Industrial output contributes
+    /// at the same weight as economic since both encode commercial strength.
     #[must_use]
     pub fn local_control_score(&self) -> f32 {
-        self.admin * 0.22
-            + self.military * 0.20
-            + self.orbital * 0.12
-            + self.economic * 0.14
+        self.admin * 0.20
+            + self.military * 0.18
+            + self.orbital * 0.10
+            + self.economic * 0.12
+            + self.industrial * 0.06
             + self.ideological * 0.10
             + self.covert * 0.08
-            + self.logistics * 0.08
+            + self.logistics * 0.10
             + self.legitimacy * 0.06
     }
 }

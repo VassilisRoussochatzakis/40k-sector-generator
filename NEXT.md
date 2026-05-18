@@ -90,17 +90,18 @@ shown at full fidelity.
 **Deferred:** requires a player/observer concept and per-faction visibility
 tracking, neither of which exist in the generator today.
 
-## 8. Per-faction style auto-generation (§9.6)
+## 8. Per-faction style auto-generation (§9.6) — partial
 
-The design wants every faction to receive an auto-assigned palette + glyph
-keyed by `kind` (varying hue / pattern / icon by `id`), plus disposition-driven
-border behaviour (clean for `lawful`, jagged for `hostile`, low-opacity for
-`secretive`, etc.). Today the bitmap renderer does not colour by faction at
-all.
+Implemented in [src/gui/palette.rs](src/gui/palette.rs):
+`faction_style(kind, id, disposition) -> FactionStyle { fill, accent, glyph,
+border }`. Hue is keyed by `kind`, jittered ±25° by a djb2 hash of `id`;
+disposition selects a `FactionBorder` (Clean / Jagged / Dotted / Thin). The
+style chip is wired into the GUI Edit → Factions panel and the heatmap
+`CONTROL` mode uses the per-faction fill colour.
 
-**Deferred:** medium effort but invasive — touches the palette module and
-every renderer (sector PNG, system map, GUI map panel). Worth doing as a
-self-contained follow-up.
+**Still deferred:** the bitmap renderers (`src/bitmap/`, `src/system_map.rs`)
+still do not colour by faction at all — wiring `FactionStyle` into PNG export
+remains a follow-up.
 
 ## 9. Continuous sector area layers (§9.3)
 
@@ -111,15 +112,14 @@ and route lines.
 **Deferred:** ties into (3) and (8). Would also need a new caching layer in
 the renderer because per-pixel influence is expensive.
 
-## 10. Influence heatmaps (§9.5)
+## 10. Influence heatmaps (§9.5) — done
 
-No per-faction heatmap (`Control`, `Military`, `Trade`, `Covert`, `Faith`,
-`Threat`, `Intel` modes). The data needed to render these *does* exist now
-(presence dimensions, route graph), so this is the most natural follow-up to
-unlock visually.
-
-**Deferred:** purely a rendering and UI surface — adding the data was the
-hard part.
+Implemented in [src/gui/heatmap.rs](src/gui/heatmap.rs) and surfaced via the
+**HEATMAP** dropdown in the sector view controls. Modes: `Off`, `Control`,
+`Military`, `Trade`, `Industrial`, `Covert`, `Faith`, `Threat`, `Intel`.
+Scores are normalised across the sector each frame; `Control` uses the
+dominant faction's `FactionStyle.fill`, the other modes use a fixed
+per-mode tint. Bitmap export does not yet honour heatmap mode.
 
 ## 11. Special-faction archetype rules (§16)
 
@@ -169,13 +169,13 @@ separate `SectorSave` keyed by IDs only.
 **Deferred:** generator is still single-shot; no in-place save/load loop
 exists.
 
-## 14. Faction filter / pin UI (§10.1)
+## 14. Faction filter / pin UI (§10.1) — done
 
-GUI faction browser does not yet filter by kind/disposition, sort by power,
-or let the player pin favorites. The data is already on `GeneratedFaction`
-(kind, disposition, `power.total_projection()`).
-
-**Deferred:** GUI panel work; would slot into [src/gui/editor/factions_panel.rs](src/gui/editor/factions_panel.rs).
+Implemented in
+[src/gui/editor/factions_panel.rs](src/gui/editor/factions_panel.rs):
+kind / disposition dropdown filters, sort by total power (asc/desc) or
+name, and a star button per row to pin favourites to the top. Pin state
+lives on `EditorState` (`faction_pinned: BTreeSet<String>`).
 
 ## 15. Display importance scoring (§10.3) and aggregated minor presences
 
@@ -190,20 +190,23 @@ score per faction.
 The doc recommends a 3-tick lag before flipping `visible_controller`. Not
 applicable until conflict simulation (§5) lands.
 
-## 17. Industrial dimension
+## 17. Industrial dimension — done
 
-`PowerProfile.industrial` is currently a 0.5× proxy of `economic` because the
-per-presence dimension set does not include `industrial`. The design's §4.3
-profile separates them.
-
-**Deferred:** add an `industrial` field to `PresenceDimensions`, populate it
-from `mechanicus` / `dark_mechanicum` / `imperial_guard` profiles, and
-re-derive `PowerProfile.industrial` from it directly. Small follow-up; bumped
-only because it shifts the JSON schema.
+`PresenceDimensions.industrial` is now a first-class 0..=100 dimension
+populated per-kind in [src/control.rs](src/control.rs) `kind_profile` (high
+for Mechanicus / Forge / Titan / Votann / Tau, low for daemons / Tyranid /
+xenos raiders, scaled by population like `economic`/`legitimacy`).
+`PowerProfile.industrial` is derived from it directly rather than as a 0.5×
+proxy of `economic`. JSON schema bump: presence dictionaries now include an
+`industrial` field; the field is `#[serde(default)]` so older sector
+JSONs still load.
 
 ---
 
-If you pick up this file, start with §10 (heatmaps) or §17 (industrial
-dimension) — both are low-risk and unlock visible value. §3 (route control)
-plus §8 (faction styles) are the next meaningful step toward the visual
-grammar the design doc describes.
+If you pick up this file, the next meaningful step toward the visual
+grammar in the design doc is §3 (route control) — heatmaps (§10), faction
+styles (§8 in the GUI), the filter/pin UI (§14), and the industrial
+dimension (§17) have all landed. Wiring `FactionStyle` into the bitmap
+exporters (`src/bitmap/`, `src/system_map.rs`) is the obvious follow-up to
+§8, and §15 (display importance / aggregated minor pills) becomes
+straightforward once the heatmap data is available.

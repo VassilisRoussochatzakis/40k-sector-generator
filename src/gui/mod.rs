@@ -5,6 +5,7 @@
 pub mod app;
 pub mod data_editor;
 pub mod editor;
+pub mod heatmap;
 pub mod info_panel;
 pub mod palette;
 pub mod route_planner;

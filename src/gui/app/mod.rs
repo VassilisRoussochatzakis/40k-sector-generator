@@ -12,6 +12,7 @@ use crate::{
 
 use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
+use super::heatmap::{self, HeatmapMode};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
 use super::route_planner::{self, Metric, PickTarget, RoutePlannerState, Severity};
@@ -35,6 +36,7 @@ pub struct App {
     pending_export: Option<PendingExport>,
     sector_pick_export: bool,
     export_scale: u32,
+    heatmap_mode: HeatmapMode,
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +77,7 @@ impl Default for App {
             pending_export: None,
             sector_pick_export: false,
             export_scale: 2,
+            heatmap_mode: HeatmapMode::Off,
         }
     }
 }
@@ -619,6 +622,7 @@ impl App {
                         path_waypoints: Some(&waypoints),
                         subsectors: None,
                         selected_subsector: None,
+                        heatmap: None,
                     }
                     .show(ui);
                     if let Some(SectorClick::System(id)) = click {
@@ -872,6 +876,26 @@ impl App {
                     ui.add(
                         egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),
                     );
+                    ui.separator();
+                    ui.label(RichText::new("HEATMAP").color(TEXT_DIM).monospace());
+                    egui::ComboBox::from_id_salt("sector_heatmap")
+                        .selected_text(
+                            RichText::new(self.heatmap_mode.label())
+                                .monospace()
+                                .color(TEXT),
+                        )
+                        .show_ui(ui, |ui| {
+                            for &m in HeatmapMode::ALL {
+                                let sel = m == self.heatmap_mode;
+                                if ui
+                                    .selectable_label(sel, RichText::new(m.label()).monospace())
+                                    .clicked()
+                                    && !sel
+                                {
+                                    self.heatmap_mode = m;
+                                }
+                            }
+                        });
                     if self.sector_pick_export {
                         ui.label(
                             RichText::new("◉ click a system hex to pick for PNG export")
@@ -887,6 +911,11 @@ impl App {
                     }
                 });
             });
+        let heatmap = if matches!(self.heatmap_mode, HeatmapMode::Off) {
+            None
+        } else {
+            Some(heatmap::compute(&sector, self.heatmap_mode))
+        };
         ScrollArea::both().show(ui, |ui| {
             let (_resp, click) = SectorView {
                 sector: &sector,
@@ -896,6 +925,7 @@ impl App {
                 path_waypoints: None,
                 subsectors: Some(self.subsectors.as_slice()),
                 selected_subsector: self.sector_selected_subsector.as_deref(),
+                heatmap: heatmap.as_ref(),
             }
             .show(ui);
             match click {

@@ -210,13 +210,13 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
         s.push_str(&format!("### {} — {}\n\n", w.id.to_uppercase(), w.name));
         if !w.factions.is_empty() {
             s.push_str(
-                "| Faction | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ideo | Covert | Visib |\n",
+                "| Faction | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |\n",
             );
-            s.push_str("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|\n");
+            s.push_str("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
             for p in &w.factions {
                 let d = &p.dimensions;
                 s.push_str(&format!(
-                    "| {} | {:?} | {:?} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
+                    "| {} | {:?} | {:?} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
                     p.faction_id,
                     p.influence,
                     p.dominance,
@@ -225,6 +225,7 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
                     d.military,
                     d.orbital,
                     d.economic,
+                    d.industrial,
                     d.ideological,
                     d.covert,
                     d.visibility,

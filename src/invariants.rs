@@ -352,6 +352,7 @@ fn check_presence_dimensions(
         ("military", d.military),
         ("orbital", d.orbital),
         ("economic", d.economic),
+        ("industrial", d.industrial),
         ("ideological", d.ideological),
         ("covert", d.covert),
         ("logistics", d.logistics),

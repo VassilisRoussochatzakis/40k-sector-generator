@@ -1,8 +1,38 @@
 //! Editor state machine. Holds the working sector + selection + pending dialogs.
 
+use std::collections::BTreeSet;
+
 use crate::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
 };
+
+/// Sort order for the factions panel (§14).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FactionSort {
+    #[default]
+    Default,
+    PowerDesc,
+    PowerAsc,
+    NameAsc,
+}
+
+impl FactionSort {
+    pub const ALL: &'static [FactionSort] = &[
+        FactionSort::Default,
+        FactionSort::PowerDesc,
+        FactionSort::PowerAsc,
+        FactionSort::NameAsc,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            FactionSort::Default => "DEFAULT",
+            FactionSort::PowerDesc => "POWER ↓",
+            FactionSort::PowerAsc => "POWER ↑",
+            FactionSort::NameAsc => "NAME ↑",
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
@@ -63,6 +93,11 @@ pub struct EditorState {
     pub hex_size: f32,
     pub system_side: f32,
     pub route_pick: Option<(usize, RouteEndpoint)>,
+    /// Factions-panel filter / sort / pin state (§14).
+    pub faction_filter_kind: Option<String>,
+    pub faction_filter_disposition: Option<String>,
+    pub faction_sort: FactionSort,
+    pub faction_pinned: BTreeSet<String>,
 }
 
 impl Default for EditorState {
@@ -77,6 +112,10 @@ impl Default for EditorState {
             hex_size: 44.0,
             system_side: 700.0,
             route_pick: None,
+            faction_filter_kind: None,
+            faction_filter_disposition: None,
+            faction_sort: FactionSort::default(),
+            faction_pinned: BTreeSet::new(),
         }
     }
 }

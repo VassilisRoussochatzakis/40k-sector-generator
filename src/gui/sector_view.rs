@@ -8,6 +8,7 @@ use crate::sector_model::{self, GeneratedSector};
 
 use crate::subsectors::Subsector;
 
+use super::heatmap::HeatCell;
 use super::palette::{
     self, darken, draw_route_line, stability_color, star_color, HEX_EMPTY, HEX_OUTLINE,
     PATH_HIGHLIGHT, PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
@@ -25,6 +26,9 @@ pub struct SectorView<'a> {
     pub subsectors: Option<&'a [Subsector]>,
     /// When set, every hex of this subsector gets a faint grey tint.
     pub selected_subsector: Option<&'a str>,
+    /// Per-system heatmap samples. Hexes for systems present in the map are
+    /// blended toward the cell's colour scaled by intensity (§9.5 / §10).
+    pub heatmap: Option<&'a HashMap<String, HeatCell>>,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
@@ -59,10 +63,24 @@ impl<'a> SectorView<'a> {
             }
         }
 
+        // System-id keyed hex coords, so the heatmap pass can look up cells by
+        // (q, r) without scanning systems each iteration.
+        let mut hex_system: HashMap<(i32, i32), &str> = HashMap::new();
+        for sys in &self.sector.systems {
+            hex_system.insert((sys.coord.q, sys.coord.r), sys.id.as_str());
+        }
+
         for r in 0..self.sector.height as i32 {
             for q in 0..self.sector.width as i32 {
                 let c = hex_center(q, r, &g) + origin.to_vec2();
-                draw_hex(&painter, c, g.hex_size, HEX_EMPTY, HEX_OUTLINE);
+                let fill = match (self.heatmap, hex_system.get(&(q, r))) {
+                    (Some(map), Some(&sid)) => map
+                        .get(sid)
+                        .map(|cell| blend_heat(HEX_EMPTY, cell.color, cell.intensity))
+                        .unwrap_or(HEX_EMPTY),
+                    _ => HEX_EMPTY,
+                };
+                draw_hex(&painter, c, g.hex_size, fill, HEX_OUTLINE);
             }
         }
 
@@ -559,6 +577,26 @@ fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {
         CAPITAL_MARKER,
         Stroke::new(1.2, Color32::from_rgb(60, 40, 10)),
     ));
+}
+
+/// Blend `from` toward `to` by `t`, clamped to `0..=1`. Used for the heatmap
+/// pass so low-intensity cells stay close to the base hex colour and read as
+/// "barely there".
+fn blend_heat(from: Color32, to: Color32, t: f32) -> Color32 {
+    // Apply a floor so any hex with non-zero intensity is visibly tinted, but
+    // cap at 0.85 so the brightest cell still keeps a hint of the base panel
+    // tone for visual continuity.
+    let t = if t > 0.0 {
+        (0.20 + t * 0.65).min(0.85)
+    } else {
+        0.0
+    };
+    let mix = |a: u8, b: u8| (f32::from(a) * (1.0 - t) + f32::from(b) * t).round() as u8;
+    Color32::from_rgb(
+        mix(from.r(), to.r()),
+        mix(from.g(), to.g()),
+        mix(from.b(), to.b()),
+    )
 }
 
 fn draw_hex_outline_only(

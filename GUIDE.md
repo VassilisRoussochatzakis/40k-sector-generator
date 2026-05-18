@@ -414,8 +414,11 @@ items not yet implemented are listed in [NEXT.md](NEXT.md).
 
 * **Per presence** (`systems[].worlds[].factions[]`): `influence`, `dominance`
   (Rumored / Presence / Influence / Contested / Controlled / Stronghold),
-  `dimensions` (admin, military, orbital, economic, ideological, covert,
-  logistics, legitimacy, visibility — each 0–100), and `intel_confidence`.
+  `dimensions` (admin, military, orbital, economic, industrial, ideological,
+  covert, logistics, legitimacy, visibility — each 0–100), and
+  `intel_confidence`. `industrial` is a first-class dimension separate from
+  `economic` (forge / manufacturing output vs. trade); `PowerProfile.industrial`
+  is derived from it directly.
 * **Per world** (`systems[].worlds[].control`): `dominant`, `sovereign`,
   `occupier`, `economic_hegemon`, `popular_authority`, `hidden_master`,
   `contested`, `control_score`. `claims` is a parallel list of typed claims
@@ -519,10 +522,20 @@ navigation bar:
 
 - **Sector** — hex map with zoom/pan, colored by primary star colour,
   faction tint, and subsector overlay. Click a hex to drill into the system.
+  The bottom controls expose a **HEATMAP** dropdown that tints every system
+  hex by a per-mode score: `CONTROL` (dominant-faction colour ×
+  control-score intensity), `MILITARY`, `TRADE`, `INDUSTRY`, `COVERT`,
+  `FAITH`, `THREAT` (military × covert restricted to hostile/zealous), or
+  `INTEL` (low-visibility hexes glow). See
+  [src/gui/heatmap.rs](src/gui/heatmap.rs).
 - **System** — per-system detail panel: worlds, coords, star type, tags,
   factions, neighboring systems.
 - **Edit** — sector editor (rename systems, add/remove worlds, adjust tags
-  and per-world factions).
+  and per-world factions). The **Factions** tab shows a deterministic colour
+  + glyph chip per faction (derived from `kind`, `id`, `disposition` — see
+  [src/gui/palette.rs](src/gui/palette.rs) `faction_style`) and lets you
+  filter by kind/disposition, sort by total power, and pin favourites to
+  the top.
 - **Data** — CSV data editor for `key.csv` / `generator.csv` from inside
   the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
@@ -741,4 +754,5 @@ callers of the API.
 | [src/gui/route_planner.rs](src/gui/route_planner.rs) | Route planner (Safest / Shortest) |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
-| [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI |
+| [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI; per-faction style (`faction_style`, glyph + border) |
+| [src/gui/heatmap.rs](src/gui/heatmap.rs) | Per-system heatmap aggregation (Control / Military / Trade / Industry / Covert / Faith / Threat / Intel) |

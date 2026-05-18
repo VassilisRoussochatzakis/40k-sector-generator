@@ -2,6 +2,9 @@
 
 use std::collections::HashMap;
 
+use crate::importance::{
+    compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
+};
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
 
 /// Spec §12: deterministic Markdown overview for a generated sector.
@@ -63,7 +66,10 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
             ));
         }
         s.push('\n');
+        s.push_str(&format_route_controls(sector));
     }
+
+    s.push_str(&format_faction_display_buckets(sector));
 
     s.push_str("## Factions\n\n");
     if sector.factions.is_empty() {
@@ -116,6 +122,95 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     s.push('\n');
     s.push_str(&format_world_table(sys));
     s.push_str(&format_world_control_blocks(sys));
+    s
+}
+
+fn format_route_controls(sector: &GeneratedSector) -> String {
+    if sector.routes.iter().all(|r| r.controls.is_empty()) {
+        return String::new();
+    }
+    let mut s = String::new();
+    s.push_str("### Route control\n\n");
+    s.push_str("Per-faction projection along each route (§3). Patrol / Toll / Interdiction / Piracy / Secrecy / Confidence, all 0..=100.\n\n");
+    s.push_str("| Route | Faction | Patrol | Toll | Interdict | Piracy | Secrecy | Conf |\n");
+    s.push_str("|---|---|---:|---:|---:|---:|---:|---:|\n");
+    for r in &sector.routes {
+        for c in &r.controls {
+            s.push_str(&format!(
+                "| {} | {} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
+                r.id,
+                c.faction_id,
+                c.patrol,
+                c.toll,
+                c.interdiction,
+                c.piracy,
+                c.secrecy,
+                c.confidence,
+            ));
+        }
+    }
+    s.push('\n');
+    s
+}
+
+fn format_faction_display_buckets(sector: &GeneratedSector) -> String {
+    if sector.factions.is_empty() {
+        return String::new();
+    }
+    let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
+    if buckets.is_empty() {
+        return String::new();
+    }
+    let mut s = String::new();
+    s.push_str("## Faction display buckets\n\n");
+    s.push_str("Ranked by [`display_importance`](src/importance.rs) (total projected power × √presence breadth). Low-importance factions are rolled up by kind group.\n\n");
+    s.push_str("| Rank | Bucket | Kind / Group | Systems | Worlds | Importance | Members |\n");
+    s.push_str("|---:|---|---|---:|---:|---:|---|\n");
+    for (i, b) in buckets.iter().enumerate() {
+        let (label, kind_label, sys_n, world_n, importance, members) = match b {
+            DisplayBucket::Faction {
+                id,
+                name,
+                kind,
+                importance,
+                system_count,
+                world_count,
+            } => (
+                format!("{name} (`{id}`)"),
+                kind.clone(),
+                *system_count,
+                *world_count,
+                *importance,
+                String::new(),
+            ),
+            DisplayBucket::Aggregated {
+                label,
+                group,
+                importance,
+                system_count,
+                world_count,
+                faction_ids,
+            } => (
+                format!("_{label}_"),
+                format!("{group:?}"),
+                *system_count,
+                *world_count,
+                *importance,
+                faction_ids.join(", "),
+            ),
+        };
+        s.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {:.0} | {} |\n",
+            i + 1,
+            label,
+            kind_label,
+            sys_n,
+            world_n,
+            importance,
+            members,
+        ));
+    }
+    s.push('\n');
     s
 }
 
@@ -198,7 +293,24 @@ fn format_system_control(sys: &GeneratedSystem) -> String {
             .collect();
         s.push_str(&format!("- **Top factions:** {}\n", parts.join(", ")));
     }
+    s.push_str(&format_stability_line(&sys.stability));
     s
+}
+
+fn format_stability_line(st: &crate::stability::StabilityState) -> String {
+    if *st == crate::stability::StabilityState::default() {
+        return String::new();
+    }
+    format!(
+        "- **Stability:** order={:.0} corr={:.0} fear={:.0} rebel={:.0} xenos={:.0} warp={:.0} stress={:.0}\n",
+        st.public_order,
+        st.corruption,
+        st.fear,
+        st.rebellion_risk,
+        st.xenos_threat,
+        st.warp_instability,
+        st.famine_or_resource_stress,
+    )
 }
 
 fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
@@ -257,6 +369,31 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
                 s.push_str("- Contested: yes\n");
             }
             s.push_str(&format!("- Control score: {:.0}\n\n", c.control_score));
+        }
+        if w.stability != crate::stability::StabilityState::default() {
+            s.push_str("**Stability:**\n");
+            s.push_str(&format!(
+                "- Public order: {:.0}\n",
+                w.stability.public_order
+            ));
+            s.push_str(&format!("- Corruption: {:.0}\n", w.stability.corruption));
+            s.push_str(&format!("- Fear: {:.0}\n", w.stability.fear));
+            s.push_str(&format!(
+                "- Rebellion risk: {:.0}\n",
+                w.stability.rebellion_risk
+            ));
+            s.push_str(&format!(
+                "- Xenos threat: {:.0}\n",
+                w.stability.xenos_threat
+            ));
+            s.push_str(&format!(
+                "- Warp instability: {:.0}\n",
+                w.stability.warp_instability
+            ));
+            s.push_str(&format!(
+                "- Famine / resource stress: {:.0}\n\n",
+                w.stability.famine_or_resource_stress
+            ));
         }
         if !w.claims.is_empty() {
             s.push_str("**Claims:**\n\n");

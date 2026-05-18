@@ -304,7 +304,112 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
             thickness,
             route.route_type.pattern(),
         );
+        draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness);
     }
+}
+
+/// §3: at the midpoint of a route, draw a symbol for the single strongest
+/// `RouteControl` category (patrol / toll / interdiction / piracy) when its
+/// score is >= 40. Colour comes from the controlling faction's
+/// `FactionStyle.fill` so the reader can identify who is asserting along the
+/// route.
+fn draw_route_control_glyph(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    route: &crate::sector_model::GeneratedRoute,
+    a: (i32, i32),
+    b: (i32, i32),
+    thickness: i32,
+) {
+    let Some((faction_id, kind, score)) = top_route_control(route) else {
+        return;
+    };
+    if score < 40.0 {
+        return;
+    }
+    let style = faction_style_rgb_by_id(&sector.factions, &faction_id);
+    let color = Rgba([style.fill.0, style.fill.1, style.fill.2, 255]);
+    let dark = darken(color, 0.5);
+    let mx = (a.0 + b.0) / 2;
+    let my = (a.1 + b.1) / 2;
+    let size = (thickness * 3).max(6);
+    match kind {
+        ControlKind::Interdiction => {
+            // Crossbar perpendicular to the line.
+            let dx = (b.0 - a.0) as f32;
+            let dy = (b.1 - a.1) as f32;
+            let len = (dx * dx + dy * dy).sqrt().max(1.0);
+            let px = -dy / len;
+            let py = dx / len;
+            let half = size as f32;
+            let x0 = (mx as f32 - px * half) as i32;
+            let y0 = (my as f32 - py * half) as i32;
+            let x1 = (mx as f32 + px * half) as i32;
+            let y1 = (my as f32 + py * half) as i32;
+            draw_line_thick(img, x0, y0, x1, y1, color, thickness.max(2));
+            draw_line_thick(img, x0, y0, x1, y1, dark, 1);
+        }
+        ControlKind::Patrol => {
+            // Filled disc.
+            fill_circle(img, mx, my, size / 2, color);
+            draw_circle(img, mx, my, size / 2, dark);
+        }
+        ControlKind::Toll => {
+            // Filled square.
+            let half = size / 2;
+            fill_rect(img, mx - half, my - half, size, size, color);
+            draw_rect_outline(img, mx - half, my - half, size, size, dark);
+        }
+        ControlKind::Piracy => {
+            // X — two short diagonals.
+            let half = size / 2;
+            draw_line_thick(
+                img,
+                mx - half,
+                my - half,
+                mx + half,
+                my + half,
+                color,
+                thickness.max(2),
+            );
+            draw_line_thick(
+                img,
+                mx - half,
+                my + half,
+                mx + half,
+                my - half,
+                color,
+                thickness.max(2),
+            );
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ControlKind {
+    Patrol,
+    Toll,
+    Interdiction,
+    Piracy,
+}
+
+fn top_route_control(
+    route: &crate::sector_model::GeneratedRoute,
+) -> Option<(String, ControlKind, f32)> {
+    let mut best: Option<(&str, ControlKind, f32)> = None;
+    for c in &route.controls {
+        for (kind, score) in [
+            (ControlKind::Interdiction, c.interdiction),
+            (ControlKind::Patrol, c.patrol),
+            (ControlKind::Piracy, c.piracy),
+            (ControlKind::Toll, c.toll),
+        ] {
+            if best.map(|(_, _, s)| score > s).unwrap_or(true) {
+                best = Some((c.faction_id.as_str(), kind, score));
+            }
+        }
+    }
+    best.map(|(id, k, s)| (id.to_string(), k, s))
 }
 
 fn star_radius_ratio() -> f32 {
@@ -744,19 +849,38 @@ fn legend_height(sector: &GeneratedSector, g: &Geom, opts: RenderOptions) -> i32
     // title block (3) + spacer + 7 star rows + spacer
     // + ROUTE TYPE header + 4 type rows + spacer
     // + ROUTE STABILITY header + 4 stab rows + spacer
+    // + optional ROUTE CONTROL header + 4 rows + spacer
     // + factions block + optional heatmap row + footer pad.
     let heatmap_lines = if matches!(opts.heatmap, HeatmapMode::Off) {
         0
     } else {
         2
     };
-    let lines =
-        3 + 1 + 7 + 1 + 1 + 4 + 1 + 1 + 4 + 1 + 1 + factions_visible(sector) + heatmap_lines;
+    let route_control_lines = if sector.routes.iter().any(|r| !r.controls.is_empty()) {
+        5
+    } else {
+        0
+    };
+    let lines = 3
+        + 1
+        + 7
+        + 1
+        + 1
+        + 4
+        + 1
+        + 1
+        + 4
+        + 1
+        + route_control_lines
+        + 1
+        + factions_visible(sector)
+        + heatmap_lines;
     g.legend_pad * 2 + lines as i32 * g.line_h
 }
 
-const FACTION_DISPLAY_CAP: usize = 6;
-const FACTION_MINOR_FRACTION: f32 = 0.12;
+use crate::importance::{
+    DEFAULT_DISPLAY_CAP as FACTION_DISPLAY_CAP, DEFAULT_MINOR_FRACTION as FACTION_MINOR_FRACTION,
+};
 
 fn factions_visible(sector: &GeneratedSector) -> usize {
     if sector.factions.is_empty() {
@@ -875,6 +999,81 @@ fn draw_legend(
         y += line_h;
     }
     y += 4 * g.scale;
+
+    if sector.routes.iter().any(|r| !r.controls.is_empty()) {
+        draw_text(img, x0, y, "ROUTE CONTROL", TEXT, body);
+        y += line_h;
+        let glyph_cx = x0 + 8 * g.scale;
+        let glyph_size = 10 * g.scale;
+        let half = glyph_size / 2;
+        let neutral = Rgba([170, 170, 180, 255]);
+        for (name, kind) in [
+            ("PATROL", ControlKind::Patrol),
+            ("TOLL", ControlKind::Toll),
+            ("INTERDICTION", ControlKind::Interdiction),
+            ("PIRACY", ControlKind::Piracy),
+        ] {
+            let cy_y = y + 8 * g.scale;
+            match kind {
+                ControlKind::Patrol => {
+                    fill_circle(img, glyph_cx, cy_y, half, neutral);
+                    draw_circle(img, glyph_cx, cy_y, half, darken(neutral, 0.5));
+                }
+                ControlKind::Toll => {
+                    fill_rect(
+                        img,
+                        glyph_cx - half,
+                        cy_y - half,
+                        glyph_size,
+                        glyph_size,
+                        neutral,
+                    );
+                    draw_rect_outline(
+                        img,
+                        glyph_cx - half,
+                        cy_y - half,
+                        glyph_size,
+                        glyph_size,
+                        darken(neutral, 0.5),
+                    );
+                }
+                ControlKind::Interdiction => {
+                    draw_line_thick(
+                        img,
+                        glyph_cx,
+                        cy_y - half,
+                        glyph_cx,
+                        cy_y + half,
+                        neutral,
+                        2 * g.scale,
+                    );
+                }
+                ControlKind::Piracy => {
+                    draw_line_thick(
+                        img,
+                        glyph_cx - half,
+                        cy_y - half,
+                        glyph_cx + half,
+                        cy_y + half,
+                        neutral,
+                        2 * g.scale,
+                    );
+                    draw_line_thick(
+                        img,
+                        glyph_cx - half,
+                        cy_y + half,
+                        glyph_cx + half,
+                        cy_y - half,
+                        neutral,
+                        2 * g.scale,
+                    );
+                }
+            }
+            draw_text(img, x0 + 22 * g.scale, y, name, TEXT, body);
+            y += line_h;
+        }
+        y += 4 * g.scale;
+    }
 
     if !sector.factions.is_empty() {
         draw_text(img, x0, y, "FACTIONS", TEXT, body);
@@ -1100,6 +1299,7 @@ mod tests {
             tags: vec![],
             notes: vec![],
             control: Default::default(),
+            stability: Default::default(),
         };
         GeneratedSector {
             id: "demo".into(),

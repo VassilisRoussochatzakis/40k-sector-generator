@@ -8,6 +8,15 @@
 
 use crate::sector_model::{GeneratedFaction, GeneratedSector};
 
+/// Default minor-fraction cutoff for [`compute_display_buckets`]. Shared by the
+/// PNG legend, GUI sector overview, and Markdown renderer so the three surfaces
+/// stay in sync.
+pub const DEFAULT_MINOR_FRACTION: f32 = 0.12;
+
+/// Default standalone-bucket cap for [`compute_display_buckets`]. See
+/// [`DEFAULT_MINOR_FRACTION`].
+pub const DEFAULT_DISPLAY_CAP: usize = 6;
+
 /// Aggregation buckets surfaced in legends. `Faction` carries a single
 /// faction; `Aggregated` rolls up several low-importance factions belonging
 /// to the same kind-group.

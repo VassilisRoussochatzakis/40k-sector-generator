@@ -237,7 +237,7 @@ write_diagnostics          = false   # reserved flag; no extra diagnostic files 
 sector_scale        = 5          # integer scale multiplier for the sector map (1..=8)
 system_scale        = 4          # integer scale multiplier for per-system maps (1..=8)
 render_systems      = true       # generate per-system bitmap renders as well
-faction_fill        = true       # §8: tint each system hex by dominant faction's FactionStyle.fill
+faction_fill        = true       # §8: tint each sector hex AND halo each per-system planet by dominant faction's FactionStyle.fill
 heatmap             = "off"      # §10: per-system heatmap tint applied to the PNG.
                                  # one of: off | control | military | trade | industrial
                                  #         covert | faith | threat | intel
@@ -738,11 +738,11 @@ callers of the API.
 | [src/control.rs](src/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
 | [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
-| [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system) |
+| [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system). Includes faction display buckets (§15) and per-world / per-system stability (§11.1) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers + bundle export |
 | [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + legend |
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
-| [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering |
+| [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` to halo each planet by its dominant faction (§8) |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
@@ -756,7 +756,9 @@ callers of the API.
 | [src/errors.rs](src/errors.rs) | `SectorError` type |
 | [src/faction_style.rs](src/faction_style.rs) | Pure-data per-faction style (RGB fill/accent + glyph + border); shared by GUI + PNG renderers |
 | [src/heatmap.rs](src/heatmap.rs) | Pure-data per-system heatmap scoring (`HeatmapMode`); GUI + bitmap consumers share scoring |
-| [src/importance.rs](src/importance.rs) | §10.3 / §15: `display_importance` per faction + kind-group aggregation into legend buckets |
+| [src/importance.rs](src/importance.rs) | §10.3 / §15: `display_importance` per faction + kind-group aggregation into legend buckets. Shared `DEFAULT_MINOR_FRACTION` / `DEFAULT_DISPLAY_CAP` consumed by the PNG legend, GUI sector overview, and Markdown renderer so all three stay in sync |
+| [src/stability.rs](src/stability.rs) | §11.1: static `StabilityState` per world + per system (public_order / corruption / fear / rebellion / xenos_threat / warp_instability / famine). Pure derivation from tags, world type, factions present, and existing control summary — no sim ticks |
+| [src/route_control.rs](src/route_control.rs) | §3: per-route per-faction `RouteControl` (patrol / toll / interdiction / piracy / secrecy / confidence). Derived from endpoint-system faction presence + faction kind + endpoint tags (`quarantined`, `war_zone`). Stored on `GeneratedRoute.controls` (`#[serde(default)]`). Surfaced in the Markdown renderer, sector PNG (per-route midpoint glyph + `ROUTE CONTROL` legend), and GUI `system_summary` (`ROUTES` block keyed off the selected system) |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
 | [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG export dialog + sector JSON bundle export |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |

@@ -659,6 +659,7 @@ mod tests {
             notes: vec![],
             claims: vec![],
             control: WorldControlSummary::default(),
+            stability: Default::default(),
         }
     }
 

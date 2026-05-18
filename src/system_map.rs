@@ -15,7 +15,23 @@ use crate::bitmap::{
     save_png_fast, short, star_color, text_size, tint, BG, PANEL_BG, TEXT, TEXT_DIM,
 };
 use crate::errors::SectorError;
-use crate::sector_model::{GeneratedSector, GeneratedSystem};
+use crate::faction_style::faction_style_rgb_by_id;
+use crate::sector_model::{GeneratedFaction, GeneratedSector, GeneratedSystem};
+
+/// Per-system render options. Mirrors the relevant subset of
+/// `crate::bitmap::RenderOptions`.
+#[derive(Debug, Clone, Copy)]
+pub struct SystemRenderOptions {
+    /// Halo each planet disk with its dominant faction's `FactionStyle.fill`
+    /// (§8). World-type colour stays as the inner disk.
+    pub faction_fill: bool,
+}
+
+impl Default for SystemRenderOptions {
+    fn default() -> Self {
+        Self { faction_fill: true }
+    }
+}
 
 /// Common resolution presets. Map area is 720 × scale pixels tall; legend adds 360 × scale wide.
 /// Scale 1 = ~720p (1080px total width). Scale 2 = 1440p. Scale 3 = 4K (2160px).
@@ -30,12 +46,13 @@ pub fn write_system_maps(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
     scale: u32,
+    opts: SystemRenderOptions,
 ) -> Result<(), SectorError> {
     let systems_dir = output_dir.join("systems");
     fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
     for sys in &sector.systems {
         let path = systems_dir.join(format!("{}.png", sys.id));
-        let img = render_system(sys, scale);
+        let img = render_system(sys, &sector.factions, scale, opts);
         save_png_fast(&img, &path)?;
     }
     Ok(())
@@ -44,10 +61,12 @@ pub fn write_system_maps(
 /// Render a single system to a specific PNG path.
 pub fn write_one_system_png(
     sys: &GeneratedSystem,
+    factions: &[GeneratedFaction],
     path: &Utf8Path,
     scale: u32,
+    opts: SystemRenderOptions,
 ) -> Result<(), SectorError> {
-    let img = render_system(sys, scale);
+    let img = render_system(sys, factions, scale, opts);
     save_png_fast(&img, path)
 }
 
@@ -93,7 +112,12 @@ impl SysGeom {
     }
 }
 
-fn render_system(sys: &GeneratedSystem, scale: u32) -> RgbaImage {
+fn render_system(
+    sys: &GeneratedSystem,
+    factions: &[GeneratedFaction],
+    scale: u32,
+    opts: SystemRenderOptions,
+) -> RgbaImage {
     let max_orbit = i32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0));
     let g = SysGeom::new(scale, max_orbit);
     let total_w = g.side + g.legend_w;
@@ -122,6 +146,13 @@ fn render_system(sys: &GeneratedSystem, scale: u32) -> RgbaImage {
         let px = cx + (r as f32 * a.cos()).round() as i32;
         let py = cy + (r as f32 * a.sin()).round() as i32;
         let color = world_type_color(&w.world.world_type);
+        if opts.faction_fill {
+            if let Some(dom) = w.control.dominant.as_deref() {
+                let style = faction_style_rgb_by_id(factions, dom);
+                let halo = tint(Rgba([style.fill.0, style.fill.1, style.fill.2, 255]), 0.75);
+                fill_circle(&mut img, px, py, g.planet_r + 4 * g.scale, halo);
+            }
+        }
         fill_circle(&mut img, px, py, g.planet_r, color);
         draw_circle(&mut img, px, py, g.planet_r, darken(color, 0.5));
 
@@ -329,6 +360,7 @@ mod tests {
             notes: vec![],
             claims: vec![],
             control: Default::default(),
+            stability: Default::default(),
         }
     }
 
@@ -355,13 +387,14 @@ mod tests {
             tags: vec![],
             notes: vec![],
             control: Default::default(),
+            stability: Default::default(),
         }
     }
 
     #[test]
     fn renders_without_panicking() {
         let sys = sample_system();
-        let img = render_system(&sys, 1);
+        let img = render_system(&sys, &[], 1, SystemRenderOptions::default());
         assert_eq!(img.width(), (720 + 360) as u32);
         assert_eq!(img.height(), 720);
     }
@@ -369,14 +402,14 @@ mod tests {
     #[test]
     fn scaled_render_is_larger() {
         let sys = sample_system();
-        let img = render_system(&sys, 4);
+        let img = render_system(&sys, &[], 4, SystemRenderOptions::default());
         assert_eq!(img.width(), (720 + 360) as u32 * 4);
     }
 
     #[test]
     fn clamps_above_max_scale() {
         let sys = sample_system();
-        let img = render_system(&sys, MAX_SCALE + 10);
+        let img = render_system(&sys, &[], MAX_SCALE + 10, SystemRenderOptions::default());
         let expected = (720 + 360) * MAX_SCALE;
         assert_eq!(img.width(), expected);
     }
@@ -384,8 +417,15 @@ mod tests {
     #[test]
     fn resolution_presets_produce_expected_heights() {
         let sys = sample_system();
-        assert_eq!(render_system(&sys, RESOLUTION_720P).height(), 720);
-        assert_eq!(render_system(&sys, RESOLUTION_1440P).height(), 1440);
-        assert_eq!(render_system(&sys, RESOLUTION_4K).height(), 2160);
+        let opts = SystemRenderOptions::default();
+        assert_eq!(
+            render_system(&sys, &[], RESOLUTION_720P, opts).height(),
+            720
+        );
+        assert_eq!(
+            render_system(&sys, &[], RESOLUTION_1440P, opts).height(),
+            1440
+        );
+        assert_eq!(render_system(&sys, &[], RESOLUTION_4K, opts).height(), 2160);
     }
 }

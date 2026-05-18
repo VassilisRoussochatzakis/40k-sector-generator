@@ -204,6 +204,7 @@ pub fn empty_system(id: String, index: usize, name: String, coord: HexCoord) -> 
         tags: Vec::new(),
         notes: Vec::new(),
         control: Default::default(),
+        stability: Default::default(),
     }
 }
 
@@ -232,6 +233,7 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
         notes: Vec::new(),
         claims: Vec::new(),
         control: Default::default(),
+        stability: Default::default(),
     }
 }
 
@@ -246,6 +248,7 @@ pub fn empty_route(from: String, to: String) -> GeneratedRoute {
         route_type: RouteType::ChartedPassage,
         stability: RouteStability::Stable,
         tags: Vec::new(),
+        controls: Vec::new(),
     }
 }
 

@@ -40,6 +40,10 @@ pub struct GeneratedSystem {
     /// See `faction_sector_control_and_power_design.md` §6.4.
     #[serde(default)]
     pub control: SystemControlSummary,
+    /// Static stability snapshot averaged across worlds + bumped by
+    /// `control.state` (§11.1).
+    #[serde(default)]
+    pub stability: crate::stability::StabilityState,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +71,10 @@ pub struct GeneratedWorld {
     /// Multi-winner control summary (§5.3).
     #[serde(default)]
     pub control: WorldControlSummary,
+    /// Static stability snapshot (§11.1). Derived from tags, world type, and
+    /// factions present — no sim ticks.
+    #[serde(default)]
+    pub stability: crate::stability::StabilityState,
 }
 
 /// Serializable view over `crate::worlds::World`. Variant names are stable
@@ -111,6 +119,10 @@ pub struct GeneratedRoute {
     pub route_type: RouteType,
     pub stability: RouteStability,
     pub tags: Vec<String>,
+    /// Per-faction control profile along this route (§3). Empty when no
+    /// faction has meaningful endpoint presence.
+    #[serde(default)]
+    pub controls: Vec<crate::route_control::RouteControl>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

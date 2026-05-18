@@ -33,19 +33,41 @@ inspects orbital_controller ≠ surface_dominant under siege constraints, and a
 fleet inventory. Today we approximate "blockaded" purely by mismatch between
 `dominant` and `orbital_controller` at system level.
 
-## 3. Interstellar route control (§6.5)
+## 3. Interstellar route control (§6.5) — done (static)
 
-Routes currently carry only `route_type`, `stability`, and free-form tags. The
-design wants:
+`RouteControl` lives in [src/route_control.rs](src/route_control.rs) with
+fields `patrol`, `toll`, `interdiction`, `piracy`, `secrecy`, and
+`confidence` (all 0..=100). Every `GeneratedRoute` carries a `Vec<RouteControl>`
+under `controls` (`#[serde(default)]`). Derivation is post-routes,
+post-faction-assignment: each faction with non-trivial endpoint presence
+gets a profile shaped by kind (lawful navy → `patrol`, merchant/Mechanicus
+→ `toll`, Inquisition/Necron + `quarantined` endpoint → `interdiction`,
+Drukhari/Ork/criminal → `piracy`, Aeldari/Harlequin/cult → `secrecy` bump),
+with `secrecy = 100 - avg(visibility)` and `confidence = avg(visibility)`.
+The Markdown renderer emits a "Route control" table; PNG legend + GUI
+route-detail panel are not yet wired.
 
-* `RouteControl` per route per faction: `patrol`, `toll`, `interdiction`,
-  `piracy`, `secrecy`, `confidence`.
-* Hidden webway / black-ship / smuggling layers.
-* Crossbars for interdiction, animated convoy particles, glow on high-traffic
-  edges.
+The sector PNG renderer draws the dominant control category at each route
+midpoint in the controlling faction's `FactionStyle.fill` colour:
+filled disc = patrol, square = toll, perpendicular crossbar = interdiction,
+"X" = piracy. A `ROUTE CONTROL` legend block keys the symbols. Threshold
+is `score >= 40`; routes whose strongest score falls below render as
+plain stability-coloured lines.
 
-**Deferred:** Touches both the data model and the bitmap renderer. The
-"projection falloff over routes" formula in §7.2 also depends on this.
+The GUI info panel now shows a `ROUTES (N)` block on `system_summary` for
+the selected system, listing every route touching it with destination,
+type, stability, distance, and per-faction control scores (>=30 only) in
+the controlling faction's colour. No clickable route hit-testing on the
+hex map yet — the listing is keyed off the currently selected system.
+
+**Still deferred:**
+
+* Hidden webway / black-ship / smuggling layers (separate route classes
+  not currently produced by `classify_route`).
+* Animated convoy particles + thickness modulation by traffic volume.
+* Direct route hit-testing on `gui/sector_view` so a route can be
+  selected without going through one of its endpoints.
+* Power-projection falloff over routes (§4 below) reads these scores.
 
 ## 4. Power projection over routes (§7.2)
 
@@ -68,16 +90,24 @@ Infiltrated / Quarantined / Uncharted) but does not advance state over time.
 **Deferred:** generator is currently single-shot deterministic; introducing
 ticks requires a new save format and a sim loop. Out of scope for this pass.
 
-## 6. Stability model (§11.1)
+## 6. Stability model (§11.1) — done (static snapshot)
 
-`StabilityState` (`public_order`, `corruption`, `fear`, `rebellion_risk`,
-`xenos_threat`, `warp_instability`, `famine_or_resource_stress`) is not
-tracked. We rely on tag/feature heuristics ("war_zone", "quarantined",
-"daemonic_corruption") to classify system state.
+`StabilityState` lives in [src/stability.rs](src/stability.rs) and is
+attached to every `GeneratedWorld` and `GeneratedSystem` as a serde-default
+field. Fields: `public_order`, `corruption`, `fear`, `rebellion_risk`,
+`xenos_threat`, `warp_instability`, `famine_or_resource_stress` (all 0..=100).
+Per-world values are derived from tags/features, world type, and the kinds
+of factions present; per-system values average the worlds and add a flat
+bonus driven by `SystemControlSummary.state` (Warzone / Blockaded /
+Infiltrated / Quarantined). The Markdown renderer
+[src/render.rs](src/render.rs) prints a per-world "Stability" block and a
+system-level "Stability" line; the GUI info panel
+[src/gui/info_panel.rs](src/gui/info_panel.rs) shows a STABILITY section in
+both `system_summary` and `world_detail` via `stability_block`.
 
-**Deferred:** valuable for narrative campaign use but requires sim ticks
-(§5) to evolve. Adding the static fields without an update loop would just
-encode duplicates of existing tags.
+**Still deferred:** there is no sim loop, so these values do not evolve —
+they are a one-shot snapshot. Hooking them into per-tick decay / pressure
+updates is the §11 conflict-simulation work.
 
 ## 7. Intel / fog of war (§12)
 
@@ -100,10 +130,11 @@ Core hue/glyph/border logic lives in [src/faction_style.rs](src/faction_style.rs
 `sectorforge.toml` or `--no-faction-fill` on the CLI. The bitmap legend now
 shows per-faction colour swatches sourced from the same palette as the GUI.
 
-**Still deferred:** the per-system bitmap ([src/system_map.rs](src/system_map.rs))
-does not draw any faction tint yet — it is a per-planet view, so faction
-fill there would have to ride on world-level dominance rather than the
-system-level dominant aggregate.
+The per-system bitmap ([src/system_map.rs](src/system_map.rs)) now also
+halos each planet disk with its world-level `control.dominant` faction's
+`FactionStyle.fill` (inner disk keeps world-type colour so type identity is
+preserved). Same `outputs.bitmap.faction_fill` toggle drives it via
+`SystemRenderOptions`.
 
 ## 9. Continuous sector area layers (§9.3)
 
@@ -189,10 +220,17 @@ Implemented in [src/importance.rs](src/importance.rs):
 world_presence)`. `compute_display_buckets(sector, minor_fraction,
 max_visible)` returns a ranked list mixing `DisplayBucket::Faction` entries
 (top N) with `DisplayBucket::Aggregated` rollups grouped by `KindGroup`
-("Other Imperial", "Minor Xenos", "Criminal Networks", etc.). The PNG
-legend in [src/bitmap/mod.rs](src/bitmap/mod.rs) renders these buckets with
-the same `FactionStyle.fill` swatches used on the map. Not yet wired into
-the Markdown renderer or the GUI sector overlay.
+("Other Imperial", "Minor Xenos", "Criminal Networks", etc.). Shared
+constants `DEFAULT_MINOR_FRACTION = 0.12` and `DEFAULT_DISPLAY_CAP = 6` keep
+the three surfaces aligned: the PNG legend in
+[src/bitmap/mod.rs](src/bitmap/mod.rs) renders the buckets with
+`FactionStyle.fill` swatches, the GUI sector overview
+([src/gui/info_panel.rs](src/gui/info_panel.rs) `sector_overview`) shows a
+matching FACTIONS section with per-faction colour rows + grey rows for
+aggregates, and the Markdown renderer
+([src/render.rs](src/render.rs) `format_faction_display_buckets`) emits a
+"Faction display buckets" table listing rank, label, kind/group, system &
+world counts, importance, and aggregate members.
 
 ## 16. Hysteresis on control change (§11.3)
 
@@ -212,11 +250,9 @@ JSONs still load.
 
 ---
 
-If you pick up this file, the next meaningful step toward the visual
-grammar in the design doc is §3 (route control) — heatmaps (§10), faction
-styles (§8 in the GUI + bitmap), the filter/pin UI (§14), the industrial
-dimension (§17), and display-importance bucketing (§15) have all landed.
-Per-system bitmap faction tint (§8 inside [src/system_map.rs](src/system_map.rs))
-remains as a smaller follow-up, and §15 is currently legend-only — wiring
-the same buckets into the GUI sector-view overlay (and the Markdown
-renderer) is a low-effort win once the visual treatment is decided.
+If you pick up this file, §3 (route control, data + PNG symbology + GUI
+route listing), §6 (stability snapshot), heatmaps (§10), faction styles
+(§8 in the GUI + sector bitmap + per-system bitmap), the filter/pin UI
+(§14), the industrial dimension (§17), and display-importance bucketing
+(§15, PNG + GUI + Markdown) have all landed. Remaining big-ticket items
+are the conflict simulation (§5) and the §11 archetype rules.

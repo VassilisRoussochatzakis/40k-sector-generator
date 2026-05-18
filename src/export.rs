@@ -42,7 +42,10 @@ pub fn export_all(
     // System maps are written whenever any image format is enabled and
     // `bitmap.render_systems` is on.
     if wrote_image && bm.render_systems {
-        crate::system_map::write_system_maps(sector, output_dir, bm.system_scale)?;
+        let sys_opts = crate::system_map::SystemRenderOptions {
+            faction_fill: bm.faction_fill,
+        };
+        crate::system_map::write_system_maps(sector, output_dir, bm.system_scale, sys_opts)?;
     }
 
     Ok(())

@@ -71,12 +71,23 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     let generated_factions = aggregate_factions(&systems, &factions);
 
     // ── Routes ──────────────────────────────────────────────────────────────
-    let routes = if config.generation.routes.enabled {
+    let mut routes = if config.generation.routes.enabled {
         let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
         generate_routes(&config, &route_rules, &systems, &mut route_rng)
     } else {
         Vec::new()
     };
+
+    // §3 per-route per-faction control. Derived after routes are built and
+    // factions assigned, so endpoint presence reflects final state.
+    if !routes.is_empty() && !generated_factions.is_empty() {
+        let by_id: BTreeMap<&str, &GeneratedSystem> =
+            systems.iter().map(|s| (s.id.as_str(), s)).collect();
+        for r in &mut routes {
+            r.controls =
+                crate::route_control::derive_route_controls(r, &by_id, &generated_factions);
+        }
+    }
 
     // Sort everything for stable serialization.
     let mut sorted_systems = systems;
@@ -233,6 +244,7 @@ pub fn build_system(
         tags: Vec::new(),
         notes: Vec::new(),
         control: SystemControlSummary::default(),
+        stability: crate::stability::StabilityState::default(),
     })
 }
 
@@ -397,6 +409,7 @@ fn generate_worlds_for_system(
             notes: Vec::new(),
             claims: Vec::new(),
             control: WorldControlSummary::default(),
+            stability: crate::stability::StabilityState::default(),
         });
     }
     // Sort by orbit for stable output.
@@ -598,12 +611,28 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
     assign_factions_inner(systems, factions, rng);
     // Post-pass: derive per-world claims + multi-winner snapshots, then roll up
     // to system-level state classification. Pure, deterministic.
+    // Build a temporary catalog of GeneratedFactions for stability derivation —
+    // stability only needs id→kind, so use the def list directly.
+    let stability_factions: Vec<crate::sector_model::GeneratedFaction> = factions
+        .iter()
+        .map(|f| crate::sector_model::GeneratedFaction {
+            id: f.id.clone(),
+            name: f.name.clone(),
+            kind: f.kind.clone(),
+            disposition: f.default_disposition.clone(),
+            system_presence: vec![],
+            world_presence: vec![],
+            power: crate::sector_model::PowerProfile::default(),
+        })
+        .collect();
     for sys in systems.iter_mut() {
         for world in &mut sys.worlds {
             world.claims = control::derive_world_claims(world);
             world.control = control::derive_world_control(world);
+            world.stability = crate::stability::derive_world_stability(world, &stability_factions);
         }
         sys.control = control::derive_system_control(sys);
+        sys.stability = crate::stability::derive_system_stability(sys);
     }
 }
 
@@ -943,6 +972,7 @@ fn generate_routes(
                 route_type: rt,
                 stability: stab,
                 tags,
+                controls: Vec::new(),
             }
         })
         .collect();

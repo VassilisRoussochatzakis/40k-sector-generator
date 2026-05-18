@@ -730,6 +730,7 @@ mod tests {
                 tags: vec![],
                 notes: vec![],
                 control: Default::default(),
+                stability: Default::default(),
             });
         }
         GeneratedSector {
@@ -852,6 +853,7 @@ mod tests {
             route_type: crate::sector_model::RouteType::ChartedPassage,
             stability: crate::sector_model::RouteStability::Stable,
             tags: vec![],
+            controls: vec![],
         });
         sector.routes.push(GeneratedRoute {
             id: "r-border".into(),
@@ -861,6 +863,7 @@ mod tests {
             route_type: crate::sector_model::RouteType::ChartedPassage,
             stability: crate::sector_model::RouteStability::Stable,
             tags: vec![],
+            controls: vec![],
         });
         // Target 2 systems per subsector so sys-0001 + sys-0002 cluster together,
         // sys-0003 forms its own cluster.

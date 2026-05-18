@@ -108,7 +108,8 @@ impl App {
                     self.export_status = "path is not valid utf-8".into();
                     return;
                 };
-                match crate::system_map::write_system_maps(&sector, &p, scale) {
+                let sys_opts = crate::system_map::SystemRenderOptions { faction_fill: true };
+                match crate::system_map::write_system_maps(&sector, &p, scale, sys_opts) {
                     Ok(()) => {
                         self.export_status = format!(
                             "exported {} system PNGs to {}/systems",
@@ -136,7 +137,14 @@ impl App {
                     self.export_status = "path is not valid utf-8".into();
                     return;
                 };
-                match crate::system_map::write_one_system_png(&sys, &p, scale) {
+                let sys_opts = crate::system_map::SystemRenderOptions { faction_fill: true };
+                match crate::system_map::write_one_system_png(
+                    &sys,
+                    &sector.factions,
+                    &p,
+                    scale,
+                    sys_opts,
+                ) {
                     Ok(()) => self.export_status = format!("exported {}", p),
                     Err(e) => self.export_status = format!("export failed: {}", e),
                 }

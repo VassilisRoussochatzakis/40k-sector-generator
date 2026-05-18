@@ -316,8 +316,10 @@ impl App {
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     if let Some(sel) = self.sector_selected.as_deref() {
-                        if let Some(sys) = self.system_by_id(sel) {
-                            info_panel::system_summary(ui, sys);
+                        if let (Some(sys), Some(sector)) =
+                            (self.system_by_id(sel), self.sector.as_ref())
+                        {
+                            info_panel::system_summary(ui, sys, sector);
                             ui.add_space(10.0);
                             if ui
                                 .button(RichText::new("OPEN SYSTEM →").monospace())
@@ -402,7 +404,8 @@ impl App {
                             SystemSelection::None => {}
                         }
                         ui.separator();
-                        info_panel::system_summary(ui, sys);
+                        let sector = self.sector.as_ref().expect("sector loaded");
+                        info_panel::system_summary(ui, sys, sector);
                         ui.add_space(10.0);
                         if ui
                             .button(RichText::new("← BACK TO SECTOR").monospace())

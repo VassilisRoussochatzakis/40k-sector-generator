@@ -7,7 +7,11 @@ use crate::sector_model::{GeneratedSector, GeneratedSystem, GeneratedWorld, Rout
 use crate::subsectors::Subsector;
 
 use super::palette::{
-    darken, draw_route_line, stability_color, star_color, world_type_color, TEXT, TEXT_DIM,
+    darken, draw_route_line, faction_style_by_id, stability_color, star_color, world_type_color,
+    TEXT, TEXT_DIM,
+};
+use crate::importance::{
+    compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
 };
 
 pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
@@ -58,9 +62,55 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
         legend_row(ui, stability_color(stab), name);
     }
     ui.add_space(8.0);
+
+    if !sector.factions.is_empty() {
+        section(ui, "FACTIONS");
+        let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
+        for b in &buckets {
+            match b {
+                DisplayBucket::Faction {
+                    id,
+                    name,
+                    system_count,
+                    world_count,
+                    ..
+                } => {
+                    let style = faction_style_by_id(&sector.factions, id);
+                    legend_row(
+                        ui,
+                        style.fill,
+                        &format!(
+                            "{}  {}S {}W",
+                            short(&name.to_uppercase(), 18),
+                            system_count,
+                            world_count,
+                        ),
+                    );
+                }
+                DisplayBucket::Aggregated {
+                    label,
+                    system_count,
+                    world_count,
+                    ..
+                } => {
+                    legend_row(
+                        ui,
+                        Color32::from_rgb(140, 140, 150),
+                        &format!(
+                            "{}  {}S {}W",
+                            short(&label.to_uppercase(), 18),
+                            system_count,
+                            world_count,
+                        ),
+                    );
+                }
+            }
+        }
+        ui.add_space(8.0);
+    }
 }
 
-pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem) {
+pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
     title(ui, &format!("SYSTEM: {}", sys.id.to_uppercase()));
     body(ui, &short(&sys.name.to_uppercase(), 28));
     dim(ui, &format!("COORD: Q{:+} R{:+}", sys.coord.q, sys.coord.r));
@@ -131,6 +181,8 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem) {
             kv(ui, "HIDDEN", &short(&v.to_uppercase(), 22));
         }
     }
+    stability_block(ui, &sys.stability);
+    routes_block(ui, sys, sector);
     if !sys.tags.is_empty() {
         ui.add_space(8.0);
         section(ui, "TAGS");
@@ -238,6 +290,7 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         }
         kv(ui, "SCORE", &format!("{:.0}", wc.control_score));
     }
+    stability_block(ui, &w.stability);
     if !w.claims.is_empty() {
         ui.add_space(8.0);
         section(ui, "CLAIMS");
@@ -482,6 +535,85 @@ fn kv(ui: &mut Ui, k: &str, v: &str) {
         );
         ui.label(RichText::new(v).color(TEXT).font(mono(12.0)));
     });
+}
+
+fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
+    let mut hits: Vec<&crate::sector_model::GeneratedRoute> = sector
+        .routes
+        .iter()
+        .filter(|r| r.from_system_id == sys.id || r.to_system_id == sys.id)
+        .collect();
+    if hits.is_empty() {
+        return;
+    }
+    hits.sort_by(|a, b| a.id.cmp(&b.id));
+    ui.add_space(8.0);
+    section(ui, &format!("ROUTES ({})", hits.len()));
+    for r in hits {
+        let other = if r.from_system_id == sys.id {
+            &r.to_system_id
+        } else {
+            &r.from_system_id
+        };
+        dim(
+            ui,
+            &format!(
+                "→ {} [{:?}/{:?}] d={}",
+                other.to_uppercase(),
+                r.route_type,
+                r.stability,
+                r.distance
+            ),
+        );
+        for c in &r.controls {
+            let parts = [
+                ("PTRL", c.patrol),
+                ("TOLL", c.toll),
+                ("INTR", c.interdiction),
+                ("PIRC", c.piracy),
+                ("SCRC", c.secrecy),
+                ("CONF", c.confidence),
+            ];
+            let mut active: Vec<String> = parts
+                .iter()
+                .filter(|(_, v)| *v >= 30.0)
+                .map(|(l, v)| format!("{l}{:.0}", v))
+                .collect();
+            if active.is_empty() {
+                continue;
+            }
+            active.sort();
+            let style = faction_style_by_id(&sector.factions, &c.faction_id);
+            legend_row(
+                ui,
+                style.fill,
+                &format!(
+                    "{}  {}",
+                    short(&c.faction_id.to_uppercase(), 14),
+                    active.join(" ")
+                ),
+            );
+        }
+    }
+}
+
+fn stability_block(ui: &mut Ui, st: &crate::stability::StabilityState) {
+    if *st == crate::stability::StabilityState::default() {
+        return;
+    }
+    ui.add_space(8.0);
+    section(ui, "STABILITY");
+    kv(ui, "PUBLIC ORDER", &format!("{:.0}", st.public_order));
+    kv(ui, "CORRUPTION", &format!("{:.0}", st.corruption));
+    kv(ui, "FEAR", &format!("{:.0}", st.fear));
+    kv(ui, "REBELLION", &format!("{:.0}", st.rebellion_risk));
+    kv(ui, "XENOS THREAT", &format!("{:.0}", st.xenos_threat));
+    kv(ui, "WARP INSTAB.", &format!("{:.0}", st.warp_instability));
+    kv(
+        ui,
+        "FAMINE/STRESS",
+        &format!("{:.0}", st.famine_or_resource_stress),
+    );
 }
 
 fn legend_row(ui: &mut Ui, color: Color32, text: &str) {

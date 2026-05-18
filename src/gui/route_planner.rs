@@ -185,6 +185,14 @@ fn edge_weight(r: &GeneratedRoute) -> f64 {
     if matches!(r.route_type, RouteType::SecretPassage) {
         w += 1.0;
     }
+    if matches!(
+        r.route_type,
+        RouteType::Webway | RouteType::BlackShip | RouteType::SmugglingLane
+    ) {
+        // Hidden routes are restricted-access; treat as expensive for the
+        // generic planner so they don't poach traffic from public lanes.
+        w += 4.0;
+    }
     w
 }
 
@@ -338,10 +346,15 @@ fn classify(r: &GeneratedRoute) -> (Severity, String) {
         RouteType::ChartedPassage => None,
         RouteType::DangerousPassage => Some("dangerous passage"),
         RouteType::SecretPassage => Some("secret passage"),
+        RouteType::Webway => Some("webway thread"),
+        RouteType::BlackShip => Some("black-ship convoy"),
+        RouteType::SmugglingLane => Some("smuggling lane"),
     };
     let sev = match (r.stability, r.route_type) {
         (RouteStability::Hazardous, _) | (_, RouteType::DangerousPassage) => Severity::Danger,
         (RouteStability::Unstable, _) | (_, RouteType::SecretPassage) => Severity::Caution,
+        (_, RouteType::SmugglingLane) => Severity::Caution,
+        (_, RouteType::Webway) | (_, RouteType::BlackShip) => Severity::Info,
         _ => Severity::Info,
     };
     let mut parts = vec![stab_label.to_string()];

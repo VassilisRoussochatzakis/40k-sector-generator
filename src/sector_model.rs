@@ -23,6 +23,14 @@ pub struct GeneratedSector {
     pub routes: Vec<GeneratedRoute>,
     pub factions: Vec<GeneratedFaction>,
     pub manifest: GenerationManifest,
+    /// Continuous area layers (§9 NEXT, §9.3) — Voronoi-style influence
+    /// polygons + soft territory bands. Empty by default.
+    #[serde(default)]
+    pub influence_field: crate::influence_field::InfluenceField,
+    /// Per-faction route-graph projection map (§4 NEXT, §7.2). Empty
+    /// when no factions or routes exist.
+    #[serde(default)]
+    pub power_projection: crate::power_projection::PowerProjectionMap,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,6 +52,25 @@ pub struct GeneratedSystem {
     /// `control.state` (§11.1).
     #[serde(default)]
     pub stability: crate::stability::StabilityState,
+    /// Discrete orbital assets (§2 NEXT) — stations, shipyards, defense
+    /// platforms, blockade fleets — derived from per-faction dimensions.
+    #[serde(default)]
+    pub orbital_assets: Vec<crate::orbital_assets::OrbitalAsset>,
+    /// Blockade snapshot when dominant ≠ orbital_controller + blockade
+    /// fleet present (§2 NEXT, §6.3).
+    #[serde(default)]
+    pub blockade: crate::orbital_assets::BlockadeReport,
+    /// Per-system conflict state (§5 NEXT, §11). Empty by default.
+    #[serde(default)]
+    pub conflict: crate::conflict::ConflictState,
+    /// Intel / fog-of-war record for the system, keyed by observer faction
+    /// id (§7 NEXT, §12). Empty when full omniscient view is in effect.
+    #[serde(default)]
+    pub intel: crate::intel::SystemIntel,
+    /// Archetype-specific narrative state (§11 NEXT, §16). Default = no
+    /// archetype rules fired for this system.
+    #[serde(default)]
+    pub archetype: crate::archetypes::ArchetypeState,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,6 +102,13 @@ pub struct GeneratedWorld {
     /// factions present — no sim ticks.
     #[serde(default)]
     pub stability: crate::stability::StabilityState,
+    /// Named surface regions (§1 NEXT, §6.1) — capital, hive, underhive, etc.
+    /// Empty when the world's type/population doesn't warrant a split.
+    #[serde(default)]
+    pub regions: Vec<crate::surface_region::SurfaceRegion>,
+    /// Per-world conflict state (§5 NEXT). Default = pristine.
+    #[serde(default)]
+    pub conflict: crate::conflict::ConflictState,
 }
 
 /// Serializable view over `crate::worlds::World`. Variant names are stable
@@ -132,6 +166,15 @@ pub enum RouteType {
     ChartedPassage,
     DangerousPassage,
     SecretPassage,
+    /// Aeldari webway thread — invisible to non-Aeldari observers (§3 NEXT,
+    /// §16.10).
+    Webway,
+    /// Inquisition black-ship convoy lane — Inquisition-only transit, opaque
+    /// to outside intel (§3 NEXT, §16.1 governance stack).
+    BlackShip,
+    /// Hidden criminal / Drukhari raid lane — high secrecy + piracy
+    /// (§3 NEXT, §16.10).
+    SmugglingLane,
 }
 
 impl RouteType {
@@ -141,7 +184,22 @@ impl RouteType {
             RouteType::ChartedPassage => RoutePattern::Dashed,
             RouteType::DangerousPassage => RoutePattern::DotDash,
             RouteType::SecretPassage => RoutePattern::Dotted,
+            RouteType::Webway => RoutePattern::Dotted,
+            RouteType::BlackShip => RoutePattern::Dashed,
+            RouteType::SmugglingLane => RoutePattern::Dotted,
         }
+    }
+
+    /// True for the three hidden classes introduced by §3 (NEXT.md). Hidden
+    /// routes are only visible to the faction that owns them and their
+    /// directly-allied factions; the PNG legend renders them in a separate
+    /// HIDDEN ROUTES block.
+    #[must_use]
+    pub fn is_hidden(self) -> bool {
+        matches!(
+            self,
+            RouteType::Webway | RouteType::BlackShip | RouteType::SmugglingLane
+        )
     }
 }
 

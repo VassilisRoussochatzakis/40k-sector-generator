@@ -287,6 +287,8 @@ mod tests {
             claims: vec![],
             control: WorldControlSummary::default(),
             stability: Default::default(),
+            regions: Vec::new(),
+            conflict: Default::default(),
         };
         GeneratedSystem {
             id: id.into(),
@@ -305,6 +307,11 @@ mod tests {
             notes: vec![],
             control: SystemControlSummary::default(),
             stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
         }
     }
 

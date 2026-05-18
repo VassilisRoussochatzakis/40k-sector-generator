@@ -294,6 +294,79 @@ fn format_system_control(sys: &GeneratedSystem) -> String {
         s.push_str(&format!("- **Top factions:** {}\n", parts.join(", ")));
     }
     s.push_str(&format_stability_line(&sys.stability));
+    if sys.blockade.under_blockade {
+        s.push_str(&format!(
+            "- **Blockade:** {} blockading {} (intensity {})\n",
+            sys.blockade.blockader.as_deref().unwrap_or("?"),
+            sys.blockade.besieged.as_deref().unwrap_or("?"),
+            sys.blockade.intensity,
+        ));
+    }
+    if sys.conflict.intensity > 0 {
+        s.push_str(&format!(
+            "- **Conflict:** intensity {} momentum {} (age {})\n",
+            sys.conflict.intensity, sys.conflict.momentum, sys.conflict.age
+        ));
+    }
+    s.push_str(&format_archetype_lines(sys));
+    s.push_str(&format_orbital_assets_block(sys));
+    s
+}
+
+fn format_archetype_lines(sys: &GeneratedSystem) -> String {
+    let a = &sys.archetype;
+    if *a == crate::archetypes::ArchetypeState::default() {
+        return String::new();
+    }
+    let mut s = String::new();
+    if !a.imperial_co_sovereigns.is_empty() {
+        s.push_str(&format!(
+            "- **Imperial co-sovereigns:** {}\n",
+            a.imperial_co_sovereigns.join(", ")
+        ));
+    }
+    if a.necron_phase != crate::archetypes::NecronPhase::default() {
+        s.push_str(&format!("- **Necron phase:** {:?}\n", a.necron_phase));
+    }
+    if a.tyranid_stage != crate::archetypes::TyranidStage::default() {
+        s.push_str(&format!("- **Tyranid stage:** {:?}\n", a.tyranid_stage));
+    }
+    if a.ork_waaagh > 0 {
+        s.push_str(&format!("- **Ork Waaagh!:** {}\n", a.ork_waaagh));
+    }
+    if a.gsc_stage != crate::archetypes::GscStage::default() {
+        s.push_str(&format!("- **Genestealer stage:** {:?}\n", a.gsc_stage));
+    }
+    if a.tau_sphere != crate::archetypes::TauSphereBand::default() {
+        s.push_str(&format!("- **Tau sphere:** {:?}\n", a.tau_sphere));
+    }
+    if a.aeldari_activity > 0 {
+        s.push_str(&format!("- **Aeldari activity:** {}\n", a.aeldari_activity));
+    }
+    if a.chaos_corruption > 0 || a.daemon_manifestation > 0 {
+        s.push_str(&format!(
+            "- **Chaos:** corruption {} / daemonic {}\n",
+            a.chaos_corruption, a.daemon_manifestation
+        ));
+    }
+    s
+}
+
+fn format_orbital_assets_block(sys: &GeneratedSystem) -> String {
+    if sys.orbital_assets.is_empty() {
+        return String::new();
+    }
+    let mut s = String::new();
+    s.push_str("\n**Orbital assets:**\n\n");
+    s.push_str("| Kind | Faction | Strength |\n");
+    s.push_str("|---|---|---:|\n");
+    for a in &sys.orbital_assets {
+        s.push_str(&format!(
+            "| {:?} | {} | {} |\n",
+            a.kind, a.faction_id, a.strength
+        ));
+    }
+    s.push('\n');
     s
 }
 
@@ -406,6 +479,32 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
                 ));
             }
             s.push('\n');
+        }
+        if !w.regions.is_empty() {
+            s.push_str("**Surface regions:**\n\n");
+            s.push_str("| Region | Kind | Dominant | Score | Pop% | Vis |\n");
+            s.push_str("|---|---|---|---:|---:|---:|\n");
+            for r in &w.regions {
+                s.push_str(&format!(
+                    "| {} | {:?} | {} | {} | {} | {} |\n",
+                    r.name,
+                    r.kind,
+                    r.dominant.as_deref().unwrap_or("—"),
+                    r.control_score,
+                    r.population_weight,
+                    r.visibility,
+                ));
+            }
+            s.push('\n');
+        }
+        if w.conflict.intensity > 0 {
+            s.push_str(&format!(
+                "**Conflict:** intensity {} momentum {} attacker={} defender={}\n\n",
+                w.conflict.intensity,
+                w.conflict.momentum,
+                w.conflict.attacker.as_deref().unwrap_or("—"),
+                w.conflict.defender.as_deref().unwrap_or("—"),
+            ));
         }
     }
     s

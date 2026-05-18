@@ -361,6 +361,8 @@ mod tests {
             claims: vec![],
             control: Default::default(),
             stability: Default::default(),
+            regions: Vec::new(),
+            conflict: Default::default(),
         }
     }
 
@@ -388,6 +390,11 @@ mod tests {
             notes: vec![],
             control: Default::default(),
             stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
         }
     }
 

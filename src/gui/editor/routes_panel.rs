@@ -159,6 +159,9 @@ fn route_type_str(rt: RouteType) -> &'static str {
         RouteType::ChartedPassage => "charted_passage",
         RouteType::DangerousPassage => "dangerous_passage",
         RouteType::SecretPassage => "secret_passage",
+        RouteType::Webway => "webway",
+        RouteType::BlackShip => "black_ship",
+        RouteType::SmugglingLane => "smuggling_lane",
     }
 }
 
@@ -168,6 +171,9 @@ fn route_type_from_str(s: &str) -> Option<RouteType> {
         "charted_passage" => RouteType::ChartedPassage,
         "dangerous_passage" => RouteType::DangerousPassage,
         "secret_passage" => RouteType::SecretPassage,
+        "webway" => RouteType::Webway,
+        "black_ship" => RouteType::BlackShip,
+        "smuggling_lane" => RouteType::SmugglingLane,
         _ => return None,
     })
 }

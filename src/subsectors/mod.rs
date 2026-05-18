@@ -731,6 +731,11 @@ mod tests {
                 notes: vec![],
                 control: Default::default(),
                 stability: Default::default(),
+                orbital_assets: Vec::new(),
+                blockade: Default::default(),
+                conflict: Default::default(),
+                intel: Default::default(),
+                archetype: Default::default(),
             });
         }
         GeneratedSector {
@@ -758,6 +763,8 @@ mod tests {
                 world_count: 0,
                 route_count: 0,
             },
+            influence_field: Default::default(),
+            power_projection: Default::default(),
         }
     }
 

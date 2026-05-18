@@ -399,18 +399,35 @@ The canonical machine-readable output. Top-level shape:
    "systems": [ /* GeneratedSystem ... */ ],
    "routes": [ /* GeneratedRoute ... */ ],
    "factions": [ /* GeneratedFaction ... */ ],
-   "manifest": { /* seed, digests, counts */ }
+   "manifest": { /* seed, digests, counts */ },
+   "influence_field": { /* §9 NEXT: cells + bands */ },
+   "power_projection": { /* §4 NEXT: faction → system → projection */ }
 }
 ```
 
 Each `GeneratedSystem` has an `id`, `name`, `coord`, `star`, list of
-`worlds`, plus `primary_factions`, `tags`, `notes`, and a `control`
-summary (see "Faction control model" below).
+`worlds`, plus `primary_factions`, `tags`, `notes`, a `control`
+summary (see "Faction control model" below), `orbital_assets`
+([src/orbital_assets.rs](src/orbital_assets.rs) §2 NEXT), a
+`blockade` snapshot, a `conflict` tick-state record
+([src/conflict.rs](src/conflict.rs) §5 NEXT), an `intel`
+fog-of-war record ([src/intel.rs](src/intel.rs) §7 NEXT), and an
+`archetype` block of faction-specific narrative state
+([src/archetypes.rs](src/archetypes.rs) §11 NEXT).
 
 Each `GeneratedWorld` wraps a `WorldDto` view of `worlds::World` — variant
 names are stable (e.g. `"HiveWorld"`) — and also carries `claims`
-(per-faction legal/military/religious claims) and a `control`
-multi-winner snapshot.
+(per-faction legal/military/religious claims), a `control`
+multi-winner snapshot, `regions`
+([src/surface_region.rs](src/surface_region.rs) §1 NEXT: named
+geographic regions with per-region dominant faction), and a per-world
+`conflict` record.
+
+Each `GeneratedRoute` now exposes additional `route_type` variants for
+hidden lanes: `webway`, `black_ship`, `smuggling_lane` (§3 NEXT).
+Hidden routes are added between any two systems where both have
+meaningful faction presence of the appropriate kind, ignoring the
+warp-distance cap.
 
 #### Faction control model
 
@@ -634,10 +651,16 @@ Public surface:
 | `write_sector_markdown(path, &sector)` | Markdown writer |
 | `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / CSV / manifest + bitmaps |
 | `inspect_world_workbook(path)` | World-data diagnostics (used by `inspect-worlds`) |
+| `advance_sector(&mut sector)` | §5 NEXT — advance one conflict-simulation tick |
+| `split_sector_save(&sector)` | §13 NEXT — extract IDs-only `SectorSave` from a sector |
+| `merge_sector_save(&mut sector, save)` | §13 NEXT — re-apply runtime state to a fresh-from-catalog sector |
+| `write_sector_save(path, &save)` / `load_sector_save(path)` | §13 NEXT — pretty-JSON save/load |
+| `build_entity_world(&sector)` | §12 NEXT — flat ECS-style entity view (`EntityWorld`) |
 
 Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`,
 `InvariantViolation`, `GeneratedSector`, `GeneratedSystem`, `HexCoord`,
 `Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
+`ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
 `ValidationIssue`, `ValidationReport`.
 
 ---
@@ -759,6 +782,16 @@ callers of the API.
 | [src/importance.rs](src/importance.rs) | §10.3 / §15: `display_importance` per faction + kind-group aggregation into legend buckets. Shared `DEFAULT_MINOR_FRACTION` / `DEFAULT_DISPLAY_CAP` consumed by the PNG legend, GUI sector overview, and Markdown renderer so all three stay in sync |
 | [src/stability.rs](src/stability.rs) | §11.1: static `StabilityState` per world + per system (public_order / corruption / fear / rebellion / xenos_threat / warp_instability / famine). Pure derivation from tags, world type, factions present, and existing control summary — no sim ticks |
 | [src/route_control.rs](src/route_control.rs) | §3: per-route per-faction `RouteControl` (patrol / toll / interdiction / piracy / secrecy / confidence). Derived from endpoint-system faction presence + faction kind + endpoint tags (`quarantined`, `war_zone`). Stored on `GeneratedRoute.controls` (`#[serde(default)]`). Surfaced in the Markdown renderer, sector PNG (per-route midpoint glyph + `ROUTE CONTROL` legend), and GUI `system_summary` (`ROUTES` block keyed off the selected system) |
+| [src/hidden_routes.rs](src/hidden_routes.rs) | §3 NEXT: append `Webway` / `BlackShip` / `SmugglingLane` route variants between same-kind faction endpoints, ignoring the warp-distance cap |
+| [src/orbital_assets.rs](src/orbital_assets.rs) | §2 NEXT: discrete `OrbitalAsset` model (Station / Shipyard / DefensePlatform / BlockadeFleet) per system + `BlockadeReport` |
+| [src/surface_region.rs](src/surface_region.rs) | §1 NEXT: per-world named `SurfaceRegion`s (Capital / Hive / Underhive / ForgeComplex / ShrineContinent / etc.) with per-region dominant faction |
+| [src/conflict.rs](src/conflict.rs) | §5 NEXT: per-world + per-system `ConflictState` (momentum / intensity / mobilisation / attacker / defender / visible_controller) and a tick loop via `advance_sector`. Hysteresis (§11.3) lives in `advance_one` |
+| [src/intel.rs](src/intel.rs) | §7 NEXT: fog-of-war `SystemIntel` keyed by observer faction (suspected presences, propaganda state, classified state, redaction helper) |
+| [src/archetypes.rs](src/archetypes.rs) | §11 NEXT: eight faction archetype rules (Imperial governance stack / Necron phase / Tyranid front / Ork Waaagh! / Genestealer staged uprising / Tau sphere / Aeldari intermittent / Chaos corruption) populated into `GeneratedSystem.archetype` |
+| [src/power_projection.rs](src/power_projection.rs) | §4 NEXT: per-faction route-graph BFS projection (`source_power × doctrine ÷ (1+hops²)`). Hidden routes are kind-gated. Exposed as `sector.power_projection` |
+| [src/influence_field.rs](src/influence_field.rs) | §9 NEXT: continuous Voronoi-style cell assignment with `1/(1+d²)` falloff. Stored on `sector.influence_field` |
+| [src/sector_save.rs](src/sector_save.rs) | §13 NEXT: `SectorSave` — IDs-only runtime state split from the static catalog half; `split` and `merge` for round-tripping |
+| [src/world_ecs.rs](src/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
 | [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG export dialog + sector JSON bundle export |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |

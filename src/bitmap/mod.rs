@@ -961,6 +961,9 @@ fn draw_legend(
         (RouteType::ChartedPassage, "CHARTED PASSAGE"),
         (RouteType::DangerousPassage, "DANGEROUS PASSAGE"),
         (RouteType::SecretPassage, "SECRET PASSAGE"),
+        (RouteType::Webway, "WEBWAY THREAD"),
+        (RouteType::BlackShip, "BLACK-SHIP LANE"),
+        (RouteType::SmugglingLane, "SMUGGLING LANE"),
     ] {
         draw_route_line_thick(
             img,
@@ -1300,6 +1303,11 @@ mod tests {
             notes: vec![],
             control: Default::default(),
             stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
         };
         GeneratedSector {
             id: "demo".into(),
@@ -1313,6 +1321,8 @@ mod tests {
             routes: vec![],
             factions: vec![],
             manifest: empty_manifest(),
+            influence_field: Default::default(),
+            power_projection: Default::default(),
         }
     }
 

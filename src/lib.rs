@@ -23,8 +23,10 @@
 
 pub mod worlds;
 
+pub mod archetypes;
 pub mod bitmap;
 pub mod config;
+pub mod conflict;
 pub mod control;
 pub mod errors;
 pub mod export;
@@ -33,32 +35,43 @@ pub mod factions;
 pub mod generation;
 pub mod gui;
 pub mod heatmap;
+pub mod hidden_routes;
 pub mod ids;
 pub mod importance;
+pub mod influence_field;
 pub mod input;
+pub mod intel;
 pub mod invariants;
 pub mod names;
+pub mod orbital_assets;
+pub mod power_projection;
 pub mod render;
 pub mod rng;
 pub mod route_control;
 pub mod routes;
 pub mod sector_model;
+pub mod sector_save;
 pub mod stability;
 pub mod subsectors;
+pub mod surface_region;
 pub mod system_map;
 pub mod taxonomy;
 pub mod validation;
+pub mod world_ecs;
 pub mod world_pool;
 
 pub use config::AppConfig;
+pub use conflict::{advance_sector, ConflictState, HYSTERESIS_TICKS};
 pub use errors::SectorError;
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
+pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
 pub use subsectors::{
     build_subsectors, ControlDenominator, Subsector, SubsectorBuildError, SubsectorConfig,
 };
 pub use validation::{ValidationIssue, ValidationReport};
+pub use world_ecs::{build as build_entity_world, EntityWorld};
 
 pub const GENERATOR_NAME: &str = "sectorforge";
 pub const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -262,6 +275,33 @@ pub fn write_system_json(
     let text = serde_json::to_string_pretty(system)
         .map_err(|e| SectorError::export(p.as_str(), e.to_string()))?;
     fs::write(p, text).map_err(|e| SectorError::io(p.as_str(), e))
+}
+
+/// Spec §13 NEXT: write a [`SectorSave`] (IDs-only runtime state) to JSON.
+///
+/// # Errors
+///
+/// Returns [`SectorError::ExportFailed`] when serialisation fails and
+/// [`SectorError::Io`] when the file cannot be written.
+pub fn write_sector_save(path: impl AsRef<Utf8Path>, save: &SectorSave) -> Result<(), SectorError> {
+    let p = path.as_ref();
+    let text = serde_json::to_string_pretty(save)
+        .map_err(|e| SectorError::export(p.as_str(), e.to_string()))?;
+    fs::write(p, text).map_err(|e| SectorError::io(p.as_str(), e))
+}
+
+/// Spec §13 NEXT: load a [`SectorSave`] from disk.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] when the file cannot be read and
+/// [`SectorError::ConfigParse`] when the JSON does not match the
+/// [`SectorSave`] schema.
+pub fn load_sector_save(path: impl AsRef<Utf8Path>) -> Result<SectorSave, SectorError> {
+    let p = path.as_ref();
+    let text = fs::read_to_string(p).map_err(|e| SectorError::io(p.as_str(), e))?;
+    serde_json::from_str(&text)
+        .map_err(|e| SectorError::config_parse(p.as_str(), format!("invalid sector save: {e}")))
 }
 
 /// Render and write the Markdown overview for a sector.

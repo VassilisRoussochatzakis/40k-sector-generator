@@ -78,6 +78,14 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         Vec::new()
     };
 
+    // §3 NEXT: append hidden route layers (webway / black-ship / smuggling)
+    // before per-route control derivation so they receive the same control
+    // treatment as public lanes.
+    let mut generated_factions = generated_factions;
+    if !generated_factions.is_empty() {
+        crate::hidden_routes::append_hidden_routes(&systems, &generated_factions, &mut routes);
+    }
+
     // §3 per-route per-faction control. Derived after routes are built and
     // factions assigned, so endpoint presence reflects final state.
     if !routes.is_empty() && !generated_factions.is_empty() {
@@ -89,17 +97,39 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         }
     }
 
+    // §1 NEXT: per-world surface regions.
+    // §2 NEXT: per-system orbital assets + blockade detection.
+    // §5 NEXT: per-world + per-system initial conflict state.
+    // §7 NEXT: per-system fog-of-war intel records, observed by every
+    // faction with at least one system-presence in the sector.
+    let observer_ids: Vec<String> = generated_factions
+        .iter()
+        .filter(|f| !f.system_presence.is_empty())
+        .map(|f| f.id.clone())
+        .collect();
+    for sys in systems.iter_mut() {
+        for w in sys.worlds.iter_mut() {
+            w.regions = crate::surface_region::derive_regions(w);
+            w.conflict = crate::conflict::derive_world_conflict(w);
+        }
+        let (assets, blockade) = crate::orbital_assets::derive_orbital_assets(sys);
+        sys.orbital_assets = assets;
+        sys.blockade = blockade;
+        sys.conflict = crate::conflict::derive_system_conflict(sys);
+        let obs_refs: Vec<&str> = observer_ids.iter().map(|s| s.as_str()).collect();
+        sys.intel = crate::intel::derive_system_intel(sys, &obs_refs);
+    }
+
     // Sort everything for stable serialization.
     let mut sorted_systems = systems;
     sorted_systems.sort_by(|a, b| a.id.cmp(&b.id));
     let mut sorted_routes = routes;
     sorted_routes.sort_by(|a, b| a.id.cmp(&b.id));
-    let mut sorted_factions = generated_factions;
-    sorted_factions.sort_by(|a, b| a.id.cmp(&b.id));
+    generated_factions.sort_by(|a, b| a.id.cmp(&b.id));
 
     let manifest = build_manifest(&config, &input_digests, &sorted_systems, &sorted_routes);
 
-    Ok(GeneratedSector {
+    let mut sector = GeneratedSector {
         id: config.project.id.clone(),
         title: config.project.title.clone(),
         seed: config.generation.seed.clone(),
@@ -109,9 +139,21 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         height: config.generation.sector_height,
         systems: sorted_systems,
         routes: sorted_routes,
-        factions: sorted_factions,
+        factions: generated_factions,
         manifest,
-    })
+        influence_field: Default::default(),
+        power_projection: Default::default(),
+    };
+
+    // §11 NEXT: archetype rules.
+    crate::archetypes::apply_all(&mut sector);
+    // §4 NEXT: power projection over routes (decays + doctrine).
+    sector.power_projection = crate::power_projection::project_sector(&sector);
+    crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
+    // §9 NEXT: continuous area layers.
+    sector.influence_field = crate::influence_field::build(&sector);
+
+    Ok(sector)
 }
 
 // ── Placement ───────────────────────────────────────────────────────────────
@@ -245,6 +287,11 @@ pub fn build_system(
         notes: Vec::new(),
         control: SystemControlSummary::default(),
         stability: crate::stability::StabilityState::default(),
+        orbital_assets: Vec::new(),
+        blockade: Default::default(),
+        conflict: Default::default(),
+        intel: Default::default(),
+        archetype: Default::default(),
     })
 }
 
@@ -410,6 +457,8 @@ fn generate_worlds_for_system(
             claims: Vec::new(),
             control: WorldControlSummary::default(),
             stability: crate::stability::StabilityState::default(),
+            regions: Vec::new(),
+            conflict: Default::default(),
         });
     }
     // Sort by orbit for stable output.

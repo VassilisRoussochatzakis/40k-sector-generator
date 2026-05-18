@@ -184,6 +184,8 @@ pub fn empty_sector(
             world_count: 0,
             route_count: 0,
         },
+        influence_field: Default::default(),
+        power_projection: Default::default(),
     }
 }
 
@@ -205,6 +207,11 @@ pub fn empty_system(id: String, index: usize, name: String, coord: HexCoord) -> 
         notes: Vec::new(),
         control: Default::default(),
         stability: Default::default(),
+        orbital_assets: Vec::new(),
+        blockade: Default::default(),
+        conflict: Default::default(),
+        intel: Default::default(),
+        archetype: Default::default(),
     }
 }
 
@@ -234,6 +241,8 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
         claims: Vec::new(),
         control: Default::default(),
         stability: Default::default(),
+        regions: Vec::new(),
+        conflict: Default::default(),
     }
 }
 

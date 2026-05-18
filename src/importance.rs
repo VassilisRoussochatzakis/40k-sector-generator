@@ -243,6 +243,8 @@ mod tests {
             routes: vec![],
             factions,
             manifest: manifest(),
+            influence_field: Default::default(),
+            power_projection: Default::default(),
         }
     }
 

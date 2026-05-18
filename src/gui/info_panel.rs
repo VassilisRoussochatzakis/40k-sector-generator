@@ -47,6 +47,12 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
             crate::sector_model::RouteType::SecretPassage,
             "SECRET PASSAGE",
         ),
+        (crate::sector_model::RouteType::Webway, "WEBWAY THREAD"),
+        (crate::sector_model::RouteType::BlackShip, "BLACK-SHIP LANE"),
+        (
+            crate::sector_model::RouteType::SmugglingLane,
+            "SMUGGLING LANE",
+        ),
     ] {
         legend_route_row(ui, TEXT, rtype.pattern(), name);
     }
@@ -182,6 +188,10 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
         }
     }
     stability_block(ui, &sys.stability);
+    blockade_block(ui, sys);
+    conflict_block(ui, &sys.conflict);
+    archetype_block(ui, sys);
+    orbital_assets_block(ui, sys);
     routes_block(ui, sys, sector);
     if !sys.tags.is_empty() {
         ui.add_space(8.0);
@@ -291,6 +301,34 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         kv(ui, "SCORE", &format!("{:.0}", wc.control_score));
     }
     stability_block(ui, &w.stability);
+    if !w.regions.is_empty() {
+        ui.add_space(8.0);
+        section(ui, &format!("SURFACE REGIONS ({})", w.regions.len()));
+        for r in &w.regions {
+            dim(
+                ui,
+                &format!(
+                    "{:?} {} - {} ({})",
+                    r.kind,
+                    short(&r.name.to_uppercase(), 18),
+                    r.dominant.as_deref().unwrap_or("—").to_uppercase(),
+                    r.control_score
+                ),
+            );
+        }
+    }
+    if w.conflict.intensity > 0 {
+        ui.add_space(8.0);
+        section(ui, "CONFLICT");
+        kv(ui, "INTENSITY", &w.conflict.intensity.to_string());
+        kv(ui, "MOMENTUM", &w.conflict.momentum.to_string());
+        if let Some(a) = &w.conflict.attacker {
+            kv(ui, "ATTACKER", &short(&a.to_uppercase(), 22));
+        }
+        if let Some(d) = &w.conflict.defender {
+            kv(ui, "DEFENDER", &short(&d.to_uppercase(), 22));
+        }
+    }
     if !w.claims.is_empty() {
         ui.add_space(8.0);
         section(ui, "CLAIMS");
@@ -594,6 +632,111 @@ fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
                 ),
             );
         }
+    }
+}
+
+fn blockade_block(ui: &mut Ui, sys: &GeneratedSystem) {
+    if !sys.blockade.under_blockade {
+        return;
+    }
+    ui.add_space(8.0);
+    section(ui, "BLOCKADE");
+    if let Some(b) = &sys.blockade.blockader {
+        kv(ui, "BLOCKADER", &short(&b.to_uppercase(), 22));
+    }
+    if let Some(b) = &sys.blockade.besieged {
+        kv(ui, "BESIEGED", &short(&b.to_uppercase(), 22));
+    }
+    kv(ui, "INTENSITY", &sys.blockade.intensity.to_string());
+}
+
+fn conflict_block(ui: &mut Ui, c: &crate::conflict::ConflictState) {
+    if c.intensity == 0 && c.attacker.is_none() && c.defender.is_none() {
+        return;
+    }
+    ui.add_space(8.0);
+    section(ui, "CONFLICT");
+    kv(ui, "INTENSITY", &c.intensity.to_string());
+    kv(ui, "MOMENTUM", &c.momentum.to_string());
+    if let Some(a) = &c.attacker {
+        kv(ui, "ATTACKER", &short(&a.to_uppercase(), 22));
+    }
+    if let Some(d) = &c.defender {
+        kv(ui, "DEFENDER", &short(&d.to_uppercase(), 22));
+    }
+    if let Some(v) = &c.visible_controller {
+        kv(ui, "VISIBLE", &short(&v.to_uppercase(), 22));
+    }
+    kv(ui, "AGE", &c.age.to_string());
+}
+
+fn archetype_block(ui: &mut Ui, sys: &GeneratedSystem) {
+    let a = &sys.archetype;
+    if *a == crate::archetypes::ArchetypeState::default() {
+        return;
+    }
+    ui.add_space(8.0);
+    section(ui, "ARCHETYPE");
+    if !a.imperial_co_sovereigns.is_empty() {
+        kv(
+            ui,
+            "IMP STACK",
+            &format!("{} factions", a.imperial_co_sovereigns.len()),
+        );
+    }
+    if a.necron_phase != crate::archetypes::NecronPhase::default() {
+        kv(
+            ui,
+            "NECRON",
+            &format!("{:?}", a.necron_phase).to_uppercase(),
+        );
+    }
+    if a.tyranid_stage != crate::archetypes::TyranidStage::default() {
+        kv(
+            ui,
+            "TYRANID",
+            &format!("{:?}", a.tyranid_stage).to_uppercase(),
+        );
+    }
+    if a.ork_waaagh > 0 {
+        kv(ui, "WAAAGH", &a.ork_waaagh.to_string());
+    }
+    if a.gsc_stage != crate::archetypes::GscStage::default() {
+        kv(ui, "GSC", &format!("{:?}", a.gsc_stage).to_uppercase());
+    }
+    if a.tau_sphere != crate::archetypes::TauSphereBand::default() {
+        kv(ui, "TAU", &format!("{:?}", a.tau_sphere).to_uppercase());
+    }
+    if a.aeldari_activity > 0 {
+        kv(ui, "AELDARI", &a.aeldari_activity.to_string());
+    }
+    if a.chaos_corruption > 0 {
+        kv(ui, "CHAOS", &a.chaos_corruption.to_string());
+    }
+    if a.daemon_manifestation > 0 {
+        kv(ui, "DAEMON", &a.daemon_manifestation.to_string());
+    }
+}
+
+fn orbital_assets_block(ui: &mut Ui, sys: &GeneratedSystem) {
+    if sys.orbital_assets.is_empty() {
+        return;
+    }
+    ui.add_space(8.0);
+    section(
+        ui,
+        &format!("ORBITAL ASSETS ({})", sys.orbital_assets.len()),
+    );
+    for a in &sys.orbital_assets {
+        dim(
+            ui,
+            &format!(
+                "{:?} {} ({}) ",
+                a.kind,
+                short(&a.faction_id.to_uppercase(), 16),
+                a.strength
+            ),
+        );
     }
 }
 

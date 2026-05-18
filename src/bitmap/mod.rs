@@ -924,6 +924,7 @@ mod tests {
             primary_factions: vec![],
             tags: vec![],
             notes: vec![],
+            control: Default::default(),
         };
         GeneratedSector {
             id: "demo".into(),

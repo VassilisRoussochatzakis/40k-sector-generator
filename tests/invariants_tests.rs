@@ -74,6 +74,9 @@ fn invariants_detect_unknown_faction_in_world() {
                 faction_id: "does_not_exist".to_string(),
                 influence: FactionInfluence::Minor,
                 relationship_to_government: "test".to_string(),
+                dimensions: Default::default(),
+                dominance: Default::default(),
+                intel_confidence: 100,
             });
         }
     }

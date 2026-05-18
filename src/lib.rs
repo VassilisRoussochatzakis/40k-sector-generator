@@ -25,6 +25,7 @@ pub mod worlds;
 
 pub mod bitmap;
 pub mod config;
+pub mod control;
 pub mod errors;
 pub mod export;
 pub mod factions;

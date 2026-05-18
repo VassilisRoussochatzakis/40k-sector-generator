@@ -164,6 +164,7 @@ pub fn empty_system(id: String, index: usize, name: String, coord: HexCoord) -> 
         primary_factions: Vec::new(),
         tags: Vec::new(),
         notes: Vec::new(),
+        control: Default::default(),
     }
 }
 
@@ -190,6 +191,8 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
         factions: Vec::new(),
         tags: Vec::new(),
         notes: Vec::new(),
+        claims: Vec::new(),
+        control: Default::default(),
     }
 }
 
@@ -215,5 +218,6 @@ pub fn empty_faction(id: String) -> GeneratedFaction {
         disposition: "neutral".to_string(),
         system_presence: Vec::new(),
         world_presence: Vec::new(),
+        power: Default::default(),
     }
 }

@@ -327,6 +327,8 @@ mod tests {
             factions: vec![],
             tags: vec![],
             notes: vec![],
+            claims: vec![],
+            control: Default::default(),
         }
     }
 
@@ -352,6 +354,7 @@ mod tests {
             primary_factions: vec![],
             tags: vec![],
             notes: vec![],
+            control: Default::default(),
         }
     }
 

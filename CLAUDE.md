@@ -21,6 +21,7 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/world_pool.rs](src/world_pool.rs) | GenerationRow → weighted candidate pool |
 | [src/generation.rs](src/generation.rs) | Sector generation: placement, systems, worlds, factions, routes |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs with Serialize/Deserialize |
+| [src/control.rs](src/control.rs) | Multi-dim presence / claim / control / power derivation |
 | [src/validation.rs](src/validation.rs) | Pre-generation validation |
 | [src/invariants.rs](src/invariants.rs) | Post-generation invariants (spec §11.11) |
 | [src/render.rs](src/render.rs) | Markdown rendering (sector + standalone system) |

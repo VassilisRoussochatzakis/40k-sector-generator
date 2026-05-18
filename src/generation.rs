@@ -6,6 +6,7 @@ use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 
 use crate::config::{AppConfig, WorldSelectionConfig};
+use crate::control;
 use crate::errors::SectorError;
 use crate::factions::FactionDef;
 use crate::ids;
@@ -14,9 +15,10 @@ use crate::names::{roman_numeral, NameTables};
 use crate::rng::{self, weighted_index};
 use crate::routes::RouteRules;
 use crate::sector_model::{
-    hex_distance, FactionInfluence, GeneratedFaction, GeneratedRoute, GeneratedSector,
-    GeneratedStar, GeneratedSystem, GeneratedWorld, GenerationManifest, HexCoord, RouteStability,
-    RouteType, WorldDto, WorldFactionPresence,
+    hex_distance, DominanceState, FactionInfluence, GeneratedFaction, GeneratedRoute,
+    GeneratedSector, GeneratedStar, GeneratedSystem, GeneratedWorld, GenerationManifest, HexCoord,
+    RouteStability, RouteType, SystemControlSummary, WorldControlSummary, WorldDto,
+    WorldFactionPresence,
 };
 use crate::taxonomy;
 use crate::world_pool::{self, WorldCandidate, WorldCandidatePool};
@@ -230,6 +232,7 @@ pub fn build_system(
         primary_factions: Vec::new(),
         tags: Vec::new(),
         notes: Vec::new(),
+        control: SystemControlSummary::default(),
     })
 }
 
@@ -392,6 +395,8 @@ fn generate_worlds_for_system(
             factions: Vec::new(),
             tags,
             notes: Vec::new(),
+            claims: Vec::new(),
+            control: WorldControlSummary::default(),
         });
     }
     // Sort by orbit for stable output.
@@ -590,6 +595,26 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
     if factions.is_empty() {
         return;
     }
+    assign_factions_inner(systems, factions, rng);
+    // Post-pass: derive per-world claims + multi-winner snapshots, then roll up
+    // to system-level state classification. Pure, deterministic.
+    for sys in systems.iter_mut() {
+        for world in &mut sys.worlds {
+            world.claims = control::derive_world_claims(world);
+            world.control = control::derive_world_control(world);
+        }
+        sys.control = control::derive_system_control(sys);
+    }
+}
+
+fn assign_factions_inner(
+    systems: &mut [GeneratedSystem],
+    factions: &[FactionDef],
+    rng: &mut ChaCha8Rng,
+) {
+    if factions.is_empty() {
+        return;
+    }
     // Stable catalog order: ID-sorted index for deterministic tie-breaking.
     let catalog_order: BTreeMap<String, usize> = factions
         .iter()
@@ -664,10 +689,22 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
                 };
                 let f = weighted[idx].0;
                 if chosen.insert(f.id.clone()) {
+                    let dims = control::presence_dimensions(
+                        &f.kind,
+                        &f.default_disposition,
+                        *inf,
+                        Some(f),
+                        world,
+                    );
+                    let dominance = DominanceState::from_score(dims.local_control_score());
+                    let intel_confidence = dims.visibility.round().clamp(0.0, 100.0) as u8;
                     world.factions.push(WorldFactionPresence {
                         faction_id: f.id.clone(),
                         influence: *inf,
                         relationship_to_government: f.default_disposition.clone(),
+                        dimensions: dims,
+                        dominance,
+                        intel_confidence,
                     });
                     let entry = scores.entry(f.id.clone()).or_insert((0.0, 0));
                     entry.0 += inf.weight();
@@ -743,6 +780,7 @@ fn aggregate_factions(
                 disposition: f.default_disposition.clone(),
                 system_presence: Vec::new(),
                 world_presence: Vec::new(),
+                power: Default::default(),
             },
         );
     }
@@ -763,6 +801,8 @@ fn aggregate_factions(
         f.system_presence.sort();
         f.world_presence.sort();
     }
+    let power = control::aggregate_faction_power(systems);
+    control::apply_faction_power(&mut v, &power);
     v
 }
 

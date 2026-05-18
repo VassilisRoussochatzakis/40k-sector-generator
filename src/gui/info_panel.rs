@@ -102,6 +102,35 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem) {
             body(ui, &short(&f.to_uppercase(), 28));
         }
     }
+    let c = &sys.control;
+    if c.state.is_some()
+        || c.dominant.is_some()
+        || c.sovereign.is_some()
+        || c.orbital_controller.is_some()
+        || c.economic_hegemon.is_some()
+        || c.hidden_master.is_some()
+    {
+        ui.add_space(8.0);
+        section(ui, "CONTROL");
+        if let Some(state) = c.state {
+            kv(ui, "STATE", &format!("{state:?}").to_uppercase());
+        }
+        if let Some(v) = &c.dominant {
+            kv(ui, "DOMINANT", &short(&v.to_uppercase(), 22));
+        }
+        if let Some(v) = &c.sovereign {
+            kv(ui, "SOVEREIGN", &short(&v.to_uppercase(), 22));
+        }
+        if let Some(v) = &c.orbital_controller {
+            kv(ui, "ORBITAL", &short(&v.to_uppercase(), 22));
+        }
+        if let Some(v) = &c.economic_hegemon {
+            kv(ui, "ECONOMIC", &short(&v.to_uppercase(), 22));
+        }
+        if let Some(v) = &c.hidden_master {
+            kv(ui, "HIDDEN", &short(&v.to_uppercase(), 22));
+        }
+    }
     if !sys.tags.is_empty() {
         ui.add_space(8.0);
         section(ui, "TAGS");
@@ -166,10 +195,60 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
             dim(
                 ui,
                 &format!(
-                    "{} [{:?}] {}",
+                    "{} [{:?}/{:?}] ctl {:.0} vis {:.0}",
                     fp.faction_id.to_uppercase(),
                     fp.influence,
-                    fp.relationship_to_government
+                    fp.dominance,
+                    fp.dimensions.local_control_score(),
+                    fp.dimensions.visibility,
+                ),
+            );
+        }
+    }
+    let wc = &w.control;
+    if wc.dominant.is_some()
+        || wc.sovereign.is_some()
+        || wc.occupier.is_some()
+        || wc.economic_hegemon.is_some()
+        || wc.popular_authority.is_some()
+        || wc.hidden_master.is_some()
+    {
+        ui.add_space(8.0);
+        section(ui, "CONTROL");
+        if let Some(v) = &wc.dominant {
+            kv(ui, "DOMINANT", &v.to_uppercase());
+        }
+        if let Some(v) = &wc.sovereign {
+            kv(ui, "SOVEREIGN", &v.to_uppercase());
+        }
+        if let Some(v) = &wc.occupier {
+            kv(ui, "OCCUPIER", &v.to_uppercase());
+        }
+        if let Some(v) = &wc.economic_hegemon {
+            kv(ui, "ECONOMIC", &v.to_uppercase());
+        }
+        if let Some(v) = &wc.popular_authority {
+            kv(ui, "POPULAR", &v.to_uppercase());
+        }
+        if let Some(v) = &wc.hidden_master {
+            kv(ui, "HIDDEN", &v.to_uppercase());
+        }
+        if wc.contested {
+            dim(ui, "CONTESTED");
+        }
+        kv(ui, "SCORE", &format!("{:.0}", wc.control_score));
+    }
+    if !w.claims.is_empty() {
+        ui.add_space(8.0);
+        section(ui, "CLAIMS");
+        for c in &w.claims {
+            dim(
+                ui,
+                &format!(
+                    "{} [{:?}] {}",
+                    c.faction_id.to_uppercase(),
+                    c.claim_type,
+                    c.strength
                 ),
             );
         }

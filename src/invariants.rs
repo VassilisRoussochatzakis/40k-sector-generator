@@ -301,7 +301,28 @@ fn check_factions(
                         Some(&format!("systems.{}.worlds.{}.factions", sys.id, w.id)),
                     ));
                 }
+                check_presence_dimensions(sys, w, fp, v);
             }
+            for c in &w.claims {
+                if !summary_ids.contains(c.faction_id.as_str()) {
+                    v.push(violation(
+                        "WORLD_CLAIM_UNKNOWN_FACTION",
+                        &format!(
+                            "world '{}' claim references faction '{}' that has no sector summary",
+                            w.id, c.faction_id
+                        ),
+                        Some(&format!("systems.{}.worlds.{}.claims", sys.id, w.id)),
+                    ));
+                }
+                if c.strength > 100 {
+                    v.push(violation(
+                        "WORLD_CLAIM_STRENGTH_OUT_OF_RANGE",
+                        &format!("world '{}' claim strength={} > 100", w.id, c.strength),
+                        Some(&format!("systems.{}.worlds.{}.claims", sys.id, w.id)),
+                    ));
+                }
+            }
+            check_world_control(sys, w, &summary_ids, v);
             for pf in &sys.primary_factions {
                 if !summary_ids.contains(pf.as_str()) {
                     v.push(violation(
@@ -314,6 +335,113 @@ fn check_factions(
                     ));
                 }
             }
+        }
+        check_system_control(sys, &summary_ids, v);
+    }
+}
+
+fn check_presence_dimensions(
+    sys: &crate::sector_model::GeneratedSystem,
+    w: &crate::sector_model::GeneratedWorld,
+    p: &crate::sector_model::WorldFactionPresence,
+    v: &mut Vec<InvariantViolation>,
+) {
+    let d = &p.dimensions;
+    let fields = [
+        ("admin", d.admin),
+        ("military", d.military),
+        ("orbital", d.orbital),
+        ("economic", d.economic),
+        ("ideological", d.ideological),
+        ("covert", d.covert),
+        ("logistics", d.logistics),
+        ("legitimacy", d.legitimacy),
+        ("visibility", d.visibility),
+    ];
+    for (name, value) in fields {
+        if !value.is_finite() || !(0.0..=100.0).contains(&value) {
+            v.push(violation(
+                "PRESENCE_DIMENSION_OUT_OF_RANGE",
+                &format!(
+                    "world '{}' faction '{}' dimension '{}' = {} not in 0..=100",
+                    w.id, p.faction_id, name, value
+                ),
+                Some(&format!(
+                    "systems.{}.worlds.{}.factions.{}.dimensions.{}",
+                    sys.id, w.id, p.faction_id, name
+                )),
+            ));
+        }
+    }
+}
+
+fn check_world_control(
+    sys: &crate::sector_model::GeneratedSystem,
+    w: &crate::sector_model::GeneratedWorld,
+    summary_ids: &BTreeSet<&str>,
+    v: &mut Vec<InvariantViolation>,
+) {
+    let ctl = &w.control;
+    let check = |slot: &str, id: Option<&String>, v: &mut Vec<InvariantViolation>| {
+        if let Some(s) = id {
+            if !summary_ids.contains(s.as_str()) {
+                v.push(violation(
+                    "WORLD_CONTROL_UNKNOWN_FACTION",
+                    &format!(
+                        "world '{}' control.{} references unknown '{}'",
+                        w.id, slot, s
+                    ),
+                    Some(&format!(
+                        "systems.{}.worlds.{}.control.{}",
+                        sys.id, w.id, slot
+                    )),
+                ));
+            }
+        }
+    };
+    check("dominant", ctl.dominant.as_ref(), v);
+    check("sovereign", ctl.sovereign.as_ref(), v);
+    check("occupier", ctl.occupier.as_ref(), v);
+    check("economic_hegemon", ctl.economic_hegemon.as_ref(), v);
+    check("popular_authority", ctl.popular_authority.as_ref(), v);
+    check("hidden_master", ctl.hidden_master.as_ref(), v);
+}
+
+fn check_system_control(
+    sys: &crate::sector_model::GeneratedSystem,
+    summary_ids: &BTreeSet<&str>,
+    v: &mut Vec<InvariantViolation>,
+) {
+    let c = &sys.control;
+    let check = |slot: &str, id: Option<&String>, v: &mut Vec<InvariantViolation>| {
+        if let Some(s) = id {
+            if !summary_ids.contains(s.as_str()) {
+                v.push(violation(
+                    "SYSTEM_CONTROL_UNKNOWN_FACTION",
+                    &format!(
+                        "system '{}' control.{} references unknown '{}'",
+                        sys.id, slot, s
+                    ),
+                    Some(&format!("systems.{}.control.{}", sys.id, slot)),
+                ));
+            }
+        }
+    };
+    check("dominant", c.dominant.as_ref(), v);
+    check("sovereign", c.sovereign.as_ref(), v);
+    check("orbital_controller", c.orbital_controller.as_ref(), v);
+    check("economic_hegemon", c.economic_hegemon.as_ref(), v);
+    check("hidden_master", c.hidden_master.as_ref(), v);
+    for sf in &c.top_factions {
+        if !summary_ids.contains(sf.faction_id.as_str()) {
+            v.push(violation(
+                "SYSTEM_CONTROL_TOP_UNKNOWN",
+                &format!(
+                    "system '{}' control.top_factions references unknown '{}'",
+                    sys.id, sf.faction_id
+                ),
+                Some(&format!("systems.{}.control.top_factions", sys.id)),
+            ));
         }
     }
 }

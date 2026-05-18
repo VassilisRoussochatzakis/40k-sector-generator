@@ -397,10 +397,39 @@ The canonical machine-readable output. Top-level shape:
 ```
 
 Each `GeneratedSystem` has an `id`, `name`, `coord`, `star`, list of
-`worlds`, plus `primary_factions`, `tags`, and `notes`.
+`worlds`, plus `primary_factions`, `tags`, `notes`, and a `control`
+summary (see "Faction control model" below).
 
 Each `GeneratedWorld` wraps a `WorldDto` view of `worlds::World` — variant
-names are stable (e.g. `"HiveWorld"`).
+names are stable (e.g. `"HiveWorld"`) — and also carries `claims`
+(per-faction legal/military/religious claims) and a `control`
+multi-winner snapshot.
+
+#### Faction control model
+
+Derived deterministically after faction placement (no extra RNG draws). See
+[src/control.rs](src/control.rs) and the design doc
+[faction_sector_control_and_power_design.md](faction_sector_control_and_power_design.md);
+items not yet implemented are listed in [NEXT.md](NEXT.md).
+
+* **Per presence** (`systems[].worlds[].factions[]`): `influence`, `dominance`
+  (Rumored / Presence / Influence / Contested / Controlled / Stronghold),
+  `dimensions` (admin, military, orbital, economic, ideological, covert,
+  logistics, legitimacy, visibility — each 0–100), and `intel_confidence`.
+* **Per world** (`systems[].worlds[].control`): `dominant`, `sovereign`,
+  `occupier`, `economic_hegemon`, `popular_authority`, `hidden_master`,
+  `contested`, `control_score`. `claims` is a parallel list of typed claims
+  (LegalSovereignty / ImperialMandate / ReligiousMandate / DynasticRight /
+  CommercialCharter / MilitaryOccupation / AncientDomain / HuntingGround /
+  CovertWrit / Rebellion / TreatyRight).
+* **Per system** (`systems[].control`): aggregated `state` (Pacified /
+  Fragmented / Blockaded / Warzone / Infiltrated / Quarantined / Uncharted),
+  plus `dominant`, `sovereign`, `orbital_controller`, `economic_hegemon`,
+  `hidden_master`, and `top_factions`.
+* **Per faction** (`factions[].power`): `PowerProfile` with `administrative`,
+  `military`, `naval`, `economic`, `industrial`, `ideological`, `covert`,
+  `logistical`, `legitimacy`. Call `PowerProfile::total_projection()` for a
+  single weighted total.
 
 ### `sector.md`
 
@@ -685,6 +714,7 @@ callers of the API.
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
 | [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes. `build_system` is the unit reused by sector + standalone APIs |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
+| [src/control.rs](src/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
 | [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
 | [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system) |

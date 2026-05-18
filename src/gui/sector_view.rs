@@ -216,17 +216,10 @@ impl<'a> SectorView<'a> {
                 // star and the capital marker sits at top-center, so this
                 // corner stays clear.
                 let pip_font = FontId::monospace((g.hex_size * 0.36).max(11.0));
-                let pip_center = Pos2::new(
-                    c.x + g.hex_size * 0.55,
-                    c.y - g.hex_size * 0.55,
-                );
+                let pip_center = Pos2::new(c.x + g.hex_size * 0.55, c.y - g.hex_size * 0.55);
                 let disc_r = (g.hex_size * 0.22).max(8.0);
                 painter.circle_filled(pip_center, disc_r, palette::BG);
-                painter.circle_stroke(
-                    pip_center,
-                    disc_r,
-                    Stroke::new(1.2, darken(fill, 0.4)),
-                );
+                painter.circle_stroke(pip_center, disc_r, Stroke::new(1.2, darken(fill, 0.4)));
                 painter.text(
                     pip_center,
                     Align2::CENTER_CENTER,

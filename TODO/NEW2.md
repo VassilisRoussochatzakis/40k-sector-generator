@@ -98,7 +98,7 @@ Why this matters: a sector generator gives breadth; campaign fronts give directi
 
 ---
 
-## 3. Quest, Mission, and Rumour Seed Generator
+## 3. Quest, Mission, and Rumour Seed Generator (DONE)
 
 Sectorforge already produces the raw ingredients for adventures: contested worlds, hidden masters, route hazards, claims, blockades, cult activity, faction presences, unstable systems, and intel gaps. A mission seed generator would transform those ingredients into actionable hooks.
 
@@ -155,7 +155,7 @@ Why this matters: this is one of the most immediately useful features for actual
 
 ---
 
-## 4. Resource, Tithe, and Strategic Value Model
+## 4. Resource, Tithe, and Strategic Value Model (DONE)
 
 The existing world model includes population, tech level, economy, industry, and government, but a sector intended for 40k-style play would benefit from an explicit resource and tithe layer. This would give concrete reasons factions care about particular worlds and routes.
 
@@ -292,7 +292,7 @@ Why this matters: named individuals are how players emotionally connect with a s
 
 ---
 
-## 7. Planetary Site and Point-of-Interest Generator
+## 7. Planetary Site and Point-of-Interest Generator (DONE)
 
 The overview states that the application is not a tactical map generator, and that boundary should remain. However, there is room for an intermediate layer between whole worlds and battlefields: named planetary sites. These are not hex maps or dungeon layouts; they are campaign-scale points of interest.
 
@@ -388,7 +388,7 @@ Why this matters: generators are often good at producing state but weak at ident
 
 ---
 
-## 9. Player-Facing Redaction Profiles and Briefing Packs
+## 9. Player-Facing Redaction Profiles and Briefing Packs (DONE)
 
 The existing intel and fog-of-war system already supports asymmetric information, and Markdown export can produce human-readable documents. The natural next feature is configurable briefing packs for different audiences.
 
@@ -755,7 +755,7 @@ Why this matters: some campaigns outgrow one sector, and writers may want neighb
 
 ---
 
-## 18. Automated Balance and Interestingness Reports
+## 18. Automated Balance and Interestingness Reports (DONE)
 
 Users currently reroll until a sector "feels interesting." The application can help by scoring generated sectors for balance and narrative density.
 

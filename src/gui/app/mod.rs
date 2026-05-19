@@ -960,20 +960,76 @@ impl App {
                         .num_columns(2)
                         .show(ui, |ui| {
                             for k in crate::economy::RESOURCE_KEYS {
-                                let v = match *k {
-                                    "ore" => sector.economy.sector_balance.ore,
-                                    "promethium" => sector.economy.sector_balance.promethium,
-                                    "foodstuffs" => sector.economy.sector_balance.foodstuffs,
-                                    "manufactured" => sector.economy.sector_balance.manufactured,
-                                    "archeotech" => sector.economy.sector_balance.archeotech,
-                                    "recruits" => sector.economy.sector_balance.recruits,
-                                    _ => 0.0,
-                                };
+                                let v = sector.economy.sector_balance.get(k);
                                 ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
                                 ui.label(RichText::new(format!("{:.1}", v)).monospace());
                                 ui.end_row();
                             }
                         });
+                    ui.add_space(10.0);
+                    ui.label(
+                        RichText::new("STRATEGIC OUTPUT")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    egui::Grid::new("strategic_output")
+                        .num_columns(2)
+                        .show(ui, |ui| {
+                            for k in crate::economy::STRATEGIC_RESOURCE_KEYS {
+                                let v = sector.economy.strategic_output.get(k);
+                                ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
+                                ui.label(RichText::new(format!("{:.1}", v)).monospace());
+                                ui.end_row();
+                            }
+                        });
+                    let stressed: Vec<_> = sector
+                        .economy
+                        .systems
+                        .iter()
+                        .filter(|s| {
+                            s.supply_risk >= crate::economy::SupplyRisk::Disrupted
+                                || matches!(
+                                    s.tithe_status,
+                                    crate::economy::TitheStatus::Delinquent
+                                        | crate::economy::TitheStatus::Failed
+                                        | crate::economy::TitheStatus::Falsified
+                                )
+                        })
+                        .collect();
+                    if !stressed.is_empty() {
+                        ui.add_space(10.0);
+                        ui.label(
+                            RichText::new("TITHE / SUPPLY STRESS")
+                                .color(Color32::from_rgb(235, 190, 90))
+                                .monospace()
+                                .strong(),
+                        );
+                        egui::Grid::new("tithe_supply_stress")
+                            .num_columns(4)
+                            .striped(true)
+                            .show(ui, |ui| {
+                                ui.label(RichText::new("SYSTEM").color(TEXT_DIM).monospace());
+                                ui.label(RichText::new("TITHE").color(TEXT_DIM).monospace());
+                                ui.label(RichText::new("SUPPLY").color(TEXT_DIM).monospace());
+                                ui.label(RichText::new("PRIORITY").color(TEXT_DIM).monospace());
+                                ui.end_row();
+                                for sy in stressed.iter().take(12) {
+                                    ui.label(RichText::new(&sy.system_id).monospace());
+                                    ui.label(
+                                        RichText::new(format!("{:?}", sy.tithe_status)).monospace(),
+                                    );
+                                    ui.label(
+                                        RichText::new(format!("{:?}", sy.supply_risk)).monospace(),
+                                    );
+                                    ui.label(
+                                        RichText::new(format!("{:?}", sy.strategic_priority))
+                                            .monospace(),
+                                    );
+                                    ui.end_row();
+                                }
+                            });
+                    }
                     ui.add_space(10.0);
                     ui.label(
                         RichText::new("TOP TRADE LANES")
@@ -1202,6 +1258,16 @@ impl App {
                 self.planner.metric = Metric::Shortest;
                 dirty = true;
             }
+            if ui
+                .selectable_label(
+                    self.planner.metric == Metric::Strategic,
+                    RichText::new("STRATEGIC").monospace(),
+                )
+                .clicked()
+            {
+                self.planner.metric = Metric::Strategic;
+                dirty = true;
+            }
         });
 
         ui.add_space(8.0);
@@ -1249,10 +1315,12 @@ impl App {
             let metric_label = match plan.metric {
                 Metric::Safest => "SAFEST",
                 Metric::Shortest => "SHORTEST",
+                Metric::Strategic => "STRATEGIC",
             };
             let cost_label = match plan.metric {
                 Metric::Safest => format!("risk score {:.1}", plan.total_cost),
                 Metric::Shortest => format!("{} hops", plan.total_cost as i64),
+                Metric::Strategic => format!("strategic cost {:.1}", plan.total_cost),
             };
             ui.label(
                 RichText::new(format!("PATH ({}) — {}", metric_label, cost_label))

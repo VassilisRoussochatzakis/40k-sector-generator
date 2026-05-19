@@ -337,18 +337,44 @@ fn format_economy_section(sector: &GeneratedSector) -> String {
     s.push_str("**Sector balance:**\n\n");
     s.push_str("| Resource | Net |\n|---|---:|\n");
     for k in crate::economy::RESOURCE_KEYS {
-        let v = match *k {
-            "ore" => sector.economy.sector_balance.ore,
-            "promethium" => sector.economy.sector_balance.promethium,
-            "foodstuffs" => sector.economy.sector_balance.foodstuffs,
-            "manufactured" => sector.economy.sector_balance.manufactured,
-            "archeotech" => sector.economy.sector_balance.archeotech,
-            "recruits" => sector.economy.sector_balance.recruits,
-            _ => 0.0,
-        };
+        let v = sector.economy.sector_balance.get(k);
         s.push_str(&format!("| {k} | {v:.1} |\n"));
     }
     s.push('\n');
+    s.push_str("**Strategic output:**\n\n");
+    s.push_str("| Output | Score |\n|---|---:|\n");
+    for k in crate::economy::STRATEGIC_RESOURCE_KEYS {
+        let v = sector.economy.strategic_output.get(k);
+        s.push_str(&format!("| {k} | {v:.1} |\n"));
+    }
+    s.push('\n');
+
+    let stressed: Vec<_> = sector
+        .economy
+        .systems
+        .iter()
+        .filter(|s| {
+            s.supply_risk >= crate::economy::SupplyRisk::Disrupted
+                || matches!(
+                    s.tithe_status,
+                    crate::economy::TitheStatus::Delinquent
+                        | crate::economy::TitheStatus::Failed
+                        | crate::economy::TitheStatus::Falsified
+                )
+        })
+        .collect();
+    if !stressed.is_empty() {
+        s.push_str("**Tithe and supply stress:**\n\n");
+        s.push_str("| System | Tithe | Supply | Priority |\n|---|---|---|---|\n");
+        for sy in stressed.iter().take(12) {
+            s.push_str(&format!(
+                "| {} | {:?} | {:?} | {:?} |\n",
+                sy.system_id, sy.tithe_status, sy.supply_risk, sy.strategic_priority
+            ));
+        }
+        s.push('\n');
+    }
+
     let stranded: Vec<_> = sector
         .economy
         .worlds

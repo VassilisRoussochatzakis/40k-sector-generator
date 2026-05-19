@@ -32,3 +32,17 @@ feed_stability = false         # nudge stability.famine for stranded worlds
 # "population:massive" = 1.5
 # "population:standard" = 1.0
 # "population:minimal" = 0.25
+
+# ── §4 NEW2.md strategic output / tithe rules ────────────────────────────────
+# Scores are normalized 0..=100. World-type rules override built-ins per
+# field; notable-feature rules add to built-ins and may multiply trade volume
+# or alter supply resilience.
+#
+# [resources.world_type.AgriWorld]
+# food = 90
+# manpower = 20
+# manufacturing = 5
+#
+# [resources.notable_feature.TradeHub]
+# trade_multiplier = 1.4
+# supply_resilience = 10

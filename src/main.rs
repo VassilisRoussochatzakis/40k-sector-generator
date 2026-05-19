@@ -46,8 +46,8 @@ enum Command {
         #[arg(long)]
         allow_warnings: bool,
         /// PNG heatmap mode (§10). One of: off, control, military, trade,
-        /// industrial, covert, faith, threat, intel. Overrides the project's
-        /// `outputs.bitmap.heatmap` setting.
+        /// industrial, covert, faith, threat, intel, tension, trade_volume,
+        /// food, tithe, supply. Overrides the project's `outputs.bitmap.heatmap`.
         #[arg(long)]
         heatmap: Option<String>,
         /// Disable per-system faction tint in the PNG export (§8).
@@ -246,8 +246,9 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
-    /// §12 NEW.md: derive the trade & resource economy snapshot.
+    /// §12 NEW.md / §4 NEW2.md: derive trade, tithe, and strategic-resource snapshot.
     /// Accepts `--project` or `--sector`.
+    #[command(alias = "analyze-economy", alias = "analyze-tithes")]
     Economy {
         #[arg(long)]
         project: Option<Utf8PathBuf>,
@@ -1253,8 +1254,15 @@ fn parse_heatmap(s: &str) -> Result<sectorforge::heatmap::HeatmapMode, sectorfor
         "faith" => Ok(HeatmapMode::Faith),
         "threat" => Ok(HeatmapMode::Threat),
         "intel" => Ok(HeatmapMode::Intel),
+        "tension" => Ok(HeatmapMode::Tension),
+        "trade_volume" | "trade-volume" | "tradevol" => Ok(HeatmapMode::TradeVolume),
+        "food" | "food_output" | "food-output" => Ok(HeatmapMode::FoodOutput),
+        "tithe" | "tithe_stress" | "tithe-stress" => Ok(HeatmapMode::TitheStress),
+        "supply" | "supply_vulnerability" | "supply-vulnerability" => {
+            Ok(HeatmapMode::SupplyVulnerability)
+        }
         other => Err(sectorforge::SectorError::InvalidConfig(format!(
-            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel)"
+            "unknown heatmap mode '{other}' (expected off|control|military|trade|industrial|covert|faith|threat|intel|tension|trade_volume|food|tithe|supply)"
         ))),
     }
 }

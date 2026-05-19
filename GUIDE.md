@@ -539,7 +539,7 @@ after region effects are applied — the `REGION_ISOLATES_SECTOR`
 violation surfaces when a storm splits the sector into multiple
 components.
 
-### `sectorforge economy` (§12 old/DONE.md)
+### `sectorforge economy` (§12 old/DONE.md / §4 NEW2.md)
 
 Trade & resource economy snapshot. Each world declares a signed
 production/consumption vector over six categories (ore, promethium,
@@ -547,7 +547,11 @@ foodstuffs, manufactured goods, archeotech, recruits) keyed by
 `world_type × tech_level × population`. Per-route trade volume is
 derived from the endpoint surplus/deficit gradient × distance falloff ×
 hazard tier × piracy/interdiction friction; per-system and sector-wide
-balance sheets fall out for free.
+balance sheets fall out for free. The same pass also derives strategic
+output bands (`food`, `ore`, `manufacturing`, `arms`, `ships`,
+`pilgrimage`, `psyker_tithe`, `manpower`, `knowledge`, `xenos_value`),
+dependency edges, `tithe_status`, `supply_risk`, and
+`strategic_priority`.
 
 ```bash
 # Regenerate + economy.
@@ -558,12 +562,15 @@ cargo run --bin sectorforge -- economy --sector out/sector.json
 ```
 
 Writes `economy.md`, `economy.json`, and `economy.csv` (per-world
-vectors plus a `stranded` boolean for worlds with shortages no inbound
-route can fix). The shipped
+vectors, strategic output, tithe/supply status, plus a `stranded`
+boolean for worlds with shortages no inbound route can fix). The shipped
 [data/worlds/economy.toml](examples/m42_project/data/worlds/economy.toml)
 defaults to `enabled = false`; users can override the production matrix
 per `world_type`, set per-`tech_level` multipliers, and set per-population
-multipliers. With `feed_stability = true`, stranded-foodstuffs worlds
+multipliers. Top-level `[resources.world_type.*]` and
+`[resources.notable_feature.*]` tables override/add strategic output
+rules, including `trade_multiplier` and `supply_resilience`. With
+`feed_stability = true`, stranded-foodstuffs worlds
 receive a bounded one-way nudge to
 `stability.famine_or_resource_stress` (read-only; the conflict tick is
 not perturbed).
@@ -572,7 +579,7 @@ When enabled, the economy snapshot also drives several downstream
 surfaces:
 
 * `sector.md` gains a dedicated **Economy** section (sector balance,
-  stranded worlds, top trade lanes).
+  strategic output, tithe/supply stress, stranded worlds, top trade lanes).
 * The Route Planner annotates lifeline lanes — any non-Perilous route
   that is the *only* viable import of foodstuffs / promethium /
   manufactured into a deficit system is flagged Caution with an
@@ -580,8 +587,8 @@ surfaces:
 * The plot-hook generator (§7 old/DONE.md) emits `StarvingWorld` hooks for
   every stranded world and `LifelineLane` hooks for every critical
   supply route.
-* The Trade heatmap mode (`HeatmapMode::TradeVolume`) sums incident
-  route volumes per system.
+* Economy heatmaps include `TradeVolume`, `FoodOutput`, `TitheStress`,
+  and `SupplyVulnerability`.
 * The diff report (§10) carries scalar `economy_balance_changes` plus
   newly / no-longer stranded world lists. The post-gen invariants
   enforce a `ECONOMY_ENABLED_NO_WORLDS` check (enabled but empty world

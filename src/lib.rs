@@ -80,8 +80,9 @@ pub mod world_pool;
 pub use config::AppConfig;
 pub use conflict::{advance_sector, ConflictState, HYSTERESIS_TICKS};
 pub use economy::{
-    load_economy_file, EconomyConfig, EconomyFile, EconomyReport, ResourceVector, RouteEconomy,
-    SystemEconomy, WorldEconomy,
+    load_economy_file, DependencyEdge, EconomyConfig, EconomyFile, EconomyReport,
+    ResourceModelConfig, ResourceVector, RouteEconomy, StrategicOutput, StrategicOutputRule,
+    StrategicPriority, SupplyRisk, SystemEconomy, TitheStatus, WorldEconomy,
 };
 pub use errors::SectorError;
 pub use input::ProjectInput;

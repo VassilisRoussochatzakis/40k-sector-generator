@@ -22,3 +22,15 @@ feed_stability = false
 # [economy.by_population]
 # "population:massive" = 1.6
 # "population:standard" = 1.0
+
+# §4 NEW2.md strategic resource/tithe layer. Scores are normalized 0..=100.
+# World-type rules override built-ins per field; feature rules add/multiply.
+#
+# [resources.world_type.AgriWorld]
+# food = 90
+# manpower = 20
+# manufacturing = 5
+#
+# [resources.notable_feature.TradeHub]
+# trade_multiplier = 1.4
+# supply_resilience = 10

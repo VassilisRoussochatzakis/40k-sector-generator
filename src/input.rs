@@ -123,7 +123,7 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         let text = read_relative(&root_dir, rel, &mut digests)?;
         let parsed: crate::economy::EconomyFile = toml::from_str(&text)
             .map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?;
-        parsed.economy
+        parsed.into_config()
     } else {
         crate::economy::EconomyConfig::default()
     };

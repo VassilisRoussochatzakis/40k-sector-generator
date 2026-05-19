@@ -1,8 +1,10 @@
 //! Route Planner: pathfind between two systems over the existing route graph.
 //!
-//! Two metrics:
+//! Metrics:
 //!   * `Safest`   — Dijkstra with hazard weights (avoid Unstable/Hazardous/Dangerous).
 //!   * `Shortest` — BFS over hops, all passable routes equal weight.
+//!   * `Strategic` — Dijkstra; prefers high-volume / dependency lanes but
+//!     still penalizes hazards, piracy, and hidden-route restrictions.
 //!
 //! `Perilous` routes are always treated as impassable.
 
@@ -15,6 +17,7 @@ pub enum Metric {
     #[default]
     Safest,
     Shortest,
+    Strategic,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -128,10 +131,19 @@ pub fn plan_route(sector: &GeneratedSector, from: &str, to: &str, metric: Metric
     if from == to {
         return None;
     }
-    let adj = build_adjacency(sector);
     match metric {
-        Metric::Safest => dijkstra(&adj, from, to),
-        Metric::Shortest => bfs(&adj, from, to),
+        Metric::Safest => {
+            let adj = build_adjacency(sector, Metric::Safest);
+            dijkstra(&adj, from, to)
+        }
+        Metric::Shortest => {
+            let adj = build_adjacency(sector, Metric::Shortest);
+            bfs(&adj, from, to)
+        }
+        Metric::Strategic => {
+            let adj = build_adjacency(sector, Metric::Strategic);
+            dijkstra(&adj, from, to)
+        }
     }
     .map(|(hops, route_ids, cost)| {
         let hazards = collect_hazards(sector, &route_ids);
@@ -151,13 +163,13 @@ struct Edge<'a> {
     weight: f64,
 }
 
-fn build_adjacency(sector: &GeneratedSector) -> HashMap<&str, Vec<Edge<'_>>> {
+fn build_adjacency(sector: &GeneratedSector, metric: Metric) -> HashMap<&str, Vec<Edge<'_>>> {
     let mut adj: HashMap<&str, Vec<Edge<'_>>> = HashMap::new();
     for r in &sector.routes {
         if matches!(r.stability, RouteStability::Perilous) {
             continue;
         }
-        let w = edge_weight(r);
+        let w = edge_weight(sector, r, metric);
         adj.entry(&r.from_system_id).or_default().push(Edge {
             other: &r.to_system_id,
             route: r,
@@ -172,7 +184,7 @@ fn build_adjacency(sector: &GeneratedSector) -> HashMap<&str, Vec<Edge<'_>>> {
     adj
 }
 
-fn edge_weight(r: &GeneratedRoute) -> f64 {
+fn edge_weight(sector: &GeneratedSector, r: &GeneratedRoute, metric: Metric) -> f64 {
     let mut w = match r.stability {
         RouteStability::Stable => 1.0,
         RouteStability::Unstable => 3.0,
@@ -192,6 +204,21 @@ fn edge_weight(r: &GeneratedRoute) -> f64 {
         // Hidden routes are restricted-access; treat as expensive for the
         // generic planner so they don't poach traffic from public lanes.
         w += 4.0;
+    }
+    if metric == Metric::Strategic {
+        if let Some(econ) = sector.economy.routes.iter().find(|e| e.route_id == r.id) {
+            w -= (econ.volume as f64 / 40.0).clamp(0.0, 3.0);
+            w += ((1.0 - econ.friction) as f64 * 2.0).max(0.0);
+        }
+        if sector
+            .economy
+            .dependency_edges
+            .iter()
+            .any(|e| e.route_id.as_deref() == Some(r.id.as_str()))
+        {
+            w -= 0.75;
+        }
+        w = w.max(0.25);
     }
     w
 }

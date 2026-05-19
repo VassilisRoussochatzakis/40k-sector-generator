@@ -28,6 +28,12 @@ pub enum HeatmapMode {
     /// §12: per-system trade activity = sum of route volumes touching the
     /// system. Uses the economy derivation in `sector.economy`.
     TradeVolume,
+    /// §4 NEW2.md: per-system strategic food output.
+    FoodOutput,
+    /// §4 NEW2.md: tithe stress, high = delinquent/failed/falsified.
+    TitheStress,
+    /// §4 NEW2.md: supply vulnerability, high = disrupted/collapsing.
+    SupplyVulnerability,
 }
 
 impl Default for HeatmapMode {
@@ -49,6 +55,9 @@ impl HeatmapMode {
         HeatmapMode::Intel,
         HeatmapMode::Tension,
         HeatmapMode::TradeVolume,
+        HeatmapMode::FoodOutput,
+        HeatmapMode::TitheStress,
+        HeatmapMode::SupplyVulnerability,
     ];
 
     pub fn label(self) -> &'static str {
@@ -64,6 +73,9 @@ impl HeatmapMode {
             HeatmapMode::Intel => "INTEL",
             HeatmapMode::Tension => "TENSION",
             HeatmapMode::TradeVolume => "TRADE VOL",
+            HeatmapMode::FoodOutput => "FOOD",
+            HeatmapMode::TitheStress => "TITHE",
+            HeatmapMode::SupplyVulnerability => "SUPPLY",
         }
     }
 
@@ -75,6 +87,9 @@ impl HeatmapMode {
             HeatmapMode::Military | HeatmapMode::Threat | HeatmapMode::Tension => (235, 90, 90),
             HeatmapMode::Trade => (240, 200, 90),
             HeatmapMode::TradeVolume => (255, 175, 60),
+            HeatmapMode::FoodOutput => (80, 190, 120),
+            HeatmapMode::TitheStress => (220, 80, 70),
+            HeatmapMode::SupplyVulnerability => (235, 120, 60),
             HeatmapMode::Industrial => (220, 110, 50),
             HeatmapMode::Covert => (150, 90, 220),
             HeatmapMode::Faith => (230, 220, 90),
@@ -186,6 +201,48 @@ fn score_system_in(
             }
             return (score, None);
         }
+        HeatmapMode::FoodOutput => {
+            let score = sector
+                .economy
+                .systems
+                .iter()
+                .find(|s| s.system_id == sys.id)
+                .map(|s| s.strategic_output.food)
+                .unwrap_or(0.0);
+            return (score, None);
+        }
+        HeatmapMode::TitheStress => {
+            let score = sector
+                .economy
+                .systems
+                .iter()
+                .find(|s| s.system_id == sys.id)
+                .map(|s| match s.tithe_status {
+                    crate::economy::TitheStatus::Surplus => 0.0,
+                    crate::economy::TitheStatus::Adequate => 10.0,
+                    crate::economy::TitheStatus::Strained => 35.0,
+                    crate::economy::TitheStatus::Delinquent => 65.0,
+                    crate::economy::TitheStatus::Failed => 100.0,
+                    crate::economy::TitheStatus::Falsified => 80.0,
+                })
+                .unwrap_or(0.0);
+            return (score, None);
+        }
+        HeatmapMode::SupplyVulnerability => {
+            let score = sector
+                .economy
+                .systems
+                .iter()
+                .find(|s| s.system_id == sys.id)
+                .map(|s| match s.supply_risk {
+                    crate::economy::SupplyRisk::Stable => 0.0,
+                    crate::economy::SupplyRisk::Vulnerable => 35.0,
+                    crate::economy::SupplyRisk::Disrupted => 70.0,
+                    crate::economy::SupplyRisk::Collapsing => 100.0,
+                })
+                .unwrap_or(0.0);
+            return (score, None);
+        }
         _ => {}
     }
 
@@ -208,7 +265,11 @@ fn score_system_in(
                     }
                 }
                 HeatmapMode::Intel => 100.0 - p.dimensions.visibility,
-                HeatmapMode::Tension | HeatmapMode::TradeVolume => 0.0,
+                HeatmapMode::Tension
+                | HeatmapMode::TradeVolume
+                | HeatmapMode::FoodOutput
+                | HeatmapMode::TitheStress
+                | HeatmapMode::SupplyVulnerability => 0.0,
             };
             score += v;
         }

@@ -453,6 +453,72 @@ fn validate_economy(
             });
         }
     }
+    for (scope, rules) in [
+        ("world_type", &cfg.resources.world_type),
+        ("notable_feature", &cfg.resources.notable_feature),
+    ] {
+        for (name, rule) in rules {
+            validate_resource_rule(scope, name, rule, errors);
+        }
+    }
+}
+
+fn validate_resource_rule(
+    scope: &str,
+    name: &str,
+    rule: &crate::economy::StrategicOutputRule,
+    errors: &mut Vec<ValidationIssue>,
+) {
+    let path = |field: &str| format!("resources.{scope}.{name}.{field}");
+    let mut check_score = |field: &str, value: Option<f32>| {
+        if let Some(v) = value {
+            if !v.is_finite() || !(0.0..=100.0).contains(&v) {
+                errors.push(ValidationIssue {
+                    code: "RESOURCE_SCORE_BAD".into(),
+                    message: format!("resources.{scope}.{name}.{field} = {v} is not 0..=100"),
+                    path: Some(path(field)),
+                    row: None,
+                    severity: Severity::Error,
+                });
+            }
+        }
+    };
+    check_score("food", rule.food);
+    check_score("ore", rule.ore);
+    check_score("manufacturing", rule.manufacturing);
+    check_score("arms", rule.arms);
+    check_score("ships", rule.ships);
+    check_score("pilgrimage", rule.pilgrimage);
+    check_score("psyker_tithe", rule.psyker_tithe);
+    check_score("manpower", rule.manpower);
+    check_score("knowledge", rule.knowledge);
+    check_score("xenos_value", rule.xenos_value);
+    if let Some(v) = rule.trade_multiplier {
+        if !v.is_finite() || v < 0.0 {
+            errors.push(ValidationIssue {
+                code: "RESOURCE_TRADE_MULTIPLIER_BAD".into(),
+                message: format!(
+                    "resources.{scope}.{name}.trade_multiplier = {v} is not finite non-negative"
+                ),
+                path: Some(path("trade_multiplier")),
+                row: None,
+                severity: Severity::Error,
+            });
+        }
+    }
+    if let Some(v) = rule.supply_resilience {
+        if !v.is_finite() || !(-100.0..=100.0).contains(&v) {
+            errors.push(ValidationIssue {
+                code: "RESOURCE_SUPPLY_RESILIENCE_BAD".into(),
+                message: format!(
+                    "resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"
+                ),
+                path: Some(path("supply_resilience")),
+                row: None,
+                severity: Severity::Error,
+            });
+        }
+    }
 }
 
 fn issue(code: &str, message: &str, severity: Severity) -> ValidationIssue {

@@ -1,0 +1,160 @@
+# COMBINED PROPOSED FEATURES FOR `sectorforge`
+
+This document combines and deduplicates the suggested features from both proposal documents, presenting a unified vision for `sectorforge`. The guiding constraint across all proposals remains: every feature must support deterministic generation, offline data-driven configuration, rich political state, and reproducible exports. 
+
+---
+
+## 1. Historical Timeline and Sector Chronicle Generator
+### What it is
+A history pass that produces a deterministic, chronological backstory for the sector. It turns a static political snapshot into a setting with inherited grudges, old treaties, and past wars. It generates a dated list of events (or era-labelled events like `Founding`, `Schism`, `War`, `Rebellion`) that explain current claims and conflict states.
+### How it works
+Runs as a derived pipeline stage (`history`), seeded deterministically. It walks each world's claim list and emits events from a deterministic event grammar (authored in TOML). The generator derives the chronicle from current state (e.g., if a route is perilous, the history explains *when* and *how* it became so). 
+### Surfacing & Data
+- Configured via `history.toml` with event templates, preconditions, and eras.
+- GUI: A "Timeline" tab where events cross-link to worlds and factions.
+- CLI/Export: `history.md` exports per-system chronicles and sector-wide event digests.
+
+## 2. Constraint-Directed Generation and Seed Search ("Wishes")
+### What it is
+Allows users to declare what they want in a sector (e.g., "exactly one forge world," "at least one warzone within two jumps of the capital") and have the tool find a seed that satisfies it automatically, rather than manual rerolling.
+### How it works
+Evaluates a small predicate DSL against finished sector models during a deterministic seed search. It checks candidates and stops at the first satisfying seed, or reports the closest near-miss. 
+### Surfacing & Data
+- Configured via `wishes.toml` (or a `constraints` file) with bounds, requirements, and logic.
+- GUI: A "Wishes" or "Find a sector" panel with constraint dropdowns and progress bars.
+- CLI: `sectorforge search <project> --wishes wishes.toml`
+
+## 3. Dramatis Personae, Named NPCs, and Institutional Offices
+### What it is
+Generates a deterministic cast of named individuals tied to the political structure: planetary governors, sector lords, Rogue Trader captains, and cult magi. Separates the *Office* (a durable institutional role) from the *Personage* (the individual occupying it), allowing campaign state to replace characters without deleting the role.
+### How it works
+Runs as a `personae` stage seeded deterministically. Draws names, titles, and traits from user-supplied name pools. Generates one-line agendas based on the local political situation.
+### Surfacing & Data
+- Configured via `personae.toml` for name pools, title pools, traits, and office generation rules.
+- GUI: Faction chips expand to show key office-holders.
+- Export: A "Dramatis Personae" Markdown chapter.
+
+## 4. Inter-Faction Diplomacy and Relationship Matrix
+### What it is
+An explicit deterministic model of how factions relate to each other (e.g., Allied, Neutral, Rival, At War). Replaces implicit assumptions with stated relationships, explaining *why* factions are fighting.
+### How it works
+A `relations` stage computes `FactionRelation` records for every pair based on faction kind, disposition, and TOML rules, allowing for asymmetrical attitudes (e.g., public trust vs. secret hostility). 
+### Surfacing & Data
+- GUI: A Diplomacy matrix view / relationship graph showing stances and causes.
+- Export: "Factions at war" digest or diplomacy chapter.
+
+## 5. Regional Warp Phenomena and Large-Scale Map Overlay
+### What it is
+Adds contiguous regions on the hex grid carrying warp conditions (e.g., Warp Storm, Calm Corridor) that modify world generation and routing inside their footprint.
+### How it works
+Computed before routes and worlds. Shapes are seeded deterministically and tagged with conditions. These modify candidate pool weights and route hazard tiers.
+### Surfacing & Data
+- GUI/PNG: Renders as a translucent tinted overlay under the hex grid.
+
+## 6. Narrative Prose / Gazetteer Generator
+### What it is
+A deterministic template/grammar engine that turns the structured model into readable narrative text (e.g., Imperial-dispatch summaries, gazetteer entries). Not an LLM.
+### How it works
+A `prose` stage uses Backus-style grammar filled from the model, varying synonyms via deterministic seed.
+### Surfacing & Data
+- GUI: "Read as gazetteer" toggle rendering prose over structured tables.
+
+## 7. Adventure Hooks, Quests, and Mission Seed Generator
+### What it is
+Turns the latent political tension into actionable, runnable adventure hooks or missions (e.g., Investigate, Escort, Sabotage) anchored to specific generated entities.
+### How it works
+Matches model conditions (e.g., contested worlds, perilous routes) to TOML templates, instantiating prompts with real factions, locations, complications, and stakes.
+### Surfacing & Data
+- GUI/Export: A "Hooks" or "Missions" tab and Markdown sections showing patrons, objectives, and hidden complications.
+
+## 8. Sector Analytics, Balance Dashboard, and Interestingness Reports
+### What it is
+A computed report characterizing a sector's health, balance, and "interestingness" (faction dominance concentration, chokepoints, contested-world ratio, world-type distribution). 
+### How it works
+A read-only pass over the sector. Configurable thresholds can flag if a sector is "too safe" or "too chaotic."
+### Surfacing & Data
+- GUI: Dashboard tab with charts (faction power bars, connectivity callouts, scorecard).
+- CLI: Fails CI builds if balance is broken.
+
+## 9. Scenario Presets / Template Library
+### What it is
+Curated configuration bundles (e.g., *Embattled Frontier*, *Chaos Incursion*) that bias generation toward recognizable narrative shapes to ease new user onboarding.
+### How it works
+Presets are pure config overlays over the base schema.
+
+## 10. Sector Diff & State-Comparison Tool
+### What it is
+Compares two sectors (or two states of the same sector) to report exactly what changed: lost sovereign slots, route hazard shifts, or differences between generator versions.
+### How it works
+A pure semantic comparison of two loaded sector models using stable IDs.
+### Surfacing & Data
+- CLI: Outputs `diff.md`.
+- GUI: A split/overlay map where changed hexes pulse and a changelog is listed.
+
+## 11. Self-Contained Interactive HTML Export
+### What it is
+A single, offline `.html` file containing the full sector map, UI, and data (inlined JSON + vanilla JS) to easily share explorable maps with players or GMs without needing the desktop app.
+
+## 12. Trade, Resource Economy, and Strategic Value Layer
+### What it is
+A light, deterministic economy mapping world types to resource inputs/outputs (ore, food, recruits, arms). Gives concrete reasons for blockades and defines route trade volumes.
+### How it works
+Calculates surpluses/deficits and trade flows along routes, potentially feeding back into famine/rebellion stability logic.
+
+## 13. External-Tool Export Adapters
+### What it is
+First-party modular adapters to export the sector directly into common downstream tools (e.g., Foundry VTT, Obsidian markdown vaults, Roll20).
+
+## 14. Multi-Sector / Segmentum Composition (Atlas Mode)
+### What it is
+Composes several independently generated sectors into a larger "super-region" or segmentum map with cross-sector warp routes and regional summaries.
+### How it works
+A `stitch` stage bridges separate sector outputs based on proximity policies, preserving the original seeds.
+
+## 15. Scripting / Plugin Hooks for Custom Generation Stages
+### What it is
+A sandboxed, embedded scripting engine (e.g., Rhai/Lua) allowing power users to register custom derivation stages (e.g., tagging worlds) while preserving the offline audit trail.
+
+## 16. Campaign Fronts and Active Story Arcs
+### What it is
+Bundles raw conflict and intel into GM-ready "Fronts" (e.g., Genestealer Uprising, Naval Interdiction) with clocks, stages, and escalation paths. 
+### How it works
+Rule-based matching identifies high-pressure zones and groups them into actionable narrative threats, saving to `SectorSave`.
+
+## 17. Planetary Sites and Point-of-Interest Generator
+### What it is
+Generates campaign-scale points of interest (e.g., Underhive safehouse, void elevator) on worlds to give missions concrete destinations.
+### How it works
+Derived from world type, surface regions, and local factions.
+
+## 18. Threat Propagation and Crisis Forecasting
+### What it is
+A forecasting tool predicting where the sector might break next based on current states (e.g., Famine Risk, Blockade Escalation). Provides risk scores and recommended intervention points.
+
+## 19. Player-Facing Redaction Profiles & Briefing Packs
+### What it is
+Allows generating targeted exports based on who is reading them. A "Player Profile" or "Imperial Navy Profile" automatically strips or falsifies hidden data and secret routes based on intel levels.
+
+## 20. Mod Packs and Data Dependency Management
+### What it is
+A manifest system (`sectorforge-pack.toml`) for sharing and reusing custom data packages (name lists, faction sets, validation rules) without copying files manually.
+
+## 21. Schema Versioning and Migration Tools
+### What it is
+Version numbering for serialized structures to safely upgrade existing campaign saves and `sector.json` files when the app updates, preventing loss of GM edits.
+
+## 22. Themeable Map Rendering and Symbol Sets
+### What it is
+Separates map presentation from data. Users can choose themes (e.g., `print_mono`, `navis_tactical`, `imperial_archive`) for PNG/HTML exports to fit different visual needs (VTT vs. printed handouts).
+
+## 23. Provenance, Explainability, and "Why?" Inspector
+### What it is
+A debug/explain tool that tells the user exactly *why* a specific generated event happened (e.g., why a faction is dominant, why a route is hazardous), displaying the exact candidate weights and rules that triggered it.
+
+## 24. Validation Rule Authoring and Custom Invariants
+### What it is
+Allows project authors to define bespoke logical constraints in TOML (e.g., "Paradise worlds cannot have Chaos presence") that the application enforces during generation.
+
+## 25. In-Application Changelog and Campaign Session Log
+### What it is
+A human-readable log stored in the `SectorSave` connecting generated state to actual table history, tracking manual state changes made by the GM as the campaign progresses.

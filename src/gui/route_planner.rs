@@ -312,12 +312,23 @@ fn reconstruct(
 fn collect_hazards(sector: &GeneratedSector, route_ids: &[String]) -> Vec<HazardNote> {
     let by_id: HashMap<&str, &GeneratedRoute> =
         sector.routes.iter().map(|r| (r.id.as_str(), r)).collect();
+    let lifelines = economy_lifelines(sector);
     let mut out = Vec::new();
     for rid in route_ids {
         let Some(r) = by_id.get(rid.as_str()) else {
             continue;
         };
-        let (severity, note) = classify(r);
+        let (mut severity, mut note) = classify(r);
+        if let Some(econ_note) = lifelines.get(r.id.as_str()) {
+            // Lifeline beats Info but doesn't override an actual hazard.
+            if severity == Severity::Info {
+                severity = Severity::Caution;
+            }
+            if !note.is_empty() {
+                note.push_str("; ");
+            }
+            note.push_str(econ_note);
+        }
         if severity == Severity::Info {
             continue;
         }
@@ -330,6 +341,60 @@ fn collect_hazards(sector: &GeneratedSector, route_ids: &[String]) -> Vec<Hazard
             severity,
             note,
         });
+    }
+    out
+}
+
+/// §12 NEW.md: a route is a "lifeline" if it is the only non-Perilous link
+/// importing a critical resource (foodstuffs / promethium / manufactured) to
+/// a system in deficit. Empty map when economy derivation is disabled.
+fn economy_lifelines(sector: &GeneratedSector) -> HashMap<String, String> {
+    let mut out: HashMap<String, String> = HashMap::new();
+    if !sector.economy.enabled {
+        return out;
+    }
+    let sys_econ: HashMap<&str, &crate::economy::SystemEconomy> = sector
+        .economy
+        .systems
+        .iter()
+        .map(|s| (s.system_id.as_str(), s))
+        .collect();
+    let critical = ["foodstuffs", "promethium", "manufactured"];
+    for crit in critical {
+        for sys in &sector.systems {
+            let Some(econ) = sys_econ.get(sys.id.as_str()) else {
+                continue;
+            };
+            if !econ.shortage_resources.iter().any(|r| r == crit) {
+                continue;
+            }
+            // Candidate lanes that could import this resource into sys.
+            let candidates: Vec<&crate::sector_model::GeneratedRoute> = sector
+                .routes
+                .iter()
+                .filter(|r| {
+                    (r.from_system_id == sys.id || r.to_system_id == sys.id)
+                        && !matches!(r.stability, RouteStability::Perilous)
+                })
+                .filter(|r| {
+                    let other = if r.from_system_id == sys.id {
+                        r.to_system_id.as_str()
+                    } else {
+                        r.from_system_id.as_str()
+                    };
+                    sys_econ
+                        .get(other)
+                        .map(|e| e.surplus_resources.iter().any(|s| s == crit))
+                        .unwrap_or(false)
+                })
+                .collect();
+            if candidates.len() == 1 {
+                out.insert(
+                    candidates[0].id.clone(),
+                    format!("only {crit} import into {}", sys.id),
+                );
+            }
+        }
     }
     out
 }

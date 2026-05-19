@@ -73,9 +73,18 @@ pub mod world_pool;
 
 pub use config::AppConfig;
 pub use conflict::{advance_sector, ConflictState, HYSTERESIS_TICKS};
+pub use economy::{
+    load_economy_file, EconomyConfig, EconomyFile, EconomyReport, ResourceVector, RouteEconomy,
+    SystemEconomy, WorldEconomy,
+};
 pub use errors::SectorError;
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
+pub use regions::{load_regions_file, RegionConditionKind, RegionsConfig, RegionsFile, WarpRegion};
+pub use relations::{
+    load_relations_file, FactionRelation, RelationsConfig, RelationsFile, RelationsMatrix,
+    RelationsReport, Stance,
+};
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
 pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
 pub use subsectors::{

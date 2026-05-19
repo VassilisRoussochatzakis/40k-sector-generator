@@ -157,6 +157,106 @@ pub enum Constraint {
     ContestedRatioMin {
         min: f32,
     },
+    /// §4 NEW.md: at least `min` faction pairs are at the given stance.
+    StanceCountMin {
+        stance: StanceName,
+        min: u32,
+    },
+    /// §4 NEW.md: at most `max` faction pairs are at the given stance.
+    StanceCountMax {
+        stance: StanceName,
+        max: u32,
+    },
+    /// §5 NEW.md: at least `min` regions of the named kind exist.
+    RegionCountMin {
+        region_kind: RegionKindName,
+        min: u32,
+    },
+    /// §5 NEW.md: at most `max` regions of the named kind exist.
+    RegionCountMax {
+        region_kind: RegionKindName,
+        max: u32,
+    },
+    /// §12 NEW.md: at most `max` stranded worlds.
+    EconomyStrandedMax {
+        max: u32,
+    },
+    /// §12 NEW.md: at least `min` net sector balance for the named resource.
+    EconomyResourceMin {
+        resource: String,
+        min: f32,
+    },
+}
+
+/// §4 NEW.md mirror of [`crate::relations::Stance`].
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum StanceName {
+    Allied,
+    Aligned,
+    Neutral,
+    Rival,
+    Hostile,
+    AtWar,
+}
+
+impl StanceName {
+    fn matches(self, s: crate::relations::Stance) -> bool {
+        use crate::relations::Stance as S;
+        matches!(
+            (self, s),
+            (StanceName::Allied, S::Allied)
+                | (StanceName::Aligned, S::Aligned)
+                | (StanceName::Neutral, S::Neutral)
+                | (StanceName::Rival, S::Rival)
+                | (StanceName::Hostile, S::Hostile)
+                | (StanceName::AtWar, S::AtWar)
+        )
+    }
+    fn debug_name(self) -> &'static str {
+        match self {
+            Self::Allied => "Allied",
+            Self::Aligned => "Aligned",
+            Self::Neutral => "Neutral",
+            Self::Rival => "Rival",
+            Self::Hostile => "Hostile",
+            Self::AtWar => "AtWar",
+        }
+    }
+}
+
+/// §5 NEW.md mirror of [`crate::regions::RegionConditionKind`].
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RegionKindName {
+    WarpStorm,
+    Turbulence,
+    CalmCorridor,
+    Blackout,
+    Anomaly,
+}
+
+impl RegionKindName {
+    fn matches(self, k: crate::regions::RegionConditionKind) -> bool {
+        use crate::regions::RegionConditionKind as K;
+        matches!(
+            (self, k),
+            (RegionKindName::WarpStorm, K::WarpStorm)
+                | (RegionKindName::Turbulence, K::Turbulence)
+                | (RegionKindName::CalmCorridor, K::CalmCorridor)
+                | (RegionKindName::Blackout, K::Blackout)
+                | (RegionKindName::Anomaly, K::Anomaly)
+        )
+    }
+    fn debug_name(self) -> &'static str {
+        match self {
+            Self::WarpStorm => "WarpStorm",
+            Self::Turbulence => "Turbulence",
+            Self::CalmCorridor => "CalmCorridor",
+            Self::Blackout => "Blackout",
+            Self::Anomaly => "Anomaly",
+        }
+    }
 }
 
 fn default_one() -> u32 {
@@ -636,6 +736,104 @@ fn evaluate(
                 passed,
                 observed: format!("{:.3}", r),
                 required: format!(">= {:.3}", min),
+                miss,
+            }
+        }
+        Constraint::StanceCountMin { stance, min } => {
+            let n = sector
+                .relations
+                .pairs
+                .iter()
+                .filter(|p| stance.matches(p.stance))
+                .count() as u32;
+            let passed = n >= *min;
+            let miss = (*min as f32 - n as f32).max(0.0);
+            ConstraintReport {
+                label: format!("stance_count_min:{}", stance.debug_name()),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::StanceCountMax { stance, max } => {
+            let n = sector
+                .relations
+                .pairs
+                .iter()
+                .filter(|p| stance.matches(p.stance))
+                .count() as u32;
+            let passed = n <= *max;
+            let miss = (n as f32 - *max as f32).max(0.0);
+            ConstraintReport {
+                label: format!("stance_count_max:{}", stance.debug_name()),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::RegionCountMin { region_kind, min } => {
+            let n = sector
+                .regions
+                .iter()
+                .filter(|r| region_kind.matches(r.kind))
+                .count() as u32;
+            let passed = n >= *min;
+            let miss = (*min as f32 - n as f32).max(0.0);
+            ConstraintReport {
+                label: format!("region_count_min:{}", region_kind.debug_name()),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::RegionCountMax { region_kind, max } => {
+            let n = sector
+                .regions
+                .iter()
+                .filter(|r| region_kind.matches(r.kind))
+                .count() as u32;
+            let passed = n <= *max;
+            let miss = (n as f32 - *max as f32).max(0.0);
+            ConstraintReport {
+                label: format!("region_count_max:{}", region_kind.debug_name()),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::EconomyStrandedMax { max } => {
+            let n = sector.economy.worlds.iter().filter(|w| w.stranded).count() as u32;
+            let passed = n <= *max;
+            let miss = (n as f32 - *max as f32).max(0.0);
+            ConstraintReport {
+                label: "economy_stranded_max".to_string(),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::EconomyResourceMin { resource, min } => {
+            let v = match resource.as_str() {
+                "ore" => sector.economy.sector_balance.ore,
+                "promethium" => sector.economy.sector_balance.promethium,
+                "foodstuffs" => sector.economy.sector_balance.foodstuffs,
+                "manufactured" => sector.economy.sector_balance.manufactured,
+                "archeotech" => sector.economy.sector_balance.archeotech,
+                "recruits" => sector.economy.sector_balance.recruits,
+                _ => 0.0,
+            };
+            let passed = v >= *min;
+            let miss = (*min - v).max(0.0);
+            ConstraintReport {
+                label: format!("economy_resource_min:{resource}"),
+                passed,
+                observed: format!("{v:.1}"),
+                required: format!(">= {min:.1}"),
                 miss,
             }
         }

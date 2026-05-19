@@ -106,6 +106,12 @@ pub enum HookKind {
     CultPurge,
     DiplomaticCrisis,
     SuccessionDispute,
+    /// §12 NEW.md: world stranded on a critical resource (foodstuffs etc.)
+    /// with no viable supply line.
+    StarvingWorld,
+    /// §12 NEW.md: critical lifeline lane that is the only non-perilous
+    /// import path for a deficit world.
+    LifelineLane,
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────────
@@ -128,6 +134,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HooksConfig) -> HooksReport {
     for r in &sector.routes {
         emit_route_hooks(r, sector, cfg, &mut out);
     }
+    emit_economy_hooks(sector, cfg, &mut out);
 
     // Dedupe by id and apply max_per_anchor cap.
     cap_per_anchor(&mut out, cfg.max_per_anchor);
@@ -164,6 +171,138 @@ fn cap_per_anchor(hooks: &mut Vec<Hook>, cap: u32) {
             false
         }
     });
+}
+
+// ── Economy hooks (§12 NEW.md) ─────────────────────────────────────────────────
+
+fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Vec<Hook>) {
+    if !sector.economy.enabled {
+        return;
+    }
+    let by_sys_id: BTreeMap<&str, &GeneratedSystem> =
+        sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
+    let world_lookup: BTreeMap<&str, (&GeneratedSystem, &GeneratedWorld)> = sector
+        .systems
+        .iter()
+        .flat_map(|s| s.worlds.iter().map(move |w| (w.id.as_str(), (s, w))))
+        .collect();
+    for we in &sector.economy.worlds {
+        if !we.stranded {
+            continue;
+        }
+        let Some((sys, w)) = world_lookup.get(we.world_id.as_str()).copied() else {
+            continue;
+        };
+        let key_resource = we
+            .shortages
+            .iter()
+            .find(|s| s.as_str() == "foodstuffs")
+            .or_else(|| we.shortages.first())
+            .cloned()
+            .unwrap_or_else(|| "supply".to_string());
+        out.push(Hook {
+            id: format!("hook-{}-{}-starving", sys.id, w.id),
+            kind: HookKind::StarvingWorld,
+            anchor: HookAnchor::World {
+                system_id: sys.id.clone(),
+                world_id: w.id.clone(),
+            },
+            title: format!("Starving world: {}", w.name),
+            situation: format!(
+                "{} is in deficit on {} and no inbound lane can fix it.",
+                w.name, key_resource
+            ),
+            stakes: "Restore the supply line — by trade, escort, or conquest of a surplus world."
+                .into(),
+            factions: w.factions.iter().map(|p| p.faction_id.clone()).collect(),
+            complications: vec![
+                "Local stockpiles run out within months.".into(),
+                "Rival factions exploit the famine for recruitment.".into(),
+            ],
+            weight: 70,
+            gm_only: false,
+        });
+    }
+    // Lifeline lanes: routes that import a critical resource into a deficit
+    // system as the only non-perilous path.
+    let sys_econ: BTreeMap<&str, &crate::economy::SystemEconomy> = sector
+        .economy
+        .systems
+        .iter()
+        .map(|s| (s.system_id.as_str(), s))
+        .collect();
+    for r in &sector.routes {
+        if matches!(r.stability, crate::sector_model::RouteStability::Perilous) {
+            continue;
+        }
+        for crit in ["foodstuffs", "promethium", "manufactured"] {
+            for endpoint in [r.from_system_id.as_str(), r.to_system_id.as_str()] {
+                let Some(econ) = sys_econ.get(endpoint) else {
+                    continue;
+                };
+                if !econ.shortage_resources.iter().any(|s| s == crit) {
+                    continue;
+                }
+                let other = if r.from_system_id == endpoint {
+                    r.to_system_id.as_str()
+                } else {
+                    r.from_system_id.as_str()
+                };
+                let Some(other_econ) = sys_econ.get(other) else {
+                    continue;
+                };
+                if !other_econ.surplus_resources.iter().any(|s| s == crit) {
+                    continue;
+                }
+                let count = sector
+                    .routes
+                    .iter()
+                    .filter(|x| {
+                        !matches!(x.stability, crate::sector_model::RouteStability::Perilous)
+                            && (x.from_system_id == endpoint || x.to_system_id == endpoint)
+                    })
+                    .filter(|x| {
+                        let o = if x.from_system_id == endpoint {
+                            x.to_system_id.as_str()
+                        } else {
+                            x.from_system_id.as_str()
+                        };
+                        sys_econ
+                            .get(o)
+                            .map(|e| e.surplus_resources.iter().any(|s| s == crit))
+                            .unwrap_or(false)
+                    })
+                    .count();
+                if count != 1 {
+                    continue;
+                }
+                let sys_name = by_sys_id
+                    .get(endpoint)
+                    .map(|s| s.name.clone())
+                    .unwrap_or_else(|| endpoint.to_string());
+                out.push(Hook {
+                    id: format!("hook-{}-lifeline-{}-{}", r.id, crit, endpoint),
+                    kind: HookKind::LifelineLane,
+                    anchor: HookAnchor::Route {
+                        route_id: r.id.clone(),
+                    },
+                    title: format!("Lifeline: {} into {}", crit, sys_name),
+                    situation: format!(
+                        "Route {} is the only non-perilous {crit} import into {sys_name}.",
+                        r.id
+                    ),
+                    stakes: "Defend the convoys, or pivot to an alternate supplier.".into(),
+                    factions: vec![],
+                    complications: vec![
+                        "Pirates know the convoy schedule.".into(),
+                        "A single ambush could starve the destination.".into(),
+                    ],
+                    weight: 60,
+                    gm_only: false,
+                });
+            }
+        }
+    }
 }
 
 // ── World hooks ────────────────────────────────────────────────────────────────

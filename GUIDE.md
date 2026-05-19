@@ -321,6 +321,10 @@ Supported constraint `kind`s:
 | `diameter_max` | `max_hops` |
 | `isolated_systems_max` | `max` |
 | `contested_ratio_min` / `contested_ratio_max` | `min`/`max` (0.0..=1.0) |
+| `stance_count_min` / `stance_count_max` | `stance` (`allied`/`aligned`/`neutral`/`rival`/`hostile`/`at_war`), `min`/`max` |
+| `region_count_min` / `region_count_max` | `region_kind` (`warp_storm`/`turbulence`/`calm_corridor`/`blackout`/`anomaly`), `min`/`max` |
+| `economy_stranded_max` | `max` (cap stranded worlds) |
+| `economy_resource_min` | `resource` (one of `ore`/`promethium`/`foodstuffs`/`manufactured`/`archeotech`/`recruits`), `min` (net sector balance) |
 
 Unknown faction ids are caught by a preflight check before any search
 runs, so an over-constrained or typo'd wish set fails immediately with a
@@ -362,10 +366,13 @@ covered by golden-style tests against the bundled example project.
 
 The Markdown digest is organised by stratum: schema warnings, system-level
 changes (state, dominant/sovereign/occupier flips, primary-faction
-add/remove, world add/remove/change), route changes, and a faction power
-delta table filtered by `min_faction_delta`. Sector id or
-`generator_version` mismatch is reported but does not refuse the diff —
-the report is marked as best-effort instead.
+add/remove, world add/remove/change), route changes, a faction power
+delta table filtered by `min_faction_delta`, **Diplomacy changes**
+(§4 stance flips per pair), **Warp regions** (§5 added/removed/changed
+regions), and **Economy** (§12 scalar sector balance deltas plus newly /
+no-longer stranded world lists). Sector id or `generator_version`
+mismatch is reported but does not refuse the diff — the report is
+marked as best-effort instead.
 
 ### `sectorforge history` (§1 NEW.md)
 
@@ -425,6 +432,13 @@ cargo run --bin sectorforge -- hooks --sector out/sector.json --player
 Writes `hooks.md` + `hooks.json`. Hooks reference only real, present
 entities; the GM-only flag respects the existing intel layer.
 
+When the §12 economy derivation is enabled, the generator also emits
+`StarvingWorld` hooks for every stranded world (anchored to the world,
+naming the missing resource) and `LifelineLane` hooks for every
+non-Perilous route that is the *only* import of a critical resource
+(foodstuffs / promethium / manufactured) into a deficit system —
+anchored to the route, ranked alongside the structural hooks.
+
 ### `sectorforge prose` (§6 NEW.md)
 
 Narrative gazetteer generator: deterministic template grammar (not an
@@ -474,6 +488,13 @@ is silent. A small deterministic per-pair perturbation seeded from
 `blake3("sectorforge:{seed}:relations:{a}:{b}")` breaks ties so two
 identical kind+disposition pairs are not always identical.
 
+Set `[relations].feed_conflict = true` to copy the flag onto the derived
+matrix; `advance_sector` then biases per-world momentum/intensity by the
+stance between the local attacker/defender (At War / Hostile pushes
+toward the attacker, Allied / Aligned drifts toward peace). The bias is
+applied *before* the existing tick logic and never overrides GM-edited
+conflict state.
+
 ### `sectorforge regions` (§5 NEW.md)
 
 Regional warp-phenomena overlay. Grows seeded blob regions over the hex
@@ -486,8 +507,11 @@ overlay:
 * `CalmCorridor` → upgrades by one tier (cannot upgrade above
   `Hazardous` when another rule already forced `Perilous`).
 * `Blackout` → marks the area for no covert / hidden routes.
-* `Anomaly` → biases nearby world generation toward ancient-ruins /
-  warp-phenomena features (tag-only; advisory).
+* `Anomaly` → reweights world generation in the affected hex toward
+  warp-phenomena / ancient-ruins / daemonic-corruption candidates
+  (3× weight multiplier on the candidate pool draw). Regions are built
+  *before* the system loop so the bias is applied at world-selection
+  time, not as a post-hoc tag.
 
 ```bash
 # Standalone overlay derivation (no full sector regen).
@@ -501,8 +525,19 @@ Writes `regions.md` + `regions.json`. The shipped
 [data/routes/regions.toml](examples/m42_project/data/routes/regions.toml)
 defaults to `enabled = false`; flip it on to grow regions for the project.
 Regions are embedded on `sector.json` under the `regions` field and
-rendered as a translucent tint underneath the existing hex grid in the
-PNG export.
+rendered as a translucent tint underneath the existing hex grid in both
+the PNG export and the on-screen GUI sector map. The Markdown sector map
+prints region glyphs over empty hexes: `~` warp storm, `^` turbulence,
+`=` calm corridor, `#` blackout, `*` anomaly.
+
+`Blackout` regions also gate the hidden-route stage: webway, black-ship,
+and smuggling-lane endpoints inside a blackout footprint are excluded so
+no covert lane terminates there. Post-generation invariants check that
+region hexes stay inside the grid, that no two regions overlap, and
+that the route graph restricted to non-Perilous lanes stays connected
+after region effects are applied — the `REGION_ISOLATES_SECTOR`
+violation surfaces when a storm splits the sector into multiple
+components.
 
 ### `sectorforge economy` (§12 NEW.md)
 
@@ -532,6 +567,25 @@ multipliers. With `feed_stability = true`, stranded-foodstuffs worlds
 receive a bounded one-way nudge to
 `stability.famine_or_resource_stress` (read-only; the conflict tick is
 not perturbed).
+
+When enabled, the economy snapshot also drives several downstream
+surfaces:
+
+* `sector.md` gains a dedicated **Economy** section (sector balance,
+  stranded worlds, top trade lanes).
+* The Route Planner annotates lifeline lanes — any non-Perilous route
+  that is the *only* viable import of foodstuffs / promethium /
+  manufactured into a deficit system is flagged Caution with an
+  `only {resource} import into {sys}` note.
+* The plot-hook generator (§7 NEW.md) emits `StarvingWorld` hooks for
+  every stranded world and `LifelineLane` hooks for every critical
+  supply route.
+* The Trade heatmap mode (`HeatmapMode::TradeVolume`) sums incident
+  route volumes per system.
+* The diff report (§10) carries scalar `economy_balance_changes` plus
+  newly / no-longer stranded world lists. The post-gen invariants
+  enforce a `ECONOMY_ENABLED_NO_WORLDS` check (enabled but empty world
+  list signals a misconfigured derivation).
 
 ---
 
@@ -627,6 +681,8 @@ faction_fill        = true       # §8: tint each sector hex AND halo each per-s
 heatmap             = "off"      # §10: per-system heatmap tint applied to the PNG.
                                  # one of: off | control | military | trade | industrial
                                  #         covert | faith | threat | intel
+                                 #         tension (§4)         — sum of hostile/at-war pair tensions
+                                 #         trade_volume (§12)   — sum of incident route volumes
 ```
 
 The CLI accepts `--heatmap <mode>` and `--no-faction-fill` on `generate` to
@@ -811,9 +867,13 @@ geographic regions with per-region dominant faction), and a per-world
 
 Each `GeneratedRoute` now exposes additional `route_type` variants for
 hidden lanes: `webway`, `black_ship`, `smuggling_lane` (§3 NEXT).
-Hidden routes are added between any two systems where both have
-meaningful faction presence of the appropriate kind, ignoring the
-warp-distance cap.
+Hidden routes are added between systems where both have meaningful
+faction presence of the appropriate kind, ignoring the warp-distance
+cap. Each qualifying endpoint emits edges only to its `HIDDEN_K_NEAREST`
+(currently 3) closest peers by hex distance (with system-id tie-break),
+deduplicated across both endpoints. This caps an otherwise O(N²)
+full-clique blow-up that produced thousands of edges in dense sectors;
+the layer is still deterministic and consults no RNG.
 
 #### Faction control model
 
@@ -846,9 +906,14 @@ items not yet implemented are listed in [NEXT.md](NEXT.md).
 
 ### `sector.md`
 
-Human-readable. Sections: title + seed, summary counts, ASCII sector map,
-system index table, one block per system (coords, star, world table), then
-routes and factions tables.
+Human-readable. Sections: title + seed, summary counts, ASCII sector map
+(with `~^=#*` region glyphs over empty hexes inside §5 warp regions),
+system index table, one block per system (coords, star, world table),
+routes and factions tables, a **Diplomacy digest** (§4 — at-war /
+hostile pair lists), a **Warp regions** section (§5 — region table when
+the overlay is active), and an **Economy** section (§12 — sector
+balance, stranded worlds, top trade lanes) when the economy derivation
+is enabled.
 
 ### `csv/*.csv`
 
@@ -931,12 +996,15 @@ built with egui + eframe. It exposes the following views via the top
 navigation bar:
 
 - **Sector** — hex map with zoom/pan, colored by primary star colour,
-  faction tint, and subsector overlay. Click a hex to drill into the system.
-  The bottom controls expose a **HEATMAP** dropdown that tints every system
-  hex by a per-mode score: `CONTROL` (dominant-faction colour ×
-  control-score intensity), `MILITARY`, `TRADE`, `INDUSTRY`, `COVERT`,
-  `FAITH`, `THREAT` (military × covert restricted to hostile/zealous), or
-  `INTEL` (low-visibility hexes glow). See
+  faction tint, subsector overlay, and a translucent warp-region tint
+  (§5) for every hex covered by a `WarpRegion`. Click a hex to drill into
+  the system. The bottom controls expose a **HEATMAP** dropdown that
+  tints every system hex by a per-mode score: `CONTROL` (dominant-faction
+  colour × control-score intensity), `MILITARY`, `TRADE`, `INDUSTRY`,
+  `COVERT`, `FAITH`, `THREAT` (military × covert restricted to
+  hostile/zealous), `INTEL` (low-visibility hexes glow), `TENSION`
+  (§4 — sum of hostile/at-war pair tensions per system), or `TRADE VOL`
+  (§12 — sum of incident route trade volumes). See
   [src/gui/heatmap.rs](src/gui/heatmap.rs).
 - **System** — per-system detail panel: worlds, coords, star type, tags,
   factions, neighboring systems.
@@ -952,6 +1020,15 @@ navigation bar:
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
   weights — avoid Unstable / Hazardous / Dangerous) or `Shortest` (BFS over
   hop count). `Perilous` routes are always impassable.
+- **Diplomacy** (§4 NEW.md) — table view of `sector.relations.pairs`:
+  every faction pair with its stance (colour-coded), tension scalar, and
+  cause text. Backed by [src/gui/app/mod.rs](src/gui/app/mod.rs)
+  `draw_relations_layout`.
+- **Regions** (§5 NEW.md) — table view of `sector.regions`: id, name,
+  kind, hex count, centre coord. Pairs with the in-map region tint.
+- **Trade** (§12 NEW.md) — table view of `sector.economy`: sector
+  resource balance, top trade lanes by volume, list of stranded worlds
+  with shortages.
 - **Dashboard** (§8 NEW.md) — analytics for the loaded sector. Faction-share
   bars coloured by the same per-faction palette the map uses, a Gini
   coefficient, contested-world / claim summary, route-graph connectivity
@@ -1085,6 +1162,22 @@ Common codes:
 | `FACTION_UNKNOWN_*` | Faction references a string that isn't a variant name |
 | `ROUTE_BAD_DEFAULT_WEIGHT` / `ROUTE_BAD_MULTIPLIER` | Route weights / multipliers must be > 0 and finite |
 | `NAME_POOL_EMPTY` | All system name lists are empty (fallback names will be used) |
+| `RELATIONS_PAIR_UNKNOWN_FACTION` | `[[relations.pair_overrides]]` references a faction id that does not exist |
+| `RELATIONS_KIND_RULE_EMPTY` | `[[relations.kind_rules]]` row has empty `a` or `b` kind |
+| `REGIONS_COUNT_ZERO` | `regions.enabled = true` but `count = 0` |
+| `REGIONS_COUNT_OVERFLOW` | `regions.count` exceeds half the grid cells |
+| `REGIONS_MEAN_SIZE_ZERO` | `regions.mean_size = 0` |
+| `REGIONS_CONDITION_BAD_WEIGHT` | A `regions.conditions[].weight` is non-finite or negative |
+| `ECONOMY_TECH_MULTIPLIER_BAD` / `ECONOMY_POP_MULTIPLIER_BAD` | Multiplier is non-finite or negative |
+
+Post-generation invariants ([src/invariants.rs](src/invariants.rs)):
+
+| Code | Meaning |
+|---|---|
+| `REGION_HEX_OUT_OF_BOUNDS` | Region footprint hex falls outside the sector grid |
+| `REGION_HEX_OVERLAP` | Two regions cover the same hex |
+| `REGION_ISOLATES_SECTOR` | Region effects (storm / turbulence) leave the navigable route graph (non-Perilous lanes) split into ≥2 components |
+| `ECONOMY_ENABLED_NO_WORLDS` | `economy.enabled = true` but no per-world entries were derived |
 
 ---
 
@@ -1205,7 +1298,7 @@ across runs, so a regression check is a diff away.
 | [src/importance.rs](src/importance.rs) | §10.3 / §15: `display_importance` per faction + kind-group aggregation into legend buckets. Shared `DEFAULT_MINOR_FRACTION` / `DEFAULT_DISPLAY_CAP` consumed by the PNG legend, GUI sector overview, and Markdown renderer so all three stay in sync |
 | [src/stability.rs](src/stability.rs) | §11.1: static `StabilityState` per world + per system (public_order / corruption / fear / rebellion / xenos_threat / warp_instability / famine). Pure derivation from tags, world type, factions present, and existing control summary — no sim ticks |
 | [src/route_control.rs](src/route_control.rs) | §3: per-route per-faction `RouteControl` (patrol / toll / interdiction / piracy / secrecy / confidence). Derived from endpoint-system faction presence + faction kind + endpoint tags (`quarantined`, `war_zone`). Stored on `GeneratedRoute.controls` (`#[serde(default)]`). Surfaced in the Markdown renderer, sector PNG (per-route midpoint glyph + `ROUTE CONTROL` legend), and GUI `system_summary` (`ROUTES` block keyed off the selected system) |
-| [src/hidden_routes.rs](src/hidden_routes.rs) | §3 NEXT: append `Webway` / `BlackShip` / `SmugglingLane` route variants between same-kind faction endpoints, ignoring the warp-distance cap |
+| [src/hidden_routes.rs](src/hidden_routes.rs) | §3 NEXT: append `Webway` / `BlackShip` / `SmugglingLane` route variants between same-kind faction endpoints, ignoring the warp-distance cap. Each endpoint connects only to its `HIDDEN_K_NEAREST` closest peers (dedup'd) so the layer scales O(N) instead of O(N²) |
 | [src/orbital_assets.rs](src/orbital_assets.rs) | §2 NEXT: discrete `OrbitalAsset` model (Station / Shipyard / DefensePlatform / BlockadeFleet) per system + `BlockadeReport` |
 | [src/surface_region.rs](src/surface_region.rs) | §1 NEXT: per-world named `SurfaceRegion`s (Capital / Hive / Underhive / ForgeComplex / ShrineContinent / etc.) with per-region dominant faction |
 | [src/conflict.rs](src/conflict.rs) | §5 NEXT: per-world + per-system `ConflictState` (momentum / intensity / mobilisation / attacker / defender / visible_controller) and a tick loop via `advance_sector`. Hysteresis (§11.3) lives in `advance_one` |

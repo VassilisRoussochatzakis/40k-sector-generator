@@ -90,6 +90,55 @@ pub struct SectorDiff {
     pub routes_removed: Vec<RouteRef>,
     pub routes_changed: Vec<RouteDiff>,
     pub faction_deltas: Vec<FactionDelta>,
+    /// §4 NEW.md: pairs whose stance changed between before/after.
+    #[serde(default)]
+    pub stance_changes: Vec<StanceChange>,
+    /// §5 NEW.md: added/removed regions by id, plus kind / hex-count deltas.
+    #[serde(default)]
+    pub regions_added: Vec<RegionRef>,
+    #[serde(default)]
+    pub regions_removed: Vec<RegionRef>,
+    #[serde(default)]
+    pub regions_changed: Vec<RegionDelta>,
+    /// §12 NEW.md: scalar economy snapshot delta (sector totals only).
+    #[serde(default)]
+    pub economy_balance_changes: Vec<EconomyBalanceChange>,
+    #[serde(default)]
+    pub stranded_added: Vec<String>,
+    #[serde(default)]
+    pub stranded_removed: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StanceChange {
+    pub a: String,
+    pub b: String,
+    pub before: crate::relations::Stance,
+    pub after: crate::relations::Stance,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegionRef {
+    pub id: String,
+    pub kind: crate::regions::RegionConditionKind,
+    pub hex_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegionDelta {
+    pub id: String,
+    pub kind_before: crate::regions::RegionConditionKind,
+    pub kind_after: crate::regions::RegionConditionKind,
+    pub hex_count_before: u32,
+    pub hex_count_after: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EconomyBalanceChange {
+    pub resource: String,
+    pub before: f32,
+    pub after: f32,
+    pub delta: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -233,7 +282,136 @@ pub fn diff_sectors_with(
         diff_routes(before, after, &mut out);
     }
     out.faction_deltas = compute_faction_deltas(before, after, cfg);
+    out.stance_changes = diff_relations(before, after);
+    let (regions_added, regions_removed, regions_changed) = diff_regions(before, after);
+    out.regions_added = regions_added;
+    out.regions_removed = regions_removed;
+    out.regions_changed = regions_changed;
+    let (balance_changes, stranded_added, stranded_removed) = diff_economy(before, after, cfg);
+    out.economy_balance_changes = balance_changes;
+    out.stranded_added = stranded_added;
+    out.stranded_removed = stranded_removed;
     out
+}
+
+fn diff_relations(before: &GeneratedSector, after: &GeneratedSector) -> Vec<StanceChange> {
+    let mut by_pair: BTreeMap<(String, String), crate::relations::Stance> = BTreeMap::new();
+    for p in &before.relations.pairs {
+        by_pair.insert((p.a.clone(), p.b.clone()), p.stance);
+    }
+    let mut out: Vec<StanceChange> = Vec::new();
+    let mut seen: BTreeSet<(String, String)> = BTreeSet::new();
+    for p in &after.relations.pairs {
+        let key = (p.a.clone(), p.b.clone());
+        seen.insert(key.clone());
+        match by_pair.get(&key) {
+            Some(prev) if *prev != p.stance => out.push(StanceChange {
+                a: p.a.clone(),
+                b: p.b.clone(),
+                before: *prev,
+                after: p.stance,
+            }),
+            _ => {}
+        }
+    }
+    out.sort_by(|x, y| x.a.cmp(&y.a).then_with(|| x.b.cmp(&y.b)));
+    out
+}
+
+fn diff_regions(
+    before: &GeneratedSector,
+    after: &GeneratedSector,
+) -> (Vec<RegionRef>, Vec<RegionRef>, Vec<RegionDelta>) {
+    let b_idx: BTreeMap<&str, &crate::regions::WarpRegion> =
+        before.regions.iter().map(|r| (r.id.as_str(), r)).collect();
+    let a_idx: BTreeMap<&str, &crate::regions::WarpRegion> =
+        after.regions.iter().map(|r| (r.id.as_str(), r)).collect();
+    let mut added: Vec<RegionRef> = Vec::new();
+    let mut removed: Vec<RegionRef> = Vec::new();
+    let mut changed: Vec<RegionDelta> = Vec::new();
+    let all: BTreeSet<&str> = b_idx.keys().copied().chain(a_idx.keys().copied()).collect();
+    for id in all {
+        match (b_idx.get(id), a_idx.get(id)) {
+            (None, Some(r)) => added.push(RegionRef {
+                id: r.id.clone(),
+                kind: r.kind,
+                hex_count: r.hexes.len() as u32,
+            }),
+            (Some(r), None) => removed.push(RegionRef {
+                id: r.id.clone(),
+                kind: r.kind,
+                hex_count: r.hexes.len() as u32,
+            }),
+            (Some(a), Some(b)) => {
+                if a.kind != b.kind || a.hexes.len() != b.hexes.len() {
+                    changed.push(RegionDelta {
+                        id: a.id.clone(),
+                        kind_before: a.kind,
+                        kind_after: b.kind,
+                        hex_count_before: a.hexes.len() as u32,
+                        hex_count_after: b.hexes.len() as u32,
+                    });
+                }
+            }
+            (None, None) => {}
+        }
+    }
+    (added, removed, changed)
+}
+
+fn diff_economy(
+    before: &GeneratedSector,
+    after: &GeneratedSector,
+    cfg: &DiffConfig,
+) -> (Vec<EconomyBalanceChange>, Vec<String>, Vec<String>) {
+    let mut deltas: Vec<EconomyBalanceChange> = Vec::new();
+    if before.economy.enabled || after.economy.enabled {
+        for k in crate::economy::RESOURCE_KEYS {
+            let pull = |s: &crate::economy::EconomyReport| match *k {
+                "ore" => s.sector_balance.ore,
+                "promethium" => s.sector_balance.promethium,
+                "foodstuffs" => s.sector_balance.foodstuffs,
+                "manufactured" => s.sector_balance.manufactured,
+                "archeotech" => s.sector_balance.archeotech,
+                "recruits" => s.sector_balance.recruits,
+                _ => 0.0,
+            };
+            let b = pull(&before.economy);
+            let a = pull(&after.economy);
+            let d = a - b;
+            if d.abs() >= cfg.min_faction_delta {
+                deltas.push(EconomyBalanceChange {
+                    resource: (*k).to_string(),
+                    before: b,
+                    after: a,
+                    delta: d,
+                });
+            }
+        }
+    }
+    let b_stranded: BTreeSet<&str> = before
+        .economy
+        .worlds
+        .iter()
+        .filter(|w| w.stranded)
+        .map(|w| w.world_id.as_str())
+        .collect();
+    let a_stranded: BTreeSet<&str> = after
+        .economy
+        .worlds
+        .iter()
+        .filter(|w| w.stranded)
+        .map(|w| w.world_id.as_str())
+        .collect();
+    let added: Vec<String> = a_stranded
+        .difference(&b_stranded)
+        .map(|s| s.to_string())
+        .collect();
+    let removed: Vec<String> = b_stranded
+        .difference(&a_stranded)
+        .map(|s| s.to_string())
+        .collect();
+    (deltas, added, removed)
 }
 
 // ── System diff ────────────────────────────────────────────────────────────────
@@ -817,6 +995,64 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                 f.world_presence_delta,
                 f.system_presence_delta
             );
+        }
+    }
+
+    if !d.stance_changes.is_empty() {
+        let _ = writeln!(s, "\n## Diplomacy changes (§4)");
+        let _ = writeln!(s, "\n| A | B | Before | After |\n|---|---|---|---|");
+        for c in &d.stance_changes {
+            let _ = writeln!(s, "| {} | {} | {:?} | {:?} |", c.a, c.b, c.before, c.after);
+        }
+    }
+    if !(d.regions_added.is_empty() && d.regions_removed.is_empty() && d.regions_changed.is_empty())
+    {
+        let _ = writeln!(s, "\n## Warp regions (§5)");
+        for r in &d.regions_added {
+            let _ = writeln!(s, "- ADDED `{}` {:?} ({} hexes)", r.id, r.kind, r.hex_count);
+        }
+        for r in &d.regions_removed {
+            let _ = writeln!(
+                s,
+                "- REMOVED `{}` {:?} ({} hexes)",
+                r.id, r.kind, r.hex_count
+            );
+        }
+        for r in &d.regions_changed {
+            let _ = writeln!(
+                s,
+                "- CHANGED `{}` {:?}→{:?} hexes {}→{}",
+                r.id, r.kind_before, r.kind_after, r.hex_count_before, r.hex_count_after
+            );
+        }
+    }
+    if !(d.economy_balance_changes.is_empty()
+        && d.stranded_added.is_empty()
+        && d.stranded_removed.is_empty())
+    {
+        let _ = writeln!(s, "\n## Economy (§12)");
+        if !d.economy_balance_changes.is_empty() {
+            let _ = writeln!(
+                s,
+                "\n| Resource | Before | After | Δ |\n|---|---:|---:|---:|"
+            );
+            for c in &d.economy_balance_changes {
+                let _ = writeln!(
+                    s,
+                    "| {} | {:.1} | {:.1} | {:+.1} |",
+                    c.resource, c.before, c.after, c.delta
+                );
+            }
+        }
+        if !d.stranded_added.is_empty() {
+            let _ = writeln!(
+                s,
+                "\nNewly stranded worlds: {}",
+                d.stranded_added.join(", ")
+            );
+        }
+        if !d.stranded_removed.is_empty() {
+            let _ = writeln!(s, "\nNo longer stranded: {}", d.stranded_removed.join(", "));
         }
     }
     s

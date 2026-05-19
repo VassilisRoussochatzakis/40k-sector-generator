@@ -29,10 +29,121 @@ pub fn check_sector(sector: &GeneratedSector) -> InvariantReport {
     let (sys_ids, all_world_ids) = check_systems(sector, &mut v);
     check_routes(sector, &sys_ids, &mut v);
     check_factions(sector, &sys_ids, &all_world_ids, &mut v);
+    check_regions(sector, &mut v);
+    check_region_connectivity(sector, &mut v);
+    check_economy(sector, &mut v);
 
     InvariantReport {
         ok: v.is_empty(),
         violations: v,
+    }
+}
+
+/// §5 NEW.md invariant: region hex coordinates must fall inside the grid and
+/// must not overlap each other.
+fn check_regions(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
+    let mut seen: BTreeMap<(i32, i32), String> = BTreeMap::new();
+    for reg in &s.regions {
+        for h in &reg.hexes {
+            if h.q < 0 || h.r < 0 || h.q >= s.width as i32 || h.r >= s.height as i32 {
+                v.push(violation(
+                    "REGION_HEX_OUT_OF_BOUNDS",
+                    &format!(
+                        "region '{}' hex (q={}, r={}) outside sector {}x{}",
+                        reg.id, h.q, h.r, s.width, s.height
+                    ),
+                    Some(&format!("regions.{}.hexes", reg.id)),
+                ));
+            }
+            if let Some(other) = seen.insert((h.q, h.r), reg.id.clone()) {
+                v.push(violation(
+                    "REGION_HEX_OVERLAP",
+                    &format!(
+                        "regions '{}' and '{}' both cover hex (q={}, r={})",
+                        other, reg.id, h.q, h.r
+                    ),
+                    Some(&format!("regions.{}.hexes", reg.id)),
+                ));
+            }
+        }
+    }
+}
+
+/// §5 NEW.md: if region effects (storm/turbulence) leave the route graph
+/// disconnected when restricted to navigable lanes (non-Perilous), surface a
+/// warning so the user can adjust region density or relax effects.
+fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
+    if s.regions.is_empty() || s.systems.len() < 2 {
+        return;
+    }
+    let region_tagged = s
+        .routes
+        .iter()
+        .any(|r| r.tags.iter().any(|t| t.starts_with("region:")));
+    if !region_tagged {
+        return;
+    }
+    use crate::sector_model::RouteStability;
+    let idx: BTreeMap<&str, usize> = s
+        .systems
+        .iter()
+        .enumerate()
+        .map(|(i, sys)| (sys.id.as_str(), i))
+        .collect();
+    let mut parent: Vec<usize> = (0..s.systems.len()).collect();
+    for r in &s.routes {
+        if matches!(r.stability, RouteStability::Perilous) {
+            continue;
+        }
+        let (Some(&a), Some(&b)) = (
+            idx.get(r.from_system_id.as_str()),
+            idx.get(r.to_system_id.as_str()),
+        ) else {
+            continue;
+        };
+        let ra = find_root(&mut parent, a);
+        let rb = find_root(&mut parent, b);
+        if ra != rb {
+            parent[ra] = rb;
+        }
+    }
+    let mut roots: BTreeSet<usize> = BTreeSet::new();
+    for i in 0..parent.len() {
+        roots.insert(find_root(&mut parent, i));
+    }
+    if roots.len() > 1 {
+        v.push(violation(
+            "REGION_ISOLATES_SECTOR",
+            &format!(
+                "region effects leave the route graph disconnected ({} components on navigable lanes)",
+                roots.len()
+            ),
+            Some("regions"),
+        ));
+    }
+}
+
+fn find_root(parent: &mut [usize], mut i: usize) -> usize {
+    while parent[i] != i {
+        parent[i] = parent[parent[i]];
+        i = parent[i];
+    }
+    i
+}
+
+/// §12 NEW.md invariant: when the economy derivation ran (`enabled == true`)
+/// there must be at least one world covered — an empty world list means
+/// derivation was misconfigured.
+fn check_economy(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
+    if s.economy.enabled
+        && s.economy.worlds.is_empty()
+        && s.systems.iter().any(|sys| !sys.worlds.is_empty())
+    {
+        v.push(violation(
+            "ECONOMY_ENABLED_NO_WORLDS",
+            "economy.enabled is true but no per-world entries were derived",
+            Some("economy.worlds"),
+        ));
     }
 }
 

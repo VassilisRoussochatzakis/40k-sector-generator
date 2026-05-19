@@ -140,6 +140,11 @@ pub struct PairOverride {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RelationsMatrix {
     pub pairs: Vec<FactionRelation>,
+    /// Mirror of [`RelationsConfig::feed_conflict`] copied onto the derived
+    /// matrix so [`crate::conflict::advance_sector`] knows whether to apply
+    /// stance-based momentum bias on each tick.
+    #[serde(default)]
+    pub feed_conflict: bool,
 }
 
 impl RelationsMatrix {
@@ -399,7 +404,10 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &RelationsConfig) -> Relations
             .then_with(|| x.a.cmp(&y.a))
             .then_with(|| x.b.cmp(&y.b))
     });
-    RelationsMatrix { pairs }
+    RelationsMatrix {
+        pairs,
+        feed_conflict: cfg.feed_conflict,
+    }
 }
 
 fn compute_pair(

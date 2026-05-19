@@ -4,7 +4,7 @@
 //! dominant faction id for `Control` mode. The GUI viewport and the PNG
 //! bitmap exporter share this scoring; only the renderer differs.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +22,12 @@ pub enum HeatmapMode {
     Faith,
     Threat,
     Intel,
+    /// §4: per-system tension derived from faction stance matrix +
+    /// hostile/at-war pair co-occurrence.
+    Tension,
+    /// §12: per-system trade activity = sum of route volumes touching the
+    /// system. Uses the economy derivation in `sector.economy`.
+    TradeVolume,
 }
 
 impl Default for HeatmapMode {
@@ -41,6 +47,8 @@ impl HeatmapMode {
         HeatmapMode::Faith,
         HeatmapMode::Threat,
         HeatmapMode::Intel,
+        HeatmapMode::Tension,
+        HeatmapMode::TradeVolume,
     ];
 
     pub fn label(self) -> &'static str {
@@ -54,6 +62,8 @@ impl HeatmapMode {
             HeatmapMode::Faith => "FAITH",
             HeatmapMode::Threat => "THREAT",
             HeatmapMode::Intel => "INTEL",
+            HeatmapMode::Tension => "TENSION",
+            HeatmapMode::TradeVolume => "TRADE VOL",
         }
     }
 
@@ -62,8 +72,9 @@ impl HeatmapMode {
     #[must_use]
     pub fn base_color_rgb(self) -> (u8, u8, u8) {
         match self {
-            HeatmapMode::Military | HeatmapMode::Threat => (235, 90, 90),
+            HeatmapMode::Military | HeatmapMode::Threat | HeatmapMode::Tension => (235, 90, 90),
             HeatmapMode::Trade => (240, 200, 90),
+            HeatmapMode::TradeVolume => (255, 175, 60),
             HeatmapMode::Industrial => (220, 110, 50),
             HeatmapMode::Covert => (150, 90, 220),
             HeatmapMode::Faith => (230, 220, 90),
@@ -99,7 +110,7 @@ pub fn score_sector(sector: &GeneratedSector, mode: HeatmapMode) -> Vec<SystemSc
         .systems
         .iter()
         .map(|sys| {
-            let (score, dominant) = score_system(sys, mode);
+            let (score, dominant) = score_system_in(sector, sys, mode);
             SystemScore {
                 system_id: sys.id.clone(),
                 score,
@@ -141,7 +152,43 @@ pub fn compute_rgb(sector: &GeneratedSector, mode: HeatmapMode) -> HashMap<Strin
     out
 }
 
-fn score_system(sys: &GeneratedSystem, mode: HeatmapMode) -> (f32, Option<String>) {
+fn score_system_in(
+    sector: &GeneratedSector,
+    sys: &GeneratedSystem,
+    mode: HeatmapMode,
+) -> (f32, Option<String>) {
+    // Modes that need sector-wide context, not just per-world faction power.
+    match mode {
+        HeatmapMode::Tension => {
+            let mut ids: BTreeSet<&str> = BTreeSet::new();
+            for w in &sys.worlds {
+                for p in &w.factions {
+                    ids.insert(p.faction_id.as_str());
+                }
+            }
+            let mut score = 0.0_f32;
+            for pair in &sector.relations.pairs {
+                if pair.stance.is_hot()
+                    && ids.contains(pair.a.as_str())
+                    && ids.contains(pair.b.as_str())
+                {
+                    score += pair.tension;
+                }
+            }
+            return (score, None);
+        }
+        HeatmapMode::TradeVolume => {
+            let mut score = 0.0_f32;
+            for r in &sector.economy.routes {
+                if r.from_system_id == sys.id || r.to_system_id == sys.id {
+                    score += r.volume;
+                }
+            }
+            return (score, None);
+        }
+        _ => {}
+    }
+
     let mut score = 0.0_f32;
     for w in &sys.worlds {
         for p in &w.factions {
@@ -161,6 +208,7 @@ fn score_system(sys: &GeneratedSystem, mode: HeatmapMode) -> (f32, Option<String
                     }
                 }
                 HeatmapMode::Intel => 100.0 - p.dimensions.visibility,
+                HeatmapMode::Tension | HeatmapMode::TradeVolume => 0.0,
             };
             score += v;
         }

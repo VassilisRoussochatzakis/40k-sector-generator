@@ -1,0 +1,24 @@
+# §12 NEW.md: trade & resource economy derivation. Disabled by default so
+# the bundled preset stays byte-identical to its pre-economy baseline. Flip
+# `enabled` to true to populate `sector.economy.{worlds,systems,routes}`.
+
+[economy]
+enabled = false
+feed_stability = false
+
+# Override / extend the built-in production matrix per world_type, per
+# tech_level, or per population scale tag. Built-in defaults apply when the
+# table is silent.
+#
+# [economy.by_world_type.HiveWorld]
+# foodstuffs = -50.0
+# manufactured = 60.0
+# recruits = 80.0
+#
+# [economy.by_tech_level]
+# Imperial = 1.0
+# Mechanicus = 1.3
+#
+# [economy.by_population]
+# "population:massive" = 1.6
+# "population:standard" = 1.0

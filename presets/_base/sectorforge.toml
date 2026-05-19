@@ -10,6 +10,13 @@ system_names = "data/names/system_names.toml"
 world_names = "data/names/world_names.toml"
 factions = "data/factions/factions.toml"
 route_rules = "data/routes/route_rules.toml"
+# §4 / §5 / §12 NEW.md: opt-in TOML overlays. Built-in defaults apply when
+# these files are absent — uncomment after dropping the corresponding file
+# under data/ to extend the kind/disposition matrix, region condition pool,
+# or production tables.
+# relations = "data/relations.toml"
+# regions = "data/regions.toml"
+# economy = "data/economy.toml"
 
 [generation]
 seed = "m42-default-seed"

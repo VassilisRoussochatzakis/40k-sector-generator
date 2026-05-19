@@ -61,6 +61,9 @@ enum View {
     Data,
     Planner,
     Dashboard,
+    Relations,
+    Regions,
+    Trade,
 }
 
 impl Default for App {
@@ -195,6 +198,48 @@ impl eframe::App for App {
                     {
                         self.view = View::Dashboard;
                     }
+                    let on_relations = matches!(self.view, View::Relations);
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::SelectableLabel::new(
+                                on_relations,
+                                RichText::new("DIPLOMACY").color(TEXT).monospace(),
+                            ),
+                        )
+                        .on_hover_text("Inter-faction stance matrix (§4 NEW.md)")
+                        .clicked()
+                    {
+                        self.view = View::Relations;
+                    }
+                    let on_regions = matches!(self.view, View::Regions);
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::SelectableLabel::new(
+                                on_regions,
+                                RichText::new("REGIONS").color(TEXT).monospace(),
+                            ),
+                        )
+                        .on_hover_text("Regional warp phenomena overlay (§5 NEW.md)")
+                        .clicked()
+                    {
+                        self.view = View::Regions;
+                    }
+                    let on_trade = matches!(self.view, View::Trade);
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::SelectableLabel::new(
+                                on_trade,
+                                RichText::new("TRADE").color(TEXT).monospace(),
+                            ),
+                        )
+                        .on_hover_text("Economy & trade volumes (§12 NEW.md)")
+                        .clicked()
+                    {
+                        self.view = View::Trade;
+                    }
                     if ui
                         .button(RichText::new("NEW…").color(TEXT).monospace())
                         .on_hover_text("Scaffold a fresh project from a preset (§9 NEW.md)")
@@ -313,6 +358,9 @@ impl eframe::App for App {
             View::Data => self.draw_data_layout(ctx),
             View::Planner => self.draw_planner_layout(ctx),
             View::Dashboard => self.draw_dashboard_layout(ctx),
+            View::Relations => self.draw_relations_layout(ctx),
+            View::Regions => self.draw_regions_layout(ctx),
+            View::Trade => self.draw_trade_layout(ctx),
         }
 
         self.draw_preset_gallery(ctx);
@@ -658,6 +706,281 @@ impl App {
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     dashboard::show(ui, &sector, &mut self.dashboard);
+                });
+            });
+    }
+
+    fn draw_relations_layout(&mut self, ctx: &egui::Context) {
+        let Some(sector) = self.sector.clone() else {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(palette::BG))
+                .show(ctx, |ui| {
+                    ui.label(
+                        RichText::new("no sector loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            return;
+        };
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(
+                        RichText::new("DIPLOMACY MATRIX")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    ui.label(
+                        RichText::new("§4 NEW.md — inter-faction stance + tension")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                    ui.add_space(8.0);
+                    if sector.relations.pairs.is_empty() {
+                        ui.label(
+                            RichText::new(
+                                "relations matrix is empty (need ≥2 factions or set \
+                                inputs.relations in sectorforge.toml)",
+                            )
+                            .color(TEXT_DIM)
+                            .monospace(),
+                        );
+                        return;
+                    }
+                    egui::Grid::new("relations_grid")
+                        .num_columns(5)
+                        .striped(true)
+                        .show(ui, |ui| {
+                            ui.label(RichText::new("A").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("B").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("STANCE").color(TEXT_DIM).monospace().strong());
+                            ui.label(
+                                RichText::new("TENSION")
+                                    .color(TEXT_DIM)
+                                    .monospace()
+                                    .strong(),
+                            );
+                            ui.label(RichText::new("CAUSE").color(TEXT_DIM).monospace().strong());
+                            ui.end_row();
+                            for p in &sector.relations.pairs {
+                                let stance_color = stance_color(p.stance);
+                                ui.label(RichText::new(&p.a).monospace());
+                                ui.label(RichText::new(&p.b).monospace());
+                                ui.label(
+                                    RichText::new(format!("{:?}", p.stance))
+                                        .color(stance_color)
+                                        .monospace(),
+                                );
+                                ui.label(RichText::new(format!("{:.0}", p.tension)).monospace());
+                                ui.label(RichText::new(&p.cause).color(TEXT_DIM).monospace());
+                                ui.end_row();
+                            }
+                        });
+                });
+            });
+    }
+
+    fn draw_regions_layout(&mut self, ctx: &egui::Context) {
+        let Some(sector) = self.sector.clone() else {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(palette::BG))
+                .show(ctx, |ui| {
+                    ui.label(
+                        RichText::new("no sector loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            return;
+        };
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(
+                        RichText::new("WARP REGIONS")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    ui.label(
+                        RichText::new("§5 NEW.md — regional warp phenomena overlay")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                    ui.add_space(8.0);
+                    if sector.regions.is_empty() {
+                        ui.label(
+                            RichText::new(
+                                "no regions configured — enable in regions.toml or \
+                                sectorforge.toml",
+                            )
+                            .color(TEXT_DIM)
+                            .monospace(),
+                        );
+                        return;
+                    }
+                    egui::Grid::new("regions_grid")
+                        .num_columns(5)
+                        .striped(true)
+                        .show(ui, |ui| {
+                            ui.label(RichText::new("ID").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("NAME").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("KIND").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("HEXES").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("CENTRE").color(TEXT_DIM).monospace().strong());
+                            ui.end_row();
+                            for r in &sector.regions {
+                                ui.label(RichText::new(&r.id).monospace());
+                                ui.label(RichText::new(&r.name).monospace());
+                                ui.label(
+                                    RichText::new(format!("{:?}", r.kind))
+                                        .color(Color32::from_rgb(220, 160, 60))
+                                        .monospace(),
+                                );
+                                ui.label(RichText::new(r.hexes.len().to_string()).monospace());
+                                ui.label(
+                                    RichText::new(format!("({},{})", r.centre.q, r.centre.r))
+                                        .monospace(),
+                                );
+                                ui.end_row();
+                            }
+                        });
+                });
+            });
+    }
+
+    fn draw_trade_layout(&mut self, ctx: &egui::Context) {
+        let Some(sector) = self.sector.clone() else {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(palette::BG))
+                .show(ctx, |ui| {
+                    ui.label(
+                        RichText::new("no sector loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            return;
+        };
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(
+                        RichText::new("TRADE & ECONOMY")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    ui.label(
+                        RichText::new("§12 NEW.md — trade volume + resource balance")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                    ui.add_space(8.0);
+                    if !sector.economy.enabled {
+                        ui.label(
+                            RichText::new(
+                                "economy derivation disabled — set [economy].enabled = true",
+                            )
+                            .color(TEXT_DIM)
+                            .monospace(),
+                        );
+                        return;
+                    }
+                    ui.label(
+                        RichText::new("SECTOR BALANCE")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    egui::Grid::new("sector_balance")
+                        .num_columns(2)
+                        .show(ui, |ui| {
+                            for k in crate::economy::RESOURCE_KEYS {
+                                let v = match *k {
+                                    "ore" => sector.economy.sector_balance.ore,
+                                    "promethium" => sector.economy.sector_balance.promethium,
+                                    "foodstuffs" => sector.economy.sector_balance.foodstuffs,
+                                    "manufactured" => sector.economy.sector_balance.manufactured,
+                                    "archeotech" => sector.economy.sector_balance.archeotech,
+                                    "recruits" => sector.economy.sector_balance.recruits,
+                                    _ => 0.0,
+                                };
+                                ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
+                                ui.label(RichText::new(format!("{:.1}", v)).monospace());
+                                ui.end_row();
+                            }
+                        });
+                    ui.add_space(10.0);
+                    ui.label(
+                        RichText::new("TOP TRADE LANES")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    let mut routes: Vec<_> = sector.economy.routes.iter().collect();
+                    routes.sort_by(|a, b| {
+                        b.volume
+                            .partial_cmp(&a.volume)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    });
+                    egui::Grid::new("trade_routes")
+                        .num_columns(4)
+                        .striped(true)
+                        .show(ui, |ui| {
+                            ui.label(RichText::new("FROM").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("TO").color(TEXT_DIM).monospace().strong());
+                            ui.label(RichText::new("VOLUME").color(TEXT_DIM).monospace().strong());
+                            ui.label(
+                                RichText::new("FRICTION")
+                                    .color(TEXT_DIM)
+                                    .monospace()
+                                    .strong(),
+                            );
+                            ui.end_row();
+                            for r in routes.iter().take(20) {
+                                ui.label(RichText::new(&r.from_system_id).monospace());
+                                ui.label(RichText::new(&r.to_system_id).monospace());
+                                ui.label(RichText::new(format!("{:.1}", r.volume)).monospace());
+                                ui.label(RichText::new(format!("{:.2}", r.friction)).monospace());
+                                ui.end_row();
+                            }
+                        });
+                    let stranded: Vec<_> = sector
+                        .economy
+                        .worlds
+                        .iter()
+                        .filter(|w| w.stranded)
+                        .collect();
+                    if !stranded.is_empty() {
+                        ui.add_space(10.0);
+                        ui.label(
+                            RichText::new("STRANDED WORLDS")
+                                .color(Color32::from_rgb(235, 90, 90))
+                                .monospace()
+                                .strong(),
+                        );
+                        for w in stranded {
+                            ui.label(
+                                RichText::new(format!(
+                                    "{} in {} — {}",
+                                    w.world_id,
+                                    w.system_id,
+                                    if w.shortages.is_empty() {
+                                        "(systemic)".to_string()
+                                    } else {
+                                        w.shortages.join(", ")
+                                    }
+                                ))
+                                .monospace(),
+                            );
+                        }
+                    }
                 });
             });
     }
@@ -1143,6 +1466,18 @@ fn system_combo(
             }
         });
     changed
+}
+
+fn stance_color(s: crate::relations::Stance) -> Color32 {
+    use crate::relations::Stance;
+    match s {
+        Stance::Allied => Color32::from_rgb(90, 200, 110),
+        Stance::Aligned => Color32::from_rgb(160, 220, 140),
+        Stance::Neutral => Color32::from_rgb(190, 190, 190),
+        Stance::Rival => Color32::from_rgb(240, 200, 90),
+        Stance::Hostile => Color32::from_rgb(235, 130, 60),
+        Stance::AtWar => Color32::from_rgb(235, 90, 90),
+    }
 }
 
 fn severity_tag(s: Severity) -> &'static str {

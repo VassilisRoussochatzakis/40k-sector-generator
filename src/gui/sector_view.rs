@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
+use crate::regions::RegionConditionKind;
 use crate::sector_model::{self, GeneratedSector};
 
 use crate::subsectors::Subsector;
@@ -70,15 +71,27 @@ impl<'a> SectorView<'a> {
             hex_system.insert((sys.coord.q, sys.coord.r), sys.id.as_str());
         }
 
+        // §5: per-hex region lookup so the region overlay can tint cells.
+        let mut hex_region: HashMap<(i32, i32), RegionConditionKind> = HashMap::new();
+        for reg in &self.sector.regions {
+            for h in &reg.hexes {
+                hex_region.insert((h.q, h.r), reg.kind);
+            }
+        }
+
         for r in 0..self.sector.height as i32 {
             for q in 0..self.sector.width as i32 {
                 let c = hex_center(q, r, &g) + origin.to_vec2();
-                let fill = match (self.heatmap, hex_system.get(&(q, r))) {
+                let base = match (self.heatmap, hex_system.get(&(q, r))) {
                     (Some(map), Some(&sid)) => map
                         .get(sid)
                         .map(|cell| blend_heat(HEX_EMPTY, cell.color, cell.intensity))
                         .unwrap_or(HEX_EMPTY),
                     _ => HEX_EMPTY,
+                };
+                let fill = match hex_region.get(&(q, r)) {
+                    Some(kind) => blend_heat(base, region_color(*kind), 0.5),
+                    None => base,
                 };
                 draw_hex(&painter, c, g.hex_size, fill, HEX_OUTLINE);
             }
@@ -597,6 +610,16 @@ fn blend_heat(from: Color32, to: Color32, t: f32) -> Color32 {
         mix(from.g(), to.g()),
         mix(from.b(), to.b()),
     )
+}
+
+fn region_color(kind: RegionConditionKind) -> Color32 {
+    match kind {
+        RegionConditionKind::WarpStorm => Color32::from_rgb(170, 60, 180),
+        RegionConditionKind::Turbulence => Color32::from_rgb(140, 100, 200),
+        RegionConditionKind::CalmCorridor => Color32::from_rgb(90, 200, 180),
+        RegionConditionKind::Blackout => Color32::from_rgb(60, 60, 80),
+        RegionConditionKind::Anomaly => Color32::from_rgb(220, 160, 60),
+    }
 }
 
 fn draw_hex_outline_only(

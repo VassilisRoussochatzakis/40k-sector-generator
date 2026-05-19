@@ -69,6 +69,10 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
         s.push_str(&format_route_controls(sector));
     }
 
+    s.push_str(&format_relations_digest(sector));
+    s.push_str(&format_regions_section(sector));
+    s.push_str(&format_economy_section(sector));
+
     s.push_str(&format_faction_display_buckets(sector));
 
     s.push_str("## Factions\n\n");
@@ -219,6 +223,14 @@ fn format_sector_map(sector: &GeneratedSector) -> String {
     for s in &sector.systems {
         at.insert((s.coord.q, s.coord.r), s.star.colour_code.as_str());
     }
+    // §5 NEW.md: warp region glyphs for empty hexes inside a region footprint.
+    let mut region_at: HashMap<(i32, i32), char> = HashMap::new();
+    for reg in &sector.regions {
+        let g = region_glyph(reg.kind);
+        for h in &reg.hexes {
+            region_at.insert((h.q, h.r), g);
+        }
+    }
     let mut out = String::new();
     out.push_str("```\n");
     for r in 0..(sector.height as i32) {
@@ -231,13 +243,162 @@ fn format_sector_map(sector: &GeneratedSector) -> String {
                     out.push_str(code);
                     out.push(' ');
                 }
-                None => out.push_str(". "),
+                None => match region_at.get(&(q, r)) {
+                    Some(&g) => {
+                        out.push(g);
+                        out.push(' ');
+                    }
+                    None => out.push_str(". "),
+                },
             }
         }
         out.push('\n');
     }
     out.push_str("```\n");
+    if !sector.regions.is_empty() {
+        out.push_str("\n_Region glyphs:_ `~` warp storm · `^` turbulence · `=` calm corridor · `#` blackout · `*` anomaly\n\n");
+    }
     out
+}
+
+fn format_relations_digest(sector: &GeneratedSector) -> String {
+    if sector.relations.pairs.is_empty() {
+        return String::new();
+    }
+    let mut s = String::new();
+    let at_war: Vec<_> = sector
+        .relations
+        .pairs
+        .iter()
+        .filter(|p| matches!(p.stance, crate::relations::Stance::AtWar))
+        .collect();
+    let hostile: Vec<_> = sector
+        .relations
+        .pairs
+        .iter()
+        .filter(|p| matches!(p.stance, crate::relations::Stance::Hostile))
+        .collect();
+    if at_war.is_empty() && hostile.is_empty() {
+        return String::new();
+    }
+    s.push_str("## Diplomacy digest\n\n");
+    if !at_war.is_empty() {
+        s.push_str("**At war:**\n\n");
+        for p in &at_war {
+            s.push_str(&format!(
+                "- {} ↔ {} — {} (tension {:.0})\n",
+                p.a, p.b, p.cause, p.tension
+            ));
+        }
+        s.push('\n');
+    }
+    if !hostile.is_empty() {
+        s.push_str("**Hostile:**\n\n");
+        for p in &hostile {
+            s.push_str(&format!(
+                "- {} ↔ {} — {} (tension {:.0})\n",
+                p.a, p.b, p.cause, p.tension
+            ));
+        }
+        s.push('\n');
+    }
+    s
+}
+
+fn format_regions_section(sector: &GeneratedSector) -> String {
+    if sector.regions.is_empty() {
+        return String::new();
+    }
+    let mut s = String::new();
+    s.push_str("## Warp regions\n\n");
+    s.push_str("| ID | Name | Kind | Hexes | Centre |\n");
+    s.push_str("|---|---|---|---:|---|\n");
+    for r in &sector.regions {
+        s.push_str(&format!(
+            "| {} | {} | {:?} | {} | (q={}, r={}) |\n",
+            r.id,
+            r.name,
+            r.kind,
+            r.hexes.len(),
+            r.centre.q,
+            r.centre.r
+        ));
+    }
+    s.push('\n');
+    s
+}
+
+fn format_economy_section(sector: &GeneratedSector) -> String {
+    if !sector.economy.enabled {
+        return String::new();
+    }
+    let mut s = String::new();
+    s.push_str("## Economy\n\n");
+    s.push_str("**Sector balance:**\n\n");
+    s.push_str("| Resource | Net |\n|---|---:|\n");
+    for k in crate::economy::RESOURCE_KEYS {
+        let v = match *k {
+            "ore" => sector.economy.sector_balance.ore,
+            "promethium" => sector.economy.sector_balance.promethium,
+            "foodstuffs" => sector.economy.sector_balance.foodstuffs,
+            "manufactured" => sector.economy.sector_balance.manufactured,
+            "archeotech" => sector.economy.sector_balance.archeotech,
+            "recruits" => sector.economy.sector_balance.recruits,
+            _ => 0.0,
+        };
+        s.push_str(&format!("| {k} | {v:.1} |\n"));
+    }
+    s.push('\n');
+    let stranded: Vec<_> = sector
+        .economy
+        .worlds
+        .iter()
+        .filter(|w| w.stranded)
+        .collect();
+    if !stranded.is_empty() {
+        s.push_str("**Stranded worlds:**\n\n");
+        for w in &stranded {
+            s.push_str(&format!(
+                "- `{}` in `{}` — shortages: {}\n",
+                w.world_id,
+                w.system_id,
+                if w.shortages.is_empty() {
+                    "(systemic)".to_string()
+                } else {
+                    w.shortages.join(", ")
+                }
+            ));
+        }
+        s.push('\n');
+    }
+    let mut top: Vec<_> = sector.economy.routes.iter().collect();
+    top.sort_by(|a, b| {
+        b.volume
+            .partial_cmp(&a.volume)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    if !top.is_empty() {
+        s.push_str("**Top trade lanes:**\n\n");
+        for r in top.iter().take(10) {
+            s.push_str(&format!(
+                "- {} → {} — volume {:.1} (friction {:.2})\n",
+                r.from_system_id, r.to_system_id, r.volume, r.friction
+            ));
+        }
+        s.push('\n');
+    }
+    s
+}
+
+fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
+    use crate::regions::RegionConditionKind as K;
+    match kind {
+        K::WarpStorm => '~',
+        K::Turbulence => '^',
+        K::CalmCorridor => '=',
+        K::Blackout => '#',
+        K::Anomaly => '*',
+    }
 }
 
 fn format_system_section(sys: &GeneratedSystem) -> String {

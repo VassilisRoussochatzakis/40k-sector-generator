@@ -14,8 +14,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ids;
+use crate::regions::{RegionConditionKind, WarpRegion};
 use crate::sector_model::{
-    hex_distance, GeneratedFaction, GeneratedRoute, GeneratedSystem, RouteStability, RouteType,
+    hex_distance, GeneratedFaction, GeneratedRoute, GeneratedSystem, HexCoord, RouteStability,
+    RouteType,
 };
 
 /// Threshold (sum of relevant presence dimensions across the system) above
@@ -23,6 +25,14 @@ use crate::sector_model::{
 /// network. Tuned so a single Hidden-level presence doesn't qualify; a
 /// Significant or higher presence does.
 const ENDPOINT_THRESHOLD: f32 = 25.0;
+
+/// Maximum hidden-route fan-out per endpoint. Each qualifying endpoint
+/// connects to its `HIDDEN_K_NEAREST` closest peers (by hex distance, with
+/// system-id tie-break); edges are deduplicated so the actual edge count is
+/// at most `endpoints.len() * HIDDEN_K_NEAREST / 2`. This caps an otherwise
+/// O(N²) full-clique blow-up that produced thousands of smuggling / webway
+/// edges in larger sectors.
+const HIDDEN_K_NEAREST: usize = 3;
 
 /// Spec §3 NEXT: build the three hidden route layers and append them to
 /// the existing route vector. Returns the count added.
@@ -35,9 +45,33 @@ pub fn append_hidden_routes(
     factions: &[GeneratedFaction],
     routes: &mut Vec<GeneratedRoute>,
 ) -> usize {
+    append_hidden_routes_with_regions(systems, factions, &[], routes)
+}
+
+/// §5 NEW.md `Blackout`: every system whose hex falls inside a Blackout
+/// region is removed from the set of viable endpoints, so no hidden routes
+/// terminate inside the blackout. Pure derivation, deterministic.
+pub fn append_hidden_routes_with_regions(
+    systems: &[GeneratedSystem],
+    factions: &[GeneratedFaction],
+    regions: &[WarpRegion],
+    routes: &mut Vec<GeneratedRoute>,
+) -> usize {
     if systems.len() < 2 || factions.is_empty() {
         return 0;
     }
+    let blackout: BTreeSet<(i32, i32)> = regions
+        .iter()
+        .filter(|r| matches!(r.kind, RegionConditionKind::Blackout))
+        .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
+        .collect();
+    let in_blackout = |c: HexCoord| blackout.contains(&(c.q, c.r));
+    let filtered: Vec<&GeneratedSystem> =
+        systems.iter().filter(|s| !in_blackout(s.coord)).collect();
+    if filtered.len() < 2 {
+        return 0;
+    }
+
     let kinds: BTreeMap<&str, &str> = factions
         .iter()
         .map(|f| (f.id.as_str(), f.kind.as_str()))
@@ -45,7 +79,7 @@ pub fn append_hidden_routes(
 
     let mut added = 0usize;
     added += emit_layer(
-        systems,
+        &filtered,
         &kinds,
         routes,
         &["aeldari", "harlequin"],
@@ -54,7 +88,7 @@ pub fn append_hidden_routes(
         |d| d.covert * 0.7 + d.military * 0.3,
     );
     added += emit_layer(
-        systems,
+        &filtered,
         &kinds,
         routes,
         &["inquisition", "deathwatch", "grey_knights"],
@@ -63,7 +97,7 @@ pub fn append_hidden_routes(
         |d| d.covert * 0.5 + d.admin * 0.5,
     );
     added += emit_layer(
-        systems,
+        &filtered,
         &kinds,
         routes,
         &["criminal", "drukhari", "rebel", "genestealer_cult"],
@@ -93,7 +127,7 @@ fn endpoint_score(
 }
 
 fn emit_layer(
-    systems: &[GeneratedSystem],
+    systems: &[&GeneratedSystem],
     kinds: &BTreeMap<&str, &str>,
     routes: &mut Vec<GeneratedRoute>,
     needles: &[&str],
@@ -105,6 +139,7 @@ fn emit_layer(
     // endpoint threshold.
     let mut endpoints: Vec<&GeneratedSystem> = systems
         .iter()
+        .copied()
         .filter(|s| endpoint_score(s, kinds, needles, score_fn) >= ENDPOINT_THRESHOLD)
         .collect();
     if endpoints.len() < 2 {
@@ -120,39 +155,58 @@ fn emit_layer(
         existing.insert((a.to_string(), b.to_string()));
     }
 
-    let mut added = 0;
-    for i in 0..endpoints.len() {
-        for j in (i + 1)..endpoints.len() {
-            let a = endpoints[i];
+    // K-nearest-neighbor selection: for each endpoint, pick the
+    // `HIDDEN_K_NEAREST` closest peers (hex distance; system-id breaks
+    // ties). Collect into a sorted set keyed by ordered (lo, hi) ids so a
+    // pair selected from both sides only emits one edge. This replaces the
+    // earlier full-clique enumeration that scaled O(N²) and produced
+    // thousands of edges on dense sectors.
+    let mut pairs: BTreeSet<(String, String)> = BTreeSet::new();
+    for (i, a) in endpoints.iter().enumerate() {
+        let mut peers: Vec<(u32, &str, usize)> = endpoints
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .map(|(j, b)| (hex_distance(a.coord, b.coord), b.id.as_str(), j))
+            .collect();
+        peers.sort_by(|x, y| x.0.cmp(&y.0).then_with(|| x.1.cmp(y.1)));
+        for (_, _, j) in peers.into_iter().take(HIDDEN_K_NEAREST) {
             let b = endpoints[j];
-            let (from, to) = if a.id <= b.id {
+            let (lo, hi) = if a.id <= b.id {
                 (a.id.clone(), b.id.clone())
             } else {
                 (b.id.clone(), a.id.clone())
             };
-            if existing.contains(&(from.clone(), to.clone())) {
-                continue;
-            }
-            let dist = hex_distance(a.coord, b.coord);
-            let base_id = ids::route_id(&from, &to);
-            let id = format!("{base_id}-{suffix}");
-            // Avoid duplicate inserts if a hidden lane of the same kind
-            // already exists for this pair (e.g. from a re-run on a save).
-            if routes.iter().any(|r| r.id == id) {
-                continue;
-            }
-            routes.push(GeneratedRoute {
-                id,
-                from_system_id: from,
-                to_system_id: to,
-                distance: dist,
-                route_type: rtype,
-                stability: RouteStability::Stable,
-                tags: vec![format!("hidden:{suffix}")],
-                controls: Vec::new(),
-            });
-            added += 1;
+            pairs.insert((lo, hi));
         }
+    }
+
+    let mut added = 0;
+    for (from, to) in pairs {
+        if existing.contains(&(from.clone(), to.clone())) {
+            continue;
+        }
+        let a = endpoints.iter().find(|s| s.id == from).copied().unwrap();
+        let b = endpoints.iter().find(|s| s.id == to).copied().unwrap();
+        let dist = hex_distance(a.coord, b.coord);
+        let base_id = ids::route_id(&from, &to);
+        let id = format!("{base_id}-{suffix}");
+        // Avoid duplicate inserts if a hidden lane of the same kind
+        // already exists for this pair (e.g. from a re-run on a save).
+        if routes.iter().any(|r| r.id == id) {
+            continue;
+        }
+        routes.push(GeneratedRoute {
+            id,
+            from_system_id: from,
+            to_system_id: to,
+            distance: dist,
+            route_type: rtype,
+            stability: RouteStability::Stable,
+            tags: vec![format!("hidden:{suffix}")],
+            controls: Vec::new(),
+        });
+        added += 1;
     }
     added
 }

@@ -52,15 +52,32 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     let mut systems: Vec<GeneratedSystem> = Vec::with_capacity(placements.len());
     let mut used_names: BTreeSet<String> = BTreeSet::new();
 
+    // §5 NEW.md: regions stage runs BEFORE world generation so the `Anomaly`
+    // condition can reweight the per-system candidate pool toward
+    // warp-phenomena / ancient-ruins candidates without changing other stages.
+    let warp_regions = crate::regions::build_regions(
+        &config.generation.seed,
+        config.generation.sector_width,
+        config.generation.sector_height,
+        &regions_cfg,
+    );
+    let anomaly_hexes: BTreeSet<(i32, i32)> = warp_regions
+        .iter()
+        .filter(|r| matches!(r.kind, crate::regions::RegionConditionKind::Anomaly))
+        .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
+        .collect();
+
     for (idx, coord) in placements.iter().enumerate() {
         let system_index = idx + 1;
-        let system = build_system(
+        let anomaly_bias = anomaly_hexes.contains(&(coord.q, coord.r));
+        let system = build_system_with_bias(
             &config,
             &pool,
             &names,
             system_index,
             *coord,
             &mut used_names,
+            anomaly_bias,
         )?;
         systems.push(system);
     }
@@ -72,16 +89,6 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     }
 
     let generated_factions = aggregate_factions(&systems, &factions);
-
-    // §5 NEW.md: regions stage runs BEFORE route generation so route
-    // classification can react to the overlay. Determinism preserved by
-    // deriving the stage RNG from the standard scheme.
-    let warp_regions = crate::regions::build_regions(
-        &config.generation.seed,
-        config.generation.sector_width,
-        config.generation.sector_height,
-        &regions_cfg,
-    );
 
     // ── Routes ──────────────────────────────────────────────────────────────
     let mut routes = if config.generation.routes.enabled {
@@ -103,7 +110,12 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     // treatment as public lanes.
     let mut generated_factions = generated_factions;
     if !generated_factions.is_empty() {
-        crate::hidden_routes::append_hidden_routes(&systems, &generated_factions, &mut routes);
+        crate::hidden_routes::append_hidden_routes_with_regions(
+            &systems,
+            &generated_factions,
+            &warp_regions,
+            &mut routes,
+        );
     }
 
     // §3 per-route per-faction control. Derived after routes are built and
@@ -288,6 +300,26 @@ pub fn build_system(
     coord: HexCoord,
     used_system_names: &mut BTreeSet<String>,
 ) -> Result<GeneratedSystem, SectorError> {
+    build_system_with_bias(
+        config,
+        pool,
+        names,
+        system_index,
+        coord,
+        used_system_names,
+        false,
+    )
+}
+
+pub fn build_system_with_bias(
+    config: &AppConfig,
+    pool: &WorldCandidatePool,
+    names: &NameTables,
+    system_index: usize,
+    coord: HexCoord,
+    used_system_names: &mut BTreeSet<String>,
+    anomaly_bias: bool,
+) -> Result<GeneratedSystem, SectorError> {
     let sys_id = ids::system_id(system_index);
     let mut sys_rng = rng::stage_rng(&config.generation.seed, "system", &sys_id);
 
@@ -304,6 +336,7 @@ pub fn build_system(
         star_colour,
         &mut sys_rng,
         &config.generation.seed,
+        anomaly_bias,
     )?;
 
     Ok(GeneratedSystem {
@@ -435,6 +468,7 @@ fn generate_worlds_for_system(
     star_colour: StarColour,
     sys_rng: &mut ChaCha8Rng,
     root_seed: &str,
+    anomaly_bias: bool,
 ) -> Result<Vec<GeneratedWorld>, SectorError> {
     let min_w = config.generation.min_worlds_per_system;
     let max_w = config.generation.max_worlds_per_system;
@@ -457,6 +491,7 @@ fn generate_worlds_for_system(
             &config.generation.world_selection,
             &used_world_types,
             &mut w_rng,
+            anomaly_bias,
         )?;
 
         if config
@@ -508,6 +543,7 @@ fn choose_world_candidate<'a>(
     cfg: &WorldSelectionConfig,
     used_world_types: &BTreeSet<String>,
     rng: &mut ChaCha8Rng,
+    anomaly_bias: bool,
 ) -> Result<&'a WorldCandidate, SectorError> {
     let collect = |skip_dup: bool| -> Vec<(&'a WorldCandidate, f64)> {
         pool.candidates
@@ -526,6 +562,9 @@ fn choose_world_candidate<'a>(
                 if c.star_colour == star_colour {
                     w *= cfg.same_star_colour_bias.max(0.0);
                 }
+                if anomaly_bias && is_anomaly_friendly(c.primary_feature.as_ref()) {
+                    w *= 3.0;
+                }
                 (w.is_finite() && w > 0.0).then_some((c, w))
             })
             .collect()
@@ -543,6 +582,24 @@ fn choose_world_candidate<'a>(
     }
     let idx = weighted_index(&weighted, rng, "world_candidate")?;
     Ok(weighted[idx].0)
+}
+
+/// §5 NEW.md: features that the `Anomaly` region condition should bias
+/// candidates toward (warp phenomena, ancient ruins, daemonic taint).
+fn is_anomaly_friendly(feature: Option<&NotableFeature>) -> bool {
+    matches!(
+        feature,
+        Some(
+            NotableFeature::WarpPhenomena
+                | NotableFeature::DaemonicCorruption
+                | NotableFeature::CelestialPhenomena
+                | NotableFeature::ArchaeotechRuins
+                | NotableFeature::AncientArchive
+                | NotableFeature::AncientTombs
+                | NotableFeature::XenoRuins
+                | NotableFeature::SealedMenace
+        )
+    )
 }
 
 fn pick_features(

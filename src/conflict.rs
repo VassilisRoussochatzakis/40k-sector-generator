@@ -14,6 +14,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::relations::{RelationsMatrix, Stance};
 use crate::sector_model::{
     GeneratedSector, GeneratedSystem, GeneratedWorld, SystemControlSummary, SystemState,
 };
@@ -156,13 +157,48 @@ fn baseline_for_state(state: Option<SystemState>) -> u8 {
 /// * The public `visible_controller` only updates after the swap has held
 ///   for `HYSTERESIS_TICKS` ticks (§11.3).
 pub fn advance_sector(sector: &mut GeneratedSector) {
+    // §4 NEW.md: if the project enabled `relations.feed_conflict`, the derived
+    // matrix mirrors the flag and we apply a stance-driven momentum/intensity
+    // bias before the standard tick logic. Read-only on the matrix.
+    let bias = sector.relations.feed_conflict;
+    let relations = sector.relations.clone();
     for sys in sector.systems.iter_mut() {
         for w in sys.worlds.iter_mut() {
+            if bias {
+                apply_relations_bias(&mut w.conflict, &relations);
+            }
             advance_one(&mut w.conflict);
         }
         // Roll updated world conflict back into the system summary.
         sys.conflict = derive_system_conflict(sys);
         propagate_to_summary(&mut sys.control, &sys.conflict);
+    }
+}
+
+fn apply_relations_bias(c: &mut ConflictState, relations: &RelationsMatrix) {
+    let (Some(a), Some(d)) = (c.attacker.as_deref(), c.defender.as_deref()) else {
+        return;
+    };
+    if a == d {
+        return;
+    }
+    let Some(stance) = relations.stance_between(a, d) else {
+        return;
+    };
+    match stance {
+        Stance::AtWar => {
+            c.momentum = (c.momentum as i32 - 4).clamp(-100, 100) as i8;
+            c.intensity = (c.intensity as u16 + 3).min(100) as u8;
+        }
+        Stance::Hostile => {
+            c.momentum = (c.momentum as i32 - 2).clamp(-100, 100) as i8;
+            c.intensity = (c.intensity as u16 + 1).min(100) as u8;
+        }
+        Stance::Allied | Stance::Aligned => {
+            c.momentum = (c.momentum as i32 + 2).clamp(-100, 100) as i8;
+            c.intensity = c.intensity.saturating_sub(2);
+        }
+        Stance::Rival | Stance::Neutral => {}
     }
 }
 

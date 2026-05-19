@@ -301,6 +301,20 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         ));
     }
 
+    validate_relations(
+        &input.relations,
+        &input.factions,
+        &mut errors,
+        &mut warnings,
+    );
+    validate_regions(
+        &input.regions,
+        &input.config.generation,
+        &mut errors,
+        &mut warnings,
+    );
+    validate_economy(&input.economy, &mut errors, &mut warnings);
+
     ValidationReport {
         ok: errors.is_empty(),
         errors,
@@ -312,6 +326,132 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             exclusion_reasons,
             key_table_counts: key_counts,
         },
+    }
+}
+
+/// §4 NEW.md: preflight `relations.toml`. Surface unknown faction-ids in
+/// `pair_overrides` and obvious typos in disposition rules.
+fn validate_relations(
+    cfg: &crate::relations::RelationsConfig,
+    factions: &[crate::factions::FactionDef],
+    errors: &mut Vec<ValidationIssue>,
+    warnings: &mut Vec<ValidationIssue>,
+) {
+    let known_ids: BTreeSet<&str> = factions.iter().map(|f| f.id.as_str()).collect();
+    for (i, ov) in cfg.pair_overrides.iter().enumerate() {
+        for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
+            if !known_ids.contains(id.as_str()) {
+                errors.push(ValidationIssue {
+                    code: "RELATIONS_PAIR_UNKNOWN_FACTION".into(),
+                    message: format!(
+                        "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
+                    ),
+                    path: Some(format!("relations.pair_overrides[{i}].{slot}")),
+                    row: None,
+                    severity: Severity::Error,
+                });
+            }
+        }
+    }
+    for (i, r) in cfg.kind_rules.iter().enumerate() {
+        if r.a.is_empty() || r.b.is_empty() {
+            warnings.push(ValidationIssue {
+                code: "RELATIONS_KIND_RULE_EMPTY".into(),
+                message: format!("relations.kind_rules[{i}] has empty kind id"),
+                path: Some(format!("relations.kind_rules[{i}]")),
+                row: None,
+                severity: Severity::Warning,
+            });
+        }
+    }
+}
+
+/// §5 NEW.md: preflight `regions.toml`. Catch nonsense counts / sizes.
+fn validate_regions(
+    cfg: &crate::regions::RegionsConfig,
+    g: &crate::config::GenerationConfig,
+    errors: &mut Vec<ValidationIssue>,
+    warnings: &mut Vec<ValidationIssue>,
+) {
+    if !cfg.enabled {
+        return;
+    }
+    if cfg.count == 0 {
+        warnings.push(issue(
+            "REGIONS_COUNT_ZERO",
+            "regions.enabled is true but regions.count is 0; no regions will be generated",
+            Severity::Warning,
+        ));
+    }
+    let cells = (g.sector_width as u64) * (g.sector_height as u64);
+    if (cfg.count as u64) > cells / 2 {
+        errors.push(issue(
+            "REGIONS_COUNT_OVERFLOW",
+            &format!(
+                "regions.count {} exceeds half the grid ({}); shrink count or grow the sector",
+                cfg.count,
+                cells / 2
+            ),
+            Severity::Error,
+        ));
+    }
+    if cfg.mean_size == 0 {
+        errors.push(issue(
+            "REGIONS_MEAN_SIZE_ZERO",
+            "regions.mean_size must be >= 1",
+            Severity::Error,
+        ));
+    }
+    for (i, c) in cfg.conditions.iter().enumerate() {
+        if !c.weight.is_finite() || c.weight < 0.0 {
+            errors.push(ValidationIssue {
+                code: "REGIONS_CONDITION_BAD_WEIGHT".into(),
+                message: format!(
+                    "regions.conditions[{i}].weight {} is not a finite non-negative number",
+                    c.weight
+                ),
+                path: Some(format!("regions.conditions[{i}].weight")),
+                row: None,
+                severity: Severity::Error,
+            });
+        }
+    }
+}
+
+/// §12 NEW.md: preflight `economy.toml`. Catch non-finite multipliers.
+fn validate_economy(
+    cfg: &crate::economy::EconomyConfig,
+    errors: &mut Vec<ValidationIssue>,
+    _warnings: &mut Vec<ValidationIssue>,
+) {
+    if !cfg.enabled {
+        return;
+    }
+    for (k, v) in &cfg.by_tech_level {
+        if !v.is_finite() || *v < 0.0 {
+            errors.push(ValidationIssue {
+                code: "ECONOMY_TECH_MULTIPLIER_BAD".into(),
+                message: format!(
+                    "economy.by_tech_level[{k}] = {v} is not a finite non-negative number"
+                ),
+                path: Some(format!("economy.by_tech_level.{k}")),
+                row: None,
+                severity: Severity::Error,
+            });
+        }
+    }
+    for (k, v) in &cfg.by_population {
+        if !v.is_finite() || *v < 0.0 {
+            errors.push(ValidationIssue {
+                code: "ECONOMY_POP_MULTIPLIER_BAD".into(),
+                message: format!(
+                    "economy.by_population[{k}] = {v} is not a finite non-negative number"
+                ),
+                path: Some(format!("economy.by_population.{k}")),
+                row: None,
+                severity: Severity::Error,
+            });
+        }
     }
 }
 

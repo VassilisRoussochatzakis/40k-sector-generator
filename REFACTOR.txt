@@ -1,0 +1,1189 @@
+REFACTORING PROMPT FOR LLM: LARGE RUST APPLICATION
+
+Use the following prompt with LLMs when you want it to review, plan, and execute a careful refactor of a large Rust application.
+
+================================================================================
+PROMPT START
+================================================================================
+
+You are acting as a senior Rust engineer, software architect, and refactoring lead. Your job is to analyze this large Rust application and produce a thorough, practical, staged refactoring plan, then propose or implement changes only when they are low-risk, well-justified, and compatible with existing behavior.
+
+Your priorities are:
+
+1. Preserve behavior unless explicitly asked to change it.
+2. Improve maintainability, correctness, safety, testability, performance, and clarity.
+3. Prefer small, reviewable, incremental refactors over sweeping rewrites.
+4. Respect idiomatic Rust practices.
+5. Avoid speculative abstractions.
+6. Keep public APIs stable unless there is a clear migration plan.
+7. Explain tradeoffs and risks before major structural changes.
+8. Make the code easier for future Rust developers to understand, test, and evolve.
+
+Before making changes, inspect the repository structure, build configuration, major crates/modules, test coverage, dependency graph, feature flags, CI configuration, runtime behavior, and any existing design documents.
+
+--------------------------------------------------------------------------------
+SECTION 1: INITIAL REPOSITORY SURVEY
+--------------------------------------------------------------------------------
+
+Start by mapping the project.
+
+Please inspect and summarize:
+
+- Workspace structure:
+  - Is this a single crate or Cargo workspace?
+  - What are the member crates?
+  - Which crates are binaries, libraries, proc macros, integration-test crates, examples, benchmarks, or internal tools?
+  - Are crate boundaries meaningful, or are they accidental?
+
+- Cargo metadata:
+  - Cargo.toml files
+  - workspace dependencies
+  - feature flags
+  - optional dependencies
+  - build scripts
+  - target-specific dependencies
+  - dev-dependencies
+  - examples and benches
+  - edition settings
+  - resolver version
+  - MSRV if documented
+
+- Entry points:
+  - main.rs
+  - lib.rs
+  - CLI entry points
+  - service/server startup paths
+  - async runtimes
+  - initialization and shutdown paths
+  - signal handling
+  - background tasks
+  - configuration loading
+
+- Architecture:
+  - core domain modules
+  - infrastructure modules
+  - adapters for IO, database, network, filesystem, queues, APIs, etc.
+  - cross-cutting concerns such as logging, metrics, tracing, auth, config, serialization, caching, validation, and error handling
+  - boundaries between business logic and side effects
+
+- Code health:
+  - largest files/modules
+  - cyclic or unclear dependencies
+  - duplicated logic
+  - overly broad modules
+  - fragile global state
+  - unclear ownership boundaries
+  - excessive type complexity
+  - excessive generic complexity
+  - overuse of macros
+  - overuse of dynamic dispatch
+  - inappropriate use of unsafe
+  - hidden panics
+  - inconsistent error handling
+  - untested critical paths
+
+- Testing:
+  - unit tests
+  - integration tests
+  - doc tests
+  - property tests
+  - snapshot tests
+  - fuzz tests
+  - benchmark coverage
+  - test utilities and fixtures
+  - flaky tests
+  - missing tests for core behavior
+
+- Build and quality tools:
+  - cargo check
+  - cargo test
+  - cargo clippy
+  - cargo fmt
+  - cargo deny / cargo audit, if present
+  - cargo nextest, if present
+  - coverage tools, if present
+  - miri, loom, proptest, criterion, insta, trybuild, if present
+  - CI workflows
+
+Output an initial repository map before proposing refactors.
+
+--------------------------------------------------------------------------------
+SECTION 2: SAFETY AND CHANGE MANAGEMENT RULES
+--------------------------------------------------------------------------------
+
+Follow these rules throughout the refactor:
+
+- Do not rewrite working code just for style.
+- Do not change public behavior unless explicitly approved.
+- Do not remove compatibility paths without identifying callers.
+- Do not rename public types/functions/modules unless the migration is worth it.
+- Do not introduce new dependencies unless they clearly reduce complexity or risk.
+- Do not introduce async where synchronous code is sufficient.
+- Do not introduce traits just to make code look abstract.
+- Do not use unsafe to solve ordinary ownership or performance issues unless there is a rigorous justification.
+- Do not silence compiler or Clippy warnings without explaining why.
+- Do not replace clear explicit code with clever generic code.
+- Do not make large formatting-only changes mixed with logic changes.
+- Avoid unrelated cleanup in the same patch.
+- Prefer mechanical refactors that the compiler can verify.
+- Keep commits or patches focused and reviewable.
+- When uncertain, propose the refactor instead of applying it.
+
+Before each major change, provide:
+
+- Goal
+- Motivation
+- Files affected
+- Expected behavior impact
+- Risk level
+- Test strategy
+- Rollback strategy
+
+--------------------------------------------------------------------------------
+SECTION 3: RUST-SPECIFIC BEST PRACTICES TO APPLY
+--------------------------------------------------------------------------------
+
+Evaluate the code against idiomatic Rust best practices.
+
+A. Ownership and borrowing
+
+Look for:
+
+- unnecessary cloning
+- excessive Arc/Rc usage
+- unnecessary Mutex/RwLock usage
+- borrow checker workarounds that hide design problems
+- values moved too broadly
+- references with overly long lifetimes
+- functions taking owned values where references would suffice
+- functions taking references where ownership would simplify the API
+- interior mutability used without clear need
+- RefCell/Cell/Mutex used to bypass architecture problems
+- needless lifetime annotations
+- overly complex lifetime relationships
+- large structs passed by value accidentally
+- unnecessary String allocations where &str or Cow might be better
+- unnecessary Vec allocations where slices or iterators are enough
+
+Prefer:
+
+- clear ownership boundaries
+- minimal cloning
+- explicit ownership transfer where it reflects the domain
+- borrowing for read-only access
+- slices over Vec references in public APIs
+- &str over &String
+- Path/PathBuf appropriately
+- OsStr/OsString where platform paths or process args require them
+- Cow only where it meaningfully avoids allocations without harming clarity
+
+B. Type design
+
+Look for opportunities to improve correctness through types:
+
+- newtypes for IDs, tokens, ports, counts, paths, durations, domain concepts
+- enums instead of stringly typed states
+- NonZero types where appropriate
+- Result and Option instead of sentinel values
+- typed configuration instead of unstructured maps
+- builder patterns for complex construction
+- sealed traits for controlled extension
+- typestate only if it materially improves safety and does not overcomplicate the code
+- avoiding bool parameters that obscure meaning
+- avoiding primitive obsession
+- making invalid states unrepresentable where practical
+
+Check:
+
+- Are domain invariants documented and enforced?
+- Are constructors validating input?
+- Are fields public unnecessarily?
+- Are structs too large or mixing concerns?
+- Are enums exhaustive or intentionally non_exhaustive?
+- Should any public enum use #[non_exhaustive]?
+- Are conversion traits used appropriately?
+
+C. Error handling
+
+Review all error paths.
+
+Look for:
+
+- unwrap, expect, panic, unreachable, todo, unimplemented in production paths
+- discarded errors
+- overly broad anyhow usage inside library APIs
+- inconsistent error types
+- lossy error conversion
+- missing context on errors
+- panics where Result should be returned
+- Result<T, Box<dyn Error>> where a concrete error would be better
+- duplicated ad hoc error strings
+- errors that are hard to log or diagnose
+- missing source chains
+
+Prefer:
+
+- thiserror for library/domain error enums where appropriate
+- anyhow/eyre primarily at application boundaries or binaries
+- contextual errors using with_context/context where useful
+- preserving source errors
+- explicit error variants for recoverable cases
+- clear distinction between user errors, system errors, programmer bugs, and invariant violations
+- consistent mapping from internal errors to API/CLI/user-facing errors
+- tests for important failure cases
+
+D. Panics and invariants
+
+Classify every panic-like construct:
+
+- acceptable invariant assertion
+- impossible state with strong justification
+- temporary placeholder
+- production bug risk
+- user/input-triggerable crash
+
+For each unwrap/expect/panic:
+
+- decide whether to remove it, keep it, or replace it
+- if kept, ensure the message explains the invariant
+- ensure user-controlled input cannot trigger unexpected panics
+- replace with Result where appropriate
+
+E. Async and concurrency
+
+If the application uses async Rust, review:
+
+- async runtime choice
+- whether blocking work is accidentally done on async executors
+- use of spawn_blocking for CPU/blocking IO work
+- task cancellation safety
+- graceful shutdown
+- select loops
+- timeouts
+- retries
+- backpressure
+- bounded vs unbounded channels
+- accidental task leaks
+- JoinHandle handling
+- propagation of cancellation signals
+- locks held across await points
+- deadlock risk
+- shared mutable state
+- Send/Sync correctness
+- async trait usage
+- unnecessary async functions
+- sync/async boundary clarity
+
+If the application uses threads or shared state, review:
+
+- Mutex/RwLock scope
+- poisoning behavior
+- lock ordering
+- deadlock risks
+- lock contention
+- atomic ordering choices
+- channel lifecycle
+- thread shutdown
+- resource cleanup
+- use of Arc
+- whether loom tests would help
+
+Prefer:
+
+- message passing where it simplifies ownership
+- narrow lock scopes
+- no locks held across .await
+- explicit cancellation and shutdown paths
+- bounded queues unless unbounded growth is truly safe
+- clear task ownership
+- instrumentation for long-running tasks
+
+F. Modules and crate organization
+
+Review whether modules reflect the actual architecture.
+
+Look for:
+
+- god modules
+- files with too many unrelated responsibilities
+- pub items that should be pub(crate)
+- private helpers exposed unnecessarily
+- inconsistent naming
+- circular conceptual dependencies
+- deep module nesting without benefit
+- flat modules that hide domain boundaries
+- duplicated code across crates
+- binary logic that should live in libraries
+- library code depending on CLI/server concerns
+
+Prefer:
+
+- small cohesive modules
+- explicit crate boundaries
+- library crates for reusable logic
+- thin binaries
+- clear domain/infrastructure boundaries
+- pub(crate) by default within the workspace
+- minimal public API surface
+- consistent prelude usage only if helpful
+- avoiding mod.rs vs file modules inconsistently unless intentional
+
+G. Traits and generics
+
+Review trait usage carefully.
+
+Look for:
+
+- traits with only one implementation and no clear need
+- traits used only for mocking where simpler dependency injection would suffice
+- overly broad trait bounds
+- unnecessary generic parameters
+- complex associated types
+- excessive blanket implementations
+- object safety problems
+- dyn Trait used where generics are better
+- generics used where dyn Trait would reduce compile times and code bloat
+- public traits that are hard to evolve
+- trait methods that mix unrelated responsibilities
+
+Prefer:
+
+- concrete types until abstraction is justified
+- small focused traits
+- traits at architectural seams
+- clear ownership of trait definitions
+- sealed traits if external implementations would be harmful
+- associated types only when they improve clarity
+- generic bounds close to the function that needs them
+- impl Trait for return/argument positions where appropriate
+- dyn Trait for runtime polymorphism or plugin boundaries when justified
+
+H. Unsafe Rust
+
+Audit every unsafe block, unsafe fn, FFI boundary, raw pointer, transmute, static mut, MaybeUninit, manual Send/Sync implementation, and unchecked indexing.
+
+For each unsafe usage, require:
+
+- clear safety comment explaining the invariant
+- evidence that callers uphold the invariant
+- minimal unsafe scope
+- safe wrapper if possible
+- tests around boundary behavior
+- Miri compatibility where applicable
+- no undefined behavior
+- no aliasing violations
+- no invalid lifetimes
+- no data races
+- no uninitialized reads
+- no incorrect repr assumptions
+- no panics that leave unsafe state inconsistent
+
+Prefer removing unsafe unless it is necessary for FFI, performance-critical code with proof, or low-level primitives.
+
+I. Memory and performance
+
+Look for:
+
+- excessive allocation
+- unnecessary cloning
+- repeated parsing
+- avoidable string formatting
+- inefficient iterator chains in hot paths
+- accidental O(n^2) behavior
+- large enum variants
+- large futures
+- excessive boxing
+- excessive dynamic dispatch
+- unbounded caches
+- memory leaks through Arc cycles
+- inefficient serialization/deserialization
+- needless synchronization
+- avoidable regex recompilation
+- poor buffering strategy
+- slow startup due to unnecessary work
+- expensive logging in hot paths
+- compile time blowups due to generics/macros
+
+Use measurement before performance rewrites.
+
+Prefer:
+
+- benchmarks for suspected hot paths
+- criterion benchmarks when appropriate
+- tracing spans or metrics to identify bottlenecks
+- cargo flamegraph or profiling if available
+- small targeted changes
+- avoiding premature optimization
+- improving algorithmic complexity before micro-optimization
+- documenting tradeoffs when using performance-oriented code
+
+J. Configuration
+
+Review:
+
+- configuration sources
+- defaults
+- environment variable handling
+- config file parsing
+- CLI overrides
+- validation
+- error messages
+- secret handling
+- typed config structs
+- reload behavior, if any
+- testability of configuration
+
+Prefer:
+
+- validated typed configuration
+- clear precedence rules
+- no hidden global config
+- no secrets in logs
+- helpful startup errors
+- separation between parsing raw config and validated runtime config
+
+K. Logging, tracing, metrics, observability
+
+Review:
+
+- use of log vs tracing
+- structured fields
+- error logging consistency
+- span boundaries
+- request/task correlation
+- noisy logs
+- missing logs around important state transitions
+- metrics for critical operations
+- redaction of secrets/PII
+- panic hooks
+- health/readiness endpoints if service-based
+
+Prefer:
+
+- structured tracing
+- clear span hierarchy
+- actionable error messages
+- consistent target/module naming
+- low-cardinality metrics
+- no sensitive values in logs
+- logging at appropriate levels
+
+L. Serialization and API boundaries
+
+Review:
+
+- serde derives and attributes
+- backwards compatibility
+- rename rules
+- default handling
+- unknown field behavior
+- versioning
+- validation after deserialization
+- public API response/request types
+- wire format stability
+- migration needs
+- schema generation if applicable
+
+Prefer:
+
+- explicit API types separate from domain types when useful
+- careful use of #[serde(default)]
+- avoiding accidental breaking changes
+- tests for serialized forms
+- snapshot tests for stable output where appropriate
+
+M. Dependency management
+
+Review:
+
+- unused dependencies
+- duplicate dependency versions
+- heavy dependencies for small tasks
+- outdated or unmaintained dependencies
+- security advisories
+- unnecessary default features
+- feature unification problems
+- dev-dependencies leaking into production assumptions
+- build time impact
+- license constraints
+
+Prefer:
+
+- workspace dependency centralization when helpful
+- disabling default features when appropriate
+- minimal features
+- avoiding dependency churn
+- documenting why unusual dependencies exist
+- cargo deny / cargo audit if appropriate
+
+N. Build scripts, macros, and code generation
+
+Review:
+
+- build.rs complexity
+- environment assumptions
+- generated code location
+- reproducibility
+- platform-specific behavior
+- proc macro hygiene
+- macro readability
+- compile-time costs
+- error messages from macros
+- generated API stability
+
+Prefer:
+
+- simple build scripts
+- clear rerun-if-changed directives
+- checked-in generated code only if intentional
+- macros only where they remove real repetition
+- clear macro names and documentation
+- avoiding macro-heavy designs when ordinary functions/types suffice
+
+O. Platform compatibility
+
+Review:
+
+- Unix-only assumptions
+- path handling
+- line endings
+- process spawning
+- signals
+- file permissions
+- case sensitivity
+- temp directories
+- networking assumptions
+- time handling
+- locale assumptions
+
+Prefer:
+
+- Path/PathBuf over string paths
+- explicit platform-specific modules with cfg
+- tested cross-platform behavior when the app claims support
+- clear unsupported-platform errors
+
+P. Time, randomness, and determinism
+
+Review:
+
+- direct calls to system time in business logic
+- direct randomness in tests
+- timezone assumptions
+- monotonic vs wall-clock time
+- flaky sleeps in tests
+- retry/backoff determinism
+- reproducible builds and tests
+
+Prefer:
+
+- injectable clocks for testable time-dependent logic
+- deterministic seeded RNGs in tests
+- tokio time pause/advance for async tests where appropriate
+- monotonic time for durations
+- clear handling of UTC/local time
+
+Q. Security and robustness
+
+Review:
+
+- input validation
+- path traversal risks
+- command injection
+- SQL injection
+- SSRF risks
+- deserialization risks
+- secret leakage
+- auth/authz boundaries
+- unsafe temp file usage
+- TLS configuration
+- cryptographic misuse
+- denial-of-service risks
+- unbounded memory growth
+- unbounded recursion
+- integer overflow
+- panic-on-input vulnerabilities
+- dependency advisories
+
+Prefer:
+
+- explicit validation at boundaries
+- least privilege
+- bounded input sizes
+- timeouts
+- safe path joining/canonicalization patterns
+- avoiding shell invocation where direct process APIs work
+- constant-time comparisons where secrets are compared
+- redaction types for secrets
+- tests for malicious or malformed input
+
+R. Testing strategy
+
+Assess and improve tests.
+
+Look for:
+
+- core logic without unit tests
+- integration behavior without tests
+- fragile tests coupled to implementation details
+- excessive mocking
+- missing error-path tests
+- async tests with sleeps
+- race-prone concurrency tests
+- environment-dependent tests
+- tests that require external services without isolation
+- poor fixture organization
+- slow tests that should be marked or split
+
+Recommend:
+
+- unit tests for pure domain logic
+- integration tests for crate boundaries
+- doc tests for public examples
+- property tests for parsers, validators, state machines, codecs, and invariants
+- snapshot tests for stable formatted output
+- fuzz tests for parsers/deserializers/protocol boundaries
+- loom tests for tricky concurrency
+- miri for unsafe-heavy code
+- criterion benchmarks for performance-critical code
+- test helpers that reduce duplication without hiding behavior
+
+S. Documentation
+
+Review:
+
+- README accuracy
+- crate-level docs
+- public item docs
+- examples
+- architecture docs
+- configuration docs
+- operational runbooks
+- docs for feature flags
+- docs for unsafe invariants
+- docs for error behavior
+- docs for public API compatibility
+
+Prefer:
+
+- examples that compile
+- docs near the code
+- clear module-level explanations
+- comments explaining why, not merely what
+- safety comments for unsafe
+- invariants documented on types
+- avoiding stale aspirational docs
+
+T. CI and developer workflow
+
+Review:
+
+- formatting checks
+- clippy settings
+- test matrix
+- feature matrix
+- MSRV checks
+- docs build
+- security audit
+- dependency deny checks
+- coverage
+- benchmarks
+- release workflow
+- caching
+- pre-commit hooks
+- reproducibility
+
+Recommend a pragmatic quality gate such as:
+
+- cargo fmt --check
+- cargo clippy --workspace --all-targets --all-features -- -D warnings
+- cargo test --workspace --all-features
+- cargo doc --workspace --all-features --no-deps
+- cargo deny check or cargo audit, if appropriate
+- cargo nextest for faster CI, if appropriate
+- cargo machete to detect unused dependencies, if appropriate
+- cargo udeps on nightly only if acceptable
+- miri for selected crates with unsafe code, if appropriate
+
+--------------------------------------------------------------------------------
+SECTION 4: REFACTORING CATEGORIES TO IDENTIFY
+--------------------------------------------------------------------------------
+
+Classify proposed refactors into these categories:
+
+1. Mechanical cleanup
+   - renames
+   - moving modules
+   - reducing visibility
+   - formatting
+   - removing dead code
+   - removing unused dependencies
+   - simplifying imports
+
+2. Safety improvements
+   - replacing unwraps
+   - removing panics
+   - validating input
+   - tightening error handling
+   - eliminating unsafe
+   - preventing resource leaks
+
+3. Architectural improvements
+   - clearer crate boundaries
+   - separating domain from infrastructure
+   - simplifying module dependencies
+   - extracting reusable libraries
+   - moving side effects to edges
+   - reducing global state
+
+4. API improvements
+   - smaller public surface
+   - better type signatures
+   - clearer errors
+   - backwards-compatible deprecations
+   - improved trait boundaries
+
+5. Testability improvements
+   - extracting pure functions
+   - dependency injection at seams
+   - test helpers
+   - fixture cleanup
+   - property/fuzz/snapshot tests
+
+6. Performance improvements
+   - measured hot path improvements
+   - reducing allocations
+   - improving algorithms
+   - bounding memory
+   - reducing lock contention
+
+7. Observability improvements
+   - structured tracing
+   - metrics
+   - better error context
+   - health checks
+   - better diagnostic output
+
+8. Build and maintenance improvements
+   - workspace dependency management
+   - CI improvements
+   - feature flag cleanup
+   - documentation
+   - lint policy
+
+For each proposed refactor, include:
+
+- Category
+- Motivation
+- Current problem
+- Proposed change
+- Expected benefit
+- Risk
+- Tests required
+- Whether it can be automated
+- Whether it should be done before or after other changes
+
+--------------------------------------------------------------------------------
+SECTION 5: IDEAL OUTPUT FORMAT
+--------------------------------------------------------------------------------
+
+Produce your response in this structure:
+
+1. Executive summary
+   - overall health assessment
+   - biggest maintainability risks
+   - highest-impact refactors
+   - quick wins
+   - things not to change yet
+
+2. Repository map
+   - crates/modules
+   - entry points
+   - major flows
+   - dependency boundaries
+   - test layout
+
+3. Risk register
+   - likely breakage points
+   - weak test coverage areas
+   - unsafe/concurrency risks
+   - public API risks
+   - operational risks
+
+4. Refactoring roadmap
+   Split into phases:
+
+   Phase 0: Baseline and safety net
+   - ensure build passes
+   - run tests
+   - run formatting/lints
+   - capture current behavior
+   - add missing characterization tests around critical behavior
+
+   Phase 1: Low-risk mechanical cleanup
+   - dead code
+   - visibility tightening
+   - import cleanup
+   - dependency cleanup
+   - module naming consistency
+
+   Phase 2: Error handling and panic reduction
+   - unwrap/panic audit
+   - error type cleanup
+   - context propagation
+   - user-facing error improvements
+
+   Phase 3: Module and crate boundary cleanup
+   - move code into cohesive modules
+   - separate domain logic from IO
+   - reduce coupling
+   - clarify public APIs
+
+   Phase 4: Type and API improvements
+   - stronger domain types
+   - clearer constructors
+   - fewer bool/primitive parameters
+   - backward-compatible API refinements
+
+   Phase 5: Async/concurrency/resource lifecycle cleanup
+   - cancellation
+   - graceful shutdown
+   - channel bounds
+   - lock scope
+   - task ownership
+
+   Phase 6: Testing improvements
+   - unit tests
+   - integration tests
+   - property/fuzz tests
+   - concurrency tests
+   - benchmark coverage
+
+   Phase 7: Performance and observability
+   - benchmark-driven optimization
+   - tracing spans
+   - metrics
+   - memory bounds
+
+   Phase 8: Documentation and CI hardening
+   - docs
+   - examples
+   - quality gates
+   - release checks
+
+5. Detailed findings
+   For each finding:
+   - title
+   - severity: low/medium/high/critical
+   - confidence: low/medium/high
+   - affected files
+   - explanation
+   - recommended change
+   - sample patch or pseudocode if useful
+   - tests to add or update
+
+6. Implementation plan
+   - ordered checklist
+   - dependency graph between refactors
+   - first safe PR
+   - follow-up PRs
+   - changes to avoid bundling together
+
+7. Validation plan
+   - commands to run
+   - tests to add
+   - manual checks
+   - performance checks
+   - compatibility checks
+
+8. Suggested coding standards
+   - project-specific Rust style
+   - error handling conventions
+   - module visibility conventions
+   - testing conventions
+   - logging/tracing conventions
+   - dependency policy
+
+9. Open questions
+   - areas needing human confirmation
+   - behavior that appears ambiguous
+   - public API compatibility questions
+   - performance assumptions needing measurement
+
+--------------------------------------------------------------------------------
+SECTION 6: COMMANDS TO RUN OR RECOMMEND
+--------------------------------------------------------------------------------
+
+When applicable, suggest commands such as:
+
+- cargo fmt --all -- --check
+- cargo check --workspace --all-targets --all-features
+- cargo test --workspace --all-features
+- cargo clippy --workspace --all-targets --all-features -- -D warnings
+- cargo doc --workspace --all-features --no-deps
+- cargo tree
+- cargo tree -d
+- cargo metadata --format-version 1
+- cargo machete
+- cargo audit
+- cargo deny check
+- cargo nextest run --workspace --all-features
+- cargo bench
+- cargo test --doc
+- cargo test --workspace --no-default-features
+- cargo test --workspace --all-features
+- cargo miri test, for selected unsafe-heavy crates if practical
+- cargo +nightly udeps, only if nightly usage is acceptable
+
+Do not assume all tools are installed. If a tool is not present, recommend it separately instead of failing the analysis.
+
+--------------------------------------------------------------------------------
+SECTION 7: SPECIFIC REVIEW CHECKLIST
+--------------------------------------------------------------------------------
+
+Use this checklist while reviewing the codebase.
+
+Correctness:
+- Are all edge cases handled?
+- Are there hidden assumptions about input validity?
+- Are parsing and validation clearly separated?
+- Are errors propagated correctly?
+- Are state transitions valid?
+- Can invalid states be represented?
+- Are invariants enforced at construction time?
+
+Maintainability:
+- Can a new developer find the main flows quickly?
+- Are modules cohesive?
+- Are names precise?
+- Is public API surface minimal?
+- Are abstractions justified?
+- Is duplication intentional?
+- Are comments useful and current?
+
+Rust idioms:
+- Are ownership boundaries clear?
+- Are references, slices, and owned values used appropriately?
+- Are lifetimes as simple as possible?
+- Are Result and Option used idiomatically?
+- Are iterators used where they improve clarity?
+- Are traits small and purposeful?
+- Is unsafe justified and documented?
+- Are visibility modifiers restrictive by default?
+
+Performance:
+- Are hot paths known?
+- Are allocations reasonable?
+- Are clones intentional?
+- Are locks scoped tightly?
+- Are data structures appropriate?
+- Are caches bounded?
+- Are expensive operations avoided in loops?
+- Are benchmarks available?
+
+Async/concurrency:
+- Are tasks cancelled correctly?
+- Is shutdown graceful?
+- Are channels bounded where needed?
+- Are locks held across await?
+- Are blocking calls isolated?
+- Are spawned tasks observed?
+- Are timeouts applied at IO boundaries?
+
+Testing:
+- Are critical paths covered?
+- Are error paths tested?
+- Are tests deterministic?
+- Are slow/external tests isolated?
+- Are fixtures understandable?
+- Are public examples tested?
+- Would property tests help?
+- Would fuzzing help?
+
+Security:
+- Are inputs bounded and validated?
+- Are secrets redacted?
+- Are paths handled safely?
+- Are external commands invoked safely?
+- Are timeouts present?
+- Are dependencies audited?
+- Are panics input-triggerable?
+- Is unsafe code sound?
+
+Operational readiness:
+- Are logs actionable?
+- Are metrics useful?
+- Are errors diagnosable?
+- Is configuration validated at startup?
+- Is shutdown clean?
+- Are migrations documented?
+- Are feature flags understandable?
+
+--------------------------------------------------------------------------------
+SECTION 8: WHEN IMPLEMENTING CHANGES
+--------------------------------------------------------------------------------
+
+When you implement changes, follow this process:
+
+1. Establish baseline:
+   - State which commands pass or fail before changes.
+   - Do not hide pre-existing failures.
+
+2. Make one logical change at a time:
+   - Keep each patch focused.
+   - Avoid mixing formatting, renaming, and behavior changes.
+
+3. Use the compiler as a guide:
+   - Prefer refactors that preserve type safety.
+   - Let rustc catch incomplete moves/renames/signature changes.
+
+4. Add tests before risky changes:
+   - Use characterization tests for existing behavior.
+   - Add regression tests for bugs or panic paths.
+   - Add property tests for invariant-heavy code where practical.
+
+5. Explain all behavior changes:
+   - Even small behavior changes must be called out.
+
+6. Validate:
+   - Run the narrowest relevant test first.
+   - Then run broader workspace checks.
+   - Report exactly what passed and failed.
+
+7. Document:
+   - Update README/docs/examples when APIs or workflows change.
+   - Add safety comments for unsafe.
+   - Add module docs for new architectural boundaries.
+
+8. Stop before high-risk rewrites:
+   - If a change would affect many files or public APIs, propose it as a plan first.
+
+--------------------------------------------------------------------------------
+SECTION 9: REFACTORING HEURISTICS
+--------------------------------------------------------------------------------
+
+Apply these heuristics:
+
+- Prefer deleting code over adding abstractions.
+- Prefer explicit code over clever code.
+- Prefer domain-specific types over loose primitives.
+- Prefer pure functions in the core and side effects at the edges.
+- Prefer small modules with clear responsibilities.
+- Prefer compile-time guarantees when they are simple.
+- Prefer runtime validation at IO boundaries.
+- Prefer characterization tests before changing legacy behavior.
+- Prefer dependency injection at real seams, not everywhere.
+- Prefer concrete types until abstraction is needed.
+- Prefer simple error types over catch-all strings.
+- Prefer meaningful names over comments that compensate for bad names.
+- Prefer measuring performance before optimizing.
+- Prefer improving algorithms before micro-optimizing.
+- Prefer stable public APIs with deprecation paths.
+- Prefer bounded resources.
+- Prefer observable failure modes.
+- Prefer incremental migration paths.
+
+--------------------------------------------------------------------------------
+SECTION 10: THINGS TO AVOID
+--------------------------------------------------------------------------------
+
+Avoid:
+
+- large rewrites without tests
+- introducing architecture astronaut abstractions
+- adding traits for every dependency
+- adding generics that make code harder to read
+- replacing simple code with macros
+- removing error context
+- ignoring unwraps in production paths
+- holding locks across await
+- unbounded queues by default
+- global mutable state
+- hidden background tasks with no shutdown
+- new dependencies for trivial functionality
+- public re-exports without purpose
+- changing serialized formats accidentally
+- changing CLI behavior accidentally
+- changing config defaults accidentally
+- mixing formatting-only changes with logic changes
+- making code more “Rusty” at the cost of clarity
+- optimizing without measurements
+- weakening types for convenience
+- suppressing warnings instead of fixing root causes
+- assuming tests cover behavior without checking
+
+--------------------------------------------------------------------------------
+SECTION 11: DELIVERABLES
+--------------------------------------------------------------------------------
+
+At the end, produce:
+
+1. A prioritized refactoring roadmap.
+2. A list of immediate safe changes.
+3. A list of changes that need tests first.
+4. A list of changes that need product/maintainer approval.
+5. A list of high-risk areas to avoid touching initially.
+6. Suggested new coding conventions for this repository.
+7. Suggested CI/check commands.
+8. Suggested test additions.
+9. Suggested documentation updates.
+10. A final recommendation for the first three pull requests.
+
+For the first three pull requests, provide:
+
+PR 1:
+- Title
+- Scope
+- Files likely affected
+- Why it is safe
+- Tests/checks
+- Review notes
+
+PR 2:
+- Title
+- Scope
+- Files likely affected
+- Why it should follow PR 1
+- Tests/checks
+- Review notes
+
+PR 3:
+- Title
+- Scope
+- Files likely affected
+- Why it should follow PR 2
+- Tests/checks
+- Review notes
+
+--------------------------------------------------------------------------------
+SECTION 12: FINAL INSTRUCTION
+--------------------------------------------------------------------------------
+
+Do not simply produce generic Rust advice. Ground every recommendation in this repository. When you identify an issue, point to the relevant files, modules, functions, APIs, or patterns. If you cannot inspect enough context, say what information is missing and provide a conservative recommendation.
+
+Prioritize changes that increase confidence and reduce future risk. The best refactor is not the largest one; it is the one that makes the next change safer.
+
+================================================================================
+PROMPT END
+================================================================================
+
+Optional shorter instruction to append when you want LLMs to actually begin editing:
+
+"After producing the roadmap, implement only Phase 0 and Phase 1 changes that are low-risk, mechanical, and behavior-preserving. Do not perform architectural rewrites yet. For every patch, explain the motivation and validation commands."
+
+Optional instruction to append when you want LLMs to only review and not edit:
+
+"Do not modify files yet. Produce only the repository map, risk register, roadmap, and first-three-PR plan."
+
+Optional instruction to append when the application is a production service:
+
+"Pay special attention to graceful shutdown, task lifecycle, observability, configuration validation, bounded resource usage, backwards-compatible APIs, data migration safety, and operational rollback."
+
+Optional instruction to append when the application contains unsafe Rust:
+
+"Perform a dedicated unsafe audit. For every unsafe block or unsafe function, explain the safety invariant, caller obligations, whether a safe abstraction can contain it, and whether Miri tests or additional unit tests are appropriate."
+
+Optional instruction to append when the application exposes a public library API:
+
+"Treat public API compatibility as a primary constraint. Identify breaking changes separately from backwards-compatible improvements. Prefer deprecations, adapters, and migration guides over immediate removals."
+

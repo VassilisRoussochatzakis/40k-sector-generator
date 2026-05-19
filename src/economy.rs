@@ -67,7 +67,7 @@ impl EconomyFile {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct EconomyConfig {
     /// Whether the derivation runs. Defaults to `false` so legacy projects
     /// keep byte-identical sector JSON output.
@@ -90,19 +90,6 @@ pub struct EconomyConfig {
     /// top-level `[resources]` and merged by `EconomyFile::into_config`.
     #[serde(default)]
     pub resources: ResourceModelConfig,
-}
-
-impl Default for EconomyConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            feed_stability: false,
-            by_world_type: BTreeMap::new(),
-            by_tech_level: BTreeMap::new(),
-            by_population: BTreeMap::new(),
-            resources: ResourceModelConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]

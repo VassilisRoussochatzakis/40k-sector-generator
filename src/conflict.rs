@@ -96,7 +96,7 @@ pub fn derive_world_conflict(w: &GeneratedWorld) -> ConflictState {
     };
     let momentum: i8 = if contested {
         // Attacker has half the defender's score: momentum biased toward attacker.
-        let m = -((gap.clamp(0.0, 50.0) / 50.0 * 100.0) as i32) + 0;
+        let m = -((gap.clamp(0.0, 50.0) / 50.0 * 100.0) as i32);
         m.clamp(-100, 100) as i8
     } else {
         0

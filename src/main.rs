@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
+use serde::Serialize;
 
 use sectorforge::sector_model::HexCoord;
 use sectorforge::validation::Severity;
@@ -396,8 +397,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             let input = sectorforge::load_project(&project)?;
             let report = sectorforge::validate_project(&input)?;
             if json {
-                let text = serde_json::to_string_pretty(&report).unwrap();
-                println!("{text}");
+                print_json(&report)?;
             } else {
                 print_validation_report(&report);
             }
@@ -488,12 +488,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 r: coord_r,
             };
             let system = sectorforge::generate_system_standalone(input, index, coord)?;
-            let json = serde_json::to_string_pretty(&system).map_err(|e| {
-                sectorforge::SectorError::ExportFailed {
-                    path: "<stdout>".to_string(),
-                    message: e.to_string(),
-                }
-            })?;
+            let json = to_json_pretty(&system)?;
             match &out {
                 Some(p) => sectorforge::write_system_json(p, &system)?,
                 None => println!("{json}"),
@@ -515,8 +510,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             let sec = sectorforge::load_sector_json(&sector)?;
             let report = sectorforge::validate_sector(&sec);
             if json {
-                let text = serde_json::to_string_pretty(&report).unwrap();
-                println!("{text}");
+                print_json(&report)?;
             } else {
                 print_invariant_report(&report);
             }
@@ -705,8 +699,7 @@ fn run_analyze(
         sectorforge::write_analysis(dir, &analysis)?;
         println!("Wrote {dir}/analysis.md and {dir}/analysis.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&analysis).unwrap();
-        println!("{text}");
+        print_json(&analysis)?;
     } else {
         let md = sectorforge::render_analysis_markdown(&analysis);
         print!("{md}");
@@ -747,8 +740,7 @@ fn run_search(
         sectorforge::write_search_outcome(dir, &outcome)?;
         println!("Wrote {dir}/search.md and {dir}/search.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&outcome).unwrap();
-        println!("{text}");
+        print_json(&outcome)?;
     } else {
         let md = sectorforge::search::render_outcome_markdown(&outcome);
         print!("{md}");
@@ -788,8 +780,7 @@ fn run_history(
         sectorforge::write_history(dir, &report, &cfg)?;
         println!("Wrote {dir}/history.md and {dir}/history.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         let md = sectorforge::history::render_markdown(&report, &cfg);
         print!("{md}");
@@ -809,8 +800,7 @@ fn run_personae(
         sectorforge::write_personae(dir, &report)?;
         println!("Wrote {dir}/personae.md and {dir}/personae.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         let md = sectorforge::personae::render_markdown(&report);
         print!("{md}");
@@ -835,8 +825,7 @@ fn run_hooks(
         sectorforge::write_hooks(dir, &report, &cfg)?;
         println!("Wrote {dir}/hooks.md and {dir}/hooks.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         let md = sectorforge::hooks::render_markdown(&report, &cfg);
         print!("{md}");
@@ -878,8 +867,7 @@ fn run_relations(
         sectorforge::write_relations(dir, &report)?;
         println!("Wrote {dir}/relations.md and {dir}/relations.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         let md = sectorforge::relations::render_markdown(&report);
         print!("{md}");
@@ -904,8 +892,7 @@ fn run_regions(
         sectorforge::write_regions(dir, &input.config.project.id, &regs)?;
         println!("Wrote {dir}/regions.md and {dir}/regions.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&regs).unwrap();
-        println!("{text}");
+        print_json(&regs)?;
     } else {
         let md = sectorforge::regions::render_markdown(&input.config.project.id, &regs);
         print!("{md}");
@@ -922,13 +909,17 @@ fn run_economy(
     let (sec, cfg) = match (&project, &sector) {
         (Some(p), None) => {
             let input = sectorforge::load_project(p)?;
-            let mut cfg = input.economy.clone();
-            cfg.enabled = true;
+            let cfg = sectorforge::economy::EconomyConfig {
+                enabled: true,
+                ..input.economy.clone()
+            };
             (sectorforge::generate_sector(input)?, cfg)
         }
         (None, Some(s)) => {
-            let mut cfg = sectorforge::economy::EconomyConfig::default();
-            cfg.enabled = true;
+            let cfg = sectorforge::economy::EconomyConfig {
+                enabled: true,
+                ..Default::default()
+            };
             (sectorforge::load_sector_json(s)?, cfg)
         }
         _ => {
@@ -942,8 +933,7 @@ fn run_economy(
         sectorforge::write_economy(dir, &sec.id, &report)?;
         println!("Wrote {dir}/economy.md, {dir}/economy.json, and {dir}/economy.csv");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         let md = sectorforge::economy::render_markdown(&sec.id, &report);
         print!("{md}");
@@ -972,8 +962,7 @@ fn run_prose(
         sectorforge::write_prose(dir, &report)?;
         println!("Wrote {dir}/gazetteer.md and {dir}/gazetteer.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         let md = sectorforge::prose::render_markdown(&report);
         print!("{md}");
@@ -997,8 +986,7 @@ fn run_compose(
         .unwrap_or_else(|| Utf8PathBuf::from("."));
     let seg = sectorforge::compose_segmentum(&file, &base_dir, &out)?;
     if json {
-        let text = serde_json::to_string_pretty(&seg).unwrap();
-        println!("{text}");
+        print_json(&seg)?;
     } else {
         sectorforge::write_segmentum(&out, &seg)?;
         println!(
@@ -1030,8 +1018,7 @@ fn run_interestingness(
         sectorforge::write_interestingness(dir, &report)?;
         println!("Wrote {dir}/interestingness.md and {dir}/interestingness.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         print!("{}", sectorforge::interestingness::render_markdown(&report));
     }
@@ -1101,8 +1088,7 @@ fn run_missions(
         sectorforge::write_missions(dir, &report, &cfg)?;
         println!("Wrote {dir}/missions.md and {dir}/missions.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         print!("{}", sectorforge::missions::render_markdown(&report, &cfg));
     }
@@ -1126,8 +1112,7 @@ fn run_sites(
         sectorforge::write_sites(dir, &report, &cfg)?;
         println!("Wrote {dir}/sites.md and {dir}/sites.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&report).unwrap();
-        println!("{text}");
+        print_json(&report)?;
     } else {
         print!("{}", sectorforge::sites::render_markdown(&report, &cfg));
     }
@@ -1172,13 +1157,25 @@ fn run_diff(
         sectorforge::write_diff(dir, &diff)?;
         println!("Wrote {dir}/diff.md and {dir}/diff.json");
     } else if json {
-        let text = serde_json::to_string_pretty(&diff).unwrap();
-        println!("{text}");
+        print_json(&diff)?;
     } else {
         let md = sectorforge::render_diff_markdown(&diff);
         print!("{md}");
     }
     Ok(ExitCode::SUCCESS)
+}
+
+fn print_json<T: Serialize>(value: &T) -> Result<(), sectorforge::SectorError> {
+    let text = to_json_pretty(value)?;
+    println!("{text}");
+    Ok(())
+}
+
+fn to_json_pretty<T: Serialize>(value: &T) -> Result<String, sectorforge::SectorError> {
+    serde_json::to_string_pretty(value).map_err(|e| sectorforge::SectorError::ExportFailed {
+        path: "<stdout>".to_string(),
+        message: e.to_string(),
+    })
 }
 
 fn print_validation_report(report: &sectorforge::ValidationReport) {

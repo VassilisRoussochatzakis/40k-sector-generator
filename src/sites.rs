@@ -167,16 +167,13 @@ fn emit_world_sites(
     if kinds.is_empty() {
         return;
     }
-    let mut count = 0u32;
-    let mut idx = 0u32;
     let regions_by_kind: Vec<(RegionKind, &SurfaceRegion)> =
         w.regions.iter().map(|r| (r.kind, r)).collect();
 
-    for kind in kinds {
-        if count >= cfg.max_per_world {
+    for (idx, kind) in kinds.into_iter().enumerate() {
+        if idx >= cfg.max_per_world as usize {
             break;
         }
-        idx += 1;
         let region_kind = preferred_region(kind);
         let region = region_kind.and_then(|rk| {
             regions_by_kind
@@ -206,7 +203,7 @@ fn emit_world_sites(
         let tags = tags_for(kind, w);
         let hook = hook_for(kind, w, controlling.as_deref(), &mut rng);
         out.push(WorldSite {
-            id: format!("site-{}-{}-{:02}", sys.id, w.id, idx),
+            id: format!("site-{}-{}-{:02}", sys.id, w.id, idx + 1),
             world_id: w.id.clone(),
             system_id: sys.id.clone(),
             region_kind,
@@ -219,7 +216,6 @@ fn emit_world_sites(
             tags,
             hook,
         });
-        count += 1;
     }
 }
 

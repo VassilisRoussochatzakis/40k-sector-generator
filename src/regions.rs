@@ -387,7 +387,7 @@ fn grow_blob(
 /// Does a hex coordinate fall inside *any* region?
 #[must_use]
 pub fn region_at(regions: &[WarpRegion], coord: HexCoord) -> Option<&WarpRegion> {
-    regions.iter().find(|r| r.hexes.iter().any(|h| *h == coord))
+    regions.iter().find(|r| r.hexes.contains(&coord))
 }
 
 /// §5: pick the strongest route-affecting region condition along the

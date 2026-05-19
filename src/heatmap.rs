@@ -10,9 +10,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HeatmapMode {
+    #[default]
     Off,
     Control,
     Military,
@@ -34,12 +35,6 @@ pub enum HeatmapMode {
     TitheStress,
     /// §4 NEW2.md: supply vulnerability, high = disrupted/collapsing.
     SupplyVulnerability,
-}
-
-impl Default for HeatmapMode {
-    fn default() -> Self {
-        Self::Off
-    }
 }
 
 impl HeatmapMode {

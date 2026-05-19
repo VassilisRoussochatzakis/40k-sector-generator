@@ -106,8 +106,7 @@ fn duplicate_child_slot_is_rejected() {
     let tmp = tempfile::tempdir().unwrap();
     let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
     let err = sectorforge::compose_segmentum(&file, &Utf8PathBuf::from("."), &out)
-        .err()
-        .expect("expected error");
+        .expect_err("expected error");
     let msg = format!("{err}");
     assert!(msg.contains("super-grid"), "{msg}");
 }

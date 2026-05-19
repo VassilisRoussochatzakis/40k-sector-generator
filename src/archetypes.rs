@@ -147,7 +147,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Stri
         for w in &sys.worlds {
             for p in &w.factions {
                 let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
-                if imperial_stack.iter().any(|k| *k == kind) {
+                if imperial_stack.contains(&kind) {
                     // Threshold on the *governance-bearing* dimensions so a
                     // mere Inquisition covert cell doesn't count as a
                     // co-sovereign, but a Mechanicus magos with

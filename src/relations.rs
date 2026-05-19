@@ -218,7 +218,7 @@ const MERCHANT_KINDS: &[&str] = &["merchant"];
 const REBEL_KINDS: &[&str] = &["rebel"];
 
 fn in_group(kind: &str, group: &[&str]) -> bool {
-    group.iter().any(|k| *k == kind)
+    group.contains(&kind)
 }
 
 /// Default base stance between two kinds. Returned only when no user kind_rule

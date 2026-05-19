@@ -621,7 +621,7 @@ fn synthesise_date(
     let normalised = (kind.topo_rank() as f32 / 70.0).clamp(0.0, 1.0);
     let epoch = cfg.epoch_start + (normalised * span as f32).round() as u32;
     // ddd spans 000..999 with a slight jitter for visual variety.
-    let base = (kind.topo_rank() % 70) as u32 * 14;
+    let base = (kind.topo_rank() % 70) * 14;
     let jitter: u32 = rng.gen_range(0..40);
     let ddd = (base + jitter + ordinal as u32 * 5).min(999);
     format!("M{epoch}.{ddd:03}")

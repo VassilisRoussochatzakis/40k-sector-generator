@@ -676,12 +676,7 @@ fn render_hook(s: &mut String, h: &Hook) {
         HookAnchor::Route { route_id } => format!("`route {route_id}`"),
     };
     let gm = if h.gm_only { " (GM-only)" } else { "" };
-    let _ = writeln!(
-        s,
-        "\n### {} — {} {anchor}{gm}",
-        h.title,
-        format!("{:?}", h.kind)
-    );
+    let _ = writeln!(s, "\n### {} — {:?} {anchor}{gm}", h.title, h.kind);
     let _ = writeln!(s, "\n- **Weight**: {}", h.weight);
     let _ = writeln!(s, "- **Situation**: {}", h.situation);
     let _ = writeln!(s, "- **Stakes**: {}", h.stakes);

@@ -867,7 +867,7 @@ mod tests {
             },
             children: vec![],
         };
-        let children = vec![mk_child("alpha", 0, 0), mk_child("beta", 1, 0)];
+        let children = [mk_child("alpha", 0, 0), mk_child("beta", 1, 0)];
         let mut idx = 1;
         let links = stitch_pair(
             &file.stitch,
@@ -913,7 +913,7 @@ mod tests {
             },
             children: vec![],
         };
-        let children = vec![mk_child("alpha", 0, 0), mk_child("beta", 1, 0)];
+        let children = [mk_child("alpha", 0, 0), mk_child("beta", 1, 0)];
         let mut idx_a = 1;
         let mut idx_b = 1;
         let links_a = stitch_pair(

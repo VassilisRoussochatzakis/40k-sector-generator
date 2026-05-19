@@ -175,9 +175,9 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
 
     for sys in &sector.systems {
         // System-slot personae.
-        let mut sys_count = 0u32;
-        for (slot, faction_id) in system_slot_factions(sys) {
-            if sys_count >= cfg.max_per_system {
+        let max_per_system = cfg.max_per_system as usize;
+        for (sys_count, (slot, faction_id)) in system_slot_factions(sys).into_iter().enumerate() {
+            if sys_count >= max_per_system {
                 break;
             }
             let kind = faction_kind.get(faction_id.as_str()).copied().unwrap_or("");
@@ -195,7 +195,6 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
                 &mut used_names,
             );
             out.push(p);
-            sys_count += 1;
         }
 
         // World personae.
@@ -380,7 +379,7 @@ fn pick_traits(
     if pool.is_empty() {
         return Vec::new();
     }
-    let count = rng.gen_range(1..=3.min(pool.len())) as usize;
+    let count = rng.gen_range(1..=3.min(pool.len()));
     let mut shuffled: Vec<&String> = pool.iter().collect();
     shuffled.shuffle(rng);
     let mut out: Vec<String> = shuffled.iter().take(count).map(|s| (*s).clone()).collect();

@@ -118,7 +118,7 @@ fn endpoint_score(
     for w in &sys.worlds {
         for p in &w.factions {
             let k = kinds.get(p.faction_id.as_str()).copied().unwrap_or("");
-            if needles.iter().any(|n| *n == k) {
+            if needles.contains(&k) {
                 s += score_fn(&p.dimensions);
             }
         }

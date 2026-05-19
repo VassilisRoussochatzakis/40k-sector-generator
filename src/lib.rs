@@ -41,6 +41,7 @@ pub mod heatmap;
 pub mod hidden_routes;
 pub mod history;
 pub mod hooks;
+pub mod html_export;
 pub mod ids;
 pub mod importance;
 pub mod influence_field;
@@ -350,6 +351,20 @@ pub fn export_sector(
     output_dir: impl AsRef<Utf8Path>,
 ) -> Result<(), SectorError> {
     export::export_all(sector, output_config, output_dir.as_ref())
+}
+
+/// §11 NEW.md: write a self-contained interactive HTML sector view to
+/// `output_dir/sector.html`. Returns the resulting path.
+///
+/// # Errors
+///
+/// [`SectorError::Io`] / [`SectorError::ExportFailed`] from the writer.
+pub fn write_interactive_html(
+    sector: &GeneratedSector,
+    output_dir: impl AsRef<Utf8Path>,
+    cfg: &config::HtmlConfig,
+) -> Result<camino::Utf8PathBuf, SectorError> {
+    html_export::write_html(sector, output_dir.as_ref(), cfg)
 }
 
 /// §8 NEW.md: read-only sector analytics dashboard.

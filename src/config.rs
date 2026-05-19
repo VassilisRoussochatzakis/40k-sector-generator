@@ -240,6 +240,11 @@ pub struct OutputConfig {
     pub write_diagnostics: bool,
     #[serde(default)]
     pub bitmap: BitmapConfig,
+    /// §11 NEW.md: optional self-contained interactive HTML export. Default
+    /// is disabled even when `OutputFormat::Html` is listed (toggle is the
+    /// `formats` list); the sub-table only carries theme + redaction options.
+    #[serde(default)]
+    pub html: HtmlConfig,
 }
 
 /// Image render options for the bitmap exporters.
@@ -289,6 +294,73 @@ pub enum OutputFormat {
     Csv,
     /// PNG hex map with legend.
     Bitmap,
+    /// §11 NEW.md: self-contained interactive HTML map.
+    Html,
+}
+
+/// §11 NEW.md: interactive HTML exporter knobs. Theme picks the palette;
+/// `player_edition` runs the existing intel redaction helper over the sector
+/// before inlining so Hidden-tier presences and GM-only fields are stripped.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct HtmlConfig {
+    #[serde(default = "default_html_theme")]
+    pub theme: HtmlTheme,
+    /// When set, restrict the inlined sector to what the named observer
+    /// faction id can see, using the same `min_intel_confidence` cutoff as
+    /// the redaction helper. Personae, hooks, and intel records are stripped
+    /// alongside hidden presences. `None` = full GM edition.
+    #[serde(default)]
+    pub player_observer: Option<String>,
+    /// Intel-confidence cutoff (0..=100) for `player_observer`. Hidden
+    /// faction presences with `vis * observer.vis / 100 < min` are dropped.
+    #[serde(default = "default_player_min_conf")]
+    pub player_min_confidence: u8,
+    /// Warn (stderr) above this byte size; does not block the write.
+    #[serde(default = "default_html_size_warn")]
+    pub size_warn_bytes: u64,
+    /// Use compact (non-pretty) JSON inline. Defaults to true — pretty JSON
+    /// would roughly double the file size for no runtime benefit.
+    #[serde(default = "default_html_compact")]
+    pub compact_json: bool,
+}
+
+impl Default for HtmlConfig {
+    fn default() -> Self {
+        Self {
+            theme: default_html_theme(),
+            player_observer: None,
+            player_min_confidence: default_player_min_conf(),
+            size_warn_bytes: default_html_size_warn(),
+            compact_json: default_html_compact(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum HtmlTheme {
+    /// Dark background, matches the GUI / PNG palette.
+    Dark,
+    /// Light cream background, sepia tints.
+    Parchment,
+    /// Cool blue-tinted greyscale, monitor-glow aesthetic.
+    Hololithic,
+}
+
+fn default_html_theme() -> HtmlTheme {
+    HtmlTheme::Dark
+}
+
+fn default_player_min_conf() -> u8 {
+    30
+}
+
+fn default_html_size_warn() -> u64 {
+    8 * 1024 * 1024
+}
+
+fn default_html_compact() -> bool {
+    true
 }
 
 fn default_true() -> bool {

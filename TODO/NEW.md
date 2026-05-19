@@ -4,40 +4,7 @@ This document proposes new features for `sectorforge`, written as a companion to
 
 The guiding constraint throughout: **every proposal must remain byte-deterministic** (same seed + same inputs + same version ⇒ same output), **offline**, **data-driven**, and **setting-agnostic at the data layer**, because those are the properties that make the current tool trustworthy. Where a feature would naturally want randomness, it derives its RNG from the existing `blake3("sectorforge:{seed}:{stage}:{discriminator}")` scheme as a new, isolated stage so it cannot perturb the output of older stages.
 
-Completed proposals (§1–§10, §12) have been moved to `old/DONE.md`. Section numbering below is preserved from the original document for stable cross-referencing.
-
----
-
-## 11. Self-contained interactive HTML export
-
-### What it is
-
-A new export format: a single, dependency-free, **offline** `.html` file containing the full sector as an interactive map — pan/zoom, click a system for its detail panel, toggle the existing heatmap modes, filter by faction — with all data and rendering code inlined.
-
-### Why it fits
-
-The OVERVIEW lists PNG (static, not interactive) and JSON (interactive only if you build a viewer) but nothing in between. "Hand it to a downstream consumer (web map, VTT)" is named as a workflow, but currently the user has to *build* that web map. A self-contained HTML export is the lowest-friction way to share an explorable sector with a player or co-GM who does not run the desktop GUI, while staying true to the "not networked, a project directory is a folder you own" principle — the file is fully offline and contains no external calls.
-
-### How it works (determinism-safe)
-
-A new exporter that serialises the sector into an HTML template with the JSON inlined and a small vanilla-JS renderer (reusing the same hex/heatmap/colour logic the GUI and PNG exporter already implement). Deterministic because it is a pure transform of the deterministic model; the inlined JSON is byte-stable, so the HTML is too (modulo a fixed template).
-
-### Data / config surface
-
-`sectorforge.toml` `[export]` gains an `html` toggle, like the existing JSON/Markdown/CSV/PNG toggles. Optional theme (parchment / hololithic / dark) reusing the PNG renderer's palette.
-
-### Surfacing
-
-- CLI: part of the standard export toggle set.
-- GUI: "Export → Interactive HTML" alongside the existing PNG export, honouring the current heatmap/faction-fill selection just as PNG export already does.
-
-### Edge cases
-
-Very large sectors produce large HTML files; gate per-system detail rendering behind lazy in-page panels and warn above a size threshold. Respect the intel/redaction layer: offer a "player edition" HTML that runs the existing redaction helper so Hidden-tier presences and GM-only hooks/personae are stripped before inlining.
-
-### Effort / risk
-
-Medium effort (a renderer reimplementation in JS, though it mirrors logic that already exists). Low determinism risk. High sharing/value, and it directly serves an already-stated downstream workflow.
+Completed proposals (§1–§11, §12) have been moved to `old/DONE.md`. Section numbering below is preserved from the original document for stable cross-referencing.
 
 ---
 
@@ -144,7 +111,7 @@ High effort and the highest determinism risk of any proposal here (mitigable but
 
 For the remaining proposals:
 
-1. **Interactive HTML (§11)** and **Export adapters (§13)** — distribution and ecosystem reach over the now-mature model.
+1. **Export adapters (§13)** — distribution and ecosystem reach over the now-mature model.
 2. **Multi-sector composition (§14)** and **Scripting hooks (§15)** — the ambitious, higher-risk scale and extensibility tier, attempted only once the pipeline and its determinism guarantees are battle-hardened.
 
 Every proposal above is designed to leave the core contract intact: same seed, same inputs, same version — same bytes.

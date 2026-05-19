@@ -677,7 +677,7 @@ min_world_presence         = 1
 
 [outputs]
 directory                  = "out"
-formats                    = ["json", "markdown", "csv", "bitmap"]
+formats                    = ["json", "markdown", "csv", "bitmap", "html"]
 pretty_json                = true
 write_per_system_files     = true
 write_manifest             = true
@@ -693,6 +693,19 @@ heatmap             = "off"      # §10: per-system heatmap tint applied to the 
                                  #         covert | faith | threat | intel
                                  #         tension (§4)         — sum of hostile/at-war pair tensions
                                  #         trade_volume (§12)   — sum of incident route volumes
+
+# §11 NEW.md: self-contained interactive HTML map. Only honoured when
+# `"html"` is listed in `formats` above. Output is byte-deterministic from
+# the inlined sector — same seed + same theme ⇒ same bytes.
+[outputs.html]
+theme               = "dark"        # dark | parchment | hololithic
+# When set, the inlined sector is redacted through `intel::redact_world_for_observer`
+# so Hidden-tier presences below `player_min_confidence` (0..=100) and other
+# observers' intel records are stripped before serialisation.
+# player_observer   = "imperium"
+player_min_confidence = 30
+size_warn_bytes     = 8388608       # warn (stderr) above this; does not block
+compact_json        = true          # pretty JSON would ~double the file size
 ```
 
 The CLI accepts `--heatmap <mode>` and `--no-faction-fill` on `generate` to
@@ -944,6 +957,30 @@ is enabled.
 
 `systems.csv`, `worlds.csv`, `routes.csv` for spreadsheet use. Multi-value
 fields (factions, tags, features) are `;`-separated within a single cell.
+
+### `sector.html` (§11 NEW.md)
+
+Self-contained, fully **offline** interactive map. Single file — no
+external assets, no network calls — with the sector JSON inlined alongside
+a small vanilla-JS canvas renderer (`src/html_export/renderer.js`):
+
+- Pan (click-drag) and zoom (wheel).
+- Click a system → side panel with worlds, primary factions, control.
+- Heatmap toggle (off / control / worlds / presences / factions).
+- Faction-fill tint toggle.
+- Faction filter chips — click to hide systems dominated by that faction.
+- Routes / labels visibility toggles.
+
+Configured under `[outputs.html]`. The `player_observer` field runs the
+existing `intel::redact_world_for_observer` over the sector before
+inlining, so Hidden-tier presences below `player_min_confidence` and
+non-observer intel records are stripped — yielding a shareable "player
+edition" that's still byte-deterministic.
+
+Output bytes depend only on the sector + theme + redaction settings; the
+generator stamps no timestamps into the file. The exporter warns on
+stderr when the resulting file exceeds `size_warn_bytes` (default 8 MiB)
+but never blocks the write.
 
 ### `manifest.json`
 
@@ -1294,6 +1331,7 @@ across runs, so a regression check is a diff away.
 | [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
 | [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system). Includes faction display buckets (§15) and per-world / per-system stability (§11.1) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers + bundle export |
+| [src/html_export.rs](src/html_export.rs) | §11 NEW.md self-contained interactive HTML map: inlines sector JSON + theme CSS + vanilla-JS canvas renderer; supports player-edition redaction via the intel layer. Byte-deterministic. |
 | [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + legend |
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` to halo each planet by its dominant faction (§8) |

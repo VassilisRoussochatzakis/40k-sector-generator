@@ -64,7 +64,10 @@ pub struct GeneratedSystem {
     pub control: SystemControlSummary,
     /// Static stability snapshot averaged across worlds + bumped by
     /// `control.state` (§11.1).
-    #[serde(default, skip_serializing_if = "crate::stability::StabilityState::is_default")]
+    #[serde(
+        default,
+        skip_serializing_if = "crate::stability::StabilityState::is_default"
+    )]
     pub stability: crate::stability::StabilityState,
     /// Discrete orbital assets (§2 NEXT) — stations, shipyards, defense
     /// platforms, blockade fleets — derived from per-faction dimensions.
@@ -72,10 +75,16 @@ pub struct GeneratedSystem {
     pub orbital_assets: Vec<crate::orbital_assets::OrbitalAsset>,
     /// Blockade snapshot when dominant ≠ orbital_controller + blockade
     /// fleet present (§2 NEXT, §6.3).
-    #[serde(default, skip_serializing_if = "crate::orbital_assets::BlockadeReport::is_default")]
+    #[serde(
+        default,
+        skip_serializing_if = "crate::orbital_assets::BlockadeReport::is_default"
+    )]
     pub blockade: crate::orbital_assets::BlockadeReport,
     /// Per-system conflict state (§5 NEXT, §11). Empty by default.
-    #[serde(default, skip_serializing_if = "crate::conflict::ConflictState::is_default")]
+    #[serde(
+        default,
+        skip_serializing_if = "crate::conflict::ConflictState::is_default"
+    )]
     pub conflict: crate::conflict::ConflictState,
     /// Intel / fog-of-war record for the system, keyed by observer faction
     /// id (§7 NEXT, §12). Empty when full omniscient view is in effect.
@@ -83,7 +92,10 @@ pub struct GeneratedSystem {
     pub intel: crate::intel::SystemIntel,
     /// Archetype-specific narrative state (§11 NEXT, §16). Default = no
     /// archetype rules fired for this system.
-    #[serde(default, skip_serializing_if = "crate::archetypes::ArchetypeState::is_default")]
+    #[serde(
+        default,
+        skip_serializing_if = "crate::archetypes::ArchetypeState::is_default"
+    )]
     pub archetype: crate::archetypes::ArchetypeState,
 }
 
@@ -117,14 +129,20 @@ pub struct GeneratedWorld {
     pub control: WorldControlSummary,
     /// Static stability snapshot (§11.1). Derived from tags, world type, and
     /// factions present — no sim ticks.
-    #[serde(default, skip_serializing_if = "crate::stability::StabilityState::is_default")]
+    #[serde(
+        default,
+        skip_serializing_if = "crate::stability::StabilityState::is_default"
+    )]
     pub stability: crate::stability::StabilityState,
     /// Named surface regions (§1 NEXT, §6.1) — capital, hive, underhive, etc.
     /// Empty when the world's type/population doesn't warrant a split.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub regions: Vec<crate::surface_region::SurfaceRegion>,
     /// Per-world conflict state (§5 NEXT). Default = pristine.
-    #[serde(default, skip_serializing_if = "crate::conflict::ConflictState::is_default")]
+    #[serde(
+        default,
+        skip_serializing_if = "crate::conflict::ConflictState::is_default"
+    )]
     pub conflict: crate::conflict::ConflictState,
 }
 

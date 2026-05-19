@@ -1,0 +1,6 @@
+body{background:#f0e6cf;color:#2c2316}
+#hdr,#side,#ctl{background:#e6d8b3;color:#2c2316}
+#side{border-color:#9a8454}
+#ctl{border-color:#9a8454}
+#side .badge{border-color:#9a8454}
+#filter .chip{border-color:#9a8454}

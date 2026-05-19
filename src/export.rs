@@ -36,6 +36,9 @@ pub fn export_all(
                 crate::bitmap::write_bitmap_with(sector, output_dir, bm.sector_scale, None, opts)?;
                 wrote_image = true;
             }
+            OutputFormat::Html => {
+                crate::html_export::write_html(sector, output_dir, &output_config.html)?;
+            }
         }
     }
 

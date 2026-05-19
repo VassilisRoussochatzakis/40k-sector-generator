@@ -26,6 +26,7 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/invariants.rs](src/invariants.rs) | Post-generation invariants (spec §11.11) |
 | [src/render.rs](src/render.rs) | Markdown rendering (sector + standalone system) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest / bitmap writers |
+| [src/html_export.rs](src/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
 | [src/search.rs](src/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/diff.rs](src/diff.rs) | §10 sector diff: model-aware before/after report |
 | [src/history.rs](src/history.rs) | §1 chronicle: dated in-universe event derivation |

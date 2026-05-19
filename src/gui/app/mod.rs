@@ -49,6 +49,8 @@ enum PendingExport {
     SectorPng,
     AllSystemPngs,
     SystemPng(String),
+    /// §11 NEW.md: self-contained interactive HTML map.
+    SectorHtml,
 }
 
 #[derive(Debug, Clone)]
@@ -284,6 +286,13 @@ impl eframe::App for App {
                             {
                                 ui.close_menu();
                                 self.pending_export = Some(PendingExport::AllSystemPngs);
+                            }
+                            if ui
+                                .button(RichText::new("Interactive HTML").monospace())
+                                .clicked()
+                            {
+                                ui.close_menu();
+                                self.pending_export = Some(PendingExport::SectorHtml);
                             }
                             ui.menu_button(
                                 RichText::new("Single System Map PNG ▸").monospace(),
@@ -780,7 +789,10 @@ impl App {
                         ui.add_sized(
                             [COL_TENSION, 0.0],
                             egui::Label::new(
-                                RichText::new("TENSION").color(TEXT_DIM).monospace().strong(),
+                                RichText::new("TENSION")
+                                    .color(TEXT_DIM)
+                                    .monospace()
+                                    .strong(),
                             ),
                         );
                         ui.label(RichText::new("CAUSE").color(TEXT_DIM).monospace().strong());

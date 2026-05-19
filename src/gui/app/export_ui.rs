@@ -17,10 +17,17 @@ impl App {
         let Some(action) = self.pending_export.clone() else {
             return;
         };
+        // HTML export skips the resolution dialog — it has no scale knob.
+        if matches!(action, PendingExport::SectorHtml) {
+            self.execute_html_export();
+            self.pending_export = None;
+            return;
+        }
         let title = match &action {
             PendingExport::SectorPng => "Export Sector Map (PNG)".to_string(),
             PendingExport::AllSystemPngs => "Export All System Maps (PNG)".to_string(),
             PendingExport::SystemPng(id) => format!("Export System Map: {}", id),
+            PendingExport::SectorHtml => unreachable!(),
         };
         let mut confirm = false;
         let mut cancel = false;
@@ -149,6 +156,33 @@ impl App {
                     Err(e) => self.export_status = format!("export failed: {}", e),
                 }
             }
+            PendingExport::SectorHtml => unreachable!(),
+        }
+    }
+
+    /// §11 NEW.md: write an interactive HTML map. Uses default
+    /// [`HtmlConfig`] — GUI doesn't yet expose theme/observer pickers.
+    pub(super) fn execute_html_export(&mut self) {
+        let Some(sector) = self.sector.clone() else {
+            self.export_status = "no sector to export".into();
+            return;
+        };
+        let default_name = format!("{}-sector.html", sector.id);
+        let Some(path) = FileDialog::new()
+            .add_filter("HTML", &["html"])
+            .set_file_name(&default_name)
+            .save_file()
+        else {
+            return;
+        };
+        let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
+            self.export_status = "path is not valid utf-8".into();
+            return;
+        };
+        let cfg = crate::config::HtmlConfig::default();
+        match crate::html_export::write_html_to(&sector, &p, &cfg) {
+            Ok(()) => self.export_status = format!("exported {}", p),
+            Err(e) => self.export_status = format!("export failed: {}", e),
         }
     }
 

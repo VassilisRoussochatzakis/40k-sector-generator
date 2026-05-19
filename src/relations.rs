@@ -406,8 +406,7 @@ pub fn derive_with_threshold(
     let present: Vec<&GeneratedFaction> = all_facs
         .iter()
         .filter(|f| {
-            f.world_presence.len() >= threshold
-                || (threshold == 1 && !f.system_presence.is_empty())
+            f.world_presence.len() >= threshold || (threshold == 1 && !f.system_presence.is_empty())
         })
         .collect();
     let facs: Vec<&GeneratedFaction> = if present.is_empty() {

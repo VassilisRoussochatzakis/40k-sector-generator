@@ -36,6 +36,7 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/relations.rs](src/relations.rs) | §4 inter-faction diplomacy: stance matrix + tension scalar |
 | [src/regions.rs](src/regions.rs) | §5 regional warp phenomena overlay: seeded blob growth + route effects |
 | [src/economy.rs](src/economy.rs) | §12 trade & resource economy: production/consumption + route volume |
+| [src/segmentum.rs](src/segmentum.rs) | §14 multi-sector composition: child loader + deterministic stitch + super-manifest |
 | [src/main.rs](src/main.rs) | CLI (sectorforge binary) |
 | [src/config.rs](src/config.rs) | sectorforge.toml schema |
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |

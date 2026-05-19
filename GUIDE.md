@@ -587,6 +587,79 @@ surfaces:
   enforce a `ECONOMY_ENABLED_NO_WORLDS` check (enabled but empty world
   list signals a misconfigured derivation).
 
+### `sectorforge compose` (§14 NEW.md)
+
+Compose a **segmentum** — several independently-generated child sectors
+stitched together with deterministic inter-sector warp links. Each child
+runs through the unchanged generation pipeline; a `stitch` stage seeded
+from `blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")` then picks
+border-system pairs across each adjacent super-grid edge. Same
+`segmentum.toml` + same children + same `sectorforge` version ⇒ same
+bytes.
+
+```bash
+cargo run --bin sectorforge -- compose \
+    --segmentum path/to/segmentum.toml \
+    --out out/segmentum
+```
+
+| Flag | Meaning |
+|---|---|
+| `--segmentum <FILE>` | Path to `segmentum.toml` |
+| `--out <DIR>` | Output directory (created if missing) |
+| `--stitch-seed <S>` | Override the file's `stitch_seed` |
+| `--json` | Print the composed segmentum JSON to stdout instead of writing files |
+
+Output layout:
+
+```
+out/segmentum/
+  segmentum.md
+  segmentum.json
+  super_manifest.json
+  children/
+    <child-id-1>/    # full per-child generate output (sector.json, csv/, png, ...)
+    <child-id-2>/
+```
+
+Example `segmentum.toml`:
+
+```toml
+[segmentum]
+id           = "seg-pacificus"
+title        = "Segmentum Pacificus"
+stitch_seed  = "stitch-001"
+columns      = 2
+rows         = 1
+faction_mode = "shared"     # "shared" | "independent"
+
+[stitch]
+max_links_per_pair = 2
+border_depth       = 2
+default_route_type = "charted_passage"
+default_stability  = "unstable"
+
+[[children]]
+id      = "alpha"
+project = "examples/m42_project"
+column  = 0
+row     = 0
+seed    = "alpha-seed"   # optional override of [generation].seed
+
+[[children]]
+id      = "beta"
+project = "examples/m42_project"
+column  = 1
+row     = 0
+seed    = "beta-seed"
+```
+
+`faction_mode = "shared"` treats matching faction ids across children as
+the same entity (rosters aggregate downstream); `"independent"` keeps
+each child's roster isolated. The super-manifest digests every child's
+canonical sector JSON so the audit chain extends cleanly from a sector
+to a segmentum: same seeds + same digests ⇒ same composed bytes.
+
 ---
 
 ## 3. Project directory layout
@@ -1345,6 +1418,7 @@ across runs, so a regression check is a diff away.
 | [src/personae.rs](src/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
 | [src/hooks.rs](src/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
 | [src/prose.rs](src/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
+| [src/segmentum.rs](src/segmentum.rs) | §14 NEW.md multi-sector composition: `segmentum.toml` loader, deterministic stitch stage (`blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")`), inter-sector links, super-manifest, Markdown super-map. |
 | [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
 | [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |

@@ -63,6 +63,7 @@ pub mod routes;
 pub mod search;
 pub mod sector_model;
 pub mod sector_save;
+pub mod segmentum;
 pub mod stability;
 pub mod subsectors;
 pub mod surface_region;
@@ -88,6 +89,11 @@ pub use relations::{
 };
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
 pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
+pub use segmentum::{
+    compose as compose_segmentum, load_segmentum_file, BorderOrientation, ChildEntry, FactionMode,
+    InterSectorLink, Segmentum, SegmentumChild, SegmentumConfig, SegmentumFile, SegmentumManifest,
+    StitchConfig,
+};
 pub use subsectors::{
     build_subsectors, ControlDenominator, Subsector, SubsectorBuildError, SubsectorConfig,
 };
@@ -670,6 +676,22 @@ pub fn write_economy(
     report: &economy::EconomyReport,
 ) -> Result<(), SectorError> {
     economy::write_report(output_dir.as_ref(), sector_id, report)
+}
+
+/// §14 NEW.md: write a composed segmentum's report files
+/// (`segmentum.md`, `segmentum.json`, `super_manifest.json`) into a
+/// directory. Per-child sector outputs are written by [`compose_segmentum`]
+/// itself under `<output_dir>/children/<child_id>/`.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_segmentum(
+    output_dir: impl AsRef<Utf8Path>,
+    seg: &segmentum::Segmentum,
+) -> Result<(), SectorError> {
+    segmentum::write_report(output_dir.as_ref(), seg)
 }
 
 /// Inspect-worlds: load and summarize a world-data dir for the CLI.

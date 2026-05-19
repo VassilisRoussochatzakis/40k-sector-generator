@@ -258,6 +258,25 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// §14 NEW.md: compose a segmentum (multi-sector) from `segmentum.toml`.
+    /// Loads + generates every listed child sector (reusing the existing
+    /// deterministic pipeline), then runs a deterministic stitch stage to
+    /// emit inter-sector warp links and a super-manifest.
+    Compose {
+        /// Path to `segmentum.toml`.
+        #[arg(long)]
+        segmentum: Utf8PathBuf,
+        /// Output directory for `segmentum.md`, `segmentum.json`,
+        /// `super_manifest.json`, and per-child sector subdirectories.
+        #[arg(long)]
+        out: Utf8PathBuf,
+        /// Override the stitch seed from the segmentum file.
+        #[arg(long)]
+        stitch_seed: Option<String>,
+        /// Emit JSON to stdout instead of writing files.
+        #[arg(long)]
+        json: bool,
+    },
     /// §10 NEW.md: deterministic sector diff. Two modes:
     ///
     /// * `--before <a.json> --after <b.json>`: compare two saved sectors.
@@ -531,6 +550,12 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             out,
             json,
         } => run_economy(project, sector, out, json),
+        Command::Compose {
+            segmentum,
+            out,
+            stitch_seed,
+            json,
+        } => run_compose(segmentum, out, stitch_seed, json),
         Command::Diff {
             before,
             after,
@@ -854,6 +879,38 @@ fn run_prose(
     } else {
         let md = sectorforge::prose::render_markdown(&report);
         print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_compose(
+    segmentum_path: Utf8PathBuf,
+    out: Utf8PathBuf,
+    stitch_seed: Option<String>,
+    json: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let mut file = sectorforge::load_segmentum_file(&segmentum_path)?;
+    if let Some(s) = stitch_seed {
+        file.segmentum.stitch_seed = s;
+    }
+    let base_dir = segmentum_path
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| Utf8PathBuf::from("."));
+    let seg = sectorforge::compose_segmentum(&file, &base_dir, &out)?;
+    if json {
+        let text = serde_json::to_string_pretty(&seg).unwrap();
+        println!("{text}");
+    } else {
+        sectorforge::write_segmentum(&out, &seg)?;
+        println!(
+            "Composed segmentum '{}' — {} children, {} inter-sector links, {} systems",
+            seg.id,
+            seg.children.len(),
+            seg.inter_sector_links.len(),
+            seg.manifest.system_count
+        );
+        println!("Output written to: {out}");
     }
     Ok(ExitCode::SUCCESS)
 }

@@ -1,0 +1,41 @@
+# §14 NEW.md — example segmentum composition.
+#
+# Run:
+#   cargo run --bin sectorforge -- compose \
+#       --segmentum examples/segmentum_example.toml \
+#       --out out/segmentum
+#
+# Same file + same `sectorforge` version ⇒ same composed bytes. Stitch
+# links are derived from `blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")`
+# so editing `stitch_seed` reshuffles the inter-sector pairings without
+# touching any child sector.
+
+[segmentum]
+id           = "seg-pacificus-demo"
+title        = "Segmentum Pacificus (demo)"
+stitch_seed  = "stitch-001"
+columns      = 2
+rows         = 1
+faction_mode = "shared"
+
+[stitch]
+max_links_per_pair = 2
+border_depth       = 2
+default_route_type = "charted_passage"
+default_stability  = "unstable"
+
+[[children]]
+id      = "alpha"
+project = "m42_project"
+column  = 0
+row     = 0
+seed    = "alpha-seed"
+title   = "Alpha Sector"
+
+[[children]]
+id      = "beta"
+project = "m42_project"
+column  = 1
+row     = 0
+seed    = "beta-seed"
+title   = "Beta Sector"

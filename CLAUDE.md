@@ -28,6 +28,10 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest / bitmap writers |
 | [src/search.rs](src/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/diff.rs](src/diff.rs) | §10 sector diff: model-aware before/after report |
+| [src/history.rs](src/history.rs) | §1 chronicle: dated in-universe event derivation |
+| [src/personae.rs](src/personae.rs) | §3 dramatis personae: named characters per faction presence |
+| [src/hooks.rs](src/hooks.rs) | §7 plot-hook generator: condition→template over model state |
+| [src/prose.rs](src/prose.rs) | §6 gazetteer prose: deterministic template grammar |
 | [src/main.rs](src/main.rs) | CLI (sectorforge binary) |
 | [src/config.rs](src/config.rs) | sectorforge.toml schema |
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |

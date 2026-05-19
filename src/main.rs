@@ -166,6 +166,64 @@ enum Command {
         #[arg(long)]
         strict: bool,
     },
+    /// §1 NEW.md: derive a deterministic chronicle of in-universe events from
+    /// a generated sector. Accepts either `--project <dir>` (regenerates) or
+    /// `--sector <path>` (loads an existing sector.json). Writes
+    /// `history.md` + `history.json` to `--out`, or prints Markdown to stdout.
+    History {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// §3 NEW.md: derive a deterministic dramatis personae overlay (named
+    /// characters per faction presence). Accepts `--project` or `--sector`.
+    Personae {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// §7 NEW.md: derive adventure / plot hooks. Accepts `--project` or
+    /// `--sector`. `--player` hides GM-only hooks (hidden-presence derived).
+    Hooks {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+        /// Hide GM-only hooks (e.g. those derived from hidden-tier presences).
+        #[arg(long)]
+        player: bool,
+    },
+    /// §6 NEW.md: derive a narrative gazetteer (deterministic template
+    /// prose). Accepts `--project` or `--sector`. `--dispatch` switches the
+    /// tone preset.
+    Prose {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+        /// Use the terse Administratum-dispatch tone instead of the
+        /// florid gazetteer voice.
+        #[arg(long)]
+        dispatch: bool,
+    },
     /// §10 NEW.md: deterministic sector diff. Two modes:
     ///
     /// * `--before <a.json> --after <b.json>`: compare two saved sectors.
@@ -400,6 +458,32 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             json,
             strict,
         } => run_search(project, wishes, base_seed, budget, out, json, strict),
+        Command::History {
+            project,
+            sector,
+            out,
+            json,
+        } => run_history(project, sector, out, json),
+        Command::Personae {
+            project,
+            sector,
+            out,
+            json,
+        } => run_personae(project, sector, out, json),
+        Command::Hooks {
+            project,
+            sector,
+            out,
+            json,
+            player,
+        } => run_hooks(project, sector, out, json, player),
+        Command::Prose {
+            project,
+            sector,
+            out,
+            json,
+            dispatch,
+        } => run_prose(project, sector, out, json, dispatch),
         Command::Diff {
             before,
             after,
@@ -501,6 +585,121 @@ fn run_search(
     }
     if strict && outcome.winning.is_none() {
         return Ok(ExitCode::from(1));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn load_or_regenerate(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+) -> Result<sectorforge::GeneratedSector, sectorforge::SectorError> {
+    match (project, sector) {
+        (Some(project), None) => {
+            let input = sectorforge::load_project(&project)?;
+            sectorforge::generate_sector(input)
+        }
+        (None, Some(sector)) => sectorforge::load_sector_json(&sector),
+        (Some(_), Some(_)) | (None, None) => Err(sectorforge::SectorError::InvalidConfig(
+            "pass exactly one of --project <dir> or --sector <path>".into(),
+        )),
+    }
+}
+
+fn run_history(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let cfg = sectorforge::history::HistoryConfig::default();
+    let report = sectorforge::derive_history_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_history(dir, &report, &cfg)?;
+        println!("Wrote {dir}/history.md and {dir}/history.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::history::render_markdown(&report, &cfg);
+        print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_personae(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let report = sectorforge::derive_personae(&sec);
+    if let Some(dir) = &out {
+        sectorforge::write_personae(dir, &report)?;
+        println!("Wrote {dir}/personae.md and {dir}/personae.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::personae::render_markdown(&report);
+        print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_hooks(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    player: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let cfg = sectorforge::hooks::HooksConfig {
+        hide_hidden_hooks: player,
+        ..Default::default()
+    };
+    let report = sectorforge::derive_hooks_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_hooks(dir, &report, &cfg)?;
+        println!("Wrote {dir}/hooks.md and {dir}/hooks.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::hooks::render_markdown(&report, &cfg);
+        print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_prose(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    dispatch: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let cfg = sectorforge::prose::ProseConfig {
+        tone: if dispatch {
+            sectorforge::prose::ProseTone::Dispatch
+        } else {
+            sectorforge::prose::ProseTone::Gazetteer
+        },
+        ..Default::default()
+    };
+    let report = sectorforge::derive_prose_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_prose(dir, &report)?;
+        println!("Wrote {dir}/gazetteer.md and {dir}/gazetteer.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::prose::render_markdown(&report);
+        print!("{md}");
     }
     Ok(ExitCode::SUCCESS)
 }

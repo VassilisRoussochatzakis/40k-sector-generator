@@ -8,7 +8,7 @@ Proposals are ordered roughly by how central they are to the tool's stated purpo
 
 ---
 
-## 1. Deterministic sector history / chronicle generator
+## 1. Deterministic sector history / chronicle generator - DONE
 
 ### What it is
 
@@ -85,7 +85,7 @@ Medium effort. Very low determinism risk (it is a search over the existing deter
 
 ---
 
-## 3. Dramatis personae — deterministic named-character generator
+## 3. Dramatis personae — deterministic named-character generator - DONE
 
 ### What it is
 
@@ -198,7 +198,7 @@ Medium-high effort (region geometry + the effect-composition lattice). Medium ri
 
 ---
 
-## 6. Narrative prose / gazetteer generator (template grammar, not an LLM)
+## 6. Narrative prose / gazetteer generator (template grammar, not an LLM) - DONE
 
 ### What it is
 
@@ -232,7 +232,7 @@ Medium effort. Low determinism risk. High value for writers; moderate for GMs.
 
 ---
 
-## 7. Adventure & plot-hook generator
+## 7. Adventure & plot-hook generator - DONE
 
 ### What it is
 

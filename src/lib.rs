@@ -38,6 +38,8 @@ pub mod generation;
 pub mod gui;
 pub mod heatmap;
 pub mod hidden_routes;
+pub mod history;
+pub mod hooks;
 pub mod ids;
 pub mod importance;
 pub mod influence_field;
@@ -46,8 +48,10 @@ pub mod intel;
 pub mod invariants;
 pub mod names;
 pub mod orbital_assets;
+pub mod personae;
 pub mod power_projection;
 pub mod presets;
+pub mod prose;
 pub mod render;
 pub mod rng;
 pub mod route_control;
@@ -445,6 +449,115 @@ pub fn write_diff(
     d: &diff::SectorDiff,
 ) -> Result<(), SectorError> {
     diff::write_diff(output_dir.as_ref(), d)
+}
+
+/// §1 NEW.md: deterministic chronicle of in-universe events explaining
+/// the present sector configuration.
+#[must_use]
+pub fn derive_history(sector: &GeneratedSector) -> history::HistoryReport {
+    history::derive(sector)
+}
+
+/// §1 NEW.md: chronicle with explicit config.
+#[must_use]
+pub fn derive_history_with(
+    sector: &GeneratedSector,
+    cfg: &history::HistoryConfig,
+) -> history::HistoryReport {
+    history::derive_with(sector, cfg)
+}
+
+/// §1 NEW.md: write `history.md` + `history.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_history(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &history::HistoryReport,
+    cfg: &history::HistoryConfig,
+) -> Result<(), SectorError> {
+    history::write_report(output_dir.as_ref(), report, cfg)
+}
+
+/// §3 NEW.md: deterministic dramatis personae overlay.
+#[must_use]
+pub fn derive_personae(sector: &GeneratedSector) -> personae::PersonaeReport {
+    personae::derive(sector)
+}
+
+/// §3 NEW.md: personae with explicit config.
+#[must_use]
+pub fn derive_personae_with(
+    sector: &GeneratedSector,
+    cfg: &personae::PersonaeConfig,
+) -> personae::PersonaeReport {
+    personae::derive_with(sector, cfg)
+}
+
+/// §3 NEW.md: write `personae.md` + `personae.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_personae(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &personae::PersonaeReport,
+) -> Result<(), SectorError> {
+    personae::write_report(output_dir.as_ref(), report)
+}
+
+/// §7 NEW.md: adventure / plot-hook derivation.
+#[must_use]
+pub fn derive_hooks(sector: &GeneratedSector) -> hooks::HooksReport {
+    hooks::derive(sector)
+}
+
+/// §7 NEW.md: hooks with explicit config.
+#[must_use]
+pub fn derive_hooks_with(sector: &GeneratedSector, cfg: &hooks::HooksConfig) -> hooks::HooksReport {
+    hooks::derive_with(sector, cfg)
+}
+
+/// §7 NEW.md: write `hooks.md` + `hooks.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_hooks(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &hooks::HooksReport,
+    cfg: &hooks::HooksConfig,
+) -> Result<(), SectorError> {
+    hooks::write_report(output_dir.as_ref(), report, cfg)
+}
+
+/// §6 NEW.md: deterministic gazetteer prose generator.
+#[must_use]
+pub fn derive_prose(sector: &GeneratedSector) -> prose::ProseReport {
+    prose::derive(sector)
+}
+
+/// §6 NEW.md: prose with explicit config.
+#[must_use]
+pub fn derive_prose_with(sector: &GeneratedSector, cfg: &prose::ProseConfig) -> prose::ProseReport {
+    prose::derive_with(sector, cfg)
+}
+
+/// §6 NEW.md: write `gazetteer.md` + `gazetteer.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_prose(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &prose::ProseReport,
+) -> Result<(), SectorError> {
+    prose::write_report(output_dir.as_ref(), report)
 }
 
 /// Inspect-worlds: load and summarize a world-data dir for the CLI.

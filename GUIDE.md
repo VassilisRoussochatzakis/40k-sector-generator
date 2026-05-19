@@ -367,6 +367,83 @@ delta table filtered by `min_faction_delta`. Sector id or
 `generator_version` mismatch is reported but does not refuse the diff —
 the report is marked as best-effort instead.
 
+### `sectorforge history` (§1 NEW.md)
+
+Deterministic chronicle generator. Walks every world's claims, dominance,
+archetype state, blockade, and conflict and emits a dated chronological
+list of in-universe events. Pure derivation — same sector ⇒ same chronicle.
+
+```bash
+# Regenerate + chronicle.
+cargo run --bin sectorforge -- history --project examples/m42_project
+
+# Chronicle an existing sector.json into a directory.
+cargo run --bin sectorforge -- history \
+    --sector examples/m42_project/out/sector.json \
+    --out out/
+```
+
+Writes `history.md` + `history.json`. Dates use `M{epoch}.{ddd}` notation
+where `epoch` is scaled by event topo-rank (foundations land in the start
+epoch, post-conflict reconquests in the end epoch); within an anchor the
+chronicle is monotonic (foundation before annexation before reconquest).
+
+### `sectorforge personae` (§3 NEW.md)
+
+Deterministic dramatis personae overlay. Anchors a named character on
+each system sovereign / orbital-controller / hidden-master slot and each
+world presence at the configured dominance tier, drawing names + titles +
+traits + agendas from per-faction-kind pools.
+
+```bash
+cargo run --bin sectorforge -- personae --project examples/m42_project --out out/
+```
+
+Writes `personae.md` + `personae.json`. Built-in pools cover the common
+40k faction kinds (Imperial / Mechanicus / Ecclesiarchy / Inquisition /
+RogueTrader / Chaos / Rebel / Necron / Tyranid / Ork / T'au / Aeldari /
+Drukhari / Harlequin / Genestealer / Xenos); the agenda line is bound to
+the actual competing claims on the anchor world so two personae for the
+same faction in different places read differently.
+
+### `sectorforge hooks` (§7 NEW.md)
+
+Adventure / plot-hook generator. Scans worlds, systems, and routes for
+combinations that imply runnable drama (contested claims with a force
+occupier and a legitimate sovereign, hidden masters under GSC archetype
+activity, Perilous routes, patrolled + pirated lanes, quarantine /
+blockade / warzone states, Tyranid / Necron / Chaos pressure) and emits
+ranked one-line hooks.
+
+```bash
+cargo run --bin sectorforge -- hooks --project examples/m42_project --out out/
+
+# "Player edition": redact GM-only hooks derived from hidden-tier intel.
+cargo run --bin sectorforge -- hooks --sector out/sector.json --player
+```
+
+Writes `hooks.md` + `hooks.json`. Hooks reference only real, present
+entities; the GM-only flag respects the existing intel layer.
+
+### `sectorforge prose` (§6 NEW.md)
+
+Narrative gazetteer generator: deterministic template grammar (not an
+LLM) that emits a sector overview paragraph and a short prose entry per
+system. Two tone presets:
+
+```bash
+# Florid in-universe gazetteer.
+cargo run --bin sectorforge -- prose --project examples/m42_project --out out/
+
+# Terse Administratum-dispatch tone.
+cargo run --bin sectorforge -- prose --project examples/m42_project --dispatch
+```
+
+Writes `gazetteer.md` + `gazetteer.json`. Prose is strictly data-bound —
+no fact appears that isn't in the JSON — and the variation between
+adjacent systems is keyed by id so the gazetteer never reads
+copy-pasted.
+
 ---
 
 ## 3. Project directory layout
@@ -1013,6 +1090,10 @@ across runs, so a regression check is a diff away.
 | [src/presets.rs](src/presets.rs) | §9 NEW.md preset library + scaffolder (`new`, `list-presets`) |
 | [src/search.rs](src/search.rs) | §2 NEW.md constraint-directed seed search (declarative wishes → deterministic seed enumeration) |
 | [src/diff.rs](src/diff.rs) | §10 NEW.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
+| [src/history.rs](src/history.rs) | §1 NEW.md deterministic chronicle: walks claims/dominance/archetype/conflict and emits dated `HistoryEvent`s with `M{epoch}.{ddd}` notation. Monotonic per anchor (foundation → annexation → reconquest). |
+| [src/personae.rs](src/personae.rs) | §3 NEW.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
+| [src/hooks.rs](src/hooks.rs) | §7 NEW.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
+| [src/prose.rs](src/prose.rs) | §6 NEW.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
 | [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 NEW.md GUI dashboard tab |
 | [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 NEW.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |

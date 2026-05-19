@@ -45,6 +45,13 @@ pub struct ConflictState {
     pub age: u32,
 }
 
+impl ConflictState {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 /// Hysteresis window for `visible_controller` flips (§11.3 / §16 NEXT). A
 /// real change must persist this many ticks before the public-facing label
 /// updates.

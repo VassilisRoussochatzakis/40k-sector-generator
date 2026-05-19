@@ -153,7 +153,7 @@ Standalone diagnostic for a world-data directory (containing `key.csv` + `genera
 Prints key-table sizes, generator row counts, candidate counts, and top-weight
 star colours / world types / notable features. Useful when authoring or debugging data.
 
-### `sectorforge analyze` (§8 NEW.md)
+### `sectorforge analyze` (§8 old/DONE.md)
 
 Read-only analytics dashboard for a finished sector. Computes faction balance
 (Gini coefficient + per-faction projection share), contested-world ratio,
@@ -195,7 +195,7 @@ warn_contested_ratio      = 0.66   # info-level flag if more than this fraction 
 tiny_sector_threshold     = 5      # sectors below this are flagged low-confidence rather than failing structural metrics
 ```
 
-### `sectorforge new --out <DIR> --preset <NAME>` (§9 NEW.md)
+### `sectorforge new --out <DIR> --preset <NAME>` (§9 old/DONE.md)
 
 Scaffold a fresh project from a bundled preset under `presets/` (by default).
 The destination must not exist. The optional `--seed` flag rewrites the
@@ -234,7 +234,7 @@ Print the available presets with one-line descriptions. Reads
 `presets/<id>/preset.toml` for metadata. Internal bundles whose id starts with
 `_` are hidden.
 
-### `sectorforge search` (§2 NEW.md)
+### `sectorforge search` (§2 old/DONE.md)
 
 Constraint-directed deterministic seed search. Lets you declare what the
 generated sector should look like — faction balance bands, world-type
@@ -332,7 +332,7 @@ clear message. When no candidate satisfies the constraints, the report
 includes the top `report_top` near-misses ranked by total miss distance,
 so you know which constraint to relax.
 
-### `sectorforge diff` (§10 NEW.md)
+### `sectorforge diff` (§10 old/DONE.md)
 
 Deterministic model-aware diff between two sectors. Two modes:
 
@@ -374,7 +374,7 @@ no-longer stranded world lists). Sector id or `generator_version`
 mismatch is reported but does not refuse the diff — the report is
 marked as best-effort instead.
 
-### `sectorforge history` (§1 NEW.md)
+### `sectorforge history` (§1 old/DONE.md)
 
 Deterministic chronicle generator. Walks every world's claims, dominance,
 archetype state, blockade, and conflict and emits a dated chronological
@@ -395,7 +395,7 @@ where `epoch` is scaled by event topo-rank (foundations land in the start
 epoch, post-conflict reconquests in the end epoch); within an anchor the
 chronicle is monotonic (foundation before annexation before reconquest).
 
-### `sectorforge personae` (§3 NEW.md)
+### `sectorforge personae` (§3 old/DONE.md)
 
 Deterministic dramatis personae overlay. Anchors a named character on
 each system sovereign / orbital-controller / hidden-master slot and each
@@ -413,7 +413,7 @@ Drukhari / Harlequin / Genestealer / Xenos); the agenda line is bound to
 the actual competing claims on the anchor world so two personae for the
 same faction in different places read differently.
 
-### `sectorforge hooks` (§7 NEW.md)
+### `sectorforge hooks` (§7 old/DONE.md)
 
 Adventure / plot-hook generator. Scans worlds, systems, and routes for
 combinations that imply runnable drama (contested claims with a force
@@ -439,7 +439,7 @@ non-Perilous route that is the *only* import of a critical resource
 (foodstuffs / promethium / manufactured) into a deficit system —
 anchored to the route, ranked alongside the structural hooks.
 
-### `sectorforge prose` (§6 NEW.md)
+### `sectorforge prose` (§6 old/DONE.md)
 
 Narrative gazetteer generator: deterministic template grammar (not an
 LLM) that emits a sector overview paragraph and a short prose entry per
@@ -458,7 +458,7 @@ no fact appears that isn't in the JSON — and the variation between
 adjacent systems is keyed by id so the gazetteer never reads
 copy-pasted.
 
-### `sectorforge relations` (§4 NEW.md)
+### `sectorforge relations` (§4 old/DONE.md)
 
 Inter-faction diplomacy matrix. For every unordered pair of factions
 present in the sector, derives a single canonical stance (`Allied`,
@@ -495,7 +495,7 @@ toward the attacker, Allied / Aligned drifts toward peace). The bias is
 applied *before* the existing tick logic and never overrides GM-edited
 conflict state.
 
-### `sectorforge regions` (§5 NEW.md)
+### `sectorforge regions` (§5 old/DONE.md)
 
 Regional warp-phenomena overlay. Grows seeded blob regions over the hex
 grid *before* route generation; the chosen condition modifies route
@@ -539,7 +539,7 @@ after region effects are applied — the `REGION_ISOLATES_SECTOR`
 violation surfaces when a storm splits the sector into multiple
 components.
 
-### `sectorforge economy` (§12 NEW.md)
+### `sectorforge economy` (§12 old/DONE.md)
 
 Trade & resource economy snapshot. Each world declares a signed
 production/consumption vector over six categories (ore, promethium,
@@ -577,7 +577,7 @@ surfaces:
   that is the *only* viable import of foodstuffs / promethium /
   manufactured into a deficit system is flagged Caution with an
   `only {resource} import into {sys}` note.
-* The plot-hook generator (§7 NEW.md) emits `StarvingWorld` hooks for
+* The plot-hook generator (§7 old/DONE.md) emits `StarvingWorld` hooks for
   every stranded world and `LifelineLane` hooks for every critical
   supply route.
 * The Trade heatmap mode (`HeatmapMode::TradeVolume`) sums incident
@@ -604,10 +604,10 @@ my-sector-project/
     names/system_names.toml
     names/world_names.toml
     factions/factions.toml
-    factions/relations.toml        # §4 NEW.md (optional)
+    factions/relations.toml        # §4 old/DONE.md (optional)
     routes/route_rules.toml
-    routes/regions.toml            # §5 NEW.md (optional)
-    worlds/economy.toml            # §12 NEW.md (optional)
+    routes/regions.toml            # §5 old/DONE.md (optional)
+    worlds/economy.toml            # §12 old/DONE.md (optional)
   out/                             # created by generate
 ```
 
@@ -629,9 +629,9 @@ world_names           = "data/names/world_names.toml"      # optional
 factions              = "data/factions/factions.toml"      # optional
 route_rules           = "data/routes/route_rules.toml"     # optional
 generation_profiles   = "data/generation/profiles.toml"    # optional (digest tracked, content reserved)
-relations             = "data/factions/relations.toml"     # optional (§4 NEW.md)
-regions               = "data/routes/regions.toml"         # optional (§5 NEW.md)
-economy               = "data/worlds/economy.toml"         # optional (§12 NEW.md)
+relations             = "data/factions/relations.toml"     # optional (§4 old/DONE.md)
+regions               = "data/routes/regions.toml"         # optional (§5 old/DONE.md)
+economy               = "data/worlds/economy.toml"         # optional (§12 old/DONE.md)
 
 [generation]
 seed                       = "my-seed-string"
@@ -664,6 +664,16 @@ enabled                    = true
 max_route_distance         = 4
 route_density              = 0.30
 ensure_connected_graph     = true
+
+[generation.relations]
+# Minimum world presence required for a faction to appear in the diplomacy
+# matrix. The full canonical faction catalogue is ~1000 entries; C(n,2)
+# pairs scale quadratically, so a loose threshold blows up sector.json by
+# tens of MB on large sectors.
+#   1 (default) — every faction with any world presence anywhere
+#   2           — drop incidental single-world cameos
+#   3+          — only regionally relevant factions
+min_world_presence         = 1
 
 [outputs]
 directory                  = "out"
@@ -857,6 +867,21 @@ fog-of-war record ([src/intel.rs](src/intel.rs) §7 NEXT), and an
 `archetype` block of faction-specific narrative state
 ([src/archetypes.rs](src/archetypes.rs) §11 NEXT).
 
+Default-valued state fields (`control`, `stability`, `blockade`,
+`conflict`, `intel`, `archetype`) are omitted from the serialized
+`sector.json` when their value equals the type default. They round-trip
+back to defaults on load via `#[serde(default)]`. This keeps large
+sectors compact (>5× shrink on a 200-system sector). Per-system `intel`
+is also scoped to observer factions with at least one presence in the
+system; rumor views for unrelated observers can be reconstructed on
+demand from the raw system state.
+
+The `relations` matrix is emitted only for factions with non-empty
+`system_presence` or `world_presence`. The full canonical faction
+catalogue (~1000 entries on the bundled data set) would generate
+C(n,2) ≈ 500k pairs and >60 MB of JSON; filtering on actual sector
+presence reduces this to the meaningful subset.
+
 Each `GeneratedWorld` wraps a `WorldDto` view of `worlds::World` — variant
 names are stable (e.g. `"HiveWorld"`) — and also carries `claims`
 (per-faction legal/military/religious claims), a `control`
@@ -1020,23 +1045,23 @@ navigation bar:
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
   weights — avoid Unstable / Hazardous / Dangerous) or `Shortest` (BFS over
   hop count). `Perilous` routes are always impassable.
-- **Diplomacy** (§4 NEW.md) — table view of `sector.relations.pairs`:
+- **Diplomacy** (§4 old/DONE.md) — table view of `sector.relations.pairs`:
   every faction pair with its stance (colour-coded), tension scalar, and
   cause text. Backed by [src/gui/app/mod.rs](src/gui/app/mod.rs)
   `draw_relations_layout`.
-- **Regions** (§5 NEW.md) — table view of `sector.regions`: id, name,
+- **Regions** (§5 old/DONE.md) — table view of `sector.regions`: id, name,
   kind, hex count, centre coord. Pairs with the in-map region tint.
-- **Trade** (§12 NEW.md) — table view of `sector.economy`: sector
+- **Trade** (§12 old/DONE.md) — table view of `sector.economy`: sector
   resource balance, top trade lanes by volume, list of stranded worlds
   with shortages.
-- **Dashboard** (§8 NEW.md) — analytics for the loaded sector. Faction-share
+- **Dashboard** (§8 old/DONE.md) — analytics for the loaded sector. Faction-share
   bars coloured by the same per-faction palette the map uses, a Gini
   coefficient, contested-world / claim summary, route-graph connectivity
   callout (component count, diameter, articulation points, isolated systems),
   world / star / population / route distributions, per-subsector political
   variety, and a list of health flags. Backed by
   [src/analytics.rs](src/analytics.rs) and [src/gui/dashboard.rs](src/gui/dashboard.rs).
-- **NEW…** (§9 NEW.md) — modal preset gallery. Lists every preset under
+- **NEW…** (§9 old/DONE.md) — modal preset gallery. Lists every preset under
   `presets/`, lets you type a destination path + optional seed override and
   scaffold a fresh project tree from one. The new project is **not**
   auto-loaded; the gallery prints the next-step command. Backed by
@@ -1198,7 +1223,7 @@ Notable suites:
 - [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
 - [tests/invariants_proptest.rs](tests/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
-- [tests/analytics_and_presets.rs](tests/analytics_and_presets.rs) — §8/§9 NEW.md: analytics determinism + writers, preset scaffolding round-trip
+- [tests/analytics_and_presets.rs](tests/analytics_and_presets.rs) — §8/§9 old/DONE.md: analytics determinism + writers, preset scaffolding round-trip
 
 Benchmarks (criterion):
 
@@ -1274,16 +1299,16 @@ across runs, so a regression check is a diff away.
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` to halo each planet by its dominant faction (§8) |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
-| [src/analytics.rs](src/analytics.rs) | §8 NEW.md analytics dashboard: faction balance + connectivity + flags |
-| [src/presets.rs](src/presets.rs) | §9 NEW.md preset library + scaffolder (`new`, `list-presets`) |
-| [src/search.rs](src/search.rs) | §2 NEW.md constraint-directed seed search (declarative wishes → deterministic seed enumeration) |
-| [src/diff.rs](src/diff.rs) | §10 NEW.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
-| [src/history.rs](src/history.rs) | §1 NEW.md deterministic chronicle: walks claims/dominance/archetype/conflict and emits dated `HistoryEvent`s with `M{epoch}.{ddd}` notation. Monotonic per anchor (foundation → annexation → reconquest). |
-| [src/personae.rs](src/personae.rs) | §3 NEW.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
-| [src/hooks.rs](src/hooks.rs) | §7 NEW.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
-| [src/prose.rs](src/prose.rs) | §6 NEW.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
-| [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 NEW.md GUI dashboard tab |
-| [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 NEW.md GUI preset gallery modal |
+| [src/analytics.rs](src/analytics.rs) | §8 old/DONE.md analytics dashboard: faction balance + connectivity + flags |
+| [src/presets.rs](src/presets.rs) | §9 old/DONE.md preset library + scaffolder (`new`, `list-presets`) |
+| [src/search.rs](src/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration) |
+| [src/diff.rs](src/diff.rs) | §10 old/DONE.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
+| [src/history.rs](src/history.rs) | §1 old/DONE.md deterministic chronicle: walks claims/dominance/archetype/conflict and emits dated `HistoryEvent`s with `M{epoch}.{ddd}` notation. Monotonic per anchor (foundation → annexation → reconquest). |
+| [src/personae.rs](src/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
+| [src/hooks.rs](src/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
+| [src/prose.rs](src/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
+| [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
+| [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
 | [src/names.rs](src/names.rs) | Name table types |

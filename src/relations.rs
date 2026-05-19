@@ -378,7 +378,43 @@ pub fn derive(sector: &GeneratedSector) -> RelationsMatrix {
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &RelationsConfig) -> RelationsMatrix {
-    let facs: &[GeneratedFaction] = &sector.factions;
+    derive_with_threshold(sector, cfg, 1)
+}
+
+/// Like [`derive_with`] but also takes a presence threshold. A faction is
+/// included in the matrix only if its `world_presence.len() >=
+/// min_world_presence`. Threshold `1` matches the historical behaviour
+/// (every faction with any world presence anywhere). Higher thresholds drop
+/// incidental single-world cameos and shrink the matrix quadratically.
+#[must_use]
+pub fn derive_with_threshold(
+    sector: &GeneratedSector,
+    cfg: &RelationsConfig,
+    min_world_presence: usize,
+) -> RelationsMatrix {
+    let all_facs: &[GeneratedFaction] = &sector.factions;
+    if all_facs.len() < 2 {
+        return RelationsMatrix::default();
+    }
+    // Only emit pairs for factions that meaningfully appear in the sector.
+    // The full catalogue can hold ~1000 factions (C(1000,2) ≈ 500k pairs,
+    // ~70 MB JSON), which blows up load + render. The threshold controls how
+    // many worlds a faction must occupy. Fall back to all factions if the
+    // filter would empty the matrix — back-compat for unit tests + minimal
+    // synthetic sectors where presence is omitted entirely.
+    let threshold = min_world_presence.max(1);
+    let present: Vec<&GeneratedFaction> = all_facs
+        .iter()
+        .filter(|f| {
+            f.world_presence.len() >= threshold
+                || (threshold == 1 && !f.system_presence.is_empty())
+        })
+        .collect();
+    let facs: Vec<&GeneratedFaction> = if present.is_empty() {
+        all_facs.iter().collect()
+    } else {
+        present
+    };
     if facs.len() < 2 {
         return RelationsMatrix::default();
     }
@@ -388,8 +424,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &RelationsConfig) -> Relations
     let mut pairs: Vec<FactionRelation> = Vec::with_capacity(facs.len() * (facs.len() - 1) / 2);
     for i in 0..facs.len() {
         for j in (i + 1)..facs.len() {
-            let a = &facs[i];
-            let b = &facs[j];
+            let a = facs[i];
+            let b = facs[j];
             let (lo_id, _hi_id) = canonical_pair(&a.id, &b.id);
             let (lo, hi) = if lo_id == a.id { (a, b) } else { (b, a) };
 

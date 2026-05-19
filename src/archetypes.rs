@@ -60,6 +60,13 @@ pub struct ArchetypeState {
     pub daemon_manifestation: u8,
 }
 
+impl ArchetypeState {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum NecronPhase {

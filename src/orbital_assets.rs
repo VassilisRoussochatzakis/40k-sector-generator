@@ -63,6 +63,13 @@ pub struct BlockadeReport {
     pub intensity: u8,
 }
 
+impl BlockadeReport {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 /// Derive a system's `orbital_assets` and blockade summary from finalised
 /// per-world presences. Pure; runs after `control::derive_system_control`.
 #[must_use]

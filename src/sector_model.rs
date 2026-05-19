@@ -52,35 +52,38 @@ pub struct GeneratedSystem {
     pub coord: HexCoord,
     pub star: GeneratedStar,
     pub worlds: Vec<GeneratedWorld>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primary_factions: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notes: Vec<String>,
     /// Aggregated multi-winner control summary across this system's worlds.
     /// See `faction_sector_control_and_power_design.md` §6.4.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "SystemControlSummary::is_default")]
     pub control: SystemControlSummary,
     /// Static stability snapshot averaged across worlds + bumped by
     /// `control.state` (§11.1).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::stability::StabilityState::is_default")]
     pub stability: crate::stability::StabilityState,
     /// Discrete orbital assets (§2 NEXT) — stations, shipyards, defense
     /// platforms, blockade fleets — derived from per-faction dimensions.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub orbital_assets: Vec<crate::orbital_assets::OrbitalAsset>,
     /// Blockade snapshot when dominant ≠ orbital_controller + blockade
     /// fleet present (§2 NEXT, §6.3).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::orbital_assets::BlockadeReport::is_default")]
     pub blockade: crate::orbital_assets::BlockadeReport,
     /// Per-system conflict state (§5 NEXT, §11). Empty by default.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::conflict::ConflictState::is_default")]
     pub conflict: crate::conflict::ConflictState,
     /// Intel / fog-of-war record for the system, keyed by observer faction
     /// id (§7 NEXT, §12). Empty when full omniscient view is in effect.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::intel::SystemIntel::is_empty")]
     pub intel: crate::intel::SystemIntel,
     /// Archetype-specific narrative state (§11 NEXT, §16). Default = no
     /// archetype rules fired for this system.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::archetypes::ArchetypeState::is_default")]
     pub archetype: crate::archetypes::ArchetypeState,
 }
 
@@ -100,25 +103,28 @@ pub struct GeneratedWorld {
     pub orbit: u8,
     pub source_row_index: usize,
     pub world: WorldDto,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub factions: Vec<WorldFactionPresence>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notes: Vec<String>,
     /// Per-world political claims (border outlines per design §3.3).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub claims: Vec<FactionClaim>,
     /// Multi-winner control summary (§5.3).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "WorldControlSummary::is_default")]
     pub control: WorldControlSummary,
     /// Static stability snapshot (§11.1). Derived from tags, world type, and
     /// factions present — no sim ticks.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::stability::StabilityState::is_default")]
     pub stability: crate::stability::StabilityState,
     /// Named surface regions (§1 NEXT, §6.1) — capital, hive, underhive, etc.
     /// Empty when the world's type/population doesn't warrant a split.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub regions: Vec<crate::surface_region::SurfaceRegion>,
     /// Per-world conflict state (§5 NEXT). Default = pristine.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "crate::conflict::ConflictState::is_default")]
     pub conflict: crate::conflict::ConflictState,
 }
 
@@ -320,18 +326,25 @@ pub struct WorldFactionPresence {
     pub influence: FactionInfluence,
     pub relationship_to_government: String,
     /// Multi-dimensional presence scores (§4.5). All fields in 0..=100.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "PresenceDimensions::is_default")]
     pub dimensions: PresenceDimensions,
     /// Computed dominance bucket from the weighted control score (§5.2).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "DominanceState::is_default")]
     pub dominance: DominanceState,
     /// Intel-layer confidence 0..=100 (§12).
-    #[serde(default = "default_intel_confidence")]
+    #[serde(
+        default = "default_intel_confidence",
+        skip_serializing_if = "is_default_intel_confidence"
+    )]
     pub intel_confidence: u8,
 }
 
 fn default_intel_confidence() -> u8 {
     100
+}
+
+fn is_default_intel_confidence(v: &u8) -> bool {
+    *v == 100
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -430,6 +443,10 @@ pub struct PresenceDimensions {
 }
 
 impl PresenceDimensions {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
     /// Spec §5.1: weighted local control score. Industrial output contributes
     /// at the same weight as economic since both encode commercial strength.
     #[must_use]
@@ -456,6 +473,13 @@ pub enum DominanceState {
     Contested,
     Controlled,
     Stronghold,
+}
+
+impl DominanceState {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        matches!(self, DominanceState::Rumored)
+    }
 }
 
 impl DominanceState {
@@ -498,8 +522,22 @@ pub struct FactionClaim {
     pub strength: u8,
 }
 
+impl SystemControlSummary {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+impl WorldControlSummary {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 /// Per-world multi-winner snapshot (§5.3 / §6.2).
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct WorldControlSummary {
     /// Highest local-control-score faction — the map fill (§9.1).
     pub dominant: Option<String>,
@@ -531,7 +569,7 @@ pub enum SystemState {
     Uncharted,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SystemControlSummary {
     pub state: Option<SystemState>,
     pub dominant: Option<String>,
@@ -542,7 +580,7 @@ pub struct SystemControlSummary {
     pub top_factions: Vec<ScoredFaction>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ScoredFaction {
     pub faction_id: String,
     pub score: f32,

@@ -21,6 +21,13 @@ pub struct SystemIntel {
     pub by_observer: BTreeMap<String, ObserverView>,
 }
 
+impl SystemIntel {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.by_observer.is_empty()
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct ObserverView {
     /// Tick on which the observer last verified the state.

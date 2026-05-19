@@ -43,10 +43,17 @@ max_route_distance = 4
 route_density = 0.12
 ensure_connected_graph = true
 
+[generation.relations]
+# Drop factions present in fewer than this many worlds from the diplomacy
+# matrix. `1` includes every faction with any world presence (canonical
+# data set has ~720 such factions → ~260k pairs, ~35 MB JSON). `2` drops
+# single-world cameos. `3` retains only regionally relevant factions.
+min_world_presence = 2
+
 [outputs]
 directory = "out"
 formats = ["json", "markdown", "csv"]
-pretty_json = true
+pretty_json = false
 write_per_system_files = true
 write_manifest = true
 

@@ -2,6 +2,7 @@
 //! between sector view, system view, and edit view.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 
@@ -22,7 +23,7 @@ use super::sector_view::{SectorClick, SectorView};
 use super::system_view::{SystemClick, SystemSelection, SystemView};
 
 pub struct App {
-    sector: Option<GeneratedSector>,
+    sector: Option<Arc<GeneratedSector>>,
     subsectors: Vec<Subsector>,
     view: View,
     sector_selected: Option<String>,
@@ -96,7 +97,7 @@ impl App {
     pub fn new(sector: GeneratedSector) -> Self {
         let subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
         Self {
-            sector: Some(sector),
+            sector: Some(Arc::new(sector)),
             subsectors,
             view: View::Sector,
             ..Self::default()
@@ -157,8 +158,8 @@ impl eframe::App for App {
                         // Entering edit mode: copy current viewed sector into
                         // the editor if the editor is empty.
                         if self.editor.sector.is_none() {
-                            if let Some(s) = self.sector.clone() {
-                                self.editor.set_sector(s, None);
+                            if let Some(s) = self.sector.as_ref() {
+                                self.editor.set_sector((**s).clone(), None);
                             }
                         }
                         self.view = View::Edit;
@@ -726,60 +727,105 @@ impl App {
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
             .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
+                ui.label(
+                    RichText::new("DIPLOMACY MATRIX")
+                        .color(TEXT)
+                        .monospace()
+                        .strong(),
+                );
+                ui.label(
+                    RichText::new("§4 NEW.md — inter-faction stance + tension")
+                        .color(TEXT_DIM)
+                        .monospace(),
+                );
+                ui.add_space(8.0);
+                if sector.relations.pairs.is_empty() {
                     ui.label(
-                        RichText::new("DIPLOMACY MATRIX")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
+                        RichText::new(
+                            "relations matrix is empty (need ≥2 factions or set \
+                            inputs.relations in sectorforge.toml)",
+                        )
+                        .color(TEXT_DIM)
+                        .monospace(),
                     );
-                    ui.label(
-                        RichText::new("§4 NEW.md — inter-faction stance + tension")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                    ui.add_space(8.0);
-                    if sector.relations.pairs.is_empty() {
-                        ui.label(
-                            RichText::new(
-                                "relations matrix is empty (need ≥2 factions or set \
-                                inputs.relations in sectorforge.toml)",
-                            )
-                            .color(TEXT_DIM)
-                            .monospace(),
+                    return;
+                }
+                // Fixed column widths so virtualized rows align with the
+                // header without a Grid (Grid is incompatible with
+                // ScrollArea::show_rows virtualization).
+                const COL_A: f32 = 220.0;
+                const COL_B: f32 = 220.0;
+                const COL_STANCE: f32 = 90.0;
+                const COL_TENSION: f32 = 70.0;
+                let header = |ui: &mut egui::Ui| {
+                    ui.horizontal(|ui| {
+                        ui.add_sized(
+                            [COL_A, 0.0],
+                            egui::Label::new(
+                                RichText::new("A").color(TEXT_DIM).monospace().strong(),
+                            ),
                         );
-                        return;
-                    }
-                    egui::Grid::new("relations_grid")
-                        .num_columns(5)
-                        .striped(true)
-                        .show(ui, |ui| {
-                            ui.label(RichText::new("A").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("B").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("STANCE").color(TEXT_DIM).monospace().strong());
-                            ui.label(
-                                RichText::new("TENSION")
-                                    .color(TEXT_DIM)
-                                    .monospace()
-                                    .strong(),
-                            );
-                            ui.label(RichText::new("CAUSE").color(TEXT_DIM).monospace().strong());
-                            ui.end_row();
-                            for p in &sector.relations.pairs {
-                                let stance_color = stance_color(p.stance);
-                                ui.label(RichText::new(&p.a).monospace());
-                                ui.label(RichText::new(&p.b).monospace());
-                                ui.label(
-                                    RichText::new(format!("{:?}", p.stance))
-                                        .color(stance_color)
-                                        .monospace(),
+                        ui.add_sized(
+                            [COL_B, 0.0],
+                            egui::Label::new(
+                                RichText::new("B").color(TEXT_DIM).monospace().strong(),
+                            ),
+                        );
+                        ui.add_sized(
+                            [COL_STANCE, 0.0],
+                            egui::Label::new(
+                                RichText::new("STANCE").color(TEXT_DIM).monospace().strong(),
+                            ),
+                        );
+                        ui.add_sized(
+                            [COL_TENSION, 0.0],
+                            egui::Label::new(
+                                RichText::new("TENSION").color(TEXT_DIM).monospace().strong(),
+                            ),
+                        );
+                        ui.label(RichText::new("CAUSE").color(TEXT_DIM).monospace().strong());
+                    });
+                };
+                header(ui);
+                ui.separator();
+                let row_h = ui.text_style_height(&egui::TextStyle::Monospace) + 4.0;
+                let total = sector.relations.pairs.len();
+                ScrollArea::vertical().auto_shrink([false; 2]).show_rows(
+                    ui,
+                    row_h,
+                    total,
+                    |ui, range| {
+                        for i in range {
+                            let p = &sector.relations.pairs[i];
+                            let stance_color = stance_color(p.stance);
+                            ui.horizontal(|ui| {
+                                ui.add_sized(
+                                    [COL_A, row_h],
+                                    egui::Label::new(RichText::new(&p.a).monospace()),
                                 );
-                                ui.label(RichText::new(format!("{:.0}", p.tension)).monospace());
+                                ui.add_sized(
+                                    [COL_B, row_h],
+                                    egui::Label::new(RichText::new(&p.b).monospace()),
+                                );
+                                ui.add_sized(
+                                    [COL_STANCE, row_h],
+                                    egui::Label::new(
+                                        RichText::new(format!("{:?}", p.stance))
+                                            .color(stance_color)
+                                            .monospace(),
+                                    ),
+                                );
+                                ui.add_sized(
+                                    [COL_TENSION, row_h],
+                                    egui::Label::new(
+                                        RichText::new(format!("{:.0}", p.tension)).monospace(),
+                                    ),
+                                );
                                 ui.label(RichText::new(&p.cause).color(TEXT_DIM).monospace());
-                                ui.end_row();
-                            }
-                        });
-                });
+                            });
+                        }
+                    },
+                );
             });
     }
 

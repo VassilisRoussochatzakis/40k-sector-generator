@@ -22,6 +22,13 @@ pub struct StabilityState {
     pub famine_or_resource_stress: f32,
 }
 
+impl StabilityState {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 fn clamp(v: f32) -> f32 {
     v.clamp(0.0, 100.0)
 }

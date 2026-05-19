@@ -84,6 +84,8 @@ pub struct GenerationConfig {
     pub world_selection: WorldSelectionConfig,
     #[serde(default)]
     pub routes: RouteGenerationConfig,
+    #[serde(default)]
+    pub relations: RelationsGenerationConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -194,6 +196,34 @@ fn default_max_route_distance() -> u32 {
 
 fn default_route_density() -> f64 {
     0.30
+}
+
+/// `[generation.relations]` — controls how the inter-faction diplomacy
+/// matrix is sized at generation time. The full canonical faction catalogue
+/// on the bundled data set is ~1000 entries, which yields C(n,2) ≈ 500k
+/// pairs and tens of MB of JSON. Filtering by minimum world presence keeps
+/// the matrix scoped to factions that meaningfully appear in the sector.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct RelationsGenerationConfig {
+    /// Minimum number of worlds a faction must occupy to appear in the
+    /// `relations` matrix. `1` (default) emits a pair for every faction with
+    /// at least one world presence anywhere in the sector. Set to `2` or
+    /// higher to drop incidental single-world cameos and shrink the matrix
+    /// quadratically.
+    #[serde(default = "default_min_world_presence")]
+    pub min_world_presence: usize,
+}
+
+impl Default for RelationsGenerationConfig {
+    fn default() -> Self {
+        Self {
+            min_world_presence: default_min_world_presence(),
+        }
+    }
+}
+
+fn default_min_world_presence() -> usize {
+    1
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

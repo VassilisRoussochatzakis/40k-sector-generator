@@ -132,13 +132,11 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     // §1 NEXT: per-world surface regions.
     // §2 NEXT: per-system orbital assets + blockade detection.
     // §5 NEXT: per-world + per-system initial conflict state.
-    // §7 NEXT: per-system fog-of-war intel records, observed by every
-    // faction with at least one system-presence in the sector.
-    let observer_ids: Vec<String> = generated_factions
-        .iter()
-        .filter(|f| !f.system_presence.is_empty())
-        .map(|f| f.id.clone())
-        .collect();
+    // §7 NEXT: per-system fog-of-war intel records. Observers are scoped to
+    // factions with at least one presence IN THIS SYSTEM. The rumor-based
+    // view for distant observers is reconstructible on demand from the raw
+    // system state, so persisting it everywhere would O(F·S) and bloat
+    // sector.json by tens of MB on large sectors with many factions.
     for sys in systems.iter_mut() {
         for w in sys.worlds.iter_mut() {
             w.regions = crate::surface_region::derive_regions(w);
@@ -148,7 +146,13 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         sys.orbital_assets = assets;
         sys.blockade = blockade;
         sys.conflict = crate::conflict::derive_system_conflict(sys);
-        let obs_refs: Vec<&str> = observer_ids.iter().map(|s| s.as_str()).collect();
+        let mut per_sys: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+        for w in &sys.worlds {
+            for p in &w.factions {
+                per_sys.insert(p.faction_id.as_str());
+            }
+        }
+        let obs_refs: Vec<&str> = per_sys.into_iter().collect();
         sys.intel = crate::intel::derive_system_intel(sys, &obs_refs);
     }
 
@@ -190,7 +194,13 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
 
     // §4 NEW.md: derive inter-faction relationship matrix once factions are
     // finalised. Pure derivation, no extra RNG draws affect prior stages.
-    sector.relations = crate::relations::derive_with(&sector, &relations_cfg);
+    // `[generation.relations].min_world_presence` controls how aggressively
+    // the canonical faction list is filtered before the C(n,2) loop.
+    sector.relations = crate::relations::derive_with_threshold(
+        &sector,
+        &relations_cfg,
+        config.generation.relations.min_world_presence,
+    );
 
     // §12 NEW.md: derive the economy snapshot last so it can read final
     // route stability + control records. Optional `feed_stability` nudge

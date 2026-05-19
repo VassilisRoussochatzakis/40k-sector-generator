@@ -1,0 +1,633 @@
+{
+  "id": "sys-0010",
+  "index": 10,
+  "name": "Purgata",
+  "coord": {
+    "q": 4,
+    "r": 1
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 17
+  },
+  "worlds": [
+    {
+      "id": "sys-0010-w01",
+      "index": 1,
+      "name": "Old Eremia",
+      "orbit": 1,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "EugenicCult",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mordant_acid_dogs",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 37.8,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 21.0,
+            "industrial": 57.749996,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 70.35,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "autaal_sept",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 42.7875,
+            "military": 35.75,
+            "orbital": 32.5,
+            "economic": 44.3625,
+            "industrial": 51.187496,
+            "ideological": 39.0,
+            "covert": 22.75,
+            "logistics": 39.649998,
+            "legitimacy": 32.55,
+            "visibility": 45.5
+          },
+          "dominance": "influence",
+          "intel_confidence": 46
+        },
+        {
+          "faction_id": "armageddon_ork_hunters",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 13.229999,
+            "military": 28.0,
+            "orbital": 8.75,
+            "economic": 7.3499994,
+            "industrial": 20.2125,
+            "ideological": 12.25,
+            "covert": 3.1499999,
+            "logistics": 21.0,
+            "legitimacy": 24.622498,
+            "visibility": 31.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 32
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "mordant_acid_dogs",
+          "claim_type": "legal_sovereignty",
+          "strength": 45
+        },
+        {
+          "faction_id": "autaal_sept",
+          "claim_type": "commercial_charter",
+          "strength": 38
+        },
+        {
+          "faction_id": "armageddon_ork_hunters",
+          "claim_type": "hunting_ground",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "mordant_acid_dogs",
+        "sovereign": "mordant_acid_dogs",
+        "occupier": "mordant_acid_dogs",
+        "economic_hegemon": "autaal_sept",
+        "popular_authority": "autaal_sept",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 44.886
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 0.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "mordant_acid_dogs",
+          "control_score": 48,
+          "population_weight": 15,
+          "visibility": 90
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "mordant_acid_dogs",
+          "control_score": 21,
+          "population_weight": 75,
+          "visibility": 90
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "autaal_sept",
+          "control_score": 20,
+          "population_weight": 10,
+          "visibility": 46
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "mordant_acid_dogs",
+        "defender": "mordant_acid_dogs",
+        "visible_controller": "mordant_acid_dogs",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0010-w02",
+      "index": 2,
+      "name": "Octavia Depot",
+      "orbit": 2,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "EugenicCult",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "guevesa_auxiliaries",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 62.999996,
+            "military": 55.0,
+            "orbital": 50.0,
+            "economic": 68.25,
+            "industrial": 78.75,
+            "ideological": 60.0,
+            "covert": 35.0,
+            "logistics": 61.0,
+            "legitimacy": 47.249996,
+            "visibility": 70.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 70
+        },
+        {
+          "faction_id": "ratskin_renegades",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 3.4125,
+            "military": 13.0,
+            "orbital": 13.0,
+            "economic": 47.774998,
+            "industrial": 20.474998,
+            "ideological": 9.75,
+            "covert": 52.0,
+            "logistics": 39.649998,
+            "legitimacy": 3.4125,
+            "visibility": 16.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 16
+        },
+        {
+          "faction_id": "corpse_grinder_cults",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 1.8374999,
+            "military": 7.0,
+            "orbital": 7.0,
+            "economic": 25.724998,
+            "industrial": 11.025,
+            "ideological": 5.25,
+            "covert": 28.0,
+            "logistics": 21.35,
+            "legitimacy": 1.8374999,
+            "visibility": 8.75
+          },
+          "dominance": "presence",
+          "intel_confidence": 9
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "guevesa_auxiliaries",
+          "claim_type": "commercial_charter",
+          "strength": 58
+        },
+        {
+          "faction_id": "corpse_grinder_cults",
+          "claim_type": "rebellion",
+          "strength": 11
+        }
+      ],
+      "control": {
+        "dominant": "guevesa_auxiliaries",
+        "sovereign": "guevesa_auxiliaries",
+        "occupier": "guevesa_auxiliaries",
+        "economic_hegemon": "guevesa_auxiliaries",
+        "popular_authority": "guevesa_auxiliaries",
+        "hidden_master": "ratskin_renegades",
+        "contested": false,
+        "control_score": 58.149994
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "guevesa_auxiliaries",
+          "control_score": 64,
+          "population_weight": 15,
+          "visibility": 70
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "guevesa_auxiliaries",
+          "control_score": 24,
+          "population_weight": 75,
+          "visibility": 70
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "guevesa_auxiliaries",
+          "control_score": 38,
+          "population_weight": 10,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "guevesa_auxiliaries",
+        "defender": "guevesa_auxiliaries",
+        "visible_controller": "guevesa_auxiliaries",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "mordant_acid_dogs",
+    "guevesa_auxiliaries",
+    "ratskin_renegades"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "guevesa_auxiliaries",
+    "sovereign": "guevesa_auxiliaries",
+    "orbital_controller": "guevesa_auxiliaries",
+    "economic_hegemon": "guevesa_auxiliaries",
+    "hidden_master": "ratskin_renegades",
+    "top_factions": [
+      {
+        "faction_id": "guevesa_auxiliaries",
+        "score": 58.149994
+      },
+      {
+        "faction_id": "mordant_acid_dogs",
+        "score": 44.886
+      },
+      {
+        "faction_id": "autaal_sept",
+        "score": 38.27525
+      },
+      {
+        "faction_id": "ratskin_renegades",
+        "score": 20.58875
+      },
+      {
+        "faction_id": "armageddon_ork_hunters",
+        "score": 15.710101
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 57.5,
+    "corruption": 0.0,
+    "fear": 7.5,
+    "rebellion_risk": 15.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0010-defense-guevesa_auxiliaries",
+      "kind": "defense_platform",
+      "faction_id": "guevesa_auxiliaries",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0010-defense-mordant_acid_dogs",
+      "kind": "defense_platform",
+      "faction_id": "mordant_acid_dogs",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0010-shipyard-guevesa_auxiliaries",
+      "kind": "shipyard",
+      "faction_id": "guevesa_auxiliaries",
+      "strength": 67,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0010-station-autaal_sept",
+      "kind": "station",
+      "faction_id": "autaal_sept",
+      "strength": 38,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0010-station-guevesa_auxiliaries",
+      "kind": "station",
+      "faction_id": "guevesa_auxiliaries",
+      "strength": 57,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0010-station-mordant_acid_dogs",
+      "kind": "station",
+      "faction_id": "mordant_acid_dogs",
+      "strength": 31,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "mordant_acid_dogs",
+    "defender": "mordant_acid_dogs",
+    "visible_controller": "guevesa_auxiliaries",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "armageddon_ork_hunters": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "autaal_sept",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guevesa_auxiliaries",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mordant_acid_dogs",
+            "source": "astropathic_report",
+            "confidence": 28
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "autaal_sept": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_ork_hunters",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guevesa_auxiliaries",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mordant_acid_dogs",
+            "source": "astropathic_report",
+            "confidence": 40
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "corpse_grinder_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_ork_hunters",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "autaal_sept",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "guevesa_auxiliaries",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "mordant_acid_dogs",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "guevesa_auxiliaries": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_ork_hunters",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "autaal_sept",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "corpse_grinder_cults",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "mordant_acid_dogs",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "ratskin_renegades",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "mordant_acid_dogs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_ork_hunters",
+            "source": "astropathic_report",
+            "confidence": 28
+          },
+          {
+            "faction_id": "autaal_sept",
+            "source": "astropathic_report",
+            "confidence": 40
+          },
+          {
+            "faction_id": "guevesa_auxiliaries",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "ratskin_renegades": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_ork_hunters",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "autaal_sept",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "guevesa_auxiliaries",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "mordant_acid_dogs",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "armageddon_ork_hunters",
+      "mordant_acid_dogs"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "client",
+    "aeldari_activity": 0,
+    "chaos_corruption": 0,
+    "daemon_manifestation": 0
+  }
+}

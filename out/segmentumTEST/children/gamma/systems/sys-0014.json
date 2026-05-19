@@ -1,0 +1,666 @@
+{
+  "id": "sys-0014",
+  "index": 14,
+  "name": "Castravia",
+  "coord": {
+    "q": 4,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 10
+  },
+  "worlds": [
+    {
+      "id": "sys-0014-w01",
+      "index": 1,
+      "name": "Zircon Arcadion Hive",
+      "orbit": 1,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "plague_zombie_mobs",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 12.75,
+            "industrial": 8.5,
+            "ideological": 79.0,
+            "covert": 100.0,
+            "logistics": 15.0,
+            "legitimacy": 4.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "plague_zombie_mobs",
+          "claim_type": "covert_writ",
+          "strength": 26
+        }
+      ],
+      "control": {
+        "dominant": "plague_zombie_mobs",
+        "sovereign": null,
+        "occupier": "plague_zombie_mobs",
+        "economic_hegemon": null,
+        "popular_authority": "plague_zombie_mobs",
+        "hidden_master": "plague_zombie_mobs",
+        "contested": false,
+        "control_score": 25.545
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 25.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "plague_zombie_mobs",
+          "control_score": 16,
+          "population_weight": 30,
+          "visibility": 0
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "plague_zombie_mobs",
+          "control_score": 9,
+          "population_weight": 70,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "plague_zombie_mobs",
+        "defender": "plague_zombie_mobs",
+        "visible_controller": "plague_zombie_mobs",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0014-w02",
+      "index": 2,
+      "name": "Zircon Mendica",
+      "orbit": 2,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "corpse_starch_guilds",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 25.5,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 80.75,
+            "industrial": 34.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 38.25,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "corpse_starch_guilds",
+          "claim_type": "commercial_charter",
+          "strength": 38
+        }
+      ],
+      "control": {
+        "dominant": "corpse_starch_guilds",
+        "sovereign": "corpse_starch_guilds",
+        "occupier": "corpse_starch_guilds",
+        "economic_hegemon": "corpse_starch_guilds",
+        "popular_authority": "corpse_starch_guilds",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 37.824997
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "corpse_starch_guilds",
+          "control_score": 33,
+          "population_weight": 30,
+          "visibility": 70
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "corpse_starch_guilds",
+          "control_score": 12,
+          "population_weight": 70,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "corpse_starch_guilds",
+        "defender": "corpse_starch_guilds",
+        "visible_controller": "corpse_starch_guilds",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0014-w03",
+      "index": 3,
+      "name": "Iron Athanora Umbra",
+      "orbit": 3,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "DangerousWildlife",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "hospitallers_chapter",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 20.0,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 10.0,
+            "industrial": 30.0,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 79.0,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "voidfarer_clans",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 19.5,
+            "military": 9.75,
+            "orbital": 22.75,
+            "economic": 61.749996,
+            "industrial": 26.0,
+            "ideological": 13.0,
+            "covert": 19.5,
+            "logistics": 52.649998,
+            "legitimacy": 29.249998,
+            "visibility": 45.5
+          },
+          "dominance": "influence",
+          "intel_confidence": 46
+        },
+        {
+          "faction_id": "obyrons_guard",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 10.5,
+            "military": 31.5,
+            "orbital": 17.5,
+            "economic": 7.0,
+            "industrial": 17.5,
+            "ideological": 12.25,
+            "covert": 19.25,
+            "logistics": 14.0,
+            "legitimacy": 2.45,
+            "visibility": 13.65
+          },
+          "dominance": "presence",
+          "intel_confidence": 14
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "hospitallers_chapter",
+          "claim_type": "religious_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "voidfarer_clans",
+          "claim_type": "commercial_charter",
+          "strength": 27
+        },
+        {
+          "faction_id": "obyrons_guard",
+          "claim_type": "imperial_mandate",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "hospitallers_chapter",
+        "sovereign": "hospitallers_chapter",
+        "occupier": "hospitallers_chapter",
+        "economic_hegemon": "voidfarer_clans",
+        "popular_authority": "hospitallers_chapter",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 48.64
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 30.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "hospitallers_chapter",
+          "control_score": 49,
+          "population_weight": 30,
+          "visibility": 75
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "hospitallers_chapter",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "hospitallers_chapter",
+        "defender": "hospitallers_chapter",
+        "visible_controller": "hospitallers_chapter",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0014-w04",
+      "index": 4,
+      "name": "Noctis Cocytia",
+      "orbit": 4,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "CivilWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    }
+  ],
+  "primary_factions": [
+    "hospitallers_chapter",
+    "corpse_starch_guilds",
+    "plague_zombie_mobs"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "hospitallers_chapter",
+    "sovereign": "corpse_starch_guilds",
+    "orbital_controller": "hospitallers_chapter",
+    "economic_hegemon": "corpse_starch_guilds",
+    "hidden_master": "plague_zombie_mobs",
+    "top_factions": [
+      {
+        "faction_id": "hospitallers_chapter",
+        "score": 48.64
+      },
+      {
+        "faction_id": "corpse_starch_guilds",
+        "score": 37.824997
+      },
+      {
+        "faction_id": "voidfarer_clans",
+        "score": 26.779997
+      },
+      {
+        "faction_id": "plague_zombie_mobs",
+        "score": 25.545
+      },
+      {
+        "faction_id": "obyrons_guard",
+        "score": 15.722001
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 41.25,
+    "corruption": 38.75,
+    "fear": 33.75,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 7.5,
+    "warp_instability": 22.5,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0014-defense-hospitallers_chapter",
+      "kind": "defense_platform",
+      "faction_id": "hospitallers_chapter",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0014-defense-obyrons_guard",
+      "kind": "defense_platform",
+      "faction_id": "obyrons_guard",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0014-station-corpse_starch_guilds",
+      "kind": "station",
+      "faction_id": "corpse_starch_guilds",
+      "strength": 30,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0014-station-hospitallers_chapter",
+      "kind": "station",
+      "faction_id": "hospitallers_chapter",
+      "strength": 45,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "plague_zombie_mobs",
+    "defender": "plague_zombie_mobs",
+    "visible_controller": "hospitallers_chapter",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "corpse_starch_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "hospitallers_chapter",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "hospitallers_chapter": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "corpse_starch_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "obyrons_guard",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "astropathic_report",
+            "confidence": 34
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "obyrons_guard": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "corpse_starch_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "hospitallers_chapter",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "rumor",
+            "confidence": 6
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "plague_zombie_mobs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "corpse_starch_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "hospitallers_chapter",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "voidfarer_clans": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "corpse_starch_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "hospitallers_chapter",
+            "source": "astropathic_report",
+            "confidence": 34
+          },
+          {
+            "faction_id": "obyrons_guard",
+            "source": "rumor",
+            "confidence": 6
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "dormant",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 34,
+    "daemon_manifestation": 36
+  }
+}

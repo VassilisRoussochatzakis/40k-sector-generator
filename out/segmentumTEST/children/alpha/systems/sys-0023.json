@@ -1,0 +1,811 @@
+{
+  "id": "sys-0023",
+  "index": 23,
+  "name": "Orison Spire",
+  "coord": {
+    "q": 6,
+    "r": 8
+  },
+  "star": {
+    "colour_code": "O",
+    "colour_name": "blue hypergiant",
+    "spectral_type": "O",
+    "source_row_index": 19
+  },
+  "worlds": [
+    {
+      "id": "sys-0023-w01",
+      "index": 1,
+      "name": "Bleak Gildoria",
+      "orbit": 1,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "the_crimson_slaughter",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.25,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 10.5,
+            "industrial": 26.249998,
+            "ideological": 60.0,
+            "covert": 50.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "warlock_conclaves",
+          "influence": "significant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 17.0625,
+            "military": 39.0,
+            "orbital": 26.0,
+            "economic": 17.0625,
+            "industrial": 20.474998,
+            "ideological": 32.5,
+            "covert": 52.0,
+            "logistics": 25.349998,
+            "legitimacy": 20.474998,
+            "visibility": 11.049999
+          },
+          "dominance": "influence",
+          "intel_confidence": 11
+        },
+        {
+          "faction_id": "cadian_shock_troops",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 13.229999,
+            "military": 28.0,
+            "orbital": 8.75,
+            "economic": 7.3499994,
+            "industrial": 20.2125,
+            "ideological": 12.25,
+            "covert": 3.1499999,
+            "logistics": 21.0,
+            "legitimacy": 24.622498,
+            "visibility": 31.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 32
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:altered_humans",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "the_crimson_slaughter",
+          "claim_type": "military_occupation",
+          "strength": 41
+        },
+        {
+          "faction_id": "warlock_conclaves",
+          "claim_type": "treaty_right",
+          "strength": 27
+        },
+        {
+          "faction_id": "cadian_shock_troops",
+          "claim_type": "legal_sovereignty",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "the_crimson_slaughter",
+        "sovereign": "cadian_shock_troops",
+        "occupier": "the_crimson_slaughter",
+        "economic_hegemon": "warlock_conclaves",
+        "popular_authority": "the_crimson_slaughter",
+        "hidden_master": "warlock_conclaves",
+        "contested": true,
+        "control_score": 41.485
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 35.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "the_crimson_slaughter",
+          "control_score": 26,
+          "population_weight": 30,
+          "visibility": 64
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "the_crimson_slaughter",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "the_crimson_slaughter",
+        "defender": "the_crimson_slaughter",
+        "visible_controller": "the_crimson_slaughter",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0023-w02",
+      "index": 2,
+      "name": "Scepteris",
+      "orbit": 2,
+      "source_row_index": 3,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "Communards",
+        "notable_features": [
+          "AncientTombs",
+          "CelestialPhenomena",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "harridan_sky_swarms",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 2.25,
+            "military": 100.0,
+            "orbital": 60.0,
+            "economic": 0.0,
+            "industrial": 0.0,
+            "ideological": 0.0,
+            "covert": 30.0,
+            "logistics": 40.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_tombs",
+        "feature:celestial_phenomena",
+        "feature:cold_war",
+        "gov:communards",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "harridan_sky_swarms",
+          "claim_type": "military_occupation",
+          "strength": 31
+        }
+      ],
+      "control": {
+        "dominant": "harridan_sky_swarms",
+        "sovereign": null,
+        "occupier": "harridan_sky_swarms",
+        "economic_hegemon": null,
+        "popular_authority": null,
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 30.85
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 25.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 40.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "harridan_sky_swarms",
+          "control_score": 15,
+          "population_weight": 70,
+          "visibility": 64
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "harridan_sky_swarms",
+          "control_score": 19,
+          "population_weight": 10,
+          "visibility": 64
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "harridan_sky_swarms",
+          "control_score": 15,
+          "population_weight": 20,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "harridan_sky_swarms",
+        "defender": "harridan_sky_swarms",
+        "visible_controller": "harridan_sky_swarms",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0023-w03",
+      "index": 3,
+      "name": "Invicta",
+      "orbit": 3,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "emperors_warbringers",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 20.0,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 10.0,
+            "industrial": 30.0,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 79.0,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "sector_lord_militant_staff",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 60.899998,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 61.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "rangdan_survivors",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 8.75,
+            "military": 17.5,
+            "orbital": 7.0,
+            "economic": 8.75,
+            "industrial": 7.0,
+            "ideological": 10.5,
+            "covert": 12.25,
+            "logistics": 8.75,
+            "legitimacy": 2.45,
+            "visibility": 18.9
+          },
+          "dominance": "presence",
+          "intel_confidence": 19
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "emperors_warbringers",
+          "claim_type": "religious_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "sector_lord_militant_staff",
+          "claim_type": "legal_sovereignty",
+          "strength": 33
+        },
+        {
+          "faction_id": "rangdan_survivors",
+          "claim_type": "military_occupation",
+          "strength": 10
+        }
+      ],
+      "control": {
+        "dominant": "emperors_warbringers",
+        "sovereign": "sector_lord_militant_staff",
+        "occupier": "emperors_warbringers",
+        "economic_hegemon": "sector_lord_militant_staff",
+        "popular_authority": "emperors_warbringers",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 48.64
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 10.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "emperors_warbringers",
+          "control_score": 49,
+          "population_weight": 30,
+          "visibility": 75
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "emperors_warbringers",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "emperors_warbringers",
+        "defender": "emperors_warbringers",
+        "visible_controller": "emperors_warbringers",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "emperors_warbringers",
+    "the_crimson_slaughter",
+    "harridan_sky_swarms"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "emperors_warbringers",
+    "sovereign": "sector_lord_militant_staff",
+    "orbital_controller": "emperors_warbringers",
+    "economic_hegemon": "sector_lord_militant_staff",
+    "hidden_master": "warlock_conclaves",
+    "top_factions": [
+      {
+        "faction_id": "emperors_warbringers",
+        "score": 48.64
+      },
+      {
+        "faction_id": "the_crimson_slaughter",
+        "score": 41.485
+      },
+      {
+        "faction_id": "sector_lord_militant_staff",
+        "score": 32.591
+      },
+      {
+        "faction_id": "harridan_sky_swarms",
+        "score": 30.85
+      },
+      {
+        "faction_id": "warlock_conclaves",
+        "score": 27.482
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 56.666668,
+    "corruption": 23.333334,
+    "fear": 21.666666,
+    "rebellion_risk": 16.666666,
+    "xenos_threat": 16.666666,
+    "warp_instability": 10.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0023-defense-emperors_warbringers",
+      "kind": "defense_platform",
+      "faction_id": "emperors_warbringers",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0023-defense-harridan_sky_swarms",
+      "kind": "defense_platform",
+      "faction_id": "harridan_sky_swarms",
+      "strength": 84,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0023-defense-the_crimson_slaughter",
+      "kind": "defense_platform",
+      "faction_id": "the_crimson_slaughter",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0023-defense-warlock_conclaves",
+      "kind": "defense_platform",
+      "faction_id": "warlock_conclaves",
+      "strength": 34,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0023-station-emperors_warbringers",
+      "kind": "station",
+      "faction_id": "emperors_warbringers",
+      "strength": 45,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0023-station-warlock_conclaves",
+      "kind": "station",
+      "faction_id": "warlock_conclaves",
+      "strength": 22,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "the_crimson_slaughter",
+    "defender": "the_crimson_slaughter",
+    "visible_controller": "emperors_warbringers",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "cadian_shock_troops": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "emperors_warbringers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "harridan_sky_swarms",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "the_crimson_slaughter",
+            "source": "rumor",
+            "confidence": 20
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "emperors_warbringers": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "cadian_shock_troops",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "harridan_sky_swarms",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "rangdan_survivors",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "astropathic_report",
+            "confidence": 43
+          },
+          {
+            "faction_id": "the_crimson_slaughter",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "harridan_sky_swarms": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "cadian_shock_troops",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "emperors_warbringers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "the_crimson_slaughter",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "rangdan_survivors": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "cadian_shock_troops",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "emperors_warbringers",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "harridan_sky_swarms",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "the_crimson_slaughter",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "sector_lord_militant_staff": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "cadian_shock_troops",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "emperors_warbringers",
+            "source": "astropathic_report",
+            "confidence": 43
+          },
+          {
+            "faction_id": "harridan_sky_swarms",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "rangdan_survivors",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "the_crimson_slaughter",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "the_crimson_slaughter": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "cadian_shock_troops",
+            "source": "rumor",
+            "confidence": 20
+          },
+          {
+            "faction_id": "emperors_warbringers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "harridan_sky_swarms",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "warlock_conclaves",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "warlock_conclaves": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "emperors_warbringers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "harridan_sky_swarms",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "the_crimson_slaughter",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "cadian_shock_troops",
+      "emperors_warbringers",
+      "sector_lord_militant_staff"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "inhabited",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 52,
+    "chaos_corruption": 32,
+    "daemon_manifestation": 12
+  }
+}

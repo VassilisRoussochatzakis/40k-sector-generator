@@ -1,0 +1,1297 @@
+{
+  "id": "sys-0017",
+  "index": 17,
+  "name": "Hypnoria",
+  "coord": {
+    "q": 5,
+    "r": 5
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 4
+  },
+  "worlds": [
+    {
+      "id": "sys-0017-w01",
+      "index": 1,
+      "name": "Final Prometheon",
+      "orbit": 1,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "CivilWar",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "charnel_guard",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 9.75,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 6.5,
+            "industrial": 19.5,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 48.1,
+            "visibility": 75.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "wych_cult_of_the_blade_denied",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 4.225,
+            "military": 52.0,
+            "orbital": 22.75,
+            "economic": 10.5625,
+            "industrial": 8.45,
+            "ideological": 16.25,
+            "covert": 48.75,
+            "logistics": 19.5,
+            "legitimacy": 0.0,
+            "visibility": 22.099998
+          },
+          "dominance": "presence",
+          "intel_confidence": 22
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:archaeotech_ruins",
+        "feature:civil_war",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "charnel_guard",
+          "claim_type": "imperial_mandate",
+          "strength": 44
+        },
+        {
+          "faction_id": "wych_cult_of_the_blade_denied",
+          "claim_type": "rebellion",
+          "strength": 22
+        }
+      ],
+      "control": {
+        "dominant": "charnel_guard",
+        "sovereign": "charnel_guard",
+        "occupier": "charnel_guard",
+        "economic_hegemon": null,
+        "popular_authority": "charnel_guard",
+        "hidden_master": "wych_cult_of_the_blade_denied",
+        "contested": false,
+        "control_score": 43.686005
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "charnel_guard",
+          "control_score": 27,
+          "population_weight": 70,
+          "visibility": 75
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "charnel_guard",
+          "control_score": 37,
+          "population_weight": 10,
+          "visibility": 75
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "charnel_guard",
+          "control_score": 21,
+          "population_weight": 20,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "charnel_guard",
+        "defender": "charnel_guard",
+        "visible_controller": "charnel_guard",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w02",
+      "index": 2,
+      "name": "Lorican",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "DaemonicCorruption",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 91.0,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 50.0,
+            "industrial": 35.0,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 92.0,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "kanak_skull_takers",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 28.4,
+            "military": 52.0,
+            "orbital": 16.25,
+            "economic": 13.0,
+            "industrial": 35.75,
+            "ideological": 22.75,
+            "covert": 5.85,
+            "logistics": 39.0,
+            "legitimacy": 48.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "skyweaver_masques",
+          "influence": "minor",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 1.75,
+            "military": 17.5,
+            "orbital": 10.5,
+            "economic": 3.5,
+            "industrial": 3.5,
+            "ideological": 21.0,
+            "covert": 37.8,
+            "logistics": 10.5,
+            "legitimacy": 7.0,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial_administration",
+          "claim_type": "imperial_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "kanak_skull_takers",
+          "claim_type": "legal_sovereignty",
+          "strength": 30
+        },
+        {
+          "faction_id": "skyweaver_masques",
+          "claim_type": "covert_writ",
+          "strength": 12
+        }
+      ],
+      "control": {
+        "dominant": "imperial_administration",
+        "sovereign": "imperial_administration",
+        "occupier": "kanak_skull_takers",
+        "economic_hegemon": "imperial_administration",
+        "popular_authority": "imperial_administration",
+        "hidden_master": "skyweaver_masques",
+        "contested": false,
+        "control_score": 49.440002
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "imperial_administration",
+          "control_score": 70,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "imperial_administration",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "imperial_administration",
+        "defender": "imperial_administration",
+        "visible_controller": "imperial_administration",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w03",
+      "index": 3,
+      "name": "Martyr's Ambros",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "CelestialPhenomena",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "corpse_grinder_heresies",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 12.75,
+            "industrial": 8.5,
+            "ideological": 75.0,
+            "covert": 98.0,
+            "logistics": 15.0,
+            "legitimacy": 4.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "corpse_grinder_heresies",
+          "claim_type": "covert_writ",
+          "strength": 25
+        }
+      ],
+      "control": {
+        "dominant": "corpse_grinder_heresies",
+        "sovereign": null,
+        "occupier": "corpse_grinder_heresies",
+        "economic_hegemon": null,
+        "popular_authority": "corpse_grinder_heresies",
+        "hidden_master": "corpse_grinder_heresies",
+        "contested": false,
+        "control_score": 24.984999
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 0.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "corpse_grinder_heresies",
+          "control_score": 14,
+          "population_weight": 70,
+          "visibility": 0
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "corpse_grinder_heresies",
+          "control_score": 16,
+          "population_weight": 10,
+          "visibility": 0
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "corpse_grinder_heresies",
+          "control_score": 9,
+          "population_weight": 20,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "corpse_grinder_heresies",
+        "defender": "corpse_grinder_heresies",
+        "visible_controller": "corpse_grinder_heresies",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w04",
+      "index": 4,
+      "name": "Aquilon",
+      "orbit": 4,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "ArchaeotechRuins",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "snakebites_clan",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 2.25,
+            "military": 90.0,
+            "orbital": 30.0,
+            "economic": 6.75,
+            "industrial": 15.75,
+            "ideological": 40.0,
+            "covert": 20.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 84.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 84
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:ancient_archive",
+        "feature:archaeotech_ruins",
+        "feature:civil_war",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "snakebites_clan",
+          "claim_type": "military_occupation",
+          "strength": 30
+        }
+      ],
+      "control": {
+        "dominant": "snakebites_clan",
+        "sovereign": null,
+        "occupier": "snakebites_clan",
+        "economic_hegemon": null,
+        "popular_authority": "snakebites_clan",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 30.005001
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 25.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "snakebites_clan",
+          "control_score": 16,
+          "population_weight": 70,
+          "visibility": 84
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "snakebites_clan",
+          "control_score": 18,
+          "population_weight": 10,
+          "visibility": 84
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "snakebites_clan",
+          "control_score": 14,
+          "population_weight": 20,
+          "visibility": 84
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "snakebites_clan",
+        "defender": "snakebites_clan",
+        "visible_controller": "snakebites_clan",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w05",
+      "index": 5,
+      "name": "Maccabia Mundus",
+      "orbit": 5,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "naval_press_gangs",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 36.75,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 99.74999,
+            "industrial": 42.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 52.499996,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        },
+        {
+          "faction_id": "daemons_of_tzeentch",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.25,
+            "military": 55.249996,
+            "orbital": 19.5,
+            "economic": 3.4125,
+            "industrial": 0.0,
+            "ideological": 52.0,
+            "covert": 45.5,
+            "logistics": 6.5,
+            "legitimacy": 0.0,
+            "visibility": 35.1
+          },
+          "dominance": "presence",
+          "intel_confidence": 35
+        },
+        {
+          "faction_id": "house_devine_loyalist_claimants",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 11.392499,
+            "military": 26.25,
+            "orbital": 5.25,
+            "economic": 9.1875,
+            "industrial": 11.025,
+            "ideological": 17.5,
+            "covert": 3.1499999,
+            "logistics": 12.25,
+            "legitimacy": 28.297497,
+            "visibility": 26.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 26
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "naval_press_gangs",
+          "claim_type": "commercial_charter",
+          "strength": 44
+        },
+        {
+          "faction_id": "daemons_of_tzeentch",
+          "claim_type": "military_occupation",
+          "strength": 23
+        },
+        {
+          "faction_id": "house_devine_loyalist_claimants",
+          "claim_type": "legal_sovereignty",
+          "strength": 14
+        }
+      ],
+      "control": {
+        "dominant": "naval_press_gangs",
+        "sovereign": "naval_press_gangs",
+        "occupier": "daemons_of_tzeentch",
+        "economic_hegemon": "naval_press_gangs",
+        "popular_authority": "daemons_of_tzeentch",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 43.690002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 20.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 25.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "naval_press_gangs",
+          "control_score": 43,
+          "population_weight": 15,
+          "visibility": 70
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "daemons_of_tzeentch",
+          "control_score": 19,
+          "population_weight": 75,
+          "visibility": 35
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "naval_press_gangs",
+          "control_score": 26,
+          "population_weight": 10,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "naval_press_gangs",
+        "defender": "naval_press_gangs",
+        "visible_controller": "naval_press_gangs",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial_administration",
+    "charnel_guard",
+    "naval_press_gangs"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "imperial_administration",
+    "sovereign": "imperial_administration",
+    "orbital_controller": "charnel_guard",
+    "economic_hegemon": "naval_press_gangs",
+    "hidden_master": "corpse_grinder_heresies",
+    "top_factions": [
+      {
+        "faction_id": "imperial_administration",
+        "score": 49.440002
+      },
+      {
+        "faction_id": "naval_press_gangs",
+        "score": 43.690002
+      },
+      {
+        "faction_id": "charnel_guard",
+        "score": 43.686005
+      },
+      {
+        "faction_id": "snakebites_clan",
+        "score": 30.005001
+      },
+      {
+        "faction_id": "kanak_skull_takers",
+        "score": 29.926
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 60.0,
+    "corruption": 24.0,
+    "fear": 9.0,
+    "rebellion_risk": 16.0,
+    "xenos_threat": 5.0,
+    "warp_instability": 11.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0017-blockade-charnel_guard",
+      "kind": "blockade_fleet",
+      "faction_id": "charnel_guard",
+      "strength": 80,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-charnel_guard",
+      "kind": "defense_platform",
+      "faction_id": "charnel_guard",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-daemons_of_tzeentch",
+      "kind": "defense_platform",
+      "faction_id": "daemons_of_tzeentch",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-imperial_administration",
+      "kind": "defense_platform",
+      "faction_id": "imperial_administration",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-kanak_skull_takers",
+      "kind": "defense_platform",
+      "faction_id": "kanak_skull_takers",
+      "strength": 38,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-snakebites_clan",
+      "kind": "defense_platform",
+      "faction_id": "snakebites_clan",
+      "strength": 66,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-wych_cult_of_the_blade_denied",
+      "kind": "defense_platform",
+      "faction_id": "wych_cult_of_the_blade_denied",
+      "strength": 40,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-station-naval_press_gangs",
+      "kind": "station",
+      "faction_id": "naval_press_gangs",
+      "strength": 36,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "charnel_guard",
+    "besieged": "imperial_administration",
+    "intensity": 80
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "corpse_grinder_heresies",
+    "defender": "corpse_grinder_heresies",
+    "visible_controller": "imperial_administration",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "charnel_guard": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "wych_cult_of_the_blade_denied",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "corpse_grinder_heresies": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "daemons_of_tzeentch": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "astropathic_report",
+            "confidence": 24
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "house_devine_loyalist_claimants": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "imperial_administration": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "inquisitorial_analysis",
+            "confidence": 52
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "kanak_skull_takers": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "inquisitorial_analysis",
+            "confidence": 52
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "naval_press_gangs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "astropathic_report",
+            "confidence": 24
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "skyweaver_masques": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "snakebites_clan": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "wych_cult_of_the_blade_denied": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "daemons_of_tzeentch",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "house_devine_loyalist_claimants",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "naval_press_gangs",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "charnel_guard",
+      "house_devine_loyalist_claimants",
+      "imperial_administration",
+      "kanak_skull_takers"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 90,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 49,
+    "chaos_corruption": 43,
+    "daemon_manifestation": 64
+  }
+}

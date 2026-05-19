@@ -1,0 +1,416 @@
+{
+  "id": "sys-0004",
+  "index": 4,
+  "name": "Coronid Canticle",
+  "coord": {
+    "q": 1,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 5
+  },
+  "worlds": [
+    {
+      "id": "sys-0004-w01",
+      "index": 1,
+      "name": "Penitent Arctyra Fane",
+      "orbit": 1,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "ColdWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "death_korps_of_krieg",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 23.4,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 13.0,
+            "industrial": 35.75,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 43.55,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "sector_lord_militant_staff",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 36.335,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 21.125,
+            "industrial": 14.787499,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 36.7575,
+            "visibility": 58.499996
+          },
+          "dominance": "presence",
+          "intel_confidence": 58
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:cold_war",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "death_korps_of_krieg",
+          "claim_type": "legal_sovereignty",
+          "strength": 38
+        }
+      ],
+      "control": {
+        "dominant": "death_korps_of_krieg",
+        "sovereign": "sector_lord_militant_staff",
+        "occupier": "death_korps_of_krieg",
+        "economic_hegemon": "sector_lord_militant_staff",
+        "popular_authority": "death_korps_of_krieg",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 38.117996
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 0.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "death_korps_of_krieg",
+          "control_score": 25,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "death_korps_of_krieg",
+          "control_score": 34,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "death_korps_of_krieg",
+          "control_score": 18,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "death_korps_of_krieg",
+        "defender": "death_korps_of_krieg",
+        "visible_controller": "death_korps_of_krieg",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0004-w02",
+      "index": 2,
+      "name": "Penitent Infernis",
+      "orbit": 2,
+      "source_row_index": 3,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "Communards",
+        "notable_features": [
+          "AncientTombs",
+          "BlindingMists",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "moebian_sixth",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 6.75,
+            "military": 80.0,
+            "orbital": 15.0,
+            "economic": 6.75,
+            "industrial": 18.0,
+            "ideological": 40.0,
+            "covert": 40.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 69.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 69
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_tombs",
+        "feature:blinding_mists",
+        "feature:cold_war",
+        "gov:communards",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "moebian_sixth",
+          "claim_type": "military_occupation",
+          "strength": 31
+        }
+      ],
+      "control": {
+        "dominant": "moebian_sixth",
+        "sovereign": null,
+        "occupier": "moebian_sixth",
+        "economic_hegemon": null,
+        "popular_authority": "moebian_sixth",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 30.84
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "moebian_sixth",
+          "control_score": 16,
+          "population_weight": 70,
+          "visibility": 69
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "moebian_sixth",
+          "control_score": 20,
+          "population_weight": 10,
+          "visibility": 69
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "moebian_sixth",
+          "control_score": 14,
+          "population_weight": 20,
+          "visibility": 69
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "moebian_sixth",
+        "defender": "moebian_sixth",
+        "visible_controller": "moebian_sixth",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "death_korps_of_krieg",
+    "moebian_sixth",
+    "sector_lord_militant_staff"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "death_korps_of_krieg",
+    "sovereign": "sector_lord_militant_staff",
+    "orbital_controller": "death_korps_of_krieg",
+    "economic_hegemon": "sector_lord_militant_staff",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "death_korps_of_krieg",
+        "score": 38.117996
+      },
+      {
+        "faction_id": "moebian_sixth",
+        "score": 30.84
+      },
+      {
+        "faction_id": "sector_lord_militant_staff",
+        "score": 24.3477
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 57.5,
+    "corruption": 17.5,
+    "fear": 7.5,
+    "rebellion_risk": 25.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0004-defense-death_korps_of_krieg",
+      "kind": "defense_platform",
+      "faction_id": "death_korps_of_krieg",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-station-death_korps_of_krieg",
+      "kind": "station",
+      "faction_id": "death_korps_of_krieg",
+      "strength": 24,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "death_korps_of_krieg",
+    "defender": "death_korps_of_krieg",
+    "visible_controller": "death_korps_of_krieg",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "death_korps_of_krieg": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "moebian_sixth",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "inquisitorial_analysis",
+            "confidence": 52
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "moebian_sixth": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "death_korps_of_krieg",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "sector_lord_militant_staff",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "sector_lord_militant_staff": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "death_korps_of_krieg",
+            "source": "inquisitorial_analysis",
+            "confidence": 52
+          },
+          {
+            "faction_id": "moebian_sixth",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "death_korps_of_krieg",
+      "sector_lord_militant_staff"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 20,
+    "daemon_manifestation": 0
+  }
+}

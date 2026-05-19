@@ -1,0 +1,25 @@
+{
+  "project_id": "m42-sector",
+  "generated_at_policy": "not recorded by default",
+  "generator_name": "sectorforge",
+  "generator_version": "0.1.0",
+  "seed": "delta-seed",
+  "seed_hash": "blake3:b851f1593286d9c0bf4520222047c0251bc1356d1c608a66f560f291ff13e5b9",
+  "profile": null,
+  "input_digests": {
+    "data/factions/factions.toml": "blake3:6374710ba0e4a4d8212275022c836b8786bc2942c648b0463900c3704745851f",
+    "data/factions/relations.toml": "blake3:403088bdd33167c1efd45a6d179678e19bf884bf38e7851fb8ae3213c6be68a9",
+    "data/names/system_names.toml": "blake3:23e34e9e1a58c9ad8bb1b3d6e5b5b98fdd5ae92febc4bd11c7381bb392d551d9",
+    "data/names/world_names.toml": "blake3:2eed86668fbd7dd3acbc51651871a0852d01d835d31a4f75e8501c82ea48b363",
+    "data/routes/regions.toml": "blake3:cc522c86da9226ef6e7f01295ed8849027cbba8ebbf8e14852ed0df65560c24e",
+    "data/routes/route_rules.toml": "blake3:643f427180d3f3f264aa070d70c7ef17e365f45a5ce8eb8b37555bfa7731d7ef",
+    "data/worlds/economy.toml": "blake3:56b382a33604c27bd0000b92da17bdf48f2400d325628cd257f2b04439d370fd",
+    "data/worlds/generator.csv": "blake3:1d2431e0543019d83f70ab8f82c9bfc8a0629366799aba1ae4ddca86ba257d06",
+    "data/worlds/key.csv": "blake3:948a8f7ea22575ebb5b494070a97f1fcd8ce85299f5e6c06059ddc11e89a977c",
+    "sectorforge.toml": "blake3:d0c5c6bee0cd35058d96e11c7685e57ecb3661c6e9bd3100a3bf2408ba4a5d0f"
+  },
+  "settings_digest": "blake3:1ac0eefe72898c19527aaabfffe8080e79072309b5cfadc48fd8dc31326b6a12",
+  "system_count": 24,
+  "world_count": 87,
+  "route_count": 63
+}

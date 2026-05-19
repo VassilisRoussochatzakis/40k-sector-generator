@@ -1,0 +1,1511 @@
+{
+  "id": "sys-0017",
+  "index": 17,
+  "name": "Ambrus",
+  "coord": {
+    "q": 6,
+    "r": 6
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 10
+  },
+  "worlds": [
+    {
+      "id": "sys-0017-w01",
+      "index": 1,
+      "name": "Abyssal Laodice Manufactory",
+      "orbit": 1,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "butcherhorde",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 8.5,
+            "industrial": 21.25,
+            "ideological": 64.0,
+            "covert": 52.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "butcherhorde",
+          "claim_type": "military_occupation",
+          "strength": 41
+        }
+      ],
+      "control": {
+        "dominant": "butcherhorde",
+        "sovereign": null,
+        "occupier": "butcherhorde",
+        "economic_hegemon": null,
+        "popular_authority": "butcherhorde",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 41.305
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 70.0,
+        "fear": 25.0,
+        "rebellion_risk": 10.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "butcherhorde",
+          "control_score": 26,
+          "population_weight": 30,
+          "visibility": 64
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "butcherhorde",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 3,
+        "mobilisation": 1,
+        "attacker": "butcherhorde",
+        "defender": "butcherhorde",
+        "visible_controller": "butcherhorde",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w02",
+      "index": 2,
+      "name": "Eirenar",
+      "orbit": 2,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "forge_temple_militias",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 51.0,
+            "military": 35.0,
+            "orbital": 50.0,
+            "economic": 59.5,
+            "industrial": 80.75,
+            "ideological": 50.0,
+            "covert": 25.0,
+            "logistics": 59.0,
+            "legitimacy": 55.25,
+            "visibility": 72.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 72
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "forge_temple_militias",
+          "claim_type": "treaty_right",
+          "strength": 50
+        }
+      ],
+      "control": {
+        "dominant": "forge_temple_militias",
+        "sovereign": "forge_temple_militias",
+        "occupier": "forge_temple_militias",
+        "economic_hegemon": "forge_temple_militias",
+        "popular_authority": "forge_temple_militias",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 49.7
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "forge_temple_militias",
+          "control_score": 45,
+          "population_weight": 70,
+          "visibility": 72
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "forge_temple_militias",
+          "control_score": 53,
+          "population_weight": 10,
+          "visibility": 72
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "forge_temple_militias",
+          "control_score": 18,
+          "population_weight": 20,
+          "visibility": 72
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "forge_temple_militias",
+        "defender": "forge_temple_militias",
+        "visible_controller": "forge_temple_militias",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w03",
+      "index": 3,
+      "name": "Olymbria",
+      "orbit": 3,
+      "source_row_index": 15,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "DenselyPopulated",
+        "tech_level": "High",
+        "government": "MagistrateCouncil",
+        "notable_features": [
+          "EugenicCult",
+          "FactionalFragmentation",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "segmentum_command",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 91.0,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 50.0,
+            "industrial": 35.0,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 92.0,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "tyrant_guard_broods",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.0,
+            "military": 65.0,
+            "orbital": 39.0,
+            "economic": 0.0,
+            "industrial": 0.0,
+            "ideological": 0.0,
+            "covert": 19.5,
+            "logistics": 26.0,
+            "legitimacy": 0.0,
+            "visibility": 41.6
+          },
+          "dominance": "presence",
+          "intel_confidence": 42
+        },
+        {
+          "faction_id": "angels_of_redemption",
+          "influence": "minor",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 10.25,
+            "military": 31.5,
+            "orbital": 24.5,
+            "economic": 3.5,
+            "industrial": 10.5,
+            "ideological": 20.3,
+            "covert": 10.5,
+            "logistics": 19.25,
+            "legitimacy": 30.9,
+            "visibility": 26.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 26
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:magistrate_council",
+        "population:densely_populated",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "segmentum_command",
+          "claim_type": "legal_sovereignty",
+          "strength": 49
+        },
+        {
+          "faction_id": "tyrant_guard_broods",
+          "claim_type": "imperial_mandate",
+          "strength": 21
+        },
+        {
+          "faction_id": "angels_of_redemption",
+          "claim_type": "religious_mandate",
+          "strength": 18
+        }
+      ],
+      "control": {
+        "dominant": "segmentum_command",
+        "sovereign": "segmentum_command",
+        "occupier": "tyrant_guard_broods",
+        "economic_hegemon": "segmentum_command",
+        "popular_authority": "segmentum_command",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 49.440002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 40.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "segmentum_command",
+          "control_score": 70,
+          "population_weight": 15,
+          "visibility": 90
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "segmentum_command",
+          "control_score": 18,
+          "population_weight": 75,
+          "visibility": 90
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "segmentum_command",
+          "control_score": 19,
+          "population_weight": 10,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "segmentum_command",
+        "defender": "segmentum_command",
+        "visible_controller": "segmentum_command",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w04",
+      "index": 4,
+      "name": "Adrastia",
+      "orbit": 4,
+      "source_row_index": 7,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ElitistTyrant",
+        "notable_features": [
+          "ChaosCultists",
+          "ArchaeotechRuins",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "slaver_guilds",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 20.0,
+            "orbital": 20.0,
+            "economic": 59.5,
+            "industrial": 25.5,
+            "ideological": 19.0,
+            "covert": 82.0,
+            "logistics": 61.0,
+            "legitimacy": 4.25,
+            "visibility": 25.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:chaos_cultists",
+        "feature:civil_war",
+        "gov:elitist_tyrant",
+        "population:lightly_populated",
+        "star:blue_white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "slaver_guilds",
+          "claim_type": "commercial_charter",
+          "strength": 30
+        }
+      ],
+      "control": {
+        "dominant": "slaver_guilds",
+        "sovereign": null,
+        "occupier": "slaver_guilds",
+        "economic_hegemon": "slaver_guilds",
+        "popular_authority": "slaver_guilds",
+        "hidden_master": "slaver_guilds",
+        "contested": false,
+        "control_score": 29.935
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "slaver_guilds",
+          "control_score": 24,
+          "population_weight": 70,
+          "visibility": 25
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "slaver_guilds",
+          "control_score": 19,
+          "population_weight": 10,
+          "visibility": 25
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "slaver_guilds",
+          "control_score": 10,
+          "population_weight": 20,
+          "visibility": 25
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "slaver_guilds",
+        "defender": "slaver_guilds",
+        "visible_controller": "slaver_guilds",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w05",
+      "index": 5,
+      "name": "Leontar",
+      "orbit": 5,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "guild_navigators",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 29.75,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 80.75,
+            "industrial": 34.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 42.5,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "guild_navigators",
+          "claim_type": "commercial_charter",
+          "strength": 39
+        }
+      ],
+      "control": {
+        "dominant": "guild_navigators",
+        "sovereign": "guild_navigators",
+        "occupier": "guild_navigators",
+        "economic_hegemon": "guild_navigators",
+        "popular_authority": "guild_navigators",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 38.93
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "guild_navigators",
+          "control_score": 38,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "guild_navigators",
+          "control_score": 36,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "guild_navigators",
+          "control_score": 13,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "guild_navigators",
+        "defender": "guild_navigators",
+        "visible_controller": "guild_navigators",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w06",
+      "index": 6,
+      "name": "Kythera",
+      "orbit": 6,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "dark_compliance_militias",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 20.0,
+            "military": 80.0,
+            "orbital": 15.0,
+            "economic": 15.0,
+            "industrial": 40.0,
+            "ideological": 44.0,
+            "covert": 42.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 69.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 69
+        },
+        {
+          "faction_id": "league_of_black_ships",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 60.899998,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 61.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "legio_interfector",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.5,
+            "military": 35.0,
+            "orbital": 10.5,
+            "economic": 5.25,
+            "industrial": 19.25,
+            "ideological": 18.0,
+            "covert": 10.75,
+            "logistics": 15.75,
+            "legitimacy": 0.0,
+            "visibility": 22.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 22
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "dark_compliance_militias",
+          "claim_type": "military_occupation",
+          "strength": 36
+        },
+        {
+          "faction_id": "league_of_black_ships",
+          "claim_type": "legal_sovereignty",
+          "strength": 33
+        }
+      ],
+      "control": {
+        "dominant": "dark_compliance_militias",
+        "sovereign": "league_of_black_ships",
+        "occupier": "dark_compliance_militias",
+        "economic_hegemon": "league_of_black_ships",
+        "popular_authority": "dark_compliance_militias",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 36.36
+      },
+      "stability": {
+        "public_order": 30.0,
+        "corruption": 70.0,
+        "fear": 40.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "league_of_black_ships",
+          "control_score": 38,
+          "population_weight": 30,
+          "visibility": 58
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "dark_compliance_militias",
+          "control_score": 17,
+          "population_weight": 70,
+          "visibility": 69
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "dark_compliance_militias",
+        "defender": "dark_compliance_militias",
+        "visible_controller": "dark_compliance_militias",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "segmentum_command",
+    "forge_temple_militias",
+    "guild_navigators"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "forge_temple_militias",
+    "sovereign": "segmentum_command",
+    "orbital_controller": "butcherhorde",
+    "economic_hegemon": "guild_navigators",
+    "hidden_master": "slaver_guilds",
+    "top_factions": [
+      {
+        "faction_id": "forge_temple_militias",
+        "score": 49.7
+      },
+      {
+        "faction_id": "segmentum_command",
+        "score": 49.440002
+      },
+      {
+        "faction_id": "butcherhorde",
+        "score": 41.305
+      },
+      {
+        "faction_id": "guild_navigators",
+        "score": 38.93
+      },
+      {
+        "faction_id": "dark_compliance_militias",
+        "score": 36.36
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 45.833332,
+    "corruption": 23.333334,
+    "fear": 30.0,
+    "rebellion_risk": 11.666667,
+    "xenos_threat": 6.6666665,
+    "warp_instability": 10.0,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0017-blockade-butcherhorde",
+      "kind": "blockade_fleet",
+      "faction_id": "butcherhorde",
+      "strength": 78,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-angels_of_redemption",
+      "kind": "defense_platform",
+      "faction_id": "angels_of_redemption",
+      "strength": 29,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-butcherhorde",
+      "kind": "defense_platform",
+      "faction_id": "butcherhorde",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-dark_compliance_militias",
+      "kind": "defense_platform",
+      "faction_id": "dark_compliance_militias",
+      "strength": 54,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-forge_temple_militias",
+      "kind": "defense_platform",
+      "faction_id": "forge_temple_militias",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-legio_interfector",
+      "kind": "defense_platform",
+      "faction_id": "legio_interfector",
+      "strength": 25,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-segmentum_command",
+      "kind": "defense_platform",
+      "faction_id": "segmentum_command",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-tyrant_guard_broods",
+      "kind": "defense_platform",
+      "faction_id": "tyrant_guard_broods",
+      "strength": 55,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-shipyard-forge_temple_militias",
+      "kind": "shipyard",
+      "faction_id": "forge_temple_militias",
+      "strength": 68,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0017-station-forge_temple_militias",
+      "kind": "station",
+      "faction_id": "forge_temple_militias",
+      "strength": 51,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0017-station-guild_navigators",
+      "kind": "station",
+      "faction_id": "guild_navigators",
+      "strength": 32,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "butcherhorde",
+    "besieged": "forge_temple_militias",
+    "intensity": 78
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "dark_compliance_militias",
+    "defender": "dark_compliance_militias",
+    "visible_controller": "forge_temple_militias",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "angels_of_redemption": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "astropathic_report",
+            "confidence": 23
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 10
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "butcherhorde": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "dark_compliance_militias": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "astropathic_report",
+            "confidence": 40
+          },
+          {
+            "faction_id": "legio_interfector",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "forge_temple_militias": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "guild_navigators": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "league_of_black_ships": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "astropathic_report",
+            "confidence": 40
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_interfector",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "legio_interfector": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "segmentum_command": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "astropathic_report",
+            "confidence": 23
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "astropathic_report",
+            "confidence": 37
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "slaver_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "tyrant_guard_broods",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "tyrant_guard_broods": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "angels_of_redemption",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "butcherhorde",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "dark_compliance_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "forge_temple_militias",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "guild_navigators",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "league_of_black_ships",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "segmentum_command",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "slaver_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "angels_of_redemption",
+      "forge_temple_militias",
+      "league_of_black_ships",
+      "segmentum_command"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "inhabited",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 69,
+    "daemon_manifestation": 24
+  }
+}

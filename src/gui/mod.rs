@@ -12,6 +12,7 @@ pub mod palette;
 pub mod preset_gallery;
 pub mod route_planner;
 pub mod sector_view;
+pub mod segmentum_view;
 pub mod system_view;
 
 pub use app::App;

@@ -1,0 +1,1158 @@
+{
+  "id": "sys-0015",
+  "index": 15,
+  "name": "Irehold",
+  "coord": {
+    "q": 6,
+    "r": 3
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 6
+  },
+  "worlds": [
+    {
+      "id": "sys-0015-w01",
+      "index": 1,
+      "name": "Nicomede",
+      "orbit": 1,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "AlteredHumans",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "arco_flagellant_processions",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 22.75,
+            "military": 65.0,
+            "orbital": 25.0,
+            "economic": 16.25,
+            "industrial": 6.5,
+            "ideological": 100.0,
+            "covert": 25.0,
+            "logistics": 35.0,
+            "legitimacy": 51.35,
+            "visibility": 80.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 80
+        },
+        {
+          "faction_id": "aspect_warrior_shrines",
+          "influence": "significant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 10.5625,
+            "military": 39.0,
+            "orbital": 26.0,
+            "economic": 10.5625,
+            "industrial": 12.674999,
+            "ideological": 32.5,
+            "covert": 52.0,
+            "logistics": 25.349998,
+            "legitimacy": 12.674999,
+            "visibility": 11.049999
+          },
+          "dominance": "presence",
+          "intel_confidence": 11
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "arco_flagellant_processions",
+          "claim_type": "religious_mandate",
+          "strength": 40
+        }
+      ],
+      "control": {
+        "dominant": "arco_flagellant_processions",
+        "sovereign": "arco_flagellant_processions",
+        "occupier": "arco_flagellant_processions",
+        "economic_hegemon": "arco_flagellant_processions",
+        "popular_authority": "arco_flagellant_processions",
+        "hidden_master": "aspect_warrior_shrines",
+        "contested": false,
+        "control_score": 39.671
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "arco_flagellant_processions",
+          "control_score": 27,
+          "population_weight": 70,
+          "visibility": 80
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "arco_flagellant_processions",
+          "control_score": 36,
+          "population_weight": 10,
+          "visibility": 80
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "arco_flagellant_processions",
+          "control_score": 17,
+          "population_weight": 20,
+          "visibility": 80
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "arco_flagellant_processions",
+        "defender": "arco_flagellant_processions",
+        "visible_controller": "arco_flagellant_processions",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0015-w02",
+      "index": 2,
+      "name": "Ashen Cathedris",
+      "orbit": 2,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "forge_world_mezoa",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 46.75,
+            "military": 35.0,
+            "orbital": 50.0,
+            "economic": 59.5,
+            "industrial": 80.75,
+            "ideological": 50.0,
+            "covert": 25.0,
+            "logistics": 59.0,
+            "legitimacy": 51.0,
+            "visibility": 72.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 72
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "forge_world_mezoa",
+          "claim_type": "treaty_right",
+          "strength": 49
+        }
+      ],
+      "control": {
+        "dominant": "forge_world_mezoa",
+        "sovereign": "forge_world_mezoa",
+        "occupier": "forge_world_mezoa",
+        "economic_hegemon": "forge_world_mezoa",
+        "popular_authority": "forge_world_mezoa",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 48.595005
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "forge_world_mezoa",
+          "control_score": 50,
+          "population_weight": 30,
+          "visibility": 72
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "forge_world_mezoa",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 72
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "forge_world_mezoa",
+        "defender": "forge_world_mezoa",
+        "visible_controller": "forge_world_mezoa",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0015-w03",
+      "index": 3,
+      "name": "Bright Clarion",
+      "orbit": 3,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ratling_scout_cadres",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 41.0,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 20.0,
+            "industrial": 55.0,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 72.0,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "sunblitz_brotherhood",
+          "influence": "significant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 16.25,
+            "military": 39.0,
+            "orbital": 26.0,
+            "economic": 16.25,
+            "industrial": 19.5,
+            "ideological": 32.5,
+            "covert": 52.0,
+            "logistics": 25.349998,
+            "legitimacy": 19.5,
+            "visibility": 11.049999
+          },
+          "dominance": "influence",
+          "intel_confidence": 11
+        },
+        {
+          "faction_id": "legion_of_the_damned",
+          "influence": "minor",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 10.25,
+            "military": 31.5,
+            "orbital": 24.5,
+            "economic": 3.5,
+            "industrial": 10.5,
+            "ideological": 20.3,
+            "covert": 10.5,
+            "logistics": 19.25,
+            "legitimacy": 30.9,
+            "visibility": 26.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 26
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "ratling_scout_cadres",
+          "claim_type": "legal_sovereignty",
+          "strength": 45
+        },
+        {
+          "faction_id": "sunblitz_brotherhood",
+          "claim_type": "treaty_right",
+          "strength": 27
+        },
+        {
+          "faction_id": "legion_of_the_damned",
+          "claim_type": "religious_mandate",
+          "strength": 18
+        }
+      ],
+      "control": {
+        "dominant": "ratling_scout_cadres",
+        "sovereign": "ratling_scout_cadres",
+        "occupier": "ratling_scout_cadres",
+        "economic_hegemon": "ratling_scout_cadres",
+        "popular_authority": "ratling_scout_cadres",
+        "hidden_master": "sunblitz_brotherhood",
+        "contested": false,
+        "control_score": 45.34
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "ratling_scout_cadres",
+          "control_score": 50,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "ratling_scout_cadres",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "ratling_scout_cadres",
+        "defender": "ratling_scout_cadres",
+        "visible_controller": "ratling_scout_cadres",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0015-w04",
+      "index": 4,
+      "name": "Gildoria Umbra",
+      "orbit": 4,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "raptors",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 20.0,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 10.0,
+            "industrial": 30.0,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 79.0,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "savlar_chem_dogs",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 28.4,
+            "military": 52.0,
+            "orbital": 16.25,
+            "economic": 13.0,
+            "industrial": 35.75,
+            "ideological": 22.75,
+            "covert": 5.85,
+            "logistics": 39.0,
+            "legitimacy": 48.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "kanak_skull_takers",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 17.599998,
+            "military": 28.0,
+            "orbital": 8.75,
+            "economic": 7.0,
+            "industrial": 19.25,
+            "ideological": 12.25,
+            "covert": 3.1499999,
+            "logistics": 21.0,
+            "legitimacy": 28.449999,
+            "visibility": 31.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 32
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "raptors",
+          "claim_type": "religious_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "savlar_chem_dogs",
+          "claim_type": "legal_sovereignty",
+          "strength": 30
+        }
+      ],
+      "control": {
+        "dominant": "raptors",
+        "sovereign": "raptors",
+        "occupier": "raptors",
+        "economic_hegemon": null,
+        "popular_authority": "raptors",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 48.64
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "raptors",
+          "control_score": 49,
+          "population_weight": 30,
+          "visibility": 75
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "raptors",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "raptors",
+        "defender": "raptors",
+        "visible_controller": "raptors",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "raptors",
+    "ratling_scout_cadres",
+    "arco_flagellant_processions"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "raptors",
+    "sovereign": "forge_world_mezoa",
+    "orbital_controller": "raptors",
+    "economic_hegemon": "forge_world_mezoa",
+    "hidden_master": "aspect_warrior_shrines",
+    "top_factions": [
+      {
+        "faction_id": "raptors",
+        "score": 48.64
+      },
+      {
+        "faction_id": "forge_world_mezoa",
+        "score": 48.595005
+      },
+      {
+        "faction_id": "ratling_scout_cadres",
+        "score": 45.34
+      },
+      {
+        "faction_id": "arco_flagellant_processions",
+        "score": 39.671
+      },
+      {
+        "faction_id": "savlar_chem_dogs",
+        "score": 29.926
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 43.75,
+    "corruption": 26.25,
+    "fear": 33.75,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 22.5,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0015-defense-arco_flagellant_processions",
+      "kind": "defense_platform",
+      "faction_id": "arco_flagellant_processions",
+      "strength": 49,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-aspect_warrior_shrines",
+      "kind": "defense_platform",
+      "faction_id": "aspect_warrior_shrines",
+      "strength": 34,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-forge_world_mezoa",
+      "kind": "defense_platform",
+      "faction_id": "forge_world_mezoa",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-legion_of_the_damned",
+      "kind": "defense_platform",
+      "faction_id": "legion_of_the_damned",
+      "strength": 29,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-raptors",
+      "kind": "defense_platform",
+      "faction_id": "raptors",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-ratling_scout_cadres",
+      "kind": "defense_platform",
+      "faction_id": "ratling_scout_cadres",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-savlar_chem_dogs",
+      "kind": "defense_platform",
+      "faction_id": "savlar_chem_dogs",
+      "strength": 38,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-sunblitz_brotherhood",
+      "kind": "defense_platform",
+      "faction_id": "sunblitz_brotherhood",
+      "strength": 34,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-shipyard-forge_world_mezoa",
+      "kind": "shipyard",
+      "faction_id": "forge_world_mezoa",
+      "strength": 68,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0015-station-arco_flagellant_processions",
+      "kind": "station",
+      "faction_id": "arco_flagellant_processions",
+      "strength": 24,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0015-station-forge_world_mezoa",
+      "kind": "station",
+      "faction_id": "forge_world_mezoa",
+      "strength": 48,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0015-station-raptors",
+      "kind": "station",
+      "faction_id": "raptors",
+      "strength": 45,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0015-station-ratling_scout_cadres",
+      "kind": "station",
+      "faction_id": "ratling_scout_cadres",
+      "strength": 33,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0015-station-sunblitz_brotherhood",
+      "kind": "station",
+      "faction_id": "sunblitz_brotherhood",
+      "strength": 21,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 70,
+    "mobilisation": 0,
+    "attacker": "arco_flagellant_processions",
+    "defender": "arco_flagellant_processions",
+    "visible_controller": "raptors",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "arco_flagellant_processions": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "aspect_warrior_shrines",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "raptors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "aspect_warrior_shrines": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "raptors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "forge_world_mezoa": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "raptors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "kanak_skull_takers": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "raptors",
+            "source": "astropathic_report",
+            "confidence": 23
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "legion_of_the_damned": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "raptors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "astropathic_report",
+            "confidence": 23
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "raptors": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "astropathic_report",
+            "confidence": 23
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "astropathic_report",
+            "confidence": 43
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "ratling_scout_cadres": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "astropathic_report",
+            "confidence": 23
+          },
+          {
+            "faction_id": "raptors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "sunblitz_brotherhood",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "savlar_chem_dogs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "legion_of_the_damned",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "raptors",
+            "source": "astropathic_report",
+            "confidence": 43
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "sunblitz_brotherhood": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "arco_flagellant_processions",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "forge_world_mezoa",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kanak_skull_takers",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "raptors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "savlar_chem_dogs",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "arco_flagellant_processions",
+      "forge_world_mezoa",
+      "kanak_skull_takers",
+      "legion_of_the_damned",
+      "raptors",
+      "ratling_scout_cadres",
+      "savlar_chem_dogs"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 52,
+    "chaos_corruption": 24,
+    "daemon_manifestation": 36
+  }
+}

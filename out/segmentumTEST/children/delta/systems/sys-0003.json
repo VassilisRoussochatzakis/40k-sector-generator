@@ -1,0 +1,579 @@
+{
+  "id": "sys-0003",
+  "index": 3,
+  "name": "Halcyon Sanctuary",
+  "coord": {
+    "q": 1,
+    "r": 6
+  },
+  "star": {
+    "colour_code": "F",
+    "colour_name": "yellow-white",
+    "spectral_type": "F",
+    "source_row_index": 11
+  },
+  "worlds": [
+    {
+      "id": "sys-0003-w01",
+      "index": 1,
+      "name": "Apollyra",
+      "orbit": 1,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "voidfarer_clans",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 30.0,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 95.0,
+            "industrial": 40.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 45.0,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        },
+        {
+          "faction_id": "blood_pact",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 14.75,
+            "military": 52.0,
+            "orbital": 9.75,
+            "economic": 9.75,
+            "industrial": 26.0,
+            "ideological": 30.0,
+            "covert": 28.0,
+            "logistics": 29.249998,
+            "legitimacy": 0.0,
+            "visibility": 44.85
+          },
+          "dominance": "presence",
+          "intel_confidence": 45
+        },
+        {
+          "faction_id": "phantine_air_corps",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 17.599998,
+            "military": 28.0,
+            "orbital": 8.75,
+            "economic": 7.0,
+            "industrial": 19.25,
+            "ideological": 12.25,
+            "covert": 3.1499999,
+            "logistics": 21.0,
+            "legitimacy": 28.449999,
+            "visibility": 31.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 32
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "voidfarer_clans",
+          "claim_type": "commercial_charter",
+          "strength": 41
+        },
+        {
+          "faction_id": "blood_pact",
+          "claim_type": "military_occupation",
+          "strength": 24
+        },
+        {
+          "faction_id": "phantine_air_corps",
+          "claim_type": "legal_sovereignty",
+          "strength": 17
+        }
+      ],
+      "control": {
+        "dominant": "voidfarer_clans",
+        "sovereign": "voidfarer_clans",
+        "occupier": "blood_pact",
+        "economic_hegemon": "voidfarer_clans",
+        "popular_authority": "blood_pact",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 41.2
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 70.0,
+        "fear": 25.0,
+        "rebellion_risk": 10.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "voidfarer_clans",
+          "control_score": 38,
+          "population_weight": 30,
+          "visibility": 70
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "voidfarer_clans",
+          "control_score": 14,
+          "population_weight": 70,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 3,
+        "mobilisation": 1,
+        "attacker": "voidfarer_clans",
+        "defender": "voidfarer_clans",
+        "visible_controller": "voidfarer_clans",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0003-w02",
+      "index": 2,
+      "name": "Zanthis",
+      "orbit": 2,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "Abhumans",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_armoury_guilds",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 59.149998,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 59.8,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "demagogue_led_mobs",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 6.3374996,
+            "military": 39.0,
+            "orbital": 6.5,
+            "economic": 10.5625,
+            "industrial": 8.45,
+            "ideological": 35.75,
+            "covert": 32.5,
+            "logistics": 16.25,
+            "legitimacy": 2.9574997,
+            "visibility": 38.35
+          },
+          "dominance": "presence",
+          "intel_confidence": 38
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:abhumans",
+        "feature:altered_humans",
+        "feature:celestial_phenomena",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial_armoury_guilds",
+          "claim_type": "imperial_mandate",
+          "strength": 38
+        },
+        {
+          "faction_id": "demagogue_led_mobs",
+          "claim_type": "military_occupation",
+          "strength": 19
+        }
+      ],
+      "control": {
+        "dominant": "imperial_armoury_guilds",
+        "sovereign": "imperial_armoury_guilds",
+        "occupier": "demagogue_led_mobs",
+        "economic_hegemon": "imperial_armoury_guilds",
+        "popular_authority": "imperial_armoury_guilds",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 38.302998
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "imperial_armoury_guilds",
+          "control_score": 30,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "imperial_armoury_guilds",
+          "control_score": 43,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "imperial_armoury_guilds",
+          "control_score": 14,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 9,
+        "mobilisation": 4,
+        "attacker": "imperial_armoury_guilds",
+        "defender": "imperial_armoury_guilds",
+        "visible_controller": "imperial_armoury_guilds",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial_armoury_guilds",
+    "voidfarer_clans",
+    "demagogue_led_mobs"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "voidfarer_clans",
+    "sovereign": "imperial_armoury_guilds",
+    "orbital_controller": "voidfarer_clans",
+    "economic_hegemon": "voidfarer_clans",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "voidfarer_clans",
+        "score": 41.2
+      },
+      {
+        "faction_id": "imperial_armoury_guilds",
+        "score": 38.302998
+      },
+      {
+        "faction_id": "blood_pact",
+        "score": 24.18
+      },
+      {
+        "faction_id": "demagogue_led_mobs",
+        "score": 18.68945
+      },
+      {
+        "faction_id": "phantine_air_corps",
+        "score": 16.714
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 57.5,
+    "corruption": 35.0,
+    "fear": 12.5,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 15.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0003-defense-blood_pact",
+      "kind": "defense_platform",
+      "faction_id": "blood_pact",
+      "strength": 35,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0003-defense-demagogue_led_mobs",
+      "kind": "defense_platform",
+      "faction_id": "demagogue_led_mobs",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0003-defense-imperial_armoury_guilds",
+      "kind": "defense_platform",
+      "faction_id": "imperial_armoury_guilds",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0003-station-voidfarer_clans",
+      "kind": "station",
+      "faction_id": "voidfarer_clans",
+      "strength": 33,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 9,
+    "mobilisation": 4,
+    "attacker": "imperial_armoury_guilds",
+    "defender": "imperial_armoury_guilds",
+    "visible_controller": "voidfarer_clans",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "blood_pact": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "demagogue_led_mobs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "imperial_armoury_guilds",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "phantine_air_corps",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "astropathic_report",
+            "confidence": 31
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "demagogue_led_mobs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "blood_pact",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "imperial_armoury_guilds",
+            "source": "astropathic_report",
+            "confidence": 34
+          },
+          {
+            "faction_id": "phantine_air_corps",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "imperial_armoury_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "blood_pact",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "demagogue_led_mobs",
+            "source": "astropathic_report",
+            "confidence": 34
+          },
+          {
+            "faction_id": "phantine_air_corps",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "phantine_air_corps": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "blood_pact",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "demagogue_led_mobs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "imperial_armoury_guilds",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "voidfarer_clans",
+            "source": "astropathic_report",
+            "confidence": 22
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "voidfarer_clans": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "blood_pact",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "demagogue_led_mobs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "imperial_armoury_guilds",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "phantine_air_corps",
+            "source": "astropathic_report",
+            "confidence": 22
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "imperial_armoury_guilds",
+      "phantine_air_corps"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 21,
+    "daemon_manifestation": 12
+  }
+}

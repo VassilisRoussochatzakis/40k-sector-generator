@@ -1,0 +1,606 @@
+{
+  "id": "sys-0005",
+  "index": 5,
+  "name": "Hemlock Sarcophagus",
+  "coord": {
+    "q": 1,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 2
+  },
+  "worlds": [
+    {
+      "id": "sys-0005-w01",
+      "index": 1,
+      "name": "Night Yperion",
+      "orbit": 1,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "CelestialPhenomena",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "demiurg_allies",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 24.75,
+            "military": 55.0,
+            "orbital": 50.0,
+            "economic": 29.25,
+            "industrial": 33.75,
+            "ideological": 60.0,
+            "covert": 35.0,
+            "logistics": 61.0,
+            "legitimacy": 18.0,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:ancient_archive",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "demiurg_allies",
+          "claim_type": "commercial_charter",
+          "strength": 41
+        }
+      ],
+      "control": {
+        "dominant": "demiurg_allies",
+        "sovereign": "demiurg_allies",
+        "occupier": "demiurg_allies",
+        "economic_hegemon": "demiurg_allies",
+        "popular_authority": "demiurg_allies",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 41.364998
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "demiurg_allies",
+          "control_score": 28,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "demiurg_allies",
+          "control_score": 33,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "demiurg_allies",
+          "control_score": 17,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "demiurg_allies",
+        "defender": "demiurg_allies",
+        "visible_controller": "demiurg_allies",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0005-w02",
+      "index": 2,
+      "name": "Deep Tempestus",
+      "orbit": 2,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rogue_trader_militant_houses",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 29.75,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 80.75,
+            "industrial": 34.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 42.5,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "rogue_trader_militant_houses",
+          "claim_type": "dynastic_right",
+          "strength": 39
+        }
+      ],
+      "control": {
+        "dominant": "rogue_trader_militant_houses",
+        "sovereign": "rogue_trader_militant_houses",
+        "occupier": "rogue_trader_militant_houses",
+        "economic_hegemon": "rogue_trader_militant_houses",
+        "popular_authority": "rogue_trader_militant_houses",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 38.93
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "rogue_trader_militant_houses",
+          "control_score": 38,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "rogue_trader_militant_houses",
+          "control_score": 36,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "rogue_trader_militant_houses",
+          "control_score": 13,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "rogue_trader_militant_houses",
+        "defender": "rogue_trader_militant_houses",
+        "visible_controller": "rogue_trader_militant_houses",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0005-w03",
+      "index": 3,
+      "name": "Palladia",
+      "orbit": 3,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "CelestialPhenomena",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "kasrkin_companies",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 23.4,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 13.0,
+            "industrial": 35.75,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 43.55,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "tarellian_dog_soldiers",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 10.5625,
+            "military": 32.5,
+            "orbital": 13.0,
+            "economic": 10.5625,
+            "industrial": 8.45,
+            "ideological": 19.5,
+            "covert": 22.75,
+            "logistics": 16.25,
+            "legitimacy": 2.9574997,
+            "visibility": 35.1
+          },
+          "dominance": "presence",
+          "intel_confidence": 35
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "kasrkin_companies",
+          "claim_type": "legal_sovereignty",
+          "strength": 38
+        },
+        {
+          "faction_id": "tarellian_dog_soldiers",
+          "claim_type": "military_occupation",
+          "strength": 17
+        }
+      ],
+      "control": {
+        "dominant": "kasrkin_companies",
+        "sovereign": "kasrkin_companies",
+        "occupier": "kasrkin_companies",
+        "economic_hegemon": null,
+        "popular_authority": "kasrkin_companies",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 38.117996
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 10.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "kasrkin_companies",
+          "control_score": 25,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "kasrkin_companies",
+          "control_score": 34,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "kasrkin_companies",
+          "control_score": 18,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "kasrkin_companies",
+        "defender": "kasrkin_companies",
+        "visible_controller": "kasrkin_companies",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "kasrkin_companies",
+    "rogue_trader_militant_houses",
+    "demiurg_allies"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "demiurg_allies",
+    "sovereign": "rogue_trader_militant_houses",
+    "orbital_controller": "demiurg_allies",
+    "economic_hegemon": "rogue_trader_militant_houses",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "demiurg_allies",
+        "score": 41.364998
+      },
+      {
+        "faction_id": "rogue_trader_militant_houses",
+        "score": 38.93
+      },
+      {
+        "faction_id": "kasrkin_companies",
+        "score": 38.117996
+      },
+      {
+        "faction_id": "tarellian_dog_soldiers",
+        "score": 16.60945
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 70.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 3.3333333,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0005-defense-demiurg_allies",
+      "kind": "defense_platform",
+      "faction_id": "demiurg_allies",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0005-defense-kasrkin_companies",
+      "kind": "defense_platform",
+      "faction_id": "kasrkin_companies",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0005-station-demiurg_allies",
+      "kind": "station",
+      "faction_id": "demiurg_allies",
+      "strength": 37,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0005-station-kasrkin_companies",
+      "kind": "station",
+      "faction_id": "kasrkin_companies",
+      "strength": 24,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0005-station-rogue_trader_militant_houses",
+      "kind": "station",
+      "faction_id": "rogue_trader_militant_houses",
+      "strength": 32,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 25,
+    "mobilisation": 0,
+    "attacker": "demiurg_allies",
+    "defender": "demiurg_allies",
+    "visible_controller": "demiurg_allies",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "demiurg_allies": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "kasrkin_companies",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "tarellian_dog_soldiers",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "kasrkin_companies": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "demiurg_allies",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "tarellian_dog_soldiers",
+            "source": "astropathic_report",
+            "confidence": 31
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "rogue_trader_militant_houses": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "demiurg_allies",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kasrkin_companies",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "tarellian_dog_soldiers",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "tarellian_dog_soldiers": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "demiurg_allies",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "kasrkin_companies",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "fringe",
+    "aeldari_activity": 0,
+    "chaos_corruption": 0,
+    "daemon_manifestation": 0
+  }
+}

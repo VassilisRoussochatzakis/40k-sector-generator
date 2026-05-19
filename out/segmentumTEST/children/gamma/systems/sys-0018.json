@@ -1,0 +1,570 @@
+{
+  "id": "sys-0018",
+  "index": 18,
+  "name": "Astreon Sarcophagus",
+  "coord": {
+    "q": 6,
+    "r": 3
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 8
+  },
+  "worlds": [
+    {
+      "id": "sys-0018-w01",
+      "index": 1,
+      "name": "Rhadam Terminus",
+      "orbit": 1,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "ArchaeotechRuins",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "dark_angels",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 12.75,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 8.5,
+            "industrial": 25.5,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 62.9,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "dark_angels",
+          "claim_type": "religious_mandate",
+          "strength": 46
+        }
+      ],
+      "control": {
+        "dominant": "dark_angels",
+        "sovereign": "dark_angels",
+        "occupier": "dark_angels",
+        "economic_hegemon": null,
+        "popular_authority": "dark_angels",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 45.774002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "dark_angels",
+          "control_score": 31,
+          "population_weight": 70,
+          "visibility": 75
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "dark_angels",
+          "control_score": 42,
+          "population_weight": 10,
+          "visibility": 75
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "dark_angels",
+          "control_score": 22,
+          "population_weight": 20,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "dark_angels",
+        "defender": "dark_angels",
+        "visible_controller": "dark_angels",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0018-w02",
+      "index": 2,
+      "name": "Pharosia Alpha",
+      "orbit": 2,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "baneblade_super_heavy_companies",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 34.850002,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 17.0,
+            "industrial": 46.75,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 61.2,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "baneblade_super_heavy_companies",
+          "claim_type": "legal_sovereignty",
+          "strength": 43
+        }
+      ],
+      "control": {
+        "dominant": "baneblade_super_heavy_companies",
+        "sovereign": "baneblade_super_heavy_companies",
+        "occupier": "baneblade_super_heavy_companies",
+        "economic_hegemon": "baneblade_super_heavy_companies",
+        "popular_authority": "baneblade_super_heavy_companies",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 42.607002
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "baneblade_super_heavy_companies",
+          "control_score": 43,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "baneblade_super_heavy_companies",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "baneblade_super_heavy_companies",
+        "defender": "baneblade_super_heavy_companies",
+        "visible_controller": "baneblade_super_heavy_companies",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0018-w03",
+      "index": 3,
+      "name": "Blessed Agathon Umbra",
+      "orbit": 3,
+      "source_row_index": 7,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ElitistTyrant",
+        "notable_features": [
+          "ChaosCultists",
+          "AncientArchive",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "corpuscarii_electro_priests",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 46.75,
+            "military": 35.0,
+            "orbital": 50.0,
+            "economic": 59.5,
+            "industrial": 80.75,
+            "ideological": 50.0,
+            "covert": 25.0,
+            "logistics": 59.0,
+            "legitimacy": 51.0,
+            "visibility": 72.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 72
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:chaos_cultists",
+        "feature:civil_war",
+        "gov:elitist_tyrant",
+        "population:lightly_populated",
+        "star:blue_white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "corpuscarii_electro_priests",
+          "claim_type": "treaty_right",
+          "strength": 49
+        }
+      ],
+      "control": {
+        "dominant": "corpuscarii_electro_priests",
+        "sovereign": "corpuscarii_electro_priests",
+        "occupier": "corpuscarii_electro_priests",
+        "economic_hegemon": "corpuscarii_electro_priests",
+        "popular_authority": "corpuscarii_electro_priests",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 48.595005
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "corpuscarii_electro_priests",
+          "control_score": 44,
+          "population_weight": 70,
+          "visibility": 72
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "corpuscarii_electro_priests",
+          "control_score": 50,
+          "population_weight": 10,
+          "visibility": 72
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "corpuscarii_electro_priests",
+          "control_score": 18,
+          "population_weight": 20,
+          "visibility": 72
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "corpuscarii_electro_priests",
+        "defender": "corpuscarii_electro_priests",
+        "visible_controller": "corpuscarii_electro_priests",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "dark_angels",
+    "baneblade_super_heavy_companies",
+    "corpuscarii_electro_priests"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "corpuscarii_electro_priests",
+    "sovereign": "corpuscarii_electro_priests",
+    "orbital_controller": "dark_angels",
+    "economic_hegemon": "corpuscarii_electro_priests",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "corpuscarii_electro_priests",
+        "score": 48.595005
+      },
+      {
+        "faction_id": "dark_angels",
+        "score": 45.774002
+      },
+      {
+        "faction_id": "baneblade_super_heavy_companies",
+        "score": 42.607002
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 60.0,
+    "corruption": 11.666667,
+    "fear": 8.333333,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 10.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0018-blockade-dark_angels",
+      "kind": "blockade_fleet",
+      "faction_id": "dark_angels",
+      "strength": 80,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0018-defense-baneblade_super_heavy_companies",
+      "kind": "defense_platform",
+      "faction_id": "baneblade_super_heavy_companies",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0018-defense-corpuscarii_electro_priests",
+      "kind": "defense_platform",
+      "faction_id": "corpuscarii_electro_priests",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0018-defense-dark_angels",
+      "kind": "defense_platform",
+      "faction_id": "dark_angels",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0018-shipyard-corpuscarii_electro_priests",
+      "kind": "shipyard",
+      "faction_id": "corpuscarii_electro_priests",
+      "strength": 68,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0018-station-baneblade_super_heavy_companies",
+      "kind": "station",
+      "faction_id": "baneblade_super_heavy_companies",
+      "strength": 30,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0018-station-corpuscarii_electro_priests",
+      "kind": "station",
+      "faction_id": "corpuscarii_electro_priests",
+      "strength": 48,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "dark_angels",
+    "besieged": "corpuscarii_electro_priests",
+    "intensity": 80
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 40,
+    "mobilisation": 0,
+    "attacker": "dark_angels",
+    "defender": "dark_angels",
+    "visible_controller": "corpuscarii_electro_priests",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "baneblade_super_heavy_companies": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "corpuscarii_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "dark_angels",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "corpuscarii_electro_priests": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "baneblade_super_heavy_companies",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "dark_angels",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "dark_angels": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "baneblade_super_heavy_companies",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "corpuscarii_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "baneblade_super_heavy_companies",
+      "corpuscarii_electro_priests",
+      "dark_angels"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 8,
+    "daemon_manifestation": 12
+  }
+}

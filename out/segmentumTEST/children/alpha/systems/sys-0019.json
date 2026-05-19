@@ -1,0 +1,490 @@
+{
+  "id": "sys-0019",
+  "index": 19,
+  "name": "Riven Lament",
+  "coord": {
+    "q": 6,
+    "r": 2
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 1
+  },
+  "worlds": [
+    {
+      "id": "sys-0019-w01",
+      "index": 1,
+      "name": "Lucerna",
+      "orbit": 1,
+      "source_row_index": 1,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Primitive",
+        "government": "ChaosCult",
+        "notable_features": [
+          "AlteredHumans",
+          "ArchaeotechRuins",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "exodite_clans",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 11.25,
+            "military": 60.0,
+            "orbital": 40.0,
+            "economic": 11.25,
+            "industrial": 13.5,
+            "ideological": 50.0,
+            "covert": 80.0,
+            "logistics": 39.0,
+            "legitimacy": 13.5,
+            "visibility": 17.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 17
+        }
+      ],
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:altered_humans",
+        "feature:archaeotech_ruins",
+        "feature:chaos_cultists",
+        "gov:chaos_cult",
+        "population:minimal",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "exodite_clans",
+          "claim_type": "treaty_right",
+          "strength": 35
+        }
+      ],
+      "control": {
+        "dominant": "exodite_clans",
+        "sovereign": "exodite_clans",
+        "occupier": "exodite_clans",
+        "economic_hegemon": null,
+        "popular_authority": "exodite_clans",
+        "hidden_master": "exodite_clans",
+        "contested": false,
+        "control_score": 35.32
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "exodite_clans",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 17
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "exodite_clans",
+          "control_score": 25,
+          "population_weight": 10,
+          "visibility": 17
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "exodite_clans",
+          "control_score": 15,
+          "population_weight": 20,
+          "visibility": 17
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "exodite_clans",
+        "defender": "exodite_clans",
+        "visible_controller": "exodite_clans",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0019-w02",
+      "index": 2,
+      "name": "Medeon Hollow",
+      "orbit": 2,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "poxwalker_hordes",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 12.75,
+            "industrial": 8.5,
+            "ideological": 79.0,
+            "covert": 100.0,
+            "logistics": 15.0,
+            "legitimacy": 4.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "poxwalker_hordes",
+          "claim_type": "covert_writ",
+          "strength": 26
+        }
+      ],
+      "control": {
+        "dominant": "poxwalker_hordes",
+        "sovereign": null,
+        "occupier": "poxwalker_hordes",
+        "economic_hegemon": null,
+        "popular_authority": "poxwalker_hordes",
+        "hidden_master": "poxwalker_hordes",
+        "contested": false,
+        "control_score": 25.545
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 25.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "poxwalker_hordes",
+          "control_score": 16,
+          "population_weight": 30,
+          "visibility": 0
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "poxwalker_hordes",
+          "control_score": 9,
+          "population_weight": 70,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "poxwalker_hordes",
+        "defender": "poxwalker_hordes",
+        "visible_controller": "poxwalker_hordes",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0019-w03",
+      "index": 3,
+      "name": "Viridia Extremis",
+      "orbit": 3,
+      "source_row_index": 7,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ElitistTyrant",
+        "notable_features": [
+          "ChaosCultists",
+          "AlteredHumans",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "the_redacted_legion",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 8.5,
+            "industrial": 21.25,
+            "ideological": 60.0,
+            "covert": 50.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:altered_humans",
+        "feature:chaos_cultists",
+        "feature:civil_war",
+        "gov:elitist_tyrant",
+        "population:lightly_populated",
+        "star:blue_white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "the_redacted_legion",
+          "claim_type": "military_occupation",
+          "strength": 41
+        }
+      ],
+      "control": {
+        "dominant": "the_redacted_legion",
+        "sovereign": null,
+        "occupier": "the_redacted_legion",
+        "economic_hegemon": null,
+        "popular_authority": "the_redacted_legion",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 40.745003
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "the_redacted_legion",
+          "control_score": 22,
+          "population_weight": 70,
+          "visibility": 64
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "the_redacted_legion",
+          "control_score": 25,
+          "population_weight": 10,
+          "visibility": 64
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "the_redacted_legion",
+          "control_score": 20,
+          "population_weight": 20,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "the_redacted_legion",
+        "defender": "the_redacted_legion",
+        "visible_controller": "the_redacted_legion",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "the_redacted_legion",
+    "poxwalker_hordes",
+    "exodite_clans"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "the_redacted_legion",
+    "sovereign": "exodite_clans",
+    "orbital_controller": "the_redacted_legion",
+    "economic_hegemon": "poxwalker_hordes",
+    "hidden_master": "poxwalker_hordes",
+    "top_factions": [
+      {
+        "faction_id": "the_redacted_legion",
+        "score": 40.745003
+      },
+      {
+        "faction_id": "exodite_clans",
+        "score": 35.32
+      },
+      {
+        "faction_id": "poxwalker_hordes",
+        "score": 25.545
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 61.666668,
+    "corruption": 40.0,
+    "fear": 8.333333,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 10.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0019-defense-exodite_clans",
+      "kind": "defense_platform",
+      "faction_id": "exodite_clans",
+      "strength": 52,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0019-defense-the_redacted_legion",
+      "kind": "defense_platform",
+      "faction_id": "the_redacted_legion",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "poxwalker_hordes",
+    "defender": "poxwalker_hordes",
+    "visible_controller": "the_redacted_legion",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "exodite_clans": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "the_redacted_legion",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "poxwalker_hordes": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "the_redacted_legion",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "the_redacted_legion": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 80,
+    "chaos_corruption": 42,
+    "daemon_manifestation": 12
+  }
+}

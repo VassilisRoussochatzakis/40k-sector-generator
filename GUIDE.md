@@ -734,6 +734,17 @@ out/segmentum/
     <child-id-2>/
 ```
 
+Open the composed segmentum in the GUI with:
+
+```bash
+cargo sgui --segmentum out/segmentum/segmentum.json
+```
+
+The **SEGMENTUM** tab shows the scaled super-map, super-grid, aggregate
+counts, child-sector roster, and inter-sector stitch links. Use **OPEN MAP**
+/ **CHILD** to swap the active component sector without closing the GUI;
+link endpoint buttons jump directly into the relevant child system view.
+
 Example `segmentum.toml`:
 
 ```toml
@@ -1304,6 +1315,9 @@ cargo sgui --project examples/m42_project
 
 # Direct path to a sector.json
 cargo sgui examples/m42_project/out/sector.json
+
+# Composed segmentum overview + child-sector switching
+cargo sgui --segmentum out/segmentumTEST/segmentum.json
 
 # Empty editor (no sector loaded — starts in edit mode)
 cargo sgui

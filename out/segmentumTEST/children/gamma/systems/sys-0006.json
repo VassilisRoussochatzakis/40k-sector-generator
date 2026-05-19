@@ -1,0 +1,501 @@
+{
+  "id": "sys-0006",
+  "index": 6,
+  "name": "Quartus Hollow",
+  "coord": {
+    "q": 2,
+    "r": 2
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 9
+  },
+  "worlds": [
+    {
+      "id": "sys-0006-w01",
+      "index": 1,
+      "name": "Meridia Dominus",
+      "orbit": 1,
+      "source_row_index": 9,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Corrosive",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "GuildsCombine",
+        "notable_features": [
+          "ColdWar",
+          "CelestialPhenomena",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "aberrant_broods",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 12.75,
+            "military": 35.0,
+            "orbital": 5.0,
+            "economic": 21.25,
+            "industrial": 21.25,
+            "ideological": 50.0,
+            "covert": 100.0,
+            "logistics": 20.0,
+            "legitimacy": 8.5,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:corrosive",
+        "biosphere:thriving",
+        "feature:celestial_phenomena",
+        "feature:chaos_cultists",
+        "feature:cold_war",
+        "gov:guilds_combine",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "aberrant_broods",
+          "claim_type": "covert_writ",
+          "strength": 29
+        }
+      ],
+      "control": {
+        "dominant": "aberrant_broods",
+        "sovereign": "aberrant_broods",
+        "occupier": "aberrant_broods",
+        "economic_hegemon": "aberrant_broods",
+        "popular_authority": "aberrant_broods",
+        "hidden_master": "aberrant_broods",
+        "contested": false,
+        "control_score": 28.685
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 15.0,
+        "fear": 0.0,
+        "rebellion_risk": 50.0,
+        "xenos_threat": 20.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "aberrant_broods",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 0
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "aberrant_broods",
+          "control_score": 20,
+          "population_weight": 10,
+          "visibility": 0
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "aberrant_broods",
+          "control_score": 11,
+          "population_weight": 20,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 15,
+        "mobilisation": 7,
+        "attacker": "aberrant_broods",
+        "defender": "aberrant_broods",
+        "visible_controller": "aberrant_broods",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0006-w02",
+      "index": 2,
+      "name": "Low Vespera",
+      "orbit": 2,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "webway_gate_wardens",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 50.0,
+            "orbital": 30.0,
+            "economic": 8.5,
+            "industrial": 8.5,
+            "ideological": 60.0,
+            "covert": 100.0,
+            "logistics": 30.0,
+            "legitimacy": 17.0,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "webway_gate_wardens",
+          "claim_type": "covert_writ",
+          "strength": 32
+        }
+      ],
+      "control": {
+        "dominant": "webway_gate_wardens",
+        "sovereign": "webway_gate_wardens",
+        "occupier": "webway_gate_wardens",
+        "economic_hegemon": null,
+        "popular_authority": "webway_gate_wardens",
+        "hidden_master": "webway_gate_wardens",
+        "contested": false,
+        "control_score": 32.4
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "webway_gate_wardens",
+          "control_score": 22,
+          "population_weight": 30,
+          "visibility": 0
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "webway_gate_wardens",
+          "control_score": 13,
+          "population_weight": 70,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "webway_gate_wardens",
+        "defender": "webway_gate_wardens",
+        "visible_controller": "webway_gate_wardens",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0006-w03",
+      "index": 3,
+      "name": "Praetor Quirina",
+      "orbit": 3,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "nekthyst_dynasty",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 25.5,
+            "military": 90.0,
+            "orbital": 50.0,
+            "economic": 17.0,
+            "industrial": 42.5,
+            "ideological": 35.0,
+            "covert": 55.0,
+            "logistics": 40.0,
+            "legitimacy": 5.9500003,
+            "visibility": 39.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 39
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "nekthyst_dynasty",
+          "claim_type": "dynastic_right",
+          "strength": 43
+        }
+      ],
+      "control": {
+        "dominant": "nekthyst_dynasty",
+        "sovereign": "nekthyst_dynasty",
+        "occupier": "nekthyst_dynasty",
+        "economic_hegemon": "nekthyst_dynasty",
+        "popular_authority": "nekthyst_dynasty",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 43.147
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 30.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "nekthyst_dynasty",
+          "control_score": 32,
+          "population_weight": 30,
+          "visibility": 39
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "nekthyst_dynasty",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 39
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "nekthyst_dynasty",
+        "defender": "nekthyst_dynasty",
+        "visible_controller": "nekthyst_dynasty",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "webway_gate_wardens",
+    "nekthyst_dynasty",
+    "aberrant_broods"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "nekthyst_dynasty",
+    "sovereign": "nekthyst_dynasty",
+    "orbital_controller": "nekthyst_dynasty",
+    "economic_hegemon": "aberrant_broods",
+    "hidden_master": "aberrant_broods",
+    "top_factions": [
+      {
+        "faction_id": "nekthyst_dynasty",
+        "score": 43.147
+      },
+      {
+        "faction_id": "webway_gate_wardens",
+        "score": 32.4
+      },
+      {
+        "faction_id": "aberrant_broods",
+        "score": 28.685
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 41.666668,
+    "corruption": 28.333334,
+    "fear": 31.666666,
+    "rebellion_risk": 23.333334,
+    "xenos_threat": 16.666666,
+    "warp_instability": 20.0,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0006-defense-aberrant_broods",
+      "kind": "defense_platform",
+      "faction_id": "aberrant_broods",
+      "strength": 23,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0006-defense-nekthyst_dynasty",
+      "kind": "defense_platform",
+      "faction_id": "nekthyst_dynasty",
+      "strength": 74,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0006-defense-webway_gate_wardens",
+      "kind": "defense_platform",
+      "faction_id": "webway_gate_wardens",
+      "strength": 42,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0006-station-nekthyst_dynasty",
+      "kind": "station",
+      "faction_id": "nekthyst_dynasty",
+      "strength": 38,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 15,
+    "mobilisation": 7,
+    "attacker": "aberrant_broods",
+    "defender": "aberrant_broods",
+    "visible_controller": "nekthyst_dynasty",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "aberrant_broods": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "nekthyst_dynasty",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "nekthyst_dynasty": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "webway_gate_wardens": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "nekthyst_dynasty",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "awakening",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "district_control",
+    "tau_sphere": "none",
+    "aeldari_activity": 100,
+    "chaos_corruption": 16,
+    "daemon_manifestation": 24
+  }
+}

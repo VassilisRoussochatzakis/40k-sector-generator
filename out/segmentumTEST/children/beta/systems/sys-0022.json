@@ -1,0 +1,1051 @@
+{
+  "id": "sys-0022",
+  "index": 22,
+  "name": "Graven Lantern",
+  "coord": {
+    "q": 7,
+    "r": 1
+  },
+  "star": {
+    "colour_code": "O",
+    "colour_name": "blue hypergiant",
+    "spectral_type": "O",
+    "source_row_index": 16
+  },
+  "worlds": [
+    {
+      "id": "sys-0022-w01",
+      "index": 1,
+      "name": "Witching Seraphis",
+      "orbit": 1,
+      "source_row_index": 16,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "High",
+        "government": "MechanicusForgeLord",
+        "notable_features": [
+          "ExtremeEnvironment",
+          "EugenicCult",
+          "FactionalFragmentation"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "zoanthrope_choirs",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.25,
+            "military": 100.0,
+            "orbital": 60.0,
+            "economic": 0.0,
+            "industrial": 0.0,
+            "ideological": 0.0,
+            "covert": 30.0,
+            "logistics": 40.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "sons_of_medusa",
+          "influence": "significant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 15.487499,
+            "military": 58.499996,
+            "orbital": 45.5,
+            "economic": 6.825,
+            "industrial": 20.474998,
+            "ideological": 37.699997,
+            "covert": 19.5,
+            "logistics": 35.75,
+            "legitimacy": 55.754997,
+            "visibility": 48.75
+          },
+          "dominance": "influence",
+          "intel_confidence": 49
+        },
+        {
+          "faction_id": "thousand_sons",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 7.0874996,
+            "military": 33.25,
+            "orbital": 21.0,
+            "economic": 3.6749997,
+            "industrial": 9.1875,
+            "ideological": 21.0,
+            "covert": 17.5,
+            "logistics": 15.75,
+            "legitimacy": 0.47250026,
+            "visibility": 22.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 22
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:mechanicus_forge_lord",
+        "population:extremely_dense",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "sons_of_medusa",
+          "claim_type": "religious_mandate",
+          "strength": 32
+        },
+        {
+          "faction_id": "zoanthrope_choirs",
+          "claim_type": "military_occupation",
+          "strength": 31
+        }
+      ],
+      "control": {
+        "dominant": "sons_of_medusa",
+        "sovereign": "sons_of_medusa",
+        "occupier": "zoanthrope_choirs",
+        "economic_hegemon": null,
+        "popular_authority": "sons_of_medusa",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 32.4753
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 40.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "sons_of_medusa",
+          "control_score": 29,
+          "population_weight": 15,
+          "visibility": 49
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "zoanthrope_choirs",
+          "control_score": 16,
+          "population_weight": 75,
+          "visibility": 64
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "zoanthrope_choirs",
+          "control_score": 19,
+          "population_weight": 10,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "zoanthrope_choirs",
+        "defender": "sons_of_medusa",
+        "visible_controller": "sons_of_medusa",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0022-w02",
+      "index": 2,
+      "name": "Eridax Gamma",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "DaemonicCorruption",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "chartist_guilds",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 30.0,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 95.0,
+            "industrial": 40.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 45.0,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        },
+        {
+          "faction_id": "agri_cartel_factors",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 19.5,
+            "military": 9.75,
+            "orbital": 22.75,
+            "economic": 61.749996,
+            "industrial": 26.0,
+            "ideological": 13.0,
+            "covert": 19.5,
+            "logistics": 52.649998,
+            "legitimacy": 29.249998,
+            "visibility": 45.5
+          },
+          "dominance": "influence",
+          "intel_confidence": 46
+        },
+        {
+          "faction_id": "storm_trooper_cadres",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 17.599998,
+            "military": 28.0,
+            "orbital": 8.75,
+            "economic": 7.0,
+            "industrial": 19.25,
+            "ideological": 12.25,
+            "covert": 3.1499999,
+            "logistics": 21.0,
+            "legitimacy": 28.449999,
+            "visibility": 31.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 32
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "chartist_guilds",
+          "claim_type": "commercial_charter",
+          "strength": 41
+        },
+        {
+          "faction_id": "storm_trooper_cadres",
+          "claim_type": "legal_sovereignty",
+          "strength": 17
+        }
+      ],
+      "control": {
+        "dominant": "chartist_guilds",
+        "sovereign": "chartist_guilds",
+        "occupier": "storm_trooper_cadres",
+        "economic_hegemon": "chartist_guilds",
+        "popular_authority": "chartist_guilds",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 41.2
+      },
+      "stability": {
+        "public_order": 30.0,
+        "corruption": 35.0,
+        "fear": 40.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "chartist_guilds",
+          "control_score": 38,
+          "population_weight": 30,
+          "visibility": 70
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "chartist_guilds",
+          "control_score": 14,
+          "population_weight": 70,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "chartist_guilds",
+        "defender": "chartist_guilds",
+        "visible_controller": "chartist_guilds",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0022-w03",
+      "index": 3,
+      "name": "Aegisar Hive",
+      "orbit": 3,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "tome_keepers",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 17.0,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 8.5,
+            "industrial": 25.5,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 67.15,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "tome_keepers",
+          "claim_type": "religious_mandate",
+          "strength": 47
+        }
+      ],
+      "control": {
+        "dominant": "tome_keepers",
+        "sovereign": "tome_keepers",
+        "occupier": "tome_keepers",
+        "economic_hegemon": null,
+        "popular_authority": "tome_keepers",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 46.879
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "tome_keepers",
+          "control_score": 45,
+          "population_weight": 30,
+          "visibility": 75
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "tome_keepers",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "tome_keepers",
+        "defender": "tome_keepers",
+        "visible_controller": "tome_keepers",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0022-w04",
+      "index": 4,
+      "name": "Severia",
+      "orbit": 4,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "ArchaeotechRuins",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "legio_tempestus",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 25.5,
+            "military": 85.0,
+            "orbital": 30.0,
+            "economic": 21.25,
+            "industrial": 55.25,
+            "ideological": 40.0,
+            "covert": 15.0,
+            "logistics": 49.0,
+            "legitimacy": 55.25,
+            "visibility": 67.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 67
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "legio_tempestus",
+          "claim_type": "treaty_right",
+          "strength": 43
+        }
+      ],
+      "control": {
+        "dominant": "legio_tempestus",
+        "sovereign": "legio_tempestus",
+        "occupier": "legio_tempestus",
+        "economic_hegemon": "legio_tempestus",
+        "popular_authority": "legio_tempestus",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 42.68
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "legio_tempestus",
+          "control_score": 31,
+          "population_weight": 70,
+          "visibility": 67
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "legio_tempestus",
+          "control_score": 40,
+          "population_weight": 10,
+          "visibility": 67
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "legio_tempestus",
+          "control_score": 20,
+          "population_weight": 20,
+          "visibility": 67
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "legio_tempestus",
+        "defender": "legio_tempestus",
+        "visible_controller": "legio_tempestus",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "tome_keepers",
+    "legio_tempestus",
+    "chartist_guilds"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "tome_keepers",
+    "sovereign": "chartist_guilds",
+    "orbital_controller": "tome_keepers",
+    "economic_hegemon": "chartist_guilds",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "tome_keepers",
+        "score": 46.879
+      },
+      {
+        "faction_id": "legio_tempestus",
+        "score": 42.68
+      },
+      {
+        "faction_id": "chartist_guilds",
+        "score": 41.2
+      },
+      {
+        "faction_id": "sons_of_medusa",
+        "score": 32.4753
+      },
+      {
+        "faction_id": "zoanthrope_choirs",
+        "score": 31.449999
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 41.25,
+    "corruption": 26.25,
+    "fear": 37.5,
+    "rebellion_risk": 12.5,
+    "xenos_threat": 10.0,
+    "warp_instability": 15.0,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0022-defense-legio_tempestus",
+      "kind": "defense_platform",
+      "faction_id": "legio_tempestus",
+      "strength": 63,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0022-defense-sons_of_medusa",
+      "kind": "defense_platform",
+      "faction_id": "sons_of_medusa",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0022-defense-thousand_sons",
+      "kind": "defense_platform",
+      "faction_id": "thousand_sons",
+      "strength": 28,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0022-defense-tome_keepers",
+      "kind": "defense_platform",
+      "faction_id": "tome_keepers",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0022-defense-zoanthrope_choirs",
+      "kind": "defense_platform",
+      "faction_id": "zoanthrope_choirs",
+      "strength": 84,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0022-station-chartist_guilds",
+      "kind": "station",
+      "faction_id": "chartist_guilds",
+      "strength": 33,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0022-station-legio_tempestus",
+      "kind": "station",
+      "faction_id": "legio_tempestus",
+      "strength": 28,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0022-station-sons_of_medusa",
+      "kind": "station",
+      "faction_id": "sons_of_medusa",
+      "strength": 30,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0022-station-tome_keepers",
+      "kind": "station",
+      "faction_id": "tome_keepers",
+      "strength": 44,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "chartist_guilds",
+    "defender": "chartist_guilds",
+    "visible_controller": "tome_keepers",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "agri_cartel_factors": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "chartist_guilds",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "chartist_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "astropathic_report",
+            "confidence": 22
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "legio_tempestus": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "chartist_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "sons_of_medusa": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "chartist_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "thousand_sons",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "astropathic_report",
+            "confidence": 31
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "storm_trooper_cadres": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "chartist_guilds",
+            "source": "astropathic_report",
+            "confidence": 22
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "thousand_sons": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "chartist_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "tome_keepers": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "chartist_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "zoanthrope_choirs",
+            "source": "rumor",
+            "confidence": 12
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "zoanthrope_choirs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "agri_cartel_factors",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "chartist_guilds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_tempestus",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "sons_of_medusa",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "storm_trooper_cadres",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "thousand_sons",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "tome_keepers",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "legio_tempestus",
+      "sons_of_medusa",
+      "storm_trooper_cadres",
+      "tome_keepers"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "inhabited",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 24,
+    "daemon_manifestation": 24
+  }
+}

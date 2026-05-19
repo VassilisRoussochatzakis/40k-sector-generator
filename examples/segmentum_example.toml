@@ -15,7 +15,7 @@ id           = "seg-pacificus-demo"
 title        = "Segmentum Pacificus (demo)"
 stitch_seed  = "stitch-001"
 columns      = 2
-rows         = 1
+rows         = 2
 faction_mode = "shared"
 
 [stitch]
@@ -39,3 +39,20 @@ column  = 1
 row     = 0
 seed    = "beta-seed"
 title   = "Beta Sector"
+
+
+[[children]]
+id      = "gamma"
+project = "m42_project"
+column  = 0
+row     = 1
+seed    = "gamma-seed"
+title   = "Gamma Sector"
+
+[[children]]
+id      = "delta"
+project = "m42_project"
+column  = 1
+row     = 1
+seed    = "delta-seed"
+title   = "Delta Sector"

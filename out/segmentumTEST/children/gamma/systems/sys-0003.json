@@ -1,0 +1,360 @@
+{
+  "id": "sys-0003",
+  "index": 3,
+  "name": "Ursae",
+  "coord": {
+    "q": 1,
+    "r": 4
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 10
+  },
+  "worlds": [
+    {
+      "id": "sys-0003-w01",
+      "index": 1,
+      "name": "High Calibryx",
+      "orbit": 1,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "brontian_longknives",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 34.850002,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 17.0,
+            "industrial": 46.75,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 61.2,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "brontian_longknives",
+          "claim_type": "legal_sovereignty",
+          "strength": 43
+        }
+      ],
+      "control": {
+        "dominant": "brontian_longknives",
+        "sovereign": "brontian_longknives",
+        "occupier": "brontian_longknives",
+        "economic_hegemon": "brontian_longknives",
+        "popular_authority": "brontian_longknives",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 42.607002
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "brontian_longknives",
+          "control_score": 43,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "brontian_longknives",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "brontian_longknives",
+        "defender": "brontian_longknives",
+        "visible_controller": "brontian_longknives",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0003-w02",
+      "index": 2,
+      "name": "Eirenar Choir",
+      "orbit": 2,
+      "source_row_index": 3,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "Communards",
+        "notable_features": [
+          "AncientTombs",
+          "BlindingMists",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "promethium_combine",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 15.75,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 42.75,
+            "industrial": 18.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 22.5,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_tombs",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:communards",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "promethium_combine",
+          "claim_type": "commercial_charter",
+          "strength": 29
+        }
+      ],
+      "control": {
+        "dominant": "promethium_combine",
+        "sovereign": "promethium_combine",
+        "occupier": "promethium_combine",
+        "economic_hegemon": "promethium_combine",
+        "popular_authority": "promethium_combine",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 29.410002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "promethium_combine",
+          "control_score": 22,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "promethium_combine",
+          "control_score": 23,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "promethium_combine",
+          "control_score": 10,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "promethium_combine",
+        "defender": "promethium_combine",
+        "visible_controller": "promethium_combine",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "brontian_longknives",
+    "promethium_combine"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "brontian_longknives",
+    "sovereign": "brontian_longknives",
+    "orbital_controller": "promethium_combine",
+    "economic_hegemon": "promethium_combine",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "brontian_longknives",
+        "score": 42.607002
+      },
+      {
+        "faction_id": "promethium_combine",
+        "score": 29.410002
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 57.5,
+    "corruption": 17.5,
+    "fear": 12.5,
+    "rebellion_risk": 10.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 15.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0003-defense-brontian_longknives",
+      "kind": "defense_platform",
+      "faction_id": "brontian_longknives",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0003-station-brontian_longknives",
+      "kind": "station",
+      "faction_id": "brontian_longknives",
+      "strength": 30,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0003-station-promethium_combine",
+      "kind": "station",
+      "faction_id": "promethium_combine",
+      "strength": 25,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 6,
+    "mobilisation": 3,
+    "attacker": "promethium_combine",
+    "defender": "promethium_combine",
+    "visible_controller": "brontian_longknives",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "brontian_longknives": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "promethium_combine",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "promethium_combine": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "brontian_longknives",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 8,
+    "daemon_manifestation": 12
+  }
+}

@@ -1,0 +1,630 @@
+{
+  "id": "sys-0013",
+  "index": 13,
+  "name": "Orison",
+  "coord": {
+    "q": 4,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 5
+  },
+  "worlds": [
+    {
+      "id": "sys-0013-w01",
+      "index": 1,
+      "name": "Void Penitentia",
+      "orbit": 1,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "AncientArchive",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "seraphim_choirs",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 19.5,
+            "military": 65.0,
+            "orbital": 25.0,
+            "economic": 16.25,
+            "industrial": 6.5,
+            "ideological": 100.0,
+            "covert": 25.0,
+            "logistics": 35.0,
+            "legitimacy": 48.1,
+            "visibility": 80.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 80
+        },
+        {
+          "faction_id": "the_scourged",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.3624997,
+            "military": 61.749996,
+            "orbital": 39.0,
+            "economic": 4.225,
+            "industrial": 10.5625,
+            "ideological": 39.0,
+            "covert": 32.5,
+            "logistics": 29.249998,
+            "legitimacy": 0.0,
+            "visibility": 41.6
+          },
+          "dominance": "influence",
+          "intel_confidence": 42
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:ancient_archive",
+        "feature:blinding_mists",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "seraphim_choirs",
+          "claim_type": "religious_mandate",
+          "strength": 39
+        },
+        {
+          "faction_id": "the_scourged",
+          "claim_type": "military_occupation",
+          "strength": 27
+        }
+      ],
+      "control": {
+        "dominant": "seraphim_choirs",
+        "sovereign": "seraphim_choirs",
+        "occupier": "seraphim_choirs",
+        "economic_hegemon": "seraphim_choirs",
+        "popular_authority": "seraphim_choirs",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 38.826004
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 35.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "seraphim_choirs",
+          "control_score": 26,
+          "population_weight": 70,
+          "visibility": 80
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "seraphim_choirs",
+          "control_score": 35,
+          "population_weight": 10,
+          "visibility": 80
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "seraphim_choirs",
+          "control_score": 17,
+          "population_weight": 20,
+          "visibility": 80
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "seraphim_choirs",
+        "defender": "seraphim_choirs",
+        "visible_controller": "seraphim_choirs",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0013-w02",
+      "index": 2,
+      "name": "Illiara",
+      "orbit": 2,
+      "source_row_index": 1,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Primitive",
+        "government": "ChaosCult",
+        "notable_features": [
+          "AlteredHumans",
+          "CelestialPhenomena",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "tau_human_protectorates",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 24.75,
+            "military": 55.0,
+            "orbital": 50.0,
+            "economic": 29.25,
+            "industrial": 33.75,
+            "ideological": 60.0,
+            "covert": 35.0,
+            "logistics": 61.0,
+            "legitimacy": 18.0,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:altered_humans",
+        "feature:celestial_phenomena",
+        "feature:chaos_cultists",
+        "gov:chaos_cult",
+        "population:minimal",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "tau_human_protectorates",
+          "claim_type": "commercial_charter",
+          "strength": 41
+        }
+      ],
+      "control": {
+        "dominant": "tau_human_protectorates",
+        "sovereign": "tau_human_protectorates",
+        "occupier": "tau_human_protectorates",
+        "economic_hegemon": "tau_human_protectorates",
+        "popular_authority": "tau_human_protectorates",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 41.364998
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "tau_human_protectorates",
+          "control_score": 28,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "tau_human_protectorates",
+          "control_score": 33,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "tau_human_protectorates",
+          "control_score": 17,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "tau_human_protectorates",
+        "defender": "tau_human_protectorates",
+        "visible_controller": "tau_human_protectorates",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0013-w03",
+      "index": 3,
+      "name": "Ambros Nonus",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "ChaosCultists",
+          "ArchaeotechRuins"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "chronomancer_circles",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 25.5,
+            "military": 90.0,
+            "orbital": 50.0,
+            "economic": 17.0,
+            "industrial": 42.5,
+            "ideological": 39.0,
+            "covert": 57.0,
+            "logistics": 40.0,
+            "legitimacy": 5.9500003,
+            "visibility": 39.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 39
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:chaos_cultists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "chronomancer_circles",
+          "claim_type": "military_occupation",
+          "strength": 44
+        }
+      ],
+      "control": {
+        "dominant": "chronomancer_circles",
+        "sovereign": "chronomancer_circles",
+        "occupier": "chronomancer_circles",
+        "economic_hegemon": "chronomancer_circles",
+        "popular_authority": "chronomancer_circles",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 43.707
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 30.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "chronomancer_circles",
+          "control_score": 26,
+          "population_weight": 70,
+          "visibility": 39
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "chronomancer_circles",
+          "control_score": 33,
+          "population_weight": 10,
+          "visibility": 39
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "chronomancer_circles",
+          "control_score": 21,
+          "population_weight": 20,
+          "visibility": 39
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "chronomancer_circles",
+        "defender": "chronomancer_circles",
+        "visible_controller": "chronomancer_circles",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "seraphim_choirs",
+    "chronomancer_circles",
+    "tau_human_protectorates"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "chronomancer_circles",
+    "sovereign": "chronomancer_circles",
+    "orbital_controller": "chronomancer_circles",
+    "economic_hegemon": "tau_human_protectorates",
+    "hidden_master": "chronomancer_circles",
+    "top_factions": [
+      {
+        "faction_id": "chronomancer_circles",
+        "score": 43.707
+      },
+      {
+        "faction_id": "tau_human_protectorates",
+        "score": 41.364998
+      },
+      {
+        "faction_id": "seraphim_choirs",
+        "score": 38.826004
+      },
+      {
+        "faction_id": "the_scourged",
+        "score": 26.653248
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 61.666668,
+    "corruption": 11.666667,
+    "fear": 5.0,
+    "rebellion_risk": 10.0,
+    "xenos_threat": 10.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0013-defense-chronomancer_circles",
+      "kind": "defense_platform",
+      "faction_id": "chronomancer_circles",
+      "strength": 74,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0013-defense-seraphim_choirs",
+      "kind": "defense_platform",
+      "faction_id": "seraphim_choirs",
+      "strength": 49,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0013-defense-tau_human_protectorates",
+      "kind": "defense_platform",
+      "faction_id": "tau_human_protectorates",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0013-defense-the_scourged",
+      "kind": "defense_platform",
+      "faction_id": "the_scourged",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0013-station-chronomancer_circles",
+      "kind": "station",
+      "faction_id": "chronomancer_circles",
+      "strength": 38,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0013-station-seraphim_choirs",
+      "kind": "station",
+      "faction_id": "seraphim_choirs",
+      "strength": 22,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0013-station-tau_human_protectorates",
+      "kind": "station",
+      "faction_id": "tau_human_protectorates",
+      "strength": 37,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "seraphim_choirs",
+    "defender": "seraphim_choirs",
+    "visible_controller": "chronomancer_circles",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "chronomancer_circles": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "seraphim_choirs",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "tau_human_protectorates",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "the_scourged",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "seraphim_choirs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "chronomancer_circles",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "tau_human_protectorates",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "the_scourged",
+            "source": "astropathic_report",
+            "confidence": 33
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "tau_human_protectorates": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "chronomancer_circles",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "seraphim_choirs",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "the_scourged",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "the_scourged": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "chronomancer_circles",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "seraphim_choirs",
+            "source": "astropathic_report",
+            "confidence": 33
+          },
+          {
+            "faction_id": "tau_human_protectorates",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "awakening",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "fringe",
+    "aeldari_activity": 0,
+    "chaos_corruption": 15,
+    "daemon_manifestation": 0
+  }
+}

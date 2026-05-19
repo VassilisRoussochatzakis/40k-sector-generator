@@ -1,0 +1,948 @@
+{
+  "id": "sys-0016",
+  "index": 16,
+  "name": "Demetriax",
+  "coord": {
+    "q": 6,
+    "r": 5
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 5
+  },
+  "worlds": [
+    {
+      "id": "sys-0016-w01",
+      "index": 1,
+      "name": "Ossian",
+      "orbit": 1,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "AlteredHumans",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mekboy_guilds",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 90.0,
+            "orbital": 30.0,
+            "economic": 9.75,
+            "industrial": 22.75,
+            "ideological": 40.0,
+            "covert": 20.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 84.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 84
+        },
+        {
+          "faction_id": "rogue_trader_dynasties",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 15.924999,
+            "military": 9.75,
+            "orbital": 22.75,
+            "economic": 40.137497,
+            "industrial": 16.9,
+            "ideological": 13.0,
+            "covert": 19.5,
+            "logistics": 52.649998,
+            "legitimacy": 22.262499,
+            "visibility": 45.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 46
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:blinding_mists",
+        "feature:cold_war",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "mekboy_guilds",
+          "claim_type": "military_occupation",
+          "strength": 31
+        },
+        {
+          "faction_id": "rogue_trader_dynasties",
+          "claim_type": "dynastic_right",
+          "strength": 23
+        }
+      ],
+      "control": {
+        "dominant": "mekboy_guilds",
+        "sovereign": "rogue_trader_dynasties",
+        "occupier": "mekboy_guilds",
+        "economic_hegemon": "rogue_trader_dynasties",
+        "popular_authority": "mekboy_guilds",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 30.985
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 25.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "mekboy_guilds",
+          "control_score": 17,
+          "population_weight": 70,
+          "visibility": 84
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "mekboy_guilds",
+          "control_score": 19,
+          "population_weight": 10,
+          "visibility": 84
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "mekboy_guilds",
+          "control_score": 15,
+          "population_weight": 20,
+          "visibility": 84
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "mekboy_guilds",
+        "defender": "mekboy_guilds",
+        "visible_controller": "mekboy_guilds",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0016-w02",
+      "index": 2,
+      "name": "Ferric Aegisar",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "witch_covens",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 5.0,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 15.0,
+            "industrial": 10.0,
+            "ideological": 79.0,
+            "covert": 100.0,
+            "logistics": 15.0,
+            "legitimacy": 5.0,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "genomic_saboteur_cells",
+          "influence": "significant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 6.5,
+            "military": 22.75,
+            "orbital": 3.25,
+            "economic": 16.25,
+            "industrial": 16.25,
+            "ideological": 32.5,
+            "covert": 70.2,
+            "logistics": 13.0,
+            "legitimacy": 3.25,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "charnel_guard",
+          "influence": "minor",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 10.25,
+            "military": 31.5,
+            "orbital": 24.5,
+            "economic": 3.5,
+            "industrial": 10.5,
+            "ideological": 20.3,
+            "covert": 10.5,
+            "logistics": 19.25,
+            "legitimacy": 30.9,
+            "visibility": 26.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 26
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "witch_covens",
+          "claim_type": "covert_writ",
+          "strength": 26
+        },
+        {
+          "faction_id": "charnel_guard",
+          "claim_type": "imperial_mandate",
+          "strength": 18
+        }
+      ],
+      "control": {
+        "dominant": "witch_covens",
+        "sovereign": "charnel_guard",
+        "occupier": "charnel_guard",
+        "economic_hegemon": "genomic_saboteur_cells",
+        "popular_authority": "witch_covens",
+        "hidden_master": "witch_covens",
+        "contested": false,
+        "control_score": 26.1
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 25.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 20.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "witch_covens",
+          "control_score": 17,
+          "population_weight": 30,
+          "visibility": 0
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "witch_covens",
+          "control_score": 9,
+          "population_weight": 70,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "witch_covens",
+        "defender": "witch_covens",
+        "visible_controller": "witch_covens",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0016-w03",
+      "index": 3,
+      "name": "Rubrica Reach",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "reclaimator_cabals",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 51.0,
+            "military": 35.0,
+            "orbital": 50.0,
+            "economic": 59.5,
+            "industrial": 80.75,
+            "ideological": 50.0,
+            "covert": 25.0,
+            "logistics": 59.0,
+            "legitimacy": 55.25,
+            "visibility": 72.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 72
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "reclaimator_cabals",
+          "claim_type": "treaty_right",
+          "strength": 50
+        }
+      ],
+      "control": {
+        "dominant": "reclaimator_cabals",
+        "sovereign": "reclaimator_cabals",
+        "occupier": "reclaimator_cabals",
+        "economic_hegemon": "reclaimator_cabals",
+        "popular_authority": "reclaimator_cabals",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 49.7
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "reclaimator_cabals",
+          "control_score": 45,
+          "population_weight": 70,
+          "visibility": 72
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "reclaimator_cabals",
+          "control_score": 53,
+          "population_weight": 10,
+          "visibility": 72
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "reclaimator_cabals",
+          "control_score": 18,
+          "population_weight": 20,
+          "visibility": 72
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "reclaimator_cabals",
+        "defender": "reclaimator_cabals",
+        "visible_controller": "reclaimator_cabals",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0016-w04",
+      "index": 4,
+      "name": "Thorn Arcadion",
+      "orbit": 4,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "CivilWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "hearthguard_formations",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 39.0,
+            "military": 55.0,
+            "orbital": 40.0,
+            "economic": 52.0,
+            "industrial": 55.249996,
+            "ideological": 39.0,
+            "covert": 32.0,
+            "logistics": 66.0,
+            "legitimacy": 32.5,
+            "visibility": 70.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 70
+        },
+        {
+          "faction_id": "slaanesh_pleasure_cults",
+          "influence": "significant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 2.1125,
+            "military": 16.25,
+            "orbital": 3.25,
+            "economic": 6.3374996,
+            "industrial": 4.225,
+            "ideological": 48.75,
+            "covert": 63.699997,
+            "logistics": 9.75,
+            "legitimacy": 2.1125,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "hearthguard_formations",
+          "claim_type": "imperial_mandate",
+          "strength": 46
+        },
+        {
+          "faction_id": "slaanesh_pleasure_cults",
+          "claim_type": "rebellion",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "hearthguard_formations",
+        "sovereign": "hearthguard_formations",
+        "occupier": "hearthguard_formations",
+        "economic_hegemon": "hearthguard_formations",
+        "popular_authority": "slaanesh_pleasure_cults",
+        "hidden_master": "slaanesh_pleasure_cults",
+        "contested": false,
+        "control_score": 46.265003
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 0.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "hearthguard_formations",
+          "control_score": 38,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "hearthguard_formations",
+          "control_score": 43,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "hearthguard_formations",
+          "control_score": 19,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 12,
+        "mobilisation": 6,
+        "attacker": "hearthguard_formations",
+        "defender": "hearthguard_formations",
+        "visible_controller": "hearthguard_formations",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "reclaimator_cabals",
+    "witch_covens",
+    "mekboy_guilds"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "reclaimator_cabals",
+    "sovereign": "reclaimator_cabals",
+    "orbital_controller": "reclaimator_cabals",
+    "economic_hegemon": "reclaimator_cabals",
+    "hidden_master": "witch_covens",
+    "top_factions": [
+      {
+        "faction_id": "reclaimator_cabals",
+        "score": 49.7
+      },
+      {
+        "faction_id": "hearthguard_formations",
+        "score": 46.265003
+      },
+      {
+        "faction_id": "mekboy_guilds",
+        "score": 30.985
+      },
+      {
+        "faction_id": "witch_covens",
+        "score": 26.1
+      },
+      {
+        "faction_id": "rogue_trader_dynasties",
+        "score": 22.50625
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 61.25,
+    "corruption": 33.75,
+    "fear": 6.25,
+    "rebellion_risk": 30.0,
+    "xenos_threat": 11.25,
+    "warp_instability": 7.5,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0016-defense-charnel_guard",
+      "kind": "defense_platform",
+      "faction_id": "charnel_guard",
+      "strength": 29,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0016-defense-hearthguard_formations",
+      "kind": "defense_platform",
+      "faction_id": "hearthguard_formations",
+      "strength": 49,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0016-defense-mekboy_guilds",
+      "kind": "defense_platform",
+      "faction_id": "mekboy_guilds",
+      "strength": 66,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0016-defense-reclaimator_cabals",
+      "kind": "defense_platform",
+      "faction_id": "reclaimator_cabals",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0016-shipyard-reclaimator_cabals",
+      "kind": "shipyard",
+      "faction_id": "reclaimator_cabals",
+      "strength": 68,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0016-station-hearthguard_formations",
+      "kind": "station",
+      "faction_id": "hearthguard_formations",
+      "strength": 40,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0016-station-reclaimator_cabals",
+      "kind": "station",
+      "faction_id": "reclaimator_cabals",
+      "strength": 51,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "witch_covens",
+    "defender": "witch_covens",
+    "visible_controller": "reclaimator_cabals",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "charnel_guard": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "hearthguard_formations",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "genomic_saboteur_cells": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "hearthguard_formations",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "hearthguard_formations": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "mekboy_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "hearthguard_formations",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "astropathic_report",
+            "confidence": 38
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "reclaimator_cabals": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "hearthguard_formations",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "rogue_trader_dynasties": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "hearthguard_formations",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "astropathic_report",
+            "confidence": 38
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "slaanesh_pleasure_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "charnel_guard",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "witch_covens": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "hearthguard_formations",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "mekboy_guilds",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "reclaimator_cabals",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "rogue_trader_dynasties",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "charnel_guard",
+      "reclaimator_cabals"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 90,
+    "gsc_stage": "hidden_cell",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 24,
+    "daemon_manifestation": 12
+  }
+}

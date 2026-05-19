@@ -3,6 +3,7 @@
 //! Usage:
 //!   sectorforge-gui <path/to/sector.json>
 //!   sectorforge-gui --project <project-dir>          # auto-loads out/sector.json
+//!   sectorforge-gui --segmentum <path/to/segmentum.json>
 //!   (no args)                                        # tries `examples/m42_project/out/sector.json`
 
 use std::process::ExitCode;
@@ -19,17 +20,36 @@ use sectorforge::gui::App;
 )]
 struct Cli {
     /// Path to a generated sector.json file.
+    #[arg(conflicts_with = "segmentum")]
     sector: Option<Utf8PathBuf>,
     /// Project directory (loads <dir>/out/sector.json).
-    #[arg(long)]
+    #[arg(long, conflicts_with = "segmentum")]
     project: Option<Utf8PathBuf>,
+    /// Path to a composed segmentum.json file.
+    #[arg(long)]
+    segmentum: Option<Utf8PathBuf>,
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    let project_dir = resolve_project_dir(&cli);
+    let project_dir = if cli.segmentum.is_some() {
+        None
+    } else {
+        resolve_project_dir(&cli)
+    };
     let path = resolve_sector_path(&cli);
-    let (mut app, title) = if let Some(p) = path {
+    let (mut app, title) = if let Some(p) = &cli.segmentum {
+        match sectorforge::gui::segmentum_view::load_segmentum_bundle(p) {
+            Ok(bundle) => {
+                let t = format!("sectorforge — {}", bundle.segmentum.id);
+                (App::new_segmentum(bundle), t)
+            }
+            Err(e) => {
+                eprintln!("failed to load segmentum json '{p}': {e}");
+                return ExitCode::from(2);
+            }
+        }
+    } else if let Some(p) = path {
         match sectorforge::load_sector_json(&p) {
             Ok(s) => {
                 let t = format!("sectorforge — {}", s.id);

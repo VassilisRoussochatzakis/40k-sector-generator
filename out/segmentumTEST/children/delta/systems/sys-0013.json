@@ -1,0 +1,507 @@
+{
+  "id": "sys-0013",
+  "index": 13,
+  "name": "Ignisar",
+  "coord": {
+    "q": 5,
+    "r": 5
+  },
+  "star": {
+    "colour_code": "O",
+    "colour_name": "blue hypergiant",
+    "spectral_type": "O",
+    "source_row_index": 12
+  },
+  "worlds": [
+    {
+      "id": "sys-0013-w01",
+      "index": 1,
+      "name": "Ignatia Nexus",
+      "orbit": 1,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "tau_client_worlds",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 55.0,
+            "military": 55.0,
+            "orbital": 50.0,
+            "economic": 65.0,
+            "industrial": 75.0,
+            "ideological": 60.0,
+            "covert": 35.0,
+            "logistics": 61.0,
+            "legitimacy": 40.0,
+            "visibility": 70.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 70
+        },
+        {
+          "faction_id": "traitor_navy_armsmen",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 14.75,
+            "military": 52.0,
+            "orbital": 9.75,
+            "economic": 9.75,
+            "industrial": 26.0,
+            "ideological": 30.0,
+            "covert": 28.0,
+            "logistics": 29.249998,
+            "legitimacy": 0.0,
+            "visibility": 44.85
+          },
+          "dominance": "presence",
+          "intel_confidence": 45
+        },
+        {
+          "faction_id": "fraal",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 8.75,
+            "military": 17.5,
+            "orbital": 7.0,
+            "economic": 8.75,
+            "industrial": 7.0,
+            "ideological": 10.5,
+            "covert": 12.25,
+            "logistics": 8.75,
+            "legitimacy": 2.45,
+            "visibility": 18.9
+          },
+          "dominance": "presence",
+          "intel_confidence": 19
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "tau_client_worlds",
+          "claim_type": "commercial_charter",
+          "strength": 56
+        },
+        {
+          "faction_id": "traitor_navy_armsmen",
+          "claim_type": "military_occupation",
+          "strength": 24
+        }
+      ],
+      "control": {
+        "dominant": "tau_client_worlds",
+        "sovereign": "tau_client_worlds",
+        "occupier": "tau_client_worlds",
+        "economic_hegemon": "tau_client_worlds",
+        "popular_authority": "tau_client_worlds",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 55.5
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 70.0,
+        "fear": 25.0,
+        "rebellion_risk": 10.0,
+        "xenos_threat": 10.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "tau_client_worlds",
+          "control_score": 57,
+          "population_weight": 30,
+          "visibility": 70
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "tau_client_worlds",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 3,
+        "mobilisation": 1,
+        "attacker": "tau_client_worlds",
+        "defender": "tau_client_worlds",
+        "visible_controller": "tau_client_worlds",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0013-w02",
+      "index": 2,
+      "name": "Low Athanora Tertius",
+      "orbit": 2,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "heretek_prophet_cults",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 12.75,
+            "industrial": 8.5,
+            "ideological": 79.0,
+            "covert": 100.0,
+            "logistics": 15.0,
+            "legitimacy": 4.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "heretek_prophet_cults",
+          "claim_type": "rebellion",
+          "strength": 26
+        }
+      ],
+      "control": {
+        "dominant": "heretek_prophet_cults",
+        "sovereign": null,
+        "occupier": "heretek_prophet_cults",
+        "economic_hegemon": null,
+        "popular_authority": "heretek_prophet_cults",
+        "hidden_master": "heretek_prophet_cults",
+        "contested": false,
+        "control_score": 25.545
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 25.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "heretek_prophet_cults",
+          "control_score": 16,
+          "population_weight": 30,
+          "visibility": 0
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "heretek_prophet_cults",
+          "control_score": 9,
+          "population_weight": 70,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "heretek_prophet_cults",
+        "defender": "heretek_prophet_cults",
+        "visible_controller": "heretek_prophet_cults",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0013-w03",
+      "index": 3,
+      "name": "Gravenor",
+      "orbit": 3,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "CivilWar",
+          "AlteredHumans"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:altered_humans",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    }
+  ],
+  "primary_factions": [
+    "heretek_prophet_cults",
+    "tau_client_worlds",
+    "traitor_navy_armsmen"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "tau_client_worlds",
+    "sovereign": "tau_client_worlds",
+    "orbital_controller": "tau_client_worlds",
+    "economic_hegemon": "tau_client_worlds",
+    "hidden_master": "heretek_prophet_cults",
+    "top_factions": [
+      {
+        "faction_id": "tau_client_worlds",
+        "score": 55.5
+      },
+      {
+        "faction_id": "heretek_prophet_cults",
+        "score": 25.545
+      },
+      {
+        "faction_id": "traitor_navy_armsmen",
+        "score": 24.18
+      },
+      {
+        "faction_id": "fraal",
+        "score": 10.122
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 41.666668,
+    "corruption": 51.666668,
+    "fear": 31.666666,
+    "rebellion_risk": 30.0,
+    "xenos_threat": 3.3333333,
+    "warp_instability": 20.0,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0013-defense-tau_client_worlds",
+      "kind": "defense_platform",
+      "faction_id": "tau_client_worlds",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0013-defense-traitor_navy_armsmen",
+      "kind": "defense_platform",
+      "faction_id": "traitor_navy_armsmen",
+      "strength": 35,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0013-shipyard-tau_client_worlds",
+      "kind": "shipyard",
+      "faction_id": "tau_client_worlds",
+      "strength": 65,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0013-station-tau_client_worlds",
+      "kind": "station",
+      "faction_id": "tau_client_worlds",
+      "strength": 53,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "heretek_prophet_cults",
+    "defender": "heretek_prophet_cults",
+    "visible_controller": "tau_client_worlds",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "fraal": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "tau_client_worlds",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "traitor_navy_armsmen",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "heretek_prophet_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "tau_client_worlds",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "traitor_navy_armsmen",
+            "source": "rumor",
+            "confidence": 8
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "tau_client_worlds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fraal",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "traitor_navy_armsmen",
+            "source": "astropathic_report",
+            "confidence": 31
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "traitor_navy_armsmen": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fraal",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "tau_client_worlds",
+            "source": "astropathic_report",
+            "confidence": 31
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "client",
+    "aeldari_activity": 0,
+    "chaos_corruption": 39,
+    "daemon_manifestation": 24
+  }
+}

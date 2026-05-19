@@ -1,0 +1,19 @@
+{
+  "segmentum_id": "seg-pacificus-demo",
+  "generator_name": "sectorforge",
+  "generator_version": "0.1.0",
+  "stitch_seed": "stitch-001",
+  "stitch_seed_hash": "2a057afbc30a6d6e80cc85c599caf7073db0dd3183f2376abe6d7103cad9f45a",
+  "settings_digest": "blake3:8f240cecaee8fe62ccc095051839a52e239220d8c806b529639be484ca9ae49b",
+  "faction_mode": "shared",
+  "child_digests": {
+    "alpha": "blake3:319b6007b3f4b91a5a91018dddd781dacd2bb9542b72ce6b05fe11d464e999b9",
+    "beta": "blake3:9f9aeec80da7d4495704be9145fd08db3c2aead57c7554d3cda5913a002434b4",
+    "delta": "blake3:e2b2728cdfdb1529709040356ba9fe0bf28270340d544cae0adb960d239a5b0b",
+    "gamma": "blake3:8eb7068c3dd423ef911217f13b6f0befa73eaf22bdd9e0bb4845b3c9c4fa14a8"
+  },
+  "system_count": 96,
+  "world_count": 366,
+  "route_count": 273,
+  "inter_sector_link_count": 8
+}

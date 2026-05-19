@@ -1,0 +1,1201 @@
+{
+  "id": "sys-0012",
+  "index": 12,
+  "name": "Apollyon Veil",
+  "coord": {
+    "q": 4,
+    "r": 8
+  },
+  "star": {
+    "colour_code": "F",
+    "colour_name": "yellow-white",
+    "spectral_type": "F",
+    "source_row_index": 19
+  },
+  "worlds": [
+    {
+      "id": "sys-0012-w01",
+      "index": 1,
+      "name": "Mortal Flagellus Bulwark",
+      "orbit": 1,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_armour_brigades",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 37.8,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 21.0,
+            "industrial": 57.749996,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 70.35,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "knights_of_the_raven",
+          "influence": "significant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 10.237499,
+            "military": 58.499996,
+            "orbital": 45.5,
+            "economic": 6.825,
+            "industrial": 20.474998,
+            "ideological": 37.699997,
+            "covert": 19.5,
+            "logistics": 35.75,
+            "legitimacy": 50.504997,
+            "visibility": 48.75
+          },
+          "dominance": "influence",
+          "intel_confidence": 49
+        },
+        {
+          "faction_id": "the_twisted_helix",
+          "influence": "minor",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 3.6749997,
+            "military": 12.25,
+            "orbital": 1.75,
+            "economic": 9.1875,
+            "industrial": 9.1875,
+            "ideological": 17.5,
+            "covert": 37.8,
+            "logistics": 7.0,
+            "legitimacy": 1.8374999,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:civil_war",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial_armour_brigades",
+          "claim_type": "imperial_mandate",
+          "strength": 45
+        },
+        {
+          "faction_id": "knights_of_the_raven",
+          "claim_type": "dynastic_right",
+          "strength": 31
+        },
+        {
+          "faction_id": "the_twisted_helix",
+          "claim_type": "covert_writ",
+          "strength": 10
+        }
+      ],
+      "control": {
+        "dominant": "imperial_armour_brigades",
+        "sovereign": "imperial_armour_brigades",
+        "occupier": "imperial_armour_brigades",
+        "economic_hegemon": "imperial_armour_brigades",
+        "popular_authority": "knights_of_the_raven",
+        "hidden_master": "the_twisted_helix",
+        "contested": true,
+        "control_score": 44.886
+      },
+      "stability": {
+        "public_order": 35.0,
+        "corruption": 15.0,
+        "fear": 15.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 20.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "imperial_armour_brigades",
+          "control_score": 48,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "imperial_armour_brigades",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "imperial_armour_brigades",
+        "defender": "imperial_armour_brigades",
+        "visible_controller": "imperial_armour_brigades",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w02",
+      "index": 2,
+      "name": "Icon Maccabia Sepulchre",
+      "orbit": 2,
+      "source_row_index": 16,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "High",
+        "government": "MechanicusForgeLord",
+        "notable_features": [
+          "ExtremeEnvironment",
+          "FactionalFragmentation",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mortifactors",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 21.0,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 10.5,
+            "industrial": 31.499998,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 82.95,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "daemons_of_khorne",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.25,
+            "military": 55.249996,
+            "orbital": 19.5,
+            "economic": 3.4125,
+            "industrial": 0.0,
+            "ideological": 52.0,
+            "covert": 45.5,
+            "logistics": 6.5,
+            "legitimacy": 0.0,
+            "visibility": 35.1
+          },
+          "dominance": "presence",
+          "intel_confidence": 35
+        },
+        {
+          "faction_id": "forbidden_tome_circles",
+          "influence": "minor",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 1.8374999,
+            "military": 8.75,
+            "orbital": 1.75,
+            "economic": 5.5125,
+            "industrial": 3.6749997,
+            "ideological": 26.25,
+            "covert": 34.3,
+            "logistics": 5.25,
+            "legitimacy": 1.8374999,
+            "visibility": 0.0
+          },
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:mechanicus_forge_lord",
+        "population:extremely_dense",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "mortifactors",
+          "claim_type": "religious_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "daemons_of_khorne",
+          "claim_type": "military_occupation",
+          "strength": 23
+        },
+        {
+          "faction_id": "forbidden_tome_circles",
+          "claim_type": "covert_writ",
+          "strength": 9
+        }
+      ],
+      "control": {
+        "dominant": "mortifactors",
+        "sovereign": "mortifactors",
+        "occupier": "mortifactors",
+        "economic_hegemon": null,
+        "popular_authority": "mortifactors",
+        "hidden_master": "forbidden_tome_circles",
+        "contested": false,
+        "control_score": 49.227005
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 20.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 25.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "mortifactors",
+          "control_score": 51,
+          "population_weight": 15,
+          "visibility": 75
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "mortifactors",
+          "control_score": 24,
+          "population_weight": 75,
+          "visibility": 75
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "mortifactors",
+          "control_score": 30,
+          "population_weight": 10,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 12,
+        "mobilisation": 6,
+        "attacker": "mortifactors",
+        "defender": "mortifactors",
+        "visible_controller": "mortifactors",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w03",
+      "index": 3,
+      "name": "Colchyr",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientTombs",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "astra_militarum",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 30.6,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 17.0,
+            "industrial": 46.75,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 56.95,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_tombs",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "astra_militarum",
+          "claim_type": "legal_sovereignty",
+          "strength": 42
+        }
+      ],
+      "control": {
+        "dominant": "astra_militarum",
+        "sovereign": "astra_militarum",
+        "occupier": "astra_militarum",
+        "economic_hegemon": "astra_militarum",
+        "popular_authority": "astra_militarum",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 41.502003
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "astra_militarum",
+          "control_score": 29,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "astra_militarum",
+          "control_score": 41,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "astra_militarum",
+          "control_score": 19,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "astra_militarum",
+        "defender": "astra_militarum",
+        "visible_controller": "astra_militarum",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w04",
+      "index": 4,
+      "name": "Charontis Majoris",
+      "orbit": 4,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "CelestialPhenomena",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "deathskulls_clan",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 90.0,
+            "orbital": 30.0,
+            "economic": 12.75,
+            "industrial": 29.75,
+            "ideological": 40.0,
+            "covert": 20.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 84.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 84
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "deathskulls_clan",
+          "claim_type": "military_occupation",
+          "strength": 32
+        }
+      ],
+      "control": {
+        "dominant": "deathskulls_clan",
+        "sovereign": null,
+        "occupier": "deathskulls_clan",
+        "economic_hegemon": null,
+        "popular_authority": "deathskulls_clan",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 31.965002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 25.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "deathskulls_clan",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 84
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "deathskulls_clan",
+          "control_score": 20,
+          "population_weight": 10,
+          "visibility": 84
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "deathskulls_clan",
+          "control_score": 15,
+          "population_weight": 20,
+          "visibility": 84
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "deathskulls_clan",
+        "defender": "deathskulls_clan",
+        "visible_controller": "deathskulls_clan",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w05",
+      "index": 5,
+      "name": "Furoria",
+      "orbit": 5,
+      "source_row_index": 3,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "Communards",
+        "notable_features": [
+          "AncientTombs",
+          "CelestialPhenomena",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "rogue_trader_militant_houses",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 15.75,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 42.75,
+            "industrial": 18.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 22.5,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_tombs",
+        "feature:celestial_phenomena",
+        "feature:chaos_cultists",
+        "gov:communards",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "rogue_trader_militant_houses",
+          "claim_type": "dynastic_right",
+          "strength": 29
+        }
+      ],
+      "control": {
+        "dominant": "rogue_trader_militant_houses",
+        "sovereign": "rogue_trader_militant_houses",
+        "occupier": "rogue_trader_militant_houses",
+        "economic_hegemon": "rogue_trader_militant_houses",
+        "popular_authority": "rogue_trader_militant_houses",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 29.410002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "rogue_trader_militant_houses",
+          "control_score": 22,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "rogue_trader_militant_houses",
+          "control_score": 23,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "rogue_trader_militant_houses",
+          "control_score": 10,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "rogue_trader_militant_houses",
+        "defender": "rogue_trader_militant_houses",
+        "visible_controller": "rogue_trader_militant_houses",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "mortifactors",
+    "astra_militarum",
+    "imperial_armour_brigades"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "mortifactors",
+    "sovereign": "imperial_armour_brigades",
+    "orbital_controller": "mortifactors",
+    "economic_hegemon": "rogue_trader_militant_houses",
+    "hidden_master": "the_twisted_helix",
+    "top_factions": [
+      {
+        "faction_id": "mortifactors",
+        "score": 49.227005
+      },
+      {
+        "faction_id": "imperial_armour_brigades",
+        "score": 44.886
+      },
+      {
+        "faction_id": "astra_militarum",
+        "score": 41.502003
+      },
+      {
+        "faction_id": "deathskulls_clan",
+        "score": 31.965002
+      },
+      {
+        "faction_id": "knights_of_the_raven",
+        "score": 31.1103
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 61.0,
+    "corruption": 13.0,
+    "fear": 7.0,
+    "rebellion_risk": 28.0,
+    "xenos_threat": 9.0,
+    "warp_instability": 5.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0012-defense-astra_militarum",
+      "kind": "defense_platform",
+      "faction_id": "astra_militarum",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-deathskulls_clan",
+      "kind": "defense_platform",
+      "faction_id": "deathskulls_clan",
+      "strength": 66,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-imperial_armour_brigades",
+      "kind": "defense_platform",
+      "faction_id": "imperial_armour_brigades",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-knights_of_the_raven",
+      "kind": "defense_platform",
+      "faction_id": "knights_of_the_raven",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-mortifactors",
+      "kind": "defense_platform",
+      "faction_id": "mortifactors",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-station-astra_militarum",
+      "kind": "station",
+      "faction_id": "astra_militarum",
+      "strength": 28,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0012-station-imperial_armour_brigades",
+      "kind": "station",
+      "faction_id": "imperial_armour_brigades",
+      "strength": 31,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0012-station-mortifactors",
+      "kind": "station",
+      "faction_id": "mortifactors",
+      "strength": 46,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0012-station-rogue_trader_militant_houses",
+      "kind": "station",
+      "faction_id": "rogue_trader_militant_houses",
+      "strength": 25,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "imperial_armour_brigades",
+    "defender": "imperial_armour_brigades",
+    "visible_controller": "mortifactors",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "astra_militarum": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "daemons_of_khorne": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "astropathic_report",
+            "confidence": 26
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "deathskulls_clan": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "forbidden_tome_circles": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "imperial_armour_brigades": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "astropathic_report",
+            "confidence": 43
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "knights_of_the_raven": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "astropathic_report",
+            "confidence": 43
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "mortifactors": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "astropathic_report",
+            "confidence": 26
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "rogue_trader_militant_houses": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "imperial_armour_brigades",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "knights_of_the_raven",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "the_twisted_helix": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "astra_militarum",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "daemons_of_khorne",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "deathskulls_clan",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "mortifactors",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "rogue_trader_militant_houses",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "astra_militarum",
+      "imperial_armour_brigades",
+      "knights_of_the_raven",
+      "mortifactors"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 90,
+    "gsc_stage": "hidden_cell",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 29,
+    "daemon_manifestation": 52
+  }
+}

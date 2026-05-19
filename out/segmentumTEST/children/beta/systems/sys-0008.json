@@ -1,0 +1,1389 @@
+{
+  "id": "sys-0008",
+  "index": 8,
+  "name": "Benedict Crucible",
+  "coord": {
+    "q": 3,
+    "r": 3
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 0
+  },
+  "worlds": [
+    {
+      "id": "sys-0008-w01",
+      "index": 1,
+      "name": "Ember Caelith",
+      "orbit": 1,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "AncientArchive",
+          "ChaosCultists"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:ancient_archive",
+        "feature:chaos_cultists",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    },
+    {
+      "id": "sys-0008-w02",
+      "index": 2,
+      "name": "Eligiath",
+      "orbit": 2,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "CivilWar",
+          "AncientArchive"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "mutilator_cabals",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 6.5,
+            "industrial": 16.25,
+            "ideological": 60.0,
+            "covert": 50.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "inquisition",
+          "influence": "significant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 33.8,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 21.125,
+            "industrial": 14.787499,
+            "ideological": 29.249998,
+            "covert": 21.449999,
+            "logistics": 32.5,
+            "legitimacy": 31.687498,
+            "visibility": 42.25
+          },
+          "dominance": "influence",
+          "intel_confidence": 42
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_archive",
+        "feature:archaeotech_ruins",
+        "feature:civil_war",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "mutilator_cabals",
+          "claim_type": "military_occupation",
+          "strength": 40
+        },
+        {
+          "faction_id": "inquisition",
+          "claim_type": "covert_writ",
+          "strength": 25
+        }
+      ],
+      "control": {
+        "dominant": "mutilator_cabals",
+        "sovereign": "inquisition",
+        "occupier": "mutilator_cabals",
+        "economic_hegemon": "inquisition",
+        "popular_authority": "mutilator_cabals",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 40.005
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "mutilator_cabals",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 64
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "mutilator_cabals",
+          "control_score": 25,
+          "population_weight": 10,
+          "visibility": 64
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "mutilator_cabals",
+          "control_score": 20,
+          "population_weight": 20,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "mutilator_cabals",
+        "defender": "mutilator_cabals",
+        "visible_controller": "mutilator_cabals",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0008-w03",
+      "index": 3,
+      "name": "Vaxanid",
+      "orbit": 3,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "armageddon_steel_legion",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 37.8,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 21.0,
+            "industrial": 57.749996,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 70.35,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "order_of_the_argent_shroud",
+          "influence": "significant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 20.474998,
+            "military": 42.25,
+            "orbital": 16.25,
+            "economic": 17.0625,
+            "industrial": 6.825,
+            "ideological": 70.2,
+            "covert": 16.25,
+            "logistics": 22.75,
+            "legitimacy": 50.504997,
+            "visibility": 52.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 52
+        },
+        {
+          "faction_id": "anhrathe_corsairs",
+          "influence": "minor",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 9.1875,
+            "military": 21.0,
+            "orbital": 14.0,
+            "economic": 9.1875,
+            "industrial": 11.025,
+            "ideological": 17.5,
+            "covert": 28.0,
+            "logistics": 13.65,
+            "legitimacy": 11.025,
+            "visibility": 5.95
+          },
+          "dominance": "presence",
+          "intel_confidence": 6
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:cold_war",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "armageddon_steel_legion",
+          "claim_type": "legal_sovereignty",
+          "strength": 45
+        },
+        {
+          "faction_id": "order_of_the_argent_shroud",
+          "claim_type": "religious_mandate",
+          "strength": 29
+        },
+        {
+          "faction_id": "anhrathe_corsairs",
+          "claim_type": "treaty_right",
+          "strength": 15
+        }
+      ],
+      "control": {
+        "dominant": "armageddon_steel_legion",
+        "sovereign": "armageddon_steel_legion",
+        "occupier": "armageddon_steel_legion",
+        "economic_hegemon": "armageddon_steel_legion",
+        "popular_authority": "order_of_the_argent_shroud",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 44.886
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "armageddon_steel_legion",
+          "control_score": 48,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "armageddon_steel_legion",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "armageddon_steel_legion",
+        "defender": "armageddon_steel_legion",
+        "visible_controller": "armageddon_steel_legion",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0008-w04",
+      "index": 4,
+      "name": "Forlornia Crypt",
+      "orbit": 4,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "FactionalFragmentation"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "void_dreamer_cabals",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 26.249998,
+            "military": 60.0,
+            "orbital": 40.0,
+            "economic": 26.249998,
+            "industrial": 31.499998,
+            "ideological": 50.0,
+            "covert": 80.0,
+            "logistics": 39.0,
+            "legitimacy": 31.499998,
+            "visibility": 17.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 17
+        },
+        {
+          "faction_id": "purestrain_genestealer_cults",
+          "influence": "significant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 6.825,
+            "military": 22.75,
+            "orbital": 3.25,
+            "economic": 17.0625,
+            "industrial": 17.0625,
+            "ideological": 32.5,
+            "covert": 70.2,
+            "logistics": 13.0,
+            "legitimacy": 3.4125,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "the_tainted",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 1.8374999,
+            "military": 33.25,
+            "orbital": 21.0,
+            "economic": 3.6749997,
+            "industrial": 9.1875,
+            "ideological": 21.0,
+            "covert": 17.5,
+            "logistics": 15.75,
+            "legitimacy": 0.0,
+            "visibility": 22.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 22
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:factional_fragmentation",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "void_dreamer_cabals",
+          "claim_type": "treaty_right",
+          "strength": 42
+        },
+        {
+          "faction_id": "purestrain_genestealer_cults",
+          "claim_type": "rebellion",
+          "strength": 19
+        },
+        {
+          "faction_id": "the_tainted",
+          "claim_type": "military_occupation",
+          "strength": 15
+        }
+      ],
+      "control": {
+        "dominant": "void_dreamer_cabals",
+        "sovereign": "void_dreamer_cabals",
+        "occupier": "void_dreamer_cabals",
+        "economic_hegemon": "void_dreamer_cabals",
+        "popular_authority": "void_dreamer_cabals",
+        "hidden_master": "void_dreamer_cabals",
+        "contested": false,
+        "control_score": 42.28
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 0.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 20.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "void_dreamer_cabals",
+          "control_score": 36,
+          "population_weight": 30,
+          "visibility": 17
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "void_dreamer_cabals",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 17
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 12,
+        "mobilisation": 6,
+        "attacker": "void_dreamer_cabals",
+        "defender": "void_dreamer_cabals",
+        "visible_controller": "void_dreamer_cabals",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0008-w05",
+      "index": 5,
+      "name": "Mourn Decimara Dominus",
+      "orbit": 5,
+      "source_row_index": 9,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Corrosive",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "GuildsCombine",
+        "notable_features": [
+          "ColdWar",
+          "CivilWar",
+          "ArchaeotechRuins"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "xenos_artifact_dealers",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 8.5,
+            "military": 20.0,
+            "orbital": 20.0,
+            "economic": 59.5,
+            "industrial": 25.5,
+            "ideological": 19.0,
+            "covert": 82.0,
+            "logistics": 61.0,
+            "legitimacy": 8.5,
+            "visibility": 25.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:corrosive",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:civil_war",
+        "feature:cold_war",
+        "gov:guilds_combine",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "xenos_artifact_dealers",
+          "claim_type": "commercial_charter",
+          "strength": 31
+        }
+      ],
+      "control": {
+        "dominant": "xenos_artifact_dealers",
+        "sovereign": "xenos_artifact_dealers",
+        "occupier": "xenos_artifact_dealers",
+        "economic_hegemon": "xenos_artifact_dealers",
+        "popular_authority": "xenos_artifact_dealers",
+        "hidden_master": "xenos_artifact_dealers",
+        "contested": false,
+        "control_score": 31.04
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "xenos_artifact_dealers",
+          "control_score": 25,
+          "population_weight": 70,
+          "visibility": 25
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "xenos_artifact_dealers",
+          "control_score": 21,
+          "population_weight": 10,
+          "visibility": 25
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "xenos_artifact_dealers",
+          "control_score": 11,
+          "population_weight": 20,
+          "visibility": 25
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "xenos_artifact_dealers",
+        "defender": "xenos_artifact_dealers",
+        "visible_controller": "xenos_artifact_dealers",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0008-w06",
+      "index": 6,
+      "name": "Mandragor Ash",
+      "orbit": 6,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "CivilWar",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "black_legion",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 6.5,
+            "industrial": 16.25,
+            "ideological": 60.0,
+            "covert": 50.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "ogryn_auxilia",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 15.209999,
+            "military": 52.0,
+            "orbital": 16.25,
+            "economic": 8.45,
+            "industrial": 23.2375,
+            "ideological": 22.75,
+            "covert": 5.85,
+            "logistics": 39.0,
+            "legitimacy": 28.307499,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "feature:cold_war",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "black_legion",
+          "claim_type": "military_occupation",
+          "strength": 40
+        },
+        {
+          "faction_id": "ogryn_auxilia",
+          "claim_type": "legal_sovereignty",
+          "strength": 25
+        }
+      ],
+      "control": {
+        "dominant": "black_legion",
+        "sovereign": "ogryn_auxilia",
+        "occupier": "black_legion",
+        "economic_hegemon": null,
+        "popular_authority": "black_legion",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 40.005
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "black_legion",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 64
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "black_legion",
+          "control_score": 25,
+          "population_weight": 10,
+          "visibility": 64
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "black_legion",
+          "control_score": 20,
+          "population_weight": 20,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "black_legion",
+        "defender": "black_legion",
+        "visible_controller": "black_legion",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "armageddon_steel_legion",
+    "xenos_artifact_dealers",
+    "black_legion"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "armageddon_steel_legion",
+    "sovereign": "armageddon_steel_legion",
+    "orbital_controller": "black_legion",
+    "economic_hegemon": "xenos_artifact_dealers",
+    "hidden_master": "xenos_artifact_dealers",
+    "top_factions": [
+      {
+        "faction_id": "armageddon_steel_legion",
+        "score": 44.886
+      },
+      {
+        "faction_id": "void_dreamer_cabals",
+        "score": 42.28
+      },
+      {
+        "faction_id": "black_legion",
+        "score": 40.005
+      },
+      {
+        "faction_id": "mutilator_cabals",
+        "score": 40.005
+      },
+      {
+        "faction_id": "xenos_artifact_dealers",
+        "score": 31.04
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 63.333336,
+    "corruption": 20.0,
+    "fear": 0.0,
+    "rebellion_risk": 13.333333,
+    "xenos_threat": 3.3333333,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0008-blockade-black_legion",
+      "kind": "blockade_fleet",
+      "faction_id": "black_legion",
+      "strength": 78,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-defense-armageddon_steel_legion",
+      "kind": "defense_platform",
+      "faction_id": "armageddon_steel_legion",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-defense-black_legion",
+      "kind": "defense_platform",
+      "faction_id": "black_legion",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-defense-mutilator_cabals",
+      "kind": "defense_platform",
+      "faction_id": "mutilator_cabals",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-defense-void_dreamer_cabals",
+      "kind": "defense_platform",
+      "faction_id": "void_dreamer_cabals",
+      "strength": 52,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-station-armageddon_steel_legion",
+      "kind": "station",
+      "faction_id": "armageddon_steel_legion",
+      "strength": 31,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0008-station-void_dreamer_cabals",
+      "kind": "station",
+      "faction_id": "void_dreamer_cabals",
+      "strength": 33,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "black_legion",
+    "besieged": "armageddon_steel_legion",
+    "intensity": 78
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 12,
+    "mobilisation": 6,
+    "attacker": "void_dreamer_cabals",
+    "defender": "void_dreamer_cabals",
+    "visible_controller": "armageddon_steel_legion",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "anhrathe_corsairs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "armageddon_steel_legion": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "anhrathe_corsairs",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "astropathic_report",
+            "confidence": 46
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "black_legion": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "inquisition": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "astropathic_report",
+            "confidence": 27
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "mutilator_cabals": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "astropathic_report",
+            "confidence": 27
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "ogryn_auxilia": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "order_of_the_argent_shroud": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "astropathic_report",
+            "confidence": 46
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "purestrain_genestealer_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "the_tainted": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "void_dreamer_cabals": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "xenos_artifact_dealers",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "xenos_artifact_dealers": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "armageddon_steel_legion",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "black_legion",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "inquisition",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "mutilator_cabals",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "ogryn_auxilia",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_argent_shroud",
+            "source": "rumor",
+            "confidence": 10
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "armageddon_steel_legion",
+      "inquisition",
+      "ogryn_auxilia",
+      "order_of_the_argent_shroud"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "hidden_cell",
+    "tau_sphere": "none",
+    "aeldari_activity": 80,
+    "chaos_corruption": 56,
+    "daemon_manifestation": 0
+  }
+}

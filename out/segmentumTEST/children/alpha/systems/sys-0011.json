@@ -1,0 +1,900 @@
+{
+  "id": "sys-0011",
+  "index": 11,
+  "name": "Loricus Choir",
+  "coord": {
+    "q": 2,
+    "r": 7
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 10
+  },
+  "worlds": [
+    {
+      "id": "sys-0011-w01",
+      "index": 1,
+      "name": "Adrastia",
+      "orbit": 1,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "faceless_trade",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 20.0,
+            "orbital": 20.0,
+            "economic": 59.5,
+            "industrial": 25.5,
+            "ideological": 15.0,
+            "covert": 80.0,
+            "logistics": 61.0,
+            "legitimacy": 4.25,
+            "visibility": 25.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "faceless_trade",
+          "claim_type": "commercial_charter",
+          "strength": 29
+        }
+      ],
+      "control": {
+        "dominant": "faceless_trade",
+        "sovereign": null,
+        "occupier": "faceless_trade",
+        "economic_hegemon": "faceless_trade",
+        "popular_authority": "faceless_trade",
+        "hidden_master": "faceless_trade",
+        "contested": false,
+        "control_score": 29.374998
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "faceless_trade",
+          "control_score": 19,
+          "population_weight": 30,
+          "visibility": 25
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "faceless_trade",
+          "control_score": 10,
+          "population_weight": 70,
+          "visibility": 25
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "faceless_trade",
+        "defender": "faceless_trade",
+        "visible_controller": "faceless_trade",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0011-w02",
+      "index": 2,
+      "name": "Supplica Lumen",
+      "orbit": 2,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "CivilWar",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "navigator_houses",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 59.149998,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 59.8,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "legio_fortidus",
+          "influence": "significant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 12.674999,
+            "military": 55.249996,
+            "orbital": 19.5,
+            "economic": 10.5625,
+            "industrial": 27.4625,
+            "ideological": 26.0,
+            "covert": 9.75,
+            "logistics": 31.849998,
+            "legitimacy": 27.4625,
+            "visibility": 43.55
+          },
+          "dominance": "influence",
+          "intel_confidence": 44
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "feature:cold_war",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "navigator_houses",
+          "claim_type": "legal_sovereignty",
+          "strength": 38
+        },
+        {
+          "faction_id": "legio_fortidus",
+          "claim_type": "treaty_right",
+          "strength": 26
+        }
+      ],
+      "control": {
+        "dominant": "navigator_houses",
+        "sovereign": "navigator_houses",
+        "occupier": "legio_fortidus",
+        "economic_hegemon": "navigator_houses",
+        "popular_authority": "navigator_houses",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 38.302998
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 0.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "navigator_houses",
+          "control_score": 30,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "navigator_houses",
+          "control_score": 43,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "navigator_houses",
+          "control_score": 14,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "navigator_houses",
+        "defender": "navigator_houses",
+        "visible_controller": "navigator_houses",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0011-w03",
+      "index": 3,
+      "name": "Acerbus",
+      "orbit": 3,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "DangerousWildlife",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "sunblitz_brotherhood",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 25.0,
+            "military": 60.0,
+            "orbital": 40.0,
+            "economic": 25.0,
+            "industrial": 30.0,
+            "ideological": 50.0,
+            "covert": 80.0,
+            "logistics": 39.0,
+            "legitimacy": 30.0,
+            "visibility": 17.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 17
+        },
+        {
+          "faction_id": "flesh_hound_packs",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 0.0,
+            "military": 55.249996,
+            "orbital": 19.5,
+            "economic": 3.25,
+            "industrial": 0.0,
+            "ideological": 56.0,
+            "covert": 47.5,
+            "logistics": 6.5,
+            "legitimacy": 0.0,
+            "visibility": 35.1
+          },
+          "dominance": "presence",
+          "intel_confidence": 35
+        },
+        {
+          "faction_id": "khorne_blood_cults",
+          "influence": "minor",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 1.75,
+            "military": 8.75,
+            "orbital": 1.75,
+            "economic": 5.25,
+            "industrial": 3.5,
+            "ideological": 30.25,
+            "covert": 36.3,
+            "logistics": 5.25,
+            "legitimacy": 1.75,
+            "visibility": 0.0
+          },
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "sunblitz_brotherhood",
+          "claim_type": "treaty_right",
+          "strength": 42
+        },
+        {
+          "faction_id": "flesh_hound_packs",
+          "claim_type": "military_occupation",
+          "strength": 22
+        },
+        {
+          "faction_id": "khorne_blood_cults",
+          "claim_type": "rebellion",
+          "strength": 9
+        }
+      ],
+      "control": {
+        "dominant": "sunblitz_brotherhood",
+        "sovereign": "sunblitz_brotherhood",
+        "occupier": "sunblitz_brotherhood",
+        "economic_hegemon": "sunblitz_brotherhood",
+        "popular_authority": "flesh_hound_packs",
+        "hidden_master": "sunblitz_brotherhood",
+        "contested": false,
+        "control_score": 41.7
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 45.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 55.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "sunblitz_brotherhood",
+          "control_score": 35,
+          "population_weight": 30,
+          "visibility": 17
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "sunblitz_brotherhood",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 17
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 12,
+        "mobilisation": 6,
+        "attacker": "sunblitz_brotherhood",
+        "defender": "sunblitz_brotherhood",
+        "visible_controller": "sunblitz_brotherhood",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0011-w04",
+      "index": 4,
+      "name": "Eumenid",
+      "orbit": 4,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "ArchaeotechRuins",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "lhamaean_poison_courts",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 8.5,
+            "military": 80.0,
+            "orbital": 35.0,
+            "economic": 21.25,
+            "industrial": 17.0,
+            "ideological": 25.0,
+            "covert": 75.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 34.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 34
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "lhamaean_poison_courts",
+          "claim_type": "military_occupation",
+          "strength": 35
+        }
+      ],
+      "control": {
+        "dominant": "lhamaean_poison_courts",
+        "sovereign": null,
+        "occupier": "lhamaean_poison_courts",
+        "economic_hegemon": "lhamaean_poison_courts",
+        "popular_authority": "lhamaean_poison_courts",
+        "hidden_master": "lhamaean_poison_courts",
+        "contested": false,
+        "control_score": 34.67
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "lhamaean_poison_courts",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 34
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "lhamaean_poison_courts",
+          "control_score": 22,
+          "population_weight": 10,
+          "visibility": 34
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "lhamaean_poison_courts",
+          "control_score": 16,
+          "population_weight": 20,
+          "visibility": 34
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "lhamaean_poison_courts",
+        "defender": "lhamaean_poison_courts",
+        "visible_controller": "lhamaean_poison_courts",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "navigator_houses",
+    "faceless_trade",
+    "sunblitz_brotherhood"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "sunblitz_brotherhood",
+    "sovereign": "navigator_houses",
+    "orbital_controller": "sunblitz_brotherhood",
+    "economic_hegemon": "faceless_trade",
+    "hidden_master": "faceless_trade",
+    "top_factions": [
+      {
+        "faction_id": "sunblitz_brotherhood",
+        "score": 41.7
+      },
+      {
+        "faction_id": "navigator_houses",
+        "score": 38.302998
+      },
+      {
+        "faction_id": "lhamaean_poison_courts",
+        "score": 34.67
+      },
+      {
+        "faction_id": "faceless_trade",
+        "score": 29.374998
+      },
+      {
+        "faction_id": "legio_fortidus",
+        "score": 25.557999
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 38.75,
+    "corruption": 30.0,
+    "fear": 36.25,
+    "rebellion_risk": 27.5,
+    "xenos_threat": 0.0,
+    "warp_instability": 21.25,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0011-defense-flesh_hound_packs",
+      "kind": "defense_platform",
+      "faction_id": "flesh_hound_packs",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-legio_fortidus",
+      "kind": "defense_platform",
+      "faction_id": "legio_fortidus",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-lhamaean_poison_courts",
+      "kind": "defense_platform",
+      "faction_id": "lhamaean_poison_courts",
+      "strength": 62,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-navigator_houses",
+      "kind": "defense_platform",
+      "faction_id": "navigator_houses",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-sunblitz_brotherhood",
+      "kind": "defense_platform",
+      "faction_id": "sunblitz_brotherhood",
+      "strength": 52,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-station-sunblitz_brotherhood",
+      "kind": "station",
+      "faction_id": "sunblitz_brotherhood",
+      "strength": 33,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "navigator_houses",
+    "defender": "navigator_houses",
+    "visible_controller": "sunblitz_brotherhood",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "faceless_trade": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "flesh_hound_packs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "legio_fortidus",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "lhamaean_poison_courts",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "navigator_houses",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "flesh_hound_packs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "faceless_trade",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "legio_fortidus",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "lhamaean_poison_courts",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "navigator_houses",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "sunblitz_brotherhood",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "khorne_blood_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "faceless_trade",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "legio_fortidus",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "lhamaean_poison_courts",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "navigator_houses",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "legio_fortidus": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "faceless_trade",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "flesh_hound_packs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "lhamaean_poison_courts",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "navigator_houses",
+            "source": "astropathic_report",
+            "confidence": 39
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "lhamaean_poison_courts": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "faceless_trade",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "flesh_hound_packs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "legio_fortidus",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "navigator_houses",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "navigator_houses": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "faceless_trade",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "flesh_hound_packs",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "legio_fortidus",
+            "source": "astropathic_report",
+            "confidence": 39
+          },
+          {
+            "faction_id": "lhamaean_poison_courts",
+            "source": "rumor",
+            "confidence": 6
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "sunblitz_brotherhood": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "faceless_trade",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "flesh_hound_packs",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "legio_fortidus",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "lhamaean_poison_courts",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "navigator_houses",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "legio_fortidus",
+      "navigator_houses"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 80,
+    "chaos_corruption": 48,
+    "daemon_manifestation": 80
+  }
+}

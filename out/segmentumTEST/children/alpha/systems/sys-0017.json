@@ -1,0 +1,1083 @@
+{
+  "id": "sys-0017",
+  "index": 17,
+  "name": "Quirina",
+  "coord": {
+    "q": 5,
+    "r": 5
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 0
+  },
+  "worlds": [
+    {
+      "id": "sys-0017-w01",
+      "index": 1,
+      "name": "Decimara",
+      "orbit": 1,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "CivilWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    },
+    {
+      "id": "sys-0017-w02",
+      "index": 2,
+      "name": "Scepteris",
+      "orbit": 2,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "EugenicCult",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "legio_destructor",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 31.499998,
+            "military": 85.0,
+            "orbital": 30.0,
+            "economic": 26.249998,
+            "industrial": 68.25,
+            "ideological": 40.0,
+            "covert": 15.0,
+            "logistics": 49.0,
+            "legitimacy": 68.25,
+            "visibility": 67.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 67
+        },
+        {
+          "faction_id": "militarum_tempestus",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 24.569998,
+            "military": 52.0,
+            "orbital": 16.25,
+            "economic": 13.65,
+            "industrial": 37.5375,
+            "ideological": 22.75,
+            "covert": 5.85,
+            "logistics": 39.0,
+            "legitimacy": 45.727497,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "possessed_worker_cells",
+          "influence": "minor",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 1.8374999,
+            "military": 8.75,
+            "orbital": 1.75,
+            "economic": 5.5125,
+            "industrial": 3.6749997,
+            "ideological": 26.25,
+            "covert": 34.3,
+            "logistics": 5.25,
+            "legitimacy": 1.8374999,
+            "visibility": 0.0
+          },
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "legio_destructor",
+          "claim_type": "treaty_right",
+          "strength": 46
+        },
+        {
+          "faction_id": "militarum_tempestus",
+          "claim_type": "legal_sovereignty",
+          "strength": 29
+        },
+        {
+          "faction_id": "possessed_worker_cells",
+          "claim_type": "hunting_ground",
+          "strength": 9
+        }
+      ],
+      "control": {
+        "dominant": "legio_destructor",
+        "sovereign": "legio_destructor",
+        "occupier": "legio_destructor",
+        "economic_hegemon": "legio_destructor",
+        "popular_authority": "legio_destructor",
+        "hidden_master": "possessed_worker_cells",
+        "contested": false,
+        "control_score": 46.040005
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 0.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "legio_destructor",
+          "control_score": 47,
+          "population_weight": 15,
+          "visibility": 67
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "legio_destructor",
+          "control_score": 22,
+          "population_weight": 75,
+          "visibility": 67
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "legio_destructor",
+          "control_score": 21,
+          "population_weight": 10,
+          "visibility": 67
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 12,
+        "mobilisation": 6,
+        "attacker": "legio_destructor",
+        "defender": "legio_destructor",
+        "visible_controller": "legio_destructor",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w03",
+      "index": 3,
+      "name": "Infernus Tollaris",
+      "orbit": 3,
+      "source_row_index": 15,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "DenselyPopulated",
+        "tech_level": "High",
+        "government": "MagistrateCouncil",
+        "notable_features": [
+          "EugenicCult",
+          "FactionalFragmentation",
+          "ExtremeEnvironment"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "creations_of_bile",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 10.0,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 10.0,
+            "industrial": 25.0,
+            "ideological": 60.0,
+            "covert": 50.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "dire_avenger_shrines",
+          "influence": "significant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 21.25,
+            "military": 39.0,
+            "orbital": 26.0,
+            "economic": 16.25,
+            "industrial": 19.5,
+            "ideological": 32.5,
+            "covert": 52.0,
+            "logistics": 25.349998,
+            "legitimacy": 24.5,
+            "visibility": 11.049999
+          },
+          "dominance": "influence",
+          "intel_confidence": 11
+        },
+        {
+          "faction_id": "psyker_black_markets",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 1.75,
+            "military": 7.0,
+            "orbital": 7.0,
+            "economic": 24.5,
+            "industrial": 10.5,
+            "ideological": 5.25,
+            "covert": 28.0,
+            "logistics": 21.35,
+            "legitimacy": 1.75,
+            "visibility": 8.75
+          },
+          "dominance": "presence",
+          "intel_confidence": 9
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:magistrate_council",
+        "population:densely_populated",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "creations_of_bile",
+          "claim_type": "military_occupation",
+          "strength": 42
+        },
+        {
+          "faction_id": "dire_avenger_shrines",
+          "claim_type": "religious_mandate",
+          "strength": 28
+        },
+        {
+          "faction_id": "psyker_black_markets",
+          "claim_type": "commercial_charter",
+          "strength": 11
+        }
+      ],
+      "control": {
+        "dominant": "creations_of_bile",
+        "sovereign": "dire_avenger_shrines",
+        "occupier": "creations_of_bile",
+        "economic_hegemon": "psyker_black_markets",
+        "popular_authority": "creations_of_bile",
+        "hidden_master": "dire_avenger_shrines",
+        "contested": true,
+        "control_score": 42.300003
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 35.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "creations_of_bile",
+          "control_score": 27,
+          "population_weight": 15,
+          "visibility": 64
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "creations_of_bile",
+          "control_score": 21,
+          "population_weight": 75,
+          "visibility": 64
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "creations_of_bile",
+          "control_score": 34,
+          "population_weight": 10,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "creations_of_bile",
+        "defender": "creations_of_bile",
+        "visible_controller": "creations_of_bile",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w04",
+      "index": 4,
+      "name": "Reliquary Canticus",
+      "orbit": 4,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "CelestialPhenomena",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "free_traders",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 29.75,
+            "military": 15.0,
+            "orbital": 35.0,
+            "economic": 80.75,
+            "industrial": 34.0,
+            "ideological": 20.0,
+            "covert": 30.0,
+            "logistics": 81.0,
+            "legitimacy": 42.5,
+            "visibility": 70.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 70
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "free_traders",
+          "claim_type": "commercial_charter",
+          "strength": 39
+        }
+      ],
+      "control": {
+        "dominant": "free_traders",
+        "sovereign": "free_traders",
+        "occupier": "free_traders",
+        "economic_hegemon": "free_traders",
+        "popular_authority": "free_traders",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 38.93
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "free_traders",
+          "control_score": 38,
+          "population_weight": 70,
+          "visibility": 70
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "free_traders",
+          "control_score": 36,
+          "population_weight": 10,
+          "visibility": 70
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "free_traders",
+          "control_score": 13,
+          "population_weight": 20,
+          "visibility": 70
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "free_traders",
+        "defender": "free_traders",
+        "visible_controller": "free_traders",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w05",
+      "index": 5,
+      "name": "Defiant",
+      "orbit": 5,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "raven_guard",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 12.75,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 8.5,
+            "industrial": 25.5,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 62.9,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:civil_war",
+        "feature:cold_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "raven_guard",
+          "claim_type": "imperial_mandate",
+          "strength": 46
+        }
+      ],
+      "control": {
+        "dominant": "raven_guard",
+        "sovereign": "raven_guard",
+        "occupier": "raven_guard",
+        "economic_hegemon": null,
+        "popular_authority": "raven_guard",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 45.774002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "raven_guard",
+          "control_score": 31,
+          "population_weight": 70,
+          "visibility": 75
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "raven_guard",
+          "control_score": 42,
+          "population_weight": 10,
+          "visibility": 75
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "raven_guard",
+          "control_score": 22,
+          "population_weight": 20,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "raven_guard",
+        "defender": "raven_guard",
+        "visible_controller": "raven_guard",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0017-w06",
+      "index": 6,
+      "name": "Reliquon Noctis",
+      "orbit": 6,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "CelestialPhenomena",
+          "CivilWar"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    }
+  ],
+  "primary_factions": [
+    "free_traders",
+    "raven_guard",
+    "legio_destructor"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "legio_destructor",
+    "sovereign": "legio_destructor",
+    "orbital_controller": "raven_guard",
+    "economic_hegemon": "free_traders",
+    "hidden_master": "dire_avenger_shrines",
+    "top_factions": [
+      {
+        "faction_id": "legio_destructor",
+        "score": 46.040005
+      },
+      {
+        "faction_id": "raven_guard",
+        "score": 45.774002
+      },
+      {
+        "faction_id": "creations_of_bile",
+        "score": 42.300003
+      },
+      {
+        "faction_id": "free_traders",
+        "score": 38.93
+      },
+      {
+        "faction_id": "militarum_tempestus",
+        "score": 29.175901
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 59.166664,
+    "corruption": 14.166667,
+    "fear": 2.5,
+    "rebellion_risk": 18.333334,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0017-blockade-raven_guard",
+      "kind": "blockade_fleet",
+      "faction_id": "raven_guard",
+      "strength": 80,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-creations_of_bile",
+      "kind": "defense_platform",
+      "faction_id": "creations_of_bile",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-legio_destructor",
+      "kind": "defense_platform",
+      "faction_id": "legio_destructor",
+      "strength": 63,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-defense-raven_guard",
+      "kind": "defense_platform",
+      "faction_id": "raven_guard",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0017-shipyard-legio_destructor",
+      "kind": "shipyard",
+      "faction_id": "legio_destructor",
+      "strength": 53,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0017-station-dire_avenger_shrines",
+      "kind": "station",
+      "faction_id": "dire_avenger_shrines",
+      "strength": 24,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0017-station-free_traders",
+      "kind": "station",
+      "faction_id": "free_traders",
+      "strength": 32,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0017-station-legio_destructor",
+      "kind": "station",
+      "faction_id": "legio_destructor",
+      "strength": 31,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "raven_guard",
+    "besieged": "legio_destructor",
+    "intensity": 80
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "creations_of_bile",
+    "defender": "creations_of_bile",
+    "visible_controller": "legio_destructor",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "creations_of_bile": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "dire_avenger_shrines",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_destructor",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "militarum_tempestus",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "psyker_black_markets",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "dire_avenger_shrines": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_destructor",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "militarum_tempestus",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "free_traders": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "legio_destructor",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "militarum_tempestus",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "legio_destructor": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "militarum_tempestus",
+            "source": "astropathic_report",
+            "confidence": 39
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "militarum_tempestus": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_destructor",
+            "source": "astropathic_report",
+            "confidence": 39
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "possessed_worker_cells": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "psyker_black_markets": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_destructor",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "militarum_tempestus",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "raven_guard",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "raven_guard": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "free_traders",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_destructor",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "militarum_tempestus",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "legio_destructor",
+      "militarum_tempestus",
+      "raven_guard"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 52,
+    "chaos_corruption": 27,
+    "daemon_manifestation": 0
+  }
+}

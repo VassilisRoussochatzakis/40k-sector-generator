@@ -1,0 +1,416 @@
+{
+  "id": "sys-0008",
+  "index": 8,
+  "name": "Riven Monastery",
+  "coord": {
+    "q": 4,
+    "r": 0
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 0
+  },
+  "worlds": [
+    {
+      "id": "sys-0008-w01",
+      "index": 1,
+      "name": "Dust Gravenor",
+      "orbit": 1,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "CivilWar",
+          "ArchaeotechRuins"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:archaeotech_ruins",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    },
+    {
+      "id": "sys-0008-w02",
+      "index": 2,
+      "name": "Barachia",
+      "orbit": 2,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "AncientTombs",
+          "CivilWar"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:ancient_tombs",
+        "feature:civil_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    },
+    {
+      "id": "sys-0008-w03",
+      "index": 3,
+      "name": "Mordanthe Lux",
+      "orbit": 3,
+      "source_row_index": 16,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "High",
+        "government": "MechanicusForgeLord",
+        "notable_features": [
+          "ExtremeEnvironment",
+          "FactionalFragmentation",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_intelligence_cadres",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 26.249998,
+            "military": 35.0,
+            "orbital": 15.0,
+            "economic": 10.5,
+            "industrial": 10.5,
+            "ideological": 30.0,
+            "covert": 100.0,
+            "logistics": 25.0,
+            "legitimacy": 68.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "sons_of_antaeus",
+          "influence": "significant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 15.487499,
+            "military": 58.499996,
+            "orbital": 45.5,
+            "economic": 6.825,
+            "industrial": 20.474998,
+            "ideological": 37.699997,
+            "covert": 19.5,
+            "logistics": 35.75,
+            "legitimacy": 55.754997,
+            "visibility": 48.75
+          },
+          "dominance": "influence",
+          "intel_confidence": 49
+        },
+        {
+          "faction_id": "snakebites_clan",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 7.0874996,
+            "military": 31.5,
+            "orbital": 10.5,
+            "economic": 5.5125,
+            "industrial": 12.862499,
+            "ideological": 14.0,
+            "covert": 7.0,
+            "logistics": 10.5,
+            "legitimacy": 2.31,
+            "visibility": 29.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 29
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:mechanicus_forge_lord",
+        "population:extremely_dense",
+        "star:white",
+        "tech:high",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial_intelligence_cadres",
+          "claim_type": "imperial_mandate",
+          "strength": 33
+        },
+        {
+          "faction_id": "sons_of_antaeus",
+          "claim_type": "religious_mandate",
+          "strength": 32
+        },
+        {
+          "faction_id": "snakebites_clan",
+          "claim_type": "military_occupation",
+          "strength": 13
+        }
+      ],
+      "control": {
+        "dominant": "imperial_intelligence_cadres",
+        "sovereign": "imperial_intelligence_cadres",
+        "occupier": "sons_of_antaeus",
+        "economic_hegemon": null,
+        "popular_authority": "sons_of_antaeus",
+        "hidden_master": "imperial_intelligence_cadres",
+        "contested": false,
+        "control_score": 32.535
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 25.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "imperial_intelligence_cadres",
+          "control_score": 33,
+          "population_weight": 15,
+          "visibility": 0
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "sons_of_antaeus",
+          "control_score": 14,
+          "population_weight": 75,
+          "visibility": 49
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "imperial_intelligence_cadres",
+          "control_score": 42,
+          "population_weight": 10,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "imperial_intelligence_cadres",
+        "defender": "imperial_intelligence_cadres",
+        "visible_controller": "imperial_intelligence_cadres",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial_intelligence_cadres",
+    "sons_of_antaeus",
+    "snakebites_clan"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "imperial_intelligence_cadres",
+    "sovereign": "imperial_intelligence_cadres",
+    "orbital_controller": "sons_of_antaeus",
+    "economic_hegemon": "imperial_intelligence_cadres",
+    "hidden_master": "imperial_intelligence_cadres",
+    "top_factions": [
+      {
+        "faction_id": "imperial_intelligence_cadres",
+        "score": 32.535
+      },
+      {
+        "faction_id": "sons_of_antaeus",
+        "score": 32.4753
+      },
+      {
+        "faction_id": "snakebites_clan",
+        "score": 12.71935
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 65.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 8.333333,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0008-blockade-sons_of_antaeus",
+      "kind": "blockade_fleet",
+      "faction_id": "sons_of_antaeus",
+      "strength": 52,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-defense-sons_of_antaeus",
+      "kind": "defense_platform",
+      "faction_id": "sons_of_antaeus",
+      "strength": 53,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0008-station-sons_of_antaeus",
+      "kind": "station",
+      "faction_id": "sons_of_antaeus",
+      "strength": 30,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "sons_of_antaeus",
+    "besieged": "imperial_intelligence_cadres",
+    "intensity": 52
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 6,
+    "mobilisation": 3,
+    "attacker": "imperial_intelligence_cadres",
+    "defender": "imperial_intelligence_cadres",
+    "visible_controller": "imperial_intelligence_cadres",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "imperial_intelligence_cadres": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "snakebites_clan": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "sons_of_antaeus",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "sons_of_antaeus": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "snakebites_clan",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "imperial_intelligence_cadres",
+      "sons_of_antaeus"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 32,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 0,
+    "daemon_manifestation": 0
+  }
+}

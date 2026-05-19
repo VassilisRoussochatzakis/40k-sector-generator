@@ -1,0 +1,1030 @@
+{
+  "id": "sys-0011",
+  "index": 11,
+  "name": "Acherontia",
+  "coord": {
+    "q": 4,
+    "r": 7
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 19
+  },
+  "worlds": [
+    {
+      "id": "sys-0011-w01",
+      "index": 1,
+      "name": "Eirenar",
+      "orbit": 1,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "fire_lords",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 15.749999,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 10.5,
+            "industrial": 31.499998,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 77.7,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "legio_tempestus_traitor_elements",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 6.825,
+            "military": 65.0,
+            "orbital": 19.5,
+            "economic": 10.237499,
+            "industrial": 37.5375,
+            "ideological": 26.0,
+            "covert": 16.25,
+            "logistics": 29.249998,
+            "legitimacy": 0.0,
+            "visibility": 41.6
+          },
+          "dominance": "influence",
+          "intel_confidence": 42
+        },
+        {
+          "faction_id": "craftworld_iybraesil",
+          "influence": "minor",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 9.1875,
+            "military": 21.0,
+            "orbital": 14.0,
+            "economic": 9.1875,
+            "industrial": 11.025,
+            "ideological": 17.5,
+            "covert": 28.0,
+            "logistics": 13.65,
+            "legitimacy": 11.025,
+            "visibility": 5.95
+          },
+          "dominance": "presence",
+          "intel_confidence": 6
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:civil_war",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "fire_lords",
+          "claim_type": "religious_mandate",
+          "strength": 48
+        },
+        {
+          "faction_id": "legio_tempestus_traitor_elements",
+          "claim_type": "military_occupation",
+          "strength": 25
+        },
+        {
+          "faction_id": "craftworld_iybraesil",
+          "claim_type": "treaty_right",
+          "strength": 15
+        }
+      ],
+      "control": {
+        "dominant": "fire_lords",
+        "sovereign": "fire_lords",
+        "occupier": "fire_lords",
+        "economic_hegemon": null,
+        "popular_authority": "fire_lords",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 47.862
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "fire_lords",
+          "control_score": 47,
+          "population_weight": 30,
+          "visibility": 75
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "fire_lords",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "fire_lords",
+        "defender": "fire_lords",
+        "visible_controller": "fire_lords",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0011-w02",
+      "index": 2,
+      "name": "Sable Sorrowfall",
+      "orbit": 2,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "CelestialPhenomena",
+          "AncientTombs"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "unclean_siege_regiments",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 12.75,
+            "military": 80.0,
+            "orbital": 15.0,
+            "economic": 12.75,
+            "industrial": 34.0,
+            "ideological": 44.0,
+            "covert": 42.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 69.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 69
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_tombs",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "unclean_siege_regiments",
+          "claim_type": "military_occupation",
+          "strength": 34
+        }
+      ],
+      "control": {
+        "dominant": "unclean_siege_regiments",
+        "sovereign": null,
+        "occupier": "unclean_siege_regiments",
+        "economic_hegemon": null,
+        "popular_authority": "unclean_siege_regiments",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 34.28
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "unclean_siege_regiments",
+          "control_score": 19,
+          "population_weight": 70,
+          "visibility": 69
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "unclean_siege_regiments",
+          "control_score": 23,
+          "population_weight": 10,
+          "visibility": 69
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "unclean_siege_regiments",
+          "control_score": 16,
+          "population_weight": 20,
+          "visibility": 69
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "unclean_siege_regiments",
+        "defender": "unclean_siege_regiments",
+        "visible_controller": "unclean_siege_regiments",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0011-w03",
+      "index": 3,
+      "name": "Canticus",
+      "orbit": 3,
+      "source_row_index": 10,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Exotic",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "Hereteks",
+        "notable_features": [
+          "CrumblingArcologies",
+          "DaemonicCorruption",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "sslyth_bodyguard_clades",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 8.5,
+            "military": 80.0,
+            "orbital": 35.0,
+            "economic": 21.25,
+            "industrial": 17.0,
+            "ideological": 25.0,
+            "covert": 75.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 34.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 34
+        }
+      ],
+      "tags": [
+        "atmosphere:exotic",
+        "biosphere:thriving",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:hereteks",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "sslyth_bodyguard_clades",
+          "claim_type": "imperial_mandate",
+          "strength": 35
+        }
+      ],
+      "control": {
+        "dominant": "sslyth_bodyguard_clades",
+        "sovereign": null,
+        "occupier": "sslyth_bodyguard_clades",
+        "economic_hegemon": "sslyth_bodyguard_clades",
+        "popular_authority": "sslyth_bodyguard_clades",
+        "hidden_master": "sslyth_bodyguard_clades",
+        "contested": false,
+        "control_score": 34.67
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "sslyth_bodyguard_clades",
+          "control_score": 22,
+          "population_weight": 30,
+          "visibility": 34
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "sslyth_bodyguard_clades",
+          "control_score": 16,
+          "population_weight": 70,
+          "visibility": 34
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "sslyth_bodyguard_clades",
+        "defender": "sslyth_bodyguard_clades",
+        "visible_controller": "sslyth_bodyguard_clades",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0011-w04",
+      "index": 4,
+      "name": "Grey Lacuna Hold",
+      "orbit": 4,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ratling_scout_cadres",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 37.8,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 21.0,
+            "industrial": 57.749996,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 70.35,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "speed_freeks",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.4125,
+            "military": 58.499996,
+            "orbital": 19.5,
+            "economic": 10.237499,
+            "industrial": 23.887499,
+            "ideological": 26.0,
+            "covert": 13.0,
+            "logistics": 19.5,
+            "legitimacy": 0.0,
+            "visibility": 54.6
+          },
+          "dominance": "presence",
+          "intel_confidence": 55
+        },
+        {
+          "faction_id": "missionary_conclaves",
+          "influence": "minor",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 11.025,
+            "military": 22.75,
+            "orbital": 8.75,
+            "economic": 9.1875,
+            "industrial": 3.6749997,
+            "ideological": 37.8,
+            "covert": 8.75,
+            "logistics": 12.25,
+            "legitimacy": 27.194998,
+            "visibility": 28.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 28
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:civil_war",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "ratling_scout_cadres",
+          "claim_type": "legal_sovereignty",
+          "strength": 45
+        },
+        {
+          "faction_id": "speed_freeks",
+          "claim_type": "military_occupation",
+          "strength": 21
+        },
+        {
+          "faction_id": "missionary_conclaves",
+          "claim_type": "religious_mandate",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "ratling_scout_cadres",
+        "sovereign": "ratling_scout_cadres",
+        "occupier": "ratling_scout_cadres",
+        "economic_hegemon": "ratling_scout_cadres",
+        "popular_authority": "missionary_conclaves",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 44.886
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 25.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "ratling_scout_cadres",
+          "control_score": 48,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "ratling_scout_cadres",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "ratling_scout_cadres",
+        "defender": "ratling_scout_cadres",
+        "visible_controller": "ratling_scout_cadres",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "fire_lords",
+    "ratling_scout_cadres",
+    "unclean_siege_regiments"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "fire_lords",
+    "sovereign": "ratling_scout_cadres",
+    "orbital_controller": "fire_lords",
+    "economic_hegemon": "sslyth_bodyguard_clades",
+    "hidden_master": "sslyth_bodyguard_clades",
+    "top_factions": [
+      {
+        "faction_id": "fire_lords",
+        "score": 47.862
+      },
+      {
+        "faction_id": "ratling_scout_cadres",
+        "score": 44.886
+      },
+      {
+        "faction_id": "sslyth_bodyguard_clades",
+        "score": 34.67
+      },
+      {
+        "faction_id": "unclean_siege_regiments",
+        "score": 34.28
+      },
+      {
+        "faction_id": "legio_tempestus_traitor_elements",
+        "score": 25.32075
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 66.25,
+    "corruption": 26.25,
+    "fear": 6.25,
+    "rebellion_risk": 10.0,
+    "xenos_threat": 6.25,
+    "warp_instability": 7.5,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0011-defense-fire_lords",
+      "kind": "defense_platform",
+      "faction_id": "fire_lords",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-legio_tempestus_traitor_elements",
+      "kind": "defense_platform",
+      "faction_id": "legio_tempestus_traitor_elements",
+      "strength": 47,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-ratling_scout_cadres",
+      "kind": "defense_platform",
+      "faction_id": "ratling_scout_cadres",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-speed_freeks",
+      "kind": "defense_platform",
+      "faction_id": "speed_freeks",
+      "strength": 43,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-sslyth_bodyguard_clades",
+      "kind": "defense_platform",
+      "faction_id": "sslyth_bodyguard_clades",
+      "strength": 62,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-defense-unclean_siege_regiments",
+      "kind": "defense_platform",
+      "faction_id": "unclean_siege_regiments",
+      "strength": 54,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0011-station-fire_lords",
+      "kind": "station",
+      "faction_id": "fire_lords",
+      "strength": 43,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0011-station-ratling_scout_cadres",
+      "kind": "station",
+      "faction_id": "ratling_scout_cadres",
+      "strength": 31,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 6,
+    "mobilisation": 3,
+    "attacker": "unclean_siege_regiments",
+    "defender": "unclean_siege_regiments",
+    "visible_controller": "fire_lords",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "craftworld_iybraesil": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "fire_lords": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "legio_tempestus_traitor_elements",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "legio_tempestus_traitor_elements": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fire_lords",
+            "source": "astropathic_report",
+            "confidence": 31
+          },
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "missionary_conclaves": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fire_lords",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "legio_tempestus_traitor_elements",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "astropathic_report",
+            "confidence": 25
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "ratling_scout_cadres": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fire_lords",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "legio_tempestus_traitor_elements",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "astropathic_report",
+            "confidence": 25
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "astropathic_report",
+            "confidence": 49
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "speed_freeks": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fire_lords",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "legio_tempestus_traitor_elements",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "astropathic_report",
+            "confidence": 49
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "sslyth_bodyguard_clades": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fire_lords",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "legio_tempestus_traitor_elements",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "unclean_siege_regiments",
+            "source": "rumor",
+            "confidence": 13
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "unclean_siege_regiments": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fire_lords",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "legio_tempestus_traitor_elements",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "missionary_conclaves",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "ratling_scout_cadres",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "speed_freeks",
+            "source": "rumor",
+            "confidence": 10
+          },
+          {
+            "faction_id": "sslyth_bodyguard_clades",
+            "source": "rumor",
+            "confidence": 6
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "fire_lords",
+      "missionary_conclaves",
+      "ratling_scout_cadres"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 58,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 75,
+    "chaos_corruption": 44,
+    "daemon_manifestation": 12
+  }
+}

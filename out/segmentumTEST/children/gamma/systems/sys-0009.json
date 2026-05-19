@@ -1,0 +1,681 @@
+{
+  "id": "sys-0009",
+  "index": 9,
+  "name": "Lorican",
+  "coord": {
+    "q": 2,
+    "r": 9
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 17
+  },
+  "worlds": [
+    {
+      "id": "sys-0009-w01",
+      "index": 1,
+      "name": "Nicomede",
+      "orbit": 1,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "penitent_engine_choirs",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 31.499998,
+            "military": 65.0,
+            "orbital": 25.0,
+            "economic": 26.249998,
+            "industrial": 10.5,
+            "ideological": 100.0,
+            "covert": 25.0,
+            "logistics": 35.0,
+            "legitimacy": 77.7,
+            "visibility": 80.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 80
+        },
+        {
+          "faction_id": "lord_of_change_covens",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.25,
+            "military": 55.249996,
+            "orbital": 19.5,
+            "economic": 3.4125,
+            "industrial": 0.0,
+            "ideological": 52.0,
+            "covert": 45.5,
+            "logistics": 6.5,
+            "legitimacy": 0.0,
+            "visibility": 35.1
+          },
+          "dominance": "presence",
+          "intel_confidence": 35
+        },
+        {
+          "faction_id": "forge_world_accatran",
+          "influence": "minor",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 20.2125,
+            "military": 12.25,
+            "orbital": 17.5,
+            "economic": 25.724998,
+            "industrial": 34.9125,
+            "ideological": 17.5,
+            "covert": 8.75,
+            "logistics": 20.65,
+            "legitimacy": 22.05,
+            "visibility": 25.199999
+          },
+          "dominance": "presence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "penitent_engine_choirs",
+          "claim_type": "religious_mandate",
+          "strength": 44
+        },
+        {
+          "faction_id": "lord_of_change_covens",
+          "claim_type": "military_occupation",
+          "strength": 23
+        },
+        {
+          "faction_id": "forge_world_accatran",
+          "claim_type": "treaty_right",
+          "strength": 19
+        }
+      ],
+      "control": {
+        "dominant": "penitent_engine_choirs",
+        "sovereign": "penitent_engine_choirs",
+        "occupier": "penitent_engine_choirs",
+        "economic_hegemon": "penitent_engine_choirs",
+        "popular_authority": "penitent_engine_choirs",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 44.441998
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 35.0,
+        "fear": 20.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 25.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "penitent_engine_choirs",
+          "control_score": 47,
+          "population_weight": 15,
+          "visibility": 80
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "penitent_engine_choirs",
+          "control_score": 19,
+          "population_weight": 75,
+          "visibility": 80
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "penitent_engine_choirs",
+          "control_score": 24,
+          "population_weight": 10,
+          "visibility": 80
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "penitent_engine_choirs",
+        "defender": "penitent_engine_choirs",
+        "visible_controller": "penitent_engine_choirs",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0009-w02",
+      "index": 2,
+      "name": "Karthago Crypt",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "legio_fureans",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 10.0,
+            "military": 100.0,
+            "orbital": 30.0,
+            "economic": 15.0,
+            "industrial": 55.0,
+            "ideological": 44.0,
+            "covert": 27.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "hydraphur_naval_armsmen",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 28.4,
+            "military": 52.0,
+            "orbital": 16.25,
+            "economic": 13.0,
+            "industrial": 35.75,
+            "ideological": 22.75,
+            "covert": 5.85,
+            "logistics": 39.0,
+            "legitimacy": 48.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "trade_mission_factors",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 10.5,
+            "military": 5.25,
+            "orbital": 12.25,
+            "economic": 33.25,
+            "industrial": 14.0,
+            "ideological": 7.0,
+            "covert": 10.5,
+            "logistics": 28.35,
+            "legitimacy": 15.75,
+            "visibility": 24.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "legio_fureans",
+          "claim_type": "military_occupation",
+          "strength": 39
+        },
+        {
+          "faction_id": "hydraphur_naval_armsmen",
+          "claim_type": "legal_sovereignty",
+          "strength": 30
+        },
+        {
+          "faction_id": "trade_mission_factors",
+          "claim_type": "commercial_charter",
+          "strength": 14
+        }
+      ],
+      "control": {
+        "dominant": "legio_fureans",
+        "sovereign": "hydraphur_naval_armsmen",
+        "occupier": "legio_fureans",
+        "economic_hegemon": "trade_mission_factors",
+        "popular_authority": "legio_fureans",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 39.16
+      },
+      "stability": {
+        "public_order": 30.0,
+        "corruption": 70.0,
+        "fear": 40.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "hydraphur_naval_armsmen",
+          "control_score": 28,
+          "population_weight": 30,
+          "visibility": 58
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "legio_fureans",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "legio_fureans",
+        "defender": "legio_fureans",
+        "visible_controller": "legio_fureans",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "penitent_engine_choirs",
+    "legio_fureans",
+    "hydraphur_naval_armsmen"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "penitent_engine_choirs",
+    "sovereign": "penitent_engine_choirs",
+    "orbital_controller": "legio_fureans",
+    "economic_hegemon": "trade_mission_factors",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "penitent_engine_choirs",
+        "score": 44.441998
+      },
+      {
+        "faction_id": "legio_fureans",
+        "score": 39.16
+      },
+      {
+        "faction_id": "hydraphur_naval_armsmen",
+        "score": 29.926
+      },
+      {
+        "faction_id": "lord_of_change_covens",
+        "score": 22.8445
+      },
+      {
+        "faction_id": "forge_world_accatran",
+        "score": 19.01725
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 45.0,
+    "corruption": 52.5,
+    "fear": 30.0,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 27.5,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0009-blockade-legio_fureans",
+      "kind": "blockade_fleet",
+      "faction_id": "legio_fureans",
+      "strength": 65,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0009-defense-hydraphur_naval_armsmen",
+      "kind": "defense_platform",
+      "faction_id": "hydraphur_naval_armsmen",
+      "strength": 38,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0009-defense-legio_fureans",
+      "kind": "defense_platform",
+      "faction_id": "legio_fureans",
+      "strength": 72,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0009-defense-lord_of_change_covens",
+      "kind": "defense_platform",
+      "faction_id": "lord_of_change_covens",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0009-defense-penitent_engine_choirs",
+      "kind": "defense_platform",
+      "faction_id": "penitent_engine_choirs",
+      "strength": 49,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0009-station-penitent_engine_choirs",
+      "kind": "station",
+      "faction_id": "penitent_engine_choirs",
+      "strength": 28,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "legio_fureans",
+    "besieged": "penitent_engine_choirs",
+    "intensity": 65
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "legio_fureans",
+    "defender": "legio_fureans",
+    "visible_controller": "penitent_engine_choirs",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "forge_world_accatran": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "hydraphur_naval_armsmen",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "legio_fureans",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "lord_of_change_covens",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "penitent_engine_choirs",
+            "source": "rumor",
+            "confidence": 20
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "hydraphur_naval_armsmen": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "forge_world_accatran",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "legio_fureans",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "lord_of_change_covens",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "penitent_engine_choirs",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "trade_mission_factors",
+            "source": "rumor",
+            "confidence": 14
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "legio_fureans": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "forge_world_accatran",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "hydraphur_naval_armsmen",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "lord_of_change_covens",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "penitent_engine_choirs",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "trade_mission_factors",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "lord_of_change_covens": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "forge_world_accatran",
+            "source": "rumor",
+            "confidence": 8
+          },
+          {
+            "faction_id": "hydraphur_naval_armsmen",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "legio_fureans",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "penitent_engine_choirs",
+            "source": "astropathic_report",
+            "confidence": 28
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "penitent_engine_choirs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "forge_world_accatran",
+            "source": "rumor",
+            "confidence": 20
+          },
+          {
+            "faction_id": "hydraphur_naval_armsmen",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "legio_fureans",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "lord_of_change_covens",
+            "source": "astropathic_report",
+            "confidence": 28
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "trade_mission_factors": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "forge_world_accatran",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "hydraphur_naval_armsmen",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "legio_fureans",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "lord_of_change_covens",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "penitent_engine_choirs",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "forge_world_accatran",
+      "hydraphur_naval_armsmen",
+      "penitent_engine_choirs"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 59,
+    "daemon_manifestation": 64
+  }
+}

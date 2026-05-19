@@ -1,0 +1,577 @@
+{
+  "id": "sys-0023",
+  "index": 23,
+  "name": "Berynth Hold",
+  "coord": {
+    "q": 7,
+    "r": 2
+  },
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 4
+  },
+  "worlds": [
+    {
+      "id": "sys-0023-w01",
+      "index": 1,
+      "name": "Gildoria",
+      "orbit": 1,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "Abhumans",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "drukhari",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 6.5,
+            "military": 80.0,
+            "orbital": 35.0,
+            "economic": 16.25,
+            "industrial": 13.0,
+            "ideological": 25.0,
+            "covert": 75.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 34.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 34
+        },
+        {
+          "faction_id": "hunter_cadres",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 23.2375,
+            "military": 35.75,
+            "orbital": 32.5,
+            "economic": 27.4625,
+            "industrial": 31.687498,
+            "ideological": 39.0,
+            "covert": 22.75,
+            "logistics": 39.649998,
+            "legitimacy": 16.9,
+            "visibility": 45.5
+          },
+          "dominance": "influence",
+          "intel_confidence": 46
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:abhumans",
+        "feature:altered_humans",
+        "feature:archaeotech_ruins",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "drukhari",
+          "claim_type": "hunting_ground",
+          "strength": 33
+        },
+        {
+          "faction_id": "hunter_cadres",
+          "claim_type": "commercial_charter",
+          "strength": 30
+        }
+      ],
+      "control": {
+        "dominant": "drukhari",
+        "sovereign": "hunter_cadres",
+        "occupier": "drukhari",
+        "economic_hegemon": "hunter_cadres",
+        "popular_authority": "hunter_cadres",
+        "hidden_master": "drukhari",
+        "contested": false,
+        "control_score": 33.43
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "hunter_cadres",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 46
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "hunter_cadres",
+          "control_score": 24,
+          "population_weight": 10,
+          "visibility": 46
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "drukhari",
+          "control_score": 15,
+          "population_weight": 20,
+          "visibility": 34
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "drukhari",
+        "defender": "drukhari",
+        "visible_controller": "drukhari",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0023-w02",
+      "index": 2,
+      "name": "Dust Reliquon Harvester",
+      "orbit": 2,
+      "source_row_index": 7,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ElitistTyrant",
+        "notable_features": [
+          "ChaosCultists",
+          "ColdWar",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "consecrators",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 12.75,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 8.5,
+            "industrial": 25.5,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 62.9,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:blinding_mists",
+        "feature:chaos_cultists",
+        "feature:cold_war",
+        "gov:elitist_tyrant",
+        "population:lightly_populated",
+        "star:blue_white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "consecrators",
+          "claim_type": "religious_mandate",
+          "strength": 46
+        }
+      ],
+      "control": {
+        "dominant": "consecrators",
+        "sovereign": "consecrators",
+        "occupier": "consecrators",
+        "economic_hegemon": null,
+        "popular_authority": "consecrators",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 45.774002
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "consecrators",
+          "control_score": 31,
+          "population_weight": 70,
+          "visibility": 75
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "consecrators",
+          "control_score": 42,
+          "population_weight": 10,
+          "visibility": 75
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "consecrators",
+          "control_score": 22,
+          "population_weight": 20,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "consecrators",
+        "defender": "consecrators",
+        "visible_controller": "consecrators",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0023-w03",
+      "index": 3,
+      "name": "Bellor",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "ArchaeotechRuins",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "chaos_undivided_cults",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 12.75,
+            "industrial": 8.5,
+            "ideological": 75.0,
+            "covert": 98.0,
+            "logistics": 15.0,
+            "legitimacy": 4.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:archaeotech_ruins",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "chaos_undivided_cults",
+          "claim_type": "rebellion",
+          "strength": 25
+        }
+      ],
+      "control": {
+        "dominant": "chaos_undivided_cults",
+        "sovereign": null,
+        "occupier": "chaos_undivided_cults",
+        "economic_hegemon": null,
+        "popular_authority": "chaos_undivided_cults",
+        "hidden_master": "chaos_undivided_cults",
+        "contested": false,
+        "control_score": 24.984999
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 0.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "chaos_undivided_cults",
+          "control_score": 14,
+          "population_weight": 70,
+          "visibility": 0
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "chaos_undivided_cults",
+          "control_score": 16,
+          "population_weight": 10,
+          "visibility": 0
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "chaos_undivided_cults",
+          "control_score": 9,
+          "population_weight": 20,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "chaos_undivided_cults",
+        "defender": "chaos_undivided_cults",
+        "visible_controller": "chaos_undivided_cults",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "consecrators",
+    "chaos_undivided_cults",
+    "drukhari"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "consecrators",
+    "sovereign": "hunter_cadres",
+    "orbital_controller": "consecrators",
+    "economic_hegemon": "hunter_cadres",
+    "hidden_master": "chaos_undivided_cults",
+    "top_factions": [
+      {
+        "faction_id": "consecrators",
+        "score": 45.774002
+      },
+      {
+        "faction_id": "drukhari",
+        "score": 33.43
+      },
+      {
+        "faction_id": "hunter_cadres",
+        "score": 30.22825
+      },
+      {
+        "faction_id": "chaos_undivided_cults",
+        "score": 24.984999
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 66.666664,
+    "corruption": 16.666666,
+    "fear": 0.0,
+    "rebellion_risk": 26.666666,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0023-defense-consecrators",
+      "kind": "defense_platform",
+      "faction_id": "consecrators",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0023-defense-drukhari",
+      "kind": "defense_platform",
+      "faction_id": "drukhari",
+      "strength": 62,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0023-station-hunter_cadres",
+      "kind": "station",
+      "faction_id": "hunter_cadres",
+      "strength": 28,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "chaos_undivided_cults",
+    "defender": "chaos_undivided_cults",
+    "visible_controller": "consecrators",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "chaos_undivided_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "consecrators",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "drukhari",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "hunter_cadres",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "consecrators": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "drukhari",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "hunter_cadres",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "drukhari": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "consecrators",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "hunter_cadres",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "hunter_cadres": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "consecrators",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "drukhari",
+            "source": "rumor",
+            "confidence": 15
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "fringe",
+    "aeldari_activity": 75,
+    "chaos_corruption": 9,
+    "daemon_manifestation": 0
+  }
+}

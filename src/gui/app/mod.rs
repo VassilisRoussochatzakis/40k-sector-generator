@@ -20,6 +20,7 @@ use super::palette::{self, TEXT, TEXT_DIM};
 use super::preset_gallery::{self, PresetGalleryState};
 use super::route_planner::{self, Metric, PickTarget, RoutePlannerState, Severity};
 use super::sector_view::{SectorClick, SectorView};
+use super::segmentum_view::{self, SegmentumAction, SegmentumBundle};
 use super::system_view::{SystemClick, SystemSelection, SystemView};
 
 pub struct App {
@@ -42,6 +43,9 @@ pub struct App {
     heatmap_mode: HeatmapMode,
     dashboard: DashboardState,
     preset_gallery: PresetGalleryState,
+    segmentum: Option<Arc<SegmentumBundle>>,
+    segmentum_active_child: Option<String>,
+    segmentum_selected_link: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -67,6 +71,7 @@ enum View {
     Relations,
     Regions,
     Trade,
+    Segmentum,
 }
 
 impl Default for App {
@@ -91,19 +96,33 @@ impl Default for App {
             heatmap_mode: HeatmapMode::Off,
             dashboard: DashboardState::default(),
             preset_gallery: PresetGalleryState::default(),
+            segmentum: None,
+            segmentum_active_child: None,
+            segmentum_selected_link: None,
         }
     }
 }
 
 impl App {
     pub fn new(sector: GeneratedSector) -> Self {
-        let subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
-        Self {
-            sector: Some(Arc::new(sector)),
-            subsectors,
-            view: View::Sector,
+        let mut app = Self::default();
+        app.set_loaded_sector(sector, None);
+        app.view = View::Sector;
+        app
+    }
+
+    pub fn new_segmentum(bundle: SegmentumBundle) -> Self {
+        let first_child = bundle.children.first().map(|c| c.id.clone());
+        let mut app = Self {
+            segmentum: Some(Arc::new(bundle)),
+            view: View::Segmentum,
             ..Self::default()
+        };
+        if let Some(id) = first_child {
+            app.set_active_segmentum_child(&id);
         }
+        app.view = View::Segmentum;
+        app
     }
 
     pub fn new_empty() -> Self {
@@ -121,6 +140,56 @@ impl App {
 
     fn system_by_id(&self, id: &str) -> Option<&GeneratedSystem> {
         self.sector.as_ref()?.systems.iter().find(|s| s.id == id)
+    }
+
+    fn set_loaded_sector(&mut self, sector: GeneratedSector, source_path: Option<String>) {
+        self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
+        self.sector = Some(Arc::new(sector.clone()));
+        self.sector_selected = None;
+        self.sector_selected_subsector = None;
+        self.planner.clear();
+        self.dashboard.invalidate();
+        if !self.editor.dirty {
+            self.editor.set_sector(sector, source_path);
+        }
+    }
+
+    fn set_active_segmentum_child(&mut self, child_id: &str) -> bool {
+        let Some(bundle) = self.segmentum.clone() else {
+            return false;
+        };
+        let Some(child) = bundle.child(child_id) else {
+            self.export_status = format!("segmentum child '{}' not found", child_id);
+            return false;
+        };
+        self.segmentum_active_child = Some(child_id.to_string());
+        self.set_loaded_sector(
+            child.sector.clone(),
+            Some(child.sector_path.as_str().to_string()),
+        );
+        true
+    }
+
+    fn handle_segmentum_action(&mut self, action: SegmentumAction) {
+        match action {
+            SegmentumAction::OpenChild(child_id) => {
+                if self.set_active_segmentum_child(&child_id) {
+                    self.view = View::Sector;
+                }
+            }
+            SegmentumAction::OpenSystem {
+                child_id,
+                system_id,
+            } => {
+                if self.set_active_segmentum_child(&child_id) {
+                    self.sector_selected = Some(system_id.clone());
+                    self.view = View::System {
+                        system_id,
+                        selection: SystemSelection::None,
+                    };
+                }
+            }
+        }
     }
 }
 
@@ -141,6 +210,7 @@ impl eframe::App for App {
                     let on_data = matches!(self.view, View::Data);
                     let on_planner = matches!(self.view, View::Planner);
                     let has_sector = self.sector.is_some();
+                    let has_segmentum = self.segmentum.is_some();
                     if ui
                         .add_enabled(
                             has_sector,
@@ -152,6 +222,19 @@ impl eframe::App for App {
                         .clicked()
                     {
                         self.view = View::Sector;
+                    }
+                    let on_segmentum = matches!(self.view, View::Segmentum);
+                    if ui
+                        .add_enabled(
+                            has_segmentum,
+                            egui::SelectableLabel::new(
+                                on_segmentum,
+                                RichText::new("SEGMENTUM").color(TEXT).monospace(),
+                            ),
+                        )
+                        .clicked()
+                    {
+                        self.view = View::Segmentum;
                     }
                     if ui
                         .selectable_label(on_edit, RichText::new("EDIT").color(TEXT).monospace())
@@ -250,6 +333,28 @@ impl eframe::App for App {
                     {
                         self.preset_gallery.open = !self.preset_gallery.open;
                     }
+                    if let Some(bundle) = self.segmentum.clone() {
+                        ui.menu_button(RichText::new("CHILD ▾").color(TEXT).monospace(), |ui| {
+                            for child in &bundle.children {
+                                let active = self.segmentum_active_child.as_deref()
+                                    == Some(child.id.as_str());
+                                let label = format!(
+                                    "{}  {} sys",
+                                    child.id.to_uppercase(),
+                                    child.sector.systems.len()
+                                );
+                                if ui
+                                    .selectable_label(active, RichText::new(label).monospace())
+                                    .clicked()
+                                {
+                                    ui.close_menu();
+                                    if self.set_active_segmentum_child(&child.id) {
+                                        self.view = View::Sector;
+                                    }
+                                }
+                            }
+                        });
+                    }
                     let systems_list: Vec<(String, String)> = self
                         .sector
                         .as_ref()
@@ -330,9 +435,15 @@ impl eframe::App for App {
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if let Some(s) = &self.sector {
+                            let prefix = self
+                                .segmentum_active_child
+                                .as_ref()
+                                .map(|id| format!("{} / ", id.to_uppercase()))
+                                .unwrap_or_default();
                             ui.label(
                                 RichText::new(format!(
-                                    "{} - {} sys, {} worlds",
+                                    "{}{} - {} sys, {} worlds",
+                                    prefix,
                                     s.id.to_uppercase(),
                                     s.systems.len(),
                                     s.manifest.world_count
@@ -371,6 +482,7 @@ impl eframe::App for App {
             View::Relations => self.draw_relations_layout(ctx),
             View::Regions => self.draw_regions_layout(ctx),
             View::Trade => self.draw_trade_layout(ctx),
+            View::Segmentum => self.draw_segmentum_layout(ctx),
         }
 
         self.draw_preset_gallery(ctx);
@@ -379,6 +491,65 @@ impl eframe::App for App {
 }
 
 impl App {
+    fn draw_segmentum_layout(&mut self, ctx: &egui::Context) {
+        let Some(bundle) = self.segmentum.clone() else {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(palette::BG))
+                .show(ctx, |ui| {
+                    ui.label(
+                        RichText::new("no segmentum loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            return;
+        };
+
+        let mut action = None;
+        SidePanel::right("segmentum_info")
+            .resizable(true)
+            .default_width(380.0)
+            .min_width(300.0)
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(14.0),
+            )
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    let next = segmentum_view::show_side_panel(
+                        ui,
+                        &bundle,
+                        self.segmentum_active_child.as_deref(),
+                        &mut self.segmentum_selected_link,
+                    );
+                    if action.is_none() {
+                        action = next;
+                    }
+                });
+            });
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::both().show(ui, |ui| {
+                    let next = segmentum_view::show_overview(
+                        ui,
+                        &bundle,
+                        self.segmentum_active_child.as_deref(),
+                        &mut self.segmentum_selected_link,
+                    );
+                    if action.is_none() {
+                        action = next;
+                    }
+                });
+            });
+
+        if let Some(action) = action {
+            self.handle_segmentum_action(action);
+        }
+    }
+
     fn draw_sector_layout(&mut self, ctx: &egui::Context) {
         let Some(sector) = self.sector.clone() else {
             egui::CentralPanel::default()

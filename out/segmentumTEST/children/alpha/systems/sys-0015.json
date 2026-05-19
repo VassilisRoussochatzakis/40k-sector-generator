@@ -1,0 +1,786 @@
+{
+  "id": "sys-0015",
+  "index": 15,
+  "name": "Hilarion",
+  "coord": {
+    "q": 5,
+    "r": 1
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 8
+  },
+  "worlds": [
+    {
+      "id": "sys-0015-w01",
+      "index": 1,
+      "name": "Dominicar",
+      "orbit": 1,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "BlindingMists",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "outcast_tech_guilds",
+          "influence": "dominant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 20.0,
+            "orbital": 20.0,
+            "economic": 59.5,
+            "industrial": 25.5,
+            "ideological": 19.0,
+            "covert": 82.0,
+            "logistics": 61.0,
+            "legitimacy": 4.25,
+            "visibility": 25.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "outcast_tech_guilds",
+          "claim_type": "commercial_charter",
+          "strength": 30
+        }
+      ],
+      "control": {
+        "dominant": "outcast_tech_guilds",
+        "sovereign": null,
+        "occupier": "outcast_tech_guilds",
+        "economic_hegemon": "outcast_tech_guilds",
+        "popular_authority": "outcast_tech_guilds",
+        "hidden_master": "outcast_tech_guilds",
+        "contested": false,
+        "control_score": 29.935
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "outcast_tech_guilds",
+          "control_score": 24,
+          "population_weight": 70,
+          "visibility": 25
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "outcast_tech_guilds",
+          "control_score": 19,
+          "population_weight": 10,
+          "visibility": 25
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "outcast_tech_guilds",
+          "control_score": 10,
+          "population_weight": 20,
+          "visibility": 25
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "outcast_tech_guilds",
+        "defender": "outcast_tech_guilds",
+        "visible_controller": "outcast_tech_guilds",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0015-w02",
+      "index": 2,
+      "name": "Supplica",
+      "orbit": 2,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "CrumblingArcologies",
+          "DaemonicCorruption"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "creations_of_bile",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.0,
+            "military": 95.0,
+            "orbital": 60.0,
+            "economic": 10.0,
+            "industrial": 25.0,
+            "ideological": 64.0,
+            "covert": 52.0,
+            "logistics": 45.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "imperial_administration",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 60.899998,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 61.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "fringe_world_militias",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.25,
+            "military": 21.0,
+            "orbital": 3.5,
+            "economic": 8.75,
+            "industrial": 7.0,
+            "ideological": 19.25,
+            "covert": 17.5,
+            "logistics": 8.75,
+            "legitimacy": 2.45,
+            "visibility": 20.65
+          },
+          "dominance": "presence",
+          "intel_confidence": 21
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "creations_of_bile",
+          "claim_type": "military_occupation",
+          "strength": 42
+        },
+        {
+          "faction_id": "imperial_administration",
+          "claim_type": "imperial_mandate",
+          "strength": 33
+        }
+      ],
+      "control": {
+        "dominant": "creations_of_bile",
+        "sovereign": "imperial_administration",
+        "occupier": "creations_of_bile",
+        "economic_hegemon": "imperial_administration",
+        "popular_authority": "creations_of_bile",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 41.86
+      },
+      "stability": {
+        "public_order": 20.0,
+        "corruption": 70.0,
+        "fear": 40.0,
+        "rebellion_risk": 70.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "imperial_administration",
+          "control_score": 38,
+          "population_weight": 30,
+          "visibility": 58
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "creations_of_bile",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "creations_of_bile",
+        "defender": "creations_of_bile",
+        "visible_controller": "creations_of_bile",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0015-w03",
+      "index": 3,
+      "name": "Ravenna",
+      "orbit": 3,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "craftworld_lugganath_corsairs",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 31.499998,
+            "military": 60.0,
+            "orbital": 40.0,
+            "economic": 26.249998,
+            "industrial": 31.499998,
+            "ideological": 50.0,
+            "covert": 80.0,
+            "logistics": 39.0,
+            "legitimacy": 36.75,
+            "visibility": 17.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 17
+        },
+        {
+          "faction_id": "court_of_the_archon",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 6.825,
+            "military": 52.0,
+            "orbital": 22.75,
+            "economic": 17.0625,
+            "industrial": 13.65,
+            "ideological": 16.25,
+            "covert": 48.75,
+            "logistics": 19.5,
+            "legitimacy": 0.0,
+            "visibility": 22.099998
+          },
+          "dominance": "presence",
+          "intel_confidence": 22
+        },
+        {
+          "faction_id": "order_of_the_ashen_shrine",
+          "influence": "minor",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 11.025,
+            "military": 22.75,
+            "orbital": 8.75,
+            "economic": 9.1875,
+            "industrial": 3.6749997,
+            "ideological": 37.8,
+            "covert": 8.75,
+            "logistics": 12.25,
+            "legitimacy": 27.194998,
+            "visibility": 28.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 28
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "craftworld_lugganath_corsairs",
+          "claim_type": "treaty_right",
+          "strength": 44
+        },
+        {
+          "faction_id": "court_of_the_archon",
+          "claim_type": "military_occupation",
+          "strength": 23
+        },
+        {
+          "faction_id": "order_of_the_ashen_shrine",
+          "claim_type": "religious_mandate",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "craftworld_lugganath_corsairs",
+        "sovereign": "craftworld_lugganath_corsairs",
+        "occupier": "craftworld_lugganath_corsairs",
+        "economic_hegemon": "craftworld_lugganath_corsairs",
+        "popular_authority": "craftworld_lugganath_corsairs",
+        "hidden_master": "craftworld_lugganath_corsairs",
+        "contested": false,
+        "control_score": 43.645004
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "craftworld_lugganath_corsairs",
+          "control_score": 39,
+          "population_weight": 15,
+          "visibility": 17
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "craftworld_lugganath_corsairs",
+          "control_score": 18,
+          "population_weight": 75,
+          "visibility": 17
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "craftworld_lugganath_corsairs",
+          "control_score": 48,
+          "population_weight": 10,
+          "visibility": 17
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "craftworld_lugganath_corsairs",
+        "defender": "craftworld_lugganath_corsairs",
+        "visible_controller": "craftworld_lugganath_corsairs",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "outcast_tech_guilds",
+    "creations_of_bile",
+    "craftworld_lugganath_corsairs"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "craftworld_lugganath_corsairs",
+    "sovereign": "imperial_administration",
+    "orbital_controller": "creations_of_bile",
+    "economic_hegemon": "outcast_tech_guilds",
+    "hidden_master": "outcast_tech_guilds",
+    "top_factions": [
+      {
+        "faction_id": "craftworld_lugganath_corsairs",
+        "score": 43.645004
+      },
+      {
+        "faction_id": "creations_of_bile",
+        "score": 41.86
+      },
+      {
+        "faction_id": "imperial_administration",
+        "score": 32.591
+      },
+      {
+        "faction_id": "outcast_tech_guilds",
+        "score": 29.935
+      },
+      {
+        "faction_id": "court_of_the_archon",
+        "score": 23.341501
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 48.333332,
+    "corruption": 23.333334,
+    "fear": 13.333333,
+    "rebellion_risk": 30.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 10.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0015-blockade-creations_of_bile",
+      "kind": "blockade_fleet",
+      "faction_id": "creations_of_bile",
+      "strength": 78,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-court_of_the_archon",
+      "kind": "defense_platform",
+      "faction_id": "court_of_the_archon",
+      "strength": 40,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-craftworld_lugganath_corsairs",
+      "kind": "defense_platform",
+      "faction_id": "craftworld_lugganath_corsairs",
+      "strength": 52,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-defense-creations_of_bile",
+      "kind": "defense_platform",
+      "faction_id": "creations_of_bile",
+      "strength": 81,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0015-station-craftworld_lugganath_corsairs",
+      "kind": "station",
+      "faction_id": "craftworld_lugganath_corsairs",
+      "strength": 36,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "creations_of_bile",
+    "besieged": "craftworld_lugganath_corsairs",
+    "intensity": 78
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "creations_of_bile",
+    "defender": "creations_of_bile",
+    "visible_controller": "craftworld_lugganath_corsairs",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "court_of_the_archon": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_ashen_shrine",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "outcast_tech_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "craftworld_lugganath_corsairs": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "outcast_tech_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "creations_of_bile": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "fringe_world_militias",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "order_of_the_ashen_shrine",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "outcast_tech_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "fringe_world_militias": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 13
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "order_of_the_ashen_shrine",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "outcast_tech_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "imperial_administration": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "fringe_world_militias",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "order_of_the_ashen_shrine",
+            "source": "rumor",
+            "confidence": 5
+          },
+          {
+            "faction_id": "outcast_tech_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "order_of_the_ashen_shrine": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "court_of_the_archon",
+            "source": "rumor",
+            "confidence": 6
+          },
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "outcast_tech_guilds",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "outcast_tech_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "creations_of_bile",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "order_of_the_ashen_shrine",
+            "source": "rumor",
+            "confidence": 5
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "imperial_administration",
+      "order_of_the_ashen_shrine"
+    ],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 80,
+    "chaos_corruption": 32,
+    "daemon_manifestation": 12
+  }
+}

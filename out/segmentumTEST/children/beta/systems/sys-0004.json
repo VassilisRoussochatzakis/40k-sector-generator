@@ -1,0 +1,1637 @@
+{
+  "id": "sys-0004",
+  "index": 4,
+  "name": "Acerbius Beacon",
+  "coord": {
+    "q": 1,
+    "r": 8
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 11
+  },
+  "worlds": [
+    {
+      "id": "sys-0004-w01",
+      "index": 1,
+      "name": "Narthax",
+      "orbit": 1,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "fulgurite_electro_priests",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 55.0,
+            "military": 35.0,
+            "orbital": 50.0,
+            "economic": 70.0,
+            "industrial": 95.0,
+            "ideological": 50.0,
+            "covert": 25.0,
+            "logistics": 59.0,
+            "legitimacy": 60.0,
+            "visibility": 72.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 72
+        },
+        {
+          "faction_id": "mutant_warbands",
+          "influence": "significant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 16.25,
+            "orbital": 3.25,
+            "economic": 9.75,
+            "industrial": 6.5,
+            "ideological": 52.75,
+            "covert": 65.7,
+            "logistics": 9.75,
+            "legitimacy": 3.25,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "the_unforgiven_fallen",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 1.75,
+            "military": 33.25,
+            "orbital": 21.0,
+            "economic": 3.5,
+            "industrial": 8.75,
+            "ideological": 25.0,
+            "covert": 19.5,
+            "logistics": 15.75,
+            "legitimacy": 0.0,
+            "visibility": 22.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 22
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "fulgurite_electro_priests",
+          "claim_type": "treaty_right",
+          "strength": 53
+        },
+        {
+          "faction_id": "mutant_warbands",
+          "claim_type": "covert_writ",
+          "strength": 17
+        },
+        {
+          "faction_id": "the_unforgiven_fallen",
+          "claim_type": "military_occupation",
+          "strength": 15
+        }
+      ],
+      "control": {
+        "dominant": "fulgurite_electro_priests",
+        "sovereign": "fulgurite_electro_priests",
+        "occupier": "fulgurite_electro_priests",
+        "economic_hegemon": "fulgurite_electro_priests",
+        "popular_authority": "mutant_warbands",
+        "hidden_master": "mutant_warbands",
+        "contested": false,
+        "control_score": 52.899998
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 25.0,
+        "rebellion_risk": 40.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "fulgurite_electro_priests",
+          "control_score": 59,
+          "population_weight": 30,
+          "visibility": 72
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "fulgurite_electro_priests",
+          "control_score": 20,
+          "population_weight": 70,
+          "visibility": 72
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 12,
+        "mobilisation": 6,
+        "attacker": "fulgurite_electro_priests",
+        "defender": "fulgurite_electro_priests",
+        "visible_controller": "fulgurite_electro_priests",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0004-w02",
+      "index": 2,
+      "name": "Hagiara",
+      "orbit": 2,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "CivilWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "marines_errant",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 9.75,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 6.5,
+            "industrial": 19.5,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 48.1,
+            "visibility": 75.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "ironhead_squat_prospectors",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 5.3624997,
+            "military": 13.0,
+            "orbital": 13.0,
+            "economic": 29.574999,
+            "industrial": 12.674999,
+            "ideological": 13.75,
+            "covert": 54.0,
+            "logistics": 39.649998,
+            "legitimacy": 5.3624997,
+            "visibility": 16.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 16
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "marines_errant",
+          "claim_type": "religious_mandate",
+          "strength": 44
+        },
+        {
+          "faction_id": "ironhead_squat_prospectors",
+          "claim_type": "commercial_charter",
+          "strength": 19
+        }
+      ],
+      "control": {
+        "dominant": "marines_errant",
+        "sovereign": "marines_errant",
+        "occupier": "marines_errant",
+        "economic_hegemon": "ironhead_squat_prospectors",
+        "popular_authority": "marines_errant",
+        "hidden_master": "ironhead_squat_prospectors",
+        "contested": false,
+        "control_score": 43.686005
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "marines_errant",
+          "control_score": 27,
+          "population_weight": 70,
+          "visibility": 75
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "marines_errant",
+          "control_score": 37,
+          "population_weight": 10,
+          "visibility": 75
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "marines_errant",
+          "control_score": 21,
+          "population_weight": 20,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "marines_errant",
+        "defender": "marines_errant",
+        "visible_controller": "marines_errant",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0004-w03",
+      "index": 3,
+      "name": "Frost Avitus Verge",
+      "orbit": 3,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "ArchaeotechRuins",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "freeblade_knights",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 23.4,
+            "military": 75.0,
+            "orbital": 15.0,
+            "economic": 16.25,
+            "industrial": 19.5,
+            "ideological": 50.0,
+            "covert": 9.0,
+            "logistics": 35.0,
+            "legitimacy": 53.3,
+            "visibility": 75.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "tallarn_desert_raiders",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 15.209999,
+            "military": 52.0,
+            "orbital": 16.25,
+            "economic": 8.45,
+            "industrial": 23.2375,
+            "ideological": 22.75,
+            "covert": 5.85,
+            "logistics": 39.0,
+            "legitimacy": 28.307499,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:cold_war",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "freeblade_knights",
+          "claim_type": "dynastic_right",
+          "strength": 35
+        },
+        {
+          "faction_id": "tallarn_desert_raiders",
+          "claim_type": "legal_sovereignty",
+          "strength": 25
+        }
+      ],
+      "control": {
+        "dominant": "freeblade_knights",
+        "sovereign": "freeblade_knights",
+        "occupier": "freeblade_knights",
+        "economic_hegemon": "freeblade_knights",
+        "popular_authority": "freeblade_knights",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 35.218002
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 0.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "freeblade_knights",
+          "control_score": 24,
+          "population_weight": 70,
+          "visibility": 75
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "freeblade_knights",
+          "control_score": 33,
+          "population_weight": 10,
+          "visibility": 75
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "freeblade_knights",
+          "control_score": 16,
+          "population_weight": 20,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "freeblade_knights",
+        "defender": "freeblade_knights",
+        "visible_controller": "freeblade_knights",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0004-w04",
+      "index": 4,
+      "name": "Sibylla",
+      "orbit": 4,
+      "source_row_index": 19,
+      "world": {
+        "star_colour": "yellow-white",
+        "star_colour_code": "F",
+        "world_type": "DeadWorld",
+        "atmosphere": "Toxic",
+        "temperature": "Boiling",
+        "biosphere": "XenoDominance",
+        "population": "ExtremelyDense",
+        "tech_level": "Archaeotech",
+        "government": "None",
+        "notable_features": [
+          "FlyingCities",
+          "FailedParadise",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "asuryani",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 26.249998,
+            "military": 60.0,
+            "orbital": 40.0,
+            "economic": 26.249998,
+            "industrial": 31.499998,
+            "ideological": 50.0,
+            "covert": 80.0,
+            "logistics": 39.0,
+            "legitimacy": 31.499998,
+            "visibility": 17.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 17
+        },
+        {
+          "faction_id": "void_reaver_bands",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 3.4125,
+            "military": 13.0,
+            "orbital": 13.0,
+            "economic": 47.774998,
+            "industrial": 20.474998,
+            "ideological": 13.75,
+            "covert": 54.0,
+            "logistics": 39.649998,
+            "legitimacy": 3.4125,
+            "visibility": 16.25
+          },
+          "dominance": "presence",
+          "intel_confidence": 16
+        },
+        {
+          "faction_id": "merchant_magnates",
+          "influence": "minor",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 11.025,
+            "military": 5.25,
+            "orbital": 12.25,
+            "economic": 34.9125,
+            "industrial": 14.699999,
+            "ideological": 7.0,
+            "covert": 10.5,
+            "logistics": 28.35,
+            "legitimacy": 16.537498,
+            "visibility": 24.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 25
+        }
+      ],
+      "tags": [
+        "atmosphere:toxic",
+        "biosphere:xeno_dominance",
+        "feature:civil_war",
+        "feature:failed_paradise",
+        "feature:flying_cities",
+        "gov:none",
+        "population:extremely_dense",
+        "star:yellow_white",
+        "tech:archaeotech",
+        "temperature:boiling",
+        "world_type:dead_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "asuryani",
+          "claim_type": "treaty_right",
+          "strength": 42
+        },
+        {
+          "faction_id": "void_reaver_bands",
+          "claim_type": "commercial_charter",
+          "strength": 21
+        }
+      ],
+      "control": {
+        "dominant": "asuryani",
+        "sovereign": "asuryani",
+        "occupier": "asuryani",
+        "economic_hegemon": "void_reaver_bands",
+        "popular_authority": "asuryani",
+        "hidden_master": "asuryani",
+        "contested": false,
+        "control_score": 42.28
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "asuryani",
+          "control_score": 36,
+          "population_weight": 30,
+          "visibility": 17
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "asuryani",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 17
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "asuryani",
+        "defender": "asuryani",
+        "visible_controller": "asuryani",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0004-w05",
+      "index": 5,
+      "name": "Hilarion Rampart",
+      "orbit": 5,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "ChaosCultists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "plasmancer_courts",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 25.5,
+            "military": 90.0,
+            "orbital": 50.0,
+            "economic": 17.0,
+            "industrial": 42.5,
+            "ideological": 35.0,
+            "covert": 55.0,
+            "logistics": 40.0,
+            "legitimacy": 5.9500003,
+            "visibility": 39.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 39
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:chaos_cultists",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "plasmancer_courts",
+          "claim_type": "military_occupation",
+          "strength": 43
+        }
+      ],
+      "control": {
+        "dominant": "plasmancer_courts",
+        "sovereign": "plasmancer_courts",
+        "occupier": "plasmancer_courts",
+        "economic_hegemon": "plasmancer_courts",
+        "popular_authority": "plasmancer_courts",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 43.147
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 30.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "plasmancer_courts",
+          "control_score": 26,
+          "population_weight": 70,
+          "visibility": 39
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "plasmancer_courts",
+          "control_score": 32,
+          "population_weight": 10,
+          "visibility": 39
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "plasmancer_courts",
+          "control_score": 21,
+          "population_weight": 20,
+          "visibility": 39
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "plasmancer_courts",
+        "defender": "plasmancer_courts",
+        "visible_controller": "plasmancer_courts",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0004-w06",
+      "index": 6,
+      "name": "Verbis Verge",
+      "orbit": 6,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "CivilWar",
+          "AncientArchive"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "adeptus_terra",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 55.899998,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 56.55,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "spire_noble_cartels",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 15.924999,
+            "military": 9.75,
+            "orbital": 22.75,
+            "economic": 40.137497,
+            "industrial": 16.9,
+            "ideological": 13.0,
+            "covert": 19.5,
+            "logistics": 52.649998,
+            "legitimacy": 22.262499,
+            "visibility": 45.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 46
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_archive",
+        "feature:archaeotech_ruins",
+        "feature:civil_war",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "adeptus_terra",
+          "claim_type": "legal_sovereignty",
+          "strength": 37
+        },
+        {
+          "faction_id": "spire_noble_cartels",
+          "claim_type": "commercial_charter",
+          "strength": 23
+        }
+      ],
+      "control": {
+        "dominant": "adeptus_terra",
+        "sovereign": "adeptus_terra",
+        "occupier": "adeptus_terra",
+        "economic_hegemon": "spire_noble_cartels",
+        "popular_authority": "adeptus_terra",
+        "hidden_master": null,
+        "contested": true,
+        "control_score": 37.458
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 0.0,
+        "fear": 15.0,
+        "rebellion_risk": 30.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "adeptus_terra",
+          "control_score": 29,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "adeptus_terra",
+          "control_score": 41,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "adeptus_terra",
+          "control_score": 13,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 100,
+        "mobilisation": 50,
+        "attacker": "adeptus_terra",
+        "defender": "adeptus_terra",
+        "visible_controller": "adeptus_terra",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "adeptus_terra",
+    "marines_errant",
+    "fulgurite_electro_priests"
+  ],
+  "control": {
+    "state": "warzone",
+    "dominant": "fulgurite_electro_priests",
+    "sovereign": "adeptus_terra",
+    "orbital_controller": "marines_errant",
+    "economic_hegemon": "fulgurite_electro_priests",
+    "hidden_master": "asuryani",
+    "top_factions": [
+      {
+        "faction_id": "fulgurite_electro_priests",
+        "score": 52.899998
+      },
+      {
+        "faction_id": "marines_errant",
+        "score": 43.686005
+      },
+      {
+        "faction_id": "plasmancer_courts",
+        "score": 43.147
+      },
+      {
+        "faction_id": "asuryani",
+        "score": 42.28
+      },
+      {
+        "faction_id": "adeptus_terra",
+        "score": 37.458
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 42.5,
+    "corruption": 14.166667,
+    "fear": 24.166668,
+    "rebellion_risk": 16.666666,
+    "xenos_threat": 5.0,
+    "warp_instability": 5.0,
+    "famine_or_resource_stress": 10.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0004-blockade-marines_errant",
+      "kind": "blockade_fleet",
+      "faction_id": "marines_errant",
+      "strength": 80,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-adeptus_terra",
+      "kind": "defense_platform",
+      "faction_id": "adeptus_terra",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-asuryani",
+      "kind": "defense_platform",
+      "faction_id": "asuryani",
+      "strength": 52,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-freeblade_knights",
+      "kind": "defense_platform",
+      "faction_id": "freeblade_knights",
+      "strength": 51,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-fulgurite_electro_priests",
+      "kind": "defense_platform",
+      "faction_id": "fulgurite_electro_priests",
+      "strength": 41,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-marines_errant",
+      "kind": "defense_platform",
+      "faction_id": "marines_errant",
+      "strength": 82,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-plasmancer_courts",
+      "kind": "defense_platform",
+      "faction_id": "plasmancer_courts",
+      "strength": 74,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-tallarn_desert_raiders",
+      "kind": "defense_platform",
+      "faction_id": "tallarn_desert_raiders",
+      "strength": 38,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-defense-the_unforgiven_fallen",
+      "kind": "defense_platform",
+      "faction_id": "the_unforgiven_fallen",
+      "strength": 28,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0004-shipyard-fulgurite_electro_priests",
+      "kind": "shipyard",
+      "faction_id": "fulgurite_electro_priests",
+      "strength": 77,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0004-station-asuryani",
+      "kind": "station",
+      "faction_id": "asuryani",
+      "strength": 33,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0004-station-fulgurite_electro_priests",
+      "kind": "station",
+      "faction_id": "fulgurite_electro_priests",
+      "strength": 53,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0004-station-plasmancer_courts",
+      "kind": "station",
+      "faction_id": "plasmancer_courts",
+      "strength": 38,
+      "ship_inventory": []
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "marines_errant",
+    "besieged": "fulgurite_electro_priests",
+    "intensity": 80
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 100,
+    "mobilisation": 50,
+    "attacker": "freeblade_knights",
+    "defender": "freeblade_knights",
+    "visible_controller": "fulgurite_electro_priests",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "adeptus_terra": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "astropathic_report",
+            "confidence": 40
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "asuryani": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "freeblade_knights": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "astropathic_report",
+            "confidence": 43
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "fulgurite_electro_priests": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "the_unforgiven_fallen",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "ironhead_squat_prospectors": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "marines_errant": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "ironhead_squat_prospectors",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "merchant_magnates": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "mutant_warbands": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "plasmancer_courts": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "spire_noble_cartels": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "astropathic_report",
+            "confidence": 40
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "tallarn_desert_raiders": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "astropathic_report",
+            "confidence": 43
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "the_unforgiven_fallen": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 16
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      },
+      "void_reaver_bands": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_terra",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "freeblade_knights",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "fulgurite_electro_priests",
+            "source": "rumor",
+            "confidence": 14
+          },
+          {
+            "faction_id": "marines_errant",
+            "source": "rumor",
+            "confidence": 15
+          },
+          {
+            "faction_id": "plasmancer_courts",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "spire_noble_cartels",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tallarn_desert_raiders",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_contested",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "adeptus_terra",
+      "freeblade_knights",
+      "fulgurite_electro_priests",
+      "marines_errant",
+      "tallarn_desert_raiders"
+    ],
+    "necron_phase": "awakening",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 80,
+    "chaos_corruption": 23,
+    "daemon_manifestation": 12
+  }
+}

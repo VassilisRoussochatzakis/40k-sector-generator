@@ -278,6 +278,22 @@ pub fn load_sector_json(path: impl AsRef<Utf8Path>) -> Result<GeneratedSector, S
         .map_err(|e| SectorError::config_parse(p.as_str(), format!("invalid sector json: {e}")))
 }
 
+/// Load a previously composed segmentum from `segmentum.json`.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] if the file cannot be read and
+/// [`SectorError::ConfigParse`] if the JSON does not match the
+/// [`segmentum::Segmentum`] schema.
+pub fn load_segmentum_json(
+    path: impl AsRef<Utf8Path>,
+) -> Result<segmentum::Segmentum, SectorError> {
+    let p = path.as_ref();
+    let text = fs::read_to_string(p).map_err(|e| SectorError::io(p.as_str(), e))?;
+    serde_json::from_str(&text)
+        .map_err(|e| SectorError::config_parse(p.as_str(), format!("invalid segmentum json: {e}")))
+}
+
 /// Spec §15: deterministic writers for the generated sector / standalone system.
 ///
 /// # Errors

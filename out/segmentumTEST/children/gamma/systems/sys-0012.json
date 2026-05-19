@@ -1,0 +1,1216 @@
+{
+  "id": "sys-0012",
+  "index": 12,
+  "name": "Icarion",
+  "coord": {
+    "q": 4,
+    "r": 3
+  },
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 6
+  },
+  "worlds": [
+    {
+      "id": "sys-0012-w01",
+      "index": 1,
+      "name": "Armoured Allecta",
+      "orbit": 1,
+      "source_row_index": 6,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "EcclesiarchicalAppointee",
+        "notable_features": [
+          "CelestialPhenomena",
+          "AlteredHumans",
+          "AncientTombs"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "norn_assimilator_broods",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 100.0,
+            "orbital": 60.0,
+            "economic": 0.0,
+            "industrial": 0.0,
+            "ideological": 0.0,
+            "covert": 30.0,
+            "logistics": 40.0,
+            "legitimacy": 0.0,
+            "visibility": 64.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 64
+        },
+        {
+          "faction_id": "orders_hospitaller",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 39.584995,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 21.125,
+            "industrial": 14.787499,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 40.0075,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:ancient_tombs",
+        "feature:celestial_phenomena",
+        "gov:ecclesiarchical_appointee",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "norn_assimilator_broods",
+          "claim_type": "military_occupation",
+          "strength": 31
+        },
+        {
+          "faction_id": "orders_hospitaller",
+          "claim_type": "legal_sovereignty",
+          "strength": 25
+        }
+      ],
+      "control": {
+        "dominant": "norn_assimilator_broods",
+        "sovereign": "orders_hospitaller",
+        "occupier": "norn_assimilator_broods",
+        "economic_hegemon": "orders_hospitaller",
+        "popular_authority": "orders_hospitaller",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 31.05
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 25.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 40.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "orders_hospitaller",
+          "control_score": 17,
+          "population_weight": 70,
+          "visibility": 58
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "orders_hospitaller",
+          "control_score": 24,
+          "population_weight": 10,
+          "visibility": 58
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "norn_assimilator_broods",
+          "control_score": 16,
+          "population_weight": 20,
+          "visibility": 64
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "norn_assimilator_broods",
+        "defender": "norn_assimilator_broods",
+        "visible_controller": "norn_assimilator_broods",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w02",
+      "index": 2,
+      "name": "Brontyx",
+      "orbit": 2,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "CivilWar",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "sanctus_assassin_cells",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 6.5,
+            "military": 35.0,
+            "orbital": 5.0,
+            "economic": 16.25,
+            "industrial": 16.25,
+            "ideological": 50.0,
+            "covert": 100.0,
+            "logistics": 20.0,
+            "legitimacy": 3.25,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "scrapper_guilds",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 15.924999,
+            "military": 9.75,
+            "orbital": 22.75,
+            "economic": 40.137497,
+            "industrial": 16.9,
+            "ideological": 13.0,
+            "covert": 19.5,
+            "logistics": 52.649998,
+            "legitimacy": 22.262499,
+            "visibility": 45.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 46
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "sanctus_assassin_cells",
+          "claim_type": "covert_writ",
+          "strength": 26
+        },
+        {
+          "faction_id": "scrapper_guilds",
+          "claim_type": "commercial_charter",
+          "strength": 23
+        }
+      ],
+      "control": {
+        "dominant": "sanctus_assassin_cells",
+        "sovereign": "scrapper_guilds",
+        "occupier": "sanctus_assassin_cells",
+        "economic_hegemon": "scrapper_guilds",
+        "popular_authority": "sanctus_assassin_cells",
+        "hidden_master": "sanctus_assassin_cells",
+        "contested": false,
+        "control_score": 26.220001
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 15.0,
+        "fear": 0.0,
+        "rebellion_risk": 50.0,
+        "xenos_threat": 20.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "scrapper_guilds",
+          "control_score": 17,
+          "population_weight": 70,
+          "visibility": 46
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "scrapper_guilds",
+          "control_score": 17,
+          "population_weight": 10,
+          "visibility": 46
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "sanctus_assassin_cells",
+          "control_score": 10,
+          "population_weight": 20,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 15,
+        "mobilisation": 7,
+        "attacker": "sanctus_assassin_cells",
+        "defender": "sanctus_assassin_cells",
+        "visible_controller": "sanctus_assassin_cells",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w03",
+      "index": 3,
+      "name": "Ossian",
+      "orbit": 3,
+      "source_row_index": 8,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "ExploratorAuthority",
+        "notable_features": [
+          "CivilWar",
+          "AncientArchive",
+          "AncientTombs"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial_administration",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 73.1,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 42.5,
+            "industrial": 29.75,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 73.950005,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:thriving",
+        "feature:ancient_archive",
+        "feature:ancient_tombs",
+        "feature:civil_war",
+        "gov:explorator_authority",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial_administration",
+          "claim_type": "imperial_mandate",
+          "strength": 44
+        }
+      ],
+      "control": {
+        "dominant": "imperial_administration",
+        "sovereign": "imperial_administration",
+        "occupier": "imperial_administration",
+        "economic_hegemon": "imperial_administration",
+        "popular_authority": "imperial_administration",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 43.562
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "imperial_administration",
+          "control_score": 37,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "imperial_administration",
+          "control_score": 55,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "imperial_administration",
+          "control_score": 16,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "imperial_administration",
+        "defender": "imperial_administration",
+        "visible_controller": "imperial_administration",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w04",
+      "index": 4,
+      "name": "Ataraxia",
+      "orbit": 4,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "DaemonicCorruption",
+          "CrumblingArcologies"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "chaos_undivided_cults",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 5.0,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 15.0,
+            "industrial": 10.0,
+            "ideological": 79.0,
+            "covert": 100.0,
+            "logistics": 15.0,
+            "legitimacy": 5.0,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "tempestus_scions",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 60.899998,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 61.55,
+            "visibility": 58.499996
+          },
+          "dominance": "influence",
+          "intel_confidence": 58
+        },
+        {
+          "faction_id": "charnovokh_dynasty",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 10.5,
+            "military": 31.5,
+            "orbital": 17.5,
+            "economic": 7.0,
+            "industrial": 17.5,
+            "ideological": 12.25,
+            "covert": 19.25,
+            "logistics": 14.0,
+            "legitimacy": 2.45,
+            "visibility": 13.65
+          },
+          "dominance": "presence",
+          "intel_confidence": 14
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "tempestus_scions",
+          "claim_type": "legal_sovereignty",
+          "strength": 33
+        },
+        {
+          "faction_id": "chaos_undivided_cults",
+          "claim_type": "rebellion",
+          "strength": 26
+        },
+        {
+          "faction_id": "charnovokh_dynasty",
+          "claim_type": "dynastic_right",
+          "strength": 16
+        }
+      ],
+      "control": {
+        "dominant": "tempestus_scions",
+        "sovereign": "tempestus_scions",
+        "occupier": "charnovokh_dynasty",
+        "economic_hegemon": "tempestus_scions",
+        "popular_authority": "chaos_undivided_cults",
+        "hidden_master": "chaos_undivided_cults",
+        "contested": false,
+        "control_score": 32.591
+      },
+      "stability": {
+        "public_order": 45.0,
+        "corruption": 85.0,
+        "fear": 25.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 30.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "tempestus_scions",
+          "control_score": 38,
+          "population_weight": 30,
+          "visibility": 58
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "tempestus_scions",
+          "control_score": 11,
+          "population_weight": 70,
+          "visibility": 58
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "chaos_undivided_cults",
+        "defender": "tempestus_scions",
+        "visible_controller": "tempestus_scions",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0012-w05",
+      "index": 5,
+      "name": "Corvax Primus",
+      "orbit": 5,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "CivilWar",
+          "AlteredHumans"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "pale_procession",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 6.5,
+            "military": 25.0,
+            "orbital": 5.0,
+            "economic": 9.75,
+            "industrial": 6.5,
+            "ideological": 75.0,
+            "covert": 98.0,
+            "logistics": 15.0,
+            "legitimacy": 6.5,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "adeptus_astra_telepathica",
+          "influence": "significant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 36.335,
+            "military": 19.5,
+            "orbital": 13.0,
+            "economic": 21.125,
+            "industrial": 14.787499,
+            "ideological": 29.249998,
+            "covert": 5.85,
+            "logistics": 32.5,
+            "legitimacy": 36.7575,
+            "visibility": 58.499996
+          },
+          "dominance": "presence",
+          "intel_confidence": 58
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:blinding_mists",
+        "feature:civil_war",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "pale_procession",
+          "claim_type": "covert_writ",
+          "strength": 25
+        },
+        {
+          "faction_id": "adeptus_astra_telepathica",
+          "claim_type": "legal_sovereignty",
+          "strength": 24
+        }
+      ],
+      "control": {
+        "dominant": "pale_procession",
+        "sovereign": "adeptus_astra_telepathica",
+        "occupier": "pale_procession",
+        "economic_hegemon": "adeptus_astra_telepathica",
+        "popular_authority": "pale_procession",
+        "hidden_master": "pale_procession",
+        "contested": false,
+        "control_score": 25.09
+      },
+      "stability": {
+        "public_order": 60.0,
+        "corruption": 50.0,
+        "fear": 0.0,
+        "rebellion_risk": 60.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "adeptus_astra_telepathica",
+          "control_score": 17,
+          "population_weight": 70,
+          "visibility": 58
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "adeptus_astra_telepathica",
+          "control_score": 23,
+          "population_weight": 10,
+          "visibility": 58
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "pale_procession",
+          "control_score": 9,
+          "population_weight": 20,
+          "visibility": 0
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 18,
+        "mobilisation": 9,
+        "attacker": "pale_procession",
+        "defender": "pale_procession",
+        "visible_controller": "pale_procession",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial_administration",
+    "chaos_undivided_cults",
+    "pale_procession"
+  ],
+  "control": {
+    "state": "blockaded",
+    "dominant": "imperial_administration",
+    "sovereign": "imperial_administration",
+    "orbital_controller": "norn_assimilator_broods",
+    "economic_hegemon": "imperial_administration",
+    "hidden_master": "chaos_undivided_cults",
+    "top_factions": [
+      {
+        "faction_id": "imperial_administration",
+        "score": 43.562
+      },
+      {
+        "faction_id": "tempestus_scions",
+        "score": 32.591
+      },
+      {
+        "faction_id": "norn_assimilator_broods",
+        "score": 31.05
+      },
+      {
+        "faction_id": "sanctus_assassin_cells",
+        "score": 26.220001
+      },
+      {
+        "faction_id": "chaos_undivided_cults",
+        "score": 26.1
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 56.0,
+    "corruption": 30.0,
+    "fear": 10.0,
+    "rebellion_risk": 38.0,
+    "xenos_threat": 18.0,
+    "warp_instability": 6.0,
+    "famine_or_resource_stress": 15.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0012-blockade-norn_assimilator_broods",
+      "kind": "blockade_fleet",
+      "faction_id": "norn_assimilator_broods",
+      "strength": 80,
+      "ship_inventory": [
+        {
+          "hull_class": "cruiser",
+          "count": 1
+        },
+        {
+          "hull_class": "escort",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-charnovokh_dynasty",
+      "kind": "defense_platform",
+      "faction_id": "charnovokh_dynasty",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-imperial_administration",
+      "kind": "defense_platform",
+      "faction_id": "imperial_administration",
+      "strength": 26,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-norn_assimilator_broods",
+      "kind": "defense_platform",
+      "faction_id": "norn_assimilator_broods",
+      "strength": 84,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0012-defense-sanctus_assassin_cells",
+      "kind": "defense_platform",
+      "faction_id": "sanctus_assassin_cells",
+      "strength": 23,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    }
+  ],
+  "blockade": {
+    "under_blockade": true,
+    "blockader": "norn_assimilator_broods",
+    "besieged": "imperial_administration",
+    "intensity": 80
+  },
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 18,
+    "mobilisation": 9,
+    "attacker": "chaos_undivided_cults",
+    "defender": "tempestus_scions",
+    "visible_controller": "imperial_administration",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "adeptus_astra_telepathica": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "chaos_undivided_cults": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "charnovokh_dynasty": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 7
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "imperial_administration": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "norn_assimilator_broods": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "orders_hospitaller": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "astropathic_report",
+            "confidence": 37
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "pale_procession": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "sanctus_assassin_cells": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "scrapper_guilds": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "tempestus_scions",
+            "source": "rumor",
+            "confidence": 11
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "tempestus_scions": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "adeptus_astra_telepathica",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "charnovokh_dynasty",
+            "source": "rumor",
+            "confidence": 7
+          },
+          {
+            "faction_id": "imperial_administration",
+            "source": "rumor",
+            "confidence": 18
+          },
+          {
+            "faction_id": "norn_assimilator_broods",
+            "source": "rumor",
+            "confidence": 12
+          },
+          {
+            "faction_id": "orders_hospitaller",
+            "source": "rumor",
+            "confidence": 11
+          },
+          {
+            "faction_id": "scrapper_guilds",
+            "source": "rumor",
+            "confidence": 9
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [
+      "adeptus_astra_telepathica",
+      "imperial_administration",
+      "orders_hospitaller",
+      "tempestus_scions"
+    ],
+    "necron_phase": "dormant",
+    "tyranid_stage": "inhabited",
+    "ork_waaagh": 0,
+    "gsc_stage": "district_control",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 27,
+    "daemon_manifestation": 12
+  }
+}

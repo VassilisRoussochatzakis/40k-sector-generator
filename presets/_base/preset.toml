@@ -1,0 +1,4 @@
+title = "M42 Base (internal)"
+description = "Internal base bundle shared by other presets. Not intended for direct use."
+tags = ["base", "internal"]
+default_seed = "m42-default-seed"

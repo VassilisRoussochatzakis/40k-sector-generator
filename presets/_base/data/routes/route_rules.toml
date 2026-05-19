@@ -1,0 +1,30 @@
+[routes]
+default_weight = 1.0
+max_distance = 4
+prefer_populated_worlds = true
+prefer_trade_hubs = true
+avoid_warp_phenomena = true
+
+[[routes.modifiers]]
+when = { notable_feature = "TradeHub" }
+multiplier = 2.0
+
+[[routes.modifiers]]
+when = { notable_feature = "AdministrativeHub" }
+multiplier = 1.75
+
+[[routes.modifiers]]
+when = { notable_feature = "Freeport" }
+multiplier = 1.5
+
+[[routes.modifiers]]
+when = { notable_feature = "WarpPhenomena" }
+multiplier = 0.25
+
+[[routes.modifiers]]
+when = { notable_feature = "DaemonicCorruption" }
+multiplier = 0.1
+
+[[routes.modifiers]]
+when = { world_type = "ForgeWorld" }
+multiplier = 1.5

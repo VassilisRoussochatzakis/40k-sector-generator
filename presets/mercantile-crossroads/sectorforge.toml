@@ -1,0 +1,60 @@
+[project]
+id = "mercantile-crossroads"
+title = "Mercantile Crossroads"
+description = "Dense, trade-rich sector preset (§9 NEW.md)."
+version = "0.1.0"
+
+[inputs]
+world_data_dir = "data/worlds"
+system_names = "data/names/system_names.toml"
+world_names = "data/names/world_names.toml"
+factions = "data/factions/factions.toml"
+route_rules = "data/routes/route_rules.toml"
+
+[generation]
+seed = "crossroads-seed"
+sector_width = 8
+sector_height = 10
+subsector_width = 4
+subsector_height = 5
+system_count = 30
+min_worlds_per_system = 3
+max_worlds_per_system = 7
+allow_empty_hexes = true
+world_feature_count = 3
+strict_world_rows = true
+
+[generation.placement]
+mode = "weighted_grid"
+cluster_bias = 0.0
+minimum_system_distance = 1
+
+[generation.world_selection]
+mode = "weighted_rows"
+require_complete_rows = true
+allow_partial_rows = false
+same_star_colour_bias = 1.25
+strict_same_star_colour = false
+avoid_duplicate_world_type_in_system = true
+
+[generation.routes]
+enabled = true
+max_route_distance = 3
+route_density = 0.55
+ensure_connected_graph = true
+
+[outputs]
+directory = "out"
+formats = ["json", "markdown", "csv", "bitmap"]
+pretty_json = true
+write_per_system_files = true
+write_manifest = true
+
+[outputs.bitmap]
+sector_scale = 5
+system_scale = 4
+render_systems = true
+
+[analyze]
+warn_faction_share = 0.45
+warn_contested_ratio = 0.60

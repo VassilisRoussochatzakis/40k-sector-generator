@@ -153,6 +153,87 @@ Standalone diagnostic for a world-data directory (containing `key.csv` + `genera
 Prints key-table sizes, generator row counts, candidate counts, and top-weight
 star colours / world types / notable features. Useful when authoring or debugging data.
 
+### `sectorforge analyze` (§8 NEW.md)
+
+Read-only analytics dashboard for a finished sector. Computes faction balance
+(Gini coefficient + per-faction projection share), contested-world ratio,
+average claims per world, claim-kind + dominance counts, world-type / star-colour
+/ population / route distributions, route-graph connectivity (component count,
+diameter, articulation points, isolated systems), per-subsector political variety,
+and a list of health flags driven by the `[analyze]` config block.
+
+Run against either a project (regenerates from `sectorforge.toml`) or a saved
+`sector.json`:
+
+```bash
+# Regenerate + analyze.
+cargo run --bin sectorforge -- analyze --project examples/m42_project
+
+# Analyze a previously-saved sector.json.
+cargo run --bin sectorforge -- analyze --sector examples/m42_project/out/sector.json
+
+# Write analysis.md + analysis.json into a directory.
+cargo run --bin sectorforge -- analyze --sector path/to/sector.json --out out/
+```
+
+| Flag | Meaning |
+|---|---|
+| `--project <DIR>` | Generate from project and analyze the result |
+| `--sector <PATH>` | Analyze an existing `sector.json` |
+| `--out <DIR>` | Write `analysis.md` + `analysis.json` into `<DIR>` (overrides stdout) |
+| `--json` | Emit JSON to stdout instead of Markdown |
+| `--strict` | Exit 1 if any health flag fires (useful in CI) |
+
+Optional `[analyze]` block in `sectorforge.toml` controls thresholds:
+
+```toml
+[analyze]
+warn_faction_share        = 0.50   # flag if any single faction exceeds this share of projection power
+warn_if_disconnected      = true   # flag if the route graph has >1 component
+warn_if_articulation      = true   # flag every system whose removal would fragment the route graph
+warn_contested_ratio      = 0.66   # info-level flag if more than this fraction of inhabited worlds are contested
+tiny_sector_threshold     = 5      # sectors below this are flagged low-confidence rather than failing structural metrics
+```
+
+### `sectorforge new --out <DIR> --preset <NAME>` (§9 NEW.md)
+
+Scaffold a fresh project from a bundled preset under `presets/` (by default).
+The destination must not exist. The optional `--seed` flag rewrites the
+`[generation].seed` line of the new project's `sectorforge.toml`.
+
+```bash
+# List available presets.
+cargo run --bin sectorforge -- list-presets
+
+# Scaffold a new project from a preset, override the seed.
+cargo run --bin sectorforge -- new \
+    --out my-sector \
+    --preset embattled-frontier \
+    --seed 2026-campaign-A
+
+# Then generate as usual.
+cargo run --bin sectorforge -- generate --project my-sector --allow-warnings
+```
+
+Bundled presets:
+
+| ID | Flavour |
+|---|---|
+| `m42-classic` | Balanced sample sector. Good starting point. |
+| `embattled-frontier` | Sparse, clustered placement, low route density, more hazardous lanes. |
+| `dead-sector` | Low population, large hop distances, ruins-leaning generation. |
+| `mercantile-crossroads` | Dense placement, short hops, high route density, trade-hub feel. |
+
+Presets are pure-data overlays. Each `presets/<id>/` is either a complete project
+tree or a thin overlay with `inherits = "<base>"` in `preset.toml` that overlays
+onto another preset's tree (shared data avoids duplication).
+
+### `sectorforge list-presets`
+
+Print the available presets with one-line descriptions. Reads
+`presets/<id>/preset.toml` for metadata. Internal bundles whose id starts with
+`_` are hidden.
+
 ---
 
 ## 3. Project directory layout
@@ -566,6 +647,19 @@ navigation bar:
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
   weights — avoid Unstable / Hazardous / Dangerous) or `Shortest` (BFS over
   hop count). `Perilous` routes are always impassable.
+- **Dashboard** (§8 NEW.md) — analytics for the loaded sector. Faction-share
+  bars coloured by the same per-faction palette the map uses, a Gini
+  coefficient, contested-world / claim summary, route-graph connectivity
+  callout (component count, diameter, articulation points, isolated systems),
+  world / star / population / route distributions, per-subsector political
+  variety, and a list of health flags. Backed by
+  [src/analytics.rs](src/analytics.rs) and [src/gui/dashboard.rs](src/gui/dashboard.rs).
+- **NEW…** (§9 NEW.md) — modal preset gallery. Lists every preset under
+  `presets/`, lets you type a destination path + optional seed override and
+  scaffold a fresh project tree from one. The new project is **not**
+  auto-loaded; the gallery prints the next-step command. Backed by
+  [src/presets.rs](src/presets.rs) and
+  [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs).
 
 The GUI also supports exporting bitmap PNGs at a configurable scale:
 sector overview, a single system map, or all per-system maps. The current
@@ -706,6 +800,7 @@ Notable suites:
 - [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
 - [tests/invariants_proptest.rs](tests/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
+- [tests/analytics_and_presets.rs](tests/analytics_and_presets.rs) — §8/§9 NEW.md: analytics determinism + writers, preset scaffolding round-trip
 
 Benchmarks (criterion):
 
@@ -745,6 +840,19 @@ to `build_subsectors`. There is currently no `sectorforge.toml` knob for
 this — it is a library-level setting consumed by the GUI and by external
 callers of the API.
 
+**Add a new scenario preset.** Create `presets/<id>/preset.toml` with `title`,
+`description`, and (optionally) `inherits = "<base>"` to reuse another
+preset's data tree. Either supply a full project tree (`sectorforge.toml` +
+`data/`) or set `inherits` and override just the files you want different.
+Internal bundles prefixed with `_` (e.g. `_base`) are hidden from
+`list-presets`. Verify with `cargo run --bin sectorforge -- new --out /tmp/t --preset <id>`.
+
+**Use the analytics dashboard in CI.** `sectorforge analyze --project <DIR>
+--strict` exits non-zero whenever any health flag fires. Combine with a tight
+`[analyze]` block (e.g. `warn_faction_share = 0.40`) to gate merges on sector
+quality. The JSON output (`analyze --json` or `analysis.json`) is stable
+across runs, so a regression check is a diff away.
+
 ---
 
 ## 13. Where to look in the source
@@ -768,6 +876,10 @@ callers of the API.
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` to halo each planet by its dominant faction (§8) |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
+| [src/analytics.rs](src/analytics.rs) | §8 NEW.md analytics dashboard: faction balance + connectivity + flags |
+| [src/presets.rs](src/presets.rs) | §9 NEW.md preset library + scaffolder (`new`, `list-presets`) |
+| [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 NEW.md GUI dashboard tab |
+| [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 NEW.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
 | [src/names.rs](src/names.rs) | Name table types |

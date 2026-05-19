@@ -1,0 +1,5 @@
+title = "M42 Classic"
+description = "Balanced sample sector — the default M42 setup, good for first-time users."
+tags = ["sample", "balanced"]
+default_seed = "m42-default-seed"
+inherits = "_base"

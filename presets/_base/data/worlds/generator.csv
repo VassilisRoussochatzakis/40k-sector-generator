@@ -1,0 +1,197 @@
+star_colour,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_feature,counter,weight
+O,Agri-World,Airless,Freezing,Nonexistent,Uninhabited,Primitive,Balkanized Local Factions,Abhumans,Agri-World,4
+O,Agri-World,Airless,Cold,Nonexistent,Minimal,Primitive,Chaos Cult,Altered Humans,Bastion World,7
+B,Agri-World,Breathable,Cold,Nonexistent,Minimal,Low,Clans / Tribes,Ancient Archive,Death World,7
+B,Agri-World,Breathable,Cold,Minimal,Minimal,Low,Communards,Ancient Tombs,Dead World,2
+B,Agri-World,Breathable,Cold,Minimal,Sole Settlement,Low,Corrupt Aristocrats,Archaeotech Ruins,Extractive Colony,6
+B,Agri-World,Breathable,Cold,Minimal,Sole Settlement,Low,Demagogue,Blinding Mists,Feral World,8
+B,Agri-World,Breathable,Temperate,Minimal,Sole Settlement,Low,Ecclesiarchical Appointee,Celestial Phenomena,Feudal World,9
+B,Agri-World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Elitist Tyrant,Chaos Cultists,Forge World,4
+A,Agri-World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Explorator Authority,Civil War,Frontier World,18
+A,Agri-World,Corrosive,Temperate,Thriving,Lightly Populated,Standard,Guilds / Combines,Cold War,Hive World,4
+A,Bastion World,Exotic,Temperate,Thriving,Lightly Populated,Standard,Hereteks,Crumbling Arcologies,Industrial World,14
+A,Bastion World,Thin,Temperate,Poisoned,Densely Populated,Standard,Heretical Imperial Cult,Daemonic Corruption,Orbital,7
+A,Bastion World,Thin,Temperate,Poisoned,Densely Populated,Standard,Infractionist Gang,Dangerous Wildlife,Penal World,6
+A,Death World,Thin,Temperate,Poisoned,Densely Populated,Standard,Local Religious Authorities,Desert World,Planetary Dump,0
+A,Death World,Thin,Hot,Poisoned,Densely Populated,High,Loyalist Mass Movement,Deviant Religion,Planetary Monument,0
+A,Death World,Tainted,Hot,Xeno Hybrid,Densely Populated,High,Magistrate Council,Eugenic Cult,Pleasure World,2
+A,Death World,Tainted,Hot,Xeno Hybrid,Extremely Dense,High,Mechanicus Forge-Lord,Extreme Environment,Research Station,4
+A,Death World,Tainted,Hot,Xeno Hybrid,Extremely Dense,Xeno Hybrid,Megacorporations,Factional Fragmentation,Shrine World,11
+F,Dead World,Tainted,Hot,Xeno Dominance,Extremely Dense,Xeno Hybrid,Military Governor,Failed Paradise,Tomb World,2
+F,Dead World,Toxic,Boiling,Xeno Dominance,Extremely Dense,Archaeotech,None,Flying Cities,Warp-Lost World,3
+F,Dead World,,,,,,Populist Tyrant,Forbidden Tech,Xenos World,2
+F,Extractive Colony,,,,,,Puppet Government,Foreign Control,Worldship,0
+F,Extractive Colony,,,,,,Revolutionary Junta,Freak Geology,,
+F,Extractive Colony,,,,,,Rogue Trader Dynasty,Freak Weather,Airless,14
+F,Extractive Colony,,,,,,Shadowy Psyker Cabal,Freeport,Breathable,42
+F,Extractive Colony,,,,,,Traditional Oligarchy,Friendly Xenos,Corrosive,6
+F,Extractive Colony,,,,,,Traditionalist Aristocracy,Frozen World,Exotic,8
+F,Extractive Colony,,,,,,Warlords,Gold Rush,Thin,20
+F,Extractive Colony,,,,,,Warrior Aristocracy,Great Work,Tainted,25
+F,Extractive Colony,,,,,,Xenos Overlords,Heavy Industry,Toxic,5
+F,Extractive Colony,,,,,,,Heavy Mining,,
+F,Feral World,,,,,,,Hereteks,Freezing,10
+F,Feral World,,,,,,,Holy War,Cold,27
+F,Feral World,,,,,,,Hostile Biosphere,Temperate,48
+G,Feral World,,,,,,,Hostile Xenos,Hot,26
+G,Feral World,,,,,,,Impending Doom,Boiling,8
+G,Feudal World,,,,,,,Imperial Knights,,
+G,Feudal World,,,,,,,Important Shrine,Nonexistent,17
+G,Feudal World,,,,,,,Inquisition Outpost,Minimal,34
+G,Feudal World,,,,,,,Jungle World,Thriving,18
+G,Feudal World,,,,,,,Libertines,Poisoned,25
+G,Forge World,,,,,,,Local Specialty,Xeno Hybrid,17
+G,Forge World,,,,,,,Local Tech,Xeno Dominance,9
+G,Forge World,,,,,,,Major Spaceyard,,
+G,Forge World,,,,,,,Martial Law,Uninhabited,9
+G,Frontier World,,,,,,,Mass Panic,Minimal,12
+G,Frontier World,,,,,,,Minimal Contact,Sole Settlement,19
+G,Frontier World,,,,,,,Missionaries,Lightly Populated,18
+G,Frontier World,,,,,,,Mutant Hordes,Densely Populated,40
+G,Frontier World,,,,,,,Naval Blockade,Extremely Dense,22
+G,Frontier World,,,,,,,Naval Outpost,,
+G,Frontier World,,,,,,,Navigator House,Primitive,10
+G,Frontier World,,,,,,,Nomadic Cities,Low,32
+G,Frontier World,,,,,,,Notable Local,Standard,35
+K,Frontier World,,,,,,,Ocean World,High,26
+K,Hive World,,,,,,,Out of Contact,Xeno Hybrid,10
+K,Hive World,,,,,,,Pandemic,Archaeotech,7
+K,Hive World,,,,,,,Pilgrimage Site,,
+K,Hive World,,,,,,,Pocket Empire,Balkanized Local Factions,3
+K,Hive World,,,,,,,Police State,Chaos Cult,3
+K,Industrial World,,,,,,,Popular Uprising,Clans / Tribes,2
+K,Industrial World,,,,,,,Powerful Criminals,Communards,3
+K,Industrial World,,,,,,,Powerful Nobles,Corrupt Aristocrats,4
+K,Industrial World,,,,,,,Primitive Xenos,Demagogue,5
+K,Industrial World,,,,,,,Prosperous,Ecclesiarchical Appointee,4
+K,Industrial World,,,,,,,Psyker Academy,Elitist Tyrant,5
+K,Industrial World,,,,,,,Psyker Cult,Explorator Authority,2
+K,Industrial World,,,,,,,Quarantined,Guilds / Combines,1
+K,Orbital,,,,,,,Radioactive,Hereteks,9
+K,Orbital,,,,,,,Recently Rediscovered,Heretical Imperial Cult,5
+K,Orbital,,,,,,,Schola Progenium,Infractionist Gang,4
+K,Orbital,,,,,,,Seagoing Cities,Local Religious Authorities,4
+K,Orbital,,,,,,,Sealed Menace,Loyalist Mass Movement,2
+K,Orbital,,,,,,,Secret Masters,Magistrate Council,4
+M,Orbital,,,,,,,Sectarians,Mechanicus Forge-Lord,4
+M,Orbital,,,,,,,Seismic Instability,Megacorporations,1
+M,Penal World,,,,,,,Separatists,Military Governor,2
+M,Penal World,,,,,,,Silica Animus,None,5
+M,Planetary Dump,,,,,,,Sole Suppliers,Populist Tyrant,2
+M,Planetary Monument,,,,,,,Sororitas Convent,Puppet Government,4
+M,Pleasure World,,,,,,,Space Hulks,Revolutionary Junta,5
+M,Research Station,,,,,,,Strange Customs,Rogue Trader Dynasty,5
+M,Research Station,,,,,,,Strange Hatred,Shadowy Psyker Cabal,3
+M,Research Station,,,,,,,Subsector Hegemon,Traditional Oligarchy,6
+M,Shrine World,,,,,,,Tech-Priest Cult,Traditionalist Aristocracy,4
+M,Shrine World,,,,,,,Test Site,Warlords,9
+M,Shrine World,,,,,,,The Silent Trade,Warrior Aristocracy,6
+M,Shrine World,,,,,,,Trade Hub,Xenos Overlords,4
+M,Shrine World,,,,,,,Under Invasion,,
+M,Shrine World,,,,,,,Unmapped Wastes,Abhumans,5
+M,Shrine World,,,,,,,Vast Fortresses,Altered Humans,5
+M,Shrine World,,,,,,,Verdant Ecology,Ancient Archive,4
+M,Tomb World,,,,,,,War Zone,Ancient Tombs,3
+M,Tomb World,,,,,,,Warp Phenomena,Archaeotech Ruins,7
+M,Tomb World,,,,,,,Witch Hunt,Blinding Mists,0
+M,Warp-Lost World,,,,,,,Xeno Ruins,Celestial Phenomena,3
+M,Xenos World,,,,,,,Xenophiles,Chaos Cultists,2
+M,Xenos World,,,,,,,Xenophobes,Civil War,1
+M,Xenos World,,,,,,,Xenos Infiltrators,Cold War,4
+M,Worldship,,,,,,,Zombies,Crumbling Arcologies,5
+,,,,,,,,,Daemonic Corruption,2
+,,,,,,,,,Dangerous Wildlife,2
+,,,,,,,,,Desert World,6
+,,,,,,,,,Deviant Religion,4
+,,,,,,,,,Eugenic Cult,5
+,,,,,,,,,Extreme Environment,3
+,,,,,,,,,Factional Fragmentation,2
+,,,,,,,,,Failed Paradise,4
+,,,,,,,,,Flying Cities,6
+,,,,,,,,,Forbidden Tech,4
+,,,,,,,,,Foreign Control,2
+,,,,,,,,,Freak Geology,4
+,,,,,,,,,Freak Weather,3
+,,,,,,,,,Freeport,5
+,,,,,,,,,Friendly Xenos,6
+,,,,,,,,,Frozen World,4
+,,,,,,,,,Gold Rush,2
+,,,,,,,,,Great Work,4
+,,,,,,,,,Heavy Industry,4
+,,,,,,,,,Heavy Mining,2
+,,,,,,,,,Hereteks,2
+,,,,,,,,,Holy War,2
+,,,,,,,,,Hostile Biosphere,8
+,,,,,,,,,Hostile Xenos,3
+,,,,,,,,,Impending Doom,2
+,,,,,,,,,Imperial Knights,3
+,,,,,,,,,Important Shrine,2
+,,,,,,,,,Inquisition Outpost,5
+,,,,,,,,,Jungle World,4
+,,,,,,,,,Libertines,2
+,,,,,,,,,Local Specialty,1
+,,,,,,,,,Local Tech,2
+,,,,,,,,,Major Spaceyard,5
+,,,,,,,,,Martial Law,1
+,,,,,,,,,Mass Panic,5
+,,,,,,,,,Minimal Contact,6
+,,,,,,,,,Missionaries,8
+,,,,,,,,,Mutant Hordes,9
+,,,,,,,,,Naval Blockade,2
+,,,,,,,,,Naval Outpost,2
+,,,,,,,,,Navigator House,4
+,,,,,,,,,Nomadic Cities,4
+,,,,,,,,,Notable Local,2
+,,,,,,,,,Ocean World,4
+,,,,,,,,,Out of Contact,3
+,,,,,,,,,Pandemic,2
+,,,,,,,,,Pilgrimage Site,5
+,,,,,,,,,Pocket Empire,5
+,,,,,,,,,Police State,3
+,,,,,,,,,Popular Uprising,3
+,,,,,,,,,Powerful Criminals,3
+,,,,,,,,,Powerful Nobles,2
+,,,,,,,,,Primitive Xenos,2
+,,,,,,,,,Prosperous,4
+,,,,,,,,,Psyker Academy,5
+,,,,,,,,,Psyker Cult,1
+,,,,,,,,,Quarantined,3
+,,,,,,,,,Radioactive,3
+,,,,,,,,,Recently Rediscovered,2
+,,,,,,,,,Schola Progenium,2
+,,,,,,,,,Seagoing Cities,7
+,,,,,,,,,Sealed Menace,4
+,,,,,,,,,Secret Masters,2
+,,,,,,,,,Sectarians,4
+,,,,,,,,,Seismic Instability,3
+,,,,,,,,,Separatists,2
+,,,,,,,,,Silica Animus,2
+,,,,,,,,,Sole Suppliers,3
+,,,,,,,,,Sororitas Convent,4
+,,,,,,,,,Space Hulks,3
+,,,,,,,,,Strange Customs,3
+,,,,,,,,,Strange Hatred,0
+,,,,,,,,,Subsector Hegemon,5
+,,,,,,,,,Tech-Priest Cult,4
+,,,,,,,,,Test Site,2
+,,,,,,,,,The Silent Trade,4
+,,,,,,,,,Trade Hub,7
+,,,,,,,,,Under Invasion,1
+,,,,,,,,,Unmapped Wastes,5
+,,,,,,,,,Vast Fortresses,3
+,,,,,,,,,Verdant Ecology,5
+,,,,,,,,,War Zone,4
+,,,,,,,,,Warp Phenomena,8
+,,,,,,,,,Witch Hunt,2
+,,,,,,,,,Xeno Ruins,4
+,,,,,,,,,Xenophiles,4
+,,,,,,,,,Xenophobes,10
+,,,,,,,,,Xenos Infiltrators,1
+,,,,,,,,,Zombies,5
+,,,,,,,,,O,2
+,,,,,,,,,B,11
+,,,,,,,,,A,12
+,,,,,,,,,F,16
+,,,,,,,,,G,25
+,,,,,,,,,K,22
+,,,,,,,,,M,32

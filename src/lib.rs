@@ -23,6 +23,7 @@
 
 pub mod worlds;
 
+pub mod analytics;
 pub mod archetypes;
 pub mod bitmap;
 pub mod config;
@@ -45,6 +46,7 @@ pub mod invariants;
 pub mod names;
 pub mod orbital_assets;
 pub mod power_projection;
+pub mod presets;
 pub mod render;
 pub mod rng;
 pub mod route_control;
@@ -330,6 +332,49 @@ pub fn export_sector(
     output_dir: impl AsRef<Utf8Path>,
 ) -> Result<(), SectorError> {
     export::export_all(sector, output_config, output_dir.as_ref())
+}
+
+/// §8 NEW.md: read-only sector analytics dashboard.
+#[must_use]
+pub fn analyze_sector(sector: &GeneratedSector) -> analytics::SectorAnalysis {
+    analytics::analyze(sector)
+}
+
+/// §8 NEW.md: analytics with explicit threshold config (overrides defaults).
+#[must_use]
+pub fn analyze_sector_with(
+    sector: &GeneratedSector,
+    cfg: &analytics::AnalyzeConfig,
+) -> analytics::SectorAnalysis {
+    analytics::analyze_with(sector, cfg)
+}
+
+/// §8 NEW.md: deterministic Markdown render of an analysis.
+#[must_use]
+pub fn render_analysis_markdown(analysis: &analytics::SectorAnalysis) -> String {
+    analytics::render_markdown(analysis)
+}
+
+/// §8 NEW.md: write `analysis.md` and `analysis.json` next to each other.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] if either file cannot be written, and
+/// [`SectorError::ExportFailed`] if the analysis cannot be serialised.
+pub fn write_analysis(
+    output_dir: impl AsRef<Utf8Path>,
+    analysis: &analytics::SectorAnalysis,
+) -> Result<(), SectorError> {
+    let dir = output_dir.as_ref();
+    fs::create_dir_all(dir).map_err(|e| SectorError::io(dir.as_str(), e))?;
+    let md_path = dir.join("analysis.md");
+    let md = analytics::render_markdown(analysis);
+    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
+    let json_path = dir.join("analysis.json");
+    let json = serde_json::to_string_pretty(analysis)
+        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
+    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
+    Ok(())
 }
 
 /// Inspect-worlds: load and summarize a world-data dir for the CLI.

@@ -8,6 +8,10 @@ pub struct AppConfig {
     pub inputs: InputConfig,
     pub generation: GenerationConfig,
     pub outputs: OutputConfig,
+    /// Optional analytics dashboard thresholds (§8 NEW.md). Defaults apply
+    /// when the `[analyze]` table is omitted.
+    #[serde(default)]
+    pub analyze: crate::analytics::AnalyzeConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -100,6 +100,46 @@ enum Command {
         #[arg(long)]
         data_dir: String,
     },
+    /// §8 NEW.md: read-only analytics dashboard for a generated sector.
+    /// Accepts either `--project <dir>` (regenerates) or `--sector <path>`
+    /// (loads an existing sector.json). Writes `analysis.md` + `analysis.json`
+    /// to `--out`, or prints Markdown to stdout when `--out` is omitted.
+    Analyze {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        /// Emit only the JSON to stdout (overrides Markdown).
+        #[arg(long)]
+        json: bool,
+        /// Exit with status 1 if any health flag fires (useful in CI).
+        #[arg(long)]
+        strict: bool,
+    },
+    /// §9 NEW.md: scaffold a new project from a bundled preset.
+    /// Copies `presets/<preset>/` into `<out>` and writes a header comment to
+    /// `sectorforge.toml`. The destination must not already exist.
+    New {
+        /// Destination project directory to create.
+        #[arg(long)]
+        out: Utf8PathBuf,
+        /// Preset name (matches a sub-directory of `presets/`).
+        #[arg(long)]
+        preset: String,
+        /// Override the preset's bundled seed.
+        #[arg(long)]
+        seed: Option<String>,
+        /// Source directory holding presets. Defaults to `./presets`.
+        #[arg(long, default_value = "presets")]
+        presets_dir: Utf8PathBuf,
+    },
+    /// §9 NEW.md: list available presets in `--presets-dir` (default `presets`).
+    ListPresets {
+        #[arg(long, default_value = "presets")]
+        presets_dir: Utf8PathBuf,
+    },
 }
 
 fn main() -> ExitCode {
@@ -267,7 +307,80 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             print_workbook_stats(&stats);
             Ok(ExitCode::SUCCESS)
         }
+        Command::Analyze {
+            project,
+            sector,
+            out,
+            json,
+            strict,
+        } => run_analyze(project, sector, out, json, strict),
+        Command::New {
+            out,
+            preset,
+            seed,
+            presets_dir,
+        } => {
+            sectorforge::presets::scaffold(&presets_dir, &preset, &out, seed.as_deref()).map(|_| {
+                println!("Scaffolded project '{out}' from preset '{preset}'.");
+                println!("Next:  cargo run --bin sectorforge -- generate --project {out}");
+                ExitCode::SUCCESS
+            })
+        }
+        Command::ListPresets { presets_dir } => {
+            let entries = sectorforge::presets::list(&presets_dir)?;
+            if entries.is_empty() {
+                println!("No presets found in {presets_dir}");
+            } else {
+                println!("Available presets ({}):", entries.len());
+                for p in entries {
+                    println!("  {:<24} {}", p.id, p.description);
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
     }
+}
+
+fn run_analyze(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    strict: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let (sec, cfg) = match (project, sector) {
+        (Some(project), None) => {
+            let input = sectorforge::load_project(&project)?;
+            let cfg = input.config.analyze.clone();
+            let sec = sectorforge::generate_sector(input)?;
+            (sec, cfg)
+        }
+        (None, Some(sector)) => {
+            let sec = sectorforge::load_sector_json(&sector)?;
+            (sec, sectorforge::analytics::AnalyzeConfig::default())
+        }
+        (Some(_), Some(_)) | (None, None) => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass exactly one of --project <dir> or --sector <path>".into(),
+            ));
+        }
+    };
+    let analysis = sectorforge::analyze_sector_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_analysis(dir, &analysis)?;
+        println!("Wrote {dir}/analysis.md and {dir}/analysis.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&analysis).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::render_analysis_markdown(&analysis);
+        print!("{md}");
+    }
+    let has_flags = !analysis.health_flags.is_empty();
+    if strict && has_flags {
+        return Ok(ExitCode::from(1));
+    }
+    Ok(ExitCode::SUCCESS)
 }
 
 fn print_validation_report(report: &sectorforge::ValidationReport) {

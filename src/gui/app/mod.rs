@@ -10,11 +10,13 @@ use crate::{
     subsectors::{build_subsectors, Subsector, SubsectorConfig},
 };
 
+use super::dashboard::{self, DashboardState};
 use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
 use super::heatmap::{self, HeatmapMode};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
+use super::preset_gallery::{self, PresetGalleryState};
 use super::route_planner::{self, Metric, PickTarget, RoutePlannerState, Severity};
 use super::sector_view::{SectorClick, SectorView};
 use super::system_view::{SystemClick, SystemSelection, SystemView};
@@ -37,6 +39,8 @@ pub struct App {
     sector_pick_export: bool,
     export_scale: u32,
     heatmap_mode: HeatmapMode,
+    dashboard: DashboardState,
+    preset_gallery: PresetGalleryState,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +60,7 @@ enum View {
     Edit,
     Data,
     Planner,
+    Dashboard,
 }
 
 impl Default for App {
@@ -78,6 +83,8 @@ impl Default for App {
             sector_pick_export: false,
             export_scale: 2,
             heatmap_mode: HeatmapMode::Off,
+            dashboard: DashboardState::default(),
+            preset_gallery: PresetGalleryState::default(),
         }
     }
 }
@@ -173,6 +180,27 @@ impl eframe::App for App {
                         .clicked()
                     {
                         self.view = View::Planner;
+                    }
+                    let on_dashboard = matches!(self.view, View::Dashboard);
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::SelectableLabel::new(
+                                on_dashboard,
+                                RichText::new("DASHBOARD").color(TEXT).monospace(),
+                            ),
+                        )
+                        .on_hover_text("Analytics dashboard (§8 NEW.md)")
+                        .clicked()
+                    {
+                        self.view = View::Dashboard;
+                    }
+                    if ui
+                        .button(RichText::new("NEW…").color(TEXT).monospace())
+                        .on_hover_text("Scaffold a fresh project from a preset (§9 NEW.md)")
+                        .clicked()
+                    {
+                        self.preset_gallery.open = !self.preset_gallery.open;
                     }
                     let systems_list: Vec<(String, String)> = self
                         .sector
@@ -284,8 +312,10 @@ impl eframe::App for App {
             View::Edit => self.draw_edit_layout(ctx),
             View::Data => self.draw_data_layout(ctx),
             View::Planner => self.draw_planner_layout(ctx),
+            View::Dashboard => self.draw_dashboard_layout(ctx),
         }
 
+        self.draw_preset_gallery(ctx);
         self.draw_export_dialog(ctx);
     }
 }
@@ -496,6 +526,30 @@ impl App {
         editor::draw_dialog(ctx, &mut self.editor);
     }
 
+    fn draw_preset_gallery(&mut self, ctx: &egui::Context) {
+        if !self.preset_gallery.open {
+            return;
+        }
+        let mut open = true;
+        egui::Window::new(
+            RichText::new("NEW PROJECT FROM PRESET")
+                .monospace()
+                .strong(),
+        )
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(true)
+        .default_width(560.0)
+        .default_height(620.0)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            preset_gallery::show(ui, &mut self.preset_gallery);
+        });
+        if !open {
+            self.preset_gallery.open = false;
+        }
+    }
+
     fn draw_data_layout(&mut self, ctx: &egui::Context) {
         TopBottomPanel::top("data_toolbar")
             .frame(
@@ -561,6 +615,50 @@ impl App {
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(8.0))
             .show(ctx, |ui| {
                 crate::gui::data_editor::show(ui, &mut self.data_editor);
+            });
+    }
+
+    fn draw_dashboard_layout(&mut self, ctx: &egui::Context) {
+        let Some(sector) = self.sector.clone() else {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::none().fill(palette::BG))
+                .show(ctx, |ui| {
+                    ui.label(
+                        RichText::new("no sector loaded")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            return;
+        };
+        TopBottomPanel::top("dashboard_toolbar")
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(6.0),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    if ui
+                        .button(RichText::new("RECOMPUTE").monospace())
+                        .on_hover_text("re-run analytics on the current sector")
+                        .clicked()
+                    {
+                        self.dashboard.invalidate();
+                    }
+                    ui.label(
+                        RichText::new("§8 NEW.md — analytics dashboard")
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            });
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    dashboard::show(ui, &sector, &mut self.dashboard);
+                });
             });
     }
 

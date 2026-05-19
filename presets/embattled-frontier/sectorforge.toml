@@ -1,0 +1,62 @@
+[project]
+id = "embattled-frontier"
+title = "Embattled Frontier"
+description = "Sparse high-hazard sector preset (§9 NEW.md)."
+version = "0.1.0"
+
+[inputs]
+world_data_dir = "data/worlds"
+system_names = "data/names/system_names.toml"
+world_names = "data/names/world_names.toml"
+factions = "data/factions/factions.toml"
+route_rules = "data/routes/route_rules.toml"
+
+[generation]
+seed = "embattled-frontier-seed"
+sector_width = 8
+sector_height = 10
+subsector_width = 4
+subsector_height = 5
+# Sparser populated regions, more empty hexes.
+system_count = 18
+min_worlds_per_system = 1
+max_worlds_per_system = 4
+allow_empty_hexes = true
+world_feature_count = 4
+strict_world_rows = true
+
+[generation.placement]
+mode = "clustered"
+cluster_bias = 0.7
+minimum_system_distance = 1
+
+[generation.world_selection]
+mode = "weighted_rows"
+require_complete_rows = true
+allow_partial_rows = false
+same_star_colour_bias = 1.10
+strict_same_star_colour = false
+avoid_duplicate_world_type_in_system = false
+
+# Lower density + longer hop range so frontier feel — fewer safe lanes.
+[generation.routes]
+enabled = true
+max_route_distance = 5
+route_density = 0.18
+ensure_connected_graph = true
+
+[outputs]
+directory = "out"
+formats = ["json", "markdown", "csv", "bitmap"]
+pretty_json = true
+write_per_system_files = true
+write_manifest = true
+
+[outputs.bitmap]
+sector_scale = 5
+system_scale = 4
+render_systems = true
+
+[analyze]
+warn_faction_share = 0.55
+warn_contested_ratio = 0.50

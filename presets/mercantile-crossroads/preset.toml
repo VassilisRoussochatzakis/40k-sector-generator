@@ -1,0 +1,5 @@
+title = "Mercantile Crossroads"
+description = "Dense, route-rich sector — many systems, short safe hops, trade-hub flavour."
+tags = ["trade", "dense", "rogue-trader"]
+default_seed = "crossroads-seed"
+inherits = "_base"

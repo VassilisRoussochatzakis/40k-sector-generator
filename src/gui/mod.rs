@@ -3,11 +3,13 @@
 //! `info_panel` formats text, `app` wires everything together.
 
 pub mod app;
+pub mod dashboard;
 pub mod data_editor;
 pub mod editor;
 pub mod heatmap;
 pub mod info_panel;
 pub mod palette;
+pub mod preset_gallery;
 pub mod route_planner;
 pub mod sector_view;
 pub mod system_view;

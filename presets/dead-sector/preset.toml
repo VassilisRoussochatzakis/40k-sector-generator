@@ -1,0 +1,5 @@
+title = "Dead Sector"
+description = "Low-population, ruins-heavy void — long quiet stretches between embers of civilisation."
+tags = ["dead", "ruins", "necron-flavour"]
+default_seed = "dead-sector-seed"
+inherits = "_base"

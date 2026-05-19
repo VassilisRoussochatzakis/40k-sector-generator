@@ -587,6 +587,111 @@ surfaces:
   enforce a `ECONOMY_ENABLED_NO_WORLDS` check (enabled but empty world
   list signals a misconfigured derivation).
 
+### `sectorforge interestingness` (§18 NEW2.md)
+
+Score a sector against a target campaign profile (political sandbox / grim
+collapse / mercantile / villainous / frontier). Each profile defines target
+bands for metrics — faction Gini, contested-world ratio, warzone count,
+route-graph properties, asymmetric control worlds — and the report ranks the
+sector's fit on a 0-100 scale with strengths / weaknesses lines.
+
+```bash
+cargo run --bin sectorforge -- interestingness \
+    --sector examples/m42_project/out/sector.json \
+    --profile political_sandbox \
+    --out out/
+```
+
+| Flag | Meaning |
+|---|---|
+| `--project <DIR>` | Generate from project and score the result |
+| `--sector <PATH>` | Score an existing `sector.json` |
+| `--out <DIR>` | Write `interestingness.md` + `interestingness.json` |
+| `--json` | Emit JSON to stdout |
+| `--profile <ID>` | One of `political_sandbox`/`grim_collapse`/`mercantile`/`villainous`/`frontier` |
+
+### `sectorforge briefing` (§9 NEW2.md)
+
+Audience-targeted redaction pack. Applies one of the built-in briefing
+profiles — GM full truth, Imperial Navy captain, Inquisitorial cell, Rogue
+Trader dynasty, local governor, public atlas — and writes a redacted clone of
+the sector plus a Markdown digest. Profile rules: hidden-route stripping,
+relations clearing, claim hiding, archetype scrubbing, intel sub-records.
+Reuses the same intel-confidence cutoff as the HTML player edition.
+
+```bash
+cargo run --bin sectorforge -- briefing \
+    --sector examples/m42_project/out/sector.json \
+    --out out/ \
+    --preset navy
+```
+
+| Flag | Meaning |
+|---|---|
+| `--project <DIR>` | Generate from project and apply the profile |
+| `--sector <PATH>` | Apply the profile to an existing `sector.json` |
+| `--out <DIR>` | Required — output dir for the redacted pack |
+| `--preset <ID>` | `gm` / `navy` / `inquisition` / `trader` / `governor` / `public` |
+| `--observer <FID>` | Optional observer faction id (drives presence-visibility filter) |
+| `--min-confidence <N>` | Override the preset's intel confidence cutoff (0..=100) |
+
+Writes `briefing-<profile_id>.md` + `briefing-<profile_id>.json`.
+
+### `sectorforge missions` (§3 NEW2.md)
+
+Deterministic mission / quest seeds. Scans contested worlds, hidden masters,
+mismatched claims, perilous routes, and uncharted systems, and emits typed
+mission seeds — Investigate / Escort / Sabotage / Diplomacy / Assassination /
+Recovery / Defense / Exploration — each with patron, target, primary +
+secondary location, public objective, hidden complication, reward, and "if
+ignored" consequence.
+
+```bash
+cargo run --bin sectorforge -- missions \
+    --sector examples/m42_project/out/sector.json \
+    --out out/
+
+# Player edition hides GM-only complications.
+cargo run --bin sectorforge -- missions --sector out/sector.json --player
+```
+
+| Flag | Meaning |
+|---|---|
+| `--project <DIR>` | Generate from project and derive missions |
+| `--sector <PATH>` | Derive from an existing `sector.json` |
+| `--out <DIR>` | Write `missions.md` + `missions.json` |
+| `--json` | Emit JSON to stdout |
+| `--player` | Hide GM-only missions (Hidden-tier presences) |
+
+### `sectorforge sites` (§7 NEW2.md)
+
+Per-world points-of-interest: governor's palace, cathedral spire,
+manufactorum, underhive sump-city, void elevator, star-fort dockyard,
+quarantine zone, xenos ruin, pilgrim necropolis, astropathic choir, Arbites
+precinct, data-vault, disputed shrine, penal mine, black-market enclave, cult
+safehouse, crashed voidship, agri granary, forge reactor, tomb complex, naval
+anchorage. Sites derive from world type, notable features, surface regions,
+and faction presences; each carries a controller, a `public_status` vs.
+`actual_status` pair (so hidden cult cells read as `abandoned` to non-GMs),
+and a one-line hook.
+
+```bash
+cargo run --bin sectorforge -- sites \
+    --sector examples/m42_project/out/sector.json \
+    --out out/
+
+# Player edition hides sites whose public/actual status differ.
+cargo run --bin sectorforge -- sites --sector out/sector.json --player
+```
+
+| Flag | Meaning |
+|---|---|
+| `--project <DIR>` | Generate from project and derive sites |
+| `--sector <PATH>` | Derive from an existing `sector.json` |
+| `--out <DIR>` | Write `sites.md` + `sites.json` |
+| `--json` | Emit JSON to stdout |
+| `--player` | Hide sites with mismatched public/actual status |
+
 ### `sectorforge compose` (§14 NEW.md)
 
 Compose a **segmentum** — several independently-generated child sectors
@@ -1419,6 +1524,10 @@ across runs, so a regression check is a diff away.
 | [src/hooks.rs](src/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
 | [src/prose.rs](src/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
 | [src/segmentum.rs](src/segmentum.rs) | §14 NEW.md multi-sector composition: `segmentum.toml` loader, deterministic stitch stage (`blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")`), inter-sector links, super-manifest, Markdown super-map. |
+| [src/interestingness.rs](src/interestingness.rs) | §18 NEW2.md interestingness scorecard: weighted target-band fit over `[crate::analytics]` metrics, five built-in profiles (political_sandbox / grim_collapse / mercantile / villainous / frontier). |
+| [src/briefing.rs](src/briefing.rs) | §9 NEW2.md briefing profiles: six audience presets (gm / navy / inquisition / trader / governor / public) that combine the existing intel redaction primitives with hidden-route, relations, claim, archetype, and orbital-asset stripping. |
+| [src/missions.rs](src/missions.rs) | §3 NEW2.md mission seed generator: typed Investigate / Escort / Sabotage / Diplomacy / Assassination / Recovery / Defense / Exploration seeds keyed off contested worlds, hidden masters, mismatched claims, perilous routes, and uncharted systems. |
+| [src/sites.rs](src/sites.rs) | §7 NEW2.md planetary points-of-interest: 21 site kinds (governor's palace, cathedral spire, manufactorum, underhive, cult safehouse, …) derived from world type / features / surface regions, with `public_status` vs. `actual_status` masking and one-line hooks. |
 | [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
 | [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |

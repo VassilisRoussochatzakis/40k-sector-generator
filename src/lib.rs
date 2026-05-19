@@ -26,6 +26,7 @@ pub mod worlds;
 pub mod analytics;
 pub mod archetypes;
 pub mod bitmap;
+pub mod briefing;
 pub mod config;
 pub mod conflict;
 pub mod control;
@@ -47,7 +48,9 @@ pub mod importance;
 pub mod influence_field;
 pub mod input;
 pub mod intel;
+pub mod interestingness;
 pub mod invariants;
+pub mod missions;
 pub mod names;
 pub mod orbital_assets;
 pub mod personae;
@@ -64,6 +67,7 @@ pub mod search;
 pub mod sector_model;
 pub mod sector_save;
 pub mod segmentum;
+pub mod sites;
 pub mod stability;
 pub mod subsectors;
 pub mod surface_region;
@@ -692,6 +696,109 @@ pub fn write_segmentum(
     seg: &segmentum::Segmentum,
 ) -> Result<(), SectorError> {
     segmentum::write_report(output_dir.as_ref(), seg)
+}
+
+/// §18 NEW2.md: derive an interestingness scorecard for a sector.
+#[must_use]
+pub fn derive_interestingness(sector: &GeneratedSector) -> interestingness::InterestingnessReport {
+    interestingness::derive(sector)
+}
+
+/// §18 NEW2.md: derive with explicit config.
+#[must_use]
+pub fn derive_interestingness_with(
+    sector: &GeneratedSector,
+    cfg: &interestingness::InterestingnessConfig,
+) -> interestingness::InterestingnessReport {
+    interestingness::derive_with(sector, cfg)
+}
+
+/// §18 NEW2.md: write `interestingness.md` + `interestingness.json`.
+///
+/// # Errors
+///
+/// [`SectorError::Io`] / [`SectorError::ExportFailed`] from the writer.
+pub fn write_interestingness(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &interestingness::InterestingnessReport,
+) -> Result<(), SectorError> {
+    interestingness::write_report(output_dir.as_ref(), report)
+}
+
+/// §9 NEW2.md: apply a [`briefing::BriefingProfile`] to a sector and return
+/// the redacted pack.
+#[must_use]
+pub fn apply_briefing(
+    sector: &GeneratedSector,
+    profile: &briefing::BriefingProfile,
+) -> briefing::BriefingPack {
+    briefing::apply(sector, profile)
+}
+
+/// §9 NEW2.md: write `briefing-<id>.md` + `briefing-<id>.json`.
+///
+/// # Errors
+///
+/// [`SectorError::Io`] / [`SectorError::ExportFailed`] from the writer.
+pub fn write_briefing(
+    output_dir: impl AsRef<Utf8Path>,
+    pack: &briefing::BriefingPack,
+    profile: &briefing::BriefingProfile,
+) -> Result<(), SectorError> {
+    briefing::write_pack(output_dir.as_ref(), pack, profile)
+}
+
+/// §3 NEW2.md: derive mission seeds for a sector.
+#[must_use]
+pub fn derive_missions(sector: &GeneratedSector) -> missions::MissionsReport {
+    missions::derive(sector)
+}
+
+/// §3 NEW2.md: derive missions with explicit config.
+#[must_use]
+pub fn derive_missions_with(
+    sector: &GeneratedSector,
+    cfg: &missions::MissionsConfig,
+) -> missions::MissionsReport {
+    missions::derive_with(sector, cfg)
+}
+
+/// §3 NEW2.md: write `missions.md` + `missions.json`.
+///
+/// # Errors
+///
+/// [`SectorError::Io`] / [`SectorError::ExportFailed`] from the writer.
+pub fn write_missions(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &missions::MissionsReport,
+    cfg: &missions::MissionsConfig,
+) -> Result<(), SectorError> {
+    missions::write_report(output_dir.as_ref(), report, cfg)
+}
+
+/// §7 NEW2.md: derive planetary sites for a sector.
+#[must_use]
+pub fn derive_sites(sector: &GeneratedSector) -> sites::SitesReport {
+    sites::derive(sector)
+}
+
+/// §7 NEW2.md: derive sites with explicit config.
+#[must_use]
+pub fn derive_sites_with(sector: &GeneratedSector, cfg: &sites::SitesConfig) -> sites::SitesReport {
+    sites::derive_with(sector, cfg)
+}
+
+/// §7 NEW2.md: write `sites.md` + `sites.json`.
+///
+/// # Errors
+///
+/// [`SectorError::Io`] / [`SectorError::ExportFailed`] from the writer.
+pub fn write_sites(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &sites::SitesReport,
+    cfg: &sites::SitesConfig,
+) -> Result<(), SectorError> {
+    sites::write_report(output_dir.as_ref(), report, cfg)
 }
 
 /// Inspect-worlds: load and summarize a world-data dir for the CLI.

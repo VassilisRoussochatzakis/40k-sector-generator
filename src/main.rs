@@ -277,6 +277,74 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// §18 NEW2.md: interestingness scorecard for a sector against a target
+    /// profile (political sandbox / grim collapse / mercantile / villainous /
+    /// frontier). Accepts `--project` or `--sector`.
+    Interestingness {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+        /// Target profile id. One of:
+        /// `political_sandbox` | `grim_collapse` | `mercantile` |
+        /// `villainous` | `frontier`. Default: `political_sandbox`.
+        #[arg(long)]
+        profile: Option<String>,
+    },
+    /// §9 NEW2.md: audience-targeted redaction pack. Applies a built-in
+    /// briefing profile (gm / navy / inquisition / trader / governor /
+    /// public) and writes a redacted sector + summary into `--out`.
+    Briefing {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Utf8PathBuf,
+        /// Built-in preset to apply.
+        #[arg(long)]
+        preset: String,
+        /// Observer faction id (defaults to none for GM / public).
+        #[arg(long)]
+        observer: Option<String>,
+        /// Override the preset's intel confidence cutoff (0..=100).
+        #[arg(long)]
+        min_confidence: Option<u8>,
+    },
+    /// §3 NEW2.md: deterministic mission / quest seeds derived from sector
+    /// state. Accepts `--project` or `--sector`. `--player` hides GM-only
+    /// missions.
+    Missions {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        player: bool,
+    },
+    /// §7 NEW2.md: planetary points-of-interest per world. Accepts
+    /// `--project` or `--sector`. `--player` hides sites whose public status
+    /// differs from actual status.
+    Sites {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        player: bool,
+    },
     /// §10 NEW.md: deterministic sector diff. Two modes:
     ///
     /// * `--before <a.json> --after <b.json>`: compare two saved sectors.
@@ -556,6 +624,35 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             stitch_seed,
             json,
         } => run_compose(segmentum, out, stitch_seed, json),
+        Command::Interestingness {
+            project,
+            sector,
+            out,
+            json,
+            profile,
+        } => run_interestingness(project, sector, out, json, profile),
+        Command::Briefing {
+            project,
+            sector,
+            out,
+            preset,
+            observer,
+            min_confidence,
+        } => run_briefing(project, sector, out, preset, observer, min_confidence),
+        Command::Missions {
+            project,
+            sector,
+            out,
+            json,
+            player,
+        } => run_missions(project, sector, out, json, player),
+        Command::Sites {
+            project,
+            sector,
+            out,
+            json,
+            player,
+        } => run_sites(project, sector, out, json, player),
         Command::Diff {
             before,
             after,
@@ -911,6 +1008,127 @@ fn run_compose(
             seg.manifest.system_count
         );
         println!("Output written to: {out}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_interestingness(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    profile: Option<String>,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let mut cfg = sectorforge::interestingness::InterestingnessConfig::default();
+    if let Some(p) = profile.as_deref() {
+        cfg.profile = parse_interestingness_profile(p)?;
+    }
+    let report = sectorforge::derive_interestingness_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_interestingness(dir, &report)?;
+        println!("Wrote {dir}/interestingness.md and {dir}/interestingness.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        print!("{}", sectorforge::interestingness::render_markdown(&report));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn parse_interestingness_profile(
+    s: &str,
+) -> Result<sectorforge::interestingness::ProfileId, sectorforge::SectorError> {
+    use sectorforge::interestingness::ProfileId;
+    match s.to_ascii_lowercase().as_str() {
+        "political_sandbox" | "sandbox" => Ok(ProfileId::PoliticalSandbox),
+        "grim_collapse" | "collapse" | "grim" => Ok(ProfileId::GrimCollapse),
+        "mercantile" | "trade" => Ok(ProfileId::Mercantile),
+        "villainous" | "villain" => Ok(ProfileId::Villainous),
+        "frontier" => Ok(ProfileId::Frontier),
+        other => Err(sectorforge::SectorError::InvalidConfig(format!(
+            "unknown interestingness profile '{other}' (expected political_sandbox|grim_collapse|mercantile|villainous|frontier)"
+        ))),
+    }
+}
+
+fn run_briefing(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Utf8PathBuf,
+    preset: String,
+    observer: Option<String>,
+    min_confidence: Option<u8>,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let audience = sectorforge::briefing::parse_preset(&preset).ok_or_else(|| {
+        sectorforge::SectorError::InvalidConfig(format!(
+            "unknown briefing preset '{preset}' (expected gm|navy|inquisition|trader|governor|public)"
+        ))
+    })?;
+    let mut profile = sectorforge::briefing::preset(audience);
+    if let Some(obs) = observer {
+        profile.observer_faction = Some(obs);
+    }
+    if let Some(m) = min_confidence {
+        profile.minimum_intel_confidence = m;
+    }
+    let pack = sectorforge::apply_briefing(&sec, &profile);
+    sectorforge::write_briefing(&out, &pack, &profile)?;
+    println!(
+        "Wrote {out}/briefing-{}.md and {out}/briefing-{}.json",
+        profile.id, profile.id
+    );
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_missions(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    player: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let cfg = sectorforge::missions::MissionsConfig {
+        player_edition: player,
+        ..Default::default()
+    };
+    let report = sectorforge::derive_missions_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_missions(dir, &report, &cfg)?;
+        println!("Wrote {dir}/missions.md and {dir}/missions.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        print!("{}", sectorforge::missions::render_markdown(&report, &cfg));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_sites(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    player: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let sec = load_or_regenerate(project, sector)?;
+    let cfg = sectorforge::sites::SitesConfig {
+        player_edition: player,
+        ..Default::default()
+    };
+    let report = sectorforge::derive_sites_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_sites(dir, &report, &cfg)?;
+        println!("Wrote {dir}/sites.md and {dir}/sites.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        print!("{}", sectorforge::sites::render_markdown(&report, &cfg));
     }
     Ok(ExitCode::SUCCESS)
 }

@@ -47,6 +47,17 @@ pub struct InputConfig {
     pub route_rules: Option<String>,
     #[serde(default)]
     pub generation_profiles: Option<String>,
+    /// §4 NEW.md: optional `relations.toml` with kind/disposition rules and
+    /// per-pair overrides.
+    #[serde(default)]
+    pub relations: Option<String>,
+    /// §5 NEW.md: optional `regions.toml` with the condition catalogue and
+    /// region-stage parameters.
+    #[serde(default)]
+    pub regions: Option<String>,
+    /// §12 NEW.md: optional `economy.toml` with production/consumption tables.
+    #[serde(default)]
+    pub economy: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

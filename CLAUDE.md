@@ -32,6 +32,9 @@ cargo run --bin sectorforge-gui --help   # GUI help
 | [src/personae.rs](src/personae.rs) | §3 dramatis personae: named characters per faction presence |
 | [src/hooks.rs](src/hooks.rs) | §7 plot-hook generator: condition→template over model state |
 | [src/prose.rs](src/prose.rs) | §6 gazetteer prose: deterministic template grammar |
+| [src/relations.rs](src/relations.rs) | §4 inter-faction diplomacy: stance matrix + tension scalar |
+| [src/regions.rs](src/regions.rs) | §5 regional warp phenomena overlay: seeded blob growth + route effects |
+| [src/economy.rs](src/economy.rs) | §12 trade & resource economy: production/consumption + route volume |
 | [src/main.rs](src/main.rs) | CLI (sectorforge binary) |
 | [src/config.rs](src/config.rs) | sectorforge.toml schema |
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |

@@ -126,7 +126,7 @@ Medium effort. Low determinism risk. High value for both GMs (NPCs to run) and w
 
 ---
 
-## 4. Inter-faction diplomacy / relationship layer
+## 4. Inter-faction diplomacy / relationship layer - DONE
 
 ### What it is
 
@@ -161,7 +161,7 @@ Medium effort. Low-to-medium risk (the conflict-tick coupling needs care to stay
 
 ---
 
-## 5. Regional warp phenomena and large-scale map overlay
+## 5. Regional warp phenomena and large-scale map overlay - DONE
 
 ### What it is
 
@@ -398,7 +398,7 @@ Medium effort (a renderer reimplementation in JS, though it mirrors logic that a
 
 ---
 
-## 12. Trade & resource economy layer
+## 12. Trade & resource economy layer - DONE
 
 ### What it is
 

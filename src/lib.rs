@@ -30,6 +30,7 @@ pub mod config;
 pub mod conflict;
 pub mod control;
 pub mod diff;
+pub mod economy;
 pub mod errors;
 pub mod export;
 pub mod faction_style;
@@ -52,6 +53,8 @@ pub mod personae;
 pub mod power_projection;
 pub mod presets;
 pub mod prose;
+pub mod regions;
+pub mod relations;
 pub mod render;
 pub mod rng;
 pub mod route_control;
@@ -558,6 +561,91 @@ pub fn write_prose(
     report: &prose::ProseReport,
 ) -> Result<(), SectorError> {
     prose::write_report(output_dir.as_ref(), report)
+}
+
+/// §4 NEW.md: derive the inter-faction diplomacy matrix for a generated
+/// sector. Pure read-only over `sector.factions` + co-occurrence in worlds.
+#[must_use]
+pub fn derive_relations(sector: &GeneratedSector) -> relations::RelationsMatrix {
+    relations::derive(sector)
+}
+
+/// §4 NEW.md: derive the matrix with an explicit configuration (rules /
+/// overrides loaded from `relations.toml`).
+#[must_use]
+pub fn derive_relations_with(
+    sector: &GeneratedSector,
+    cfg: &relations::RelationsConfig,
+) -> relations::RelationsMatrix {
+    relations::derive_with(sector, cfg)
+}
+
+/// §4 NEW.md: write `relations.md` + `relations.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_relations(
+    output_dir: impl AsRef<Utf8Path>,
+    report: &relations::RelationsReport,
+) -> Result<(), SectorError> {
+    relations::write_report(output_dir.as_ref(), report)
+}
+
+/// §5 NEW.md: build the regional warp-phenomena overlay for a sector grid.
+/// `cfg.enabled = false` returns an empty list (the default).
+#[must_use]
+pub fn build_regions(
+    seed: &str,
+    width: u32,
+    height: u32,
+    cfg: &regions::RegionsConfig,
+) -> Vec<regions::WarpRegion> {
+    regions::build_regions(seed, width, height, cfg)
+}
+
+/// §5 NEW.md: write `regions.md` + `regions.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_regions(
+    output_dir: impl AsRef<Utf8Path>,
+    sector_id: &str,
+    regs: &[regions::WarpRegion],
+) -> Result<(), SectorError> {
+    regions::write_report(output_dir.as_ref(), sector_id, regs)
+}
+
+/// §12 NEW.md: derive the per-world / per-system / sector economy snapshot.
+#[must_use]
+pub fn derive_economy(sector: &GeneratedSector) -> economy::EconomyReport {
+    economy::derive(sector)
+}
+
+/// §12 NEW.md: derive with explicit config.
+#[must_use]
+pub fn derive_economy_with(
+    sector: &GeneratedSector,
+    cfg: &economy::EconomyConfig,
+) -> economy::EconomyReport {
+    economy::derive_with(sector, cfg)
+}
+
+/// §12 NEW.md: write `economy.md` + `economy.json` + `economy.csv` into a dir.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] on write failure and
+/// [`SectorError::ExportFailed`] on serialisation failure.
+pub fn write_economy(
+    output_dir: impl AsRef<Utf8Path>,
+    sector_id: &str,
+    report: &economy::EconomyReport,
+) -> Result<(), SectorError> {
+    economy::write_report(output_dir.as_ref(), sector_id, report)
 }
 
 /// Inspect-worlds: load and summarize a world-data dir for the CLI.

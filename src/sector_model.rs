@@ -31,6 +31,17 @@ pub struct GeneratedSector {
     /// when no factions or routes exist.
     #[serde(default)]
     pub power_projection: crate::power_projection::PowerProjectionMap,
+    /// §4 NEW.md: inter-faction diplomacy / relationship matrix. Empty when
+    /// fewer than two factions exist or relations derivation is skipped.
+    #[serde(default)]
+    pub relations: crate::relations::RelationsMatrix,
+    /// §5 NEW.md: regional warp phenomena overlays. Empty by default.
+    #[serde(default)]
+    pub regions: Vec<crate::regions::WarpRegion>,
+    /// §12 NEW.md: derived per-world / per-system / sector economy snapshot.
+    /// Default = no derivation run.
+    #[serde(default)]
+    pub economy: crate::economy::EconomyReport,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

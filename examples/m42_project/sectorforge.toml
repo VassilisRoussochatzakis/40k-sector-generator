@@ -10,6 +10,12 @@ system_names = "data/names/system_names.toml"
 world_names = "data/names/world_names.toml"
 factions = "data/factions/factions.toml"
 route_rules = "data/routes/route_rules.toml"
+# §4 NEW.md — kind/disposition stance rules + per-pair overrides.
+relations = "data/factions/relations.toml"
+# §5 NEW.md — regional warp phenomena overlay catalogue + stage params.
+regions = "data/routes/regions.toml"
+# §12 NEW.md — trade & resource economy production / consumption tables.
+economy = "data/worlds/economy.toml"
 
 [generation]
 seed = "m42-default-seed"

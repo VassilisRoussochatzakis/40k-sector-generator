@@ -21,6 +21,13 @@ pub struct ProjectInput {
     pub names: NameTables,
     pub factions: Vec<FactionDef>,
     pub route_rules: RouteRules,
+    /// §4 NEW.md: parsed `relations.toml`, default empty when `inputs.relations`
+    /// is unset.
+    pub relations: crate::relations::RelationsConfig,
+    /// §5 NEW.md: parsed `regions.toml`, default disabled when unset.
+    pub regions: crate::regions::RegionsConfig,
+    /// §12 NEW.md: parsed `economy.toml`, default disabled when unset.
+    pub economy: crate::economy::EconomyConfig,
     /// Project-relative path -> "blake3:<hex>" digest of input file bytes.
     pub input_digests: BTreeMap<String, String>,
 }
@@ -94,6 +101,33 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         let _ = read_relative(&root_dir, rel, &mut digests)?;
     }
 
+    let relations = if let Some(rel) = &config.inputs.relations {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        let parsed: crate::relations::RelationsFile = toml::from_str(&text)
+            .map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?;
+        parsed.relations
+    } else {
+        crate::relations::RelationsConfig::default()
+    };
+
+    let regions = if let Some(rel) = &config.inputs.regions {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        let parsed: crate::regions::RegionsFile = toml::from_str(&text)
+            .map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?;
+        parsed.regions
+    } else {
+        crate::regions::RegionsConfig::default()
+    };
+
+    let economy = if let Some(rel) = &config.inputs.economy {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        let parsed: crate::economy::EconomyFile = toml::from_str(&text)
+            .map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?;
+        parsed.economy
+    } else {
+        crate::economy::EconomyConfig::default()
+    };
+
     Ok(ProjectInput {
         root_dir,
         config,
@@ -102,6 +136,9 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         names,
         factions,
         route_rules,
+        relations,
+        regions,
+        economy,
         input_digests: digests,
     })
 }

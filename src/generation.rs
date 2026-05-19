@@ -32,6 +32,9 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         names,
         factions,
         route_rules,
+        relations: relations_cfg,
+        regions: regions_cfg,
+        economy: economy_cfg,
         input_digests,
         ..
     } = project;
@@ -70,6 +73,16 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
 
     let generated_factions = aggregate_factions(&systems, &factions);
 
+    // §5 NEW.md: regions stage runs BEFORE route generation so route
+    // classification can react to the overlay. Determinism preserved by
+    // deriving the stage RNG from the standard scheme.
+    let warp_regions = crate::regions::build_regions(
+        &config.generation.seed,
+        config.generation.sector_width,
+        config.generation.sector_height,
+        &regions_cfg,
+    );
+
     // ── Routes ──────────────────────────────────────────────────────────────
     let mut routes = if config.generation.routes.enabled {
         let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
@@ -77,6 +90,13 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     } else {
         Vec::new()
     };
+
+    // §5 NEW.md: apply region effects to routes (storm → perilous, turbulence
+    // → one tier worse, calm corridor → one tier better up to the perilous
+    // ceiling). Idempotent.
+    if regions_cfg.apply_to_routes && !warp_regions.is_empty() {
+        crate::regions::apply_route_effects(&warp_regions, &systems, &mut routes);
+    }
 
     // §3 NEXT: append hidden route layers (webway / black-ship / smuggling)
     // before per-route control derivation so they receive the same control
@@ -143,6 +163,9 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         manifest,
         influence_field: Default::default(),
         power_projection: Default::default(),
+        relations: Default::default(),
+        regions: warp_regions,
+        economy: Default::default(),
     };
 
     // §11 NEXT: archetype rules.
@@ -152,6 +175,19 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
     // §9 NEXT: continuous area layers.
     sector.influence_field = crate::influence_field::build(&sector);
+
+    // §4 NEW.md: derive inter-faction relationship matrix once factions are
+    // finalised. Pure derivation, no extra RNG draws affect prior stages.
+    sector.relations = crate::relations::derive_with(&sector, &relations_cfg);
+
+    // §12 NEW.md: derive the economy snapshot last so it can read final
+    // route stability + control records. Optional `feed_stability` nudge
+    // applies after the snapshot is built.
+    sector.economy = crate::economy::derive_with(&sector, &economy_cfg);
+    if economy_cfg.feed_stability && sector.economy.enabled {
+        let snap = sector.economy.clone();
+        crate::economy::apply_stability_nudge(&snap, &mut sector);
+    }
 
     Ok(sector)
 }

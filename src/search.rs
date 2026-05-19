@@ -785,6 +785,9 @@ fn clone_project_with_seed(template: &ProjectInput, seed: &str) -> ProjectInput 
         names: template.names.clone(),
         factions: template.factions.clone(),
         route_rules: template.route_rules.clone(),
+        relations: template.relations.clone(),
+        regions: template.regions.clone(),
+        economy: template.economy.clone(),
         input_digests: template.input_digests.clone(),
     }
 }

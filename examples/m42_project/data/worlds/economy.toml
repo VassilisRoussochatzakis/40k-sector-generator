@@ -1,0 +1,34 @@
+# §12 NEW.md — Trade & resource economy production/consumption tables.
+#
+# All fields optional. Missing keys fall through to the built-in defaults
+# shipped in `src/economy.rs` (HiveWorld → food deficit, ForgeWorld →
+# manufactured surplus, AgriWorld → food surplus, etc.).
+
+[economy]
+enabled = false                # opt-in; flip to true to derive an economy
+feed_stability = false         # nudge stability.famine for stranded worlds
+
+# ── Per-world-type overrides ──────────────────────────────────────────────────
+# Values are signed: positive = surplus, negative = deficit.
+#
+# [economy.by_world_type.HiveWorld]
+# ore = 0.0
+# promethium = 0.0
+# foodstuffs = -60.0
+# manufactured = 50.0
+# archeotech = 0.0
+# recruits = 80.0
+
+# ── Tech-level multipliers ────────────────────────────────────────────────────
+# Multiplies the per-world-type vector before population scaling.
+#
+# [economy.by_tech_level]
+# Imperial = 1.0
+# Mechanicus = 1.2
+# Archeotech = 1.6
+
+# ── Population multipliers (tag form: "population:massive" etc.) ──────────────
+# [economy.by_population]
+# "population:massive" = 1.5
+# "population:standard" = 1.0
+# "population:minimal" = 0.25

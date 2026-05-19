@@ -1,0 +1,19 @@
+# §5 NEW.md — Regional warp phenomena overlay.
+#
+# When `enabled = true`, the regions stage runs before route generation and
+# the chosen conditions modify route stability inside their footprint.
+
+[regions]
+enabled = false                # opt-in; flip to true to grow regions
+count = 2                      # approximate number of regions
+mean_size = 6                  # mean footprint in hexes per region
+apply_to_routes = true         # rewrite route stability inside the overlay
+
+# ── Custom condition pool ─────────────────────────────────────────────────────
+# Sampled by weight when enabled. Built-in defaults (WarpStorm / Turbulence /
+# CalmCorridor / Blackout / Anomaly) apply when this list is empty.
+#
+# [[regions.conditions]]
+# kind = "warp_storm"
+# weight = 2.0
+# label = "Aurelian Maelstrom"

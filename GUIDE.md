@@ -444,6 +444,95 @@ no fact appears that isn't in the JSON — and the variation between
 adjacent systems is keyed by id so the gazetteer never reads
 copy-pasted.
 
+### `sectorforge relations` (§4 NEW.md)
+
+Inter-faction diplomacy matrix. For every unordered pair of factions
+present in the sector, derives a single canonical stance (`Allied`,
+`Aligned`, `Neutral`, `Rival`, `Hostile`, `At War`) plus a short cause
+text and a `tension` scalar (0..=100) computed from co-occurrence on
+contested worlds and active warzones.
+
+```bash
+# Regenerate + diplomacy.
+cargo run --bin sectorforge -- relations --project examples/m42_project --out out/
+
+# Diplomacy for an existing sector.json.
+cargo run --bin sectorforge -- relations --sector out/sector.json --json
+```
+
+Writes `relations.md` + `relations.json`. The matrix is also embedded in
+`sector.json` under the `relations` field once the project ships a
+[data/factions/relations.toml](examples/m42_project/data/factions/relations.toml)
+(referenced via `inputs.relations` in `sectorforge.toml`).
+
+The TOML file ships **kind rules** (faction kind × kind → stance),
+**disposition rules** (level delta on top of the base stance), and
+**pair overrides** (pin a specific `(faction_id, faction_id)` stance).
+Built-in defaults — Imperial↔Chaos = At War, Mechanicus↔Imperial =
+Aligned, Tyranid/Necron vs. anyone = At War, etc. — apply when the file
+is silent. A small deterministic per-pair perturbation seeded from
+`blake3("sectorforge:{seed}:relations:{a}:{b}")` breaks ties so two
+identical kind+disposition pairs are not always identical.
+
+### `sectorforge regions` (§5 NEW.md)
+
+Regional warp-phenomena overlay. Grows seeded blob regions over the hex
+grid *before* route generation; the chosen condition modifies route
+stability inside the footprint and tints PNG-export hexes for the
+overlay:
+
+* `WarpStorm` → forces routes crossing the footprint to `Perilous`.
+* `Turbulence` → degrades by one stability tier.
+* `CalmCorridor` → upgrades by one tier (cannot upgrade above
+  `Hazardous` when another rule already forced `Perilous`).
+* `Blackout` → marks the area for no covert / hidden routes.
+* `Anomaly` → biases nearby world generation toward ancient-ruins /
+  warp-phenomena features (tag-only; advisory).
+
+```bash
+# Standalone overlay derivation (no full sector regen).
+cargo run --bin sectorforge -- regions --project examples/m42_project --out out/
+
+# Generate a full sector — regions auto-applied if enabled.
+cargo run --bin sectorforge -- generate --project examples/m42_project
+```
+
+Writes `regions.md` + `regions.json`. The shipped
+[data/routes/regions.toml](examples/m42_project/data/routes/regions.toml)
+defaults to `enabled = false`; flip it on to grow regions for the project.
+Regions are embedded on `sector.json` under the `regions` field and
+rendered as a translucent tint underneath the existing hex grid in the
+PNG export.
+
+### `sectorforge economy` (§12 NEW.md)
+
+Trade & resource economy snapshot. Each world declares a signed
+production/consumption vector over six categories (ore, promethium,
+foodstuffs, manufactured goods, archeotech, recruits) keyed by
+`world_type × tech_level × population`. Per-route trade volume is
+derived from the endpoint surplus/deficit gradient × distance falloff ×
+hazard tier × piracy/interdiction friction; per-system and sector-wide
+balance sheets fall out for free.
+
+```bash
+# Regenerate + economy.
+cargo run --bin sectorforge -- economy --project examples/m42_project --out out/
+
+# Economy for an existing sector.json (built-in defaults apply).
+cargo run --bin sectorforge -- economy --sector out/sector.json
+```
+
+Writes `economy.md`, `economy.json`, and `economy.csv` (per-world
+vectors plus a `stranded` boolean for worlds with shortages no inbound
+route can fix). The shipped
+[data/worlds/economy.toml](examples/m42_project/data/worlds/economy.toml)
+defaults to `enabled = false`; users can override the production matrix
+per `world_type`, set per-`tech_level` multipliers, and set per-population
+multipliers. With `feed_stability = true`, stranded-foodstuffs worlds
+receive a bounded one-way nudge to
+`stability.famine_or_resource_stress` (read-only; the conflict tick is
+not perturbed).
+
 ---
 
 ## 3. Project directory layout
@@ -461,7 +550,10 @@ my-sector-project/
     names/system_names.toml
     names/world_names.toml
     factions/factions.toml
+    factions/relations.toml        # §4 NEW.md (optional)
     routes/route_rules.toml
+    routes/regions.toml            # §5 NEW.md (optional)
+    worlds/economy.toml            # §12 NEW.md (optional)
   out/                             # created by generate
 ```
 
@@ -483,6 +575,9 @@ world_names           = "data/names/world_names.toml"      # optional
 factions              = "data/factions/factions.toml"      # optional
 route_rules           = "data/routes/route_rules.toml"     # optional
 generation_profiles   = "data/generation/profiles.toml"    # optional (digest tracked, content reserved)
+relations             = "data/factions/relations.toml"     # optional (§4 NEW.md)
+regions               = "data/routes/regions.toml"         # optional (§5 NEW.md)
+economy               = "data/worlds/economy.toml"         # optional (§12 NEW.md)
 
 [generation]
 seed                       = "my-seed-string"

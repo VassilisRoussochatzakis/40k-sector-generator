@@ -224,6 +224,40 @@ enum Command {
         #[arg(long)]
         dispatch: bool,
     },
+    /// §4 NEW.md: derive the inter-faction diplomacy matrix.
+    /// Accepts `--project` or `--sector`.
+    Relations {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// §5 NEW.md: emit the regional warp-phenomena overlay for a project's
+    /// grid. Requires a project so the regions config can be read.
+    Regions {
+        #[arg(long)]
+        project: Utf8PathBuf,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// §12 NEW.md: derive the trade & resource economy snapshot.
+    /// Accepts `--project` or `--sector`.
+    Economy {
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        sector: Option<Utf8PathBuf>,
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
     /// §10 NEW.md: deterministic sector diff. Two modes:
     ///
     /// * `--before <a.json> --after <b.json>`: compare two saved sectors.
@@ -484,6 +518,19 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             json,
             dispatch,
         } => run_prose(project, sector, out, json, dispatch),
+        Command::Relations {
+            project,
+            sector,
+            out,
+            json,
+        } => run_relations(project, sector, out, json),
+        Command::Regions { project, out, json } => run_regions(project, out, json),
+        Command::Economy {
+            project,
+            sector,
+            out,
+            json,
+        } => run_economy(project, sector, out, json),
         Command::Diff {
             before,
             after,
@@ -669,6 +716,113 @@ fn run_hooks(
         println!("{text}");
     } else {
         let md = sectorforge::hooks::render_markdown(&report, &cfg);
+        print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_relations(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    // When using --project the per-project relations.toml is honoured;
+    // --sector falls back to the built-in defaults.
+    let (sec, cfg) = match (&project, &sector) {
+        (Some(p), None) => {
+            let input = sectorforge::load_project(p)?;
+            let cfg = input.relations.clone();
+            (sectorforge::generate_sector(input)?, cfg)
+        }
+        (None, Some(s)) => (
+            sectorforge::load_sector_json(s)?,
+            sectorforge::relations::RelationsConfig::default(),
+        ),
+        _ => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass exactly one of --project <dir> or --sector <path>".into(),
+            ));
+        }
+    };
+    let matrix = sectorforge::derive_relations_with(&sec, &cfg);
+    let report = sectorforge::relations::RelationsReport {
+        sector_id: sec.id.clone(),
+        seed: sec.seed.clone(),
+        matrix,
+    };
+    if let Some(dir) = &out {
+        sectorforge::write_relations(dir, &report)?;
+        println!("Wrote {dir}/relations.md and {dir}/relations.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::relations::render_markdown(&report);
+        print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_regions(
+    project: Utf8PathBuf,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let input = sectorforge::load_project(&project)?;
+    let cfg = input.regions.clone();
+    let regs = sectorforge::build_regions(
+        &input.config.generation.seed,
+        input.config.generation.sector_width,
+        input.config.generation.sector_height,
+        &cfg,
+    );
+    if let Some(dir) = &out {
+        sectorforge::write_regions(dir, &input.config.project.id, &regs)?;
+        println!("Wrote {dir}/regions.md and {dir}/regions.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&regs).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::regions::render_markdown(&input.config.project.id, &regs);
+        print!("{md}");
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn run_economy(
+    project: Option<Utf8PathBuf>,
+    sector: Option<Utf8PathBuf>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let (sec, cfg) = match (&project, &sector) {
+        (Some(p), None) => {
+            let input = sectorforge::load_project(p)?;
+            let mut cfg = input.economy.clone();
+            cfg.enabled = true;
+            (sectorforge::generate_sector(input)?, cfg)
+        }
+        (None, Some(s)) => {
+            let mut cfg = sectorforge::economy::EconomyConfig::default();
+            cfg.enabled = true;
+            (sectorforge::load_sector_json(s)?, cfg)
+        }
+        _ => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass exactly one of --project <dir> or --sector <path>".into(),
+            ));
+        }
+    };
+    let report = sectorforge::derive_economy_with(&sec, &cfg);
+    if let Some(dir) = &out {
+        sectorforge::write_economy(dir, &sec.id, &report)?;
+        println!("Wrote {dir}/economy.md, {dir}/economy.json, and {dir}/economy.csv");
+    } else if json {
+        let text = serde_json::to_string_pretty(&report).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::economy::render_markdown(&sec.id, &report);
         print!("{md}");
     }
     Ok(ExitCode::SUCCESS)

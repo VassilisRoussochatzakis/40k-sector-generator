@@ -254,6 +254,9 @@ mod tests {
             },
             influence_field: Default::default(),
             power_projection: Default::default(),
+            relations: Default::default(),
+            regions: Vec::new(),
+            economy: Default::default(),
         };
         let w = build(&sector);
         assert_eq!(w.kinds.len(), 1);

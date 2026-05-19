@@ -265,13 +265,36 @@ fn draw_hex_grid(
     g: &Geom,
     sys_tints: &HashMap<(i32, i32), Rgba<u8>>,
 ) {
+    // §5 NEW.md: region tints underneath the system tint so the overlay reads
+    // as background colour rather than overwriting faction fill.
+    let region_tints = compute_region_tints(sector);
     for r in 0..sector.height as i32 {
         for q in 0..sector.width as i32 {
             let (cx, cy) = hex_center(q, r, g);
-            let fill = sys_tints.get(&(q, r)).copied().unwrap_or(HEX_EMPTY);
+            let base = region_tints.get(&(q, r)).copied().unwrap_or(HEX_EMPTY);
+            let fill = sys_tints.get(&(q, r)).copied().unwrap_or(base);
             draw_hex(img, cx, cy, g.hex_size, fill, HEX_OUTLINE);
         }
     }
+}
+
+fn compute_region_tints(sector: &GeneratedSector) -> HashMap<(i32, i32), Rgba<u8>> {
+    use crate::regions::RegionConditionKind;
+    let mut out = HashMap::new();
+    for region in &sector.regions {
+        let base = match region.kind {
+            RegionConditionKind::WarpStorm => Rgba([120, 60, 180, 255]),
+            RegionConditionKind::Turbulence => Rgba([110, 100, 160, 255]),
+            RegionConditionKind::CalmCorridor => Rgba([80, 160, 170, 255]),
+            RegionConditionKind::Blackout => Rgba([60, 60, 70, 255]),
+            RegionConditionKind::Anomaly => Rgba([180, 130, 100, 255]),
+        };
+        let tinted = tint(base, 0.35);
+        for h in &region.hexes {
+            out.insert((h.q, h.r), tinted);
+        }
+    }
+    out
 }
 
 fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
@@ -1323,6 +1346,9 @@ mod tests {
             manifest: empty_manifest(),
             influence_field: Default::default(),
             power_projection: Default::default(),
+            relations: Default::default(),
+            regions: Vec::new(),
+            economy: Default::default(),
         }
     }
 

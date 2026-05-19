@@ -221,6 +221,38 @@ pub enum RoutePattern {
     Dashed,
     DotDash,
     Dotted,
+    /// Short bars on short gaps — busy texture, reads as "active"
+    Cracked,
+    /// Long dash / very long gap — barely-there, ghostly
+    Ghost,
+    /// Triple-burst pattern: three quick dashes then rest
+    Burst,
+    /// Zigzag rhythm: alternating long/short bars
+    Staccato,
+    /// Fine gravel: short dash / tight gap, denser than Cracked
+    Gravel,
+    /// Two thick bars separated by medium gap
+    Twin,
+    /// Long dash / tiny gap / tiny dot / tiny gap — "triple" motif
+    Tripod,
+    /// Short dash / long gap — sparse tick marks
+    Tick,
+    /// Medium dash / short gap / medium dash / short gap (symmetric)
+    Bridge,
+    /// Rapid dots: very short dash, tight gap
+    Patter,
+    /// Long bar / short gap / long bar / very long gap (4-part cycle)
+    Quartet,
+    /// Extra-long bars: heavy-duty look
+    Railroad,
+    /// Two short bars with medium gap — "double-tap" rhythm
+    DoubleTap,
+    /// Tiny dots very close together — near-solid at small scale
+    Pebble,
+    /// Very short dash / very long gap — barely-punctuated
+    Whisper,
+    /// Five equal dashes evenly spaced — ceremonial, regular
+    March,
 }
 
 impl RoutePattern {
@@ -239,6 +271,23 @@ impl RoutePattern {
             RoutePattern::DotDash => &[5.0, 2.0, 1.0, 2.0, 1.0, 4.0],
             // Tight fine stippling.
             RoutePattern::Dotted => &[1.0, 2.0],
+            // --- 16 new strides ---
+            RoutePattern::Cracked => &[3.0, 2.0],
+            RoutePattern::Ghost => &[12.0, 15.0],
+            RoutePattern::Burst => &[1.5, 2.0, 1.5, 2.0, 1.5, 8.0],
+            RoutePattern::Staccato => &[6.0, 3.0, 2.0, 3.0],
+            RoutePattern::Gravel => &[2.0, 1.5],
+            RoutePattern::Twin => &[4.0, 2.0, 4.0, 5.0],
+            RoutePattern::Tripod => &[6.0, 1.0, 1.0, 1.0, 1.0, 1.0, 6.0],
+            RoutePattern::Tick => &[2.0, 8.0],
+            RoutePattern::Bridge => &[4.0, 2.0, 4.0, 2.0],
+            RoutePattern::Patter => &[0.8, 1.2],
+            RoutePattern::Quartet => &[5.0, 3.0, 3.0, 7.0],
+            RoutePattern::Railroad => &[14.0, 6.0],
+            RoutePattern::DoubleTap => &[2.5, 2.0, 2.5, 6.0],
+            RoutePattern::Pebble => &[1.0, 1.0],
+            RoutePattern::Whisper => &[1.0, 14.0],
+            RoutePattern::March => &[3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
         }
     }
 }

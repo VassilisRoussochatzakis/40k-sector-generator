@@ -343,7 +343,7 @@ pub struct System {
 // ── Key-tab parsing ──────────────────────────────────────────────────────────
 
 /// Reference tables keyed by column index from the Key sheet (1-based).
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct KeyTables {
     /// Column A: star colour codes → enum variants.
     pub star_colours: HashMap<String, StarColour>,

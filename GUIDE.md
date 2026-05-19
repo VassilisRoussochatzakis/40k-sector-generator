@@ -234,6 +234,139 @@ Print the available presets with one-line descriptions. Reads
 `presets/<id>/preset.toml` for metadata. Internal bundles whose id starts with
 `_` are hidden.
 
+### `sectorforge search` (§2 NEW.md)
+
+Constraint-directed deterministic seed search. Lets you declare what the
+generated sector should look like — faction balance bands, world-type
+presences under particular dominant factions, route-graph properties,
+system-state counts — and enumerates seeds derived from a base seed until
+one satisfies every constraint, or the budget is exhausted.
+
+The search itself is reproducible: same `base_seed` + same `wishes.toml` +
+same project ⇒ same winning seed. Candidate seeds are derived via
+`blake3("sectorforge:{base_seed}:search:{n}")`; `n=0` always returns the
+base seed verbatim, so passing a known-good seed as the base wins the
+search trivially without enumerating.
+
+```bash
+cargo run --bin sectorforge -- search \
+    --project examples/m42_project \
+    --wishes wishes.toml \
+    --out out/
+```
+
+| Flag | Meaning |
+|---|---|
+| `--project <DIR>` | Project the candidates are evaluated against |
+| `--wishes <FILE>` | `wishes.toml` listing constraints and search settings |
+| `--base-seed <S>` | Override the wishes/project base seed (becomes the `n=0` candidate) |
+| `--budget <N>` | Override the wishes file's search budget |
+| `--out <DIR>` | Write `search.md` + `search.json` into `<DIR>` |
+| `--json` | Emit JSON to stdout instead of Markdown |
+| `--strict` | Exit 1 if no candidate satisfied all constraints |
+
+Example `wishes.toml`:
+
+```toml
+[search]
+base_seed = "campaign-A"
+budget    = 128
+report_top = 5
+
+# At least one Mechanicus-dominated forge world.
+[[constraints]]
+kind = "world_type_exists"
+world_type = "ForgeWorld"
+dominant_faction_id = "mechanicus"
+min_count = 1
+
+# Chaos must hold between 25% and 40% of total faction projection.
+[[constraints]]
+kind = "faction_share_min"
+faction_id = "chaos_undivided"
+min = 0.25
+
+[[constraints]]
+kind = "faction_share_max"
+faction_id = "chaos_undivided"
+max = 0.40
+
+# At least three contested worlds with three or more competing claimants.
+[[constraints]]
+kind = "contested_world_min"
+min = 3
+n_way = 3
+
+# Route graph must be connected with no single point of failure.
+[[constraints]]
+kind = "route_graph_connected"
+
+[[constraints]]
+kind = "no_articulation_points"
+```
+
+Supported constraint `kind`s:
+
+| Kind | Parameters |
+|---|---|
+| `faction_share_min` / `faction_share_max` | `faction_id`, `min`/`max` (0.0..=1.0) |
+| `faction_world_count_min` / `faction_world_count_max` | `faction_id`, `min`/`max` |
+| `faction_system_count_min` / `faction_system_count_max` | `faction_id`, `min`/`max` |
+| `world_type_exists` | `world_type`, optional `dominant_faction_id`, `min_count` |
+| `contested_world_min` | `min`, optional `n_way` (min competing claims) |
+| `contested_world_max` | `max` |
+| `system_state_count_min` / `system_state_count_max` | `state` (snake_case), `min`/`max` |
+| `route_graph_connected` | — |
+| `no_articulation_points` | — |
+| `diameter_max` | `max_hops` |
+| `isolated_systems_max` | `max` |
+| `contested_ratio_min` / `contested_ratio_max` | `min`/`max` (0.0..=1.0) |
+
+Unknown faction ids are caught by a preflight check before any search
+runs, so an over-constrained or typo'd wish set fails immediately with a
+clear message. When no candidate satisfies the constraints, the report
+includes the top `report_top` near-misses ranked by total miss distance,
+so you know which constraint to relax.
+
+### `sectorforge diff` (§10 NEW.md)
+
+Deterministic model-aware diff between two sectors. Two modes:
+
+```bash
+# Compare two saved sectors (different seeds, different ticks, etc.).
+cargo run --bin sectorforge -- diff \
+    --before path/to/before.json \
+    --after  path/to/after.json \
+    --out out/
+
+# Generate a sector, advance N conflict ticks, diff before vs. after.
+cargo run --bin sectorforge -- diff \
+    --project examples/m42_project \
+    --ticks 5 \
+    --out out/
+```
+
+| Flag | Meaning |
+|---|---|
+| `--before <PATH>` + `--after <PATH>` | Compare two `sector.json` files |
+| `--project <DIR>` + `--ticks <N>` | Generate + advance, diff before/after |
+| `--out <DIR>` | Write `diff.md` + `diff.json` |
+| `--json` | Emit JSON to stdout instead of Markdown |
+| `--skip-worlds` | Drop per-world detail from the report |
+| `--skip-routes` | Drop per-route detail |
+
+Entity matching uses the generator's stable IDs (`sys-NNNN`, `route-...`),
+so renaming a world is reported as a modification rather than a
+delete+add. The diff is a pure derivation — same inputs ⇒ same output —
+covered by golden-style tests against the bundled example project.
+
+The Markdown digest is organised by stratum: schema warnings, system-level
+changes (state, dominant/sovereign/occupier flips, primary-faction
+add/remove, world add/remove/change), route changes, and a faction power
+delta table filtered by `min_faction_delta`. Sector id or
+`generator_version` mismatch is reported but does not refuse the diff —
+the report is marked as best-effort instead.
+
 ---
 
 ## 3. Project directory layout
@@ -878,6 +1011,8 @@ across runs, so a regression check is a diff away.
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/analytics.rs](src/analytics.rs) | §8 NEW.md analytics dashboard: faction balance + connectivity + flags |
 | [src/presets.rs](src/presets.rs) | §9 NEW.md preset library + scaffolder (`new`, `list-presets`) |
+| [src/search.rs](src/search.rs) | §2 NEW.md constraint-directed seed search (declarative wishes → deterministic seed enumeration) |
+| [src/diff.rs](src/diff.rs) | §10 NEW.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
 | [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 NEW.md GUI dashboard tab |
 | [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 NEW.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |

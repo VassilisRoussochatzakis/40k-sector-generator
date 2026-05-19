@@ -47,7 +47,7 @@ Medium-high effort (the event grammar and precondition engine are the bulk). Low
 
 ---
 
-## 2. Constraint-directed generation and seed search ("wishes")
+## 2. Constraint-directed generation and seed search ("wishes") - DONE
 
 ### What it is
 
@@ -266,7 +266,7 @@ Low-medium effort (it is rule-matching over existing fields). Very low determini
 
 ---
 
-## 8. Sector analytics & balance dashboard
+## 8. Sector analytics & balance dashboard - DONE
 
 ### What it is
 
@@ -299,7 +299,7 @@ Low effort, zero determinism risk, high decision-support value. A natural first 
 
 ---
 
-## 9. Scenario presets / template library
+## 9. Scenario presets / template library - DONE
 
 ### What it is
 
@@ -332,7 +332,7 @@ Low effort, zero determinism risk. High onboarding value and a good showcase for
 
 ---
 
-## 10. Sector diff & state-comparison tool
+## 10. Sector diff & state-comparison tool - DONE
 
 ### What it is
 

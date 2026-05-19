@@ -12,6 +12,15 @@ pub struct AppConfig {
     /// when the `[analyze]` table is omitted.
     #[serde(default)]
     pub analyze: crate::analytics::AnalyzeConfig,
+    /// Optional default search configuration (§2 NEW.md). Constraints still
+    /// come from a separate `wishes.toml`; this block only controls
+    /// search budget / reporting defaults when the wishes file omits them.
+    #[serde(default)]
+    pub search: crate::search::SearchConfig,
+    /// Optional default diff verbosity (§10 NEW.md). The CLI overrides
+    /// these per-invocation.
+    #[serde(default)]
+    pub diff: crate::diff::DiffConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -1,0 +1,949 @@
+//! Constraint-directed seed search (§2 NEW.md).
+//!
+//! Lets a user declare what they want the generated sector to look like —
+//! faction balance bands, presence of a particular world type under a
+//! particular dominant faction, route-graph properties, system-state counts
+//! — and finds a seed that satisfies the constraints by deterministic
+//! enumeration over seeds derived from a base.
+//!
+//! The search is itself reproducible: same `base_seed` + same constraint
+//! file + same project ⇒ same winning seed (or same "best-effort" near miss
+//! when the budget is exhausted). The generator is not modified; the search
+//! is a pure outer loop around `generate_sector`.
+//!
+//! Candidate seeds are derived from
+//! `blake3("sectorforge:{base_seed}:search:{n}")`, mirroring the
+//! per-stage RNG scheme. n=0 is always the base seed itself, so passing a
+//! known-good seed as the base trivially finds it without enumeration.
+//!
+//! Constraints evaluate against the finished sector + its analytics report,
+//! so they reuse the same fields the analytics dashboard exposes (§8).
+
+use std::collections::BTreeMap;
+use std::fmt::Write as _;
+
+use camino::Utf8Path;
+use serde::{Deserialize, Serialize};
+
+use crate::analytics::{self, SectorAnalysis};
+use crate::errors::SectorError;
+use crate::input::ProjectInput;
+use crate::sector_model::{GeneratedSector, SystemState};
+
+// ── Public DTOs ────────────────────────────────────────────────────────────────
+
+/// On-disk constraint file (`wishes.toml`) bundling a base seed, a search
+/// budget, and the list of constraints to evaluate.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WishesFile {
+    /// Optional `[search]` block. When omitted, defaults are used and the
+    /// base seed comes from the project's `sectorforge.toml`.
+    #[serde(default)]
+    pub search: SearchConfig,
+    /// Constraints evaluated for every candidate. Empty ⇒ the first
+    /// candidate wins.
+    #[serde(default)]
+    pub constraints: Vec<Constraint>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SearchConfig {
+    /// Base seed for the search. Candidate seeds are derived from this. When
+    /// `None`, the project's configured seed is used.
+    #[serde(default)]
+    pub base_seed: Option<String>,
+    /// Maximum number of candidates evaluated, including n=0 (the base
+    /// itself). Default: 256.
+    #[serde(default = "default_budget")]
+    pub budget: u32,
+    /// How many near-miss candidates to keep in the report when no seed
+    /// satisfies the constraints. Default: 5.
+    #[serde(default = "default_report_top")]
+    pub report_top: u32,
+}
+
+impl Default for SearchConfig {
+    fn default() -> Self {
+        Self {
+            base_seed: None,
+            budget: default_budget(),
+            report_top: default_report_top(),
+        }
+    }
+}
+
+fn default_budget() -> u32 {
+    256
+}
+fn default_report_top() -> u32 {
+    5
+}
+
+/// One declarative constraint. The `kind` field selects the variant and the
+/// remaining fields parameterise it. Unknown fields are ignored so future
+/// variants don't break older configs.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Constraint {
+    /// `share` is a fraction of total faction projection power (0.0..=1.0).
+    FactionShareMin {
+        faction_id: String,
+        min: f32,
+    },
+    FactionShareMax {
+        faction_id: String,
+        max: f32,
+    },
+    FactionWorldCountMin {
+        faction_id: String,
+        min: u32,
+    },
+    FactionWorldCountMax {
+        faction_id: String,
+        max: u32,
+    },
+    FactionSystemCountMin {
+        faction_id: String,
+        min: u32,
+    },
+    FactionSystemCountMax {
+        faction_id: String,
+        max: u32,
+    },
+    /// At least `min_count` worlds whose `world_type` matches and (optionally)
+    /// whose dominant faction is `dominant_faction_id`.
+    WorldTypeExists {
+        world_type: String,
+        #[serde(default)]
+        dominant_faction_id: Option<String>,
+        #[serde(default = "default_one")]
+        min_count: u32,
+    },
+    /// At least / at most `count` contested worlds.
+    ContestedWorldMin {
+        min: u32,
+        #[serde(default)]
+        n_way: Option<u32>,
+    },
+    ContestedWorldMax {
+        max: u32,
+    },
+    /// At least `min` systems whose `SystemState` matches.
+    SystemStateCountMin {
+        state: SystemStateName,
+        min: u32,
+    },
+    SystemStateCountMax {
+        state: SystemStateName,
+        max: u32,
+    },
+    /// Route graph has exactly one connected component.
+    RouteGraphConnected,
+    /// Route graph has zero articulation points.
+    NoArticulationPoints,
+    /// Route-graph diameter, in hops, no greater than `max_hops`.
+    DiameterMax {
+        max_hops: u32,
+    },
+    /// At most `max` systems with no incident routes.
+    IsolatedSystemsMax {
+        max: u32,
+    },
+    /// Sector-wide contested ratio (contested worlds / inhabited worlds) ≤ max.
+    ContestedRatioMax {
+        max: f32,
+    },
+    /// Sector-wide contested ratio ≥ min.
+    ContestedRatioMin {
+        min: f32,
+    },
+}
+
+fn default_one() -> u32 {
+    1
+}
+
+/// Serializable mirror of [`SystemState`] for use inside constraint files.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SystemStateName {
+    Pacified,
+    Fragmented,
+    Blockaded,
+    Warzone,
+    Infiltrated,
+    Quarantined,
+    Uncharted,
+}
+
+impl From<SystemStateName> for SystemState {
+    fn from(s: SystemStateName) -> Self {
+        match s {
+            SystemStateName::Pacified => SystemState::Pacified,
+            SystemStateName::Fragmented => SystemState::Fragmented,
+            SystemStateName::Blockaded => SystemState::Blockaded,
+            SystemStateName::Warzone => SystemState::Warzone,
+            SystemStateName::Infiltrated => SystemState::Infiltrated,
+            SystemStateName::Quarantined => SystemState::Quarantined,
+            SystemStateName::Uncharted => SystemState::Uncharted,
+        }
+    }
+}
+
+impl SystemStateName {
+    fn debug_name(self) -> &'static str {
+        match self {
+            Self::Pacified => "Pacified",
+            Self::Fragmented => "Fragmented",
+            Self::Blockaded => "Blockaded",
+            Self::Warzone => "Warzone",
+            Self::Infiltrated => "Infiltrated",
+            Self::Quarantined => "Quarantined",
+            Self::Uncharted => "Uncharted",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConstraintReport {
+    pub label: String,
+    pub passed: bool,
+    pub observed: String,
+    pub required: String,
+    /// 0.0 means "exactly satisfied". Positive numbers are the *miss
+    /// distance* used for ranking — higher = worse violation.
+    pub miss: f32,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CandidateReport {
+    pub n: u32,
+    pub seed: String,
+    pub passed: bool,
+    pub total_miss: f32,
+    pub constraints: Vec<ConstraintReport>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchOutcome {
+    pub base_seed: String,
+    pub budget: u32,
+    pub candidates_evaluated: u32,
+    pub winning: Option<CandidateReport>,
+    /// Sorted by ascending total_miss. Always non-empty when at least one
+    /// candidate was evaluated.
+    pub near_misses: Vec<CandidateReport>,
+    /// Pre-flight validation errors against the project (e.g. unknown
+    /// faction id). Search aborts early when this is non-empty.
+    pub preflight_errors: Vec<String>,
+}
+
+// ── Loading ────────────────────────────────────────────────────────────────────
+
+/// Parse a wishes file from disk.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] if the file cannot be read and
+/// [`SectorError::ConfigParse`] if the TOML is malformed.
+pub fn load_wishes(path: impl AsRef<Utf8Path>) -> Result<WishesFile, SectorError> {
+    let p = path.as_ref();
+    let text = std::fs::read_to_string(p).map_err(|e| SectorError::io(p.as_str(), e))?;
+    toml::from_str(&text).map_err(|e| SectorError::config_parse(p.as_str(), e.to_string()))
+}
+
+// ── Seed derivation ────────────────────────────────────────────────────────────
+
+/// Deterministic candidate seed derived from a base seed and ordinal.
+/// `n == 0` returns the base seed unchanged (so a known-good seed wins the
+/// search immediately without enumeration).
+#[must_use]
+pub fn derive_candidate_seed(base_seed: &str, n: u32) -> String {
+    if n == 0 {
+        return base_seed.to_string();
+    }
+    let bytes = crate::rng::derive_stage_seed(base_seed, "search", &n.to_string());
+    // 16 hex chars = 64-bit identifier — short enough to type, large enough
+    // to make collisions over a 256-candidate search vanishingly unlikely.
+    crate::rng::hex(&bytes[..8])
+}
+
+// ── Pre-flight ─────────────────────────────────────────────────────────────────
+
+fn preflight(project: &ProjectInput, constraints: &[Constraint]) -> Vec<String> {
+    let mut errors = Vec::new();
+    let known_factions: std::collections::BTreeSet<&str> =
+        project.factions.iter().map(|f| f.id.as_str()).collect();
+    for c in constraints {
+        if let Some(id) = referenced_faction(c) {
+            if !known_factions.contains(id.as_str()) {
+                errors.push(format!(
+                    "constraint references unknown faction id `{id}`; known: [{}]",
+                    known_factions
+                        .iter()
+                        .copied()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ));
+            }
+        }
+    }
+    errors
+}
+
+fn referenced_faction(c: &Constraint) -> Option<String> {
+    match c {
+        Constraint::FactionShareMin { faction_id, .. }
+        | Constraint::FactionShareMax { faction_id, .. }
+        | Constraint::FactionWorldCountMin { faction_id, .. }
+        | Constraint::FactionWorldCountMax { faction_id, .. }
+        | Constraint::FactionSystemCountMin { faction_id, .. }
+        | Constraint::FactionSystemCountMax { faction_id, .. } => Some(faction_id.clone()),
+        Constraint::WorldTypeExists {
+            dominant_faction_id: Some(id),
+            ..
+        } => Some(id.clone()),
+        _ => None,
+    }
+}
+
+// ── Constraint evaluation ──────────────────────────────────────────────────────
+
+fn share_of(analysis: &SectorAnalysis, faction_id: &str) -> f32 {
+    analysis
+        .faction_balance
+        .top_factions
+        .iter()
+        .find(|f| f.faction_id == faction_id)
+        .map(|f| f.share)
+        .unwrap_or(0.0)
+}
+
+fn world_count_of(analysis: &SectorAnalysis, faction_id: &str) -> u32 {
+    analysis
+        .faction_balance
+        .top_factions
+        .iter()
+        .find(|f| f.faction_id == faction_id)
+        .map(|f| f.world_presence_count)
+        .unwrap_or(0)
+}
+
+fn system_count_of(analysis: &SectorAnalysis, faction_id: &str) -> u32 {
+    analysis
+        .faction_balance
+        .top_factions
+        .iter()
+        .find(|f| f.faction_id == faction_id)
+        .map(|f| f.system_presence_count)
+        .unwrap_or(0)
+}
+
+fn count_world_type_dominant(
+    sector: &GeneratedSector,
+    world_type: &str,
+    dominant_faction_id: Option<&str>,
+) -> u32 {
+    let mut n = 0u32;
+    for sys in &sector.systems {
+        for w in &sys.worlds {
+            if w.world.world_type != world_type {
+                continue;
+            }
+            if let Some(fid) = dominant_faction_id {
+                if w.control.dominant.as_deref() != Some(fid) {
+                    continue;
+                }
+            }
+            n += 1;
+        }
+    }
+    n
+}
+
+fn count_contested_worlds(sector: &GeneratedSector, n_way: Option<u32>) -> u32 {
+    let mut n = 0u32;
+    for sys in &sector.systems {
+        for w in &sys.worlds {
+            if !w.control.contested {
+                continue;
+            }
+            if let Some(k) = n_way {
+                if (w.claims.len() as u32) < k {
+                    continue;
+                }
+            }
+            n += 1;
+        }
+    }
+    n
+}
+
+fn count_system_state(sector: &GeneratedSector, target: SystemState) -> u32 {
+    sector
+        .systems
+        .iter()
+        .filter(|s| s.control.state == Some(target))
+        .count() as u32
+}
+
+/// Evaluate a single constraint. Returns a per-constraint report including a
+/// non-negative `miss` distance used for ranking near-misses.
+fn evaluate(
+    c: &Constraint,
+    sector: &GeneratedSector,
+    analysis: &SectorAnalysis,
+) -> ConstraintReport {
+    match c {
+        Constraint::FactionShareMin { faction_id, min } => {
+            let s = share_of(analysis, faction_id);
+            let passed = s >= *min;
+            let miss = (*min - s).max(0.0);
+            ConstraintReport {
+                label: format!("faction_share_min({faction_id})"),
+                passed,
+                observed: format!("{:.3}", s),
+                required: format!(">= {:.3}", min),
+                miss,
+            }
+        }
+        Constraint::FactionShareMax { faction_id, max } => {
+            let s = share_of(analysis, faction_id);
+            let passed = s <= *max;
+            let miss = (s - *max).max(0.0);
+            ConstraintReport {
+                label: format!("faction_share_max({faction_id})"),
+                passed,
+                observed: format!("{:.3}", s),
+                required: format!("<= {:.3}", max),
+                miss,
+            }
+        }
+        Constraint::FactionWorldCountMin { faction_id, min } => {
+            let n = world_count_of(analysis, faction_id);
+            let passed = n >= *min;
+            let miss = if passed {
+                0.0
+            } else {
+                (*min as f32) - n as f32
+            };
+            ConstraintReport {
+                label: format!("faction_world_count_min({faction_id})"),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::FactionWorldCountMax { faction_id, max } => {
+            let n = world_count_of(analysis, faction_id);
+            let passed = n <= *max;
+            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
+            ConstraintReport {
+                label: format!("faction_world_count_max({faction_id})"),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::FactionSystemCountMin { faction_id, min } => {
+            let n = system_count_of(analysis, faction_id);
+            let passed = n >= *min;
+            let miss = if passed {
+                0.0
+            } else {
+                (*min as f32) - n as f32
+            };
+            ConstraintReport {
+                label: format!("faction_system_count_min({faction_id})"),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::FactionSystemCountMax { faction_id, max } => {
+            let n = system_count_of(analysis, faction_id);
+            let passed = n <= *max;
+            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
+            ConstraintReport {
+                label: format!("faction_system_count_max({faction_id})"),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::WorldTypeExists {
+            world_type,
+            dominant_faction_id,
+            min_count,
+        } => {
+            let n = count_world_type_dominant(sector, world_type, dominant_faction_id.as_deref());
+            let passed = n >= *min_count;
+            let miss = if passed {
+                0.0
+            } else {
+                (*min_count as f32) - n as f32
+            };
+            let label = match dominant_faction_id {
+                Some(fid) => format!("world_type_exists({world_type} dominant={fid})"),
+                None => format!("world_type_exists({world_type})"),
+            };
+            ConstraintReport {
+                label,
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min_count}"),
+                miss,
+            }
+        }
+        Constraint::ContestedWorldMin { min, n_way } => {
+            let n = count_contested_worlds(sector, *n_way);
+            let passed = n >= *min;
+            let miss = if passed {
+                0.0
+            } else {
+                (*min as f32) - n as f32
+            };
+            let label = match n_way {
+                Some(k) => format!("contested_world_min(n_way={k})"),
+                None => "contested_world_min".to_string(),
+            };
+            ConstraintReport {
+                label,
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::ContestedWorldMax { max } => {
+            let n = count_contested_worlds(sector, None);
+            let passed = n <= *max;
+            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
+            ConstraintReport {
+                label: "contested_world_max".to_string(),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::SystemStateCountMin { state, min } => {
+            let n = count_system_state(sector, SystemState::from(*state));
+            let passed = n >= *min;
+            let miss = if passed {
+                0.0
+            } else {
+                (*min as f32) - n as f32
+            };
+            ConstraintReport {
+                label: format!("system_state_count_min({})", state.debug_name()),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::SystemStateCountMax { state, max } => {
+            let n = count_system_state(sector, SystemState::from(*state));
+            let passed = n <= *max;
+            let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
+            ConstraintReport {
+                label: format!("system_state_count_max({})", state.debug_name()),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::RouteGraphConnected => {
+            let n = analysis.connectivity.component_count;
+            let passed = n == 1;
+            // Miss = extra components.
+            let miss = if passed { 0.0 } else { (n - 1) as f32 };
+            ConstraintReport {
+                label: "route_graph_connected".to_string(),
+                passed,
+                observed: format!("components={n}"),
+                required: "components == 1".to_string(),
+                miss,
+            }
+        }
+        Constraint::NoArticulationPoints => {
+            let n = analysis.connectivity.articulation_point_ids.len() as u32;
+            let passed = n == 0;
+            let miss = n as f32;
+            ConstraintReport {
+                label: "no_articulation_points".to_string(),
+                passed,
+                observed: format!("articulation_points={n}"),
+                required: "== 0".to_string(),
+                miss,
+            }
+        }
+        Constraint::DiameterMax { max_hops } => {
+            let observed = analysis.connectivity.diameter_hops;
+            let (passed, miss) = match observed {
+                Some(d) if d <= *max_hops => (true, 0.0),
+                Some(d) => (false, (d - *max_hops) as f32),
+                // Disconnected → infinite diameter; treat as a hard miss.
+                None => (false, f32::from(u16::MAX)),
+            };
+            ConstraintReport {
+                label: "diameter_max".to_string(),
+                passed,
+                observed: match observed {
+                    Some(d) => d.to_string(),
+                    None => "disconnected".to_string(),
+                },
+                required: format!("<= {max_hops}"),
+                miss,
+            }
+        }
+        Constraint::IsolatedSystemsMax { max } => {
+            let n = analysis.connectivity.isolated_system_ids.len() as u32;
+            let passed = n <= *max;
+            let miss = if passed { 0.0 } else { (n - *max) as f32 };
+            ConstraintReport {
+                label: "isolated_systems_max".to_string(),
+                passed,
+                observed: n.to_string(),
+                required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::ContestedRatioMax { max } => {
+            let r = analysis.contested_world_ratio;
+            let passed = r <= *max;
+            let miss = (r - *max).max(0.0);
+            ConstraintReport {
+                label: "contested_ratio_max".to_string(),
+                passed,
+                observed: format!("{:.3}", r),
+                required: format!("<= {:.3}", max),
+                miss,
+            }
+        }
+        Constraint::ContestedRatioMin { min } => {
+            let r = analysis.contested_world_ratio;
+            let passed = r >= *min;
+            let miss = (*min - r).max(0.0);
+            ConstraintReport {
+                label: "contested_ratio_min".to_string(),
+                passed,
+                observed: format!("{:.3}", r),
+                required: format!(">= {:.3}", min),
+                miss,
+            }
+        }
+    }
+}
+
+fn evaluate_all(
+    sector: &GeneratedSector,
+    analysis: &SectorAnalysis,
+    constraints: &[Constraint],
+    n: u32,
+    seed: &str,
+) -> CandidateReport {
+    let reports: Vec<ConstraintReport> = constraints
+        .iter()
+        .map(|c| evaluate(c, sector, analysis))
+        .collect();
+    let passed = reports.iter().all(|r| r.passed);
+    let total_miss: f32 = reports.iter().map(|r| r.miss).sum();
+    CandidateReport {
+        n,
+        seed: seed.to_string(),
+        passed,
+        total_miss,
+        constraints: reports,
+    }
+}
+
+// ── Search driver ──────────────────────────────────────────────────────────────
+
+/// Deterministic search over candidate seeds. Stops at the first satisfying
+/// candidate; otherwise returns the best near-miss + a sorted list of the
+/// top `report_top` near-misses.
+///
+/// # Errors
+///
+/// Propagates any [`SectorError`] from `generate_sector` for individual
+/// candidates after the preflight passes. Preflight failures (unknown faction
+/// ids etc.) are reported in `SearchOutcome::preflight_errors` rather than
+/// raised as errors, so the CLI can print a friendly message.
+pub fn run_search(
+    project_template: &ProjectInput,
+    wishes: &WishesFile,
+) -> Result<SearchOutcome, SectorError> {
+    let base_seed = wishes
+        .search
+        .base_seed
+        .clone()
+        .unwrap_or_else(|| project_template.config.generation.seed.clone());
+    let budget = wishes.search.budget.max(1);
+    let report_top = wishes.search.report_top.max(1) as usize;
+
+    let preflight_errors = preflight(project_template, &wishes.constraints);
+    if !preflight_errors.is_empty() {
+        return Ok(SearchOutcome {
+            base_seed,
+            budget,
+            candidates_evaluated: 0,
+            winning: None,
+            near_misses: Vec::new(),
+            preflight_errors,
+        });
+    }
+
+    let mut near_misses: Vec<CandidateReport> = Vec::new();
+    let mut winning: Option<CandidateReport> = None;
+    let mut evaluated = 0u32;
+
+    for n in 0..budget {
+        let seed = derive_candidate_seed(&base_seed, n);
+        let mut input = clone_project_with_seed(project_template, &seed);
+        input.config.generation.seed = seed.clone();
+
+        // Pre-generation validation must pass to count as a candidate; budget
+        // is still spent on rejects so an over-constrained project surfaces
+        // quickly.
+        let pre = crate::validation::validate(&input);
+        if !pre.ok {
+            evaluated += 1;
+            continue;
+        }
+
+        let sector = match crate::generation::generate(input) {
+            Ok(s) => s,
+            Err(_) => {
+                evaluated += 1;
+                continue;
+            }
+        };
+        let analysis = analytics::analyze(&sector);
+        let report = evaluate_all(&sector, &analysis, &wishes.constraints, n, &seed);
+        evaluated += 1;
+
+        if report.passed {
+            winning = Some(report);
+            break;
+        } else {
+            insert_top_n(&mut near_misses, report, report_top);
+        }
+    }
+
+    near_misses.sort_by(|a, b| {
+        a.total_miss
+            .partial_cmp(&b.total_miss)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.n.cmp(&b.n))
+    });
+
+    Ok(SearchOutcome {
+        base_seed,
+        budget,
+        candidates_evaluated: evaluated,
+        winning,
+        near_misses,
+        preflight_errors,
+    })
+}
+
+fn insert_top_n(buf: &mut Vec<CandidateReport>, cand: CandidateReport, top: usize) {
+    if buf.len() < top {
+        buf.push(cand);
+        return;
+    }
+    // Find current worst (largest total_miss). Replace if this one is better.
+    let mut worst_idx = 0usize;
+    for (i, r) in buf.iter().enumerate() {
+        if r.total_miss > buf[worst_idx].total_miss {
+            worst_idx = i;
+        }
+    }
+    if cand.total_miss < buf[worst_idx].total_miss {
+        buf[worst_idx] = cand;
+    }
+}
+
+/// Clone a project input + override the configured seed. Catalogs and parsed
+/// data files are reused (only the seed changes), so the search loop avoids
+/// re-reading disk for every candidate.
+fn clone_project_with_seed(template: &ProjectInput, seed: &str) -> ProjectInput {
+    let mut config = template.config.clone();
+    config.generation.seed = seed.to_string();
+    ProjectInput {
+        root_dir: template.root_dir.clone(),
+        config,
+        world_tables: template.world_tables.clone(),
+        world_rows: template.world_rows.clone(),
+        names: template.names.clone(),
+        factions: template.factions.clone(),
+        route_rules: template.route_rules.clone(),
+        input_digests: template.input_digests.clone(),
+    }
+}
+
+// ── Markdown rendering ─────────────────────────────────────────────────────────
+
+#[must_use]
+pub fn render_outcome_markdown(outcome: &SearchOutcome) -> String {
+    let mut s = String::new();
+    let _ = writeln!(s, "# Seed Search");
+    let _ = writeln!(
+        s,
+        "\nBase seed: `{}`  ·  Budget: {}  ·  Evaluated: {}",
+        outcome.base_seed, outcome.budget, outcome.candidates_evaluated
+    );
+    if !outcome.preflight_errors.is_empty() {
+        let _ = writeln!(s, "\n## Preflight Errors");
+        for e in &outcome.preflight_errors {
+            let _ = writeln!(s, "- {e}");
+        }
+        return s;
+    }
+    if let Some(w) = &outcome.winning {
+        let _ = writeln!(s, "\n## Winning Seed");
+        let _ = writeln!(s, "\n**Seed:** `{}` (candidate #{})", w.seed, w.n);
+        let _ = writeln!(s, "\n| Constraint | Required | Observed |");
+        let _ = writeln!(s, "|---|---|---|");
+        for c in &w.constraints {
+            let _ = writeln!(
+                s,
+                "| {} | `{}` | {} |",
+                c.label,
+                c.required,
+                if c.passed {
+                    format!("✓ {}", c.observed)
+                } else {
+                    format!("✗ {}", c.observed)
+                }
+            );
+        }
+    } else {
+        let _ = writeln!(
+            s,
+            "\n## No seed satisfied all constraints within the budget."
+        );
+        if let Some(best) = outcome.near_misses.first() {
+            let _ = writeln!(
+                s,
+                "\nBest near-miss: candidate #{} (seed `{}`), total miss {:.3}.",
+                best.n, best.seed, best.total_miss
+            );
+        }
+    }
+    if !outcome.near_misses.is_empty() {
+        let _ = writeln!(s, "\n## Near-Miss Candidates");
+        let _ = writeln!(s, "\n| # | Seed | Total miss | Failed constraints |");
+        let _ = writeln!(s, "|---:|---|---:|---|");
+        for cand in &outcome.near_misses {
+            let failed: Vec<String> = cand
+                .constraints
+                .iter()
+                .filter(|c| !c.passed)
+                .map(|c| format!("{} (obs={}, req={})", c.label, c.observed, c.required))
+                .collect();
+            let _ = writeln!(
+                s,
+                "| {} | `{}` | {:.3} | {} |",
+                cand.n,
+                cand.seed,
+                cand.total_miss,
+                failed.join("; ")
+            );
+        }
+    }
+    s
+}
+
+// ── Output bundles ─────────────────────────────────────────────────────────────
+
+/// Write `search.md` + `search.json` into `output_dir`.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] if either file cannot be written, and
+/// [`SectorError::ExportFailed`] if the outcome cannot be serialised.
+pub fn write_search_outcome(
+    output_dir: &Utf8Path,
+    outcome: &SearchOutcome,
+) -> Result<(), SectorError> {
+    std::fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
+    let md_path = output_dir.join("search.md");
+    let md = render_outcome_markdown(outcome);
+    std::fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
+    let json_path = output_dir.join("search.json");
+    let json = serde_json::to_string_pretty(outcome)
+        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
+    std::fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
+    Ok(())
+}
+
+// ── Convenience: build a digest for downstream tools ───────────────────────────
+
+/// Pre-computed per-faction counters keyed by faction id. Useful when a CLI
+/// caller wants to print share/world/system counts without re-walking the
+/// sector.
+#[must_use]
+pub fn faction_summary(analysis: &SectorAnalysis) -> BTreeMap<String, FactionSummary> {
+    let mut out = BTreeMap::new();
+    for f in &analysis.faction_balance.top_factions {
+        out.insert(
+            f.faction_id.clone(),
+            FactionSummary {
+                share: f.share,
+                world_count: f.world_presence_count,
+                system_count: f.system_presence_count,
+            },
+        );
+    }
+    out
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct FactionSummary {
+    pub share: f32,
+    pub world_count: u32,
+    pub system_count: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derive_candidate_seed_is_deterministic_and_distinct() {
+        let a = derive_candidate_seed("base", 0);
+        assert_eq!(a, "base");
+        let b = derive_candidate_seed("base", 1);
+        let c = derive_candidate_seed("base", 1);
+        assert_eq!(b, c);
+        assert_ne!(a, b);
+        let d = derive_candidate_seed("different-base", 1);
+        assert_ne!(b, d);
+    }
+
+    #[test]
+    fn insert_top_n_keeps_lowest_miss_only() {
+        let mk = |miss: f32| CandidateReport {
+            n: 0,
+            seed: "x".into(),
+            passed: false,
+            total_miss: miss,
+            constraints: Vec::new(),
+        };
+        let mut buf: Vec<CandidateReport> = Vec::new();
+        for m in [3.0, 1.0, 4.0, 2.0, 5.0, 0.5] {
+            insert_top_n(&mut buf, mk(m), 3);
+        }
+        let mut got: Vec<f32> = buf.iter().map(|x| x.total_miss).collect();
+        got.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        assert_eq!(got, vec![0.5, 1.0, 2.0]);
+    }
+}

@@ -29,6 +29,7 @@ pub mod bitmap;
 pub mod config;
 pub mod conflict;
 pub mod control;
+pub mod diff;
 pub mod errors;
 pub mod export;
 pub mod faction_style;
@@ -51,6 +52,7 @@ pub mod render;
 pub mod rng;
 pub mod route_control;
 pub mod routes;
+pub mod search;
 pub mod sector_model;
 pub mod sector_save;
 pub mod stability;
@@ -375,6 +377,74 @@ pub fn write_analysis(
         .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
     fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
     Ok(())
+}
+
+/// §2 NEW.md: constraint-directed deterministic seed search. Runs up to
+/// `wishes.search.budget` candidates derived from `wishes.search.base_seed`
+/// (defaulting to the project's configured seed) and returns the first
+/// candidate that satisfies every constraint, or a near-miss report.
+///
+/// The project is used as a template only; the generator is not modified.
+/// Same project + same wishes ⇒ same winning seed.
+///
+/// # Errors
+///
+/// Propagates any [`SectorError`] raised by `generate_sector` for an
+/// individual candidate. Preflight problems (unknown faction ids etc.) are
+/// reported inside the returned [`search::SearchOutcome`].
+pub fn run_seed_search(
+    project: &ProjectInput,
+    wishes: &search::WishesFile,
+) -> Result<search::SearchOutcome, SectorError> {
+    search::run_search(project, wishes)
+}
+
+/// §2 NEW.md: write `search.md` + `search.json` into a directory.
+///
+/// # Errors
+///
+/// Same as [`search::write_search_outcome`].
+pub fn write_search_outcome(
+    output_dir: impl AsRef<Utf8Path>,
+    outcome: &search::SearchOutcome,
+) -> Result<(), SectorError> {
+    search::write_search_outcome(output_dir.as_ref(), outcome)
+}
+
+/// §10 NEW.md: pure structural diff between two sectors. Renames map to
+/// modifications, not delete+add, because entity ids are stable.
+#[must_use]
+pub fn diff_sectors(before: &GeneratedSector, after: &GeneratedSector) -> diff::SectorDiff {
+    diff::diff_sectors(before, after)
+}
+
+/// §10 NEW.md: as [`diff_sectors`] but with explicit verbosity/threshold config.
+#[must_use]
+pub fn diff_sectors_with(
+    before: &GeneratedSector,
+    after: &GeneratedSector,
+    cfg: &diff::DiffConfig,
+) -> diff::SectorDiff {
+    diff::diff_sectors_with(before, after, cfg)
+}
+
+/// §10 NEW.md: Markdown render of a sector diff.
+#[must_use]
+pub fn render_diff_markdown(d: &diff::SectorDiff) -> String {
+    diff::render_markdown(d)
+}
+
+/// §10 NEW.md: write `diff.md` + `diff.json` into a directory.
+///
+/// # Errors
+///
+/// Returns [`SectorError::Io`] if either file cannot be written and
+/// [`SectorError::ExportFailed`] if the diff cannot be serialised.
+pub fn write_diff(
+    output_dir: impl AsRef<Utf8Path>,
+    d: &diff::SectorDiff,
+) -> Result<(), SectorError> {
+    diff::write_diff(output_dir.as_ref(), d)
 }
 
 /// Inspect-worlds: load and summarize a world-data dir for the CLI.

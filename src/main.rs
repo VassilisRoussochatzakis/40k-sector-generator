@@ -140,6 +140,59 @@ enum Command {
         #[arg(long, default_value = "presets")]
         presets_dir: Utf8PathBuf,
     },
+    /// §2 NEW.md: deterministic constraint-directed seed search.
+    /// Loads `<project>`, reads a `wishes.toml` listing constraints, and
+    /// enumerates seeds derived from the base seed until one satisfies all
+    /// constraints (or the budget is exhausted). Writes `search.md` +
+    /// `search.json` to `--out` when given, otherwise prints the Markdown.
+    Search {
+        #[arg(long)]
+        project: Utf8PathBuf,
+        #[arg(long)]
+        wishes: Utf8PathBuf,
+        /// Override the base seed from wishes/project (n=0 candidate).
+        #[arg(long)]
+        base_seed: Option<String>,
+        /// Override the search budget.
+        #[arg(long)]
+        budget: Option<u32>,
+        /// Write search.md + search.json into this directory.
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        /// Print JSON to stdout instead of Markdown.
+        #[arg(long)]
+        json: bool,
+        /// Exit 1 if no candidate satisfied the constraints.
+        #[arg(long)]
+        strict: bool,
+    },
+    /// §10 NEW.md: deterministic sector diff. Two modes:
+    ///
+    /// * `--before <a.json> --after <b.json>`: compare two saved sectors.
+    /// * `--project <dir> --ticks <N>`: generate the sector, advance N
+    ///   ticks, diff before vs. after.
+    Diff {
+        #[arg(long)]
+        before: Option<Utf8PathBuf>,
+        #[arg(long)]
+        after: Option<Utf8PathBuf>,
+        #[arg(long)]
+        project: Option<Utf8PathBuf>,
+        #[arg(long)]
+        ticks: Option<u32>,
+        /// Write diff.md + diff.json into this directory.
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        /// Print JSON to stdout instead of Markdown.
+        #[arg(long)]
+        json: bool,
+        /// Skip world-level detail in the report.
+        #[arg(long)]
+        skip_worlds: bool,
+        /// Skip per-route detail.
+        #[arg(long)]
+        skip_routes: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -338,6 +391,34 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             }
             Ok(ExitCode::SUCCESS)
         }
+        Command::Search {
+            project,
+            wishes,
+            base_seed,
+            budget,
+            out,
+            json,
+            strict,
+        } => run_search(project, wishes, base_seed, budget, out, json, strict),
+        Command::Diff {
+            before,
+            after,
+            project,
+            ticks,
+            out,
+            json,
+            skip_worlds,
+            skip_routes,
+        } => run_diff(
+            before,
+            after,
+            project,
+            ticks,
+            out,
+            json,
+            skip_worlds,
+            skip_routes,
+        ),
     }
 }
 
@@ -379,6 +460,94 @@ fn run_analyze(
     let has_flags = !analysis.health_flags.is_empty();
     if strict && has_flags {
         return Ok(ExitCode::from(1));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_search(
+    project: Utf8PathBuf,
+    wishes: Utf8PathBuf,
+    base_seed: Option<String>,
+    budget: Option<u32>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    strict: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let input = sectorforge::load_project(&project)?;
+    let mut wishes_file = sectorforge::search::load_wishes(&wishes)?;
+    if let Some(b) = base_seed {
+        wishes_file.search.base_seed = Some(b);
+    }
+    if let Some(n) = budget {
+        wishes_file.search.budget = n;
+    }
+    let outcome = sectorforge::run_seed_search(&input, &wishes_file)?;
+    if !outcome.preflight_errors.is_empty() {
+        for e in &outcome.preflight_errors {
+            eprintln!("preflight: {e}");
+        }
+        return Ok(ExitCode::from(1));
+    }
+    if let Some(dir) = &out {
+        sectorforge::write_search_outcome(dir, &outcome)?;
+        println!("Wrote {dir}/search.md and {dir}/search.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&outcome).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::search::render_outcome_markdown(&outcome);
+        print!("{md}");
+    }
+    if strict && outcome.winning.is_none() {
+        return Ok(ExitCode::from(1));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_diff(
+    before: Option<Utf8PathBuf>,
+    after: Option<Utf8PathBuf>,
+    project: Option<Utf8PathBuf>,
+    ticks: Option<u32>,
+    out: Option<Utf8PathBuf>,
+    json: bool,
+    skip_worlds: bool,
+    skip_routes: bool,
+) -> Result<ExitCode, sectorforge::SectorError> {
+    let cfg = sectorforge::diff::DiffConfig {
+        skip_worlds,
+        skip_routes,
+        ..Default::default()
+    };
+    let diff = match (before, after, project, ticks) {
+        (Some(a), Some(b), None, None) => {
+            let sa = sectorforge::load_sector_json(&a)?;
+            let sb = sectorforge::load_sector_json(&b)?;
+            sectorforge::diff_sectors_with(&sa, &sb, &cfg)
+        }
+        (None, None, Some(proj), Some(n)) => {
+            let input = sectorforge::load_project(&proj)?;
+            let (d, _, _) = sectorforge::diff::diff_after_ticks(input, n, &cfg)?;
+            d
+        }
+        _ => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass either --before <a.json> --after <b.json> or --project <dir> --ticks <N>"
+                    .into(),
+            ));
+        }
+    };
+    if let Some(dir) = &out {
+        sectorforge::write_diff(dir, &diff)?;
+        println!("Wrote {dir}/diff.md and {dir}/diff.json");
+    } else if json {
+        let text = serde_json::to_string_pretty(&diff).unwrap();
+        println!("{text}");
+    } else {
+        let md = sectorforge::render_diff_markdown(&diff);
+        print!("{md}");
     }
     Ok(ExitCode::SUCCESS)
 }

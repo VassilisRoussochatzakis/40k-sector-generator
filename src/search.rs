@@ -1075,15 +1075,12 @@ pub fn write_search_outcome(
     output_dir: &Utf8Path,
     outcome: &SearchOutcome,
 ) -> Result<(), SectorError> {
-    std::fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md_path = output_dir.join("search.md");
-    let md = render_outcome_markdown(outcome);
-    std::fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("search.json");
-    let json = serde_json::to_string_pretty(outcome)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    std::fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(
+        output_dir,
+        "search",
+        &render_outcome_markdown(outcome),
+        outcome,
+    )
 }
 
 // ── Convenience: build a digest for downstream tools ───────────────────────────

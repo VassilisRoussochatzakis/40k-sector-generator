@@ -13,7 +13,6 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
-use std::fs;
 
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -702,15 +701,7 @@ pub fn write_report(
     report: &HooksReport,
     cfg: &HooksConfig,
 ) -> Result<(), SectorError> {
-    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md = render_markdown(report, cfg);
-    let md_path = output_dir.join("hooks.md");
-    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("hooks.json");
-    let json = serde_json::to_string_pretty(report)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(output_dir, "hooks", &render_markdown(report, cfg), report)
 }
 
 #[cfg(test)]

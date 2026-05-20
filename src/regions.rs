@@ -519,15 +519,12 @@ pub fn write_report(
     sector_id: &str,
     regions: &[WarpRegion],
 ) -> Result<(), SectorError> {
-    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md = render_markdown(sector_id, regions);
-    let md_path = output_dir.join("regions.md");
-    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("regions.json");
-    let json = serde_json::to_string_pretty(regions)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(
+        output_dir,
+        "regions",
+        &render_markdown(sector_id, regions),
+        &regions,
+    )
 }
 
 #[cfg(test)]

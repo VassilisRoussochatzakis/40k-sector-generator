@@ -208,8 +208,16 @@ pub(super) fn fill_polygon(img: &mut RgbaImage, pts: &[(i32, i32)], color: Rgba<
     if pts.is_empty() {
         return;
     }
-    let ymin = pts.iter().map(|p| p.1).min().unwrap();
-    let ymax = pts.iter().map(|p| p.1).max().unwrap();
+    let ymin = pts
+        .iter()
+        .map(|p| p.1)
+        .min()
+        .expect("invariant: pts non-empty checked above");
+    let ymax = pts
+        .iter()
+        .map(|p| p.1)
+        .max()
+        .expect("invariant: pts non-empty checked above");
     let mut xs: Vec<i32> = Vec::with_capacity(pts.len());
     for y in ymin..=ymax {
         xs.clear();

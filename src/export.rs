@@ -3,11 +3,31 @@
 use std::fs;
 
 use camino::Utf8Path;
+use serde::Serialize;
 
 use crate::config::{OutputConfig, OutputFormat};
 use crate::errors::SectorError;
 use crate::render;
 use crate::sector_model::{GeneratedRoute, GeneratedSector};
+
+/// Shared writer for sub-system reports: create dir, write `<base_name>.md`
+/// from `md`, then write `<base_name>.json` from a pretty serialization of
+/// `json_payload`. Used by every `<module>::write_report` to eliminate the
+/// near-identical 8-line bodies they used to carry.
+pub(crate) fn write_md_and_json<T: Serialize>(
+    output_dir: &Utf8Path,
+    base_name: &str,
+    md: &str,
+    json_payload: &T,
+) -> Result<(), SectorError> {
+    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
+    let md_path = output_dir.join(format!("{base_name}.md"));
+    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
+    let json_path = output_dir.join(format!("{base_name}.json"));
+    let json = serde_json::to_string_pretty(json_payload)
+        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
+    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))
+}
 
 pub fn export_all(
     sector: &GeneratedSector,

@@ -15,7 +15,6 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
-use std::fs;
 
 use camino::Utf8Path;
 use rand::seq::SliceRandom;
@@ -592,15 +591,12 @@ pub fn write_report(
     report: &MissionsReport,
     cfg: &MissionsConfig,
 ) -> Result<(), SectorError> {
-    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md_path = output_dir.join("missions.md");
-    fs::write(&md_path, render_markdown(report, cfg))
-        .map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("missions.json");
-    let json = serde_json::to_string_pretty(report)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(
+        output_dir,
+        "missions",
+        &render_markdown(report, cfg),
+        report,
+    )
 }
 
 #[cfg(test)]

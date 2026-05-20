@@ -568,7 +568,7 @@ fn cluster_systems(
                         .then_with(|| sector.systems[b].index.cmp(&sector.systems[a].index))
                         .then_with(|| sector.systems[b].id.cmp(&sector.systems[a].id))
                 })
-                .unwrap();
+                .expect("invariant: members non-empty checked above");
             new_seeds.push(best);
         }
         if new_seeds == seeds {

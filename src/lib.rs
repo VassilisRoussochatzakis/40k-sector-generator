@@ -425,16 +425,12 @@ pub fn write_analysis(
     output_dir: impl AsRef<Utf8Path>,
     analysis: &analytics::SectorAnalysis,
 ) -> Result<(), SectorError> {
-    let dir = output_dir.as_ref();
-    fs::create_dir_all(dir).map_err(|e| SectorError::io(dir.as_str(), e))?;
-    let md_path = dir.join("analysis.md");
-    let md = analytics::render_markdown(analysis);
-    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = dir.join("analysis.json");
-    let json = serde_json::to_string_pretty(analysis)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    export::write_md_and_json(
+        output_dir.as_ref(),
+        "analysis",
+        &analytics::render_markdown(analysis),
+        analysis,
+    )
 }
 
 /// §2 NEW.md: constraint-directed deterministic seed search. Runs up to

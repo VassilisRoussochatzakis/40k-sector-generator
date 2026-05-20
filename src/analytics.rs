@@ -461,7 +461,10 @@ fn articulation_points(adj: &[Vec<usize>]) -> Vec<usize> {
         while let Some(&(v, idx)) = stack.last() {
             if idx < adj[v].len() {
                 let u = adj[v][idx];
-                stack.last_mut().unwrap().1 = idx + 1;
+                stack
+                    .last_mut()
+                    .expect("invariant: stack non-empty in loop guard")
+                    .1 = idx + 1;
                 if disc[u] == -1 {
                     parent[u] = v as i32;
                     disc[u] = time;

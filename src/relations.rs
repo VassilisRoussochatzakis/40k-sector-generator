@@ -708,15 +708,7 @@ pub fn render_markdown(report: &RelationsReport) -> String {
 /// Returns [`SectorError::Io`] on write failure and
 /// [`SectorError::ExportFailed`] on serialisation failure.
 pub fn write_report(output_dir: &Utf8Path, report: &RelationsReport) -> Result<(), SectorError> {
-    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md = render_markdown(report);
-    let md_path = output_dir.join("relations.md");
-    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("relations.json");
-    let json = serde_json::to_string_pretty(report)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(output_dir, "relations", &render_markdown(report), report)
 }
 
 #[cfg(test)]

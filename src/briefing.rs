@@ -453,15 +453,12 @@ pub fn write_pack(
     pack: &BriefingPack,
     profile: &BriefingProfile,
 ) -> Result<(), SectorError> {
-    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md_path = output_dir.join(format!("briefing-{}.md", profile.id));
-    fs::write(&md_path, render_markdown(pack, profile))
-        .map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join(format!("briefing-{}.json", profile.id));
-    let json = serde_json::to_string_pretty(pack)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(
+        output_dir,
+        &format!("briefing-{}", profile.id),
+        &render_markdown(pack, profile),
+        pack,
+    )
 }
 
 /// Read a `briefing.toml` describing one or more profiles.

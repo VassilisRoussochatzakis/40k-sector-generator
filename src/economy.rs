@@ -1442,17 +1442,14 @@ pub fn write_report(
     sector_id: &str,
     report: &EconomyReport,
 ) -> Result<(), SectorError> {
-    fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md = render_markdown(sector_id, report);
-    let md_path = output_dir.join("economy.md");
-    fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("economy.json");
-    let json = serde_json::to_string_pretty(report)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
+    crate::export::write_md_and_json(
+        output_dir,
+        "economy",
+        &render_markdown(sector_id, report),
+        report,
+    )?;
     let csv_path = output_dir.join("economy.csv");
-    fs::write(&csv_path, csv_render(report)).map_err(|e| SectorError::io(csv_path.as_str(), e))?;
-    Ok(())
+    fs::write(&csv_path, csv_render(report)).map_err(|e| SectorError::io(csv_path.as_str(), e))
 }
 
 fn csv_render(report: &EconomyReport) -> String {

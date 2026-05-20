@@ -145,17 +145,42 @@ pub fn build_pool(
             continue;
         }
 
-        // SAFETY: presence of each field already checked above.
+        // Invariant: presence of every required field is checked above via
+        // `first_missing_field`; partial rows are filtered into `excluded_rows`
+        // before reaching this point.
         let cand = WorldCandidate {
             row_index,
-            star_colour: row.star_colour.unwrap(),
-            world_type: row.world_type.clone().unwrap(),
-            atmosphere: row.atmosphere.clone().unwrap(),
-            temperature: row.temperature.clone().unwrap(),
-            biosphere: row.biosphere.clone().unwrap(),
-            population: row.population.clone().unwrap(),
-            tech_level: row.tech.clone().unwrap(),
-            government: row.government.clone().unwrap(),
+            star_colour: row
+                .star_colour
+                .expect("invariant: star_colour checked by first_missing_field"),
+            world_type: row
+                .world_type
+                .clone()
+                .expect("invariant: world_type checked by first_missing_field"),
+            atmosphere: row
+                .atmosphere
+                .clone()
+                .expect("invariant: atmosphere checked by first_missing_field"),
+            temperature: row
+                .temperature
+                .clone()
+                .expect("invariant: temperature checked by first_missing_field"),
+            biosphere: row
+                .biosphere
+                .clone()
+                .expect("invariant: biosphere checked by first_missing_field"),
+            population: row
+                .population
+                .clone()
+                .expect("invariant: population checked by first_missing_field"),
+            tech_level: row
+                .tech
+                .clone()
+                .expect("invariant: tech checked by first_missing_field"),
+            government: row
+                .government
+                .clone()
+                .expect("invariant: government checked by first_missing_field"),
             primary_feature: row.notable_feature.clone(),
             counter: row.counter,
             weight,

@@ -1177,15 +1177,7 @@ fn opt(v: &Option<String>) -> String {
 /// Returns [`SectorError::Io`] if either file cannot be written, and
 /// [`SectorError::ExportFailed`] if the diff cannot be serialised.
 pub fn write_diff(output_dir: &Utf8Path, diff: &SectorDiff) -> Result<(), SectorError> {
-    std::fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
-    let md_path = output_dir.join("diff.md");
-    let md = render_markdown(diff);
-    std::fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
-    let json_path = output_dir.join("diff.json");
-    let json = serde_json::to_string_pretty(diff)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    std::fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
-    Ok(())
+    crate::export::write_md_and_json(output_dir, "diff", &render_markdown(diff), diff)
 }
 
 #[cfg(test)]

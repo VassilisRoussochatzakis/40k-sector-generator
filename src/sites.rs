@@ -694,6 +694,7 @@ mod tests {
             relations: Default::default(),
             regions: Vec::new(),
             economy: Default::default(),
+            chronicle: Default::default(),
         }
     }
 

@@ -173,7 +173,7 @@ enum Command {
         #[arg(long)]
         strict: bool,
     },
-    /// §1 NEW.md: derive a deterministic chronicle of in-universe events from
+    /// §1 NEW2.md: derive a deterministic chronicle of in-universe events from
     /// a generated sector. Accepts either `--project <dir>` (regenerates) or
     /// `--sector <path>` (loads an existing sector.json). Writes
     /// `history.md` + `history.json` to `--out`, or prints Markdown to stdout.
@@ -795,8 +795,23 @@ fn run_history(
     out: Option<Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
-    let cfg = sectorforge::history::HistoryConfig::default();
+    let (sec, mut cfg) = match (project, sector) {
+        (Some(project), None) => {
+            let input = sectorforge::load_project(&project)?;
+            let cfg = input.history.clone();
+            (sectorforge::generate_sector(input)?, cfg)
+        }
+        (None, Some(sector)) => (
+            sectorforge::load_sector_json(&sector)?,
+            sectorforge::history::HistoryConfig::default(),
+        ),
+        (Some(_), Some(_)) | (None, None) => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass exactly one of --project <dir> or --sector <path>".into(),
+            ));
+        }
+    };
+    cfg.enabled = true;
     let report = sectorforge::derive_history_with(&sec, &cfg);
     if let Some(dir) = &out {
         sectorforge::write_history(dir, &report, &cfg)?;

@@ -32,6 +32,8 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s.push_str(&format_sector_map(sector));
     s.push('\n');
 
+    s.push_str(&format_history_section(sector));
+
     s.push_str("## System index\n\n");
     s.push_str("| ID | Name | Coord | Star | Worlds |\n");
     s.push_str("|---|---|---|---|---:|\n");
@@ -50,7 +52,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s.push('\n');
 
     for sys in &sector.systems {
-        s.push_str(&format_system_section(sys));
+        s.push_str(&format_system_section(sys, sector));
     }
 
     s.push_str("## Routes\n\n");
@@ -128,7 +130,7 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     s.push_str(&format_system_control(sys));
     s.push('\n');
     s.push_str(&format_world_table(sys));
-    s.push_str(&format_world_control_blocks(sys));
+    s.push_str(&format_world_control_blocks(sys, None));
     s
 }
 
@@ -158,6 +160,94 @@ fn format_route_controls(sector: &GeneratedSector) -> String {
     }
     s.push('\n');
     s
+}
+
+fn format_history_section(sector: &GeneratedSector) -> String {
+    if sector.chronicle.events.is_empty() {
+        return String::new();
+    }
+    let mut s = String::new();
+    s.push_str("## Sector History\n\n");
+    s.push_str(&format!(
+        "Chronicle events: **{}**\n\n",
+        sector.chronicle.events.len()
+    ));
+    let mut top: Vec<_> = sector.chronicle.events.iter().collect();
+    top.sort_by(|a, b| {
+        b.weight
+            .cmp(&a.weight)
+            .then_with(|| a.date.cmp(&b.date))
+            .then_with(|| a.id.cmp(&b.id))
+    });
+    s.push_str("| Date | Era | Kind | Event |\n");
+    s.push_str("|---|---|---|---|\n");
+    for e in top.iter().take(12) {
+        s.push_str(&format!(
+            "| {} | {} | {:?} | {} |\n",
+            e.date, e.era_label, e.kind, e.summary
+        ));
+    }
+    s.push('\n');
+    s
+}
+
+fn format_local_history(
+    sector: &GeneratedSector,
+    system_id: &str,
+    world_id: Option<&str>,
+) -> String {
+    if sector.chronicle.events.is_empty() {
+        return String::new();
+    }
+    let mut hits: Vec<_> = sector
+        .chronicle
+        .events
+        .iter()
+        .filter(|e| match world_id {
+            Some(wid) => event_mentions_world(e, wid),
+            None => event_mentions_system(e, system_id),
+        })
+        .collect();
+    if hits.is_empty() {
+        return String::new();
+    }
+    hits.sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+    let mut s = String::new();
+    s.push_str("**Local history:**\n\n");
+    for e in hits.iter().take(8) {
+        s.push_str(&format!(
+            "- **{}** · _{}_ ({:?}): {}\n",
+            e.date, e.era_label, e.kind, e.summary
+        ));
+    }
+    s.push('\n');
+    s
+}
+
+fn event_mentions_system(e: &crate::history::HistoryEvent, system_id: &str) -> bool {
+    (match &e.anchor {
+        crate::history::HistoryAnchor::System { system_id: sid } => sid == system_id,
+        crate::history::HistoryAnchor::World { system_id: sid, .. } => sid == system_id,
+        crate::history::HistoryAnchor::Route {
+            from_system_id,
+            to_system_id,
+            ..
+        } => from_system_id == system_id || to_system_id == system_id,
+        _ => false,
+    }) || e
+        .entities
+        .iter()
+        .any(|x| matches!(x.kind, crate::history::HistoryEntityKind::System) && x.id == system_id)
+}
+
+fn event_mentions_world(e: &crate::history::HistoryEvent, world_id: &str) -> bool {
+    (match &e.anchor {
+        crate::history::HistoryAnchor::World { world_id: wid, .. } => wid == world_id,
+        _ => false,
+    }) || e
+        .entities
+        .iter()
+        .any(|x| matches!(x.kind, crate::history::HistoryEntityKind::World) && x.id == world_id)
 }
 
 fn format_faction_display_buckets(sector: &GeneratedSector) -> String {
@@ -430,7 +520,7 @@ fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
     }
 }
 
-fn format_system_section(sys: &GeneratedSystem) -> String {
+fn format_system_section(sys: &GeneratedSystem, sector: &GeneratedSector) -> String {
     let mut s = String::new();
     s.push_str(&format!("## {} — {}\n\n", sys.id.to_uppercase(), sys.name));
     s.push_str(&format!(
@@ -451,8 +541,9 @@ fn format_system_section(sys: &GeneratedSystem) -> String {
     }
     s.push_str(&format_system_control(sys));
     s.push('\n');
+    s.push_str(&format_local_history(sector, sys.id.as_str(), None));
     s.push_str(&format_world_table(sys));
-    s.push_str(&format_world_control_blocks(sys));
+    s.push_str(&format_world_control_blocks(sys, Some(sector)));
     s
 }
 
@@ -576,13 +667,17 @@ fn format_stability_line(st: &crate::stability::StabilityState) -> String {
     )
 }
 
-fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
+fn format_world_control_blocks(sys: &GeneratedSystem, sector: Option<&GeneratedSector>) -> String {
     let mut s = String::new();
     for w in &sys.worlds {
-        if w.factions.is_empty() && w.claims.is_empty() {
+        let history = sector
+            .map(|sector| format_local_history(sector, sys.id.as_str(), Some(w.id.as_str())))
+            .unwrap_or_default();
+        if w.factions.is_empty() && w.claims.is_empty() && history.is_empty() {
             continue;
         }
         s.push_str(&format!("### {} — {}\n\n", w.id.to_uppercase(), w.name));
+        s.push_str(&history);
         if !w.factions.is_empty() {
             s.push_str(
                 "| Faction | Subfaction | Force | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |\n",

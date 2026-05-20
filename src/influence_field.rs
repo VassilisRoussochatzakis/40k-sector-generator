@@ -182,6 +182,7 @@ mod tests {
             relations: Default::default(),
             regions: Vec::new(),
             economy: Default::default(),
+            chronicle: Default::default(),
         };
         let f = build(&s);
         assert!(f.cells.is_empty());

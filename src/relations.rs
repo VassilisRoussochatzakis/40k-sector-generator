@@ -1451,6 +1451,7 @@ mod tests {
             relations: RelationsMatrix::default(),
             regions: vec![],
             economy: Default::default(),
+            chronicle: Default::default(),
         }
     }
 

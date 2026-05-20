@@ -58,8 +58,8 @@ After `generate`, look in [examples/m42_project/out/](examples/m42_project/out/)
 ```
 out/
   manifest.json                # seed, version, input digests, counts
-  sector.json                  # canonical machine-readable sector
-  sector.md                    # human-readable summary
+  sector.json                  # canonical machine-readable sector, including chronicle when enabled
+  sector.md                    # human-readable summary, including Sector History when present
   validation_report.json       # pre-generation validation note
   systems/
     sys-0001.json              # one JSON per system
@@ -382,11 +382,15 @@ no-longer stranded world lists). Sector id or `generator_version`
 mismatch is reported but does not refuse the diff — the report is
 marked as best-effort instead.
 
-### `sectorforge history` (§1 old/DONE.md)
+### `sectorforge history` (§1 NEW2.md/DONE)
 
-Deterministic chronicle generator. Walks every world's claims, dominance,
-archetype state, blockade, and conflict and emits a dated chronological
-list of in-universe events. Pure derivation — same sector ⇒ same chronicle.
+Deterministic sector chronicle generator. Generated sectors now embed a
+typed `chronicle` block in `sector.json` after structural generation and
+overlays complete. It walks claims, dominance, archetype state, blockades,
+routes, subsectors, warp regions, and conflict, then emits dated / era-labelled
+events with stable IDs, typed entity refs, participating factions,
+consequences, weights, and short template prose. Pure derivation — same sector
+and same history config ⇒ same chronicle.
 
 ```bash
 # Regenerate + chronicle.
@@ -402,6 +406,34 @@ Writes `history.md` + `history.json`. Dates use `M{epoch}.{ddd}` notation
 where `epoch` is scaled by event topo-rank (foundations land in the start
 epoch, post-conflict reconquests in the end epoch); within an anchor the
 chronicle is monotonic (foundation before annexation before reconquest).
+Project config may define eras and rule-forced events inline:
+
+```toml
+[history]
+enabled = true
+epoch_start = 36
+epoch_end = 42
+
+[[history.eras]]
+id = "age_of_compliance"
+label = "Age of Compliance"
+relative_start = -900
+relative_end = -650
+weight = 1.0
+allowed_events = ["Founding", "Compliance", "Treaty"]
+
+[[history.event_rules]]
+when_system_state = "Warzone"
+prefer_event = "War"
+minimum_events = 1
+```
+
+You can also point `[inputs].history = "history.toml"` at a file containing
+the same top-level `[history]` table; its digest is recorded in the manifest.
+`sector.md` gains a **Sector History** chapter and local history snippets in
+system/world sections. The GUI has a **HISTORY** tab: selecting an event
+highlights affected systems/routes on the map, and selected worlds show all
+chronicle events that reference them.
 
 ### `sectorforge personae` (§3 old/DONE.md)
 
@@ -1523,7 +1555,8 @@ Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`
 `ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
 `MapTheme`, `MapThemeConfig`, `LabelDensity`, `LegendStyle`,
 `RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`,
-`SectorProgress`, `Segmentum`, and `SegmentumProgress`.
+`HistoryConfig`, `SectorChronicle`, `HistoryEvent`, `SectorProgress`,
+`Segmentum`, and `SegmentumProgress`.
 
 ### Typed identifiers
 
@@ -1714,7 +1747,7 @@ across runs, so a regression check is a diff away.
 | [src/presets.rs](src/presets.rs) | §9 old/DONE.md preset library + scaffolder (`new`, `list-presets`) |
 | [src/search.rs](src/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration) |
 | [src/diff.rs](src/diff.rs) | §10 old/DONE.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
-| [src/history.rs](src/history.rs) | §1 old/DONE.md deterministic chronicle: walks claims/dominance/archetype/conflict and emits dated `HistoryEvent`s with `M{epoch}.{ddd}` notation. Monotonic per anchor (foundation → annexation → reconquest). |
+| [src/history.rs](src/history.rs) | §1 NEW2.md/DONE deterministic `SectorChronicle`: typed dated / era-labelled history events with entity refs, consequences, route/subsector/region anchors, and `M{epoch}.{ddd}` notation. |
 | [src/personae.rs](src/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
 | [src/hooks.rs](src/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
 | [src/prose.rs](src/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |

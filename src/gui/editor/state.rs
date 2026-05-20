@@ -190,6 +190,7 @@ pub fn empty_sector(
         relations: Default::default(),
         regions: Vec::new(),
         economy: Default::default(),
+        chronicle: Default::default(),
     }
 }
 

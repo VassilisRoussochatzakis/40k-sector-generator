@@ -113,6 +113,7 @@ where
         relations: relations_cfg,
         regions: regions_cfg,
         economy: economy_cfg,
+        history: history_cfg,
         input_digests,
         ..
     } = project;
@@ -310,6 +311,7 @@ where
         relations: Default::default(),
         regions: warp_regions,
         economy: Default::default(),
+        chronicle: Default::default(),
     };
 
     // §11 NEXT: archetype rules.
@@ -347,6 +349,12 @@ where
         crate::economy::apply_stability_nudge(&snap, &mut sector);
     }
     progress(SectorProgress::OverlayDerived { name: "economy" });
+
+    // §1 NEW2.md: timeline / chronicle derives after all structural and
+    // overlay state is final so events can reference routes, regions,
+    // subsectors, claims, control, and present conflicts.
+    sector.chronicle = crate::history::derive_with(&sector, &history_cfg);
+    progress(SectorProgress::OverlayDerived { name: "chronicle" });
     progress(SectorProgress::Complete {
         systems: sector.manifest.system_count,
         worlds: sector.manifest.world_count,

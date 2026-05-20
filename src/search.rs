@@ -989,6 +989,7 @@ fn clone_project_with_seed(template: &ProjectInput, seed: &str) -> ProjectInput 
         relations: template.relations.clone(),
         regions: template.regions.clone(),
         economy: template.economy.clone(),
+        history: template.history.clone(),
         input_digests: template.input_digests.clone(),
     }
 }

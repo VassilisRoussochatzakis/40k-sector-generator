@@ -193,6 +193,7 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
     archetype_block(ui, sys);
     orbital_assets_block(ui, sys);
     routes_block(ui, sys, sector);
+    system_history(ui, sector, sys.id.as_str());
     if !sys.tags.is_empty() {
         ui.add_space(8.0);
         section(ui, "TAGS");
@@ -207,6 +208,84 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
             dim(ui, n);
         }
     }
+}
+
+pub fn world_history(ui: &mut Ui, sector: &GeneratedSector, world_id: &str) {
+    let mut hits: Vec<_> = sector
+        .chronicle
+        .events
+        .iter()
+        .filter(|e| event_mentions_world(e, world_id))
+        .collect();
+    if hits.is_empty() {
+        return;
+    }
+    hits.sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+    ui.add_space(8.0);
+    section(ui, "HISTORY");
+    for e in hits {
+        dim(
+            ui,
+            &format!(
+                "{}  {:?}  {}",
+                e.date,
+                e.kind,
+                short(&e.summary.to_uppercase(), 42)
+            ),
+        );
+    }
+}
+
+fn system_history(ui: &mut Ui, sector: &GeneratedSector, system_id: &str) {
+    let mut hits: Vec<_> = sector
+        .chronicle
+        .events
+        .iter()
+        .filter(|e| event_mentions_system(e, system_id))
+        .collect();
+    if hits.is_empty() {
+        return;
+    }
+    hits.sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+    ui.add_space(8.0);
+    section(ui, "LOCAL HISTORY");
+    for e in hits.iter().take(8) {
+        dim(
+            ui,
+            &format!(
+                "{}  {:?}  {}",
+                e.date,
+                e.kind,
+                short(&e.summary.to_uppercase(), 42)
+            ),
+        );
+    }
+}
+
+fn event_mentions_world(e: &crate::history::HistoryEvent, world_id: &str) -> bool {
+    (match &e.anchor {
+        crate::history::HistoryAnchor::World { world_id: wid, .. } => wid == world_id,
+        _ => false,
+    }) || e
+        .entities
+        .iter()
+        .any(|x| matches!(x.kind, crate::history::HistoryEntityKind::World) && x.id == world_id)
+}
+
+fn event_mentions_system(e: &crate::history::HistoryEvent, system_id: &str) -> bool {
+    (match &e.anchor {
+        crate::history::HistoryAnchor::System { system_id: sid } => sid == system_id,
+        crate::history::HistoryAnchor::World { system_id: sid, .. } => sid == system_id,
+        crate::history::HistoryAnchor::Route {
+            from_system_id,
+            to_system_id,
+            ..
+        } => from_system_id == system_id || to_system_id == system_id,
+        _ => false,
+    }) || e
+        .entities
+        .iter()
+        .any(|x| matches!(x.kind, crate::history::HistoryEntityKind::System) && x.id == system_id)
 }
 
 pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {

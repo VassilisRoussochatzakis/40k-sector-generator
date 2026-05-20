@@ -25,6 +25,9 @@ pub struct AppConfig {
     /// these per-invocation.
     #[serde(default)]
     pub diff: crate::diff::DiffConfig,
+    /// §1 NEW2.md: generated sector chronicle / historical timeline.
+    #[serde(default)]
+    pub history: crate::history::HistoryConfig,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -62,6 +65,9 @@ pub struct InputConfig {
     /// §12 NEW.md: optional `economy.toml` with production/consumption tables.
     #[serde(default)]
     pub economy: Option<String>,
+    /// §1 NEW2.md: optional `history.toml` with eras and event rules.
+    #[serde(default)]
+    pub history: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

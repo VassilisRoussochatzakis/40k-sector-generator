@@ -44,6 +44,12 @@ pub struct GeneratedSector {
     /// Default = no derivation run.
     #[serde(default)]
     pub economy: crate::economy::EconomyReport,
+    /// §1 NEW2.md: deterministic typed timeline explaining present state.
+    #[serde(
+        default,
+        skip_serializing_if = "crate::history::SectorChronicle::is_empty"
+    )]
+    pub chronicle: crate::history::SectorChronicle,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

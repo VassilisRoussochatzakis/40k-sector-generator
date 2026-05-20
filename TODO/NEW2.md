@@ -6,7 +6,7 @@ The application already has a strong foundation: deterministic sector generation
 
 ---
 
-## 1. Historical Timeline and Sector Chronicle Generator
+## 1. Historical Timeline and Sector Chronicle Generator (DONE)
 
 A major missing layer is history. The current model can describe what a sector looks like now, but it does not yet explain how it became that way. A deterministic historical timeline would turn the sector from a static political snapshot into a setting with inherited grudges, old treaties, failed crusades, lost colonies, lingering catastrophes, and faction memories.
 

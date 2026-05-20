@@ -87,6 +87,10 @@ pub use economy::{
 };
 pub use errors::SectorError;
 pub use generation::SectorProgress;
+pub use history::{
+    HistoryConfig, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind, HistoryEntityRef,
+    HistoryEra, HistoryEvent, HistoryEventRule, HistoryFile, HistoryReport, SectorChronicle,
+};
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use map_theme::{

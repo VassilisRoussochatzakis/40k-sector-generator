@@ -14,6 +14,7 @@ use crate::{
 use super::dashboard::{self, DashboardState};
 use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
+use super::factions_overview;
 use super::heatmap::{self, HeatmapMode};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
@@ -46,6 +47,7 @@ pub struct App {
     segmentum: Option<Arc<SegmentumBundle>>,
     segmentum_active_child: Option<String>,
     segmentum_selected_link: Option<String>,
+    factions_edit_mode: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +70,7 @@ enum View {
     Data,
     Planner,
     Dashboard,
+    Factions,
     Relations,
     Regions,
     Trade,
@@ -99,6 +102,7 @@ impl Default for App {
             segmentum: None,
             segmentum_active_child: None,
             segmentum_selected_link: None,
+            factions_edit_mode: false,
         }
     }
 }
@@ -283,6 +287,20 @@ impl eframe::App for App {
                         .clicked()
                     {
                         self.view = View::Dashboard;
+                    }
+                    let on_factions = matches!(self.view, View::Factions);
+                    if ui
+                        .add_enabled(
+                            has_sector,
+                            egui::SelectableLabel::new(
+                                on_factions,
+                                RichText::new("FACTIONS").color(TEXT).monospace(),
+                            ),
+                        )
+                        .on_hover_text("High-level faction overview and broad edits")
+                        .clicked()
+                    {
+                        self.view = View::Factions;
                     }
                     let on_relations = matches!(self.view, View::Relations);
                     if ui
@@ -479,6 +497,7 @@ impl eframe::App for App {
             View::Data => self.draw_data_layout(ctx),
             View::Planner => self.draw_planner_layout(ctx),
             View::Dashboard => self.draw_dashboard_layout(ctx),
+            View::Factions => self.draw_factions_layout(ctx),
             View::Relations => self.draw_relations_layout(ctx),
             View::Regions => self.draw_regions_layout(ctx),
             View::Trade => self.draw_trade_layout(ctx),
@@ -889,6 +908,90 @@ impl App {
                     dashboard::show(ui, &sector, &mut self.dashboard);
                 });
             });
+    }
+
+    fn draw_factions_layout(&mut self, ctx: &egui::Context) {
+        TopBottomPanel::top("factions_toolbar")
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::PANEL_BG)
+                    .inner_margin(6.0),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    let has_sector = self.sector.is_some();
+                    ui.add_enabled_ui(has_sector, |ui| {
+                        ui.selectable_value(
+                            &mut self.factions_edit_mode,
+                            false,
+                            RichText::new("VIEW").monospace(),
+                        );
+                        ui.selectable_value(
+                            &mut self.factions_edit_mode,
+                            true,
+                            RichText::new("EDIT MODE").monospace(),
+                        );
+                    });
+                    if let Some(sector) = self.sector.as_ref() {
+                        ui.label(
+                            RichText::new(format!(
+                                "{} factions in {}",
+                                sector.factions.len(),
+                                sector.id.to_uppercase()
+                            ))
+                            .color(TEXT_DIM)
+                            .monospace(),
+                        );
+                    }
+                });
+            });
+
+        let edit_mode = self.factions_edit_mode;
+        let mut changed = false;
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    if edit_mode {
+                        let Some(sector) = self.sector.as_mut() else {
+                            ui.label(
+                                RichText::new("no sector loaded")
+                                    .color(TEXT_DIM)
+                                    .monospace(),
+                            );
+                            return;
+                        };
+                        changed = factions_overview::show_editor(ui, Arc::make_mut(sector));
+                    } else {
+                        let Some(sector) = self.sector.as_ref() else {
+                            ui.label(
+                                RichText::new("no sector loaded")
+                                    .color(TEXT_DIM)
+                                    .monospace(),
+                            );
+                            return;
+                        };
+                        factions_overview::show_readonly(ui, sector.as_ref());
+                    }
+                });
+            });
+
+        if changed {
+            self.after_live_faction_edit();
+        }
+    }
+
+    fn after_live_faction_edit(&mut self) {
+        self.dashboard.invalidate();
+        if let Some(sector) = self.sector.as_ref() {
+            self.subsectors =
+                build_subsectors(sector.as_ref(), SubsectorConfig::default()).unwrap_or_default();
+            if !self.editor.dirty {
+                self.editor.set_sector(sector.as_ref().clone(), None);
+                self.editor.mark_dirty();
+            }
+        }
+        self.export_status = "factions edited".into();
     }
 
     fn draw_relations_layout(&mut self, ctx: &egui::Context) {

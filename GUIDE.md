@@ -1298,6 +1298,12 @@ navigation bar:
   [src/gui/palette.rs](src/gui/palette.rs) `faction_style`) and lets you
   filter by kind/disposition, sort by total power, and pin favourites to
   the top.
+- **Factions** — high-level sector faction view. It lists top-level factions,
+  their palette chip, kind, disposition, power, sector summary presence, and
+  observed per-world presence while hiding subfaction details. Toggle
+  **EDIT MODE** for broad changes: rename factions, adjust kind/disposition,
+  add/delete top-level factions, set all/none system or world summary
+  presence, or rebuild summary presence from world records.
 - **Data** — CSV data editor for `key.csv` / `generator.csv` from inside
   the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
@@ -1655,6 +1661,7 @@ across runs, so a regression check is a diff away.
 | [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG export dialog + sector JSON bundle export |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
+| [src/gui/factions_overview.rs](src/gui/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
 | [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor UI |
 | [src/gui/route_planner.rs](src/gui/route_planner.rs) | Route planner (Safest / Shortest) |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |

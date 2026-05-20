@@ -30,11 +30,14 @@ use crate::sector_model::{GeneratedFaction, GeneratedSector};
 
 // ── Stance enum ────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Stance {
     Allied,
     Aligned,
+    #[default]
     Neutral,
     Rival,
     Hostile,
@@ -80,12 +83,6 @@ impl Stance {
             Stance::Hostile => "Hostile",
             Stance::AtWar => "At War",
         }
-    }
-}
-
-impl Default for Stance {
-    fn default() -> Self {
-        Self::Neutral
     }
 }
 
@@ -244,11 +241,14 @@ pub struct FactionRelation {
     pub tension: f32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum RelationAttitude {
     Allied,
     Friendly,
+    #[default]
     Transactional,
     Suspicious,
     Hostile,
@@ -301,15 +301,12 @@ impl RelationAttitude {
     }
 }
 
-impl Default for RelationAttitude {
-    fn default() -> Self {
-        Self::Transactional
-    }
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum TreatyStatus {
+    #[default]
     None,
     Pact,
     Truce,
@@ -330,12 +327,6 @@ impl TreatyStatus {
             Self::Nonaggression => "Nonaggression",
             Self::Vendetta => "Vendetta",
         }
-    }
-}
-
-impl Default for TreatyStatus {
-    fn default() -> Self {
-        Self::None
     }
 }
 

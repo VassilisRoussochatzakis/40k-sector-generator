@@ -6,6 +6,7 @@ pub mod app;
 pub mod dashboard;
 pub mod data_editor;
 pub mod editor;
+pub mod factions_overview;
 pub mod heatmap;
 pub mod info_panel;
 pub mod palette;

@@ -262,6 +262,8 @@ mod tests {
                         faction_id: fid.into(),
                         subfaction_id: None,
                         subfaction_name: None,
+                        force_id: None,
+                        force_name: None,
                         influence: FactionInfluence::Significant,
                         relationship_to_government: "lawful".into(),
                         dimensions: dims,

@@ -382,6 +382,7 @@ const IMPERIAL_KINDS: &[&str] = &[
 ];
 
 const CHAOS_KINDS: &[&str] = &[
+    "chaos",
     "chaos_space_marine",
     "chaos_knight",
     "traitor_guard",

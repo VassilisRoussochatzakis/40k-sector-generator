@@ -964,15 +964,33 @@ When `roots` is empty, world names fall back to the
 
 ### `data/factions/factions.toml`
 
-Each entry produces one faction in the generated sector. Preferred-* values
-must use the **variant name** form from `src/worlds.rs` (e.g. `"HiveWorld"`,
-not `"Hive World"`). Validation warns on unknown values.
+Each entry is a **force** row. The generator rolls rows up into a
+three-level hierarchy:
+
+- **Faction** — highest level, e.g. `imperial` / Imperium, `chaos` / Chaos,
+  `ork` / Orks.
+- **Subfaction** — middle level, e.g. `imperial_guard`, `chaos_space_marine`.
+- **Force** — specific catalogue row, e.g. Cadian 109th Regiment, Emperor's
+  Children warband, named dynasty, sept, chapter, cult, or fleet.
+
+Legacy files that only specify `kind` still work: `kind` becomes the
+subfaction id, and built-in mappings derive the top faction
+(`imperial_guard` -> `imperial`, `chaos_space_marine` -> `chaos`, etc.);
+unknown custom kinds remain their own top-level faction.
+Use optional `faction` / `faction_name` and `subfaction` /
+`subfaction_name` fields when a row needs explicit hierarchy.
+Preferred-* values must use the **variant name** form from `src/worlds.rs`
+(e.g. `"HiveWorld"`, not `"Hive World"`). Validation warns on unknown values.
 
 ```toml
 [[factions]]
-id    = "imperial_administration"
-name  = "Imperial Administration"
-kind  = "imperial"
+faction = "imperial"                  # optional top-level override
+faction_name = "Imperium"             # optional display name
+subfaction = "imperial_guard"         # optional middle-level override
+subfaction_name = "Imperial Guard"    # optional display name
+id    = "cadian_109th"
+name  = "Cadian 109th Regiment"
+kind  = "imperial_guard"             # legacy classification / control profile
 weight = 10.0
 default_disposition = "lawful"
 preferred_world_types        = ["HiveWorld", "BastionWorld"]
@@ -982,12 +1000,14 @@ preferred_notable_features   = ["AdministrativeHub", "PoliceState"]
 
 Assignment algorithm: base weight × 1.5 for matching world type, × 1.4 for
 matching government, × 1.3 per matching notable feature. Up to 3 factions
-per world (capped by population density). Per-world factions are emitted
-sorted by influence (Dominant > Significant > Minor > Hidden) then catalog
-order.
+per world (capped by population density), selected at the subfaction/force
+level and rolled up to the top-level `faction_id`. Per-world presence rows
+emit `faction_id`, `subfaction_id` / `subfaction_name`, and `force_id` /
+`force_name`, sorted by influence (Dominant > Significant > Minor > Hidden)
+then catalog order.
 
 `primary_factions` for a system is the top-3 by **influence-weighted score**
-(spec §10.9): sum of `influence.weight()` over the faction's presence on
+(spec §10.9): sum of `influence.weight()` over the top-level faction's presence on
 that system's worlds (Dominant=3, Significant=2, Minor=1, Hidden=0.5). Ties
 break by world-appearance count, then catalog order, then faction id.
 
@@ -996,10 +1016,11 @@ Pick an overall faction preset (Imperial, Mechanicus, Astartes, Chaos,
 Xenos, custom, etc.), edit the `kind`, `id`, `name`, disposition, weight,
 and preference lists, add rows to the designer roster, then **SAVE TOML...**
 to write a normal `[[factions]]` catalog. **REPLACE FROM OUTPUT** converts
-the currently loaded generated sector's top-level factions and subfactions
-back into editable faction rows; because generated output does not retain
-original catalog weights, the designer derives a modest presence-based weight
-from each output faction's system/world footprint.
+the currently loaded generated sector's forces back into editable faction
+rows, using each generated subfaction id as the saved `kind`; because
+generated output does not retain original catalog weights, the designer
+derives a modest presence-based weight from each output force's system/world
+footprint.
 
 ### `data/routes/route_rules.toml`
 
@@ -1121,6 +1142,13 @@ is also scoped to observer factions with at least one presence in the
 system; rumor views for unrelated observers can be reconstructed on
 demand from the raw system state.
 
+`GeneratedFaction` is the top-level faction rollup. Its `subfactions`
+array contains middle-level `GeneratedSubfaction` rows, and each subfaction
+can contain `forces` for the specific catalogue entries selected during
+generation. Per-world `WorldFactionPresence` rows carry all three ids:
+`faction_id`, optional `subfaction_id`, and optional `force_id` plus display
+names.
+
 The `relations` matrix is emitted only for factions with non-empty
 `system_presence` or `world_presence`. The full canonical faction
 catalogue (~1000 entries on the bundled data set) would generate
@@ -1188,7 +1216,8 @@ is enabled.
 ### `csv/*.csv`
 
 `systems.csv`, `worlds.csv`, `routes.csv` for spreadsheet use. Multi-value
-fields (factions, tags, features) are `;`-separated within a single cell.
+fields (factions, subfactions, forces, tags, features) are `;`-separated
+within a single cell.
 
 ### `sector.html` (§11 NEW.md)
 
@@ -1310,14 +1339,14 @@ navigation bar:
   the top.
 - **Factions** — high-level sector faction view. It lists top-level factions,
   their palette chip, kind, disposition, power, sector summary presence, and
-  observed per-world presence while hiding subfaction details. Toggle
+  observed per-world presence while hiding subfaction and force details. Toggle
   **EDIT MODE** for broad changes: rename factions, adjust kind/disposition,
   add/delete top-level factions, set all/none system or world summary
   presence, or rebuild summary presence from world records. Toggle
   **DESIGNER** for ground-up catalog work: choose an overall faction preset
   or custom kind, add/edit export rows with weights and world preferences,
-  import the loaded output's generated subfactions with **REPLACE FROM
-  OUTPUT**, and save the result as a `factions.toml`-compatible TOML file.
+  import the loaded output's generated forces with **REPLACE FROM OUTPUT**,
+  and save the result as a `factions.toml`-compatible TOML file.
 - **Data** — CSV data editor for `key.csv` / `generator.csv` from inside
   the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over

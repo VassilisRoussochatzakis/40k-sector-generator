@@ -341,6 +341,8 @@ function selectSystem(id){
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
 function presenceLabel(p){
   const sub = p.subfaction_name || p.subfaction_id || "";
+  const force = p.force_name || p.force_id || "";
+  if (sub && force) return `${p.faction_id}: ${sub} / ${force}`;
   return sub ? `${p.faction_id}: ${sub}` : p.faction_id;
 }
 

@@ -1005,6 +1005,8 @@ mod tests {
                     faction_id: "imp".into(),
                     subfaction_id: None,
                     subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
                     influence: FactionInfluence::Dominant,
                     relationship_to_government: "loyal".into(),
                     dimensions: PresenceDimensions::default(),

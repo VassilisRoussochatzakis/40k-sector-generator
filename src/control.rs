@@ -113,6 +113,19 @@ fn clamp_dimensions(d: &mut PresenceDimensions) {
     c(&mut d.visibility);
 }
 
+fn add_dimensions(a: &mut PresenceDimensions, b: PresenceDimensions) {
+    a.admin += b.admin;
+    a.military += b.military;
+    a.orbital += b.orbital;
+    a.economic += b.economic;
+    a.industrial += b.industrial;
+    a.ideological += b.ideological;
+    a.covert += b.covert;
+    a.logistics += b.logistics;
+    a.legitimacy += b.legitimacy;
+    a.visibility += b.visibility;
+}
+
 fn apply_disposition(d: &mut PresenceDimensions, disposition: &str) {
     match disposition {
         "lawful" => {
@@ -270,7 +283,16 @@ fn claim_for(faction_id: &str, p: &crate::sector_model::WorldFactionPresence) ->
     // Disposition / id heuristics keyed off relationship_to_government, which
     // generation seeds from the faction's default disposition.
     let disposition = p.relationship_to_government.as_str();
-    let id = faction_id;
+    let mut id = faction_id.to_string();
+    if let Some(sub_id) = &p.subfaction_id {
+        id.push(' ');
+        id.push_str(sub_id.as_str());
+    }
+    if let Some(force_id) = &p.force_id {
+        id.push(' ');
+        id.push_str(force_id.as_str());
+    }
+    let id = id.as_str();
     if id.contains("inquisition") {
         return ClaimType::CovertWrit;
     }
@@ -322,39 +344,41 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
         return WorldControlSummary::default();
     }
 
-    // Score each presence and rank.
-    let mut scored: Vec<(&str, f32, &PresenceDimensions, u8)> = world
-        .factions
-        .iter()
-        .map(|p| {
-            (
-                p.faction_id.as_str(),
-                p.dimensions.local_control_score(),
-                &p.dimensions,
-                p.intel_confidence,
-            )
+    // Score each top-level faction once. Multiple sub-factions/forces from the
+    // same faction can coexist on a world, so their dimensions roll up here.
+    let mut aggregate: BTreeMap<FactionId, (PresenceDimensions, u8)> = BTreeMap::new();
+    for p in &world.factions {
+        let entry = aggregate.entry(p.faction_id.clone()).or_default();
+        add_dimensions(&mut entry.0, p.dimensions);
+        entry.1 = entry.1.max(p.intel_confidence);
+    }
+    let mut scored: Vec<(FactionId, f32, PresenceDimensions, u8)> = aggregate
+        .into_iter()
+        .map(|(id, (mut dimensions, confidence))| {
+            clamp_dimensions(&mut dimensions);
+            (id, dimensions.local_control_score(), dimensions, confidence)
         })
         .collect();
     scored.sort_by(|a, b| {
         b.1.partial_cmp(&a.1)
             .unwrap_or(std::cmp::Ordering::Equal)
-            .then(a.0.cmp(b.0))
+            .then_with(|| a.0.cmp(&b.0))
     });
 
     let pick_dim = |f: fn(&PresenceDimensions) -> f32| -> Option<FactionId> {
         scored
             .iter()
             .max_by(|a, b| {
-                f(a.2)
-                    .partial_cmp(&f(b.2))
+                f(&a.2)
+                    .partial_cmp(&f(&b.2))
                     .unwrap_or(std::cmp::Ordering::Equal)
-                    .then(a.0.cmp(b.0))
+                    .then_with(|| a.0.cmp(&b.0))
             })
-            .filter(|x| f(x.2) >= 15.0)
-            .map(|x| FactionId::new(x.0))
+            .filter(|x| f(&x.2) >= 15.0)
+            .map(|x| x.0.clone())
     };
 
-    let dominant = scored.first().map(|x| FactionId::new(x.0));
+    let dominant = scored.first().map(|x| x.0.clone());
     let sovereign = pick_dim(|d| d.admin + d.legitimacy);
     let occupier = pick_dim(|d| d.military);
     let economic_hegemon = pick_dim(|d| d.economic);
@@ -366,9 +390,9 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
             a.2.covert
                 .partial_cmp(&b.2.covert)
                 .unwrap_or(std::cmp::Ordering::Equal)
-                .then(a.0.cmp(b.0))
+                .then_with(|| a.0.cmp(&b.0))
         })
-        .map(|x| FactionId::new(x.0));
+        .map(|x| x.0.clone());
 
     let control_score = scored.first().map(|x| x.1).unwrap_or(0.0);
     let contested = match (scored.first(), scored.get(1)) {
@@ -739,6 +763,8 @@ mod tests {
             faction_id: id.into(),
             subfaction_id: None,
             subfaction_name: None,
+            force_id: None,
+            force_name: None,
             influence: FactionInfluence::Significant,
             relationship_to_government: "lawful".into(),
             dimensions: PresenceDimensions {

@@ -702,6 +702,8 @@ mod tests {
                     faction_id: "cult".into(),
                     subfaction_id: None,
                     subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
                     influence: FactionInfluence::Hidden,
                     relationship_to_government: "outlaw".into(),
                     dimensions: PresenceDimensions::default(),

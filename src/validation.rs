@@ -337,9 +337,16 @@ fn validate_relations(
     errors: &mut Vec<ValidationIssue>,
     warnings: &mut Vec<ValidationIssue>,
 ) {
-    let known_ids: BTreeSet<&str> = factions
+    let known_ids: BTreeSet<String> = factions
         .iter()
-        .flat_map(|f| [f.id.as_str(), f.kind.as_str()])
+        .flat_map(|f| {
+            [
+                f.id.to_string(),
+                f.kind.clone(),
+                f.top_faction_id().to_string(),
+                f.subfaction_id().to_string(),
+            ]
+        })
         .collect();
     for (i, ov) in cfg.pair_overrides.iter().enumerate() {
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {

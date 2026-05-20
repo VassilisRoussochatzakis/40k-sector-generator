@@ -259,10 +259,22 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
                 .as_deref()
                 .or(fp.subfaction_id.as_deref())
                 .unwrap_or("");
+            let force = fp
+                .force_name
+                .as_deref()
+                .or(fp.force_id.as_deref())
+                .unwrap_or("");
             let label = if sub.is_empty() {
                 fp.faction_id.to_uppercase()
-            } else {
+            } else if force.is_empty() {
                 format!("{} / {}", fp.faction_id.to_uppercase(), sub.to_uppercase())
+            } else {
+                format!(
+                    "{} / {} / {}",
+                    fp.faction_id.to_uppercase(),
+                    sub.to_uppercase(),
+                    force.to_uppercase()
+                )
             };
             dim(
                 ui,

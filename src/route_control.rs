@@ -139,7 +139,7 @@ fn derive_one(
         kind,
         "inquisition" | "deathwatch" | "grey_knights" | "necron"
     );
-    let pirate = matches!(kind, "criminal" | "drukhari" | "ork" | "rebel");
+    let pirate = matches!(kind, "chaos" | "criminal" | "drukhari" | "ork" | "rebel");
     let stealth = matches!(
         kind,
         "aeldari" | "harlequin" | "drukhari" | "cult" | "genestealer_cult"
@@ -277,6 +277,8 @@ mod tests {
                     faction_id: fid.into(),
                     subfaction_id: None,
                     subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
                     influence: FactionInfluence::Significant,
                     relationship_to_government: "n".into(),
                     dimensions: dims,

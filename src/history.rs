@@ -966,6 +966,8 @@ mod tests {
             faction_id: "x".into(),
             subfaction_id: None,
             subfaction_name: None,
+            force_id: None,
+            force_name: None,
             influence: FactionInfluence::Minor,
             relationship_to_government: "neutral".into(),
             dimensions: PresenceDimensions::default(),

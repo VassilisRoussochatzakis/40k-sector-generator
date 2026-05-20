@@ -117,7 +117,10 @@ fn endpoint_score(
     let mut s = 0.0;
     for w in &sys.worlds {
         for p in &w.factions {
-            let k = kinds.get(p.faction_id.as_str()).copied().unwrap_or("");
+            let k = p
+                .subfaction_id
+                .as_deref()
+                .unwrap_or_else(|| kinds.get(p.faction_id.as_str()).copied().unwrap_or(""));
             if needles.contains(&k) {
                 s += score_fn(&p.dimensions);
             }
@@ -252,6 +255,8 @@ mod tests {
                 faction_id: fid.into(),
                 subfaction_id: None,
                 subfaction_name: None,
+                force_id: None,
+                force_name: None,
                 influence: FactionInfluence::Significant,
                 relationship_to_government: "secretive".into(),
                 dimensions: PresenceDimensions {

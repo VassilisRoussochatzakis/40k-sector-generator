@@ -74,6 +74,8 @@ fn invariants_detect_unknown_faction_in_world() {
                 faction_id: "does_not_exist".into(),
                 subfaction_id: None,
                 subfaction_name: None,
+                force_id: None,
+                force_name: None,
                 influence: FactionInfluence::Minor,
                 relationship_to_government: "test".to_string(),
                 dimensions: Default::default(),
@@ -222,17 +224,24 @@ fn primary_factions_capped_at_three() {
 }
 
 #[test]
-fn generated_factions_are_kind_groups_with_subfactions() {
+fn generated_factions_are_top_groups_with_subfactions_and_forces() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
-    let expected_kinds: std::collections::BTreeSet<String> =
-        input.factions.iter().map(|f| f.kind.clone()).collect();
+    let expected_factions: std::collections::BTreeSet<String> = input
+        .factions
+        .iter()
+        .map(|f| f.top_faction_id().to_string())
+        .collect();
     let sector = sectorforge::generate_sector(input).unwrap();
     let generated_ids: std::collections::BTreeSet<String> =
         sector.factions.iter().map(|f| f.id.to_string()).collect();
 
-    assert_eq!(generated_ids, expected_kinds);
+    assert_eq!(generated_ids, expected_factions);
     assert!(sector.factions.iter().any(|f| f.subfactions.len() > 1));
+    assert!(sector
+        .factions
+        .iter()
+        .any(|f| f.subfactions.iter().any(|sf| !sf.forces.is_empty())));
 
     for sys in &sector.systems {
         for w in &sys.worlds {
@@ -247,6 +256,18 @@ fn generated_factions_are_kind_groups_with_subfactions() {
                 assert!(
                     p.subfaction_name.is_some(),
                     "world {} presence {} missing subfaction name",
+                    w.id,
+                    p.faction_id
+                );
+                assert!(
+                    p.force_id.is_some(),
+                    "world {} presence {} missing force",
+                    w.id,
+                    p.faction_id
+                );
+                assert!(
+                    p.force_name.is_some(),
+                    "world {} presence {} missing force name",
                     w.id,
                     p.faction_id
                 );

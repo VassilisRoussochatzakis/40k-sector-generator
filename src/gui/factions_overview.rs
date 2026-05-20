@@ -1,6 +1,6 @@
 //! High-level faction overview/edit surface.
 //!
-//! This view deliberately stays above subfaction detail: it shows sector-level
+//! This view deliberately stays above subfaction/force detail: it shows sector-level
 //! faction rollups and offers broad summary edits for names, kinds,
 //! dispositions, and large presence sets.
 
@@ -25,6 +25,7 @@ struct PresenceStats {
     systems: BTreeSet<SystemId>,
     worlds: BTreeSet<WorldId>,
     subfactions: BTreeMap<FactionId, PresenceStats>,
+    forces: BTreeMap<FactionId, PresenceStats>,
 }
 
 impl PresenceStats {
@@ -434,7 +435,7 @@ pub fn show_designer(
         }
         if ui
             .button(RichText::new("REPLACE FROM OUTPUT").monospace())
-            .on_hover_text("build designer rows from loaded sector factions and subfactions")
+            .on_hover_text("build designer rows from loaded sector forces")
             .clicked()
         {
             state.rows = designer_rows_from_sector_output(sector);
@@ -442,7 +443,7 @@ pub fn show_designer(
         }
         if ui
             .button(RichText::new("APPEND FROM OUTPUT").monospace())
-            .on_hover_text("append generated subfactions not already in the designer rows")
+            .on_hover_text("append generated forces not already in the designer rows")
             .clicked()
         {
             let added = append_output_rows(state, sector);
@@ -570,10 +571,15 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
         );
     });
     if !fac.subfactions.is_empty() {
+        let force_count: usize = fac.subfactions.iter().map(|sf| sf.forces.len()).sum();
         ui.label(
-            RichText::new(format!("  {} subfactions hidden", fac.subfactions.len()))
-                .color(TEXT_DIM)
-                .monospace(),
+            RichText::new(format!(
+                "  {} subfactions / {} forces hidden",
+                fac.subfactions.len(),
+                force_count
+            ))
+            .color(TEXT_DIM)
+            .monospace(),
         );
     }
 }
@@ -636,6 +642,9 @@ fn show_edit_row(
             fac.system_presence.clear();
             for sf in &mut fac.subfactions {
                 sf.system_presence.clear();
+                for force in &mut sf.forces {
+                    force.system_presence.clear();
+                }
             }
             dirty = true;
         }
@@ -647,6 +656,9 @@ fn show_edit_row(
             fac.world_presence.clear();
             for sf in &mut fac.subfactions {
                 sf.world_presence.clear();
+                for force in &mut sf.forces {
+                    force.world_presence.clear();
+                }
             }
             dirty = true;
         }
@@ -665,14 +677,32 @@ fn show_edit_row(
                     sf.system_presence.clear();
                     sf.world_presence.clear();
                 }
+                for force in &mut sf.forces {
+                    if let Some(stats) = observed
+                        .subfactions
+                        .get(&sf.id)
+                        .and_then(|sub| sub.forces.get(&force.id))
+                    {
+                        force.system_presence = stats.systems.iter().cloned().collect();
+                        force.world_presence = stats.worlds.iter().cloned().collect();
+                    } else {
+                        force.system_presence.clear();
+                        force.world_presence.clear();
+                    }
+                }
             }
             dirty = true;
         }
         if !fac.subfactions.is_empty() {
+            let force_count: usize = fac.subfactions.iter().map(|sf| sf.forces.len()).sum();
             ui.label(
-                RichText::new(format!("{} subfactions hidden", fac.subfactions.len()))
-                    .color(TEXT_DIM)
-                    .monospace(),
+                RichText::new(format!(
+                    "{} subfactions / {} forces hidden",
+                    fac.subfactions.len(),
+                    force_count
+                ))
+                .color(TEXT_DIM)
+                .monospace(),
             );
         }
     });
@@ -841,6 +871,11 @@ fn observed_presence(sector: &GeneratedSector) -> BTreeMap<FactionId, PresenceSt
                     let sub = stats.subfactions.entry(sub_id.clone()).or_default();
                     sub.systems.insert(sys.id.clone());
                     sub.worlds.insert(world.id.clone());
+                    if let Some(force_id) = &presence.force_id {
+                        let force = sub.forces.entry(force_id.clone()).or_default();
+                        force.systems.insert(sys.id.clone());
+                        force.worlds.insert(world.id.clone());
+                    }
                 }
             }
         }
@@ -862,6 +897,17 @@ fn rebuild_all_summaries_from_world_data(sector: &mut GeneratedSector) {
                     sf.system_presence.clear();
                     sf.world_presence.clear();
                 }
+                for force in &mut sf.forces {
+                    if let Some(sub) = stats.subfactions.get(&sf.id) {
+                        if let Some(force_stats) = sub.forces.get(&force.id) {
+                            force.system_presence = force_stats.systems.iter().cloned().collect();
+                            force.world_presence = force_stats.worlds.iter().cloned().collect();
+                            continue;
+                        }
+                    }
+                    force.system_presence.clear();
+                    force.world_presence.clear();
+                }
             }
         } else {
             fac.system_presence.clear();
@@ -869,6 +915,10 @@ fn rebuild_all_summaries_from_world_data(sector: &mut GeneratedSector) {
             for sf in &mut fac.subfactions {
                 sf.system_presence.clear();
                 sf.world_presence.clear();
+                for force in &mut sf.forces {
+                    force.system_presence.clear();
+                    force.world_presence.clear();
+                }
             }
         }
     }
@@ -967,20 +1017,42 @@ fn designer_rows_from_sector_output(sector: &GeneratedSector) -> Vec<DesignerFac
             });
         } else {
             for sf in &fac.subfactions {
-                rows.push(DesignerFactionRow {
-                    id: sf.id.as_str().to_string(),
-                    name: sf.name.clone(),
-                    kind: fac.kind.clone(),
-                    disposition: if sf.disposition.is_empty() {
-                        fac.disposition.clone()
-                    } else {
-                        sf.disposition.clone()
-                    },
-                    weight: output_weight(sf.system_presence.len(), sf.world_presence.len()),
-                    world_types: String::new(),
-                    governments: String::new(),
-                    features: String::new(),
-                });
+                if sf.forces.is_empty() {
+                    rows.push(DesignerFactionRow {
+                        id: sf.id.as_str().to_string(),
+                        name: sf.name.clone(),
+                        kind: sf.id.as_str().to_string(),
+                        disposition: if sf.disposition.is_empty() {
+                            fac.disposition.clone()
+                        } else {
+                            sf.disposition.clone()
+                        },
+                        weight: output_weight(sf.system_presence.len(), sf.world_presence.len()),
+                        world_types: String::new(),
+                        governments: String::new(),
+                        features: String::new(),
+                    });
+                } else {
+                    for force in &sf.forces {
+                        rows.push(DesignerFactionRow {
+                            id: force.id.as_str().to_string(),
+                            name: force.name.clone(),
+                            kind: sf.id.as_str().to_string(),
+                            disposition: if force.disposition.is_empty() {
+                                sf.disposition.clone()
+                            } else {
+                                force.disposition.clone()
+                            },
+                            weight: output_weight(
+                                force.system_presence.len(),
+                                force.world_presence.len(),
+                            ),
+                            world_types: String::new(),
+                            governments: String::new(),
+                            features: String::new(),
+                        });
+                    }
+                }
             }
         }
     }
@@ -1074,6 +1146,10 @@ fn designer_rows_to_factions_file(rows: &[DesignerFactionRow]) -> Result<Faction
         }
         validate_weight(row.weight, &format!("row {}", i + 1))?;
         factions.push(FactionDef {
+            faction: None,
+            faction_name: None,
+            subfaction: None,
+            subfaction_name: None,
             id: FactionId::new(id),
             name,
             kind,

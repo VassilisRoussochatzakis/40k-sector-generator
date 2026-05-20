@@ -314,7 +314,7 @@ fn write_systems_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sec
 fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), SectorError> {
     let path = dir.join("worlds.csv");
     let mut s = String::new();
-    s.push_str("id,system_id,index,name,orbit,source_row_index,star_colour_code,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_features,factions,subfactions,tags\n");
+    s.push_str("id,system_id,index,name,orbit,source_row_index,star_colour_code,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_features,factions,subfactions,forces,tags\n");
     for sys in &sector.systems {
         for w in &sys.worlds {
             let factions: Vec<String> = w
@@ -333,8 +333,19 @@ fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sect
                         .to_string()
                 })
                 .collect();
+            let forces: Vec<String> = w
+                .factions
+                .iter()
+                .map(|f| {
+                    f.force_id
+                        .as_deref()
+                        .or(f.force_name.as_deref())
+                        .unwrap_or("")
+                        .to_string()
+                })
+                .collect();
             s.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 csv_escape(&w.id),
                 csv_escape(&sys.id),
                 w.index,
@@ -352,6 +363,7 @@ fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sect
                 csv_escape(&w.world.notable_features.join(";")),
                 csv_escape(&factions.join(";")),
                 csv_escape(&subfactions.join(";")),
+                csv_escape(&forces.join(";")),
                 csv_escape(&w.tags.join(";")),
             ));
         }

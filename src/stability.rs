@@ -49,15 +49,23 @@ fn world_has_tag(w: &GeneratedWorld, needle: &str) -> bool {
 pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction]) -> StabilityState {
     let kinds = kind_map(factions);
 
-    let kind_of = |id: &str| kinds.get(id).copied().unwrap_or("");
     let any_kind = |needles: &[&str]| {
-        w.factions
-            .iter()
-            .any(|p| needles.iter().any(|n| kind_of(&p.faction_id) == *n))
+        w.factions.iter().any(|p| {
+            let k = p
+                .subfaction_id
+                .as_deref()
+                .or_else(|| kinds.get(p.faction_id.as_str()).copied())
+                .unwrap_or("");
+            needles.iter().any(|n| k == *n)
+        })
     };
     let any_kind_starts = |prefixes: &[&str]| {
         w.factions.iter().any(|p| {
-            let k = kind_of(&p.faction_id);
+            let k = p
+                .subfaction_id
+                .as_deref()
+                .or_else(|| kinds.get(p.faction_id.as_str()).copied())
+                .unwrap_or("");
             prefixes.iter().any(|pre| k.starts_with(*pre))
         })
     };
@@ -113,10 +121,14 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
     if warp_phen {
         corruption += 15.0;
     }
-    if w.factions
-        .iter()
-        .any(|p| matches!(kind_of(&p.faction_id), "cult" | "genestealer_cult"))
-    {
+    if w.factions.iter().any(|p| {
+        let k = p
+            .subfaction_id
+            .as_deref()
+            .or_else(|| kinds.get(p.faction_id.as_str()).copied())
+            .unwrap_or("");
+        matches!(k, "cult" | "genestealer_cult")
+    }) {
         corruption += 15.0;
     }
 
@@ -309,6 +321,8 @@ mod tests {
                     faction_id: id.into(),
                     subfaction_id: None,
                     subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
                     influence: FactionInfluence::Significant,
                     relationship_to_government: "neutral".into(),
                     dimensions: PresenceDimensions::default(),

@@ -1089,7 +1089,9 @@ pub fn write_search_outcome(
 /// caller wants to print share/world/system counts without re-walking the
 /// sector.
 #[must_use]
-pub fn faction_summary(analysis: &SectorAnalysis) -> BTreeMap<String, FactionSummary> {
+pub fn faction_summary(
+    analysis: &SectorAnalysis,
+) -> BTreeMap<crate::ids::FactionId, FactionSummary> {
     let mut out = BTreeMap::new();
     for f in &analysis.faction_balance.top_factions {
         out.insert(

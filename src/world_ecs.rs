@@ -55,11 +55,11 @@ pub struct EntityWorld {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemComponents {
-    pub id: String,
+    pub id: crate::ids::SystemId,
     pub coord: HexCoord,
     pub world_entities: Vec<EntityId>,
     pub state: Option<crate::sector_model::SystemState>,
-    pub dominant: Option<String>,
+    pub dominant: Option<crate::ids::FactionId>,
     pub conflict_intensity: u8,
     pub blockade_under: bool,
     pub stability_order: u8,
@@ -67,16 +67,16 @@ pub struct SystemComponents {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldComponents {
-    pub id: String,
+    pub id: crate::ids::WorldId,
     pub system_entity: EntityId,
-    pub dominant: Option<String>,
+    pub dominant: Option<crate::ids::FactionId>,
     pub contested: bool,
-    pub presences: Vec<(String, u8)>,
+    pub presences: Vec<(crate::ids::FactionId, u8)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionComponents {
-    pub id: String,
+    pub id: crate::ids::FactionId,
     pub kind: String,
     pub total_projection: f32,
     pub system_count: u32,
@@ -85,7 +85,7 @@ pub struct FactionComponents {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteComponents {
-    pub id: String,
+    pub id: crate::ids::RouteId,
     pub from_entity: EntityId,
     pub to_entity: EntityId,
     pub route_type: crate::sector_model::RouteType,
@@ -106,7 +106,7 @@ pub fn build(sector: &GeneratedSector) -> EntityWorld {
         id
     };
 
-    let mut system_eids: BTreeMap<String, EntityId> = BTreeMap::new();
+    let mut system_eids: BTreeMap<crate::ids::SystemId, EntityId> = BTreeMap::new();
     for sys in &sector.systems {
         let eid = alloc(&mut w, &sys.id, EntityKind::System);
         system_eids.insert(sys.id.clone(), eid);

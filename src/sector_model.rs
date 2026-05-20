@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::ids::{FactionId, RouteId, SystemId, WorldId};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct HexCoord {
     pub q: i32,
@@ -46,14 +48,14 @@ pub struct GeneratedSector {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSystem {
-    pub id: String,
+    pub id: SystemId,
     pub index: usize,
     pub name: String,
     pub coord: HexCoord,
     pub star: GeneratedStar,
     pub worlds: Vec<GeneratedWorld>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub primary_factions: Vec<String>,
+    pub primary_factions: Vec<FactionId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -109,7 +111,7 @@ pub struct GeneratedStar {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedWorld {
-    pub id: String,
+    pub id: WorldId,
     pub index: usize,
     pub name: String,
     pub orbit: u8,
@@ -181,9 +183,9 @@ impl From<&crate::worlds::World> for WorldDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedRoute {
-    pub id: String,
-    pub from_system_id: String,
-    pub to_system_id: String,
+    pub id: RouteId,
+    pub from_system_id: SystemId,
+    pub to_system_id: SystemId,
     pub distance: u32,
     pub route_type: RouteType,
     pub stability: RouteStability,
@@ -327,12 +329,12 @@ pub enum RouteStability {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedFaction {
-    pub id: String,
+    pub id: FactionId,
     pub name: String,
     pub kind: String,
     pub disposition: String,
-    pub system_presence: Vec<String>,
-    pub world_presence: Vec<String>,
+    pub system_presence: Vec<SystemId>,
+    pub world_presence: Vec<WorldId>,
     /// Aggregated multi-dimensional power across all controlled assets (§4.3).
     #[serde(default)]
     pub power: PowerProfile,
@@ -340,7 +342,7 @@ pub struct GeneratedFaction {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldFactionPresence {
-    pub faction_id: String,
+    pub faction_id: FactionId,
     pub influence: FactionInfluence,
     pub relationship_to_government: String,
     /// Multi-dimensional presence scores (§4.5). All fields in 0..=100.
@@ -534,7 +536,7 @@ pub enum ClaimType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionClaim {
-    pub faction_id: String,
+    pub faction_id: FactionId,
     pub claim_type: ClaimType,
     /// 0..=100; populated from local control or fixed minima per claim kind.
     pub strength: u8,
@@ -558,17 +560,17 @@ impl WorldControlSummary {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct WorldControlSummary {
     /// Highest local-control-score faction — the map fill (§9.1).
-    pub dominant: Option<String>,
+    pub dominant: Option<FactionId>,
     /// Strongest recognized claimant; drives outer-ring border (§9.1).
-    pub sovereign: Option<String>,
+    pub sovereign: Option<FactionId>,
     /// Strongest military / orbital presence (§9.1 inner ring).
-    pub occupier: Option<String>,
+    pub occupier: Option<FactionId>,
     /// Strongest economic presence.
-    pub economic_hegemon: Option<String>,
+    pub economic_hegemon: Option<FactionId>,
     /// Strongest ideological/popular authority.
-    pub popular_authority: Option<String>,
+    pub popular_authority: Option<FactionId>,
     /// Strongest covert presence — only reported when visibility is low.
-    pub hidden_master: Option<String>,
+    pub hidden_master: Option<FactionId>,
     /// True when top two factions are within 15 points and top ≥ 35 (§14).
     pub contested: bool,
     /// Local control score of the dominant faction (0..=100).
@@ -590,17 +592,17 @@ pub enum SystemState {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SystemControlSummary {
     pub state: Option<SystemState>,
-    pub dominant: Option<String>,
-    pub sovereign: Option<String>,
-    pub orbital_controller: Option<String>,
-    pub economic_hegemon: Option<String>,
-    pub hidden_master: Option<String>,
+    pub dominant: Option<FactionId>,
+    pub sovereign: Option<FactionId>,
+    pub orbital_controller: Option<FactionId>,
+    pub economic_hegemon: Option<FactionId>,
+    pub hidden_master: Option<FactionId>,
     pub top_factions: Vec<ScoredFaction>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ScoredFaction {
-    pub faction_id: String,
+    pub faction_id: FactionId,
     pub score: f32,
 }
 

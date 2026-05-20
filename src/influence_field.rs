@@ -35,17 +35,17 @@ pub struct InfluenceField {
 pub struct CellAssignment {
     pub q: i32,
     pub r: i32,
-    pub dominant: Option<String>,
+    pub dominant: Option<crate::ids::FactionId>,
     /// 0..=100 — normalised contribution of the dominant faction at this cell.
     pub score: u8,
     /// Top-3 (faction_id, score) by descending score.
     #[serde(default)]
-    pub top: Vec<(String, u8)>,
+    pub top: Vec<(crate::ids::FactionId, u8)>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct TerritoryBand {
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     /// Row-major indices into `cells`.
     pub cells: Vec<usize>,
 }
@@ -75,9 +75,9 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
         .collect();
 
     // Per-system per-faction aggregate presence (anchor strengths).
-    let mut anchors: Vec<(HexCoord, BTreeMap<String, f32>)> = Vec::new();
+    let mut anchors: Vec<(HexCoord, BTreeMap<crate::ids::FactionId, f32>)> = Vec::new();
     for sys in &sector.systems {
-        let mut m: BTreeMap<String, f32> = BTreeMap::new();
+        let mut m: BTreeMap<crate::ids::FactionId, f32> = BTreeMap::new();
         for wld in &sys.worlds {
             for p in &wld.factions {
                 *m.entry(p.faction_id.clone()).or_insert(0.0) += p.dimensions.local_control_score();
@@ -92,7 +92,7 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
             q: (i as u32 % w) as i32,
             r: (i as u32 / w) as i32,
         };
-        let mut scores: BTreeMap<String, f32> = BTreeMap::new();
+        let mut scores: BTreeMap<crate::ids::FactionId, f32> = BTreeMap::new();
         for (anchor_coord, faction_scores) in &anchors {
             let d = hex_distance(coord, *anchor_coord);
             if d > MAX_INFLUENCE_RADIUS {
@@ -107,7 +107,7 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
         if scores.is_empty() {
             continue;
         }
-        let mut top: Vec<(String, f32)> = scores.into_iter().collect();
+        let mut top: Vec<(crate::ids::FactionId, f32)> = scores.into_iter().collect();
         top.sort_by(|a, b| {
             b.1.partial_cmp(&a.1)
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -127,7 +127,7 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
     }
 
     // Build per-faction band lists.
-    let mut bands_by_id: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    let mut bands_by_id: BTreeMap<crate::ids::FactionId, Vec<usize>> = BTreeMap::new();
     for (i, c) in cells.iter().enumerate() {
         if let Some(id) = &c.dominant {
             bands_by_id.entry(id.clone()).or_default().push(i);

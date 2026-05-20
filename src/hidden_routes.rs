@@ -149,10 +149,10 @@ fn emit_layer(
 
     // Existing undirected edges (any route type) to skip — we don't double
     // up hidden routes on top of an existing public lane.
-    let mut existing: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut existing: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> = BTreeSet::new();
     for r in routes.iter() {
         let (a, b) = order_pair(&r.from_system_id, &r.to_system_id);
-        existing.insert((a.to_string(), b.to_string()));
+        existing.insert((crate::ids::SystemId::new(a), crate::ids::SystemId::new(b)));
     }
 
     // K-nearest-neighbor selection: for each endpoint, pick the
@@ -161,7 +161,7 @@ fn emit_layer(
     // pair selected from both sides only emits one edge. This replaces the
     // earlier full-clique enumeration that scaled O(N²) and produced
     // thousands of edges on dense sectors.
-    let mut pairs: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut pairs: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> = BTreeSet::new();
     for (i, a) in endpoints.iter().enumerate() {
         let mut peers: Vec<(u32, &str, usize)> = endpoints
             .iter()
@@ -190,7 +190,7 @@ fn emit_layer(
         let b = endpoints.iter().find(|s| s.id == to).copied().unwrap();
         let dist = hex_distance(a.coord, b.coord);
         let base_id = ids::route_id(&from, &to);
-        let id = format!("{base_id}-{suffix}");
+        let id = crate::ids::RouteId::new(format!("{base_id}-{suffix}"));
         // Avoid duplicate inserts if a hidden lane of the same kind
         // already exists for this pair (e.g. from a re-run on a save).
         if routes.iter().any(|r| r.id == id) {
@@ -231,7 +231,7 @@ mod tests {
     fn sys(id: &str, coord: (i32, i32), faction: (&str, f32, f32)) -> GeneratedSystem {
         let (fid, covert, military) = faction;
         let world = GeneratedWorld {
-            id: format!("{id}-w1"),
+            id: crate::ids::WorldId::new(format!("{id}-w1")),
             index: 1,
             name: "W".into(),
             orbit: 1,

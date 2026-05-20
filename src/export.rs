@@ -10,6 +10,33 @@ use crate::errors::SectorError;
 use crate::render;
 use crate::sector_model::{GeneratedRoute, GeneratedSector};
 
+/// How to render JSON. Replaces positional `pretty: bool` arguments so call
+/// sites read self-documenting (`JsonFormat::Pretty` instead of `true`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JsonFormat {
+    Pretty,
+    Compact,
+}
+
+impl JsonFormat {
+    fn render<T: Serialize>(self, value: &T) -> serde_json::Result<String> {
+        match self {
+            JsonFormat::Pretty => serde_json::to_string_pretty(value),
+            JsonFormat::Compact => serde_json::to_string(value),
+        }
+    }
+
+    /// Pick a format from an existing `OutputConfig::pretty_json` flag at the
+    /// boundary so the bool stays in config-land only.
+    pub(crate) fn from_flag(pretty: bool) -> Self {
+        if pretty {
+            Self::Pretty
+        } else {
+            Self::Compact
+        }
+    }
+}
+
 /// Shared writer for sub-system reports: create dir, write `<base_name>.md`
 /// from `md`, then write `<base_name>.json` from a pretty serialization of
 /// `json_payload`. Used by every `<module>::write_report` to eliminate the
@@ -37,8 +64,9 @@ pub fn export_all(
     fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
 
     if output_config.write_manifest {
-        write_manifest(sector, output_dir, output_config.pretty_json)?;
-        write_validation_placeholder(sector, output_dir, output_config.pretty_json)?;
+        let fmt = JsonFormat::from_flag(output_config.pretty_json);
+        write_manifest(sector, output_dir, fmt)?;
+        write_validation_placeholder(sector, output_dir, fmt)?;
     }
 
     let bm = &output_config.bitmap;
@@ -108,15 +136,12 @@ fn write_json(
 fn write_manifest(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
-    pretty: bool,
+    format: JsonFormat,
 ) -> Result<(), SectorError> {
     let path = output_dir.join("manifest.json");
-    let text = if pretty {
-        serde_json::to_string_pretty(&sector.manifest)
-    } else {
-        serde_json::to_string(&sector.manifest)
-    }
-    .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+    let text = format
+        .render(&sector.manifest)
+        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
     fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
     Ok(())
 }
@@ -124,7 +149,7 @@ fn write_manifest(
 fn write_validation_placeholder(
     _sector: &GeneratedSector,
     output_dir: &Utf8Path,
-    pretty: bool,
+    format: JsonFormat,
 ) -> Result<(), SectorError> {
     // Validation is run before generation; we just record that it succeeded.
     let path = output_dir.join("validation_report.json");
@@ -132,12 +157,9 @@ fn write_validation_placeholder(
         "ok": true,
         "note": "validation was run successfully before generation",
     });
-    let text = if pretty {
-        serde_json::to_string_pretty(&stub)
-    } else {
-        serde_json::to_string(&stub)
-    }
-    .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
+    let text = format
+        .render(&stub)
+        .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
     fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
     Ok(())
 }
@@ -178,8 +200,8 @@ pub fn export_bundle(
     fs::create_dir_all(&out_dir).map_err(|e| SectorError::io(out_dir.as_str(), e))?;
 
     export_json(sector, &out_dir)?;
-    write_manifest(sector, &out_dir, true)?;
-    write_validation_placeholder(sector, &out_dir, true)?;
+    write_manifest(sector, &out_dir, JsonFormat::Pretty)?;
+    write_validation_placeholder(sector, &out_dir, JsonFormat::Pretty)?;
     write_markdown(sector, &out_dir)?;
     write_csv(sector, &out_dir)?;
 
@@ -281,7 +303,7 @@ fn write_systems_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sec
             csv_escape(&sys.star.colour_name),
             csv_escape(sys.star.spectral_type.as_deref().unwrap_or("")),
             sys.worlds.len(),
-            csv_escape(&sys.primary_factions.join(";")),
+            csv_escape(&join_ids(&sys.primary_factions, ";")),
             csv_escape(&sys.tags.join(";")),
         ));
     }
@@ -295,7 +317,11 @@ fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sect
     s.push_str("id,system_id,index,name,orbit,source_row_index,star_colour_code,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_features,factions,tags\n");
     for sys in &sector.systems {
         for w in &sys.worlds {
-            let factions: Vec<String> = w.factions.iter().map(|f| f.faction_id.clone()).collect();
+            let factions: Vec<String> = w
+                .factions
+                .iter()
+                .map(|f| f.faction_id.as_str().to_string())
+                .collect();
             s.push_str(&format!(
                 "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 csv_escape(&w.id),
@@ -349,4 +375,11 @@ fn csv_escape(s: &str) -> String {
     } else {
         s.to_string()
     }
+}
+
+fn join_ids<T: AsRef<str>>(ids: &[T], sep: &str) -> String {
+    ids.iter()
+        .map(|id| id.as_ref())
+        .collect::<Vec<_>>()
+        .join(sep)
 }

@@ -178,8 +178,8 @@ pub struct InterSectorLink {
     pub id: String,
     pub from_child_id: String,
     pub to_child_id: String,
-    pub from_system_id: String,
-    pub to_system_id: String,
+    pub from_system_id: crate::ids::SystemId,
+    pub to_system_id: crate::ids::SystemId,
     /// Edge orientation between the two child sectors on the super-grid.
     pub orientation: BorderOrientation,
     /// In-sector depth-from-border + cross-border step combined. Always
@@ -590,8 +590,8 @@ fn stitch_pair(
             }
             used_a.insert(ia);
             used_b.insert(ib);
-            let from_sys = donors_a[ia].0.to_string();
-            let to_sys = donors_b[ib].0.to_string();
+            let from_sys = crate::ids::SystemId::new(donors_a[ia].0);
+            let to_sys = crate::ids::SystemId::new(donors_b[ib].0);
             *link_idx += 1;
             chosen.push(InterSectorLink {
                 id: format!("sl-{:04}", *link_idx - 1),

@@ -20,16 +20,16 @@ pub struct SectorView<'a> {
     pub selected_system: Option<&'a str>,
     pub hex_size: f32,
     /// Route ids that belong to the active planned path. Drawn thick on top of the base routes.
-    pub path_route_ids: Option<&'a HashSet<String>>,
+    pub path_route_ids: Option<&'a HashSet<crate::ids::RouteId>>,
     /// System ids on the planned path. Rendered with a glowing ring.
-    pub path_waypoints: Option<&'a HashSet<String>>,
+    pub path_waypoints: Option<&'a HashSet<crate::ids::SystemId>>,
     /// Subsector overlay: tile boundaries, labels, and capital markers.
     pub subsectors: Option<&'a [Subsector]>,
     /// When set, every hex of this subsector gets a faint grey tint.
     pub selected_subsector: Option<&'a str>,
     /// Per-system heatmap samples. Hexes for systems present in the map are
     /// blended toward the cell's colour scaled by intensity (§9.5 / §10).
-    pub heatmap: Option<&'a HashMap<String, HeatCell>>,
+    pub heatmap: Option<&'a HashMap<crate::ids::SystemId, HeatCell>>,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
@@ -38,7 +38,7 @@ const SUBSECTOR_HIGHLIGHT: Color32 = Color32::from_rgba_premultiplied(40, 40, 44
 const CAPITAL_MARKER: Color32 = Color32::from_rgb(255, 220, 100);
 
 pub enum SectorClick {
-    System(String),
+    System(crate::ids::SystemId),
     Subsector(String),
 }
 

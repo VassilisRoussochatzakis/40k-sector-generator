@@ -27,7 +27,7 @@ pub struct App {
     sector: Option<Arc<GeneratedSector>>,
     subsectors: Vec<Subsector>,
     view: View,
-    sector_selected: Option<String>,
+    sector_selected: Option<crate::ids::SystemId>,
     sector_selected_subsector: Option<String>,
     sector_hex_size: f32,
     system_side: f32,
@@ -52,7 +52,7 @@ pub struct App {
 enum PendingExport {
     SectorPng,
     AllSystemPngs,
-    SystemPng(String),
+    SystemPng(crate::ids::SystemId),
     /// §11 NEW.md: self-contained interactive HTML map.
     SectorHtml,
 }
@@ -61,7 +61,7 @@ enum PendingExport {
 enum View {
     Sector,
     System {
-        system_id: String,
+        system_id: crate::ids::SystemId,
         selection: SystemSelection,
     },
     Edit,
@@ -355,7 +355,7 @@ impl eframe::App for App {
                             }
                         });
                     }
-                    let systems_list: Vec<(String, String)> = self
+                    let systems_list: Vec<(crate::ids::SystemId, String)> = self
                         .sector
                         .as_ref()
                         .map(|s| {
@@ -1351,7 +1351,7 @@ impl App {
         );
         ui.add_space(6.0);
 
-        let options: Vec<(String, String)> = sector
+        let options: Vec<(crate::ids::SystemId, String)> = sector
             .systems
             .iter()
             .map(|s| (s.id.clone(), s.name.clone()))
@@ -1680,7 +1680,7 @@ impl App {
     }
 
     fn show_system(&mut self, ui: &mut egui::Ui, system_id: &str, selection: SystemSelection) {
-        let sys_id_owned = system_id.to_string();
+        let sys_id_owned = crate::ids::SystemId::new(system_id);
         TopBottomPanel::bottom("system_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
@@ -1716,7 +1716,7 @@ impl App {
                     SystemClick::World(i) => SystemSelection::World(i),
                 };
                 self.view = View::System {
-                    system_id: system_id.to_string(),
+                    system_id: crate::ids::SystemId::new(system_id),
                     selection: new_sel,
                 };
             }
@@ -1729,8 +1729,8 @@ mod export_ui;
 fn system_combo(
     ui: &mut egui::Ui,
     id: &str,
-    value: &mut Option<String>,
-    options: &[(String, String)],
+    value: &mut Option<crate::ids::SystemId>,
+    options: &[(crate::ids::SystemId, String)],
 ) -> bool {
     let mut changed = false;
     let label = value

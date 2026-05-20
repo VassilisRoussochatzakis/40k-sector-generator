@@ -66,13 +66,13 @@ pub struct SitesReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldSite {
     pub id: String,
-    pub world_id: String,
-    pub system_id: String,
+    pub world_id: crate::ids::WorldId,
+    pub system_id: crate::ids::SystemId,
     pub region_kind: Option<RegionKind>,
     pub kind: SiteKind,
     pub name: String,
-    pub controlling_faction: Option<String>,
-    pub known_to: Vec<String>,
+    pub controlling_faction: Option<crate::ids::FactionId>,
+    pub known_to: Vec<crate::ids::FactionId>,
     pub public_status: SiteStatus,
     pub actual_status: SiteStatus,
     pub tags: Vec<String>,
@@ -183,12 +183,13 @@ fn emit_world_sites(
         let controlling = region
             .and_then(|r| r.dominant.clone())
             .or_else(|| w.control.dominant.clone());
-        let hidden_present = w
-            .factions
-            .iter()
-            .any(|p| matches!(p.influence, FactionInfluence::Hidden));
-        let actual_status = status_from_world(kind, w, hidden_present, &mut rng);
-        let public_status = mask_status(actual_status, kind, hidden_present);
+        let hidden = HiddenPresence::from_flag(
+            w.factions
+                .iter()
+                .any(|p| matches!(p.influence, FactionInfluence::Hidden)),
+        );
+        let actual_status = status_from_world(kind, w, hidden, &mut rng);
+        let public_status = mask_status(actual_status, kind, hidden);
         let name = site_name(kind, w, &mut rng);
         let known_to = if matches!(actual_status, SiteStatus::Sealed | SiteStatus::Quarantined) {
             vec![]
@@ -312,10 +313,32 @@ fn preferred_region(kind: SiteKind) -> Option<RegionKind> {
 
 // ── Status / mask ──────────────────────────────────────────────────────────────
 
+/// Whether a Hidden-tier faction presence sits on a world. Replaces positional
+/// `bool` arguments so call sites read self-documenting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HiddenPresence {
+    Absent,
+    Present,
+}
+
+impl HiddenPresence {
+    fn from_flag(present: bool) -> Self {
+        if present {
+            Self::Present
+        } else {
+            Self::Absent
+        }
+    }
+
+    fn is_present(self) -> bool {
+        matches!(self, Self::Present)
+    }
+}
+
 fn status_from_world(
     kind: SiteKind,
     w: &GeneratedWorld,
-    hidden_present: bool,
+    hidden: HiddenPresence,
     rng: &mut impl Rng,
 ) -> SiteStatus {
     use SiteKind::*;
@@ -335,7 +358,7 @@ fn status_from_world(
     if w.control.contested {
         return SiteStatus::Contested;
     }
-    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden_present {
+    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden.is_present() {
         return SiteStatus::Active;
     }
     if matches!(kind, QuarantineZone) {
@@ -351,9 +374,9 @@ fn status_from_world(
 }
 
 /// Player-side "public_status" — covers up hidden activity.
-fn mask_status(actual: SiteStatus, kind: SiteKind, hidden_present: bool) -> SiteStatus {
+fn mask_status(actual: SiteStatus, kind: SiteKind, hidden: HiddenPresence) -> SiteStatus {
     use SiteKind::*;
-    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden_present {
+    if matches!(kind, CultSafehouse | BlackMarketEnclave) && hidden.is_present() {
         return SiteStatus::Abandoned;
     }
     if matches!(kind, TombComplex) {
@@ -583,7 +606,7 @@ pub fn render_markdown(report: &SitesReport, cfg: &SitesConfig) -> String {
         if cfg.player_edition { "player" } else { "GM" },
         report.sites.len()
     );
-    let mut by_world: BTreeMap<String, Vec<&WorldSite>> = BTreeMap::new();
+    let mut by_world: BTreeMap<crate::ids::WorldId, Vec<&WorldSite>> = BTreeMap::new();
     for site in &report.sites {
         by_world
             .entry(site.world_id.clone())

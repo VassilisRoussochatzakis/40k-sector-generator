@@ -186,10 +186,13 @@ fn check_counts(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
 fn check_systems(
     s: &GeneratedSector,
     v: &mut Vec<InvariantViolation>,
-) -> (BTreeSet<String>, BTreeSet<String>) {
-    let mut sys_ids: BTreeSet<String> = BTreeSet::new();
-    let mut all_world_ids: BTreeSet<String> = BTreeSet::new();
-    let mut coords: BTreeMap<(i32, i32), String> = BTreeMap::new();
+) -> (
+    BTreeSet<crate::ids::SystemId>,
+    BTreeSet<crate::ids::WorldId>,
+) {
+    let mut sys_ids: BTreeSet<crate::ids::SystemId> = BTreeSet::new();
+    let mut all_world_ids: BTreeSet<crate::ids::WorldId> = BTreeSet::new();
+    let mut coords: BTreeMap<(i32, i32), crate::ids::SystemId> = BTreeMap::new();
 
     for sys in &s.systems {
         if !sys_ids.insert(sys.id.clone()) {
@@ -229,9 +232,9 @@ fn check_systems(
         }
 
         // Worlds
-        let mut local_world_ids: BTreeSet<String> = BTreeSet::new();
+        let mut local_world_ids: BTreeSet<crate::ids::WorldId> = BTreeSet::new();
         for w in &sys.worlds {
-            if !w.id.starts_with(&sys.id) {
+            if !w.id.as_str().starts_with(sys.id.as_str()) {
                 v.push(violation(
                     "WORLD_ID_PREFIX",
                     &format!(
@@ -299,11 +302,16 @@ fn check_systems(
     (sys_ids, all_world_ids)
 }
 
-fn check_routes(s: &GeneratedSector, sys_ids: &BTreeSet<String>, v: &mut Vec<InvariantViolation>) {
+fn check_routes(
+    s: &GeneratedSector,
+    sys_ids: &BTreeSet<crate::ids::SystemId>,
+    v: &mut Vec<InvariantViolation>,
+) {
     let coord_by_id: BTreeMap<&str, crate::sector_model::HexCoord> =
         s.systems.iter().map(|x| (x.id.as_str(), x.coord)).collect();
 
-    let mut undirected_keys: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut undirected_keys: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> =
+        BTreeSet::new();
 
     for r in &s.routes {
         if r.from_system_id == r.to_system_id {
@@ -366,8 +374,8 @@ fn check_routes(s: &GeneratedSector, sys_ids: &BTreeSet<String>, v: &mut Vec<Inv
 
 fn check_factions(
     s: &GeneratedSector,
-    sys_ids: &BTreeSet<String>,
-    world_ids: &BTreeSet<String>,
+    sys_ids: &BTreeSet<crate::ids::SystemId>,
+    world_ids: &BTreeSet<crate::ids::WorldId>,
     v: &mut Vec<InvariantViolation>,
 ) {
     let summary_ids: BTreeSet<&str> = s.factions.iter().map(|f| f.id.as_str()).collect();
@@ -494,23 +502,24 @@ fn check_world_control(
     v: &mut Vec<InvariantViolation>,
 ) {
     let ctl = &w.control;
-    let check = |slot: &str, id: Option<&String>, v: &mut Vec<InvariantViolation>| {
-        if let Some(s) = id {
-            if !summary_ids.contains(s.as_str()) {
-                v.push(violation(
-                    "WORLD_CONTROL_UNKNOWN_FACTION",
-                    &format!(
-                        "world '{}' control.{} references unknown '{}'",
-                        w.id, slot, s
-                    ),
-                    Some(&format!(
-                        "systems.{}.worlds.{}.control.{}",
-                        sys.id, w.id, slot
-                    )),
-                ));
+    let check =
+        |slot: &str, id: Option<&crate::ids::FactionId>, v: &mut Vec<InvariantViolation>| {
+            if let Some(s) = id {
+                if !summary_ids.contains(s.as_str()) {
+                    v.push(violation(
+                        "WORLD_CONTROL_UNKNOWN_FACTION",
+                        &format!(
+                            "world '{}' control.{} references unknown '{}'",
+                            w.id, slot, s
+                        ),
+                        Some(&format!(
+                            "systems.{}.worlds.{}.control.{}",
+                            sys.id, w.id, slot
+                        )),
+                    ));
+                }
             }
-        }
-    };
+        };
     check("dominant", ctl.dominant.as_ref(), v);
     check("sovereign", ctl.sovereign.as_ref(), v);
     check("occupier", ctl.occupier.as_ref(), v);
@@ -525,20 +534,21 @@ fn check_system_control(
     v: &mut Vec<InvariantViolation>,
 ) {
     let c = &sys.control;
-    let check = |slot: &str, id: Option<&String>, v: &mut Vec<InvariantViolation>| {
-        if let Some(s) = id {
-            if !summary_ids.contains(s.as_str()) {
-                v.push(violation(
-                    "SYSTEM_CONTROL_UNKNOWN_FACTION",
-                    &format!(
-                        "system '{}' control.{} references unknown '{}'",
-                        sys.id, slot, s
-                    ),
-                    Some(&format!("systems.{}.control.{}", sys.id, slot)),
-                ));
+    let check =
+        |slot: &str, id: Option<&crate::ids::FactionId>, v: &mut Vec<InvariantViolation>| {
+            if let Some(s) = id {
+                if !summary_ids.contains(s.as_str()) {
+                    v.push(violation(
+                        "SYSTEM_CONTROL_UNKNOWN_FACTION",
+                        &format!(
+                            "system '{}' control.{} references unknown '{}'",
+                            sys.id, slot, s
+                        ),
+                        Some(&format!("systems.{}.control.{}", sys.id, slot)),
+                    ));
+                }
             }
-        }
-    };
+        };
     check("dominant", c.dominant.as_ref(), v);
     check("sovereign", c.sovereign.as_ref(), v);
     check("orbital_controller", c.orbital_controller.as_ref(), v);

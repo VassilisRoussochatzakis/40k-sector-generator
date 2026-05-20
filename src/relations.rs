@@ -161,8 +161,8 @@ impl RelationsMatrix {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionRelation {
-    pub a: String,
-    pub b: String,
+    pub a: crate::ids::FactionId,
+    pub b: crate::ids::FactionId,
     pub stance: Stance,
     pub cause: String,
     /// 0..=100 derived from how often the pair co-occurs on contested worlds /

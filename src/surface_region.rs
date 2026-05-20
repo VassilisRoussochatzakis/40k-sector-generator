@@ -21,7 +21,7 @@ pub struct SurfaceRegion {
     /// Faction id dominating this region. May differ from the world's
     /// `control.dominant` when an Imperial capital sits over a Genestealer
     /// underhive.
-    pub dominant: Option<String>,
+    pub dominant: Option<crate::ids::FactionId>,
     /// 0..=100 — the dominant faction's local control score in this region.
     pub control_score: u8,
     /// Population weight: contribution to the world's weighted average
@@ -135,7 +135,10 @@ pub fn derive_regions(w: &GeneratedWorld) -> Vec<SurfaceRegion> {
     out
 }
 
-fn pick_region_dominant(w: &GeneratedWorld, kind: RegionKind) -> (Option<String>, u8, u8) {
+fn pick_region_dominant(
+    w: &GeneratedWorld,
+    kind: RegionKind,
+) -> (Option<crate::ids::FactionId>, u8, u8) {
     if w.factions.is_empty() {
         return (None, 0, 0);
     }
@@ -153,7 +156,7 @@ fn pick_region_dominant(w: &GeneratedWorld, kind: RegionKind) -> (Option<String>
     }
     match best {
         Some((id, s, v)) => (
-            Some(id.to_string()),
+            Some(crate::ids::FactionId::new(id)),
             s.round().clamp(0.0, 100.0) as u8,
             v.round().clamp(0.0, 100.0) as u8,
         ),

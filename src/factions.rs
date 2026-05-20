@@ -10,7 +10,7 @@ pub struct FactionsFile {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FactionDef {
-    pub id: String,
+    pub id: crate::ids::FactionId,
     pub name: String,
     pub kind: String,
     pub weight: f64,

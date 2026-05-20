@@ -18,6 +18,7 @@ use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::SectorError;
+use crate::ids::{FactionId, RouteId};
 use crate::sector_model::{FactionInfluence, GeneratedSector};
 
 // ── Config ─────────────────────────────────────────────────────────────────────
@@ -185,9 +186,9 @@ pub struct BriefingPack {
     pub seed: String,
     pub sector: GeneratedSector,
     /// IDs of factions that were stripped from the pack.
-    pub redacted_factions: Vec<String>,
+    pub redacted_factions: Vec<FactionId>,
     /// IDs of routes that were stripped from the pack.
-    pub redacted_routes: Vec<String>,
+    pub redacted_routes: Vec<RouteId>,
 }
 
 // ── Apply ──────────────────────────────────────────────────────────────────────
@@ -200,8 +201,8 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
     if let Some(preset) = p.preset {
         preset.apply(&mut p);
     }
-    let mut redacted_factions: BTreeSet<String> = BTreeSet::new();
-    let mut redacted_routes: BTreeSet<String> = BTreeSet::new();
+    let mut redacted_factions: BTreeSet<FactionId> = BTreeSet::new();
+    let mut redacted_routes: BTreeSet<RouteId> = BTreeSet::new();
 
     let mut out = sector.clone();
 
@@ -242,9 +243,9 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
 
     // Hidden routes.
     if !p.include_hidden_routes {
-        let before: BTreeSet<String> = out.routes.iter().map(|r| r.id.clone()).collect();
+        let before: BTreeSet<RouteId> = out.routes.iter().map(|r| r.id.clone()).collect();
         out.routes.retain(|r| !r.route_type.is_hidden());
-        let after: BTreeSet<String> = out.routes.iter().map(|r| r.id.clone()).collect();
+        let after: BTreeSet<RouteId> = out.routes.iter().map(|r| r.id.clone()).collect();
         redacted_routes.extend(before.difference(&after).cloned());
     }
 
@@ -255,16 +256,16 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
 
     // Drop unknown factions from top-level list.
     if p.redact_unknown_factions {
-        let known: BTreeSet<String> = out
+        let known: BTreeSet<FactionId> = out
             .systems
             .iter()
             .flat_map(|s| s.worlds.iter())
             .flat_map(|w| w.factions.iter())
             .map(|fp| fp.faction_id.clone())
             .collect();
-        let before: BTreeSet<String> = out.factions.iter().map(|f| f.id.clone()).collect();
+        let before: BTreeSet<FactionId> = out.factions.iter().map(|f| f.id.clone()).collect();
         out.factions.retain(|f| known.contains(&f.id));
-        let after: BTreeSet<String> = out.factions.iter().map(|f| f.id.clone()).collect();
+        let after: BTreeSet<FactionId> = out.factions.iter().map(|f| f.id.clone()).collect();
         redacted_factions.extend(before.difference(&after).cloned());
     }
 
@@ -399,7 +400,7 @@ pub fn render_markdown(pack: &BriefingPack, profile: &BriefingProfile) -> String
             s,
             "\n_Redacted factions ({}): {}_",
             pack.redacted_factions.len(),
-            pack.redacted_factions.join(", ")
+            join_ids(&pack.redacted_factions)
         );
     }
     if !pack.redacted_routes.is_empty() {
@@ -407,14 +408,14 @@ pub fn render_markdown(pack: &BriefingPack, profile: &BriefingProfile) -> String
             s,
             "\n_Redacted routes ({}): {}_",
             pack.redacted_routes.len(),
-            pack.redacted_routes.join(", ")
+            join_ids(&pack.redacted_routes)
         );
     }
     let _ = writeln!(s, "\n## Systems");
     for sys in &sec.systems {
         let _ = writeln!(s, "\n### {} (`{}`)", sys.name, sys.id);
         if !sys.primary_factions.is_empty() {
-            let _ = writeln!(s, "- Primary factions: {}", sys.primary_factions.join(", "));
+            let _ = writeln!(s, "- Primary factions: {}", join_ids(&sys.primary_factions));
         }
         for w in &sys.worlds {
             let claims = if profile.show_claims && !w.claims.is_empty() {
@@ -440,6 +441,13 @@ pub fn render_markdown(pack: &BriefingPack, profile: &BriefingProfile) -> String
         }
     }
     s
+}
+
+fn join_ids<T: AsRef<str>>(ids: &[T]) -> String {
+    ids.iter()
+        .map(|id| id.as_ref())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Write `briefing-<profile>.md` + `briefing-<profile>.json` into `output_dir`.
@@ -637,7 +645,7 @@ mod tests {
         let p = preset(AudiencePreset::PublicAtlas);
         let pack = apply(&s, &p);
         assert!(pack.sector.routes.iter().all(|r| !r.route_type.is_hidden()));
-        assert!(pack.redacted_routes.contains(&"r2".to_string()));
+        assert!(pack.redacted_routes.iter().any(|r| r.as_str() == "r2"));
         assert!(!pack
             .sector
             .systems

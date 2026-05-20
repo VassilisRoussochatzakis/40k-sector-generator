@@ -47,7 +47,7 @@ pub struct ObserverView {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SuspectedPresence {
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     pub source: IntelSource,
     pub confidence: u8,
 }

@@ -99,7 +99,7 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     }
 
     // Click handling.
-    let mut pending_route_pick: Option<(usize, RouteEndpoint, String)> = None;
+    let mut pending_route_pick: Option<(usize, RouteEndpoint, crate::ids::SystemId)> = None;
     if response.clicked() {
         if let Some(pos) = response.interact_pointer_pos() {
             // hit existing system?
@@ -134,7 +134,7 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
 
     if let Some((idx, ep, sys_id)) = pending_route_pick {
         if let Some(sector) = state.sector.as_mut() {
-            let coords: std::collections::HashMap<String, HexCoord> = sector
+            let coords: std::collections::HashMap<crate::ids::SystemId, HexCoord> = sector
                 .systems
                 .iter()
                 .map(|s| (s.id.clone(), s.coord))

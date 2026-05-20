@@ -24,6 +24,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+use crate::ids::{FactionId, SystemId};
 use crate::sector_model::GeneratedSector;
 
 /// Per-system archetype-derived state. Lives on `GeneratedSystem.archetype`
@@ -33,7 +34,7 @@ pub struct ArchetypeState {
     /// §16.1 Imperial governance overlap — list of co-sovereign faction
     /// ids that share Imperial authority over this system.
     #[serde(default)]
-    pub imperial_co_sovereigns: Vec<String>,
+    pub imperial_co_sovereigns: Vec<FactionId>,
     /// §16.9 Necron phase: dormant / awakening / awake.
     #[serde(default)]
     pub necron_phase: NecronPhase,
@@ -113,7 +114,7 @@ pub enum TauSphereBand {
 
 /// Apply all archetype rules. Mutates `sector` in place.
 pub fn apply_all(sector: &mut GeneratedSector) {
-    let kinds: BTreeMap<String, String> = sector
+    let kinds: BTreeMap<FactionId, String> = sector
         .factions
         .iter()
         .map(|f| (f.id.clone(), f.kind.clone()))
@@ -131,7 +132,7 @@ pub fn apply_all(sector: &mut GeneratedSector) {
 
 // ── §16.1 Imperial governance stack ────────────────────────────────────────────
 
-fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     let imperial_stack: &[&str] = &[
         "imperial",
         "adepta_sororitas",
@@ -143,7 +144,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Stri
         "mechanicus",
     ];
     for sys in sector.systems.iter_mut() {
-        let mut co_sovereigns: BTreeSet<String> = BTreeSet::new();
+        let mut co_sovereigns: BTreeSet<FactionId> = BTreeSet::new();
         for w in &sys.worlds {
             for p in &w.factions {
                 let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
@@ -170,7 +171,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Stri
 
 // ── §16.9 Necron dormant / awakening ───────────────────────────────────────────
 
-fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     for sys in sector.systems.iter_mut() {
         let mut max_score: f32 = 0.0;
         let mut max_visibility: f32 = 0.0;
@@ -204,7 +205,7 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<String, Str
 
 // ── §16.8 Tyranid biomass front ────────────────────────────────────────────────
 
-fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     for sys in sector.systems.iter_mut() {
         let mut max_score: f32 = 0.0;
         let mut consumed = false;
@@ -250,7 +251,7 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<String, St
 
 // ── §16.7 Ork Waaagh! momentum ─────────────────────────────────────────────────
 
-fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     for sys in sector.systems.iter_mut() {
         let mut score: f32 = 0.0;
         let mut count = 0;
@@ -274,7 +275,7 @@ fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<String, Strin
 
 // ── §16.6 Genestealer staged uprising ─────────────────────────────────────────
 
-fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     for sys in sector.systems.iter_mut() {
         let mut max_score: f32 = 0.0;
         let mut min_visibility: f32 = 100.0;
@@ -309,9 +310,9 @@ fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<Strin
 
 // ── §16.11 Tau sphere of influence ────────────────────────────────────────────
 
-fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     // Tau home-system aggregate (= max tau presence anywhere in the sector).
-    let max_tau_at: BTreeMap<String, f32> = sector
+    let max_tau_at: BTreeMap<SystemId, f32> = sector
         .systems
         .iter()
         .map(|sys| {
@@ -339,7 +340,7 @@ fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<String, Strin
 
 // ── §16.10 Aeldari intermittent ───────────────────────────────────────────────
 
-fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     for sys in sector.systems.iter_mut() {
         let mut max_covert: f32 = 0.0;
         for w in &sys.worlds {
@@ -356,7 +357,7 @@ fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<Str
 
 // ── §16.12 Chaos corruption + metaphysical layer ──────────────────────────────
 
-fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<String, String>) {
+fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
     for sys in sector.systems.iter_mut() {
         let mut traitor_military: f32 = 0.0;
         let mut daemonic_presence: f32 = 0.0;

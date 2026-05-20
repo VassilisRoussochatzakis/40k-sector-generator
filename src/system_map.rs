@@ -338,7 +338,7 @@ mod tests {
 
     fn world(orbit: u8, index: usize, name: &str, ty: &str) -> GeneratedWorld {
         GeneratedWorld {
-            id: format!("sys-x-w{index:02}"),
+            id: crate::ids::WorldId::new(format!("sys-x-w{index:02}")),
             index,
             name: name.into(),
             orbit,

@@ -74,11 +74,11 @@ pub struct MissionSeed {
     pub id: String,
     pub kind: MissionKind,
     pub title: String,
-    pub patron: Option<String>,
-    pub target: Option<String>,
+    pub patron: Option<crate::ids::FactionId>,
+    pub target: Option<crate::ids::FactionId>,
     pub primary_location: String,
     pub secondary_location: Option<String>,
-    pub route_ids: Vec<String>,
+    pub route_ids: Vec<crate::ids::RouteId>,
     pub public_objective: String,
     pub hidden_complication: Option<String>,
     pub reward: String,
@@ -159,7 +159,7 @@ fn anchor_key(m: &MissionSeed) -> String {
     let route_part = m
         .route_ids
         .first()
-        .cloned()
+        .map(|r| r.as_str().to_string())
         .unwrap_or_else(|| "_".to_string());
     let sec = m.secondary_location.clone().unwrap_or_default();
     format!("{}:{}:{}:{:?}", m.primary_location, sec, route_part, m.kind)
@@ -306,8 +306,10 @@ fn emit_world_missions(
 
     // Diplomacy on a multi-claim world.
     if w.claims.len() >= 2 {
-        let ids: Vec<String> = w.claims.iter().map(|c| c.faction_id.clone()).collect();
+        let ids: Vec<crate::ids::FactionId> =
+            w.claims.iter().map(|c| c.faction_id.clone()).collect();
         let _ = sector;
+        let id_words: Vec<&str> = ids.iter().map(|id| id.as_str()).collect();
         out.push(MissionSeed {
             id: format!("mission-{}-{}-diplomacy", sys.id, w.id),
             kind: MissionKind::Diplomacy,
@@ -319,7 +321,7 @@ fn emit_world_missions(
             route_ids: vec![],
             public_objective: format!(
                 "Broker an arrangement between {} on {}.",
-                ids.join(" and "),
+                id_words.join(" and "),
                 w.name
             ),
             hidden_complication: Some("One party intends to sign and immediately renege.".into()),
@@ -349,7 +351,7 @@ fn emit_system_missions(
                 .worlds
                 .first()
                 .map(|w| format!("{}/{}", sys.id, w.id))
-                .unwrap_or_else(|| sys.id.clone());
+                .unwrap_or_else(|| sys.id.as_str().to_string());
             out.push(MissionSeed {
                 id: format!("mission-{}-assassination", sys.id),
                 kind: MissionKind::Assassination,
@@ -392,7 +394,7 @@ fn emit_system_missions(
             title: format!("Survey of {}", sys.name),
             patron: None,
             target: None,
-            primary_location: sys.id.clone(),
+            primary_location: sys.id.as_str().to_string(),
             secondary_location: None,
             route_ids: vec![],
             public_objective: format!("Chart {} and verify approach corridors.", sys.name),
@@ -428,12 +430,12 @@ fn emit_route_missions(
         .worlds
         .first()
         .map(|w| format!("{}/{}", from.id, w.id))
-        .unwrap_or_else(|| from.id.clone());
+        .unwrap_or_else(|| from.id.as_str().to_string());
     let to_world = to
         .worlds
         .first()
         .map(|w| format!("{}/{}", to.id, w.id))
-        .unwrap_or_else(|| to.id.clone());
+        .unwrap_or_else(|| to.id.as_str().to_string());
 
     // Escort: any non-perilous route between two inhabited worlds.
     if !matches!(r.stability, RouteStability::Perilous)

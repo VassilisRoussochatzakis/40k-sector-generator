@@ -90,7 +90,7 @@ pub fn render_html(
     } else {
         serde_json::to_string_pretty(&view)?
     };
-    let faction_palette = build_faction_palette_json(&view);
+    let faction_palette = build_faction_palette_json(&view)?;
     let theme = theme_payload(cfg.theme);
     let edition = cfg
         .player_observer
@@ -153,7 +153,7 @@ fn html_escape(s: &str) -> String {
     out
 }
 
-fn build_faction_palette_json(sector: &GeneratedSector) -> String {
+fn build_faction_palette_json(sector: &GeneratedSector) -> Result<String, serde_json::Error> {
     // BTreeMap to keep key order stable across builds.
     let mut entries: std::collections::BTreeMap<&str, (String, &str)> = Default::default();
     for f in &sector.factions {
@@ -171,16 +171,16 @@ fn build_faction_palette_json(sector: &GeneratedSector) -> String {
             out.push(',');
         }
         first = false;
-        out.push_str(&serde_json::to_string(id).unwrap());
+        out.push_str(&serde_json::to_string(id)?);
         out.push(':');
         out.push_str(&format!(
             "{{\"fill\":{},\"name\":{}}}",
-            serde_json::to_string(&hex).unwrap(),
-            serde_json::to_string(name).unwrap()
+            serde_json::to_string(&hex)?,
+            serde_json::to_string(name)?
         ));
     }
     out.push('}');
-    out
+    Ok(out)
 }
 
 fn theme_css(theme: HtmlTheme) -> &'static str {
@@ -453,5 +453,23 @@ mod tests {
     #[test]
     fn html_escape_handles_specials() {
         assert_eq!(html_escape("a<b&c>'\""), "a&lt;b&amp;c&gt;&#39;&quot;");
+    }
+
+    #[test]
+    fn faction_palette_json_escapes_specials() {
+        let mut s = sample(90.0, 10.0);
+        s.factions[0].id = "imp\"x".into();
+        s.factions[0].name = "Imperium <&> \"Prime\"".into();
+
+        let palette: serde_json::Value =
+            serde_json::from_str(&build_faction_palette_json(&s).unwrap()).unwrap();
+
+        assert_eq!(
+            palette["imp\"x"]["name"].as_str(),
+            Some("Imperium <&> \"Prime\"")
+        );
+        assert!(palette["imp\"x"]["fill"]
+            .as_str()
+            .is_some_and(|hex| hex.starts_with('#') && hex.len() == 7));
     }
 }

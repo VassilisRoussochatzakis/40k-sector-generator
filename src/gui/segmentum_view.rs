@@ -32,7 +32,10 @@ pub struct LoadedSegmentumChild {
 #[derive(Debug, Clone)]
 pub enum SegmentumAction {
     OpenChild(String),
-    OpenSystem { child_id: String, system_id: String },
+    OpenSystem {
+        child_id: String,
+        system_id: crate::ids::SystemId,
+    },
 }
 
 pub fn load_segmentum_bundle(path: &Utf8Path) -> Result<SegmentumBundle, SectorError> {
@@ -249,7 +252,7 @@ fn super_map(
     painter.rect_filled(rect, 0.0, palette::BG);
 
     let mut child_rects: BTreeMap<String, Rect> = BTreeMap::new();
-    let mut centers: HashMap<(String, String), Pos2> = HashMap::new();
+    let mut centers: HashMap<(String, crate::ids::SystemId), Pos2> = HashMap::new();
 
     for meta in &bundle.segmentum.children {
         let min = Pos2::new(

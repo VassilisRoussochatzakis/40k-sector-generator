@@ -34,13 +34,13 @@ pub struct ConflictState {
     /// 0..=100 — how mobilised the defender / attacker fronts are.
     pub mobilisation: u8,
     /// Active faction id pressing the conflict, if any.
-    pub attacker: Option<String>,
+    pub attacker: Option<crate::ids::FactionId>,
     /// Active defender / incumbent. Usually equals
     /// `control.dominant`.
-    pub defender: Option<String>,
+    pub defender: Option<crate::ids::FactionId>,
     /// `visible_controller` (§11.3 hysteresis). Public-facing controller —
     /// only flips when control change has held for `HYSTERESIS_TICKS`.
-    pub visible_controller: Option<String>,
+    pub visible_controller: Option<crate::ids::FactionId>,
     /// Total ticks since last reset.
     pub age: u32,
 }
@@ -80,10 +80,10 @@ pub fn derive_world_conflict(w: &GeneratedWorld) -> ConflictState {
         });
 
     let (defender, top_score) = top
-        .map(|(id, s)| (Some(id.to_string()), s))
+        .map(|(id, s)| (Some(crate::ids::FactionId::new(id)), s))
         .unwrap_or((None, 0.0));
     let (attacker, gap) = match second {
-        Some((id, s)) => (Some(id.to_string()), top_score - s),
+        Some((id, s)) => (Some(crate::ids::FactionId::new(id)), top_score - s),
         None => (None, top_score),
     };
 

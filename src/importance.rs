@@ -23,7 +23,7 @@ pub const DEFAULT_DISPLAY_CAP: usize = 6;
 #[derive(Debug, Clone)]
 pub enum DisplayBucket {
     Faction {
-        id: String,
+        id: crate::ids::FactionId,
         name: String,
         kind: String,
         importance: f32,
@@ -36,7 +36,7 @@ pub enum DisplayBucket {
         importance: f32,
         system_count: usize,
         world_count: usize,
-        faction_ids: Vec<String>,
+        faction_ids: Vec<crate::ids::FactionId>,
     },
 }
 
@@ -187,7 +187,7 @@ struct AggregateAcc {
     importance: f32,
     system_count: usize,
     world_count: usize,
-    faction_ids: Vec<String>,
+    faction_ids: Vec<crate::ids::FactionId>,
 }
 
 #[cfg(test)]
@@ -221,8 +221,12 @@ mod tests {
             name: id.into(),
             kind: kind.into(),
             disposition: "lawful".into(),
-            system_presence: (0..presence).map(|i| format!("s{i}")).collect(),
-            world_presence: (0..presence).map(|i| format!("w{i}")).collect(),
+            system_presence: (0..presence)
+                .map(|i| crate::ids::SystemId::new(format!("s{i}")))
+                .collect(),
+            world_presence: (0..presence)
+                .map(|i| crate::ids::WorldId::new(format!("w{i}")))
+                .collect(),
             power: PowerProfile {
                 military: total,
                 ..PowerProfile::default()

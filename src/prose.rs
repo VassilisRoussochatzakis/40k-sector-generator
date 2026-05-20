@@ -72,7 +72,7 @@ pub struct ProseReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemProse {
-    pub system_id: String,
+    pub system_id: crate::ids::SystemId,
     pub name: String,
     pub paragraphs: Vec<String>,
 }

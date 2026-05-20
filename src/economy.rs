@@ -654,8 +654,8 @@ pub struct EconomyReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldEconomy {
-    pub system_id: String,
-    pub world_id: String,
+    pub system_id: crate::ids::SystemId,
+    pub world_id: crate::ids::WorldId,
     pub vector: ResourceVector,
     #[serde(default)]
     pub strategic_output: StrategicOutput,
@@ -677,7 +677,7 @@ pub struct WorldEconomy {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemEconomy {
-    pub system_id: String,
+    pub system_id: crate::ids::SystemId,
     pub vector: ResourceVector,
     #[serde(default)]
     pub strategic_output: StrategicOutput,
@@ -696,9 +696,9 @@ pub struct SystemEconomy {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteEconomy {
-    pub route_id: String,
-    pub from_system_id: String,
-    pub to_system_id: String,
+    pub route_id: crate::ids::RouteId,
+    pub from_system_id: crate::ids::SystemId,
+    pub to_system_id: crate::ids::SystemId,
     pub volume: f32,
     /// 0..=1 modifier from hazard tier × piracy/interdiction.
     #[serde(default = "default_one")]
@@ -744,11 +744,11 @@ pub enum StrategicPriority {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DependencyEdge {
-    pub from_system_id: String,
-    pub to_system_id: String,
+    pub from_system_id: crate::ids::SystemId,
+    pub to_system_id: crate::ids::SystemId,
     pub resource: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub route_id: Option<String>,
+    pub route_id: Option<crate::ids::RouteId>,
     /// Effective import score after route friction.
     pub score: f32,
     pub risk: SupplyRisk,

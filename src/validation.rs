@@ -184,7 +184,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 
     // ── Factions ────────────────────────────────────────────────────────────
-    let mut faction_ids: BTreeSet<String> = BTreeSet::new();
+    let mut faction_ids: BTreeSet<crate::ids::FactionId> = BTreeSet::new();
     for (idx, f) in input.factions.iter().enumerate() {
         if !faction_ids.insert(f.id.clone()) {
             errors.push(ValidationIssue {

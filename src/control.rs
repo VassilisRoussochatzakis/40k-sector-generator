@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 use crate::factions::FactionDef;
+use crate::ids::FactionId;
 use crate::sector_model::{
     ClaimType, FactionClaim, FactionInfluence, GeneratedFaction, GeneratedSystem, GeneratedWorld,
     PowerProfile, PresenceDimensions, ScoredFaction, SystemControlSummary, SystemState,
@@ -241,7 +242,7 @@ pub fn derive_world_claims(world: &GeneratedWorld) -> Vec<FactionClaim> {
         if strength <= 0 {
             continue;
         }
-        let claim_type = claim_for(&p.faction_id, p);
+        let claim_type = claim_for(p.faction_id.as_str(), p);
         let claim = FactionClaim {
             faction_id: p.faction_id.clone(),
             claim_type,
@@ -340,7 +341,7 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
             .then(a.0.cmp(b.0))
     });
 
-    let pick_dim = |f: fn(&PresenceDimensions) -> f32| -> Option<String> {
+    let pick_dim = |f: fn(&PresenceDimensions) -> f32| -> Option<FactionId> {
         scored
             .iter()
             .max_by(|a, b| {
@@ -350,10 +351,10 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
                     .then(a.0.cmp(b.0))
             })
             .filter(|x| f(x.2) >= 15.0)
-            .map(|x| x.0.to_string())
+            .map(|x| FactionId::new(x.0))
     };
 
-    let dominant = scored.first().map(|x| x.0.to_string());
+    let dominant = scored.first().map(|x| FactionId::new(x.0));
     let sovereign = pick_dim(|d| d.admin + d.legitimacy);
     let occupier = pick_dim(|d| d.military);
     let economic_hegemon = pick_dim(|d| d.economic);
@@ -367,7 +368,7 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then(a.0.cmp(b.0))
         })
-        .map(|x| x.0.to_string());
+        .map(|x| FactionId::new(x.0));
 
     let control_score = scored.first().map(|x| x.1).unwrap_or(0.0);
     let contested = match (scored.first(), scored.get(1)) {
@@ -400,12 +401,12 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
         };
     }
 
-    let mut score_sum: BTreeMap<String, f32> = BTreeMap::new();
-    let mut admin_sum: BTreeMap<String, f32> = BTreeMap::new();
-    let mut orbital_sum: BTreeMap<String, f32> = BTreeMap::new();
-    let mut economic_sum: BTreeMap<String, f32> = BTreeMap::new();
-    let mut covert_sum: BTreeMap<String, f32> = BTreeMap::new();
-    let mut visibility_sum: BTreeMap<String, f32> = BTreeMap::new();
+    let mut score_sum: BTreeMap<FactionId, f32> = BTreeMap::new();
+    let mut admin_sum: BTreeMap<FactionId, f32> = BTreeMap::new();
+    let mut orbital_sum: BTreeMap<FactionId, f32> = BTreeMap::new();
+    let mut economic_sum: BTreeMap<FactionId, f32> = BTreeMap::new();
+    let mut covert_sum: BTreeMap<FactionId, f32> = BTreeMap::new();
+    let mut visibility_sum: BTreeMap<FactionId, f32> = BTreeMap::new();
 
     let mut populated_worlds = 0u32;
     let mut contested_worlds = 0u32;
@@ -439,7 +440,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
         }
     }
 
-    let pick = |m: &BTreeMap<String, f32>, threshold: f32| -> Option<String> {
+    let pick = |m: &BTreeMap<FactionId, f32>, threshold: f32| -> Option<FactionId> {
         m.iter()
             .filter(|(_, v)| **v >= threshold)
             .max_by(|a, b| {
@@ -457,7 +458,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     let hidden_master = covert_sum
         .iter()
         .filter(|(id, cov)| {
-            **cov >= 25.0 && visibility_sum.get(id.as_str()).copied().unwrap_or(0.0) < **cov * 0.7
+            **cov >= 25.0 && visibility_sum.get(*id).copied().unwrap_or(0.0) < **cov * 0.7
         })
         .max_by(|a, b| {
             a.1.partial_cmp(b.1)
@@ -507,9 +508,9 @@ fn classify_system_state(
     contested_worlds: u32,
     warzone_signal: u32,
     quarantined: bool,
-    dominant: &Option<String>,
-    orbital_controller: &Option<String>,
-    hidden_master: &Option<String>,
+    dominant: &Option<FactionId>,
+    orbital_controller: &Option<FactionId>,
+    hidden_master: &Option<FactionId>,
 ) -> SystemState {
     if quarantined {
         return SystemState::Quarantined;
@@ -558,8 +559,8 @@ fn unique_dominant_count(sys: &GeneratedSystem) -> usize {
 /// presence contributes its dimension scores weighted by strategic value
 /// (population + tech).
 #[must_use]
-pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<String, PowerProfile> {
-    let mut acc: BTreeMap<String, PowerProfile> = BTreeMap::new();
+pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<FactionId, PowerProfile> {
+    let mut acc: BTreeMap<FactionId, PowerProfile> = BTreeMap::new();
     for sys in systems {
         for w in &sys.worlds {
             let sv = strategic_value(w);
@@ -619,7 +620,7 @@ fn strategic_value(w: &GeneratedWorld) -> f32 {
 /// rollups in place. Factions not mentioned are left at default.
 pub fn apply_faction_power(
     factions: &mut [GeneratedFaction],
-    power: &BTreeMap<String, PowerProfile>,
+    power: &BTreeMap<FactionId, PowerProfile>,
 ) {
     for f in factions {
         if let Some(p) = power.get(&f.id) {

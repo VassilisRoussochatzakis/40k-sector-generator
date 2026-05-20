@@ -32,12 +32,12 @@ pub struct SectorSave {
     pub seed: String,
     pub generator_version: String,
     /// system_id → per-system runtime state.
-    pub systems: BTreeMap<String, SystemSave>,
+    pub systems: BTreeMap<crate::ids::SystemId, SystemSave>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SystemSave {
-    pub primary_factions: Vec<String>,
+    pub primary_factions: Vec<crate::ids::FactionId>,
     pub control: crate::sector_model::SystemControlSummary,
     pub stability: crate::stability::StabilityState,
     pub conflict: ConflictState,
@@ -45,7 +45,7 @@ pub struct SystemSave {
     pub orbital_assets: Vec<OrbitalAsset>,
     pub blockade: BlockadeReport,
     pub archetype: crate::archetypes::ArchetypeState,
-    pub worlds: BTreeMap<String, WorldSave>,
+    pub worlds: BTreeMap<crate::ids::WorldId, WorldSave>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -61,9 +61,9 @@ pub struct WorldSave {
 /// Extract the runtime state from a `GeneratedSector`.
 #[must_use]
 pub fn split(sector: &GeneratedSector) -> SectorSave {
-    let mut systems: BTreeMap<String, SystemSave> = BTreeMap::new();
+    let mut systems: BTreeMap<crate::ids::SystemId, SystemSave> = BTreeMap::new();
     for sys in &sector.systems {
-        let mut worlds: BTreeMap<String, WorldSave> = BTreeMap::new();
+        let mut worlds: BTreeMap<crate::ids::WorldId, WorldSave> = BTreeMap::new();
         for w in &sys.worlds {
             worlds.insert(
                 w.id.clone(),

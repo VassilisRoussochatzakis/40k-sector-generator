@@ -28,7 +28,7 @@ use crate::sector_model::{GeneratedFaction, GeneratedRoute, GeneratedSystem};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RouteControl {
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     pub patrol: f32,
     pub toll: f32,
     pub interdiction: f32,
@@ -184,7 +184,7 @@ fn derive_one(
     }
 
     Some(RouteControl {
-        faction_id: faction_id.to_string(),
+        faction_id: crate::ids::FactionId::new(faction_id),
         patrol: clamp(patrol),
         toll: clamp(toll),
         interdiction: clamp(interdiction),
@@ -254,7 +254,7 @@ mod tests {
         tags: Vec<&str>,
     ) -> GeneratedSystem {
         let world = GeneratedWorld {
-            id: format!("{id}-w1"),
+            id: crate::ids::WorldId::new(format!("{id}-w1")),
             index: 1,
             name: "W".into(),
             orbit: 1,
@@ -339,7 +339,7 @@ mod tests {
 
     fn route(a: &str, b: &str) -> GeneratedRoute {
         GeneratedRoute {
-            id: format!("{a}-{b}"),
+            id: crate::ids::RouteId::new(format!("{a}-{b}")),
             from_system_id: a.into(),
             to_system_id: b.into(),
             distance: 1,

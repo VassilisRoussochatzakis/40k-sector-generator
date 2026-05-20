@@ -36,7 +36,7 @@ pub enum OrbitalAssetKind {
 pub struct OrbitalAsset {
     pub id: String,
     pub kind: OrbitalAssetKind,
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     /// 0..=100 — derived from the owning faction's orbital / military /
     /// industrial dimension sums across the system.
     pub strength: u8,
@@ -58,8 +58,8 @@ pub struct ShipStock {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct BlockadeReport {
     pub under_blockade: bool,
-    pub blockader: Option<String>,
-    pub besieged: Option<String>,
+    pub blockader: Option<crate::ids::FactionId>,
+    pub besieged: Option<crate::ids::FactionId>,
     pub intensity: u8,
 }
 
@@ -117,7 +117,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
             assets.push(OrbitalAsset {
                 id: format!("{}-station-{}", sys.id, id),
                 kind: OrbitalAssetKind::Station,
-                faction_id: (*id).to_string(),
+                faction_id: crate::ids::FactionId::new(*id),
                 strength: scale_strength(d.orbital * 0.5 + d.admin * 0.5),
                 ship_inventory: Vec::new(),
             });
@@ -127,7 +127,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
             assets.push(OrbitalAsset {
                 id: format!("{}-shipyard-{}", sys.id, id),
                 kind: OrbitalAssetKind::Shipyard,
-                faction_id: (*id).to_string(),
+                faction_id: crate::ids::FactionId::new(*id),
                 strength: scale_strength(d.industrial * 0.6 + d.orbital * 0.4),
                 ship_inventory: Vec::new(),
             });
@@ -138,7 +138,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
             assets.push(OrbitalAsset {
                 id: format!("{}-defense-{}", sys.id, id),
                 kind: OrbitalAssetKind::DefensePlatform,
-                faction_id: (*id).to_string(),
+                faction_id: crate::ids::FactionId::new(*id),
                 strength: scale_strength(d.military * 0.6 + d.orbital * 0.4),
                 ship_inventory: vec![ShipStock {
                     hull_class: "monitor".into(),
@@ -163,7 +163,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
             assets.push(OrbitalAsset {
                 id: format!("{}-blockade-{}", sys.id, id),
                 kind: OrbitalAssetKind::BlockadeFleet,
-                faction_id: (*id).to_string(),
+                faction_id: crate::ids::FactionId::new(*id),
                 strength: scale_strength(d.military * 0.5 + d.orbital * 0.5),
                 ship_inventory: vec![
                     ShipStock {

@@ -19,22 +19,23 @@ use super::{
 #[derive(Debug, Clone)]
 pub(super) struct SystemOwnership {
     /// Some(faction_id) when a faction has a clear lead; None = contested.
-    pub(super) owner: Option<String>,
+    pub(super) owner: Option<crate::ids::FactionId>,
     /// Per-faction owned-world counts within this system.
-    pub(super) owned_worlds_by_faction: BTreeMap<String, Vec<String>>,
+    pub(super) owned_worlds_by_faction: BTreeMap<crate::ids::FactionId, Vec<crate::ids::WorldId>>,
     /// True if the system has at least one inhabited world.
     pub(super) inhabited: bool,
     /// Other factions that contributed signal but did not win ownership.
-    pub(super) contested_with: BTreeSet<String>,
+    pub(super) contested_with: BTreeSet<crate::ids::FactionId>,
 }
 
 pub(super) fn resolve_system_owners(
     systems: &[GeneratedSystem],
-) -> BTreeMap<String, SystemOwnership> {
+) -> BTreeMap<crate::ids::SystemId, SystemOwnership> {
     let mut out = BTreeMap::new();
     for sys in systems {
-        let mut scores: BTreeMap<String, i32> = BTreeMap::new();
-        let mut owned_worlds_by_faction: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut scores: BTreeMap<crate::ids::FactionId, i32> = BTreeMap::new();
+        let mut owned_worlds_by_faction: BTreeMap<crate::ids::FactionId, Vec<crate::ids::WorldId>> =
+            BTreeMap::new();
         let mut inhabited = false;
 
         // Find capital-like and highest-pop worlds (sec §10.4.1 bonuses).
@@ -84,7 +85,7 @@ pub(super) fn resolve_system_owners(
         }
 
         // Pick top two for clear-lead test.
-        let mut ranked: Vec<(String, i32)> = scores.into_iter().collect();
+        let mut ranked: Vec<(crate::ids::FactionId, i32)> = scores.into_iter().collect();
         ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         let (owner, contested_with) = match ranked.as_slice() {
             [] => (None, BTreeSet::new()),
@@ -115,7 +116,7 @@ pub(super) fn resolve_system_owners(
     out
 }
 
-fn infer_world_owner(world: &GeneratedWorld) -> Option<String> {
+fn infer_world_owner(world: &GeneratedWorld) -> Option<crate::ids::FactionId> {
     if world.factions.is_empty() {
         return None;
     }
@@ -136,7 +137,7 @@ fn infer_world_owner(world: &GeneratedWorld) -> Option<String> {
     if tied {
         return None;
     }
-    best.map(|(id, _)| id.to_string())
+    best.map(|(id, _)| crate::ids::FactionId::new(id))
 }
 
 fn ownership_influence_weight(i: FactionInfluence) -> i32 {
@@ -166,7 +167,7 @@ pub(super) fn populate_summary(
     route_by_id: &BTreeMap<&str, &GeneratedRoute>,
     route_degree: &BTreeMap<&str, u32>,
     stable_route_degree: &BTreeMap<&str, u32>,
-    owners: &BTreeMap<String, SystemOwnership>,
+    owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
     config: &SubsectorConfig,
 ) {
     let mut summary = SubsectorSummary {
@@ -176,7 +177,7 @@ pub(super) fn populate_summary(
         ..Default::default()
     };
 
-    let mut dominant_scores: BTreeMap<String, i32> = BTreeMap::new();
+    let mut dominant_scores: BTreeMap<crate::ids::FactionId, i32> = BTreeMap::new();
 
     let mut total_worlds: u32 = 0;
     for sid in &cell.system_ids {
@@ -289,9 +290,9 @@ fn dominant_influence_weight(i: FactionInfluence) -> i32 {
 fn build_faction_control(
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
-    owners: &BTreeMap<String, SystemOwnership>,
+    owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
     config: &SubsectorConfig,
-) -> (Vec<FactionControlSummary>, Option<String>) {
+) -> (Vec<FactionControlSummary>, Option<crate::ids::FactionId>) {
     // Tallies per faction inside this subsector.
     #[derive(Default)]
     struct Tally {
@@ -300,7 +301,7 @@ fn build_faction_control(
         owned_worlds: u32,
         contested_systems: u32,
     }
-    let mut tallies: BTreeMap<String, Tally> = BTreeMap::new();
+    let mut tallies: BTreeMap<crate::ids::FactionId, Tally> = BTreeMap::new();
 
     let mut inhabited_system_count: u32 = 0;
     let mut world_count: u32 = 0;
@@ -409,9 +410,9 @@ fn build_faction_control(
         rows.truncate(config.faction_control_top_n);
     }
     for tid in &config.tracked_faction_ids {
-        if !rows.iter().any(|r| &r.faction_id == tid) {
+        if !rows.iter().any(|r| r.faction_id.as_str() == tid.as_str()) {
             rows.push(FactionControlSummary {
-                faction_id: tid.clone(),
+                faction_id: crate::ids::FactionId::new(tid),
                 owned_system_count: 0,
                 owned_inhabited_system_count: 0,
                 owned_world_count: 0,
@@ -484,7 +485,7 @@ fn pick_primary_system(
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,
-) -> Option<String> {
+) -> Option<crate::ids::SystemId> {
     let mut best: Option<(i32, usize, &str)> = None;
     for sid in &cell.system_ids {
         let Some(&sys) = sys_by_id.get(sid.as_str()) else {
@@ -520,7 +521,7 @@ fn pick_primary_system(
             best = Some(cand);
         }
     }
-    best.map(|(_, _, id)| id.to_string())
+    best.map(|(_, _, id)| crate::ids::SystemId::new(id))
 }
 
 pub(super) fn pick_capital(
@@ -528,9 +529,9 @@ pub(super) fn pick_capital(
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,
     stable_route_degree: &BTreeMap<&str, u32>,
-    owners: &BTreeMap<String, SystemOwnership>,
+    owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
     controlling_faction: Option<&str>,
-) -> (Option<String>, Option<String>) {
+) -> (Option<crate::ids::SystemId>, Option<crate::ids::WorldId>) {
     struct Cand {
         sys_score: i32,
         world_score: i32,
@@ -538,8 +539,8 @@ pub(super) fn pick_capital(
         max_prosperity: i32,
         stable_deg: u32,
         sys_index: usize,
-        sys_id: String,
-        world_id: Option<String>,
+        sys_id: crate::ids::SystemId,
+        world_id: Option<crate::ids::WorldId>,
     }
     type CandKey<'a> = (
         Reverse<i32>,

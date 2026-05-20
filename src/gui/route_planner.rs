@@ -22,8 +22,8 @@ pub enum Metric {
 
 #[derive(Default, Debug, Clone)]
 pub struct RoutePlannerState {
-    pub from: Option<String>,
-    pub to: Option<String>,
+    pub from: Option<crate::ids::SystemId>,
+    pub to: Option<crate::ids::SystemId>,
     pub metric: Metric,
     pub plan: Option<Plan>,
     pub status: String,
@@ -41,9 +41,9 @@ pub enum PickTarget {
 #[derive(Debug, Clone)]
 pub struct Plan {
     /// Ordered system ids from origin to destination, inclusive.
-    pub hops: Vec<String>,
+    pub hops: Vec<crate::ids::SystemId>,
     /// Route ids used, in traversal order.
-    pub route_ids: Vec<String>,
+    pub route_ids: Vec<crate::ids::RouteId>,
     /// Edge-by-edge hazards along the path.
     pub hazards: Vec<HazardNote>,
     /// Sum of hop-weights (Safest) or hop count (Shortest).
@@ -53,9 +53,9 @@ pub struct Plan {
 
 #[derive(Debug, Clone)]
 pub struct HazardNote {
-    pub route_id: String,
-    pub from: String,
-    pub to: String,
+    pub route_id: crate::ids::RouteId,
+    pub from: crate::ids::SystemId,
+    pub to: crate::ids::SystemId,
     pub stability: RouteStability,
     pub route_type: RouteType,
     pub severity: Severity,
@@ -73,9 +73,10 @@ impl RoutePlannerState {
     /// Map click. If a picker is armed, fill that slot then advance.
     /// Otherwise auto-cycle: from → to → reset.
     pub fn click_system(&mut self, system_id: &str) {
+        let sid = crate::ids::SystemId::new(system_id);
         match self.picker {
             PickTarget::From => {
-                self.from = Some(system_id.to_string());
+                self.from = Some(sid);
                 self.picker = if self.to.is_none() {
                     PickTarget::To
                 } else {
@@ -86,16 +87,16 @@ impl RoutePlannerState {
                 if self.from.as_deref() == Some(system_id) {
                     return;
                 }
-                self.to = Some(system_id.to_string());
+                self.to = Some(sid);
                 self.picker = PickTarget::None;
             }
             PickTarget::None => {
                 if self.from.is_none() {
-                    self.from = Some(system_id.to_string());
+                    self.from = Some(sid);
                 } else if self.to.is_none() && self.from.as_deref() != Some(system_id) {
-                    self.to = Some(system_id.to_string());
+                    self.to = Some(sid);
                 } else {
-                    self.from = Some(system_id.to_string());
+                    self.from = Some(sid);
                     self.to = None;
                     self.plan = None;
                 }
@@ -111,14 +112,14 @@ impl RoutePlannerState {
         self.picker = PickTarget::None;
     }
 
-    pub fn highlighted_route_ids(&self) -> HashSet<String> {
+    pub fn highlighted_route_ids(&self) -> HashSet<crate::ids::RouteId> {
         self.plan
             .as_ref()
             .map(|p| p.route_ids.iter().cloned().collect())
             .unwrap_or_default()
     }
 
-    pub fn waypoint_set(&self) -> HashSet<String> {
+    pub fn waypoint_set(&self) -> HashSet<crate::ids::SystemId> {
         self.plan
             .as_ref()
             .map(|p| p.hops.iter().cloned().collect())
@@ -251,7 +252,7 @@ fn dijkstra<'a>(
     adj: &'a HashMap<&'a str, Vec<Edge<'a>>>,
     from: &str,
     to: &str,
-) -> Option<(Vec<String>, Vec<String>, f64)> {
+) -> Option<(Vec<crate::ids::SystemId>, Vec<crate::ids::RouteId>, f64)> {
     if !adj.contains_key(to) {
         return None;
     }
@@ -291,7 +292,7 @@ fn bfs<'a>(
     adj: &'a HashMap<&'a str, Vec<Edge<'a>>>,
     from: &str,
     to: &str,
-) -> Option<(Vec<String>, Vec<String>, f64)> {
+) -> Option<(Vec<crate::ids::SystemId>, Vec<crate::ids::RouteId>, f64)> {
     if !adj.contains_key(to) {
         return None;
     }
@@ -322,13 +323,13 @@ fn reconstruct(
     end: &str,
     prev: &HashMap<&str, (&str, &str)>,
     cost: f64,
-) -> (Vec<String>, Vec<String>, f64) {
-    let mut hops_rev: Vec<String> = vec![end.to_string()];
-    let mut routes_rev: Vec<String> = Vec::new();
+) -> (Vec<crate::ids::SystemId>, Vec<crate::ids::RouteId>, f64) {
+    let mut hops_rev: Vec<crate::ids::SystemId> = vec![crate::ids::SystemId::new(end)];
+    let mut routes_rev: Vec<crate::ids::RouteId> = Vec::new();
     let mut cur = end;
     while let Some((p, route_id)) = prev.get(cur) {
-        hops_rev.push((*p).to_string());
-        routes_rev.push((*route_id).to_string());
+        hops_rev.push(crate::ids::SystemId::new(*p));
+        routes_rev.push(crate::ids::RouteId::new(*route_id));
         cur = p;
     }
     hops_rev.reverse();
@@ -336,7 +337,7 @@ fn reconstruct(
     (hops_rev, routes_rev, cost)
 }
 
-fn collect_hazards(sector: &GeneratedSector, route_ids: &[String]) -> Vec<HazardNote> {
+fn collect_hazards(sector: &GeneratedSector, route_ids: &[crate::ids::RouteId]) -> Vec<HazardNote> {
     let by_id: HashMap<&str, &GeneratedRoute> =
         sector.routes.iter().map(|r| (r.id.as_str(), r)).collect();
     let lifelines = economy_lifelines(sector);
@@ -375,8 +376,8 @@ fn collect_hazards(sector: &GeneratedSector, route_ids: &[String]) -> Vec<Hazard
 /// §12 NEW.md: a route is a "lifeline" if it is the only non-Perilous link
 /// importing a critical resource (foodstuffs / promethium / manufactured) to
 /// a system in deficit. Empty map when economy derivation is disabled.
-fn economy_lifelines(sector: &GeneratedSector) -> HashMap<String, String> {
-    let mut out: HashMap<String, String> = HashMap::new();
+fn economy_lifelines(sector: &GeneratedSector) -> HashMap<crate::ids::RouteId, String> {
+    let mut out: HashMap<crate::ids::RouteId, String> = HashMap::new();
     if !sector.economy.enabled {
         return out;
     }

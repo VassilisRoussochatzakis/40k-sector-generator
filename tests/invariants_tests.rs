@@ -71,7 +71,7 @@ fn invariants_detect_unknown_faction_in_world() {
     if let Some(sys) = sector.systems.first_mut() {
         if let Some(world) = sys.worlds.first_mut() {
             world.factions.push(WorldFactionPresence {
-                faction_id: "does_not_exist".to_string(),
+                faction_id: "does_not_exist".into(),
                 influence: FactionInfluence::Minor,
                 relationship_to_government: "test".to_string(),
                 dimensions: Default::default(),

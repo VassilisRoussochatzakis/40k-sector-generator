@@ -19,7 +19,10 @@ pub struct HeatCell {
 }
 
 /// Computed heatmap values keyed by system id.
-pub fn compute(sector: &GeneratedSector, mode: HeatmapMode) -> HashMap<String, HeatCell> {
+pub fn compute(
+    sector: &GeneratedSector,
+    mode: HeatmapMode,
+) -> HashMap<crate::ids::SystemId, HeatCell> {
     crate::heatmap::compute_rgb(sector, mode)
         .into_iter()
         .map(|(k, c)| {

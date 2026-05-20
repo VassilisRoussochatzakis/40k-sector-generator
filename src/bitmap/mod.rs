@@ -229,7 +229,7 @@ fn render(
 fn compute_system_tints(
     sector: &GeneratedSector,
     opts: RenderOptions,
-    heat: &HashMap<String, HeatCellRgb>,
+    heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
 ) -> HashMap<(i32, i32), Rgba<u8>> {
     let mut out = HashMap::new();
     for sys in &sector.systems {

@@ -7,8 +7,11 @@ use std::collections::BTreeSet;
 use egui::{Color32, RichText, Sense, Stroke, Ui};
 
 use super::state::{empty_faction, EditorState, FactionSort};
-use super::ui_helpers::{combo_kv, combo_str, dim, label, mono, section, text_field};
+use super::ui_helpers::{
+    combo_kv_id, combo_str_id, dim, label, mono, section, text_field, text_field_id,
+};
 use crate::gui::palette::{contrast_text, faction_style, FactionBorder, PANEL_BG};
+use crate::ids::{FactionId, SystemId, WorldId};
 
 pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     let Some(sector) = state.sector.as_mut() else {
@@ -76,13 +79,13 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     }
     ui.separator();
 
-    let system_ids: Vec<String> = sector.systems.iter().map(|s| s.id.clone()).collect();
-    let world_ids: Vec<String> = sector
+    let system_ids: Vec<SystemId> = sector.systems.iter().map(|s| s.id.clone()).collect();
+    let world_ids: Vec<WorldId> = sector
         .systems
         .iter()
         .flat_map(|s| s.worlds.iter().map(|w| w.id.clone()))
         .collect();
-    let system_labels: Vec<(String, String)> = sector
+    let system_labels: Vec<(SystemId, String)> = sector
         .systems
         .iter()
         .map(|s| (s.id.clone(), s.name.clone()))
@@ -143,7 +146,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
 
     let mut dirty = false;
     let mut remove: Option<usize> = None;
-    let mut toggle_pin: Option<String> = None;
+    let mut toggle_pin: Option<FactionId> = None;
 
     // Walk in display order. We need the real index `i` to call `iter_mut`
     // safely, so split the borrow per-entry instead of using a `for` loop
@@ -187,7 +190,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
 
         ui.horizontal(|ui| {
             label(ui, "ID");
-            if text_field(ui, &mut fac.id, "faction_id").changed() {
+            if text_field_id(ui, &mut fac.id, "faction_id").changed() {
                 dirty = true;
             }
         });
@@ -214,7 +217,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         let mut remove_sys: Option<usize> = None;
         for (j, sid) in fac.system_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                if combo_kv(ui, &format!("f_{i}_sys_{j}"), sid, &system_kv) {
+                if combo_kv_id(ui, &format!("f_{i}_sys_{j}"), sid, &system_kv) {
                     dirty = true;
                 }
                 if ui
@@ -242,7 +245,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         let mut remove_w: Option<usize> = None;
         for (j, wid) in fac.world_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                if combo_str(ui, &format!("f_{i}_w_{j}"), wid, &world_refs) {
+                if combo_str_id(ui, &format!("f_{i}_w_{j}"), wid, &world_refs) {
                     dirty = true;
                 }
                 if ui
@@ -286,7 +289,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         .button(RichText::new("+ ADD FACTION").font(mono(12.0)))
         .clicked()
     {
-        let id = format!("faction_{}", sector.factions.len() + 1);
+        let id = FactionId::new(format!("faction_{}", sector.factions.len() + 1));
         sector.factions.push(empty_faction(id));
         dirty = true;
     }

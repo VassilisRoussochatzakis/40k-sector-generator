@@ -30,12 +30,12 @@ pub struct Subsector {
     pub col: u32,
     pub bounds: SubsectorBounds,
 
-    pub system_ids: Vec<String>,
+    pub system_ids: Vec<crate::ids::SystemId>,
     /// Every (q,r) hex assigned to this subsector, including empty hexes.
     /// Drives map rendering of cluster boundaries.
     pub hex_cells: Vec<(u32, u32)>,
-    pub route_ids_internal: Vec<String>,
-    pub route_ids_border: Vec<String>,
+    pub route_ids_internal: Vec<crate::ids::RouteId>,
+    pub route_ids_border: Vec<crate::ids::RouteId>,
 
     pub neighboring_subsector_ids: Vec<String>,
     pub connected_subsector_ids: Vec<String>,
@@ -60,10 +60,10 @@ pub struct SubsectorSummary {
     pub internal_route_count: u32,
     pub border_route_count: u32,
 
-    pub primary_system_id: Option<String>,
-    pub subsector_capital_system_id: Option<String>,
-    pub subsector_capital_world_id: Option<String>,
-    pub controlling_faction_id: Option<String>,
+    pub primary_system_id: Option<crate::ids::SystemId>,
+    pub subsector_capital_system_id: Option<crate::ids::SystemId>,
+    pub subsector_capital_world_id: Option<crate::ids::WorldId>,
+    pub controlling_faction_id: Option<crate::ids::FactionId>,
 
     pub dominant_factions: Vec<ScoredId>,
     pub faction_control: Vec<FactionControlSummary>,
@@ -80,13 +80,13 @@ pub struct SubsectorSummary {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScoredId {
-    pub id: String,
+    pub id: crate::ids::FactionId,
     pub score: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionControlSummary {
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     pub owned_system_count: u32,
     pub owned_inhabited_system_count: u32,
     pub owned_world_count: u32,
@@ -137,11 +137,18 @@ pub enum SubsectorBuildError {
     #[error("invalid clustering target: target_systems_per_subsector must be >= 1")]
     InvalidClusterTarget,
     #[error("duplicate system id: {id}")]
-    DuplicateSystemId { id: String },
+    DuplicateSystemId { id: crate::ids::SystemId },
     #[error("system {id} coordinate ({q},{r}) is outside sector bounds")]
-    CoordinateOutOfBounds { id: String, q: i32, r: i32 },
+    CoordinateOutOfBounds {
+        id: crate::ids::SystemId,
+        q: i32,
+        r: i32,
+    },
     #[error("route {id} references unknown system {missing}")]
-    RouteMissingEndpoint { id: String, missing: String },
+    RouteMissingEndpoint {
+        id: crate::ids::RouteId,
+        missing: crate::ids::SystemId,
+    },
 }
 
 pub fn build_subsectors(
@@ -159,7 +166,7 @@ pub fn build_subsectors(
     }
 
     // Coord + duplicate validation.
-    let mut seen_system_ids: BTreeSet<String> = BTreeSet::new();
+    let mut seen_system_ids: BTreeSet<crate::ids::SystemId> = BTreeSet::new();
     for sys in &sector.systems {
         if !seen_system_ids.insert(sys.id.clone()) {
             return Err(SubsectorBuildError::DuplicateSystemId { id: sys.id.clone() });
@@ -237,7 +244,7 @@ pub fn build_subsectors(
         .collect();
 
     // Populate system_ids per cluster.
-    let mut system_to_cluster: BTreeMap<String, usize> = BTreeMap::new();
+    let mut system_to_cluster: BTreeMap<crate::ids::SystemId, usize> = BTreeMap::new();
     for (sys_idx, &cluster_idx) in assignment.iter().enumerate() {
         let sys = &sector.systems[sys_idx];
         cells[cluster_idx].system_ids.push(sys.id.clone());
@@ -713,11 +720,12 @@ mod tests {
     fn mini_sector(width: u32, height: u32, systems: Vec<(i32, i32)>) -> GeneratedSector {
         let mut sys_vec = Vec::new();
         for (i, (q, r)) in systems.into_iter().enumerate() {
-            let id = format!("sys-{:04}", i + 1);
+            let id = crate::ids::SystemId::new(format!("sys-{:04}", i + 1));
+            let name = id.as_str().to_string();
             sys_vec.push(GeneratedSystem {
-                id: id.clone(),
+                id,
                 index: i + 1,
-                name: id.clone(),
+                name,
                 coord: HexCoord { q, r },
                 star: GeneratedStar {
                     colour_code: "G".into(),

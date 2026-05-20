@@ -97,9 +97,9 @@ impl HeatmapMode {
 /// Per-system raw score + optional dominant faction id (for `Control` mode).
 #[derive(Debug, Clone)]
 pub struct SystemScore {
-    pub system_id: String,
+    pub system_id: crate::ids::SystemId,
     pub score: f32,
-    pub dominant: Option<String>,
+    pub dominant: Option<crate::ids::FactionId>,
 }
 
 /// Per-system normalised intensity (0..=1) and the colour the renderer should
@@ -133,7 +133,10 @@ pub fn score_sector(sector: &GeneratedSector, mode: HeatmapMode) -> Vec<SystemSc
 /// Normalise per-system scores to [0, 1] and resolve a tint per cell.
 /// Returns an empty map when `mode == Off`.
 #[must_use]
-pub fn compute_rgb(sector: &GeneratedSector, mode: HeatmapMode) -> HashMap<String, HeatCellRgb> {
+pub fn compute_rgb(
+    sector: &GeneratedSector,
+    mode: HeatmapMode,
+) -> HashMap<crate::ids::SystemId, HeatCellRgb> {
     let mut out = HashMap::new();
     if matches!(mode, HeatmapMode::Off) {
         return out;
@@ -166,7 +169,7 @@ fn score_system_in(
     sector: &GeneratedSector,
     sys: &GeneratedSystem,
     mode: HeatmapMode,
-) -> (f32, Option<String>) {
+) -> (f32, Option<crate::ids::FactionId>) {
     // Modes that need sector-wide context, not just per-world faction power.
     match mode {
         HeatmapMode::Tension => {

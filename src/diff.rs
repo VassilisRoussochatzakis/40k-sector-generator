@@ -22,6 +22,7 @@ use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::SectorError;
+use crate::ids::{FactionId, RouteId, SystemId, WorldId};
 use crate::sector_model::{
     ClaimType, FactionClaim, GeneratedSector, GeneratedSystem, GeneratedWorld, RouteStability,
     RouteType, SystemState, WorldFactionPresence,
@@ -104,15 +105,15 @@ pub struct SectorDiff {
     #[serde(default)]
     pub economy_balance_changes: Vec<EconomyBalanceChange>,
     #[serde(default)]
-    pub stranded_added: Vec<String>,
+    pub stranded_added: Vec<WorldId>,
     #[serde(default)]
-    pub stranded_removed: Vec<String>,
+    pub stranded_removed: Vec<WorldId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StanceChange {
-    pub a: String,
-    pub b: String,
+    pub a: FactionId,
+    pub b: FactionId,
     pub before: crate::relations::Stance,
     pub after: crate::relations::Stance,
 }
@@ -143,26 +144,26 @@ pub struct EconomyBalanceChange {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemRef {
-    pub id: String,
+    pub id: SystemId,
     pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemDiff {
-    pub id: String,
+    pub id: SystemId,
     pub name_before: String,
     pub name_after: String,
     pub renamed: bool,
     pub state_before: Option<SystemState>,
     pub state_after: Option<SystemState>,
-    pub dominant_before: Option<String>,
-    pub dominant_after: Option<String>,
-    pub sovereign_before: Option<String>,
-    pub sovereign_after: Option<String>,
-    pub occupier_before: Option<String>,
-    pub occupier_after: Option<String>,
-    pub primary_factions_added: Vec<String>,
-    pub primary_factions_removed: Vec<String>,
+    pub dominant_before: Option<FactionId>,
+    pub dominant_after: Option<FactionId>,
+    pub sovereign_before: Option<FactionId>,
+    pub sovereign_after: Option<FactionId>,
+    pub occupier_before: Option<FactionId>,
+    pub occupier_after: Option<FactionId>,
+    pub primary_factions_added: Vec<FactionId>,
+    pub primary_factions_removed: Vec<FactionId>,
     pub worlds_added: Vec<WorldRef>,
     pub worlds_removed: Vec<WorldRef>,
     pub worlds_changed: Vec<WorldDiff>,
@@ -170,36 +171,36 @@ pub struct SystemDiff {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldRef {
-    pub id: String,
+    pub id: WorldId,
     pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldDiff {
-    pub id: String,
+    pub id: WorldId,
     pub name_before: String,
     pub name_after: String,
     pub renamed: bool,
-    pub dominant_before: Option<String>,
-    pub dominant_after: Option<String>,
-    pub sovereign_before: Option<String>,
-    pub sovereign_after: Option<String>,
-    pub occupier_before: Option<String>,
-    pub occupier_after: Option<String>,
-    pub hidden_master_before: Option<String>,
-    pub hidden_master_after: Option<String>,
+    pub dominant_before: Option<FactionId>,
+    pub dominant_after: Option<FactionId>,
+    pub sovereign_before: Option<FactionId>,
+    pub sovereign_after: Option<FactionId>,
+    pub occupier_before: Option<FactionId>,
+    pub occupier_after: Option<FactionId>,
+    pub hidden_master_before: Option<FactionId>,
+    pub hidden_master_after: Option<FactionId>,
     pub contested_before: bool,
     pub contested_after: bool,
     pub claims_added: Vec<FactionClaim>,
     pub claims_removed: Vec<FactionClaim>,
     pub claim_strength_changes: Vec<ClaimStrengthDelta>,
-    pub presences_added: Vec<String>,
-    pub presences_removed: Vec<String>,
+    pub presences_added: Vec<FactionId>,
+    pub presences_removed: Vec<FactionId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimStrengthDelta {
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     pub claim_type: ClaimType,
     pub strength_before: u8,
     pub strength_after: u8,
@@ -207,16 +208,16 @@ pub struct ClaimStrengthDelta {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteRef {
-    pub id: String,
-    pub from_system_id: String,
-    pub to_system_id: String,
+    pub id: RouteId,
+    pub from_system_id: SystemId,
+    pub to_system_id: SystemId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouteDiff {
-    pub id: String,
-    pub from_system_id: String,
-    pub to_system_id: String,
+    pub id: RouteId,
+    pub from_system_id: SystemId,
+    pub to_system_id: SystemId,
     pub stability_before: RouteStability,
     pub stability_after: RouteStability,
     pub route_type_before: RouteType,
@@ -225,7 +226,7 @@ pub struct RouteDiff {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionDelta {
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     pub name: String,
     pub total_projection_before: f32,
     pub total_projection_after: f32,
@@ -295,12 +296,12 @@ pub fn diff_sectors_with(
 }
 
 fn diff_relations(before: &GeneratedSector, after: &GeneratedSector) -> Vec<StanceChange> {
-    let mut by_pair: BTreeMap<(String, String), crate::relations::Stance> = BTreeMap::new();
+    let mut by_pair: BTreeMap<(FactionId, FactionId), crate::relations::Stance> = BTreeMap::new();
     for p in &before.relations.pairs {
         by_pair.insert((p.a.clone(), p.b.clone()), p.stance);
     }
     let mut out: Vec<StanceChange> = Vec::new();
-    let mut seen: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut seen: BTreeSet<(FactionId, FactionId)> = BTreeSet::new();
     for p in &after.relations.pairs {
         let key = (p.a.clone(), p.b.clone());
         seen.insert(key.clone());
@@ -363,7 +364,7 @@ fn diff_economy(
     before: &GeneratedSector,
     after: &GeneratedSector,
     cfg: &DiffConfig,
-) -> (Vec<EconomyBalanceChange>, Vec<String>, Vec<String>) {
+) -> (Vec<EconomyBalanceChange>, Vec<WorldId>, Vec<WorldId>) {
     let mut deltas: Vec<EconomyBalanceChange> = Vec::new();
     if before.economy.enabled || after.economy.enabled {
         for k in crate::economy::RESOURCE_KEYS {
@@ -403,13 +404,13 @@ fn diff_economy(
         .filter(|w| w.stranded)
         .map(|w| w.world_id.as_str())
         .collect();
-    let added: Vec<String> = a_stranded
+    let added: Vec<WorldId> = a_stranded
         .difference(&b_stranded)
-        .map(|s| s.to_string())
+        .map(|s| WorldId::new(*s))
         .collect();
-    let removed: Vec<String> = b_stranded
+    let removed: Vec<WorldId> = b_stranded
         .difference(&a_stranded)
-        .map(|s| s.to_string())
+        .map(|s| WorldId::new(*s))
         .collect();
     (deltas, added, removed)
 }
@@ -468,8 +469,8 @@ fn system_diff(a: &GeneratedSystem, b: &GeneratedSystem, cfg: &DiffConfig) -> Op
 
     let a_pf: BTreeSet<&str> = a.primary_factions.iter().map(|s| s.as_str()).collect();
     let b_pf: BTreeSet<&str> = b.primary_factions.iter().map(|s| s.as_str()).collect();
-    let pf_added: Vec<String> = b_pf.difference(&a_pf).map(|s| s.to_string()).collect();
-    let pf_removed: Vec<String> = a_pf.difference(&b_pf).map(|s| s.to_string()).collect();
+    let pf_added: Vec<FactionId> = b_pf.difference(&a_pf).map(|s| FactionId::new(*s)).collect();
+    let pf_removed: Vec<FactionId> = a_pf.difference(&b_pf).map(|s| FactionId::new(*s)).collect();
 
     let (worlds_added, worlds_removed, worlds_changed) = if cfg.skip_worlds {
         (Vec::new(), Vec::new(), Vec::new())
@@ -604,7 +605,7 @@ fn diff_claims(
     Vec<FactionClaim>,
     Vec<ClaimStrengthDelta>,
 ) {
-    type Key = (String, ClaimType);
+    type Key = (FactionId, ClaimType);
     let before_map: BTreeMap<Key, u8> = before
         .iter()
         .map(|c| ((c.faction_id.clone(), c.claim_type), c.strength))
@@ -651,16 +652,16 @@ fn diff_claims(
 fn diff_presences(
     before: &[WorldFactionPresence],
     after: &[WorldFactionPresence],
-) -> (Vec<String>, Vec<String>) {
+) -> (Vec<FactionId>, Vec<FactionId>) {
     let before_set: BTreeSet<&str> = before.iter().map(|p| p.faction_id.as_str()).collect();
     let after_set: BTreeSet<&str> = after.iter().map(|p| p.faction_id.as_str()).collect();
-    let added: Vec<String> = after_set
+    let added: Vec<FactionId> = after_set
         .difference(&before_set)
-        .map(|s| s.to_string())
+        .map(|s| FactionId::new(*s))
         .collect();
-    let removed: Vec<String> = before_set
+    let removed: Vec<FactionId> = before_set
         .difference(&after_set)
-        .map(|s| s.to_string())
+        .map(|s| FactionId::new(*s))
         .collect();
     (added, removed)
 }
@@ -759,7 +760,7 @@ fn compute_faction_deltas(
             .map(|f| f.system_presence.len())
             .unwrap_or(0) as i32;
         deltas.push(FactionDelta {
-            faction_id: id.to_string(),
+            faction_id: FactionId::new(id),
             name,
             total_projection_before: p_before,
             total_projection_after: p_after,
@@ -888,14 +889,14 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                     let _ = writeln!(
                         s,
                         "  - Primary factions added: {}",
-                        sd.primary_factions_added.join(", ")
+                        join_ids(&sd.primary_factions_added)
                     );
                 }
                 if !sd.primary_factions_removed.is_empty() {
                     let _ = writeln!(
                         s,
                         "  - Primary factions removed: {}",
-                        sd.primary_factions_removed.join(", ")
+                        join_ids(&sd.primary_factions_removed)
                     );
                 }
                 if !sd.worlds_added.is_empty() {
@@ -1048,11 +1049,11 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             let _ = writeln!(
                 s,
                 "\nNewly stranded worlds: {}",
-                d.stranded_added.join(", ")
+                join_ids(&d.stranded_added)
             );
         }
         if !d.stranded_removed.is_empty() {
-            let _ = writeln!(s, "\nNo longer stranded: {}", d.stranded_removed.join(", "));
+            let _ = writeln!(s, "\nNo longer stranded: {}", join_ids(&d.stranded_removed));
         }
     }
     s
@@ -1152,20 +1153,29 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         let _ = writeln!(
             s,
             "    - Presences added: {}",
-            wd.presences_added.join(", ")
+            join_ids(&wd.presences_added)
         );
     }
     if !wd.presences_removed.is_empty() {
         let _ = writeln!(
             s,
             "    - Presences removed: {}",
-            wd.presences_removed.join(", ")
+            join_ids(&wd.presences_removed)
         );
     }
 }
 
-fn opt(v: &Option<String>) -> String {
-    v.clone().unwrap_or_else(|| "—".to_string())
+fn opt<T: AsRef<str>>(v: &Option<T>) -> String {
+    v.as_ref()
+        .map(|s| s.as_ref().to_string())
+        .unwrap_or_else(|| "—".to_string())
+}
+
+fn join_ids<T: AsRef<str>>(ids: &[T]) -> String {
+    ids.iter()
+        .map(|id| id.as_ref())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 // ── Bundle writer ──────────────────────────────────────────────────────────────

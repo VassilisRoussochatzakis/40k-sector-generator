@@ -6,7 +6,8 @@ use crate::sector_model::{HexCoord, RouteStability, RouteType};
 
 use super::enums::{ROUTE_STABILITIES, ROUTE_TYPES};
 use super::state::{empty_route, EditorState, RouteEndpoint};
-use super::ui_helpers::{combo_kv, dim, label, mono, section};
+use super::ui_helpers::{combo_kv, combo_kv_id, dim, label, mono, section};
+use crate::ids::SystemId;
 
 pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     let current_pick = state.route_pick;
@@ -18,11 +19,11 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     section(ui, &format!("ROUTES ({})", sector.routes.len()));
     dim(ui, "tip: click PICK then click a system on the map");
 
-    let system_options: Vec<String> = sector.systems.iter().map(|s| s.id.clone()).collect();
+    let system_options: Vec<SystemId> = sector.systems.iter().map(|s| s.id.clone()).collect();
     if system_options.len() < 2 {
         dim(ui, "need ≥2 systems to add routes");
     }
-    let system_labels: Vec<(String, String)> = sector
+    let system_labels: Vec<(SystemId, String)> = sector
         .systems
         .iter()
         .map(|s| (s.id.clone(), s.name.clone()))
@@ -32,7 +33,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
         .map(|(id, name)| (id.as_str(), name.as_str()))
         .collect();
 
-    let coord_lookup: std::collections::HashMap<String, HexCoord> = sector
+    let coord_lookup: std::collections::HashMap<SystemId, HexCoord> = sector
         .systems
         .iter()
         .map(|s| (s.id.clone(), s.coord))
@@ -45,7 +46,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     for (i, route) in sector.routes.iter_mut().enumerate() {
         ui.horizontal(|ui| {
             label(ui, "FROM");
-            if combo_kv(
+            if combo_kv_id(
                 ui,
                 &format!("r_from_{i}"),
                 &mut route.from_system_id,
@@ -66,7 +67,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
                 });
             }
             label(ui, "TO");
-            if combo_kv(ui, &format!("r_to_{i}"), &mut route.to_system_id, &opt_kv) {
+            if combo_kv_id(ui, &format!("r_to_{i}"), &mut route.to_system_id, &opt_kv) {
                 dirty = true;
             }
             let to_active = current_pick == Some((i, RouteEndpoint::To));

@@ -462,7 +462,7 @@ fn format_system_control(sys: &GeneratedSystem) -> String {
     if let Some(state) = c.state {
         s.push_str(&format!("- **System state:** {state:?}\n"));
     }
-    let row = |label: &str, v: &Option<String>| -> String {
+    let row = |label: &str, v: &Option<crate::ids::FactionId>| -> String {
         v.as_deref()
             .map(|x| format!("- **{label}:** {x}\n"))
             .unwrap_or_default()
@@ -614,7 +614,7 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
             || c.hidden_master.is_some()
         {
             s.push_str("**Control:**\n");
-            let row = |label: &str, v: &Option<String>| -> String {
+            let row = |label: &str, v: &Option<crate::ids::FactionId>| -> String {
                 v.as_deref()
                     .map(|x| format!("- {label}: {x}\n"))
                     .unwrap_or_default()

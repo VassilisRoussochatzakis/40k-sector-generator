@@ -35,7 +35,7 @@ use crate::sector_model::{GeneratedFaction, GeneratedSector, RouteType};
 pub struct PowerProjectionMap {
     /// faction_id → system_id → projected_total_power (in the same units
     /// as `PowerProfile::total_projection`).
-    pub by_faction: BTreeMap<String, BTreeMap<String, f32>>,
+    pub by_faction: BTreeMap<crate::ids::FactionId, BTreeMap<crate::ids::SystemId, f32>>,
 }
 
 /// Project every faction's aggregate power across the route graph.
@@ -44,7 +44,7 @@ pub fn project_sector(sector: &GeneratedSector) -> PowerProjectionMap {
     let adj = build_adjacency(sector);
     let mut out = PowerProjectionMap::default();
     for f in &sector.factions {
-        let source_systems: Vec<&str> = f.system_presence.iter().map(|s| s.as_str()).collect();
+        let source_systems: Vec<&crate::ids::SystemId> = f.system_presence.iter().collect();
         if source_systems.is_empty() {
             continue;
         }
@@ -53,9 +53,9 @@ pub fn project_sector(sector: &GeneratedSector) -> PowerProjectionMap {
             continue;
         }
         let doctrine = doctrine_multiplier(&f.kind);
-        let mut per_system: BTreeMap<String, f32> = BTreeMap::new();
+        let mut per_system: BTreeMap<crate::ids::SystemId, f32> = BTreeMap::new();
         for src in source_systems {
-            let dists = bfs_distances(&adj, src, &f.kind, &f.id);
+            let dists = bfs_distances(&adj, src, &f.kind, f.id.as_str());
             for (target, hops) in dists {
                 let proj = source_power * doctrine / ((1 + hops * hops) as f32);
                 let entry = per_system.entry(target).or_insert(0.0);
@@ -83,12 +83,12 @@ pub fn doctrine_multiplier(kind: &str) -> f32 {
 
 #[derive(Clone)]
 struct Edge {
-    other: String,
+    other: crate::ids::SystemId,
     rt: RouteType,
 }
 
-fn build_adjacency(sector: &GeneratedSector) -> HashMap<String, Vec<Edge>> {
-    let mut adj: HashMap<String, Vec<Edge>> = HashMap::new();
+fn build_adjacency(sector: &GeneratedSector) -> HashMap<crate::ids::SystemId, Vec<Edge>> {
+    let mut adj: HashMap<crate::ids::SystemId, Vec<Edge>> = HashMap::new();
     for r in &sector.routes {
         adj.entry(r.from_system_id.clone()).or_default().push(Edge {
             other: r.to_system_id.clone(),
@@ -103,17 +103,17 @@ fn build_adjacency(sector: &GeneratedSector) -> HashMap<String, Vec<Edge>> {
 }
 
 fn bfs_distances(
-    adj: &HashMap<String, Vec<Edge>>,
-    start: &str,
+    adj: &HashMap<crate::ids::SystemId, Vec<Edge>>,
+    start: &crate::ids::SystemId,
     kind: &str,
     _id: &str,
-) -> Vec<(String, u32)> {
+) -> Vec<(crate::ids::SystemId, u32)> {
     const MAX_HOPS: u32 = 6;
-    let mut visited: HashSet<String> = HashSet::new();
-    let mut out: Vec<(String, u32)> = Vec::new();
-    let mut q: VecDeque<(String, u32)> = VecDeque::new();
-    q.push_back((start.to_string(), 0));
-    visited.insert(start.to_string());
+    let mut visited: HashSet<crate::ids::SystemId> = HashSet::new();
+    let mut out: Vec<(crate::ids::SystemId, u32)> = Vec::new();
+    let mut q: VecDeque<(crate::ids::SystemId, u32)> = VecDeque::new();
+    q.push_back((start.clone(), 0));
+    visited.insert(start.clone());
     while let Some((node, d)) = q.pop_front() {
         out.push((node.clone(), d));
         if d >= MAX_HOPS {
@@ -185,8 +185,11 @@ pub fn apply_to_factions(map: &PowerProjectionMap, factions: &mut [GeneratedFact
 
 /// Helper for the GUI heatmap: top reach for a system (any faction).
 #[must_use]
-pub fn system_top_reach(map: &PowerProjectionMap, system_id: &str) -> Option<(String, f32)> {
-    let mut best: Option<(String, f32)> = None;
+pub fn system_top_reach(
+    map: &PowerProjectionMap,
+    system_id: &str,
+) -> Option<(crate::ids::FactionId, f32)> {
+    let mut best: Option<(crate::ids::FactionId, f32)> = None;
     for (fid, per_system) in &map.by_faction {
         if let Some(v) = per_system.get(system_id) {
             if best.as_ref().map(|(_, s)| *v > *s).unwrap_or(true) {
@@ -256,7 +259,7 @@ mod tests {
             .into_iter()
             .enumerate()
             .map(|(i, (a, b, rt))| GeneratedRoute {
-                id: format!("r-{i}"),
+                id: crate::ids::RouteId::new(format!("r-{i}")),
                 from_system_id: a.into(),
                 to_system_id: b.into(),
                 distance: 1,

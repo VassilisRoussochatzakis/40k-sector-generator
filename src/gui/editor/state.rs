@@ -2,6 +2,7 @@
 
 use std::collections::BTreeSet;
 
+use crate::ids::{FactionId, SystemId};
 use crate::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
 };
@@ -45,9 +46,9 @@ pub enum Tab {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {
     None,
-    System(String),
+    System(SystemId),
     World {
-        system_id: String,
+        system_id: SystemId,
         world_index: usize,
     },
 }
@@ -97,7 +98,7 @@ pub struct EditorState {
     pub faction_filter_kind: Option<String>,
     pub faction_filter_disposition: Option<String>,
     pub faction_sort: FactionSort,
-    pub faction_pinned: BTreeSet<String>,
+    pub faction_pinned: BTreeSet<FactionId>,
 }
 
 impl Default for EditorState {
@@ -141,7 +142,7 @@ impl EditorState {
         })
     }
 
-    pub fn system_ids(&self) -> Vec<String> {
+    pub fn system_ids(&self) -> Vec<SystemId> {
         self.sector
             .as_ref()
             .map(|s| s.systems.iter().map(|sys| sys.id.clone()).collect())
@@ -192,7 +193,7 @@ pub fn empty_sector(
     }
 }
 
-pub fn empty_system(id: String, index: usize, name: String, coord: HexCoord) -> GeneratedSystem {
+pub fn empty_system(id: SystemId, index: usize, name: String, coord: HexCoord) -> GeneratedSystem {
     GeneratedSystem {
         id,
         index,
@@ -249,7 +250,7 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
     }
 }
 
-pub fn empty_route(from: String, to: String) -> GeneratedRoute {
+pub fn empty_route(from: SystemId, to: SystemId) -> GeneratedRoute {
     use crate::sector_model::{RouteStability, RouteType};
     let id = crate::ids::route_id(&from, &to);
     GeneratedRoute {
@@ -264,10 +265,11 @@ pub fn empty_route(from: String, to: String) -> GeneratedRoute {
     }
 }
 
-pub fn empty_faction(id: String) -> GeneratedFaction {
+pub fn empty_faction(id: FactionId) -> GeneratedFaction {
+    let name = id.as_str().to_string();
     GeneratedFaction {
-        id: id.clone(),
-        name: id,
+        id,
+        name,
         kind: "imperial".to_string(),
         disposition: "neutral".to_string(),
         system_presence: Vec::new(),

@@ -130,7 +130,7 @@ pub struct PersonaeReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Persona {
     pub id: String,
-    pub faction_id: String,
+    pub faction_id: crate::ids::FactionId,
     pub faction_kind: String,
     pub anchor: PersonaAnchor,
     pub name: String,
@@ -142,8 +142,14 @@ pub struct Persona {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "scope", rename_all = "snake_case")]
 pub enum PersonaAnchor {
-    System { system_id: String, slot: SystemSlot },
-    World { system_id: String, world_id: String },
+    System {
+        system_id: crate::ids::SystemId,
+        slot: SystemSlot,
+    },
+    World {
+        system_id: crate::ids::SystemId,
+        world_id: crate::ids::WorldId,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -242,8 +248,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
     }
 }
 
-fn system_slot_factions(sys: &GeneratedSystem) -> Vec<(SystemSlot, String)> {
-    let mut out: Vec<(SystemSlot, String)> = Vec::new();
+fn system_slot_factions(sys: &GeneratedSystem) -> Vec<(SystemSlot, crate::ids::FactionId)> {
+    let mut out: Vec<(SystemSlot, crate::ids::FactionId)> = Vec::new();
     if let Some(id) = &sys.control.sovereign {
         out.push((SystemSlot::Sovereign, id.clone()));
     }
@@ -299,7 +305,7 @@ fn build_persona(
     let pid = format!("persona-{}-{}", faction_id, anchor_id(&anchor));
     Persona {
         id: pid,
-        faction_id: faction_id.to_string(),
+        faction_id: crate::ids::FactionId::new(faction_id),
         faction_kind: kind.to_string(),
         anchor,
         name,
@@ -422,7 +428,7 @@ fn build_agenda(
     let where_phrase = match anchor {
         PersonaAnchor::World { world_id, .. } => world
             .map(|w| w.name.clone())
-            .unwrap_or_else(|| world_id.clone()),
+            .unwrap_or_else(|| world_id.as_str().to_string()),
         PersonaAnchor::System { .. } => sys.name.clone(),
     };
     // Inspect competing claims for color.
@@ -868,7 +874,7 @@ pub fn render_markdown(report: &PersonaeReport) -> String {
     let _ = writeln!(s, "\nTotal personae: **{}**", report.personae.len());
 
     // Group by faction.
-    let mut by_faction: BTreeMap<String, Vec<&Persona>> = BTreeMap::new();
+    let mut by_faction: BTreeMap<crate::ids::FactionId, Vec<&Persona>> = BTreeMap::new();
     for p in &report.personae {
         by_faction.entry(p.faction_id.clone()).or_default().push(p);
     }

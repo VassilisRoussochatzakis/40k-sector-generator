@@ -73,3 +73,47 @@ pub fn text_field(ui: &mut Ui, value: &mut String, hint: &str) -> Response {
             .font(mono(12.0)),
     )
 }
+
+/// Text-edit + dropdown helpers that operate on the strongly-typed ID
+/// newtypes from [`crate::ids`]. The newtype is round-tripped through a
+/// [`String`] buffer for the duration of the call so we can keep using
+/// `egui::TextEdit::singleline` (which wants `&mut String`).
+pub fn text_field_id<T>(ui: &mut Ui, value: &mut T, hint: &str) -> Response
+where
+    T: AsRef<str> + From<String>,
+{
+    let mut buf = value.as_ref().to_string();
+    let resp = ui.add(
+        egui::TextEdit::singleline(&mut buf)
+            .hint_text(hint)
+            .font(mono(12.0)),
+    );
+    if resp.changed() {
+        *value = T::from(buf);
+    }
+    resp
+}
+
+pub fn combo_str_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[&str]) -> bool
+where
+    T: AsRef<str> + From<String>,
+{
+    let mut buf = current.as_ref().to_string();
+    let changed = combo_str(ui, id, &mut buf, options);
+    if changed {
+        *current = T::from(buf);
+    }
+    changed
+}
+
+pub fn combo_kv_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[(&str, &str)]) -> bool
+where
+    T: AsRef<str> + From<String>,
+{
+    let mut buf = current.as_ref().to_string();
+    let changed = combo_kv(ui, id, &mut buf, options);
+    if changed {
+        *current = T::from(buf);
+    }
+    changed
+}

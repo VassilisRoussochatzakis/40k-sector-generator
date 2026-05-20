@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
+use crate::ids::{FactionId, SystemId};
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
 use crate::subsectors::{build_subsectors, Subsector, SubsectorConfig};
 
@@ -98,7 +99,7 @@ pub struct FactionBalance {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FactionShare {
-    pub faction_id: String,
+    pub faction_id: FactionId,
     pub name: String,
     pub kind: String,
     pub total_projection: f32,
@@ -114,9 +115,9 @@ pub struct Connectivity {
     /// Diameter over the full route graph, in hops. None when disconnected.
     pub diameter_hops: Option<u32>,
     /// System ids whose removal would fragment the route graph.
-    pub articulation_point_ids: Vec<String>,
+    pub articulation_point_ids: Vec<SystemId>,
     /// Systems with zero incident routes.
-    pub isolated_system_ids: Vec<String>,
+    pub isolated_system_ids: Vec<SystemId>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -125,7 +126,7 @@ pub struct SubsectorVariety {
     pub label: String,
     pub name: String,
     pub unique_dominants: u32,
-    pub dominant_factions: Vec<String>,
+    pub dominant_factions: Vec<FactionId>,
     pub contested_count: u32,
 }
 
@@ -340,9 +341,9 @@ where
 
 fn build_adjacency(
     sector: &GeneratedSector,
-) -> (Vec<String>, BTreeMap<String, usize>, Vec<Vec<usize>>) {
-    let ids: Vec<String> = sector.systems.iter().map(|s| s.id.clone()).collect();
-    let index: BTreeMap<String, usize> = ids.iter().cloned().zip(0..).collect();
+) -> (Vec<SystemId>, BTreeMap<SystemId, usize>, Vec<Vec<usize>>) {
+    let ids: Vec<SystemId> = sector.systems.iter().map(|s| s.id.clone()).collect();
+    let index: BTreeMap<SystemId, usize> = ids.iter().cloned().zip(0..).collect();
     let n = ids.len();
     let mut adj: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); n];
     for r in &sector.routes {
@@ -509,7 +510,7 @@ fn compute_subsector_variety(sector: &GeneratedSector) -> Vec<SubsectorVariety> 
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
     subs.iter()
         .map(|sub: &Subsector| {
-            let mut dominants: BTreeSet<String> = BTreeSet::new();
+            let mut dominants: BTreeSet<FactionId> = BTreeSet::new();
             let mut contested_count = 0u32;
             for sid in &sub.system_ids {
                 let Some(sys) = sys_by_id.get(sid.as_str()) else {
@@ -592,7 +593,7 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
             message: format!(
                 "{} system(s) have no incident routes: {}",
                 a.connectivity.isolated_system_ids.len(),
-                a.connectivity.isolated_system_ids.join(", ")
+                join_ids(&a.connectivity.isolated_system_ids)
             ),
         });
     }
@@ -724,7 +725,7 @@ pub fn render_markdown(a: &SectorAnalysis) -> String {
             s,
             "- Articulation points ({}): {}",
             c.articulation_point_ids.len(),
-            c.articulation_point_ids.join(", ")
+            join_ids(&c.articulation_point_ids)
         );
     }
     if !c.isolated_system_ids.is_empty() {
@@ -732,7 +733,7 @@ pub fn render_markdown(a: &SectorAnalysis) -> String {
             s,
             "- Isolated systems ({}): {}",
             c.isolated_system_ids.len(),
-            c.isolated_system_ids.join(", ")
+            join_ids(&c.isolated_system_ids)
         );
     }
 
@@ -766,6 +767,13 @@ pub fn render_markdown(a: &SectorAnalysis) -> String {
     }
 
     s
+}
+
+fn join_ids<T: AsRef<str>>(ids: &[T]) -> String {
+    ids.iter()
+        .map(|id| id.as_ref())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn write_dist(s: &mut String, title: &str, map: &BTreeMap<String, u32>) {

@@ -96,7 +96,7 @@ pub struct HistoryEvent {
     pub anchor: HistoryAnchor,
     pub kind: EventKind,
     pub narrative: String,
-    pub factions: Vec<String>,
+    pub factions: Vec<crate::ids::FactionId>,
     /// 0..=100. Higher = more dramatically central. Drives the sector-wide
     /// "Key events" digest ordering.
     pub weight: u8,
@@ -106,8 +106,13 @@ pub struct HistoryEvent {
 #[serde(tag = "scope", rename_all = "snake_case")]
 pub enum HistoryAnchor {
     Sector,
-    System { system_id: String },
-    World { system_id: String, world_id: String },
+    System {
+        system_id: crate::ids::SystemId,
+    },
+    World {
+        system_id: crate::ids::SystemId,
+        world_id: crate::ids::WorldId,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -244,7 +249,7 @@ fn emit_world_events(
 ) {
     let mut rng = stage_rng(&sector.seed, "history", &format!("{}:{}", sys.id, w.id));
 
-    let mut buf: Vec<(EventKind, String, Vec<String>, u8)> = Vec::new();
+    let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
 
     // Foundation — every world gets one.
     let foundation_text = format!(
@@ -419,7 +424,7 @@ fn emit_system_events(
     out: &mut Vec<HistoryEvent>,
 ) {
     let mut rng = stage_rng(&sector.seed, "history", &sys.id);
-    let mut buf: Vec<(EventKind, String, Vec<String>, u8)> = Vec::new();
+    let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
 
     if let Some(state) = sys.control.state {
         match state {
@@ -720,8 +725,9 @@ pub fn render_markdown(report: &HistoryReport, cfg: &HistoryConfig) -> String {
     }
 
     // Group remaining events by anchor for the chronicle proper.
-    let mut by_system: BTreeMap<String, Vec<&HistoryEvent>> = BTreeMap::new();
-    let mut by_world: BTreeMap<(String, String), Vec<&HistoryEvent>> = BTreeMap::new();
+    let mut by_system: BTreeMap<crate::ids::SystemId, Vec<&HistoryEvent>> = BTreeMap::new();
+    let mut by_world: BTreeMap<(crate::ids::SystemId, crate::ids::WorldId), Vec<&HistoryEvent>> =
+        BTreeMap::new();
     let mut sector_events: Vec<&HistoryEvent> = Vec::new();
     for e in &report.events {
         match &e.anchor {

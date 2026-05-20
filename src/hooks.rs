@@ -74,7 +74,7 @@ pub struct Hook {
     pub title: String,
     pub situation: String,
     pub stakes: String,
-    pub factions: Vec<String>,
+    pub factions: Vec<crate::ids::FactionId>,
     pub complications: Vec<String>,
     pub weight: u32,
     /// True when the hook depends on a Hidden-tier presence; redacted in
@@ -85,9 +85,16 @@ pub struct Hook {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "scope", rename_all = "snake_case")]
 pub enum HookAnchor {
-    System { system_id: String },
-    World { system_id: String, world_id: String },
-    Route { route_id: String },
+    System {
+        system_id: crate::ids::SystemId,
+    },
+    World {
+        system_id: crate::ids::SystemId,
+        world_id: crate::ids::WorldId,
+    },
+    Route {
+        route_id: crate::ids::RouteId,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

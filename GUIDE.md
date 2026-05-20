@@ -1400,6 +1400,53 @@ Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`
 `ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
 `ValidationIssue`, `ValidationReport`.
 
+### Typed identifiers
+
+IDs are strongly typed via the newtypes in [src/ids.rs](src/ids.rs):
+
+| Type | Wraps | Used for |
+|---|---|---|
+| `SystemId` | `String` | `GeneratedSystem.id`, route endpoints, system-keyed maps |
+| `WorldId` | `String` | `GeneratedWorld.id`, world-keyed maps, stranded-world lists |
+| `FactionId` | `String` | `GeneratedFaction.id`, presence rows, control summaries |
+| `RouteId` | `String` | `GeneratedRoute.id`, hidden-route layers, route-keyed maps |
+
+Each newtype is `#[serde(transparent)]` so on-disk JSON is unchanged from the
+earlier String-based representation: existing `sector.json` files round-trip
+without migration. The Rust API still gets compile-time separation — passing a
+`FactionId` where a `SystemId` is expected is a type error.
+
+Constructing IDs from string literals stays ergonomic via `From<&str>` and
+`From<String>`:
+
+```rust
+use sectorforge::ids::{FactionId, SystemId, WorldId, RouteId};
+
+let sys: SystemId = "sys-0001".into();
+let wid = WorldId::new(format!("{sys}-w01"));
+assert_eq!(sys, "sys-0001"); // PartialEq<&str>/<str>/<String> all defined
+```
+
+The newtypes also implement `Deref<Target = str>`, `AsRef<str>`, `Display`,
+`Borrow<str>`, and `Ord` so they work with `BTreeMap<SystemId, _>`,
+`HashSet<RouteId>`, `format!("{}", id)`, and `map.get(id.as_str())` without
+ceremony.
+
+For GUI text-edit fields, [src/gui/editor/ui_helpers.rs](src/gui/editor/ui_helpers.rs)
+exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — generic wrappers
+over the `&mut String` versions that round-trip the typed id through a
+temporary `String` buffer so `egui::TextEdit` keeps working unchanged.
+
+### Async / runtime model
+
+`sectorforge` is **fully synchronous**. There is no `tokio` / `async-std`
+dependency, no `async fn` in the public API, no spawned background tasks, no
+shared mutable state behind locks. Generation, validation, export, and GUI
+update all run on the calling thread; long operations are bounded by the size
+of the project input. If you need to drive generation from an async runtime,
+wrap calls in `tokio::task::spawn_blocking` (or your runtime's equivalent) at
+the boundary — there is no internal `await` point to coordinate with.
+
 ---
 
 ## 10. Validation reference
@@ -1558,7 +1605,7 @@ across runs, so a regression check is a diff away.
 | [src/routes.rs](src/routes.rs) | Route-rules file types |
 | [src/rng.rs](src/rng.rs) | Stage-based deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
-| [src/ids.rs](src/ids.rs) | Canonical id-string formatting |
+| [src/ids.rs](src/ids.rs) | Typed-id newtypes (`SystemId` / `WorldId` / `FactionId` / `RouteId`, `#[serde(transparent)]`) + canonical id-string constructors |
 | [src/errors.rs](src/errors.rs) | `SectorError` type |
 | [src/faction_style.rs](src/faction_style.rs) | Pure-data per-faction style (RGB fill/accent + glyph + border); shared by GUI + PNG renderers |
 | [src/heatmap.rs](src/heatmap.rs) | Pure-data per-system heatmap scoring (`HeatmapMode`); GUI + bitmap consumers share scoring |

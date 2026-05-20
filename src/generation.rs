@@ -797,7 +797,7 @@ fn assign_factions_inner(
         return;
     }
     // Stable catalog order: ID-sorted index for deterministic tie-breaking.
-    let catalog_order: BTreeMap<String, usize> = factions
+    let catalog_order: BTreeMap<crate::ids::FactionId, usize> = factions
         .iter()
         .enumerate()
         .map(|(i, f)| (f.id.clone(), i))
@@ -805,7 +805,7 @@ fn assign_factions_inner(
 
     for sys in systems.iter_mut() {
         // Per-system accumulator: faction_id -> (score, world_appearances)
-        let mut scores: BTreeMap<String, (f64, usize)> = BTreeMap::new();
+        let mut scores: BTreeMap<crate::ids::FactionId, (f64, usize)> = BTreeMap::new();
         for world in &mut sys.worlds {
             let pop_tag = world
                 .tags
@@ -851,7 +851,7 @@ fn assign_factions_inner(
                 })
                 .collect();
 
-            let mut chosen: BTreeSet<String> = BTreeSet::new();
+            let mut chosen: BTreeSet<crate::ids::FactionId> = BTreeSet::new();
             let influences = [
                 FactionInfluence::Dominant,
                 FactionInfluence::Significant,
@@ -914,7 +914,7 @@ fn assign_factions_inner(
         }
         // Spec §10.9: primary factions = top by score, ties broken by world
         // appearances, then catalog order, then faction id.
-        let mut entries: Vec<(String, f64, usize)> =
+        let mut entries: Vec<(crate::ids::FactionId, f64, usize)> =
             scores.into_iter().map(|(id, (s, n))| (id, s, n)).collect();
         entries.sort_by(|a, b| {
             b.1.partial_cmp(&a.1)
@@ -950,7 +950,7 @@ fn aggregate_factions(
     if factions.is_empty() {
         return Vec::new();
     }
-    let mut by_id: BTreeMap<String, GeneratedFaction> = BTreeMap::new();
+    let mut by_id: BTreeMap<crate::ids::FactionId, GeneratedFaction> = BTreeMap::new();
     for f in factions {
         by_id.insert(
             f.id.clone(),

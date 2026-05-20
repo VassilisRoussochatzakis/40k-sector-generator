@@ -250,6 +250,8 @@ mod tests {
             },
             factions: vec![WorldFactionPresence {
                 faction_id: fid.into(),
+                subfaction_id: None,
+                subfaction_name: None,
                 influence: FactionInfluence::Significant,
                 relationship_to_government: "secretive".into(),
                 dimensions: PresenceDimensions {
@@ -303,6 +305,7 @@ mod tests {
             name: id.into(),
             kind: kind.into(),
             disposition: "secretive".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: PowerProfile::default(),

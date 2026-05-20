@@ -439,6 +439,9 @@ pub struct GeneratedFaction {
     pub name: String,
     pub kind: String,
     pub disposition: String,
+    /// Specific catalogue entries grouped under this overall faction kind.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subfactions: Vec<GeneratedSubfaction>,
     pub system_presence: Vec<SystemId>,
     pub world_presence: Vec<WorldId>,
     /// Aggregated multi-dimensional power across all controlled assets (§4.3).
@@ -447,8 +450,25 @@ pub struct GeneratedFaction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratedSubfaction {
+    pub id: FactionId,
+    pub name: String,
+    pub disposition: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub system_presence: Vec<SystemId>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub world_presence: Vec<WorldId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldFactionPresence {
+    /// Overall faction id. Generated from `FactionDef.kind` for new sectors.
     pub faction_id: FactionId,
+    /// Specific catalogue entry selected under the overall faction.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subfaction_id: Option<FactionId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subfaction_name: Option<String>,
     pub influence: FactionInfluence,
     pub relationship_to_government: String,
     /// Multi-dimensional presence scores (§4.5). All fields in 0..=100.

@@ -737,6 +737,8 @@ mod tests {
         let mut world = empty_world();
         let mk = |id: &str, score: f32| WorldFactionPresence {
             faction_id: id.into(),
+            subfaction_id: None,
+            subfaction_name: None,
             influence: FactionInfluence::Significant,
             relationship_to_government: "lawful".into(),
             dimensions: PresenceDimensions {

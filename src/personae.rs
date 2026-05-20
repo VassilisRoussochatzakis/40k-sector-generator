@@ -967,6 +967,7 @@ mod tests {
             name: "Imperium".into(),
             kind: "imperial".into(),
             disposition: "lawful".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: PowerProfile::default(),
@@ -1002,6 +1003,8 @@ mod tests {
                 },
                 factions: vec![WorldFactionPresence {
                     faction_id: "imp".into(),
+                    subfaction_id: None,
+                    subfaction_name: None,
                     influence: FactionInfluence::Dominant,
                     relationship_to_government: "loyal".into(),
                     dimensions: PresenceDimensions::default(),

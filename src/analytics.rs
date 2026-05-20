@@ -932,6 +932,7 @@ mod tests {
             name: "Imperium".into(),
             kind: "Imperial".into(),
             disposition: "Order".into(),
+            subfactions: Vec::new(),
             system_presence: vec!["sys-A".into()],
             world_presence: vec![],
             power: PowerProfile {
@@ -946,6 +947,7 @@ mod tests {
             name: "Rogue Trader".into(),
             kind: "RogueTrader".into(),
             disposition: "Opportunist".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: PowerProfile {

@@ -211,6 +211,7 @@ mod tests {
             name: id.into(),
             kind: kind.into(),
             disposition: "lawful".into(),
+            subfactions: Vec::new(),
             system_presence: presence.into_iter().map(|s| s.into()).collect(),
             world_presence: vec![],
             power: PowerProfile {

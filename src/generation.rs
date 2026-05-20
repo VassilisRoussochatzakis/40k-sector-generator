@@ -16,9 +16,9 @@ use crate::rng::{self, weighted_index};
 use crate::routes::RouteRules;
 use crate::sector_model::{
     hex_distance, DominanceState, FactionInfluence, GeneratedFaction, GeneratedRoute,
-    GeneratedSector, GeneratedStar, GeneratedSystem, GeneratedWorld, GenerationManifest, HexCoord,
-    RouteStability, RouteType, SystemControlSummary, WorldControlSummary, WorldDto,
-    WorldFactionPresence,
+    GeneratedSector, GeneratedStar, GeneratedSubfaction, GeneratedSystem, GeneratedWorld,
+    GenerationManifest, HexCoord, RouteStability, RouteType, SystemControlSummary,
+    WorldControlSummary, WorldDto, WorldFactionPresence,
 };
 use crate::taxonomy;
 use crate::world_pool::{self, WorldCandidate, WorldCandidatePool};
@@ -763,20 +763,22 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
     assign_factions_inner(systems, factions, rng);
     // Post-pass: derive per-world claims + multi-winner snapshots, then roll up
     // to system-level state classification. Pure, deterministic.
-    // Build a temporary catalog of GeneratedFactions for stability derivation —
-    // stability only needs id→kind, so use the def list directly.
-    let stability_factions: Vec<crate::sector_model::GeneratedFaction> = factions
-        .iter()
-        .map(|f| crate::sector_model::GeneratedFaction {
-            id: f.id.clone(),
-            name: f.name.clone(),
-            kind: f.kind.clone(),
-            disposition: f.default_disposition.clone(),
-            system_presence: vec![],
-            world_presence: vec![],
-            power: crate::sector_model::PowerProfile::default(),
-        })
-        .collect();
+    // Build a temporary parent-faction catalog for stability derivation.
+    // Presence ids are overall kind ids; subfaction ids are descriptive.
+    let stability_factions: Vec<crate::sector_model::GeneratedFaction> =
+        build_faction_groups(factions)
+            .iter()
+            .map(|g| crate::sector_model::GeneratedFaction {
+                id: g.id.clone(),
+                name: g.name.clone(),
+                kind: g.kind.clone(),
+                disposition: g.disposition.clone(),
+                subfactions: Vec::new(),
+                system_presence: vec![],
+                world_presence: vec![],
+                power: crate::sector_model::PowerProfile::default(),
+            })
+            .collect();
     for sys in systems.iter_mut() {
         for world in &mut sys.worlds {
             world.claims = control::derive_world_claims(world);
@@ -796,15 +798,13 @@ fn assign_factions_inner(
     if factions.is_empty() {
         return;
     }
-    // Stable catalog order: ID-sorted index for deterministic tie-breaking.
-    let catalog_order: BTreeMap<crate::ids::FactionId, usize> = factions
-        .iter()
-        .enumerate()
-        .map(|(i, f)| (f.id.clone(), i))
-        .collect();
+    let groups = build_faction_groups(factions);
+    // Stable parent order from first appearance in the source catalog.
+    let catalog_order: BTreeMap<crate::ids::FactionId, usize> =
+        groups.iter().map(|g| (g.id.clone(), g.order)).collect();
 
     for sys in systems.iter_mut() {
-        // Per-system accumulator: faction_id -> (score, world_appearances)
+        // Per-system accumulator: overall faction_id -> (score, world_appearances)
         let mut scores: BTreeMap<crate::ids::FactionId, (f64, usize)> = BTreeMap::new();
         for world in &mut sys.worlds {
             let pop_tag = world
@@ -823,31 +823,15 @@ fn assign_factions_inner(
                 continue;
             }
 
-            let mut weighted: Vec<(&FactionDef, f64)> = factions
+            let mut weighted: Vec<(&FactionGroup<'_>, f64)> = groups
                 .iter()
-                .map(|f| {
-                    let mut w = f.weight;
-                    if f.preferred_world_types
+                .map(|g| {
+                    let w = g
+                        .members
                         .iter()
-                        .any(|s| s == &world.world.world_type)
-                    {
-                        w *= 1.5;
-                    }
-                    if f.preferred_governments
-                        .iter()
-                        .any(|s| s == &world.world.government)
-                    {
-                        w *= 1.4;
-                    }
-                    let feat_hits = f
-                        .preferred_notable_features
-                        .iter()
-                        .filter(|s| world.world.notable_features.contains(s))
-                        .count();
-                    if feat_hits > 0 {
-                        w *= 1.3_f64.powi(feat_hits as i32);
-                    }
-                    (f, w)
+                        .map(|f| faction_weight_for_world(f, world))
+                        .fold(0.0_f64, f64::max);
+                    (g, w)
                 })
                 .collect();
 
@@ -862,14 +846,21 @@ fn assign_factions_inner(
                 if weighted.is_empty() {
                     break;
                 }
-                let pairs: Vec<(&FactionDef, f64)> =
-                    weighted.iter().map(|(f, w)| (*f, *w)).collect();
+                let pairs: Vec<(&FactionGroup<'_>, f64)> =
+                    weighted.iter().map(|(g, w)| (*g, *w)).collect();
                 let idx = match weighted_index(&pairs, rng, "faction") {
                     Ok(i) => i,
                     Err(_) => break,
                 };
-                let f = weighted[idx].0;
-                if chosen.insert(f.id.clone()) {
+                let g = weighted[idx].0;
+                if chosen.insert(g.id.clone()) {
+                    let f = match choose_subfaction(g, world, rng) {
+                        Some(f) => f,
+                        None => {
+                            weighted.remove(idx);
+                            continue;
+                        }
+                    };
                     let dims = control::presence_dimensions(
                         &f.kind,
                         &f.default_disposition,
@@ -880,14 +871,16 @@ fn assign_factions_inner(
                     let dominance = DominanceState::from_score(dims.local_control_score());
                     let intel_confidence = dims.visibility.round().clamp(0.0, 100.0) as u8;
                     world.factions.push(WorldFactionPresence {
-                        faction_id: f.id.clone(),
+                        faction_id: g.id.clone(),
+                        subfaction_id: Some(f.id.clone()),
+                        subfaction_name: Some(f.name.clone()),
                         influence: *inf,
                         relationship_to_government: f.default_disposition.clone(),
                         dimensions: dims,
                         dominance,
                         intel_confidence,
                     });
-                    let entry = scores.entry(f.id.clone()).or_insert((0.0, 0));
+                    let entry = scores.entry(g.id.clone()).or_insert((0.0, 0));
                     entry.0 += inf.weight();
                     entry.1 += 1;
                 }
@@ -934,6 +927,129 @@ fn assign_factions_inner(
     }
 }
 
+#[derive(Debug)]
+struct FactionGroup<'a> {
+    id: crate::ids::FactionId,
+    name: String,
+    kind: String,
+    disposition: String,
+    order: usize,
+    members: Vec<&'a FactionDef>,
+}
+
+fn build_faction_groups(factions: &[FactionDef]) -> Vec<FactionGroup<'_>> {
+    let mut members: BTreeMap<String, Vec<&FactionDef>> = BTreeMap::new();
+    let mut order: BTreeMap<String, usize> = BTreeMap::new();
+    for (idx, f) in factions.iter().enumerate() {
+        order.entry(f.kind.clone()).or_insert(idx);
+        members.entry(f.kind.clone()).or_default().push(f);
+    }
+
+    let mut groups: Vec<FactionGroup<'_>> = members
+        .into_iter()
+        .map(|(kind, mut group_members)| {
+            group_members.sort_by(|a, b| a.id.cmp(&b.id));
+            let disposition = representative_disposition(&group_members);
+            FactionGroup {
+                id: crate::ids::FactionId::new(kind.clone()),
+                name: overall_faction_name(&kind),
+                kind: kind.clone(),
+                disposition,
+                order: order.get(&kind).copied().unwrap_or(usize::MAX),
+                members: group_members,
+            }
+        })
+        .collect();
+    groups.sort_by(|a, b| a.order.cmp(&b.order).then_with(|| a.id.cmp(&b.id)));
+    groups
+}
+
+fn representative_disposition(members: &[&FactionDef]) -> String {
+    let mut totals: BTreeMap<&str, f64> = BTreeMap::new();
+    for f in members {
+        *totals.entry(f.default_disposition.as_str()).or_default() += f.weight.max(0.0);
+    }
+    totals
+        .into_iter()
+        .max_by(|a, b| {
+            a.1.partial_cmp(&b.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| b.0.cmp(a.0))
+        })
+        .map(|(d, _)| d.to_string())
+        .unwrap_or_default()
+}
+
+fn overall_faction_name(kind: &str) -> String {
+    match kind {
+        "tau" => "T'au".to_string(),
+        "ork" => "Ork".to_string(),
+        "tyranid" => "Tyranid".to_string(),
+        "necron" => "Necron".to_string(),
+        "aeldari" => "Aeldari".to_string(),
+        "drukhari" => "Drukhari".to_string(),
+        "harlequin" => "Harlequin".to_string(),
+        "xenos" => "Xenos".to_string(),
+        "minor_xenos" => "Minor Xenos".to_string(),
+        "leagues_of_votann" => "Leagues of Votann".to_string(),
+        _ => kind
+            .split('_')
+            .filter(|s| !s.is_empty())
+            .map(|s| {
+                let mut chars = s.chars();
+                match chars.next() {
+                    Some(first) => {
+                        let mut out = first.to_uppercase().collect::<String>();
+                        out.push_str(chars.as_str());
+                        out
+                    }
+                    None => String::new(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" "),
+    }
+}
+
+fn faction_weight_for_world(f: &FactionDef, world: &GeneratedWorld) -> f64 {
+    let mut w = f.weight;
+    if f.preferred_world_types
+        .iter()
+        .any(|s| s == &world.world.world_type)
+    {
+        w *= 1.5;
+    }
+    if f.preferred_governments
+        .iter()
+        .any(|s| s == &world.world.government)
+    {
+        w *= 1.4;
+    }
+    let feat_hits = f
+        .preferred_notable_features
+        .iter()
+        .filter(|s| world.world.notable_features.contains(s))
+        .count();
+    if feat_hits > 0 {
+        w *= 1.3_f64.powi(feat_hits as i32);
+    }
+    w
+}
+
+fn choose_subfaction<'a>(
+    group: &FactionGroup<'a>,
+    world: &GeneratedWorld,
+    rng: &mut ChaCha8Rng,
+) -> Option<&'a FactionDef> {
+    let weighted: Vec<(&FactionDef, f64)> = group
+        .members
+        .iter()
+        .map(|f| (*f, faction_weight_for_world(f, world)))
+        .collect();
+    let idx = weighted_index(&weighted, rng, "subfaction").ok()?;
+    Some(weighted[idx].0)
+}
+
 fn influence_rank(i: FactionInfluence) -> u8 {
     match i {
         FactionInfluence::Dominant => 3,
@@ -951,14 +1067,25 @@ fn aggregate_factions(
         return Vec::new();
     }
     let mut by_id: BTreeMap<crate::ids::FactionId, GeneratedFaction> = BTreeMap::new();
-    for f in factions {
+    for g in build_faction_groups(factions) {
         by_id.insert(
-            f.id.clone(),
+            g.id.clone(),
             GeneratedFaction {
-                id: f.id.clone(),
-                name: f.name.clone(),
-                kind: f.kind.clone(),
-                disposition: f.default_disposition.clone(),
+                id: g.id.clone(),
+                name: g.name,
+                kind: g.kind,
+                disposition: g.disposition,
+                subfactions: g
+                    .members
+                    .iter()
+                    .map(|f| GeneratedSubfaction {
+                        id: f.id.clone(),
+                        name: f.name.clone(),
+                        disposition: f.default_disposition.clone(),
+                        system_presence: Vec::new(),
+                        world_presence: Vec::new(),
+                    })
+                    .collect(),
                 system_presence: Vec::new(),
                 world_presence: Vec::new(),
                 power: Default::default(),
@@ -973,6 +1100,14 @@ fn aggregate_factions(
                     if !gf.system_presence.contains(&sys.id) {
                         gf.system_presence.push(sys.id.clone());
                     }
+                    if let Some(sub_id) = &p.subfaction_id {
+                        if let Some(sf) = gf.subfactions.iter_mut().find(|sf| sf.id == *sub_id) {
+                            sf.world_presence.push(world.id.clone());
+                            if !sf.system_presence.contains(&sys.id) {
+                                sf.system_presence.push(sys.id.clone());
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -980,7 +1115,15 @@ fn aggregate_factions(
     let mut v: Vec<GeneratedFaction> = by_id.into_values().collect();
     for f in &mut v {
         f.system_presence.sort();
+        f.system_presence.dedup();
         f.world_presence.sort();
+        f.world_presence.dedup();
+        for sf in &mut f.subfactions {
+            sf.system_presence.sort();
+            sf.system_presence.dedup();
+            sf.world_presence.sort();
+            sf.world_presence.dedup();
+        }
     }
     let power = control::aggregate_faction_power(systems);
     control::apply_faction_power(&mut v, &power);

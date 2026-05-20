@@ -664,6 +664,7 @@ mod tests {
             name: "Cult".into(),
             kind: "chaos".into(),
             disposition: "outlaw".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: Default::default(),
@@ -699,6 +700,8 @@ mod tests {
                 },
                 factions: vec![WorldFactionPresence {
                     faction_id: "cult".into(),
+                    subfaction_id: None,
+                    subfaction_name: None,
                     influence: FactionInfluence::Hidden,
                     relationship_to_government: "outlaw".into(),
                     dimensions: PresenceDimensions::default(),

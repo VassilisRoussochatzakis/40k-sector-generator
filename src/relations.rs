@@ -723,6 +723,7 @@ mod tests {
             name: id.into(),
             kind: kind.into(),
             disposition: disposition.into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: PowerProfile::default(),

@@ -254,11 +254,21 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
         ui.add_space(8.0);
         section(ui, "FACTION PRESENCE");
         for fp in &w.factions {
+            let sub = fp
+                .subfaction_name
+                .as_deref()
+                .or(fp.subfaction_id.as_deref())
+                .unwrap_or("");
+            let label = if sub.is_empty() {
+                fp.faction_id.to_uppercase()
+            } else {
+                format!("{} / {}", fp.faction_id.to_uppercase(), sub.to_uppercase())
+            };
             dim(
                 ui,
                 &format!(
                     "{} [{:?}/{:?}] ctl {:.0} vis {:.0}",
-                    fp.faction_id.to_uppercase(),
+                    label,
                     fp.influence,
                     fp.dominance,
                     fp.dimensions.local_control_score(),

@@ -916,6 +916,7 @@ mod tests {
             name: "Imperium".into(),
             kind: "Imperial".into(),
             disposition: "Order".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: PowerProfile::default(),
@@ -963,6 +964,8 @@ mod tests {
         // imports to keep the test module honest about dependencies.
         let _ = WorldFactionPresence {
             faction_id: "x".into(),
+            subfaction_id: None,
+            subfaction_name: None,
             influence: FactionInfluence::Minor,
             relationship_to_government: "neutral".into(),
             dimensions: PresenceDimensions::default(),

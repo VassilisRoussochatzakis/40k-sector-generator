@@ -72,6 +72,8 @@ fn invariants_detect_unknown_faction_in_world() {
         if let Some(world) = sys.worlds.first_mut() {
             world.factions.push(WorldFactionPresence {
                 faction_id: "does_not_exist".into(),
+                subfaction_id: None,
+                subfaction_name: None,
                 influence: FactionInfluence::Minor,
                 relationship_to_government: "test".to_string(),
                 dimensions: Default::default(),
@@ -216,6 +218,40 @@ fn primary_factions_capped_at_three() {
             sys.id,
             sys.primary_factions
         );
+    }
+}
+
+#[test]
+fn generated_factions_are_kind_groups_with_subfactions() {
+    let project = fixture_project();
+    let input = sectorforge::load_project(project).unwrap();
+    let expected_kinds: std::collections::BTreeSet<String> =
+        input.factions.iter().map(|f| f.kind.clone()).collect();
+    let sector = sectorforge::generate_sector(input).unwrap();
+    let generated_ids: std::collections::BTreeSet<String> =
+        sector.factions.iter().map(|f| f.id.to_string()).collect();
+
+    assert_eq!(generated_ids, expected_kinds);
+    assert!(sector.factions.iter().any(|f| f.subfactions.len() > 1));
+
+    for sys in &sector.systems {
+        for w in &sys.worlds {
+            for p in &w.factions {
+                assert!(generated_ids.contains(p.faction_id.as_str()));
+                assert!(
+                    p.subfaction_id.is_some(),
+                    "world {} presence {} missing subfaction",
+                    w.id,
+                    p.faction_id
+                );
+                assert!(
+                    p.subfaction_name.is_some(),
+                    "world {} presence {} missing subfaction name",
+                    w.id,
+                    p.faction_id
+                );
+            }
+        }
     }
 }
 

@@ -285,6 +285,8 @@ mod tests {
             factions: vec![
                 WorldFactionPresence {
                     faction_id: "imp".into(),
+                    subfaction_id: None,
+                    subfaction_name: None,
                     influence: FactionInfluence::Dominant,
                     relationship_to_government: "lawful".into(),
                     dimensions: PresenceDimensions {
@@ -296,6 +298,8 @@ mod tests {
                 },
                 WorldFactionPresence {
                     faction_id: "cult".into(),
+                    subfaction_id: None,
+                    subfaction_name: None,
                     influence: FactionInfluence::Hidden,
                     relationship_to_government: "outlaw".into(),
                     dimensions: PresenceDimensions {
@@ -354,6 +358,7 @@ mod tests {
                     name: "Imperium".into(),
                     kind: "imperium".into(),
                     disposition: "lawful".into(),
+                    subfactions: Vec::new(),
                     system_presence: vec!["sys-0001".into()],
                     world_presence: vec!["sys-0001-w1".into()],
                     power: Default::default(),
@@ -363,6 +368,7 @@ mod tests {
                     name: "Cult".into(),
                     kind: "chaos".into(),
                     disposition: "outlaw".into(),
+                    subfactions: Vec::new(),
                     system_presence: vec![],
                     world_presence: vec!["sys-0001-w1".into()],
                     power: Default::default(),

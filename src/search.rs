@@ -372,8 +372,11 @@ pub fn derive_candidate_seed(base_seed: &str, n: u32) -> String {
 
 fn preflight(project: &ProjectInput, constraints: &[Constraint]) -> Vec<String> {
     let mut errors = Vec::new();
-    let known_factions: std::collections::BTreeSet<&str> =
-        project.factions.iter().map(|f| f.id.as_str()).collect();
+    let known_factions: std::collections::BTreeSet<&str> = project
+        .factions
+        .iter()
+        .flat_map(|f| [f.id.as_str(), f.kind.as_str()])
+        .collect();
     for c in constraints {
         if let Some(id) = referenced_faction(c) {
             if !known_factions.contains(id.as_str()) {

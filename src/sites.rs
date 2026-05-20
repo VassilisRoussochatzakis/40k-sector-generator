@@ -700,6 +700,8 @@ mod tests {
     fn hive_world(id: &str, name: &str, hidden: bool) -> GeneratedWorld {
         let mut presences = vec![WorldFactionPresence {
             faction_id: "imp".into(),
+            subfaction_id: None,
+            subfaction_name: None,
             influence: FactionInfluence::Dominant,
             relationship_to_government: "lawful".into(),
             dimensions: PresenceDimensions::default(),
@@ -709,6 +711,8 @@ mod tests {
         if hidden {
             presences.push(WorldFactionPresence {
                 faction_id: "cult".into(),
+                subfaction_id: None,
+                subfaction_name: None,
                 influence: FactionInfluence::Hidden,
                 relationship_to_government: "outlaw".into(),
                 dimensions: PresenceDimensions::default(),
@@ -756,6 +760,7 @@ mod tests {
             name: "Imperium".into(),
             kind: "imperial".into(),
             disposition: "lawful".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: Default::default(),
@@ -801,6 +806,7 @@ mod tests {
             name: "Imperium".into(),
             kind: "imperial".into(),
             disposition: "lawful".into(),
+            subfactions: Vec::new(),
             system_presence: vec![],
             world_presence: vec![],
             power: Default::default(),

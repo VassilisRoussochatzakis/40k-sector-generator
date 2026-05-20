@@ -320,7 +320,7 @@ function selectSystem(id){
   for (const w of sys.worlds){
     html += `<li><strong>${esc(w.name)}</strong> — ${esc(w.world.world_type)} / ${esc(w.world.population)}`;
     if (w.factions && w.factions.length){
-      html += " <span class=key>(" + w.factions.map(p => esc(p.faction_id)).join(", ") + ")</span>";
+      html += " <span class=key>(" + w.factions.map(p => esc(presenceLabel(p))).join(", ") + ")</span>";
     }
     html += "</li>";
   }
@@ -339,6 +339,10 @@ function selectSystem(id){
   draw();
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+function presenceLabel(p){
+  const sub = p.subfaction_name || p.subfaction_id || "";
+  return sub ? `${p.faction_id}: ${sub}` : p.faction_id;
+}
 
 // ── Controls ───────────────────────────────────────────────────────────────
 function buildHeatOptions(){

@@ -232,6 +232,8 @@ mod tests {
                 .into_iter()
                 .map(|(fid, vis, covert)| WorldFactionPresence {
                     faction_id: fid.into(),
+                    subfaction_id: None,
+                    subfaction_name: None,
                     influence: FactionInfluence::Significant,
                     relationship_to_government: "lawful".into(),
                     dimensions: PresenceDimensions {

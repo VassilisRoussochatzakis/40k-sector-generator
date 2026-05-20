@@ -221,6 +221,7 @@ mod tests {
             name: id.into(),
             kind: kind.into(),
             disposition: "lawful".into(),
+            subfactions: Vec::new(),
             system_presence: (0..presence)
                 .map(|i| crate::ids::SystemId::new(format!("s{i}")))
                 .collect(),

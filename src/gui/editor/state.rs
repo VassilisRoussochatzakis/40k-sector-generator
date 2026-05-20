@@ -272,6 +272,7 @@ pub fn empty_faction(id: FactionId) -> GeneratedFaction {
         name,
         kind: "imperial".to_string(),
         disposition: "neutral".to_string(),
+        subfactions: Vec::new(),
         system_presence: Vec::new(),
         world_presence: Vec::new(),
         power: Default::default(),

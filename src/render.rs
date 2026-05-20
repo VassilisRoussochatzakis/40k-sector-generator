@@ -582,14 +582,15 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
         s.push_str(&format!("### {} — {}\n\n", w.id.to_uppercase(), w.name));
         if !w.factions.is_empty() {
             s.push_str(
-                "| Faction | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |\n",
+                "| Faction | Subfaction | Influence | Dominance | Control | Admin | Mil | Orb | Econ | Ind | Ideo | Covert | Visib |\n",
             );
-            s.push_str("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
+            s.push_str("|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
             for p in &w.factions {
                 let d = &p.dimensions;
                 s.push_str(&format!(
-                    "| {} | {:?} | {:?} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
+                    "| {} | {} | {:?} | {:?} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} | {:.0} |\n",
                     p.faction_id,
+                    format_subfaction(p),
                     p.influence,
                     p.dominance,
                     d.local_control_score(),
@@ -695,6 +696,15 @@ fn format_world_control_blocks(sys: &GeneratedSystem) -> String {
         }
     }
     s
+}
+
+fn format_subfaction(p: &crate::sector_model::WorldFactionPresence) -> String {
+    match (&p.subfaction_name, &p.subfaction_id) {
+        (Some(name), Some(id)) => format!("{name} (`{id}`)"),
+        (Some(name), None) => name.clone(),
+        (None, Some(id)) => id.to_string(),
+        (None, None) => String::new(),
+    }
 }
 
 fn format_world_table(sys: &GeneratedSystem) -> String {

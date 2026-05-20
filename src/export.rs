@@ -314,7 +314,7 @@ fn write_systems_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sec
 fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), SectorError> {
     let path = dir.join("worlds.csv");
     let mut s = String::new();
-    s.push_str("id,system_id,index,name,orbit,source_row_index,star_colour_code,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_features,factions,tags\n");
+    s.push_str("id,system_id,index,name,orbit,source_row_index,star_colour_code,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_features,factions,subfactions,tags\n");
     for sys in &sector.systems {
         for w in &sys.worlds {
             let factions: Vec<String> = w
@@ -322,8 +322,19 @@ fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sect
                 .iter()
                 .map(|f| f.faction_id.as_str().to_string())
                 .collect();
+            let subfactions: Vec<String> = w
+                .factions
+                .iter()
+                .map(|f| {
+                    f.subfaction_id
+                        .as_deref()
+                        .or(f.subfaction_name.as_deref())
+                        .unwrap_or("")
+                        .to_string()
+                })
+                .collect();
             s.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
                 csv_escape(&w.id),
                 csv_escape(&sys.id),
                 w.index,
@@ -340,6 +351,7 @@ fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sect
                 csv_escape(&w.world.government),
                 csv_escape(&w.world.notable_features.join(";")),
                 csv_escape(&factions.join(";")),
+                csv_escape(&subfactions.join(";")),
                 csv_escape(&w.tags.join(";")),
             ));
         }

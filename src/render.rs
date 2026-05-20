@@ -286,8 +286,8 @@ fn format_relations_digest(sector: &GeneratedSector) -> String {
         s.push_str("**At war:**\n\n");
         for p in &at_war {
             s.push_str(&format!(
-                "- {} ↔ {} — {} (tension {:.0})\n",
-                p.a, p.b, p.cause, p.tension
+                "- {} ↔ {} — public {:?}, secret {:?}, treaty {:?} (tension {:.0}; {})\n",
+                p.a, p.b, p.public_attitude, p.secret_attitude, p.treaty_status, p.tension, p.cause
             ));
         }
         s.push('\n');
@@ -296,8 +296,8 @@ fn format_relations_digest(sector: &GeneratedSector) -> String {
         s.push_str("**Hostile:**\n\n");
         for p in &hostile {
             s.push_str(&format!(
-                "- {} ↔ {} — {} (tension {:.0})\n",
-                p.a, p.b, p.cause, p.tension
+                "- {} ↔ {} — public {:?}, secret {:?}, treaty {:?} (tension {:.0}; {})\n",
+                p.a, p.b, p.public_attitude, p.secret_attitude, p.treaty_status, p.tension, p.cause
             ));
         }
         s.push('\n');

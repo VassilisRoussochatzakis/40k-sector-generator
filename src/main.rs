@@ -225,7 +225,7 @@ enum Command {
         #[arg(long)]
         dispatch: bool,
     },
-    /// §4 NEW.md: derive the inter-faction diplomacy matrix.
+    /// §5 NEW2.md: derive the inter-faction diplomacy matrix.
     /// Accepts `--project` or `--sector`.
     Relations {
         #[arg(long)]

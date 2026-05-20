@@ -164,7 +164,7 @@ fn baseline_for_state(state: Option<SystemState>) -> u8 {
 /// * The public `visible_controller` only updates after the swap has held
 ///   for `HYSTERESIS_TICKS` ticks (§11.3).
 pub fn advance_sector(sector: &mut GeneratedSector) {
-    // §4 NEW.md: if the project enabled `relations.feed_conflict`, the derived
+    // §5 NEW2.md: if the project enabled `relations.feed_conflict`, the derived
     // matrix mirrors the flag and we apply a stance-driven momentum/intensity
     // bias before the standard tick logic. Read-only on the matrix.
     let bias = sector.relations.feed_conflict;

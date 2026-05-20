@@ -202,7 +202,7 @@ Why this matters: political conflict becomes more legible when players understan
 
 ---
 
-## 5. Diplomatic Relations and Faction Attitude Matrix
+## 5. Diplomatic Relations and Faction Attitude Matrix (DONE)
 
 Factions currently have kind, disposition, preferences, presence, power, and control, but their relationships to each other appear mostly implicit. A deterministic faction relationship matrix would make the political layer richer and provide a foundation for alliances, proxy wars, ceasefires, trade pacts, vendettas, and uneasy cooperation.
 

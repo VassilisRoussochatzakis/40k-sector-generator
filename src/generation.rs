@@ -192,7 +192,7 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     // §9 NEXT: continuous area layers.
     sector.influence_field = crate::influence_field::build(&sector);
 
-    // §4 NEW.md: derive inter-faction relationship matrix once factions are
+    // §5 NEW2.md: derive inter-faction relationship matrix once factions are
     // finalised. Pure derivation, no extra RNG draws affect prior stages.
     // `[generation.relations].min_world_presence` controls how aggressively
     // the canonical faction list is filtered before the C(n,2) loop.

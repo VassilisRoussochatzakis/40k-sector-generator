@@ -293,7 +293,7 @@ impl eframe::App for App {
                                 RichText::new("DIPLOMACY").color(TEXT).monospace(),
                             ),
                         )
-                        .on_hover_text("Inter-faction stance matrix (§4 NEW.md)")
+                        .on_hover_text("Inter-faction attitude matrix (§5 NEW2.md)")
                         .clicked()
                     {
                         self.view = View::Relations;
@@ -914,7 +914,7 @@ impl App {
                         .strong(),
                 );
                 ui.label(
-                    RichText::new("§4 NEW.md — inter-faction stance + tension")
+                    RichText::new("§5 NEW2.md — public/secret attitude + relation dimensions")
                         .color(TEXT_DIM)
                         .monospace(),
                 );
@@ -935,7 +935,8 @@ impl App {
                 // ScrollArea::show_rows virtualization).
                 const COL_A: f32 = 220.0;
                 const COL_B: f32 = 220.0;
-                const COL_STANCE: f32 = 90.0;
+                const COL_STANCE: f32 = 96.0;
+                const COL_TREATY: f32 = 110.0;
                 const COL_TENSION: f32 = 70.0;
                 let header = |ui: &mut egui::Ui| {
                     ui.horizontal(|ui| {
@@ -954,7 +955,19 @@ impl App {
                         ui.add_sized(
                             [COL_STANCE, 0.0],
                             egui::Label::new(
-                                RichText::new("STANCE").color(TEXT_DIM).monospace().strong(),
+                                RichText::new("PUBLIC").color(TEXT_DIM).monospace().strong(),
+                            ),
+                        );
+                        ui.add_sized(
+                            [COL_STANCE, 0.0],
+                            egui::Label::new(
+                                RichText::new("SECRET").color(TEXT_DIM).monospace().strong(),
+                            ),
+                        );
+                        ui.add_sized(
+                            [COL_TREATY, 0.0],
+                            egui::Label::new(
+                                RichText::new("TREATY").color(TEXT_DIM).monospace().strong(),
                             ),
                         );
                         ui.add_sized(
@@ -980,7 +993,8 @@ impl App {
                     |ui, range| {
                         for i in range {
                             let p = &sector.relations.pairs[i];
-                            let stance_color = stance_color(p.stance);
+                            let public_color = stance_color(p.public_stance);
+                            let secret_color = stance_color(p.secret_stance);
                             ui.horizontal(|ui| {
                                 ui.add_sized(
                                     [COL_A, row_h],
@@ -993,9 +1007,23 @@ impl App {
                                 ui.add_sized(
                                     [COL_STANCE, row_h],
                                     egui::Label::new(
-                                        RichText::new(format!("{:?}", p.stance))
-                                            .color(stance_color)
+                                        RichText::new(format!("{:?}", p.public_attitude))
+                                            .color(public_color)
                                             .monospace(),
+                                    ),
+                                );
+                                ui.add_sized(
+                                    [COL_STANCE, row_h],
+                                    egui::Label::new(
+                                        RichText::new(format!("{:?}", p.secret_attitude))
+                                            .color(secret_color)
+                                            .monospace(),
+                                    ),
+                                );
+                                ui.add_sized(
+                                    [COL_TREATY, row_h],
+                                    egui::Label::new(
+                                        RichText::new(format!("{:?}", p.treaty_status)).monospace(),
                                     ),
                                 );
                                 ui.add_sized(

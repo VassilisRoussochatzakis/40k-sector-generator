@@ -458,13 +458,17 @@ no fact appears that isn't in the JSON — and the variation between
 adjacent systems is keyed by id so the gazetteer never reads
 copy-pasted.
 
-### `sectorforge relations` (§4 old/DONE.md)
+### `sectorforge relations` (§5 NEW2.md/DONE)
 
 Inter-faction diplomacy matrix. For every unordered pair of factions
-present in the sector, derives a single canonical stance (`Allied`,
-`Aligned`, `Neutral`, `Rival`, `Hostile`, `At War`) plus a short cause
-text and a `tension` scalar (0..=100) computed from co-occurrence on
-contested worlds and active warzones.
+present in the sector, derives public and secret attitudes (`Allied`,
+`Friendly`, `Transactional`, `Suspicious`, `Hostile`,
+`Existential Enemy`), directional `a_to_b` / `b_to_a` views, treaty
+status, relation dimensions (`trust`, `fear`, `rivalry`,
+`ideological_distance`, `economic_dependency`, `military_pressure`,
+`covert_activity`), a short cause text, and a `tension` scalar
+(0..=100). The legacy `stance` field is still emitted for existing
+callers and mirrors the secret/mechanical stance.
 
 ```bash
 # Regenerate + diplomacy.
@@ -474,26 +478,47 @@ cargo run --bin sectorforge -- relations --project examples/m42_project --out ou
 cargo run --bin sectorforge -- relations --sector out/sector.json --json
 ```
 
-Writes `relations.md` + `relations.json`. The matrix is also embedded in
-`sector.json` under the `relations` field once the project ships a
-[data/factions/relations.toml](examples/m42_project/data/factions/relations.toml)
-(referenced via `inputs.relations` in `sectorforge.toml`).
+Writes `relations.md` + `relations.json`. Generated sectors embed the
+matrix in `sector.json` under `relations`; `[generation.relations]`
+controls how many low-presence factions enter the O(n²) pair matrix.
 
 The TOML file ships **kind rules** (faction kind × kind → stance),
 **disposition rules** (level delta on top of the base stance), and
-**pair overrides** (pin a specific `(faction_id, faction_id)` stance).
-Built-in defaults — Imperial↔Chaos = At War, Mechanicus↔Imperial =
-Aligned, Tyranid/Necron vs. anyone = At War, etc. — apply when the file
-is silent. A small deterministic per-pair perturbation seeded from
-`blake3("sectorforge:{seed}:relations:{a}:{b}")` breaks ties so two
-identical kind+disposition pairs are not always identical.
+legacy **pair overrides** (pin a specific `(faction_id, faction_id)`
+stance). NEW2 **relation overrides** under `[[relations.overrides]]`
+can pin public/secret attitudes, treaty status, and selected numeric
+dimensions while leaving the rest derived:
+
+```toml
+[[relations.overrides]]
+a = "fac-house-vorn"
+b = "fac-rogue-trader-cassian"
+public_attitude = "friendly"
+secret_attitude = "hostile"
+treaty_status = "charter"
+trust = 35
+rivalry = 70
+reason = "Succession debt and a disputed charter"
+```
+
+Directional fields (`a_public_attitude`, `b_secret_attitude`, etc.)
+make the matrix asymmetric. Built-in defaults — Imperial↔Chaos =
+Existential Enemy / At War, Mechanicus↔Imperial = Friendly / Aligned,
+Tyranid/Necron vs. anyone = Existential Enemy / At War, etc. — apply
+when the file is silent. A small deterministic per-pair perturbation
+seeded from `blake3("sectorforge:{seed}:relations:{a}:{b}")` breaks
+ties so two identical kind+disposition pairs are not always identical.
+Additional dimensions are derived from world overlap, contested claims,
+route-control competition, faction power, covert visibility, and active
+warzones.
 
 Set `[relations].feed_conflict = true` to copy the flag onto the derived
 matrix; `advance_sector` then biases per-world momentum/intensity by the
-stance between the local attacker/defender (At War / Hostile pushes
-toward the attacker, Allied / Aligned drifts toward peace). The bias is
-applied *before* the existing tick logic and never overrides GM-edited
-conflict state.
+secret stance between the local attacker/defender (At War / Hostile
+pushes toward the attacker, Allied / Aligned drifts toward peace). The
+bias is applied *before* the existing tick logic and never overrides
+GM-edited conflict state. Briefing profiles can keep only public
+relations via `show_secret_relations = false`.
 
 ### `sectorforge regions` (§5 old/DONE.md)
 
@@ -623,8 +648,9 @@ Audience-targeted redaction pack. Applies one of the built-in briefing
 profiles — GM full truth, Imperial Navy captain, Inquisitorial cell, Rogue
 Trader dynasty, local governor, public atlas — and writes a redacted clone of
 the sector plus a Markdown digest. Profile rules: hidden-route stripping,
-relations clearing, claim hiding, archetype scrubbing, intel sub-records.
-Reuses the same intel-confidence cutoff as the HTML player edition.
+relations clearing or public-only relations (`show_secret_relations =
+false`), claim hiding, archetype scrubbing, intel sub-records. Reuses the
+same intel-confidence cutoff as the HTML player edition.
 
 ```bash
 cargo run --bin sectorforge -- briefing \
@@ -800,7 +826,7 @@ my-sector-project/
     names/system_names.toml
     names/world_names.toml
     factions/factions.toml
-    factions/relations.toml        # §4 old/DONE.md (optional)
+    factions/relations.toml        # §5 NEW2.md/DONE (optional)
     routes/route_rules.toml
     routes/regions.toml            # §5 old/DONE.md (optional)
     worlds/economy.toml            # §12 old/DONE.md (optional)
@@ -825,7 +851,7 @@ world_names           = "data/names/world_names.toml"      # optional
 factions              = "data/factions/factions.toml"      # optional
 route_rules           = "data/routes/route_rules.toml"     # optional
 generation_profiles   = "data/generation/profiles.toml"    # optional (digest tracked, content reserved)
-relations             = "data/factions/relations.toml"     # optional (§4 old/DONE.md)
+relations             = "data/factions/relations.toml"     # optional (§5 NEW2.md/DONE)
 regions               = "data/routes/regions.toml"         # optional (§5 old/DONE.md)
 economy               = "data/worlds/economy.toml"         # optional (§12 old/DONE.md)
 
@@ -1278,9 +1304,10 @@ navigation bar:
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
   weights — avoid Unstable / Hazardous / Dangerous) or `Shortest` (BFS over
   hop count). `Perilous` routes are always impassable.
-- **Diplomacy** (§4 old/DONE.md) — table view of `sector.relations.pairs`:
-  every faction pair with its stance (colour-coded), tension scalar, and
-  cause text. Backed by [src/gui/app/mod.rs](src/gui/app/mod.rs)
+- **Diplomacy** (§5 NEW2.md/DONE) — table view of
+  `sector.relations.pairs`: every faction pair with public/secret
+  attitudes, treaty status, tension scalar, and cause text. Backed by
+  [src/gui/app/mod.rs](src/gui/app/mod.rs)
   `draw_relations_layout`.
 - **Regions** (§5 old/DONE.md) — table view of `sector.regions`: id, name,
   kind, hex count, centre coord. Pairs with the in-map region tint.
@@ -1471,6 +1498,7 @@ Common codes:
 | `ROUTE_BAD_DEFAULT_WEIGHT` / `ROUTE_BAD_MULTIPLIER` | Route weights / multipliers must be > 0 and finite |
 | `NAME_POOL_EMPTY` | All system name lists are empty (fallback names will be used) |
 | `RELATIONS_PAIR_UNKNOWN_FACTION` | `[[relations.pair_overrides]]` references a faction id that does not exist |
+| `RELATIONS_OVERRIDE_UNKNOWN_FACTION` | `[[relations.overrides]]` references a faction id that does not exist |
 | `RELATIONS_KIND_RULE_EMPTY` | `[[relations.kind_rules]]` row has empty `a` or `b` kind |
 | `REGIONS_COUNT_ZERO` | `regions.enabled = true` but `count = 0` |
 | `REGIONS_COUNT_OVERFLOW` | `regions.count` exceeds half the grid cells |
@@ -1591,6 +1619,7 @@ across runs, so a regression check is a diff away.
 | [src/personae.rs](src/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
 | [src/hooks.rs](src/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
 | [src/prose.rs](src/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
+| [src/relations.rs](src/relations.rs) | §5 NEW2.md diplomacy matrix: public/secret faction attitudes, treaty status, directional views, trust/fear/rivalry/economic/military/covert dimensions, legacy stance compatibility, and relation Markdown/JSON report writer. |
 | [src/segmentum.rs](src/segmentum.rs) | §14 NEW.md multi-sector composition: `segmentum.toml` loader, deterministic stitch stage (`blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")`), inter-sector links, super-manifest, Markdown super-map. |
 | [src/interestingness.rs](src/interestingness.rs) | §18 NEW2.md interestingness scorecard: weighted target-band fit over `[crate::analytics]` metrics, five built-in profiles (political_sandbox / grim_collapse / mercantile / villainous / frontier). |
 | [src/briefing.rs](src/briefing.rs) | §9 NEW2.md briefing profiles: six audience presets (gm / navy / inquisition / trader / governor / public) that combine the existing intel redaction primitives with hidden-route, relations, claim, archetype, and orbital-asset stripping. |

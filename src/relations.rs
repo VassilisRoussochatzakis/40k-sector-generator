@@ -1,11 +1,13 @@
-//! Inter-faction diplomacy / relationship layer (§4 NEW.md).
+//! Inter-faction diplomacy / relationship layer (§4 NEW.md, §5 NEW2.md).
 //!
 //! For every unordered pair of factions present in the sector this derives a
-//! single canonical stance (Allied … At War) plus a short cause-text. Base
-//! stance is computed from `kind × kind` and `disposition × disposition`
-//! rules that ship as built-in defaults; users may extend or override them in
-//! `relations.toml` (catalogued under `inputs.relations` in
-//! `sectorforge.toml`). A small deterministic perturbation derived from
+//! canonical public / secret attitude, directional views from each side, a
+//! treaty status, numeric trust/fear/rivalry/economic/military/covert
+//! dimensions, and the legacy `stance` field used by older callers. Base stance
+//! is computed from `kind × kind` and `disposition × disposition` rules that
+//! ship as built-in defaults; users may extend or override them in
+//! `relations.toml` (catalogued under `inputs.relations` in `sectorforge.toml`).
+//! A small deterministic perturbation derived from
 //! `blake3("sectorforge:{seed}:relations:{a}:{b}")` breaks ties so two pairs
 //! with identical kind/disposition do not always pick the same direction.
 //!
@@ -81,6 +83,12 @@ impl Stance {
     }
 }
 
+impl Default for Stance {
+    fn default() -> Self {
+        Self::Neutral
+    }
+}
+
 // ── Config ─────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -102,6 +110,11 @@ pub struct RelationsConfig {
     /// pipeline entirely.
     #[serde(default)]
     pub pair_overrides: Vec<PairOverride>,
+    /// §5 NEW2.md richer overrides. These may pin public/secret attitudes,
+    /// treaty status, and selected numeric dimensions while leaving other
+    /// values derived.
+    #[serde(default)]
+    pub overrides: Vec<RelationOverride>,
     /// Whether the derived stance should bias the conflict tick (advisory).
     #[serde(default)]
     pub feed_conflict: bool,
@@ -135,6 +148,48 @@ pub struct PairOverride {
     pub cause: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct RelationOverride {
+    pub a: String,
+    pub b: String,
+    /// Symmetric public attitude override.
+    #[serde(default)]
+    pub public_attitude: Option<RelationAttitude>,
+    /// Symmetric secret attitude override.
+    #[serde(default)]
+    pub secret_attitude: Option<RelationAttitude>,
+    /// Directional override for `a → b`.
+    #[serde(default)]
+    pub a_public_attitude: Option<RelationAttitude>,
+    /// Directional override for `b → a`.
+    #[serde(default)]
+    pub b_public_attitude: Option<RelationAttitude>,
+    /// Directional override for `a → b`.
+    #[serde(default)]
+    pub a_secret_attitude: Option<RelationAttitude>,
+    /// Directional override for `b → a`.
+    #[serde(default)]
+    pub b_secret_attitude: Option<RelationAttitude>,
+    #[serde(default)]
+    pub treaty_status: Option<TreatyStatus>,
+    #[serde(default)]
+    pub trust: Option<u8>,
+    #[serde(default)]
+    pub fear: Option<u8>,
+    #[serde(default)]
+    pub rivalry: Option<u8>,
+    #[serde(default)]
+    pub ideological_distance: Option<u8>,
+    #[serde(default)]
+    pub economic_dependency: Option<u8>,
+    #[serde(default)]
+    pub military_pressure: Option<u8>,
+    #[serde(default)]
+    pub covert_activity: Option<u8>,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
 // ── Output DTOs ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -163,11 +218,152 @@ impl RelationsMatrix {
 pub struct FactionRelation {
     pub a: crate::ids::FactionId,
     pub b: crate::ids::FactionId,
+    /// Legacy canonical stance. In the NEW2 model this mirrors
+    /// `secret_stance`, because GM-facing / mechanical consumers need the
+    /// actual relationship rather than the public mask.
     pub stance: Stance,
+    #[serde(default)]
+    pub public_stance: Stance,
+    #[serde(default)]
+    pub secret_stance: Stance,
+    #[serde(default)]
+    pub public_attitude: RelationAttitude,
+    #[serde(default)]
+    pub secret_attitude: RelationAttitude,
+    #[serde(default)]
+    pub treaty_status: TreatyStatus,
+    #[serde(default)]
+    pub metrics: RelationMetrics,
+    #[serde(default)]
+    pub a_to_b: DirectionalRelation,
+    #[serde(default)]
+    pub b_to_a: DirectionalRelation,
     pub cause: String,
     /// 0..=100 derived from how often the pair co-occurs on contested worlds /
     /// active warzones. Pure read-only derivation.
     pub tension: f32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum RelationAttitude {
+    Allied,
+    Friendly,
+    Transactional,
+    Suspicious,
+    Hostile,
+    ExistentialEnemy,
+}
+
+impl RelationAttitude {
+    fn level(self) -> i32 {
+        match self {
+            Self::Allied => -2,
+            Self::Friendly => -1,
+            Self::Transactional => 0,
+            Self::Suspicious => 1,
+            Self::Hostile => 2,
+            Self::ExistentialEnemy => 3,
+        }
+    }
+
+    fn from_stance(s: Stance) -> Self {
+        match s {
+            Stance::Allied => Self::Allied,
+            Stance::Aligned => Self::Friendly,
+            Stance::Neutral => Self::Transactional,
+            Stance::Rival => Self::Suspicious,
+            Stance::Hostile => Self::Hostile,
+            Stance::AtWar => Self::ExistentialEnemy,
+        }
+    }
+
+    fn to_stance(self) -> Stance {
+        match self {
+            Self::Allied => Stance::Allied,
+            Self::Friendly => Stance::Aligned,
+            Self::Transactional => Stance::Neutral,
+            Self::Suspicious => Stance::Rival,
+            Self::Hostile => Stance::Hostile,
+            Self::ExistentialEnemy => Stance::AtWar,
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            Self::Allied => "Allied",
+            Self::Friendly => "Friendly",
+            Self::Transactional => "Transactional",
+            Self::Suspicious => "Suspicious",
+            Self::Hostile => "Hostile",
+            Self::ExistentialEnemy => "Existential Enemy",
+        }
+    }
+}
+
+impl Default for RelationAttitude {
+    fn default() -> Self {
+        Self::Transactional
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum TreatyStatus {
+    None,
+    Pact,
+    Truce,
+    Vassalage,
+    Charter,
+    Nonaggression,
+    Vendetta,
+}
+
+impl TreatyStatus {
+    fn label(self) -> &'static str {
+        match self {
+            Self::None => "None",
+            Self::Pact => "Pact",
+            Self::Truce => "Truce",
+            Self::Vassalage => "Vassalage",
+            Self::Charter => "Charter",
+            Self::Nonaggression => "Nonaggression",
+            Self::Vendetta => "Vendetta",
+        }
+    }
+}
+
+impl Default for TreatyStatus {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RelationMetrics {
+    pub trust: u8,
+    pub fear: u8,
+    pub rivalry: u8,
+    pub ideological_distance: u8,
+    pub economic_dependency: u8,
+    pub military_pressure: u8,
+    pub covert_activity: u8,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DirectionalRelation {
+    pub from: crate::ids::FactionId,
+    pub to: crate::ids::FactionId,
+    #[serde(default)]
+    pub public_attitude: RelationAttitude,
+    #[serde(default)]
+    pub secret_attitude: RelationAttitude,
+    #[serde(default)]
+    pub public_stance: Stance,
+    #[serde(default)]
+    pub secret_stance: Stance,
+    #[serde(default)]
+    pub metrics: RelationMetrics,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -456,16 +652,17 @@ fn compute_pair(
     for ov in &cfg.pair_overrides {
         let (lo, hi) = canonical_pair(&ov.a, &ov.b);
         if lo == a.id && hi == b.id {
-            return FactionRelation {
-                a: a.id.clone(),
-                b: b.id.clone(),
-                stance: ov.stance,
-                cause: ov
-                    .cause
+            let rel_override = matching_relation_override(cfg, a, b);
+            return build_relation(
+                a,
+                b,
+                ov.stance,
+                ov.cause
                     .clone()
                     .unwrap_or_else(|| format!("Override: {}", ov.stance.label())),
-                tension: tension_of(a, b, ov.stance, cooccur),
-            };
+                cooccur,
+                rel_override,
+            );
         }
     }
 
@@ -520,13 +717,313 @@ fn compute_pair(
 
     let stance = base_stance.shift(delta + perturb);
 
+    let rel_override = matching_relation_override(cfg, a, b);
+    build_relation(a, b, stance, cause, cooccur, rel_override)
+}
+
+fn build_relation(
+    a: &GeneratedFaction,
+    b: &GeneratedFaction,
+    base_stance: Stance,
+    mut cause: String,
+    cooccur: &BTreeMap<(String, String), CooccurStats>,
+    rel_override: Option<&RelationOverride>,
+) -> FactionRelation {
+    let stats = cooccur
+        .get(&canonical_pair(&a.id, &b.id))
+        .copied()
+        .unwrap_or_default();
+    let mut a_to_b = directional_view(a, b, base_stance, stats);
+    let mut b_to_a = directional_view(b, a, base_stance, stats);
+    let mut treaty_status = treaty_status_of(a, b, base_stance, stats);
+
+    if let Some(ov) = rel_override {
+        apply_relation_override(ov, &mut a_to_b, &mut b_to_a, &mut treaty_status);
+        if let Some(reason) = &ov.reason {
+            cause = reason.clone();
+        }
+    }
+
+    let public_attitude = max_attitude(a_to_b.public_attitude, b_to_a.public_attitude);
+    let secret_attitude = max_attitude(a_to_b.secret_attitude, b_to_a.secret_attitude);
+    let public_stance = public_attitude.to_stance();
+    let secret_stance = secret_attitude.to_stance();
+    let metrics = combine_metrics(a_to_b.metrics, b_to_a.metrics);
+
     FactionRelation {
         a: a.id.clone(),
         b: b.id.clone(),
-        stance,
+        stance: secret_stance,
+        public_stance,
+        secret_stance,
+        public_attitude,
+        secret_attitude,
+        treaty_status,
+        metrics,
+        a_to_b,
+        b_to_a,
         cause,
-        tension: tension_of(a, b, stance, cooccur),
+        tension: tension_of(a, b, secret_stance, cooccur),
     }
+}
+
+fn matching_relation_override<'a>(
+    cfg: &'a RelationsConfig,
+    a: &GeneratedFaction,
+    b: &GeneratedFaction,
+) -> Option<&'a RelationOverride> {
+    cfg.overrides.iter().find(|ov| {
+        let (lo, hi) = canonical_pair(&ov.a, &ov.b);
+        lo == a.id && hi == b.id
+    })
+}
+
+fn apply_relation_override(
+    ov: &RelationOverride,
+    a_to_b: &mut DirectionalRelation,
+    b_to_a: &mut DirectionalRelation,
+    treaty_status: &mut TreatyStatus,
+) {
+    if let Some(v) = ov.public_attitude {
+        a_to_b.public_attitude = v;
+        b_to_a.public_attitude = v;
+    }
+    if let Some(v) = ov.secret_attitude {
+        a_to_b.secret_attitude = v;
+        b_to_a.secret_attitude = v;
+    }
+    let config_a_is_first = ov.a == a_to_b.from.as_str();
+    if config_a_is_first {
+        if let Some(v) = ov.a_public_attitude {
+            a_to_b.public_attitude = v;
+        }
+        if let Some(v) = ov.b_public_attitude {
+            b_to_a.public_attitude = v;
+        }
+        if let Some(v) = ov.a_secret_attitude {
+            a_to_b.secret_attitude = v;
+        }
+        if let Some(v) = ov.b_secret_attitude {
+            b_to_a.secret_attitude = v;
+        }
+    } else {
+        if let Some(v) = ov.a_public_attitude {
+            b_to_a.public_attitude = v;
+        }
+        if let Some(v) = ov.b_public_attitude {
+            a_to_b.public_attitude = v;
+        }
+        if let Some(v) = ov.a_secret_attitude {
+            b_to_a.secret_attitude = v;
+        }
+        if let Some(v) = ov.b_secret_attitude {
+            a_to_b.secret_attitude = v;
+        }
+    }
+    if let Some(v) = ov.treaty_status {
+        *treaty_status = v;
+    }
+
+    for view in [a_to_b, b_to_a] {
+        view.public_stance = view.public_attitude.to_stance();
+        view.secret_stance = view.secret_attitude.to_stance();
+        if let Some(v) = ov.trust {
+            view.metrics.trust = v.min(100);
+        }
+        if let Some(v) = ov.fear {
+            view.metrics.fear = v.min(100);
+        }
+        if let Some(v) = ov.rivalry {
+            view.metrics.rivalry = v.min(100);
+        }
+        if let Some(v) = ov.ideological_distance {
+            view.metrics.ideological_distance = v.min(100);
+        }
+        if let Some(v) = ov.economic_dependency {
+            view.metrics.economic_dependency = v.min(100);
+        }
+        if let Some(v) = ov.military_pressure {
+            view.metrics.military_pressure = v.min(100);
+        }
+        if let Some(v) = ov.covert_activity {
+            view.metrics.covert_activity = v.min(100);
+        }
+    }
+}
+
+fn directional_view(
+    from: &GeneratedFaction,
+    to: &GeneratedFaction,
+    stance: Stance,
+    stats: CooccurStats,
+) -> DirectionalRelation {
+    let secret_attitude = RelationAttitude::from_stance(stance);
+    let public_attitude = public_attitude_for(from, to, secret_attitude, stats);
+    let public_stance = public_attitude.to_stance();
+    let secret_stance = secret_attitude.to_stance();
+    DirectionalRelation {
+        from: from.id.clone(),
+        to: to.id.clone(),
+        public_attitude,
+        secret_attitude,
+        public_stance,
+        secret_stance,
+        metrics: directional_metrics(from, to, secret_attitude, stats),
+    }
+}
+
+fn public_attitude_for(
+    from: &GeneratedFaction,
+    to: &GeneratedFaction,
+    secret: RelationAttitude,
+    stats: CooccurStats,
+) -> RelationAttitude {
+    if secret.level() < RelationAttitude::Hostile.level() {
+        return secret;
+    }
+    if is_hidden_kind(&from.kind) || from.disposition == "secretive" {
+        return RelationAttitude::Suspicious;
+    }
+    if is_hidden_kind(&to.kind) && stats.hidden_overlap > 0 {
+        return RelationAttitude::Suspicious;
+    }
+    secret
+}
+
+fn directional_metrics(
+    from: &GeneratedFaction,
+    to: &GeneratedFaction,
+    secret: RelationAttitude,
+    stats: CooccurStats,
+) -> RelationMetrics {
+    let ideology = ideological_distance(&from.kind, &to.kind, secret.to_stance());
+    let to_force = normalized_power(to.power.military + to.power.naval + to.power.logistical * 0.4);
+    let from_force =
+        normalized_power(from.power.military + from.power.naval + from.power.logistical * 0.4);
+    let to_econ = normalized_power(to.power.economic + to.power.industrial + to.power.logistical);
+    let from_econ =
+        normalized_power(from.power.economic + from.power.industrial + from.power.logistical);
+    let to_covert = normalized_power(to.power.covert);
+
+    let rivalry_base = match secret {
+        RelationAttitude::Allied => 0.0,
+        RelationAttitude::Friendly => 8.0,
+        RelationAttitude::Transactional => 18.0,
+        RelationAttitude::Suspicious => 42.0,
+        RelationAttitude::Hostile => 68.0,
+        RelationAttitude::ExistentialEnemy => 90.0,
+    };
+    let trust_base = match secret {
+        RelationAttitude::Allied => 88.0,
+        RelationAttitude::Friendly => 68.0,
+        RelationAttitude::Transactional => 45.0,
+        RelationAttitude::Suspicious => 26.0,
+        RelationAttitude::Hostile => 9.0,
+        RelationAttitude::ExistentialEnemy => 0.0,
+    };
+
+    let rivalry = clamp_score(
+        rivalry_base
+            + stats.contested_worlds as f32 * 7.0
+            + stats.claim_conflicts as f32 * 10.0
+            + stats.active_warzones as f32 * 10.0
+            + stats.route_competition * 0.45,
+    );
+    let military_pressure = clamp_score(
+        to_force * 0.65 + stats.military_pressure * 0.45 + stats.active_warzones as f32 * 14.0,
+    );
+    let covert_activity = clamp_score(
+        to_covert * 0.75
+            + stats.covert_activity * 0.5
+            + if is_hidden_kind(&to.kind) { 18.0 } else { 0.0 },
+    );
+    let economic_dependency = clamp_score(
+        from_econ.min(to_econ) * 0.55
+            + stats.economic_dependency * 0.55
+            + if is_merchant_kind(&from.kind) || is_merchant_kind(&to.kind) {
+                8.0
+            } else {
+                0.0
+            },
+    );
+    let fear = clamp_score(
+        match secret {
+            RelationAttitude::Allied => 5.0,
+            RelationAttitude::Friendly => 10.0,
+            RelationAttitude::Transactional => 20.0,
+            RelationAttitude::Suspicious => 35.0,
+            RelationAttitude::Hostile => 55.0,
+            RelationAttitude::ExistentialEnemy => 78.0,
+        } + military_pressure as f32 * 0.35
+            + covert_activity as f32 * 0.12
+            + (to_force - from_force).max(0.0) * 0.5,
+    );
+    let trust = clamp_score(
+        trust_base + economic_dependency as f32 * 0.12
+            - rivalry as f32 * 0.24
+            - ideology as f32 * 0.18
+            - covert_activity as f32 * 0.08,
+    );
+
+    RelationMetrics {
+        trust,
+        fear,
+        rivalry,
+        ideological_distance: ideology,
+        economic_dependency,
+        military_pressure,
+        covert_activity,
+    }
+}
+
+fn combine_metrics(a: RelationMetrics, b: RelationMetrics) -> RelationMetrics {
+    RelationMetrics {
+        trust: ((u16::from(a.trust) + u16::from(b.trust)) / 2) as u8,
+        fear: a.fear.max(b.fear),
+        rivalry: a.rivalry.max(b.rivalry),
+        ideological_distance: a.ideological_distance.max(b.ideological_distance),
+        economic_dependency: a.economic_dependency.max(b.economic_dependency),
+        military_pressure: a.military_pressure.max(b.military_pressure),
+        covert_activity: a.covert_activity.max(b.covert_activity),
+    }
+}
+
+fn max_attitude(a: RelationAttitude, b: RelationAttitude) -> RelationAttitude {
+    if a.level() >= b.level() {
+        a
+    } else {
+        b
+    }
+}
+
+fn treaty_status_of(
+    a: &GeneratedFaction,
+    b: &GeneratedFaction,
+    stance: Stance,
+    stats: CooccurStats,
+) -> TreatyStatus {
+    if stats.claim_conflicts > 0 && matches!(stance, Stance::Hostile | Stance::AtWar) {
+        return TreatyStatus::Vendetta;
+    }
+    if matches!(stance, Stance::AtWar) {
+        return TreatyStatus::Vendetta;
+    }
+    if matches!(stance, Stance::Hostile) && stats.active_warzones == 0 {
+        return TreatyStatus::Nonaggression;
+    }
+    if cross_kinds(&a.kind, &b.kind, IMPERIAL_KINDS, MERCHANT_KINDS) {
+        return TreatyStatus::Charter;
+    }
+    if cross_kinds(&a.kind, &b.kind, IMPERIAL_KINDS, &["mechanicus"]) {
+        return TreatyStatus::Pact;
+    }
+    if matches!(stance, Stance::Allied | Stance::Aligned) && stats.economic_dependency > 35.0 {
+        return TreatyStatus::Pact;
+    }
+    if matches!(stance, Stance::Rival) && stats.contested_worlds > 0 {
+        return TreatyStatus::Truce;
+    }
+    TreatyStatus::None
 }
 
 fn match_cause(a: &GeneratedFaction, b: &GeneratedFaction) -> String {
@@ -541,6 +1038,96 @@ fn canonical_pair(a: &str, b: &str) -> (String, String) {
     }
 }
 
+fn cross_kinds(a: &str, b: &str, g1: &[&str], g2: &[&str]) -> bool {
+    (in_group(a, g1) && in_group(b, g2)) || (in_group(a, g2) && in_group(b, g1))
+}
+
+fn is_hidden_kind(kind: &str) -> bool {
+    in_group(kind, GSC_KINDS)
+        || in_group(kind, CRIMINAL_KINDS)
+        || in_group(kind, DRUKHARI_KINDS)
+        || in_group(kind, AELDARI_KINDS)
+        || kind == "cult"
+        || kind == "harlequin"
+}
+
+fn is_merchant_kind(kind: &str) -> bool {
+    in_group(kind, MERCHANT_KINDS) || kind == "rogue_trader"
+}
+
+fn ideology_group(kind: &str) -> &'static str {
+    if in_group(kind, IMPERIAL_KINDS) {
+        "imperial"
+    } else if in_group(kind, CHAOS_KINDS) {
+        "chaos"
+    } else if in_group(kind, AELDARI_KINDS) || in_group(kind, DRUKHARI_KINDS) {
+        "aeldari"
+    } else if in_group(kind, TAU_KINDS) {
+        "tau"
+    } else if in_group(kind, ORK_KINDS) {
+        "ork"
+    } else if in_group(kind, NECRON_KINDS) {
+        "necron"
+    } else if in_group(kind, TYRANID_KINDS) || in_group(kind, GSC_KINDS) {
+        "hive"
+    } else if in_group(kind, VOTANN_KINDS) {
+        "votann"
+    } else if in_group(kind, MERCHANT_KINDS) {
+        "merchant"
+    } else if in_group(kind, CRIMINAL_KINDS) {
+        "criminal"
+    } else if in_group(kind, REBEL_KINDS) {
+        "rebel"
+    } else {
+        "misc"
+    }
+}
+
+fn ideological_distance(a: &str, b: &str, stance: Stance) -> u8 {
+    if a == b {
+        return 5;
+    }
+    let ga = ideology_group(a);
+    let gb = ideology_group(b);
+    if ga == gb {
+        return match ga {
+            "chaos" | "ork" | "criminal" => 45,
+            "imperial" | "aeldari" | "merchant" => 22,
+            _ => 30,
+        };
+    }
+    if matches!(
+        (ga, gb),
+        ("imperial", "chaos")
+            | ("chaos", "imperial")
+            | ("imperial", "hive")
+            | ("hive", "imperial")
+            | ("chaos", "aeldari")
+            | ("aeldari", "chaos")
+    ) {
+        return 100;
+    }
+    if ga == "necron" || gb == "necron" || ga == "hive" || gb == "hive" {
+        return 90;
+    }
+    match stance {
+        Stance::Allied => 20,
+        Stance::Aligned => 30,
+        Stance::Neutral => 45,
+        Stance::Rival => 65,
+        Stance::Hostile => 82,
+        Stance::AtWar => 96,
+    }
+}
+
+fn normalized_power(v: f32) -> f32 {
+    ((v.max(0.0) + 1.0).ln() * 12.0).clamp(0.0, 100.0)
+}
+
+fn clamp_score(v: f32) -> u8 {
+    v.round().clamp(0.0, 100.0) as u8
+}
+
 // ── Tension scalar ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -548,35 +1135,54 @@ struct CooccurStats {
     contested_worlds: u32,
     same_system_worlds: u32,
     active_warzones: u32,
+    claim_conflicts: u32,
+    hidden_overlap: u32,
+    route_competition: f32,
+    economic_dependency: f32,
+    military_pressure: f32,
+    covert_activity: f32,
 }
 
 fn build_cooccurrence(sector: &GeneratedSector) -> BTreeMap<(String, String), CooccurStats> {
     let mut out: BTreeMap<(String, String), CooccurStats> = BTreeMap::new();
-    let bump = |out: &mut BTreeMap<(String, String), CooccurStats>,
-                a: &str,
-                b: &str,
-                f: fn(&mut CooccurStats)| {
-        if a == b {
-            return;
-        }
-        let key = canonical_pair(a, b);
-        let entry = out.entry(key).or_default();
-        f(entry);
-    };
-
     for sys in &sector.systems {
         for world in &sys.worlds {
-            let ids: Vec<&str> = world
-                .factions
-                .iter()
-                .map(|p| p.faction_id.as_str())
-                .collect();
-            for i in 0..ids.len() {
-                for j in (i + 1)..ids.len() {
-                    bump(&mut out, ids[i], ids[j], |s| s.same_system_worlds += 1);
+            for i in 0..world.factions.len() {
+                for j in (i + 1)..world.factions.len() {
+                    let pa = &world.factions[i];
+                    let pb = &world.factions[j];
+                    let a = pa.faction_id.as_str();
+                    let b = pb.faction_id.as_str();
+                    bump_cooccur(&mut out, a, b, |s| {
+                        s.same_system_worlds += 1;
+                        s.economic_dependency += pa.dimensions.economic.min(pb.dimensions.economic)
+                            * 0.06
+                            + pa.dimensions.logistics.min(pb.dimensions.logistics) * 0.04;
+                        s.military_pressure += (pa.dimensions.military + pa.dimensions.orbital)
+                            .max(pb.dimensions.military + pb.dimensions.orbital)
+                            * 0.04;
+                        s.covert_activity += pa.dimensions.covert.max(pb.dimensions.covert) * 0.05;
+                        if matches!(pa.influence, crate::sector_model::FactionInfluence::Hidden)
+                            || matches!(pb.influence, crate::sector_model::FactionInfluence::Hidden)
+                            || pa.dimensions.visibility < 25.0
+                            || pb.dimensions.visibility < 25.0
+                        {
+                            s.hidden_overlap += 1;
+                        }
+                    });
                     if world.control.contested {
-                        bump(&mut out, ids[i], ids[j], |s| s.contested_worlds += 1);
+                        bump_cooccur(&mut out, a, b, |s| s.contested_worlds += 1);
                     }
+                }
+            }
+            for i in 0..world.claims.len() {
+                for j in (i + 1)..world.claims.len() {
+                    bump_cooccur(
+                        &mut out,
+                        world.claims[i].faction_id.as_str(),
+                        world.claims[j].faction_id.as_str(),
+                        |s| s.claim_conflicts += 1,
+                    );
                 }
             }
         }
@@ -592,12 +1198,52 @@ fn build_cooccurrence(sector: &GeneratedSector) -> BTreeMap<(String, String), Co
             let ids: Vec<&str> = sys_ids.into_iter().collect();
             for i in 0..ids.len() {
                 for j in (i + 1)..ids.len() {
-                    bump(&mut out, ids[i], ids[j], |s| s.active_warzones += 1);
+                    bump_cooccur(&mut out, ids[i], ids[j], |s| s.active_warzones += 1);
                 }
             }
         }
     }
+    for route in &sector.routes {
+        for i in 0..route.controls.len() {
+            for j in (i + 1)..route.controls.len() {
+                let a = &route.controls[i];
+                let b = &route.controls[j];
+                bump_cooccur(
+                    &mut out,
+                    a.faction_id.as_str(),
+                    b.faction_id.as_str(),
+                    |s| {
+                        s.route_competition += a.patrol.min(b.patrol) * 0.15
+                            + a.toll.min(b.toll) * 0.20
+                            + a.interdiction.min(b.interdiction) * 0.25
+                            + a.piracy.min(b.piracy) * 0.25;
+                        s.economic_dependency += a.toll.min(b.toll) * 0.20;
+                        s.military_pressure += (a.patrol + a.interdiction + a.piracy)
+                            .max(b.patrol + b.interdiction + b.piracy)
+                            * 0.10;
+                        s.covert_activity +=
+                            a.secrecy.max(b.secrecy) * 0.10 + a.piracy.max(b.piracy) * 0.10;
+                        if a.secrecy.max(b.secrecy) >= 65.0 {
+                            s.hidden_overlap += 1;
+                        }
+                    },
+                );
+            }
+        }
+    }
     out
+}
+
+fn bump_cooccur<F>(out: &mut BTreeMap<(String, String), CooccurStats>, a: &str, b: &str, f: F)
+where
+    F: FnOnce(&mut CooccurStats),
+{
+    if a == b {
+        return;
+    }
+    let key = canonical_pair(a, b);
+    let entry = out.entry(key).or_default();
+    f(entry);
 }
 
 fn tension_of(
@@ -619,7 +1265,11 @@ fn tension_of(
     let raw = stance_bonus
         + stats.contested_worlds as f32 * 8.0
         + stats.active_warzones as f32 * 10.0
-        + stats.same_system_worlds as f32 * 1.5;
+        + stats.same_system_worlds as f32 * 1.5
+        + stats.claim_conflicts as f32 * 6.0
+        + stats.route_competition * 0.4
+        + stats.military_pressure * 0.2
+        + stats.covert_activity * 0.1;
     raw.clamp(0.0, 100.0)
 }
 
@@ -662,8 +1312,13 @@ pub fn render_markdown(report: &RelationsReport) -> String {
         for r in at_war {
             let _ = writeln!(
                 s,
-                "- **{} ↔ {}** — {} (tension {:.0})",
-                r.a, r.b, r.cause, r.tension
+                "- **{} ↔ {}** — {} / {} (tension {:.0}; {})",
+                r.a,
+                r.b,
+                r.public_attitude.label(),
+                r.secret_attitude.label(),
+                r.tension,
+                r.cause
             );
         }
     }
@@ -678,25 +1333,68 @@ pub fn render_markdown(report: &RelationsReport) -> String {
         for r in hot {
             let _ = writeln!(
                 s,
-                "- {} ↔ {} — {} (tension {:.0})",
-                r.a, r.b, r.cause, r.tension
+                "- {} ↔ {} — {} / {} (tension {:.0}; {})",
+                r.a,
+                r.b,
+                r.public_attitude.label(),
+                r.secret_attitude.label(),
+                r.tension,
+                r.cause
             );
         }
     }
 
     let _ = writeln!(s, "\n## Full matrix");
-    let _ = writeln!(s, "\n| A | B | Stance | Tension | Cause |");
-    let _ = writeln!(s, "|---|---|--------|---------|-------|");
+    let _ = writeln!(
+        s,
+        "\n| A | B | Public | Secret | Treaty | Trust | Fear | Rivalry | Ideology | Econ | Military | Covert | Tension | Cause |"
+    );
+    let _ = writeln!(
+        s,
+        "|---|---|--------|--------|--------|------:|-----:|--------:|---------:|-----:|---------:|-------:|--------:|-------|"
+    );
     for r in &report.matrix.pairs {
         let _ = writeln!(
             s,
-            "| {} | {} | {} | {:.0} | {} |",
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0} | {} |",
             r.a,
             r.b,
-            r.stance.label(),
+            r.public_attitude.label(),
+            r.secret_attitude.label(),
+            r.treaty_status.label(),
+            r.metrics.trust,
+            r.metrics.fear,
+            r.metrics.rivalry,
+            r.metrics.ideological_distance,
+            r.metrics.economic_dependency,
+            r.metrics.military_pressure,
+            r.metrics.covert_activity,
             r.tension,
             r.cause
         );
+    }
+    let _ = writeln!(s, "\n## Faction dossiers");
+    let mut by_faction: BTreeMap<&str, Vec<&FactionRelation>> = BTreeMap::new();
+    for r in &report.matrix.pairs {
+        by_faction.entry(r.a.as_str()).or_default().push(r);
+        by_faction.entry(r.b.as_str()).or_default().push(r);
+    }
+    for (fid, rels) in by_faction {
+        let _ = writeln!(s, "\n### {fid}");
+        for r in rels.into_iter().take(8) {
+            let other = if r.a == fid { &r.b } else { &r.a };
+            let view = if r.a == fid { &r.a_to_b } else { &r.b_to_a };
+            let _ = writeln!(
+                s,
+                "- {}: public {}, secret {}, trust {}, fear {}, rivalry {}",
+                other,
+                view.public_attitude.label(),
+                view.secret_attitude.label(),
+                view.metrics.trust,
+                view.metrics.fear,
+                view.metrics.rivalry
+            );
+        }
     }
     s
 }
@@ -805,6 +1503,65 @@ mod tests {
             &cfg,
         );
         assert_eq!(m.stance_between("imp", "chaos"), Some(Stance::Allied));
+    }
+
+    #[test]
+    fn rich_override_sets_public_secret_attitudes() {
+        let mut cfg = RelationsConfig::default();
+        cfg.overrides.push(RelationOverride {
+            a: "imp".into(),
+            b: "trader".into(),
+            public_attitude: Some(RelationAttitude::Friendly),
+            secret_attitude: Some(RelationAttitude::Hostile),
+            treaty_status: Some(TreatyStatus::Charter),
+            trust: Some(35),
+            rivalry: Some(70),
+            reason: Some("disputed charter".into()),
+            ..RelationOverride::default()
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("imp", "imperial", "lawful"),
+                faction("trader", "merchant", "opportunistic"),
+            ]),
+            &cfg,
+        );
+        let rel = m
+            .pairs
+            .iter()
+            .find(|p| p.a == "imp" && p.b == "trader")
+            .unwrap();
+        assert_eq!(rel.public_attitude, RelationAttitude::Friendly);
+        assert_eq!(rel.secret_attitude, RelationAttitude::Hostile);
+        assert_eq!(rel.stance, Stance::Hostile);
+        assert_eq!(rel.treaty_status, TreatyStatus::Charter);
+        assert_eq!(rel.metrics.trust, 35);
+        assert_eq!(rel.metrics.rivalry, 70);
+        assert_eq!(rel.cause, "disputed charter");
+    }
+
+    #[test]
+    fn directional_override_follows_config_order() {
+        let mut cfg = RelationsConfig::default();
+        cfg.overrides.push(RelationOverride {
+            a: "zeta".into(),
+            b: "alpha".into(),
+            a_secret_attitude: Some(RelationAttitude::Suspicious),
+            b_secret_attitude: Some(RelationAttitude::Hostile),
+            ..RelationOverride::default()
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("alpha", "imperial", "lawful"),
+                faction("zeta", "merchant", "opportunistic"),
+            ]),
+            &cfg,
+        );
+        let rel = &m.pairs[0];
+        assert_eq!(rel.a, "alpha");
+        assert_eq!(rel.b, "zeta");
+        assert_eq!(rel.a_to_b.secret_attitude, RelationAttitude::Hostile);
+        assert_eq!(rel.b_to_a.secret_attitude, RelationAttitude::Suspicious);
     }
 
     #[test]

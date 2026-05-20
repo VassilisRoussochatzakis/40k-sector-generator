@@ -89,8 +89,9 @@ pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use regions::{load_regions_file, RegionConditionKind, RegionsConfig, RegionsFile, WarpRegion};
 pub use relations::{
-    load_relations_file, FactionRelation, RelationsConfig, RelationsFile, RelationsMatrix,
-    RelationsReport, Stance,
+    load_relations_file, DirectionalRelation, FactionRelation, RelationAttitude, RelationMetrics,
+    RelationOverride, RelationsConfig, RelationsFile, RelationsMatrix, RelationsReport, Stance,
+    TreatyStatus,
 };
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
 pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
@@ -610,14 +611,14 @@ pub fn write_prose(
     prose::write_report(output_dir.as_ref(), report)
 }
 
-/// §4 NEW.md: derive the inter-faction diplomacy matrix for a generated
+/// §5 NEW2.md: derive the inter-faction diplomacy matrix for a generated
 /// sector. Pure read-only over `sector.factions` + co-occurrence in worlds.
 #[must_use]
 pub fn derive_relations(sector: &GeneratedSector) -> relations::RelationsMatrix {
     relations::derive(sector)
 }
 
-/// §4 NEW.md: derive the matrix with an explicit configuration (rules /
+/// §5 NEW2.md: derive the matrix with an explicit configuration (rules /
 /// overrides loaded from `relations.toml`).
 #[must_use]
 pub fn derive_relations_with(
@@ -627,7 +628,7 @@ pub fn derive_relations_with(
     relations::derive_with(sector, cfg)
 }
 
-/// §4 NEW.md: write `relations.md` + `relations.json` into a directory.
+/// §5 NEW2.md: write `relations.md` + `relations.json` into a directory.
 ///
 /// # Errors
 ///

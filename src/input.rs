@@ -21,7 +21,7 @@ pub struct ProjectInput {
     pub names: NameTables,
     pub factions: Vec<FactionDef>,
     pub route_rules: RouteRules,
-    /// §4 NEW.md: parsed `relations.toml`, default empty when `inputs.relations`
+    /// §5 NEW2.md: parsed `relations.toml`, default empty when `inputs.relations`
     /// is unset.
     pub relations: crate::relations::RelationsConfig,
     /// §5 NEW.md: parsed `regions.toml`, default disabled when unset.

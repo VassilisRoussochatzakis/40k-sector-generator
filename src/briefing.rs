@@ -57,6 +57,10 @@ pub struct BriefingProfile {
     /// is cleared from the briefing-side clone.
     #[serde(default)]
     pub show_relations: bool,
+    /// When false, relations keep public attitudes but secret attitudes /
+    /// secret stances are replaced with public values.
+    #[serde(default = "default_true")]
+    pub show_secret_relations: bool,
     /// When set, only routes / worlds touching these faction ids survive.
     /// Empty = no faction-presence filter.
     #[serde(default)]
@@ -93,6 +97,7 @@ impl Default for BriefingProfile {
             minimum_intel_confidence: default_min_conf(),
             include_hidden_routes: true,
             show_relations: true,
+            show_secret_relations: true,
             restrict_to_factions: Vec::new(),
             redact_unknown_factions: false,
             show_claims: true,
@@ -138,18 +143,21 @@ impl AudiencePreset {
             Self::ImperialNavy => {
                 p.include_hidden_routes = false;
                 p.show_relations = true;
+                p.show_secret_relations = false;
                 p.show_archetype_state = true;
                 p.minimum_intel_confidence = p.minimum_intel_confidence.max(20);
             }
             Self::Inquisition => {
                 p.include_hidden_routes = true;
                 p.show_relations = true;
+                p.show_secret_relations = true;
                 p.show_archetype_state = true;
                 p.minimum_intel_confidence = p.minimum_intel_confidence.min(20);
             }
             Self::RogueTrader => {
                 p.include_hidden_routes = false;
                 p.show_relations = false;
+                p.show_secret_relations = false;
                 p.show_archetype_state = false;
                 p.show_blockades = true;
                 p.minimum_intel_confidence = p.minimum_intel_confidence.max(40);
@@ -157,6 +165,7 @@ impl AudiencePreset {
             Self::LocalGovernor => {
                 p.include_hidden_routes = false;
                 p.show_relations = false;
+                p.show_secret_relations = false;
                 p.show_archetype_state = false;
                 p.show_blockades = false;
                 p.show_orbital_assets = false;
@@ -166,6 +175,7 @@ impl AudiencePreset {
             Self::PublicAtlas => {
                 p.include_hidden_routes = false;
                 p.show_relations = false;
+                p.show_secret_relations = false;
                 p.show_archetype_state = false;
                 p.show_blockades = false;
                 p.show_claims = false;
@@ -252,6 +262,16 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
     // Relations.
     if !p.show_relations {
         out.relations = Default::default();
+    } else if !p.show_secret_relations {
+        for rel in &mut out.relations.pairs {
+            rel.secret_attitude = rel.public_attitude;
+            rel.secret_stance = rel.public_stance;
+            rel.stance = rel.public_stance;
+            rel.a_to_b.secret_attitude = rel.a_to_b.public_attitude;
+            rel.a_to_b.secret_stance = rel.a_to_b.public_stance;
+            rel.b_to_a.secret_attitude = rel.b_to_a.public_attitude;
+            rel.b_to_a.secret_stance = rel.b_to_a.public_stance;
+        }
     }
 
     // Drop unknown factions from top-level list.

@@ -1,8 +1,10 @@
-# §4 NEW.md — Inter-faction diplomacy rules.
+# §5 NEW2.md — Inter-faction diplomacy / attitude matrix rules.
 #
 # All fields optional. Missing kind pairs fall through to the built-in
 # defaults (Imperial↔Chaos = AtWar, etc.) shipped in `src/relations.rs`.
-# Per-pair overrides (by faction id) bypass the kind/disposition pipeline.
+# Legacy per-pair overrides (by faction id) bypass the kind/disposition
+# pipeline. Rich overrides can additionally pin public/secret attitudes,
+# treaty status, and relation dimensions.
 
 [relations]
 # Whether the derived matrix biases the conflict tick (advisory). The
@@ -35,3 +37,16 @@ cause = "Mutual escalation of zeal and hostility"
 # b = "free_traders"
 # stance = "aligned"
 # cause = "Charter granted under Lex Imperialis"
+
+# Rich NEW2 override. `public_attitude` / `secret_attitude` apply
+# symmetrically; `a_public_attitude`, `b_secret_attitude`, etc. can make the
+# relation asymmetric.
+# [[relations.overrides]]
+# a = "fac-house-vorn"
+# b = "fac-rogue-trader-cassian"
+# public_attitude = "friendly"
+# secret_attitude = "hostile"
+# treaty_status = "charter"
+# trust = 35
+# rivalry = 70
+# reason = "Succession debt and a disputed charter"

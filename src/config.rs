@@ -47,8 +47,8 @@ pub struct InputConfig {
     pub route_rules: Option<String>,
     #[serde(default)]
     pub generation_profiles: Option<String>,
-    /// §4 NEW.md: optional `relations.toml` with kind/disposition rules and
-    /// per-pair overrides.
+    /// §5 NEW2.md: optional `relations.toml` with kind/disposition rules,
+    /// legacy stance pins, and public/secret attitude overrides.
     #[serde(default)]
     pub relations: Option<String>,
     /// §5 NEW.md: optional `regions.toml` with the condition catalogue and

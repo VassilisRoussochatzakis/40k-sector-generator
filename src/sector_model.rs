@@ -33,7 +33,7 @@ pub struct GeneratedSector {
     /// when no factions or routes exist.
     #[serde(default)]
     pub power_projection: crate::power_projection::PowerProjectionMap,
-    /// §4 NEW.md: inter-faction diplomacy / relationship matrix. Empty when
+    /// §5 NEW2.md: inter-faction diplomacy / relationship matrix. Empty when
     /// fewer than two factions exist or relations derivation is skipped.
     #[serde(default)]
     pub relations: crate::relations::RelationsMatrix,

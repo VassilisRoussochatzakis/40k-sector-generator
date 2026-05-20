@@ -329,8 +329,8 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 }
 
-/// §4 NEW.md: preflight `relations.toml`. Surface unknown faction-ids in
-/// `pair_overrides` and obvious typos in disposition rules.
+/// §5 NEW2.md: preflight `relations.toml`. Surface unknown faction ids in
+/// overrides and obvious typos in disposition rules.
 fn validate_relations(
     cfg: &crate::relations::RelationsConfig,
     factions: &[crate::factions::FactionDef],
@@ -350,6 +350,21 @@ fn validate_relations(
                         "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
                     path: Some(format!("relations.pair_overrides[{i}].{slot}")),
+                    row: None,
+                    severity: Severity::Error,
+                });
+            }
+        }
+    }
+    for (i, ov) in cfg.overrides.iter().enumerate() {
+        for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
+            if !known_ids.contains(id.as_str()) {
+                errors.push(ValidationIssue {
+                    code: "RELATIONS_OVERRIDE_UNKNOWN_FACTION".into(),
+                    message: format!(
+                        "relations.overrides[{i}].{slot} = '{id}' is not a known faction id"
+                    ),
+                    path: Some(format!("relations.overrides[{i}].{slot}")),
                     row: None,
                     severity: Severity::Error,
                 });

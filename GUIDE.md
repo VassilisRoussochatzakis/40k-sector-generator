@@ -98,6 +98,9 @@ unless `--allow-warnings` is passed.
 | `--seed <SEED>` | Override `[generation].seed` from `sectorforge.toml` |
 | `--out <DIR>` | Override `[outputs].directory` |
 | `--allow-warnings` | Continue past warnings (errors still block) |
+| `--heatmap <MODE>` | Override `[outputs.bitmap].heatmap` for PNG exports |
+| `--theme <NAME>` | Override `[outputs.bitmap.theme].name` for PNG exports |
+| `--no-faction-fill` | Disable dominant-faction tinting on PNG maps |
 
 ### `sectorforge generate-system --project <DIR>`
 
@@ -915,6 +918,17 @@ heatmap             = "off"      # §10: per-system heatmap tint applied to the 
                                  #         covert | faith | threat | intel
                                  #         tension (§4)         — sum of hostile/at-war pair tensions
                                  #         trade_volume (§12)   — sum of incident route volumes
+# theme_file        = "data/map_themes/navis.toml" # optional; project-relative, digested into manifest.input_digests
+
+[outputs.bitmap.theme]
+name = "gm_dark"                 # gm_dark | print_mono | imperial_archive | navis_tactical | inquisition_redacted | subsector_political
+# Optional inline overrides accept #RRGGBB or #RRGGBBAA:
+# background = "#05070a"
+# show_subsector_borders = true
+# route_line_mode = "hazard_weighted"   # standard | hazard_weighted
+# label_density = "all"                 # all | important_only | none
+# legend = "full"                       # full | compact | hidden
+# symbol_set = "standard"               # standard | tactical | redacted
 
 # §11 NEW.md: self-contained interactive HTML map. Only honoured when
 # `"html"` is listed in `formats` above. Output is byte-deterministic from
@@ -930,8 +944,27 @@ size_warn_bytes     = 8388608       # warn (stderr) above this; does not block
 compact_json        = true          # pretty JSON would ~double the file size
 ```
 
-The CLI accepts `--heatmap <mode>` and `--no-faction-fill` on `generate` to
-override the project's bitmap settings without editing the TOML.
+The CLI accepts `--heatmap <mode>`, `--theme <name>`, and
+`--no-faction-fill` on `generate` to override bitmap settings without editing
+the TOML. `theme_file` is read through the project loader, so its BLAKE3 digest
+appears in `manifest.input_digests`; inline theme overrides are already covered
+by the `sectorforge.toml` digest.
+
+Map themes are presentation-only. They do not alter generated sector data,
+route topology, faction placement, or JSON/Markdown/CSV facts. The built-ins
+are:
+
+| Theme | Use |
+|---|---|
+| `gm_dark` | Default high-contrast screen map |
+| `print_mono` | Black-and-white printable handout |
+| `imperial_archive` | Parchment/gazetteer style |
+| `navis_tactical` | Route-first naval chart; compact legend; important labels |
+| `inquisition_redacted` | Classified red/black briefing style |
+| `subsector_political` | Strong subsector borders and faction tinting |
+
+For compatibility with the proposal syntax, a top-level `[map_theme]` table is
+also accepted and merged into `[outputs.bitmap.theme]`.
 
 ### `data/names/system_names.toml`
 
@@ -1377,9 +1410,9 @@ navigation bar:
   [src/presets.rs](src/presets.rs) and
   [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs).
 
-The GUI also supports exporting bitmap PNGs at a configurable scale:
+The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
 sector overview, a single system map, or all per-system maps. The current
-HEATMAP selection in the sector view is carried into the exported PNG.
+HEATMAP selection in the sector view is carried into the exported sector PNG.
 
 ### Launching the GUI
 
@@ -1474,7 +1507,8 @@ Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`
 `InvariantViolation`, `GeneratedSector`, `GeneratedSystem`, `HexCoord`,
 `Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
 `ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
-`ValidationIssue`, `ValidationReport`.
+`MapTheme`, `MapThemeConfig`, `LabelDensity`, `LegendStyle`,
+`RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`.
 
 ### Typed identifiers
 
@@ -1655,9 +1689,10 @@ across runs, so a regression check is a diff away.
 | [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system). Includes faction display buckets (§15) and per-world / per-system stability (§11.1) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers + bundle export |
 | [src/html_export.rs](src/html_export.rs) | §11 NEW.md self-contained interactive HTML map: inlines sector JSON + theme CSS + vanilla-JS canvas renderer; supports player-edition redaction via the intel layer. Byte-deterministic. |
-| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + legend |
+| [src/map_theme.rs](src/map_theme.rs) | §13 NEW2.md bitmap map themes: built-in palettes, custom TOML theme parsing, color validation, label/legend/route/symbol style knobs |
+| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + themed legend |
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
-| [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` to halo each planet by its dominant faction (§8) |
+| [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` plus bitmap map themes |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/analytics.rs](src/analytics.rs) | §8 old/DONE.md analytics dashboard: faction balance + connectivity + flags |

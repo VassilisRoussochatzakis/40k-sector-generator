@@ -550,7 +550,7 @@ Why this matters: the proposed feature set adds many new serialized structures. 
 
 ---
 
-## 13. Themeable Map Rendering and Symbol Sets
+## 13. Themeable Map Rendering and Symbol Sets (DONE)
 
 The bitmap export is already useful, with hex grids, systems, routes, faction tinting, subsector borders, legends, glyphs, and integer scale. A theme system would let users produce maps for different purposes without changing sector data.
 

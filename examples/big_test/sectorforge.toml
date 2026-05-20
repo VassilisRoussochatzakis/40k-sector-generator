@@ -62,3 +62,6 @@ sector_scale = 3
 system_scale = 2
 render_systems = true
 
+[outputs.bitmap.theme]
+name = "gm_dark"
+

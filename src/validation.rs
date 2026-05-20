@@ -103,6 +103,13 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             ));
         }
     }
+    if let Err(message) = crate::map_theme::resolve_map_theme(&bm.theme) {
+        errors.push(issue(
+            "OUT_BITMAP_THEME_INVALID",
+            &format!("outputs.bitmap.theme invalid: {message}"),
+            Severity::Error,
+        ));
+    }
 
     // ── World workbook ──────────────────────────────────────────────────────
     let pool = world_pool::build_pool(

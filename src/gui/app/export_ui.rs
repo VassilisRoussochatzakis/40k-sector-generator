@@ -55,6 +55,19 @@ impl App {
                         RichText::new("Ultra (5x)").monospace(),
                     );
                 });
+                ui.add_space(8.0);
+                ui.label(RichText::new("Theme").color(TEXT_DIM).monospace());
+                egui::ComboBox::from_id_salt("png_export_theme")
+                    .selected_text(RichText::new(&self.export_theme_name).monospace())
+                    .show_ui(ui, |ui| {
+                        for name in crate::map_theme::BUILTIN_THEME_NAMES {
+                            ui.selectable_value(
+                                &mut self.export_theme_name,
+                                (*name).to_string(),
+                                RichText::new(*name).monospace(),
+                            );
+                        }
+                    });
                 ui.add_space(10.0);
                 ui.horizontal(|ui| {
                     if ui.button(RichText::new("EXPORT").monospace()).clicked() {
@@ -101,6 +114,7 @@ impl App {
                 let opts = crate::bitmap::RenderOptions {
                     faction_fill: true,
                     heatmap: self.heatmap_mode,
+                    theme: self.export_theme(),
                 };
                 match crate::bitmap::write_sector_png_to_with(&sector, &p, scale, subs, opts) {
                     Ok(()) => self.export_status = format!("exported {}", p),
@@ -115,7 +129,10 @@ impl App {
                     self.export_status = "path is not valid utf-8".into();
                     return;
                 };
-                let sys_opts = crate::system_map::SystemRenderOptions { faction_fill: true };
+                let sys_opts = crate::system_map::SystemRenderOptions {
+                    faction_fill: true,
+                    theme: self.export_theme(),
+                };
                 match crate::system_map::write_system_maps(&sector, &p, scale, sys_opts) {
                     Ok(()) => {
                         self.export_status = format!(
@@ -144,7 +161,10 @@ impl App {
                     self.export_status = "path is not valid utf-8".into();
                     return;
                 };
-                let sys_opts = crate::system_map::SystemRenderOptions { faction_fill: true };
+                let sys_opts = crate::system_map::SystemRenderOptions {
+                    faction_fill: true,
+                    theme: self.export_theme(),
+                };
                 match crate::system_map::write_one_system_png(
                     &sys,
                     &sector.factions,
@@ -158,6 +178,12 @@ impl App {
             }
             PendingExport::SectorHtml => unreachable!(),
         }
+    }
+
+    fn export_theme(&self) -> crate::map_theme::MapTheme {
+        let cfg = crate::map_theme::MapThemeConfig::named(&self.export_theme_name);
+        crate::map_theme::resolve_map_theme(&cfg)
+            .unwrap_or_else(|_| crate::map_theme::MapTheme::gm_dark())
     }
 
     /// §11 NEW.md: write an interactive HTML map. Uses default

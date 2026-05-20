@@ -50,6 +50,7 @@ pub mod input;
 pub mod intel;
 pub mod interestingness;
 pub mod invariants;
+pub mod map_theme;
 pub mod missions;
 pub mod names;
 pub mod orbital_assets;
@@ -87,6 +88,10 @@ pub use economy::{
 pub use errors::SectorError;
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
+pub use map_theme::{
+    resolve_map_theme, LabelDensity, LegendStyle, MapTheme, MapThemeConfig, RouteLineMode,
+    SymbolSet, BUILTIN_THEME_NAMES,
+};
 pub use regions::{load_regions_file, RegionConditionKind, RegionsConfig, RegionsFile, WarpRegion};
 pub use relations::{
     load_relations_file, DirectionalRelation, FactionRelation, RelationAttitude, RelationMetrics,

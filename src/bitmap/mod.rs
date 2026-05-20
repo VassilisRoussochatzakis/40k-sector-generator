@@ -16,6 +16,7 @@ use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage};
 use crate::errors::SectorError;
 use crate::faction_style::faction_style_rgb_by_id;
 use crate::heatmap::{self, HeatCellRgb, HeatmapMode};
+use crate::map_theme::{LabelDensity, LegendStyle, MapTheme, RouteLineMode, SymbolSet};
 use crate::sector_model::{
     offset_r_neighbors, GeneratedSector, RoutePattern, RouteStability, RouteType,
 };
@@ -24,12 +25,14 @@ use crate::subsectors::Subsector;
 /// Per-render options independent of the project config. Mirrors the relevant
 /// bits of [`crate::config::BitmapConfig`] so callers (CLI, GUI export, tests)
 /// can override without touching the project's TOML.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct RenderOptions {
     /// Tint each system's hex by the dominant faction (§8).
     pub faction_fill: bool,
     /// Overlay a heatmap tint per system (§10). `Off` disables it.
     pub heatmap: HeatmapMode,
+    /// §13 NEW2.md: presentation-only map theme.
+    pub theme: MapTheme,
 }
 
 impl Default for RenderOptions {
@@ -37,6 +40,7 @@ impl Default for RenderOptions {
         Self {
             faction_fill: true,
             heatmap: HeatmapMode::Off,
+            theme: MapTheme::gm_dark(),
         }
     }
 }
@@ -58,20 +62,6 @@ pub(crate) fn save_png_fast(img: &RgbaImage, path: &Utf8Path) -> Result<(), Sect
     Ok(())
 }
 
-// ── Shared palette ──────────────────────────────────────────────────────────
-
-pub(crate) const BG: Rgba<u8> = Rgba([14, 12, 20, 255]);
-pub(crate) const PANEL_BG: Rgba<u8> = Rgba([22, 18, 30, 255]);
-pub(crate) const HEX_EMPTY: Rgba<u8> = Rgba([28, 26, 38, 255]);
-pub(crate) const HEX_OUTLINE: Rgba<u8> = Rgba([60, 55, 78, 255]);
-pub(crate) const TEXT: Rgba<u8> = Rgba([232, 228, 240, 255]);
-pub(crate) const TEXT_DIM: Rgba<u8> = Rgba([150, 145, 165, 255]);
-pub(crate) const SUBSECTOR_BORDER: Rgba<u8> = Rgba([160, 160, 160, 255]);
-pub(crate) const SUBSECTOR_LABEL: Rgba<u8> = Rgba([230, 195, 120, 255]);
-pub(crate) const SUBSECTOR_LABEL_BG: Rgba<u8> = Rgba([20, 16, 28, 255]);
-pub(crate) const CAPITAL_MARKER: Rgba<u8> = Rgba([255, 220, 100, 255]);
-pub(crate) const CAPITAL_OUTLINE: Rgba<u8> = Rgba([60, 40, 10, 255]);
-
 // ── Geometry ────────────────────────────────────────────────────────────────
 
 /// Scaled geometry for the sector map. All pixel sizes are derived from
@@ -88,13 +78,18 @@ pub(crate) struct Geom {
 }
 
 impl Geom {
-    fn new(scale: u32) -> Self {
+    fn new(scale: u32, theme: &MapTheme) -> Self {
         let s = scale.max(1) as i32;
+        let legend_width = match theme.legend {
+            LegendStyle::Hidden => 0,
+            LegendStyle::Compact => 220 * s,
+            LegendStyle::Full => 280 * s,
+        };
         Self {
             scale: s,
             hex_size: 26.0 * s as f32,
             margin: 28 * s,
-            legend_width: 280 * s,
+            legend_width,
             legend_pad: 16 * s,
             line_h: 18 * s,
             text_scale: s,
@@ -187,16 +182,17 @@ fn render(
     subsectors: Option<&[Subsector]>,
     opts: RenderOptions,
 ) -> RgbaImage {
-    let g = Geom::new(scale);
+    let g = Geom::new(scale, &opts.theme);
     let MapBounds { w: map_w, h: map_h } = map_bounds(sector, &g);
 
-    let legend_h = legend_height(sector, &g, opts);
+    let legend_h = legend_height(sector, &g, &opts);
     let total_w = map_w + g.legend_width;
     let total_h = map_h.max(legend_h);
 
-    let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, BG);
+    let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, opts.theme.bg);
 
     let subs = subsectors.unwrap_or(&[]);
+    let draw_subsectors = !subs.is_empty() && opts.theme.show_subsector_borders;
 
     // Per-system fill tint for §8 (faction colour) / §10 (heatmap overlay).
     let heat = if matches!(opts.heatmap, HeatmapMode::Off) {
@@ -204,31 +200,40 @@ fn render(
     } else {
         heatmap::compute_rgb(sector, opts.heatmap)
     };
-    let sys_tints = compute_system_tints(sector, opts, &heat);
+    let sys_tints = compute_system_tints(sector, &opts, &heat);
 
-    draw_hex_grid(&mut img, sector, &g, &sys_tints);
-    if !subs.is_empty() {
-        draw_subsector_borders(&mut img, sector, subs, &g);
+    draw_hex_grid(&mut img, sector, &g, &sys_tints, &opts.theme);
+    if draw_subsectors {
+        draw_subsector_borders(&mut img, sector, subs, &g, &opts.theme);
     }
-    draw_routes(&mut img, sector, &g);
-    draw_systems(&mut img, sector, subs, &g);
-    if !subs.is_empty() {
-        draw_subsector_labels(&mut img, sector, subs, &g);
+    draw_routes(&mut img, sector, &g, &opts.theme);
+    draw_systems(&mut img, sector, subs, &g, &opts);
+    if draw_subsectors && !matches!(opts.theme.label_density, LabelDensity::None) {
+        draw_subsector_labels(&mut img, sector, subs, &g, &opts.theme);
     }
-    draw_system_labels(&mut img, sector, &g);
+    draw_system_labels(&mut img, sector, subs, &g, &opts);
 
     // Legend painted last so any overflow from the map gets clipped behind it.
-    fill_rect(&mut img, map_w, 0, g.legend_width, total_h, PANEL_BG);
-    draw_legend(&mut img, sector, map_w, &g, opts);
+    if !matches!(opts.theme.legend, LegendStyle::Hidden) {
+        fill_rect(
+            &mut img,
+            map_w,
+            0,
+            g.legend_width,
+            total_h,
+            opts.theme.panel_bg,
+        );
+        draw_legend(&mut img, sector, map_w, &g, &opts);
+    }
 
     img
 }
 
 /// One hex tint per (q, r) where the system has a dominant faction (§8) or a
-/// heatmap intensity > 0 (§10). Empty hexes stay at `HEX_EMPTY`.
+/// heatmap intensity > 0 (§10). Empty hexes stay at the theme's base fill.
 fn compute_system_tints(
     sector: &GeneratedSector,
-    opts: RenderOptions,
+    opts: &RenderOptions,
     heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
 ) -> HashMap<(i32, i32), Rgba<u8>> {
     let mut out = HashMap::new();
@@ -239,16 +244,24 @@ fn compute_system_tints(
         // both paths agree.
         if !matches!(opts.heatmap, HeatmapMode::Off) {
             if let Some(cell) = heat.get(&sys.id) {
-                let strength = 0.18 + cell.intensity * 0.45;
+                let strength =
+                    opts.theme.heatmap_tint_min + cell.intensity * opts.theme.heatmap_tint_range;
                 let color = rgba(cell.rgb);
-                out.insert(key, tint(color, strength));
+                out.insert(key, tint_against(color, strength, opts.theme.hex_empty));
                 continue;
             }
         }
         if opts.faction_fill {
             if let Some(dom) = sys.control.dominant.as_deref() {
                 let style = faction_style_rgb_by_id(&sector.factions, dom);
-                out.insert(key, tint(rgba(style.fill), 0.35));
+                out.insert(
+                    key,
+                    tint_against(
+                        rgba(style.fill),
+                        opts.theme.faction_tint_strength,
+                        opts.theme.hex_empty,
+                    ),
+                );
             }
         }
     }
@@ -264,21 +277,28 @@ fn draw_hex_grid(
     sector: &GeneratedSector,
     g: &Geom,
     sys_tints: &HashMap<(i32, i32), Rgba<u8>>,
+    theme: &MapTheme,
 ) {
     // §5 NEW.md: region tints underneath the system tint so the overlay reads
     // as background colour rather than overwriting faction fill.
-    let region_tints = compute_region_tints(sector);
+    let region_tints = compute_region_tints(sector, theme);
     for r in 0..sector.height as i32 {
         for q in 0..sector.width as i32 {
             let (cx, cy) = hex_center(q, r, g);
-            let base = region_tints.get(&(q, r)).copied().unwrap_or(HEX_EMPTY);
+            let base = region_tints
+                .get(&(q, r))
+                .copied()
+                .unwrap_or(theme.hex_empty);
             let fill = sys_tints.get(&(q, r)).copied().unwrap_or(base);
-            draw_hex(img, cx, cy, g.hex_size, fill, HEX_OUTLINE);
+            draw_hex(img, cx, cy, g.hex_size, fill, theme.hex_outline);
         }
     }
 }
 
-fn compute_region_tints(sector: &GeneratedSector) -> HashMap<(i32, i32), Rgba<u8>> {
+fn compute_region_tints(
+    sector: &GeneratedSector,
+    theme: &MapTheme,
+) -> HashMap<(i32, i32), Rgba<u8>> {
     use crate::regions::RegionConditionKind;
     let mut out = HashMap::new();
     for region in &sector.regions {
@@ -289,7 +309,7 @@ fn compute_region_tints(sector: &GeneratedSector) -> HashMap<(i32, i32), Rgba<u8
             RegionConditionKind::Blackout => Rgba([60, 60, 70, 255]),
             RegionConditionKind::Anomaly => Rgba([180, 130, 100, 255]),
         };
-        let tinted = tint(base, 0.35);
+        let tinted = tint_against(base, theme.region_tint_strength, theme.hex_empty);
         for h in &region.hexes {
             out.insert((h.q, h.r), tinted);
         }
@@ -297,14 +317,12 @@ fn compute_region_tints(sector: &GeneratedSector) -> HashMap<(i32, i32), Rgba<u8
     out
 }
 
-fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
+fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, theme: &MapTheme) {
     let mut centers: HashMap<&str, (i32, i32)> = HashMap::new();
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         centers.insert(sys.id.as_str(), (cx, cy));
     }
-    // Match GUI: thickness scales with hex size, not just scale factor.
-    let thickness = ((g.hex_size * 0.08).max(2.0)) as i32;
     let star_r = g.hex_size * star_radius_ratio();
     for route in &sector.routes {
         let (Some(&a), Some(&b)) = (
@@ -316,7 +334,8 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
         let Some(((sx, sy), (ex, ey))) = shorten_to_star(a, b, star_r) else {
             continue;
         };
-        let color = stability_color(route.stability);
+        let color = stability_color(theme, route.stability);
+        let thickness = route_thickness(theme, route.stability, g);
         draw_route_line_thick(
             img,
             sx,
@@ -327,7 +346,7 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
             thickness,
             route.pattern_with_salt(&sector.seed),
         );
-        draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness);
+        draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness, theme);
     }
 }
 
@@ -343,6 +362,7 @@ fn draw_route_control_glyph(
     a: (i32, i32),
     b: (i32, i32),
     thickness: i32,
+    theme: &MapTheme,
 ) {
     let Some((faction_id, kind, score)) = top_route_control(route) else {
         return;
@@ -351,11 +371,37 @@ fn draw_route_control_glyph(
         return;
     }
     let style = faction_style_rgb_by_id(&sector.factions, &faction_id);
-    let color = Rgba([style.fill.0, style.fill.1, style.fill.2, 255]);
+    let color = if matches!(theme.symbol_set, SymbolSet::Redacted) {
+        theme.route_control_neutral
+    } else {
+        Rgba([style.fill.0, style.fill.1, style.fill.2, 255])
+    };
     let dark = darken(color, 0.5);
     let mx = (a.0 + b.0) / 2;
     let my = (a.1 + b.1) / 2;
     let size = (thickness * 3).max(6);
+    if matches!(theme.symbol_set, SymbolSet::Redacted) {
+        let half = size;
+        draw_line_thick(
+            img,
+            mx - half,
+            my - half,
+            mx + half,
+            my + half,
+            color,
+            thickness.max(2),
+        );
+        draw_line_thick(
+            img,
+            mx - half,
+            my + half,
+            mx + half,
+            my - half,
+            color,
+            thickness.max(2),
+        );
+        return;
+    }
     match kind {
         ControlKind::Interdiction => {
             // Crossbar perpendicular to the line.
@@ -512,7 +558,13 @@ pub(crate) fn draw_route_line_thick(
     }
 }
 
-fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, subsectors: &[Subsector], g: &Geom) {
+fn draw_systems(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    subsectors: &[Subsector],
+    g: &Geom,
+    opts: &RenderOptions,
+) {
     let star_r = (g.hex_size * star_radius_ratio()) as i32;
     let pip_scale = pip_text_scale(g);
     for sys in &sector.systems {
@@ -527,7 +579,7 @@ fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, subsectors: &[Sub
             .iter()
             .any(|s| s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str()))
         {
-            draw_capital_marker(img, cx, cy, g.hex_size);
+            draw_capital_marker(img, cx, cy, g.hex_size, &opts.theme);
         }
 
         // World-count pip on the lower-right of the hex.
@@ -537,7 +589,7 @@ fn draw_systems(img: &mut RgbaImage, sector: &GeneratedSector, subsectors: &[Sub
             let (tw, th) = text_size(&label, pip_scale);
             let tx = cx + (g.hex_size * 0.55) as i32 - tw;
             let ty = cy + (g.hex_size * 0.55) as i32 - th;
-            draw_text(img, tx, ty, &label, TEXT, pip_scale);
+            draw_text(img, tx, ty, &label, opts.theme.text, pip_scale);
         }
     }
 }
@@ -554,12 +606,24 @@ fn subsector_label_scale(g: &Geom) -> i32 {
     (((g.hex_size * 0.36) / GLYPH_H as f32).round() as i32).max(1)
 }
 
-fn draw_system_labels(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
+fn draw_system_labels(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    subsectors: &[Subsector],
+    g: &Geom,
+    opts: &RenderOptions,
+) {
+    if matches!(opts.theme.label_density, LabelDensity::None) {
+        return;
+    }
     let scale = system_label_scale(g);
     let pad_x = 3 * g.scale;
     let pad_y = g.scale;
     let star_r = (g.hex_size * star_radius_ratio()) as i32;
     for sys in &sector.systems {
+        if !system_label_visible(sys, subsectors, &opts.theme) {
+            continue;
+        }
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         let label = sys.name.to_ascii_uppercase();
         let (tw, th) = text_size(&label, scale);
@@ -573,27 +637,86 @@ fn draw_system_labels(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
             ty - pad_y,
             tw + pad_x * 2,
             th + pad_y * 2,
-            BG,
+            opts.theme.bg,
         );
-        draw_text(img, tx, ty, &label, TEXT_DIM, scale);
+        draw_text(img, tx, ty, &label, opts.theme.text_dim, scale);
     }
 }
 
-fn draw_capital_marker(img: &mut RgbaImage, cx: i32, cy: i32, hex_size: f32) {
+fn system_label_visible(
+    sys: &crate::sector_model::GeneratedSystem,
+    subsectors: &[Subsector],
+    theme: &MapTheme,
+) -> bool {
+    match theme.label_density {
+        LabelDensity::All => true,
+        LabelDensity::None => false,
+        LabelDensity::ImportantOnly => {
+            sys.worlds.len() >= 4
+                || !sys.primary_factions.is_empty()
+                || subsectors.iter().any(|s| {
+                    s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
+                })
+        }
+    }
+}
+
+fn draw_capital_marker(img: &mut RgbaImage, cx: i32, cy: i32, hex_size: f32, theme: &MapTheme) {
     let r = ((hex_size * 0.15).max(3.5)).round() as i32;
     let dy = -((hex_size * 0.55).round() as i32);
     let center_y = cy + dy;
+    if matches!(theme.symbol_set, SymbolSet::Redacted) {
+        fill_rect(
+            img,
+            cx - r,
+            center_y - r / 2,
+            r * 2,
+            r,
+            theme.capital_marker,
+        );
+        draw_rect_outline(
+            img,
+            cx - r,
+            center_y - r / 2,
+            r * 2,
+            r,
+            theme.capital_outline,
+        );
+        return;
+    }
+    if matches!(theme.symbol_set, SymbolSet::Tactical) {
+        draw_line_thick(
+            img,
+            cx - r,
+            center_y,
+            cx + r,
+            center_y,
+            theme.capital_marker,
+            2,
+        );
+        draw_line_thick(
+            img,
+            cx,
+            center_y - r,
+            cx,
+            center_y + r,
+            theme.capital_marker,
+            2,
+        );
+        draw_circle(img, cx, center_y, r, theme.capital_outline);
+        return;
+    }
     let pts = [
         (cx, center_y - r),
         (cx + r, center_y),
         (cx, center_y + r),
         (cx - r, center_y),
     ];
-    fill_polygon(img, &pts, CAPITAL_MARKER);
+    fill_polygon(img, &pts, theme.capital_marker);
     for i in 0..4 {
         let (ax, ay) = pts[i];
         let (bx, by) = pts[(i + 1) % 4];
-        draw_line(img, ax, ay, bx, by, CAPITAL_OUTLINE);
+        draw_line(img, ax, ay, bx, by, theme.capital_outline);
     }
 }
 
@@ -602,6 +725,7 @@ fn draw_subsector_borders(
     sector: &GeneratedSector,
     subsectors: &[Subsector],
     g: &Geom,
+    theme: &MapTheme,
 ) {
     let mut owner: HashMap<(i32, i32), &str> = HashMap::new();
     for s in subsectors {
@@ -640,7 +764,7 @@ fn draw_subsector_borders(
                     let t = j as f32 / segments as f32;
                     let mx = (a.0 as f32 + (b.0 - a.0) as f32 * t).round() as i32;
                     let my = (a.1 as f32 + (b.1 - a.1) as f32 * t).round() as i32;
-                    fill_circle(img, mx, my, dot_radius, SUBSECTOR_BORDER);
+                    fill_circle(img, mx, my, dot_radius, theme.subsector_border);
                 }
             }
         }
@@ -668,6 +792,7 @@ fn draw_subsector_labels(
     sector: &GeneratedSector,
     subsectors: &[Subsector],
     g: &Geom,
+    theme: &MapTheme,
 ) {
     let scale = subsector_label_scale(g);
     let line_gap = 2 * g.scale;
@@ -840,14 +965,14 @@ fn draw_subsector_labels(
             block_top_y - pad_y,
             block_w + pad_x * 2,
             block_h + pad_y * 2,
-            SUBSECTOR_LABEL_BG,
+            theme.subsector_label_bg,
         );
         draw_text(
             img,
             block_min_x + (block_w - tw_top) / 2,
             block_top_y,
             top,
-            SUBSECTOR_LABEL,
+            theme.subsector_label,
             scale,
         );
         draw_text(
@@ -855,7 +980,7 @@ fn draw_subsector_labels(
             block_min_x + (block_w - tw_bot) / 2,
             block_top_y + th_top + line_gap,
             bot,
-            SUBSECTOR_LABEL,
+            theme.subsector_label,
             scale,
         );
 
@@ -868,8 +993,20 @@ fn draw_subsector_labels(
     }
 }
 
-fn legend_height(sector: &GeneratedSector, g: &Geom, opts: RenderOptions) -> i32 {
-    // title block (3) + spacer + 7 star rows + spacer
+fn legend_height(sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) -> i32 {
+    if matches!(opts.theme.legend, LegendStyle::Hidden) {
+        return 0;
+    }
+    if matches!(opts.theme.legend, LegendStyle::Compact) {
+        let heatmap_lines = if matches!(opts.heatmap, HeatmapMode::Off) {
+            0
+        } else {
+            2
+        };
+        let lines = 4 + 1 + 5 + 1 + factions_visible(sector) + heatmap_lines;
+        return g.legend_pad * 2 + lines as i32 * g.line_h;
+    }
+    // title block (4) + spacer + 7 star rows + spacer
     // + ROUTE TYPE header + 4 type rows + spacer
     // + ROUTE STABILITY header + 4 stab rows + spacer
     // + optional ROUTE CONTROL header + 4 rows + spacer
@@ -884,7 +1021,7 @@ fn legend_height(sector: &GeneratedSector, g: &Geom, opts: RenderOptions) -> i32
     } else {
         0
     };
-    let lines = 3
+    let lines = 4
         + 1
         + 7
         + 1
@@ -922,7 +1059,7 @@ fn draw_legend(
     sector: &GeneratedSector,
     map_w: i32,
     g: &Geom,
-    opts: RenderOptions,
+    opts: &RenderOptions,
 ) {
     let x0 = map_w + g.legend_pad;
     let mut y = g.legend_pad;
@@ -932,14 +1069,14 @@ fn draw_legend(
     let swatch = 12 * g.scale;
 
     let title_text = format!("SECTOR: {}", sector.id.to_uppercase());
-    draw_text(img, x0, y, &title_text, TEXT, title);
+    draw_text(img, x0, y, &title_text, opts.theme.text, title);
     y += line_h + 4 * g.scale;
     draw_text(
         img,
         x0,
         y,
         &format!("SEED: {}", short(&sector.seed, 20)),
-        TEXT_DIM,
+        opts.theme.text_dim,
         body,
     );
     y += line_h - 4 * g.scale;
@@ -954,12 +1091,28 @@ fn draw_legend(
             sector.systems.len(),
             sector.manifest.world_count,
         ),
-        TEXT_DIM,
+        opts.theme.text_dim,
         body,
     );
     y += line_h + 4 * g.scale;
 
-    draw_text(img, x0, y, "STAR COLOURS", TEXT, body);
+    draw_text(
+        img,
+        x0,
+        y,
+        &format!("THEME: {}", short(&opts.theme.name.to_uppercase(), 20)),
+        opts.theme.text_dim,
+        body,
+    );
+    y += line_h;
+
+    if matches!(opts.theme.legend, LegendStyle::Compact) {
+        y += 4 * g.scale;
+        draw_compact_legend_body(img, sector, x0, y, g, opts);
+        return;
+    }
+
+    draw_text(img, x0, y, "STAR COLOURS", opts.theme.text, body);
     y += line_h;
     for (code, name) in STAR_LEGEND {
         let color = star_color(code);
@@ -970,14 +1123,14 @@ fn draw_legend(
             x0 + swatch + 8 * g.scale,
             y,
             &format!("{code} - {name}"),
-            TEXT,
+            opts.theme.text,
             body,
         );
         y += line_h;
     }
     y += 4 * g.scale;
 
-    draw_text(img, x0, y, "ROUTE TYPE", TEXT, body);
+    draw_text(img, x0, y, "ROUTE TYPE", opts.theme.text, body);
     y += line_h;
     for (rtype, name) in [
         (RouteType::StableWarpLane, "STABLE WARP LANE"),
@@ -994,16 +1147,16 @@ fn draw_legend(
             y + 8 * g.scale,
             x0 + 30 * g.scale,
             y + 8 * g.scale,
-            TEXT,
+            opts.theme.route_type,
             3 * g.scale,
             rtype.pattern(),
         );
-        draw_text(img, x0 + 38 * g.scale, y, name, TEXT, body);
+        draw_text(img, x0 + 38 * g.scale, y, name, opts.theme.text, body);
         y += line_h;
     }
     y += 4 * g.scale;
 
-    draw_text(img, x0, y, "ROUTE STABILITY", TEXT, body);
+    draw_text(img, x0, y, "ROUTE STABILITY", opts.theme.text, body);
     y += line_h;
     for (stab, name) in [
         (RouteStability::Stable, "STABLE"),
@@ -1011,7 +1164,7 @@ fn draw_legend(
         (RouteStability::Hazardous, "HAZARDOUS"),
         (RouteStability::Perilous, "PERILOUS"),
     ] {
-        let color = stability_color(stab);
+        let color = stability_color(&opts.theme, stab);
         draw_line_thick(
             img,
             x0,
@@ -1021,18 +1174,18 @@ fn draw_legend(
             color,
             3 * g.scale,
         );
-        draw_text(img, x0 + 30 * g.scale, y, name, TEXT, body);
+        draw_text(img, x0 + 30 * g.scale, y, name, opts.theme.text, body);
         y += line_h;
     }
     y += 4 * g.scale;
 
     if sector.routes.iter().any(|r| !r.controls.is_empty()) {
-        draw_text(img, x0, y, "ROUTE CONTROL", TEXT, body);
+        draw_text(img, x0, y, "ROUTE CONTROL", opts.theme.text, body);
         y += line_h;
         let glyph_cx = x0 + 8 * g.scale;
         let glyph_size = 10 * g.scale;
         let half = glyph_size / 2;
-        let neutral = Rgba([170, 170, 180, 255]);
+        let neutral = opts.theme.route_control_neutral;
         for (name, kind) in [
             ("PATROL", ControlKind::Patrol),
             ("TOLL", ControlKind::Toll),
@@ -1095,14 +1248,14 @@ fn draw_legend(
                     );
                 }
             }
-            draw_text(img, x0 + 22 * g.scale, y, name, TEXT, body);
+            draw_text(img, x0 + 22 * g.scale, y, name, opts.theme.text, body);
             y += line_h;
         }
         y += 4 * g.scale;
     }
 
     if !sector.factions.is_empty() {
-        draw_text(img, x0, y, "FACTIONS", TEXT, body);
+        draw_text(img, x0, y, "FACTIONS", opts.theme.text, body);
         y += line_h;
         let buckets = crate::importance::compute_display_buckets(
             sector,
@@ -1149,7 +1302,7 @@ fn draw_legend(
                 x0 + swatch + 8 * g.scale,
                 y,
                 &format!("{} ({} SYS, {} W)", short(&label, 16), sys_n, world_n),
-                TEXT_DIM,
+                opts.theme.text_dim,
                 body,
             );
             y += line_h;
@@ -1158,7 +1311,7 @@ fn draw_legend(
 
     if !matches!(opts.heatmap, HeatmapMode::Off) {
         y += 4 * g.scale;
-        draw_text(img, x0, y, "HEATMAP", TEXT, body);
+        draw_text(img, x0, y, "HEATMAP", opts.theme.text, body);
         y += line_h;
         let (r, gc, b) = opts.heatmap.base_color_rgb();
         let chip = Rgba([r, gc, b, 255]);
@@ -1169,7 +1322,109 @@ fn draw_legend(
             x0 + swatch + 8 * g.scale,
             y,
             opts.heatmap.label(),
-            TEXT,
+            opts.theme.text,
+            body,
+        );
+    }
+}
+
+fn draw_compact_legend_body(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    x0: i32,
+    mut y: i32,
+    g: &Geom,
+    opts: &RenderOptions,
+) {
+    let body = g.text_scale;
+    let line_h = g.line_h;
+    let swatch = 12 * g.scale;
+
+    draw_text(img, x0, y, "ROUTES", opts.theme.text, body);
+    y += line_h;
+    for (stab, name) in [
+        (RouteStability::Stable, "STABLE"),
+        (RouteStability::Unstable, "UNSTABLE"),
+        (RouteStability::Hazardous, "HAZARD"),
+        (RouteStability::Perilous, "PERIL"),
+    ] {
+        let color = stability_color(&opts.theme, stab);
+        draw_line_thick(
+            img,
+            x0,
+            y + 8 * g.scale,
+            x0 + 22 * g.scale,
+            y + 8 * g.scale,
+            color,
+            route_thickness(&opts.theme, stab, g),
+        );
+        draw_text(img, x0 + 30 * g.scale, y, name, opts.theme.text, body);
+        y += line_h;
+    }
+    y += 4 * g.scale;
+
+    if !sector.factions.is_empty() {
+        draw_text(img, x0, y, "FACTIONS", opts.theme.text, body);
+        y += line_h;
+        let buckets = crate::importance::compute_display_buckets(
+            sector,
+            FACTION_MINOR_FRACTION,
+            FACTION_DISPLAY_CAP,
+        );
+        for b in &buckets {
+            let (label, sys_n, swatch_rgb) = match b {
+                crate::importance::DisplayBucket::Faction {
+                    name,
+                    kind,
+                    id,
+                    system_count,
+                    ..
+                } => {
+                    let style = crate::faction_style::faction_style_rgb(kind, id, "lawful");
+                    (name.to_uppercase(), *system_count, style.fill)
+                }
+                crate::importance::DisplayBucket::Aggregated {
+                    label,
+                    system_count,
+                    ..
+                } => (label.to_uppercase(), *system_count, (140, 140, 150)),
+            };
+            let swatch_color = rgba(swatch_rgb);
+            fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, swatch_color);
+            draw_rect_outline(
+                img,
+                x0,
+                y + 2 * g.scale,
+                swatch,
+                swatch,
+                darken(swatch_color, 0.5),
+            );
+            draw_text(
+                img,
+                x0 + swatch + 8 * g.scale,
+                y,
+                &format!("{} ({} SYS)", short(&label, 14), sys_n),
+                opts.theme.text_dim,
+                body,
+            );
+            y += line_h;
+        }
+    }
+
+    if !matches!(opts.heatmap, HeatmapMode::Off) {
+        y += 4 * g.scale;
+        draw_text(img, x0, y, "HEATMAP", opts.theme.text, body);
+        y += line_h;
+        let (r, gc, b) = opts.heatmap.base_color_rgb();
+        let chip = Rgba([r, gc, b, 255]);
+        fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, chip);
+        draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(chip, 0.5));
+        draw_text(
+            img,
+            x0 + swatch + 8 * g.scale,
+            y,
+            opts.heatmap.label(),
+            opts.theme.text,
             body,
         );
     }
@@ -1241,26 +1496,41 @@ pub(crate) fn star_color(code: &str) -> Rgba<u8> {
     }
 }
 
-fn stability_color(s: RouteStability) -> Rgba<u8> {
+fn stability_color(theme: &MapTheme, s: RouteStability) -> Rgba<u8> {
     match s {
-        RouteStability::Stable => Rgba([110, 210, 130, 255]),
-        RouteStability::Unstable => Rgba([240, 200, 90, 255]),
-        RouteStability::Hazardous => Rgba([235, 90, 90, 255]),
-        RouteStability::Perilous => Rgba([165, 100, 215, 255]),
+        RouteStability::Stable => theme.route_stable,
+        RouteStability::Unstable => theme.route_unstable,
+        RouteStability::Hazardous => theme.route_hazardous,
+        RouteStability::Perilous => theme.route_perilous,
     }
 }
 
-pub(crate) fn tint(c: Rgba<u8>, amount: f32) -> Rgba<u8> {
+pub(crate) fn tint_against(c: Rgba<u8>, amount: f32, base: Rgba<u8>) -> Rgba<u8> {
     let mix = |v: u8, base: u8| {
         let f = f32::from(v) * amount + f32::from(base) * (1.0 - amount);
         f.round().clamp(0.0, 255.0) as u8
     };
     Rgba([
-        mix(c.0[0], HEX_EMPTY.0[0]),
-        mix(c.0[1], HEX_EMPTY.0[1]),
-        mix(c.0[2], HEX_EMPTY.0[2]),
+        mix(c.0[0], base.0[0]),
+        mix(c.0[1], base.0[1]),
+        mix(c.0[2], base.0[2]),
         255,
     ])
+}
+
+fn route_thickness(theme: &MapTheme, stability: RouteStability, g: &Geom) -> i32 {
+    let base = (g.hex_size * 0.08).max(2.0) * theme.route_thickness;
+    let mode = if matches!(theme.route_line_mode, RouteLineMode::HazardWeighted) {
+        match stability {
+            RouteStability::Stable => 0.9,
+            RouteStability::Unstable => 1.05,
+            RouteStability::Hazardous => 1.25,
+            RouteStability::Perilous => 1.45,
+        }
+    } else {
+        1.0
+    };
+    (base * mode).round().max(1.0) as i32
 }
 
 pub(crate) fn darken(c: Rgba<u8>, amount: f32) -> Rgba<u8> {

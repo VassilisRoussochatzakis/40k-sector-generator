@@ -54,6 +54,11 @@ enum Command {
         /// Disable per-system faction tint in the PNG export (§8).
         #[arg(long)]
         no_faction_fill: bool,
+        /// PNG map theme (§13). One of: gm_dark, print_mono,
+        /// imperial_archive, navis_tactical, inquisition_redacted,
+        /// subsector_political.
+        #[arg(long)]
+        theme: Option<String>,
     },
     /// Generate a single standalone system from a project directory.
     GenerateSystem {
@@ -415,6 +420,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             allow_warnings,
             heatmap,
             no_faction_fill,
+            theme,
         } => {
             let mut input = sectorforge::load_project(&project)?;
             if let Some(s) = seed {
@@ -425,6 +431,9 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             }
             if no_faction_fill {
                 input.config.outputs.bitmap.faction_fill = false;
+            }
+            if let Some(t) = theme {
+                input.config.outputs.bitmap.theme.name = Some(t);
             }
             let report = sectorforge::validate_project(&input)?;
             if !report.ok {

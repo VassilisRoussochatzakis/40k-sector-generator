@@ -12,24 +12,30 @@ use image::{Rgba, RgbaImage};
 
 use crate::bitmap::{
     darken, draw_circle, draw_rect_outline, draw_ring, draw_text, fill_circle, fill_rect,
-    save_png_fast, short, star_color, text_size, tint, BG, PANEL_BG, TEXT, TEXT_DIM,
+    save_png_fast, short, star_color, text_size, tint_against,
 };
 use crate::errors::SectorError;
 use crate::faction_style::faction_style_rgb_by_id;
+use crate::map_theme::MapTheme;
 use crate::sector_model::{GeneratedFaction, GeneratedSector, GeneratedSystem};
 
 /// Per-system render options. Mirrors the relevant subset of
 /// `crate::bitmap::RenderOptions`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct SystemRenderOptions {
     /// Halo each planet disk with its dominant faction's `FactionStyle.fill`
     /// (§8). World-type colour stays as the inner disk.
     pub faction_fill: bool,
+    /// §13 NEW2.md: presentation-only map theme.
+    pub theme: MapTheme,
 }
 
 impl Default for SystemRenderOptions {
     fn default() -> Self {
-        Self { faction_fill: true }
+        Self {
+            faction_fill: true,
+            theme: MapTheme::gm_dark(),
+        }
     }
 }
 
@@ -52,7 +58,7 @@ pub fn write_system_maps(
     fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
     for sys in &sector.systems {
         let path = systems_dir.join(format!("{}.png", sys.id));
-        let img = render_system(sys, &sector.factions, scale, opts);
+        let img = render_system(sys, &sector.factions, scale, opts.clone());
         save_png_fast(&img, &path)?;
     }
     Ok(())
@@ -122,19 +128,25 @@ fn render_system(
     let g = SysGeom::new(scale, max_orbit);
     let total_w = g.side + g.legend_w;
     let total_h = g.side;
-    let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, BG);
+    let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, opts.theme.bg);
     let cx = g.side / 2;
     let cy = g.side / 2;
 
     // Orbits — one dim ring per occupied orbit slot.
     for o in 1..=max_orbit.max(1) {
         let r = g.orbit_base + (o - 1) * g.orbit_step;
-        draw_ring(&mut img, cx, cy, r, g.scale, Rgba([55, 50, 72, 255]));
+        draw_ring(&mut img, cx, cy, r, g.scale, opts.theme.orbit_ring);
     }
 
     // Star: faint corona + filled disk + outline.
     let star = star_color(&sys.star.colour_code);
-    fill_circle(&mut img, cx, cy, g.star_r + 4 * g.scale, tint(star, 0.55));
+    fill_circle(
+        &mut img,
+        cx,
+        cy,
+        g.star_r + 4 * g.scale,
+        tint_against(star, 0.55, opts.theme.bg),
+    );
     fill_circle(&mut img, cx, cy, g.star_r, star);
     draw_circle(&mut img, cx, cy, g.star_r, darken(star, 0.55));
 
@@ -149,7 +161,11 @@ fn render_system(
         if opts.faction_fill {
             if let Some(dom) = w.control.dominant.as_deref() {
                 let style = faction_style_rgb_by_id(factions, dom);
-                let halo = tint(Rgba([style.fill.0, style.fill.1, style.fill.2, 255]), 0.75);
+                let halo = tint_against(
+                    Rgba([style.fill.0, style.fill.1, style.fill.2, 255]),
+                    0.75,
+                    opts.theme.bg,
+                );
                 fill_circle(&mut img, px, py, g.planet_r + 4 * g.scale, halo);
             }
         }
@@ -176,19 +192,32 @@ fn render_system(
             px - tw / 2,
             py + g.planet_r + 4 * g.scale,
             &name,
-            TEXT_DIM,
+            opts.theme.text_dim,
             g.text_scale,
         );
     }
 
     // Legend panel.
-    fill_rect(&mut img, g.side, 0, g.legend_w, total_h, PANEL_BG);
-    draw_legend(&mut img, sys, g.side, &g);
+    fill_rect(
+        &mut img,
+        g.side,
+        0,
+        g.legend_w,
+        total_h,
+        opts.theme.panel_bg,
+    );
+    draw_legend(&mut img, sys, g.side, &g, &opts.theme);
 
     img
 }
 
-fn draw_legend(img: &mut RgbaImage, sys: &GeneratedSystem, x_origin: i32, g: &SysGeom) {
+fn draw_legend(
+    img: &mut RgbaImage,
+    sys: &GeneratedSystem,
+    x_origin: i32,
+    g: &SysGeom,
+    theme: &MapTheme,
+) {
     let x0 = x_origin + g.legend_pad;
     let mut y = g.legend_pad;
     let body = g.text_scale;
@@ -201,24 +230,31 @@ fn draw_legend(img: &mut RgbaImage, sys: &GeneratedSystem, x_origin: i32, g: &Sy
         x0,
         y,
         &format!("SYSTEM: {}", sys.id.to_uppercase()),
-        TEXT,
+        theme.text,
         title,
     );
     y += g.line_h + 4 * g.scale;
-    draw_text(img, x0, y, &short(&sys.name.to_uppercase(), 28), TEXT, body);
+    draw_text(
+        img,
+        x0,
+        y,
+        &short(&sys.name.to_uppercase(), 28),
+        theme.text,
+        body,
+    );
     y += g.line_h;
     draw_text(
         img,
         x0,
         y,
         &format!("COORD: Q={} R={}", sys.coord.q, sys.coord.r),
-        TEXT_DIM,
+        theme.text_dim,
         body,
     );
     y += g.line_h + 4 * g.scale;
 
     // Star swatch + label.
-    draw_text(img, x0, y, "STAR", TEXT, body);
+    draw_text(img, x0, y, "STAR", theme.text, body);
     y += g.line_h;
     let star = star_color(&sys.star.colour_code);
     fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, star);
@@ -233,13 +269,13 @@ fn draw_legend(img: &mut RgbaImage, sys: &GeneratedSystem, x_origin: i32, g: &Sy
         x0 + swatch + swatch_gap,
         y,
         &short(&star_label, 26),
-        TEXT,
+        theme.text,
         body,
     );
     y += g.line_h + 4 * g.scale;
 
     // Worlds: orbit + name + type, with a per-type color swatch.
-    draw_text(img, x0, y, "WORLDS", TEXT, body);
+    draw_text(img, x0, y, "WORLDS", theme.text, body);
     y += g.line_h;
     for w in &sys.worlds {
         let color = world_type_color(&w.world.world_type);
@@ -251,7 +287,7 @@ fn draw_legend(img: &mut RgbaImage, sys: &GeneratedSystem, x_origin: i32, g: &Sy
             short(&w.name.to_uppercase(), 12),
             short(&w.world.world_type.to_uppercase(), 12),
         );
-        draw_text(img, x0 + swatch + swatch_gap, y, &label, TEXT, body);
+        draw_text(img, x0 + swatch + swatch_gap, y, &label, theme.text, body);
         y += g.line_h;
     }
     y += 4 * g.scale;
@@ -265,7 +301,7 @@ fn draw_legend(img: &mut RgbaImage, sys: &GeneratedSystem, x_origin: i32, g: &Sy
         }
     }
     if !seen.is_empty() {
-        draw_text(img, x0, y, "WORLD TYPES", TEXT, body);
+        draw_text(img, x0, y, "WORLD TYPES", theme.text, body);
         y += g.line_h;
         for t in seen {
             let color = world_type_color(t);
@@ -276,7 +312,7 @@ fn draw_legend(img: &mut RgbaImage, sys: &GeneratedSystem, x_origin: i32, g: &Sy
                 x0 + swatch + swatch_gap,
                 y,
                 &short(&t.to_uppercase(), 26),
-                TEXT,
+                theme.text,
                 body,
             );
             y += g.line_h;
@@ -426,11 +462,11 @@ mod tests {
         let sys = sample_system();
         let opts = SystemRenderOptions::default();
         assert_eq!(
-            render_system(&sys, &[], RESOLUTION_720P, opts).height(),
+            render_system(&sys, &[], RESOLUTION_720P, opts.clone()).height(),
             720
         );
         assert_eq!(
-            render_system(&sys, &[], RESOLUTION_1440P, opts).height(),
+            render_system(&sys, &[], RESOLUTION_1440P, opts.clone()).height(),
             1440
         );
         assert_eq!(render_system(&sys, &[], RESOLUTION_4K, opts).height(), 2160);

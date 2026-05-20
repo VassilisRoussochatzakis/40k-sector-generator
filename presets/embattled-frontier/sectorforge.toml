@@ -57,6 +57,9 @@ sector_scale = 5
 system_scale = 4
 render_systems = true
 
+[outputs.bitmap.theme]
+name = "subsector_political"
+
 [analyze]
 warn_faction_share = 0.55
 warn_contested_ratio = 0.50

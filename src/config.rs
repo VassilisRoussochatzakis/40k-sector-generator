@@ -8,6 +8,10 @@ pub struct AppConfig {
     pub inputs: InputConfig,
     pub generation: GenerationConfig,
     pub outputs: OutputConfig,
+    /// Optional top-level alias for `[map_theme]` from §13 NEW2.md. It is
+    /// folded into `outputs.bitmap.theme` by the project loader.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub map_theme: Option<crate::map_theme::MapThemeConfig>,
     /// Optional analytics dashboard thresholds (§8 NEW.md). Defaults apply
     /// when the `[analyze]` table is omitted.
     #[serde(default)]
@@ -268,6 +272,14 @@ pub struct BitmapConfig {
     /// modes override the tint.
     #[serde(default)]
     pub heatmap: crate::heatmap::HeatmapMode,
+    /// §13 NEW2.md: built-in or inline/custom map theme. Presentation only;
+    /// generation output is unchanged.
+    #[serde(default)]
+    pub theme: crate::map_theme::MapThemeConfig,
+    /// Optional path to a TOML map theme file, relative to the project root.
+    /// Its digest is recorded in `manifest.input_digests`.
+    #[serde(default)]
+    pub theme_file: Option<String>,
 }
 
 impl Default for BitmapConfig {
@@ -278,6 +290,8 @@ impl Default for BitmapConfig {
             render_systems: true,
             faction_fill: true,
             heatmap: crate::heatmap::HeatmapMode::Off,
+            theme: crate::map_theme::MapThemeConfig::default(),
+            theme_file: None,
         }
     }
 }

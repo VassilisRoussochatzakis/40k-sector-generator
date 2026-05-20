@@ -70,6 +70,8 @@ pub fn export_all(
     }
 
     let bm = &output_config.bitmap;
+    let map_theme = crate::map_theme::resolve_map_theme(&bm.theme)
+        .map_err(|e| SectorError::InvalidConfig(format!("outputs.bitmap.theme: {e}")))?;
     let mut wrote_image = false;
     for fmt in &output_config.formats {
         match fmt {
@@ -80,6 +82,7 @@ pub fn export_all(
                 let opts = crate::bitmap::RenderOptions {
                     faction_fill: bm.faction_fill,
                     heatmap: bm.heatmap,
+                    theme: map_theme.clone(),
                 };
                 crate::bitmap::write_bitmap_with(sector, output_dir, bm.sector_scale, None, opts)?;
                 wrote_image = true;
@@ -95,6 +98,7 @@ pub fn export_all(
     if wrote_image && bm.render_systems {
         let sys_opts = crate::system_map::SystemRenderOptions {
             faction_fill: bm.faction_fill,
+            theme: map_theme,
         };
         crate::system_map::write_system_maps(sector, output_dir, bm.system_scale, sys_opts)?;
     }

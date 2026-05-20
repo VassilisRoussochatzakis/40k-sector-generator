@@ -38,11 +38,21 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
 
     let config_text =
         fs::read_to_string(&config_path).map_err(|e| SectorError::io(config_path.as_str(), e))?;
-    let config: AppConfig = toml::from_str(&config_text)
+    let mut config: AppConfig = toml::from_str(&config_text)
         .map_err(|e| SectorError::config_parse(config_path.as_str(), e.to_string()))?;
 
     let mut digests: BTreeMap<String, String> = BTreeMap::new();
     digests.insert("sectorforge.toml".to_string(), blake3_of(&config_text));
+
+    if let Some(theme) = config.map_theme.take() {
+        config.outputs.bitmap.theme = config.outputs.bitmap.theme.clone().overlay(theme);
+    }
+    if let Some(rel) = config.outputs.bitmap.theme_file.clone() {
+        let text = read_relative(&root_dir, &rel, &mut digests)?;
+        let theme = crate::map_theme::parse_map_theme_file(&text)
+            .map_err(|e| SectorError::config_parse(rel.clone(), e))?;
+        config.outputs.bitmap.theme = config.outputs.bitmap.theme.clone().overlay(theme);
+    }
 
     let data_dir_rel = config.inputs.world_data_dir.clone();
     let data_dir = root_dir.join(&data_dir_rel);

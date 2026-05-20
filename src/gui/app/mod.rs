@@ -47,7 +47,8 @@ pub struct App {
     segmentum: Option<Arc<SegmentumBundle>>,
     segmentum_active_child: Option<String>,
     segmentum_selected_link: Option<String>,
-    factions_edit_mode: bool,
+    factions_mode: FactionsMode,
+    faction_designer: factions_overview::FactionDesignerState,
 }
 
 #[derive(Debug, Clone)]
@@ -77,6 +78,13 @@ enum View {
     Segmentum,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FactionsMode {
+    View,
+    Edit,
+    Designer,
+}
+
 impl Default for App {
     fn default() -> Self {
         Self {
@@ -102,7 +110,8 @@ impl Default for App {
             segmentum: None,
             segmentum_active_child: None,
             segmentum_selected_link: None,
-            factions_edit_mode: false,
+            factions_mode: FactionsMode::View,
+            faction_designer: factions_overview::FactionDesignerState::default(),
         }
     }
 }
@@ -922,14 +931,19 @@ impl App {
                     let has_sector = self.sector.is_some();
                     ui.add_enabled_ui(has_sector, |ui| {
                         ui.selectable_value(
-                            &mut self.factions_edit_mode,
-                            false,
+                            &mut self.factions_mode,
+                            FactionsMode::View,
                             RichText::new("VIEW").monospace(),
                         );
                         ui.selectable_value(
-                            &mut self.factions_edit_mode,
-                            true,
+                            &mut self.factions_mode,
+                            FactionsMode::Edit,
                             RichText::new("EDIT MODE").monospace(),
+                        );
+                        ui.selectable_value(
+                            &mut self.factions_mode,
+                            FactionsMode::Designer,
+                            RichText::new("DESIGNER").monospace(),
                         );
                     });
                     if let Some(sector) = self.sector.as_ref() {
@@ -946,23 +960,14 @@ impl App {
                 });
             });
 
-        let edit_mode = self.factions_edit_mode;
+        let mode = self.factions_mode;
+        let project_dir = self.project_dir.clone();
         let mut changed = false;
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
             .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    if edit_mode {
-                        let Some(sector) = self.sector.as_mut() else {
-                            ui.label(
-                                RichText::new("no sector loaded")
-                                    .color(TEXT_DIM)
-                                    .monospace(),
-                            );
-                            return;
-                        };
-                        changed = factions_overview::show_editor(ui, Arc::make_mut(sector));
-                    } else {
+                ScrollArea::vertical().show(ui, |ui| match mode {
+                    FactionsMode::View => {
                         let Some(sector) = self.sector.as_ref() else {
                             ui.label(
                                 RichText::new("no sector loaded")
@@ -972,6 +977,33 @@ impl App {
                             return;
                         };
                         factions_overview::show_readonly(ui, sector.as_ref());
+                    }
+                    FactionsMode::Edit => {
+                        let Some(sector) = self.sector.as_mut() else {
+                            ui.label(
+                                RichText::new("no sector loaded")
+                                    .color(TEXT_DIM)
+                                    .monospace(),
+                            );
+                            return;
+                        };
+                        changed = factions_overview::show_editor(ui, Arc::make_mut(sector));
+                    }
+                    FactionsMode::Designer => {
+                        let Some(sector) = self.sector.as_ref() else {
+                            ui.label(
+                                RichText::new("no sector loaded")
+                                    .color(TEXT_DIM)
+                                    .monospace(),
+                            );
+                            return;
+                        };
+                        factions_overview::show_designer(
+                            ui,
+                            sector.as_ref(),
+                            &mut self.faction_designer,
+                            project_dir.as_deref(),
+                        );
                     }
                 });
             });

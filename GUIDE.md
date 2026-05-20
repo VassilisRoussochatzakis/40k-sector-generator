@@ -991,6 +991,16 @@ order.
 that system's worlds (Dominant=3, Significant=2, Minor=1, Hidden=0.5). Ties
 break by world-appearance count, then catalog order, then faction id.
 
+The GUI **Factions → DESIGNER** mode can also author this file from scratch.
+Pick an overall faction preset (Imperial, Mechanicus, Astartes, Chaos,
+Xenos, custom, etc.), edit the `kind`, `id`, `name`, disposition, weight,
+and preference lists, add rows to the designer roster, then **SAVE TOML...**
+to write a normal `[[factions]]` catalog. **REPLACE FROM OUTPUT** converts
+the currently loaded generated sector's top-level factions and subfactions
+back into editable faction rows; because generated output does not retain
+original catalog weights, the designer derives a modest presence-based weight
+from each output faction's system/world footprint.
+
 ### `data/routes/route_rules.toml`
 
 ```toml
@@ -1303,7 +1313,11 @@ navigation bar:
   observed per-world presence while hiding subfaction details. Toggle
   **EDIT MODE** for broad changes: rename factions, adjust kind/disposition,
   add/delete top-level factions, set all/none system or world summary
-  presence, or rebuild summary presence from world records.
+  presence, or rebuild summary presence from world records. Toggle
+  **DESIGNER** for ground-up catalog work: choose an overall faction preset
+  or custom kind, add/edit export rows with weights and world preferences,
+  import the loaded output's generated subfactions with **REPLACE FROM
+  OUTPUT**, and save the result as a `factions.toml`-compatible TOML file.
 - **Data** — CSV data editor for `key.csv` / `generator.csv` from inside
   the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over

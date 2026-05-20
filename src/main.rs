@@ -8,6 +8,7 @@ use serde::Serialize;
 
 use sectorforge::sector_model::HexCoord;
 use sectorforge::validation::Severity;
+use sectorforge::{SectorProgress, SegmentumProgress};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -422,6 +423,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             no_faction_fill,
             theme,
         } => {
+            log_progress(format_args!("sector: loading project {project}"));
             let mut input = sectorforge::load_project(&project)?;
             if let Some(s) = seed {
                 input.config.generation.seed = s;
@@ -435,6 +437,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             if let Some(t) = theme {
                 input.config.outputs.bitmap.theme.name = Some(t);
             }
+            log_progress("sector: validating inputs");
             let report = sectorforge::validate_project(&input)?;
             if !report.ok {
                 print_validation_report(&report);
@@ -448,12 +451,20 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 print_validation_report(&report);
                 return Ok(ExitCode::from(1));
             }
+            log_progress(format_args!(
+                "sector: validation OK ({} warning(s), {} usable world candidates)",
+                report.warnings.len(),
+                report.world_workbook.usable_candidate_count
+            ));
 
             let output_dir = out.unwrap_or_else(|| project.join(&input.config.outputs.directory));
             let output_cfg = input.config.outputs.clone();
-            let sector = sectorforge::generate_sector(input)?;
+            let project_id = input.config.project.id.clone();
+            log_progress(format_args!("sector: generating '{project_id}'"));
+            let sector = sectorforge::generate_sector_with_progress(input, log_sector_progress)?;
 
             // Spec §11.11: check invariants before writing.
+            log_progress("sector: checking post-generation invariants");
             let inv = sectorforge::validate_sector(&sector);
             if !inv.ok {
                 eprintln!(
@@ -466,7 +477,9 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
                 return Ok(ExitCode::from(1));
             }
 
+            log_progress(format_args!("sector: exporting to {output_dir}"));
             sectorforge::export_sector(&sector, &output_cfg, &output_dir)?;
+            log_progress("sector: export complete");
 
             println!(
                 "Generated sector '{}' (seed: {}) — {} systems, {} worlds, {} routes",
@@ -985,6 +998,7 @@ fn run_compose(
     stitch_seed: Option<String>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
+    log_progress(format_args!("segmentum: loading config {segmentum_path}"));
     let mut file = sectorforge::load_segmentum_file(&segmentum_path)?;
     if let Some(s) = stitch_seed {
         file.segmentum.stitch_seed = s;
@@ -993,10 +1007,22 @@ fn run_compose(
         .parent()
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| Utf8PathBuf::from("."));
-    let seg = sectorforge::compose_segmentum(&file, &base_dir, &out)?;
+    log_progress(format_args!(
+        "segmentum: composing '{}' ({} child sector(s))",
+        file.segmentum.id,
+        file.children.len()
+    ));
+    let seg = sectorforge::compose_segmentum_with_progress(
+        &file,
+        &base_dir,
+        &out,
+        log_segmentum_progress,
+    )?;
     if json {
+        log_progress("segmentum: emitting JSON to stdout");
         print_json(&seg)?;
     } else {
+        log_progress(format_args!("segmentum: writing reports to {out}"));
         sectorforge::write_segmentum(&out, &seg)?;
         println!(
             "Composed segmentum '{}' — {} children, {} inter-sector links, {} systems",
@@ -1008,6 +1034,172 @@ fn run_compose(
         println!("Output written to: {out}");
     }
     Ok(ExitCode::SUCCESS)
+}
+
+fn log_progress(message: impl std::fmt::Display) {
+    eprintln!("[sectorforge] {message}");
+}
+
+fn log_sector_progress(event: SectorProgress) {
+    log_sector_progress_with_prefix("sector", event);
+}
+
+fn log_segmentum_progress(event: SegmentumProgress) {
+    match event {
+        SegmentumProgress::Started {
+            children,
+            output_dir,
+        } => log_progress(format_args!(
+            "segmentum: started ({children} child sector(s), output {output_dir})"
+        )),
+        SegmentumProgress::ChildLoading {
+            index,
+            total,
+            id,
+            project,
+        } => log_progress(format_args!(
+            "segmentum: child {index}/{total} {id}: loading {project}"
+        )),
+        SegmentumProgress::ChildValidated {
+            index,
+            total,
+            id,
+            warnings,
+        } => log_progress(format_args!(
+            "segmentum: child {index}/{total} {id}: validation OK ({warnings} warning(s))"
+        )),
+        SegmentumProgress::ChildGenerating { index, total, id } => log_progress(format_args!(
+            "segmentum: child {index}/{total} {id}: generating sector"
+        )),
+        SegmentumProgress::ChildSectorProgress {
+            index,
+            total,
+            id,
+            event,
+        } => {
+            let prefix = format!("segmentum: child {index}/{total} {id}");
+            log_sector_progress_with_prefix(&prefix, event);
+        }
+        SegmentumProgress::ChildInvariantsChecked { index, total, id } => log_progress(
+            format_args!("segmentum: child {index}/{total} {id}: invariants OK"),
+        ),
+        SegmentumProgress::ChildExporting {
+            index,
+            total,
+            id,
+            output_dir,
+        } => log_progress(format_args!(
+            "segmentum: child {index}/{total} {id}: exporting to {output_dir}"
+        )),
+        SegmentumProgress::ChildComplete {
+            index,
+            total,
+            id,
+            systems,
+            worlds,
+            routes,
+        } => log_progress(format_args!(
+            "segmentum: child {index}/{total} {id}: complete ({systems} systems, {worlds} worlds, {routes} routes)"
+        )),
+        SegmentumProgress::Stitching { children } => log_progress(format_args!(
+            "segmentum: stitching borders across {children} child sector(s)"
+        )),
+        SegmentumProgress::Complete {
+            children,
+            links,
+            systems,
+            worlds,
+            routes,
+        } => log_progress(format_args!(
+            "segmentum: compose complete ({children} children, {links} links, {systems} systems, {worlds} worlds, {routes} routes)"
+        )),
+    }
+}
+
+fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
+    match event {
+        SectorProgress::WorldPoolBuilt {
+            rows,
+            candidates,
+            excluded,
+        } => log_progress(format_args!(
+            "{prefix}: world pool ready ({candidates} candidates, {excluded} excluded, {rows} source rows)"
+        )),
+        SectorProgress::SystemsPlaced {
+            total,
+            width,
+            height,
+        } => log_progress(format_args!(
+            "{prefix}: placed {total} system slot(s) on {width}x{height} grid"
+        )),
+        SectorProgress::RegionsBuilt { count } => {
+            log_progress(format_args!("{prefix}: built {count} warp region(s)"));
+        }
+        SectorProgress::SystemBuilt {
+            current,
+            total,
+            worlds,
+        } => {
+            if should_log_progress(current, total) {
+                log_progress(format_args!(
+                    "{prefix}: generated systems {current}/{total} (last {worlds} world(s))"
+                ));
+            }
+        }
+        SectorProgress::FactionsAssigned { catalog_rows } => log_progress(format_args!(
+            "{prefix}: assigned factions from {catalog_rows} catalog row(s)"
+        )),
+        SectorProgress::FactionsAggregated { factions } => log_progress(format_args!(
+            "{prefix}: aggregated {factions} top-level faction(s)"
+        )),
+        SectorProgress::RoutesGenerated { routes } => {
+            log_progress(format_args!("{prefix}: generated {routes} public route(s)"));
+        }
+        SectorProgress::RegionEffectsApplied { regions } => log_progress(format_args!(
+            "{prefix}: applied route effects from {regions} warp region(s)"
+        )),
+        SectorProgress::HiddenRoutesApplied { added, routes } => log_progress(format_args!(
+            "{prefix}: applied hidden routes (+{added}, total {routes})"
+        )),
+        SectorProgress::RouteControlsDerived { routes } => {
+            log_progress(format_args!("{prefix}: derived control for {routes} route(s)"));
+        }
+        SectorProgress::SystemStateDerived { current, total } => {
+            if should_log_progress(current, total) {
+                log_progress(format_args!("{prefix}: derived system state {current}/{total}"));
+            }
+        }
+        SectorProgress::ManifestBuilt {
+            systems,
+            worlds,
+            routes,
+        } => log_progress(format_args!(
+            "{prefix}: manifest ready ({systems} systems, {worlds} worlds, {routes} routes)"
+        )),
+        SectorProgress::OverlayDerived { name } => {
+            log_progress(format_args!("{prefix}: derived {name} overlay"));
+        }
+        SectorProgress::Complete {
+            systems,
+            worlds,
+            routes,
+        } => log_progress(format_args!(
+            "{prefix}: generation complete ({systems} systems, {worlds} worlds, {routes} routes)"
+        )),
+    }
+}
+
+fn should_log_progress(current: usize, total: usize) -> bool {
+    current == 1 || current == total || current % progress_stride(total) == 0
+}
+
+fn progress_stride(total: usize) -> usize {
+    match total {
+        0..=25 => 1,
+        26..=100 => 10,
+        101..=500 => 25,
+        _ => 100,
+    }
 }
 
 fn run_interestingness(

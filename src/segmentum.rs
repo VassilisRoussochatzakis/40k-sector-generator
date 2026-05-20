@@ -222,6 +222,68 @@ pub struct SegmentumManifest {
     pub inter_sector_link_count: usize,
 }
 
+/// Progress events emitted by segmentum composition when a caller opts in
+/// through [`compose_with_progress`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SegmentumProgress {
+    Started {
+        children: usize,
+        output_dir: String,
+    },
+    ChildLoading {
+        index: usize,
+        total: usize,
+        id: String,
+        project: String,
+    },
+    ChildValidated {
+        index: usize,
+        total: usize,
+        id: String,
+        warnings: usize,
+    },
+    ChildGenerating {
+        index: usize,
+        total: usize,
+        id: String,
+    },
+    ChildSectorProgress {
+        index: usize,
+        total: usize,
+        id: String,
+        event: crate::generation::SectorProgress,
+    },
+    ChildInvariantsChecked {
+        index: usize,
+        total: usize,
+        id: String,
+    },
+    ChildExporting {
+        index: usize,
+        total: usize,
+        id: String,
+        output_dir: String,
+    },
+    ChildComplete {
+        index: usize,
+        total: usize,
+        id: String,
+        systems: usize,
+        worlds: usize,
+        routes: usize,
+    },
+    Stitching {
+        children: usize,
+    },
+    Complete {
+        children: usize,
+        links: usize,
+        systems: usize,
+        worlds: usize,
+        routes: usize,
+    },
+}
+
 // ── Loaders ──────────────────────────────────────────────────────────────────
 
 /// Read and parse a `segmentum.toml` file.
@@ -257,7 +319,33 @@ pub fn compose(
     base_dir: &Utf8Path,
     output_dir: &Utf8Path,
 ) -> Result<Segmentum, SectorError> {
+    compose_with_progress(file, base_dir, output_dir, |_| {})
+}
+
+/// Compose a segmentum with progress callbacks.
+///
+/// The callback is synchronous and receives child-sector load/validate/export
+/// milestones plus nested [`crate::generation::SectorProgress`] events from
+/// each child generation run. The default [`compose`] wrapper uses a no-op
+/// callback.
+///
+/// # Errors
+///
+/// Same as [`compose`].
+pub fn compose_with_progress<F>(
+    file: &SegmentumFile,
+    base_dir: &Utf8Path,
+    output_dir: &Utf8Path,
+    mut progress: F,
+) -> Result<Segmentum, SectorError>
+where
+    F: FnMut(SegmentumProgress),
+{
     validate_config(file)?;
+    progress(SegmentumProgress::Started {
+        children: file.children.len(),
+        output_dir: output_dir.to_string(),
+    });
 
     fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
 
@@ -271,12 +359,20 @@ pub fn compose(
     let children_root = output_dir.join("children");
     fs::create_dir_all(&children_root).map_err(|e| SectorError::io(children_root.as_str(), e))?;
 
-    for child in &file.children {
+    let total_children = file.children.len();
+    for (idx, child) in file.children.iter().enumerate() {
+        let index = idx + 1;
         let project_path = if child.project.is_absolute() {
             child.project.clone()
         } else {
             base_dir.join(&child.project)
         };
+        progress(SegmentumProgress::ChildLoading {
+            index,
+            total: total_children,
+            id: child.id.clone(),
+            project: project_path.to_string(),
+        });
         let mut input = crate::load_project(&project_path)?;
         if let Some(seed) = &child.seed {
             input.config.generation.seed = seed.clone();
@@ -290,9 +386,28 @@ pub fn compose(
                 report.errors.len()
             )));
         }
+        progress(SegmentumProgress::ChildValidated {
+            index,
+            total: total_children,
+            id: child.id.clone(),
+            warnings: report.warnings.len(),
+        });
 
         let output_cfg = input.config.outputs.clone();
-        let sector = crate::generate_sector(input)?;
+        progress(SegmentumProgress::ChildGenerating {
+            index,
+            total: total_children,
+            id: child.id.clone(),
+        });
+        let child_id = child.id.clone();
+        let sector = crate::generation::generate_with_progress(input, |event| {
+            progress(SegmentumProgress::ChildSectorProgress {
+                index,
+                total: total_children,
+                id: child_id.clone(),
+                event,
+            });
+        })?;
         let inv = crate::validate_sector(&sector);
         if !inv.ok {
             return Err(SectorError::InvalidConfig(format!(
@@ -301,14 +416,28 @@ pub fn compose(
                 inv.violations.len()
             )));
         }
+        progress(SegmentumProgress::ChildInvariantsChecked {
+            index,
+            total: total_children,
+            id: child.id.clone(),
+        });
 
         let child_out = children_root.join(&child.id);
+        progress(SegmentumProgress::ChildExporting {
+            index,
+            total: total_children,
+            id: child.id.clone(),
+            output_dir: child_out.to_string(),
+        });
         crate::export_sector(&sector, &output_cfg, &child_out)?;
 
         let digest = digest_sector(&sector)?;
-        total_systems += sector.manifest.system_count;
-        total_worlds += sector.manifest.world_count;
-        total_routes += sector.manifest.route_count;
+        let sector_systems = sector.manifest.system_count;
+        let sector_worlds = sector.manifest.world_count;
+        let sector_routes = sector.manifest.route_count;
+        total_systems += sector_systems;
+        total_worlds += sector_worlds;
+        total_routes += sector_routes;
 
         child_records.push(SegmentumChild {
             id: child.id.clone(),
@@ -321,15 +450,27 @@ pub fn compose(
             sector_digest: digest.clone(),
             width: sector.width,
             height: sector.height,
-            system_count: sector.manifest.system_count,
-            world_count: sector.manifest.world_count,
-            route_count: sector.manifest.route_count,
+            system_count: sector_systems,
+            world_count: sector_worlds,
+            route_count: sector_routes,
         });
         child_digests.insert(child.id.clone(), digest);
         sectors.insert(child.id.clone(), sector);
+        progress(SegmentumProgress::ChildComplete {
+            index,
+            total: total_children,
+            id: child.id.clone(),
+            systems: sector_systems,
+            worlds: sector_worlds,
+            routes: sector_routes,
+        });
     }
 
+    progress(SegmentumProgress::Stitching {
+        children: child_records.len(),
+    });
     let links = stitch_children(file, &child_records, &sectors);
+    let link_count = links.len();
 
     let stitch_seed_hash = rng::hex(&rng::hash_root_seed(&file.segmentum.stitch_seed));
     let settings_digest = digest_settings(file)?;
@@ -346,8 +487,16 @@ pub fn compose(
         system_count: total_systems,
         world_count: total_worlds,
         route_count: total_routes,
-        inter_sector_link_count: links.len(),
+        inter_sector_link_count: link_count,
     };
+
+    progress(SegmentumProgress::Complete {
+        children: child_records.len(),
+        links: link_count,
+        systems: total_systems,
+        worlds: total_worlds,
+        routes: total_routes,
+    });
 
     Ok(Segmentum {
         id: file.segmentum.id.clone(),

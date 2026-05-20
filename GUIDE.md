@@ -93,6 +93,11 @@ Runs validation, then generation, then writes output files. Refuses to
 continue if validation reports errors. Refuses to continue with warnings
 unless `--allow-warnings` is passed.
 
+Progress is printed to stderr with `[sectorforge]` prefixes: load, validation,
+world-pool build, system generation, route/control overlays, invariant check,
+and export. Stdout keeps the final summary, so scripted callers can redirect
+stderr if they only want artifacts or JSON.
+
 | Flag | Meaning |
 |---|---|
 | `--seed <SEED>` | Override `[generation].seed` from `sectorforge.toml` |
@@ -750,6 +755,11 @@ cargo run --bin sectorforge -- compose \
 | `--out <DIR>` | Output directory (created if missing) |
 | `--stitch-seed <S>` | Override the file's `stitch_seed` |
 | `--json` | Print the composed segmentum JSON to stdout instead of writing files |
+
+Composition also reports progress to stderr. It logs each child load,
+validation, sector-generation milestones, invariant check, child export, and
+the final stitch stage. In `--json` mode the composed JSON still goes to stdout;
+progress remains on stderr.
 
 Output layout:
 
@@ -1486,8 +1496,12 @@ Public surface:
 | `load_project(dir)` | Read sectorforge.toml + all referenced files |
 | `validate_project(&input)` | Pre-generation validation, returns `ValidationReport` |
 | `generate_sector(input)` | Deterministic sector generation, returns `GeneratedSector` |
+| `generate_sector_with_progress(input, cb)` | Same generation, emitting `SectorProgress` callback events |
 | `generate_system_standalone(input, index, coord)` | Deterministic single-system generation, returns `GeneratedSystem` |
 | `validate_sector(&sector)` | Post-generation invariant check (spec §11.11), returns `InvariantReport` |
+| `compose_segmentum(&file, base_dir, out)` | Generate child sectors and compose a `Segmentum` |
+| `compose_segmentum_with_progress(&file, base_dir, out, cb)` | Same segmentum composition, emitting `SegmentumProgress` events |
+| `write_segmentum(dir, &segmentum)` | Write segmentum Markdown, JSON, and super-manifest |
 | `build_subsectors(&sector, cfg)` | Derive subsector clusters from a generated sector |
 | `render_sector_markdown(&sector)` | Pure Markdown render, returns `String` |
 | `render_system_markdown(&system)` | Pure Markdown render for one standalone system |
@@ -1508,7 +1522,8 @@ Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`
 `Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
 `ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
 `MapTheme`, `MapThemeConfig`, `LabelDensity`, `LegendStyle`,
-`RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`.
+`RouteLineMode`, `SymbolSet`, `ValidationIssue`, `ValidationReport`,
+`SectorProgress`, `Segmentum`, and `SegmentumProgress`.
 
 ### Typed identifiers
 
@@ -1681,7 +1696,7 @@ across runs, so a regression check is a diff away.
 | [src/gui/main.rs](src/gui/main.rs) | GUI binary entry point (`sectorforge-gui`) |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser (do not modify casually) |
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
-| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes. `build_system` is the unit reused by sector + standalone APIs |
+| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events. `build_system` is the unit reused by sector + standalone APIs |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
 | [src/control.rs](src/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
@@ -1704,7 +1719,7 @@ across runs, so a regression check is a diff away.
 | [src/hooks.rs](src/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
 | [src/prose.rs](src/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
 | [src/relations.rs](src/relations.rs) | §5 NEW2.md diplomacy matrix: public/secret faction attitudes, treaty status, directional views, trust/fear/rivalry/economic/military/covert dimensions, legacy stance compatibility, and relation Markdown/JSON report writer. |
-| [src/segmentum.rs](src/segmentum.rs) | §14 NEW.md multi-sector composition: `segmentum.toml` loader, deterministic stitch stage (`blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")`), inter-sector links, super-manifest, Markdown super-map. |
+| [src/segmentum.rs](src/segmentum.rs) | §14 NEW.md multi-sector composition: `segmentum.toml` loader, child-sector progress callbacks, deterministic stitch stage (`blake3("sectorforge:{stitch_seed}:stitch:{a}:{b}")`), inter-sector links, super-manifest, Markdown super-map. |
 | [src/interestingness.rs](src/interestingness.rs) | §18 NEW2.md interestingness scorecard: weighted target-band fit over `[crate::analytics]` metrics, five built-in profiles (political_sandbox / grim_collapse / mercantile / villainous / frontier). |
 | [src/briefing.rs](src/briefing.rs) | §9 NEW2.md briefing profiles: six audience presets (gm / navy / inquisition / trader / governor / public) that combine the existing intel redaction primitives with hidden-route, relations, claim, archetype, and orbital-asset stripping. |
 | [src/missions.rs](src/missions.rs) | §3 NEW2.md mission seed generator: typed Investigate / Escort / Sabotage / Diplomacy / Assassination / Recovery / Defense / Exploration seeds keyed off contested worlds, hidden masters, mismatched claims, perilous routes, and uncharted systems. |

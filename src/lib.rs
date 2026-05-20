@@ -86,6 +86,7 @@ pub use economy::{
     StrategicPriority, SupplyRisk, SystemEconomy, TitheStatus, WorldEconomy,
 };
 pub use errors::SectorError;
+pub use generation::SectorProgress;
 pub use input::ProjectInput;
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use map_theme::{
@@ -101,8 +102,9 @@ pub use relations::{
 pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
 pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
 pub use segmentum::{
-    compose as compose_segmentum, load_segmentum_file, BorderOrientation, ChildEntry, FactionMode,
-    InterSectorLink, Segmentum, SegmentumChild, SegmentumConfig, SegmentumFile, SegmentumManifest,
+    compose as compose_segmentum, compose_with_progress as compose_segmentum_with_progress,
+    load_segmentum_file, BorderOrientation, ChildEntry, FactionMode, InterSectorLink, Segmentum,
+    SegmentumChild, SegmentumConfig, SegmentumFile, SegmentumManifest, SegmentumProgress,
     StitchConfig,
 };
 pub use subsectors::{
@@ -178,6 +180,25 @@ pub fn validate_project(project: &ProjectInput) -> Result<ValidationReport, Sect
 /// ```
 pub fn generate_sector(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     generation::generate(project)
+}
+
+/// Deterministic sector generation with progress callbacks.
+///
+/// The callback is invoked for major pipeline stages and throttled by the
+/// caller if desired. The generation remains pure; callback output is not part
+/// of any generated artifact.
+///
+/// # Errors
+///
+/// Same as [`generate_sector`].
+pub fn generate_sector_with_progress<F>(
+    project: ProjectInput,
+    progress: F,
+) -> Result<GeneratedSector, SectorError>
+where
+    F: FnMut(SectorProgress),
+{
+    generation::generate_with_progress(project, progress)
 }
 
 /// Spec §11.11: post-generation invariants check on an already-built sector.

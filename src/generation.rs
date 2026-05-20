@@ -24,7 +24,85 @@ use crate::taxonomy;
 use crate::world_pool::{self, WorldCandidate, WorldCandidatePool};
 use crate::worlds::{NotableFeature, StarColour};
 
+/// Progress events emitted by sector generation when a caller opts in through
+/// [`generate_with_progress`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SectorProgress {
+    WorldPoolBuilt {
+        rows: usize,
+        candidates: usize,
+        excluded: usize,
+    },
+    SystemsPlaced {
+        total: usize,
+        width: u32,
+        height: u32,
+    },
+    RegionsBuilt {
+        count: usize,
+    },
+    SystemBuilt {
+        current: usize,
+        total: usize,
+        worlds: usize,
+    },
+    FactionsAssigned {
+        catalog_rows: usize,
+    },
+    FactionsAggregated {
+        factions: usize,
+    },
+    RoutesGenerated {
+        routes: usize,
+    },
+    RegionEffectsApplied {
+        regions: usize,
+    },
+    HiddenRoutesApplied {
+        added: usize,
+        routes: usize,
+    },
+    RouteControlsDerived {
+        routes: usize,
+    },
+    SystemStateDerived {
+        current: usize,
+        total: usize,
+    },
+    ManifestBuilt {
+        systems: usize,
+        worlds: usize,
+        routes: usize,
+    },
+    OverlayDerived {
+        name: &'static str,
+    },
+    Complete {
+        systems: usize,
+        worlds: usize,
+        routes: usize,
+    },
+}
+
 pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
+    generate_with_progress(project, |_| {})
+}
+
+/// Deterministic top-level sector generation with progress callbacks.
+///
+/// The callback is synchronous and receives major pipeline milestones plus
+/// per-system counters. The default [`generate`] wrapper uses a no-op callback.
+///
+/// # Errors
+///
+/// Same as [`generate`].
+pub fn generate_with_progress<F>(
+    project: ProjectInput,
+    mut progress: F,
+) -> Result<GeneratedSector, SectorError>
+where
+    F: FnMut(SectorProgress),
+{
     let ProjectInput {
         config,
         world_tables,
@@ -39,16 +117,27 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         ..
     } = project;
 
+    let source_rows = world_rows.len();
     let pool = world_pool::build_pool(
         &world_rows,
         &world_tables,
         &config.generation.world_selection,
     );
+    progress(SectorProgress::WorldPoolBuilt {
+        rows: source_rows,
+        candidates: pool.candidates.len(),
+        excluded: pool.excluded_rows.len(),
+    });
     if pool.candidates.is_empty() {
         return Err(SectorError::NoWorldCandidates);
     }
 
     let placements = place_systems(&config)?;
+    progress(SectorProgress::SystemsPlaced {
+        total: placements.len(),
+        width: config.generation.sector_width,
+        height: config.generation.sector_height,
+    });
     let mut systems: Vec<GeneratedSystem> = Vec::with_capacity(placements.len());
     let mut used_names: BTreeSet<String> = BTreeSet::new();
 
@@ -66,6 +155,9 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         .filter(|r| matches!(r.kind, crate::regions::RegionConditionKind::Anomaly))
         .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
         .collect();
+    progress(SectorProgress::RegionsBuilt {
+        count: warp_regions.len(),
+    });
 
     for (idx, coord) in placements.iter().enumerate() {
         let system_index = idx + 1;
@@ -79,16 +171,28 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
             &mut used_names,
             anomaly_bias,
         )?;
+        let worlds = system.worlds.len();
         systems.push(system);
+        progress(SectorProgress::SystemBuilt {
+            current: system_index,
+            total: placements.len(),
+            worlds,
+        });
     }
 
     // ── Factions ────────────────────────────────────────────────────────────
     if !factions.is_empty() {
         let mut faction_rng = rng::stage_rng(&config.generation.seed, "factions", "sector");
         assign_factions(&mut systems, &factions, &mut faction_rng);
+        progress(SectorProgress::FactionsAssigned {
+            catalog_rows: factions.len(),
+        });
     }
 
     let generated_factions = aggregate_factions(&systems, &factions);
+    progress(SectorProgress::FactionsAggregated {
+        factions: generated_factions.len(),
+    });
 
     // ── Routes ──────────────────────────────────────────────────────────────
     let mut routes = if config.generation.routes.enabled {
@@ -97,12 +201,18 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     } else {
         Vec::new()
     };
+    progress(SectorProgress::RoutesGenerated {
+        routes: routes.len(),
+    });
 
     // §5 NEW.md: apply region effects to routes (storm → perilous, turbulence
     // → one tier worse, calm corridor → one tier better up to the perilous
     // ceiling). Idempotent.
     if regions_cfg.apply_to_routes && !warp_regions.is_empty() {
         crate::regions::apply_route_effects(&warp_regions, &systems, &mut routes);
+        progress(SectorProgress::RegionEffectsApplied {
+            regions: warp_regions.len(),
+        });
     }
 
     // §3 NEXT: append hidden route layers (webway / black-ship / smuggling)
@@ -110,12 +220,17 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     // treatment as public lanes.
     let mut generated_factions = generated_factions;
     if !generated_factions.is_empty() {
+        let before = routes.len();
         crate::hidden_routes::append_hidden_routes_with_regions(
             &systems,
             &generated_factions,
             &warp_regions,
             &mut routes,
         );
+        progress(SectorProgress::HiddenRoutesApplied {
+            added: routes.len().saturating_sub(before),
+            routes: routes.len(),
+        });
     }
 
     // §3 per-route per-faction control. Derived after routes are built and
@@ -127,6 +242,9 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
             r.controls =
                 crate::route_control::derive_route_controls(r, &by_id, &generated_factions);
         }
+        progress(SectorProgress::RouteControlsDerived {
+            routes: routes.len(),
+        });
     }
 
     // §1 NEXT: per-world surface regions.
@@ -137,7 +255,8 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     // view for distant observers is reconstructible on demand from the raw
     // system state, so persisting it everywhere would O(F·S) and bloat
     // sector.json by tens of MB on large sectors with many factions.
-    for sys in systems.iter_mut() {
+    let system_total = systems.len();
+    for (idx, sys) in systems.iter_mut().enumerate() {
         for w in sys.worlds.iter_mut() {
             w.regions = crate::surface_region::derive_regions(w);
             w.conflict = crate::conflict::derive_world_conflict(w);
@@ -154,6 +273,10 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         }
         let obs_refs: Vec<&str> = per_sys.into_iter().collect();
         sys.intel = crate::intel::derive_system_intel(sys, &obs_refs);
+        progress(SectorProgress::SystemStateDerived {
+            current: idx + 1,
+            total: system_total,
+        });
     }
 
     // Sort everything for stable serialization.
@@ -164,6 +287,11 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
     generated_factions.sort_by(|a, b| a.id.cmp(&b.id));
 
     let manifest = build_manifest(&config, &input_digests, &sorted_systems, &sorted_routes);
+    progress(SectorProgress::ManifestBuilt {
+        systems: sorted_systems.len(),
+        worlds: manifest.world_count,
+        routes: sorted_routes.len(),
+    });
 
     let mut sector = GeneratedSector {
         id: config.project.id.clone(),
@@ -186,11 +314,18 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
 
     // §11 NEXT: archetype rules.
     crate::archetypes::apply_all(&mut sector);
+    progress(SectorProgress::OverlayDerived { name: "archetypes" });
     // §4 NEXT: power projection over routes (decays + doctrine).
     sector.power_projection = crate::power_projection::project_sector(&sector);
     crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
+    progress(SectorProgress::OverlayDerived {
+        name: "power_projection",
+    });
     // §9 NEXT: continuous area layers.
     sector.influence_field = crate::influence_field::build(&sector);
+    progress(SectorProgress::OverlayDerived {
+        name: "influence_field",
+    });
 
     // §5 NEW2.md: derive inter-faction relationship matrix once factions are
     // finalised. Pure derivation, no extra RNG draws affect prior stages.
@@ -201,6 +336,7 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         &relations_cfg,
         config.generation.relations.min_world_presence,
     );
+    progress(SectorProgress::OverlayDerived { name: "relations" });
 
     // §12 NEW.md: derive the economy snapshot last so it can read final
     // route stability + control records. Optional `feed_stability` nudge
@@ -210,6 +346,12 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
         let snap = sector.economy.clone();
         crate::economy::apply_stability_nudge(&snap, &mut sector);
     }
+    progress(SectorProgress::OverlayDerived { name: "economy" });
+    progress(SectorProgress::Complete {
+        systems: sector.manifest.system_count,
+        worlds: sector.manifest.world_count,
+        routes: sector.manifest.route_count,
+    });
 
     Ok(sector)
 }

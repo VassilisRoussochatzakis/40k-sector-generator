@@ -51,7 +51,7 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 b,
                 route_thickness,
                 crate::gui::palette::stability_color(route.stability),
-                route.route_type.pattern(),
+                route.pattern_with_salt(&sector.seed),
             );
         }
     }

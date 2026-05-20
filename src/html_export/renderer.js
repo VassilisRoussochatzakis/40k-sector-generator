@@ -140,7 +140,7 @@ function draw(){
       const [ax,ay] = hexCenter(a.coord.q, a.coord.r);
       const [bx,by] = hexCenter(b.coord.q, b.coord.r);
       ctx.strokeStyle = STABILITY_COLORS[r.stability] || THEME.text;
-      ctx.setLineDash(dashesFor(r.route_type));
+      ctx.setLineDash(dashesForRoute(r));
       ctx.beginPath();
       ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
     }
@@ -186,15 +186,93 @@ function drawHex(cx, cy, fill, outline){
   ctx.stroke();
 }
 
-function dashesFor(routeType){
-  switch(routeType){
-    case "DangerousPassage": return [8,4];
-    case "SecretPassage":    return [2,4];
-    case "Webway":           return [3,3,8,3];
-    case "BlackShip":        return [12,4];
-    case "SmugglingLane":    return [4,2,2,2];
-    default: return [];
-  }
+const ROUTE_TYPE_ALIASES = {
+  StableWarpLane:"stable_warp_lane",
+  ChartedPassage:"charted_passage",
+  DangerousPassage:"dangerous_passage",
+  SecretPassage:"secret_passage",
+  Webway:"webway",
+  BlackShip:"black_ship",
+  SmugglingLane:"smuggling_lane",
+};
+const ROUTE_PATTERN_POOLS = {
+  stable_warp_lane:["Solid","Railroad","March"],
+  charted_passage:["Dashed","Bridge","Twin"],
+  dangerous_passage:["DotDash","Cracked","Staccato"],
+  secret_passage:["Dotted","Tick","Whisper"],
+  webway:["Burst","Tripod","Patter"],
+  black_ship:["Quartet","DoubleTap"],
+  smuggling_lane:["Gravel","Pebble","Ghost"],
+};
+const ROUTE_PATTERN_STRIDES = {
+  Solid:[],
+  Dashed:[10,5],
+  DotDash:[5,2,1,2,1,4],
+  Dotted:[1,2],
+  Cracked:[3,2],
+  Ghost:[12,15],
+  Burst:[1.5,2,1.5,2,1.5,8],
+  Staccato:[6,3,2,3],
+  Gravel:[2,1.5],
+  Twin:[4,2,4,5],
+  Tripod:[6,1,1,1,1,1,6],
+  Tick:[2,8],
+  Bridge:[4,2,4,2],
+  Patter:[0.8,1.2],
+  Quartet:[5,3,3,7],
+  Railroad:[14,6],
+  DoubleTap:[2.5,2,2.5,6],
+  Pebble:[1,1],
+  Whisper:[1,14],
+  March:[3,3,3,3,3,3],
+};
+const ROUTE_TEXT_ENCODER = new TextEncoder();
+
+function dashesForRoute(route){
+  const routeType = routeTypeKey(route.route_type);
+  const pool = ROUTE_PATTERN_POOLS[routeType] || ROUTE_PATTERN_POOLS.charted_passage;
+  const salt = SECTOR.seed || SECTOR.id || "";
+  const key = [
+    salt,
+    route.id || "",
+    route.from_system_id || "",
+    route.to_system_id || "",
+    route.distance || 0,
+    stabilityKey(route.stability),
+  ].join("\0");
+  const pattern = pool[stableRoutePatternHash(routeType, key) % pool.length];
+  const unit = Math.max(2, ctx.lineWidth || 2);
+  return (ROUTE_PATTERN_STRIDES[pattern] || []).map(v => v * unit);
+}
+
+function routeTypeKey(routeType){
+  const raw = String(routeType || "charted_passage");
+  return ROUTE_TYPE_ALIASES[raw] || raw;
+}
+
+function stabilityKey(stability){
+  return String(stability || "stable").toLowerCase();
+}
+
+function stableRoutePatternHash(routeType, key){
+  let hash = 2166136261 >>> 0;
+  hash = fnvFeed(hash, "sectorforge:route-pattern:v1");
+  hash = fnvFeedByte(hash, 0);
+  hash = fnvFeed(hash, routeType);
+  hash = fnvFeedByte(hash, 0);
+  hash = fnvFeed(hash, key);
+  return hash >>> 0;
+}
+
+function fnvFeed(hash, text){
+  const bytes = ROUTE_TEXT_ENCODER.encode(text);
+  for (const b of bytes) hash = fnvFeedByte(hash, b);
+  return hash >>> 0;
+}
+
+function fnvFeedByte(hash, byte){
+  hash ^= byte;
+  return Math.imul(hash, 16777619) >>> 0;
 }
 
 function darken(hex, amt){

@@ -310,9 +310,13 @@ fn super_map(
                 let a = centers.get(&(meta.id.clone(), route.from_system_id.clone()));
                 let b = centers.get(&(meta.id.clone(), route.to_system_id.clone()));
                 if let (Some(&a), Some(&b)) = (a, b) {
-                    painter.line_segment(
-                        [a, b],
-                        Stroke::new(1.0, stability_color(route.stability).linear_multiply(0.55)),
+                    palette::draw_route_line(
+                        &painter,
+                        a,
+                        b,
+                        1.0,
+                        stability_color(route.stability).linear_multiply(0.55),
+                        route.pattern_with_salt(&loaded.sector.seed),
                     );
                 }
             }
@@ -344,7 +348,10 @@ fn super_map(
             b,
             if selected { 3.2 } else { 1.8 },
             color,
-            link.route_type.pattern(),
+            link.route_type.pattern_for_key(&format!(
+                "{}:{}:{}",
+                bundle.segmentum.stitch_seed, link.id, link.distance_units
+            )),
         );
         let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
         painter.text(

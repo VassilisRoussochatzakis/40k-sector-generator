@@ -196,6 +196,30 @@ pub struct GeneratedRoute {
     pub controls: Vec<crate::route_control::RouteControl>,
 }
 
+impl GeneratedRoute {
+    /// Deterministic visual rhythm for this route. `salt` should be a sector
+    /// seed/id so same local route ids in different sectors do not all draw
+    /// with the same pattern.
+    #[must_use]
+    pub fn pattern_with_salt(&self, salt: &str) -> RoutePattern {
+        let key = format!(
+            "{}\0{}\0{}\0{}\0{}\0{}",
+            salt,
+            self.id,
+            self.from_system_id,
+            self.to_system_id,
+            self.distance,
+            self.stability.pattern_key()
+        );
+        self.route_type.pattern_for_key(&key)
+    }
+
+    #[must_use]
+    pub fn pattern(&self) -> RoutePattern {
+        self.pattern_with_salt("")
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RouteType {
@@ -215,16 +239,56 @@ pub enum RouteType {
 }
 
 impl RouteType {
+    /// Canonical legend/default pattern for this route type.
+    #[must_use]
     pub fn pattern(self) -> RoutePattern {
+        self.patterns()[0]
+    }
+
+    /// Full pattern family for this route type. Families are disjoint and cover
+    /// every `RoutePattern`, so generated routes spread across the new styles
+    /// without making two route types share the same default glyph.
+    #[must_use]
+    pub fn patterns(self) -> &'static [RoutePattern] {
         match self {
-            RouteType::StableWarpLane => RoutePattern::Solid,
-            RouteType::ChartedPassage => RoutePattern::Dashed,
-            RouteType::DangerousPassage => RoutePattern::DotDash,
-            RouteType::SecretPassage => RoutePattern::Dotted,
-            RouteType::Webway => RoutePattern::Dotted,
-            RouteType::BlackShip => RoutePattern::Dashed,
-            RouteType::SmugglingLane => RoutePattern::Dotted,
+            RouteType::StableWarpLane => &[
+                RoutePattern::Solid,
+                RoutePattern::Railroad,
+                RoutePattern::March,
+            ],
+            RouteType::ChartedPassage => &[
+                RoutePattern::Dashed,
+                RoutePattern::Bridge,
+                RoutePattern::Twin,
+            ],
+            RouteType::DangerousPassage => &[
+                RoutePattern::DotDash,
+                RoutePattern::Cracked,
+                RoutePattern::Staccato,
+            ],
+            RouteType::SecretPassage => &[
+                RoutePattern::Dotted,
+                RoutePattern::Tick,
+                RoutePattern::Whisper,
+            ],
+            RouteType::Webway => &[
+                RoutePattern::Burst,
+                RoutePattern::Tripod,
+                RoutePattern::Patter,
+            ],
+            RouteType::BlackShip => &[RoutePattern::Quartet, RoutePattern::DoubleTap],
+            RouteType::SmugglingLane => &[
+                RoutePattern::Gravel,
+                RoutePattern::Pebble,
+                RoutePattern::Ghost,
+            ],
         }
+    }
+
+    #[must_use]
+    pub fn pattern_for_key(self, key: &str) -> RoutePattern {
+        let pool = self.patterns();
+        pool[(stable_pattern_hash(self, key) as usize) % pool.len()]
     }
 
     /// True for the three hidden classes introduced by §3 (NEXT.md). Hidden
@@ -240,7 +304,38 @@ impl RouteType {
     }
 }
 
-/// Visual line pattern used to encode a `RouteType` on maps and legends.
+fn stable_pattern_hash(route_type: RouteType, key: &str) -> u32 {
+    fn feed(hash: &mut u32, bytes: &[u8]) {
+        for b in bytes {
+            *hash ^= u32::from(*b);
+            *hash = hash.wrapping_mul(16_777_619);
+        }
+    }
+
+    let mut hash = 2_166_136_261_u32;
+    feed(&mut hash, b"sectorforge:route-pattern:v1");
+    feed(&mut hash, &[0]);
+    feed(&mut hash, route_type.pattern_key().as_bytes());
+    feed(&mut hash, &[0]);
+    feed(&mut hash, key.as_bytes());
+    hash
+}
+
+impl RouteType {
+    fn pattern_key(self) -> &'static str {
+        match self {
+            RouteType::StableWarpLane => "stable_warp_lane",
+            RouteType::ChartedPassage => "charted_passage",
+            RouteType::DangerousPassage => "dangerous_passage",
+            RouteType::SecretPassage => "secret_passage",
+            RouteType::Webway => "webway",
+            RouteType::BlackShip => "black_ship",
+            RouteType::SmugglingLane => "smuggling_lane",
+        }
+    }
+}
+
+/// Visual line pattern used to encode route type plus per-route variety.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoutePattern {
     Solid,
@@ -325,6 +420,17 @@ pub enum RouteStability {
     Unstable,
     Hazardous,
     Perilous,
+}
+
+impl RouteStability {
+    fn pattern_key(self) -> &'static str {
+        match self {
+            RouteStability::Stable => "stable",
+            RouteStability::Unstable => "unstable",
+            RouteStability::Hazardous => "hazardous",
+            RouteStability::Perilous => "perilous",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -678,5 +784,92 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn route_type_default_patterns_are_unique() {
+        let route_types = [
+            RouteType::StableWarpLane,
+            RouteType::ChartedPassage,
+            RouteType::DangerousPassage,
+            RouteType::SecretPassage,
+            RouteType::Webway,
+            RouteType::BlackShip,
+            RouteType::SmugglingLane,
+        ];
+        let mut defaults = Vec::new();
+        for route_type in route_types {
+            let pattern = route_type.pattern();
+            assert!(
+                !defaults.contains(&pattern),
+                "{route_type:?} duplicated default pattern {pattern:?}"
+            );
+            defaults.push(pattern);
+        }
+    }
+
+    #[test]
+    fn route_pattern_pools_cover_all_patterns_once() {
+        let route_types = [
+            RouteType::StableWarpLane,
+            RouteType::ChartedPassage,
+            RouteType::DangerousPassage,
+            RouteType::SecretPassage,
+            RouteType::Webway,
+            RouteType::BlackShip,
+            RouteType::SmugglingLane,
+        ];
+        let all_patterns = [
+            RoutePattern::Solid,
+            RoutePattern::Dashed,
+            RoutePattern::DotDash,
+            RoutePattern::Dotted,
+            RoutePattern::Cracked,
+            RoutePattern::Ghost,
+            RoutePattern::Burst,
+            RoutePattern::Staccato,
+            RoutePattern::Gravel,
+            RoutePattern::Twin,
+            RoutePattern::Tripod,
+            RoutePattern::Tick,
+            RoutePattern::Bridge,
+            RoutePattern::Patter,
+            RoutePattern::Quartet,
+            RoutePattern::Railroad,
+            RoutePattern::DoubleTap,
+            RoutePattern::Pebble,
+            RoutePattern::Whisper,
+            RoutePattern::March,
+        ];
+        let mut seen = Vec::new();
+        for route_type in route_types {
+            for pattern in route_type.patterns() {
+                assert!(
+                    !seen.contains(pattern),
+                    "{pattern:?} appears in more than one route pattern pool"
+                );
+                seen.push(*pattern);
+            }
+        }
+        assert_eq!(seen.len(), all_patterns.len());
+        for pattern in all_patterns {
+            assert!(seen.contains(&pattern), "{pattern:?} missing from pools");
+        }
+    }
+
+    #[test]
+    fn generated_route_pattern_comes_from_its_type_pool() {
+        let route = GeneratedRoute {
+            id: "route-0001-0002".into(),
+            from_system_id: "sys-0001".into(),
+            to_system_id: "sys-0002".into(),
+            distance: 3,
+            route_type: RouteType::ChartedPassage,
+            stability: RouteStability::Stable,
+            tags: Vec::new(),
+            controls: Vec::new(),
+        };
+        let pattern = route.pattern_with_salt("sector-a");
+        assert!(route.route_type.patterns().contains(&pattern));
     }
 }

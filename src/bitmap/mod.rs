@@ -325,7 +325,7 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom) {
             ey,
             color,
             thickness,
-            route.route_type.pattern(),
+            route.pattern_with_salt(&sector.seed),
         );
         draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness);
     }

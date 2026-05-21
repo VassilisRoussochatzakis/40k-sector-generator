@@ -1417,7 +1417,9 @@ navigation bar:
 - **Sector** — hex map with zoom/pan, colored by primary star colour,
   faction tint, subsector overlay, deterministic route-pattern geometry,
   and a translucent warp-region tint plus subdued center labels
-  (§5) for every `WarpRegion`. Click a hex to drill into the system. The
+  (§5) for every `WarpRegion`. Click a hex to drill into the system; click a
+  route line to highlight that route and inspect its endpoints, type,
+  stability, distance, tags, and per-faction route-control values. The
   bottom controls expose a **HEATMAP** dropdown that
   tints every system hex by a per-mode score: `CONTROL` (dominant-faction
   colour × control-score intensity), `MILITARY`, `TRADE`, `INDUSTRY`,

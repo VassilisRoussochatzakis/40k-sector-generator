@@ -18,6 +18,7 @@ use super::palette::{
 pub struct SectorView<'a> {
     pub sector: &'a GeneratedSector,
     pub selected_system: Option<&'a str>,
+    pub selected_route: Option<&'a str>,
     pub hex_size: f32,
     /// Route ids that belong to the active planned path. Drawn thick on top of the base routes.
     pub path_route_ids: Option<&'a HashSet<crate::ids::RouteId>>,
@@ -42,6 +43,7 @@ const REGION_LABEL_OUTLINE: Color32 = Color32::from_rgba_premultiplied(42, 40, 5
 
 pub enum SectorClick {
     System(crate::ids::SystemId),
+    Route(crate::ids::RouteId),
     Subsector(String),
 }
 
@@ -211,6 +213,38 @@ impl<'a> SectorView<'a> {
                 );
                 painter.line_segment([a2, b2], Stroke::new(glow_thick, glow));
                 painter.line_segment([a2, b2], Stroke::new(core_thick, PATH_HIGHLIGHT));
+            }
+        }
+
+        if let Some(sel) = self.selected_route {
+            for route in &self.sector.routes {
+                if route.id.as_str() != sel {
+                    continue;
+                }
+                let (Some(&a), Some(&b)) = (
+                    centers.get(route.from_system_id.as_str()),
+                    centers.get(route.to_system_id.as_str()),
+                ) else {
+                    continue;
+                };
+                let Some((a2, b2)) = shorten(a, b) else {
+                    continue;
+                };
+                let glow = Color32::from_rgba_unmultiplied(
+                    SELECTION.r(),
+                    SELECTION.g(),
+                    SELECTION.b(),
+                    75,
+                );
+                painter.line_segment([a2, b2], Stroke::new(route_thickness * 3.6, glow));
+                draw_route_line(
+                    &painter,
+                    a2,
+                    b2,
+                    route_thickness * 1.9,
+                    SELECTION,
+                    route.route_type.pattern(),
+                );
             }
         }
 
@@ -489,6 +523,25 @@ impl<'a> SectorView<'a> {
                     .min_by(|(_, a), (_, b)| a.total_cmp(b));
                 if let Some((sys, _)) = hit {
                     click = Some(SectorClick::System(sys.id.clone()));
+                } else if let Some((route, _)) = self
+                    .sector
+                    .routes
+                    .iter()
+                    .filter_map(|route| {
+                        let (Some(&a), Some(&b)) = (
+                            centers.get(route.from_system_id.as_str()),
+                            centers.get(route.to_system_id.as_str()),
+                        ) else {
+                            return None;
+                        };
+                        let (a2, b2) = shorten(a, b)?;
+                        let d = distance_to_segment(pos, a2, b2);
+                        let hit_radius = (g.hex_size * 0.16).max(route_thickness * 2.4).max(7.0);
+                        (d <= hit_radius).then_some((route, d))
+                    })
+                    .min_by(|(_, a), (_, b)| a.total_cmp(b))
+                {
+                    click = Some(SectorClick::Route(route.id.clone()));
                 } else if !hex_subsector.is_empty() {
                     // No system under cursor — try empty hex inside a known
                     // subsector. Nearest hex center wins as long as it's within
@@ -579,6 +632,18 @@ fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline:
 fn draw_hex_fill(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32) {
     let pts = hex_vertices(c, size).to_vec();
     painter.add(egui::Shape::convex_polygon(pts, fill, Stroke::NONE));
+}
+
+fn distance_to_segment(p: Pos2, a: Pos2, b: Pos2) -> f32 {
+    let ab = b - a;
+    let ap = p - a;
+    let len_sq = ab.length_sq();
+    if len_sq <= f32::EPSILON {
+        return p.distance(a);
+    }
+    let dot = ap.x * ab.x + ap.y * ab.y;
+    let t = (dot / len_sq).clamp(0.0, 1.0);
+    p.distance(a + ab * t)
 }
 
 fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {

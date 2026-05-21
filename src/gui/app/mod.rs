@@ -30,6 +30,7 @@ pub struct App {
     subsectors: Vec<Subsector>,
     view: View,
     sector_selected: Option<crate::ids::SystemId>,
+    sector_selected_route: Option<crate::ids::RouteId>,
     sector_selected_subsector: Option<String>,
     sector_hex_size: f32,
     system_side: f32,
@@ -98,6 +99,7 @@ impl Default for App {
             subsectors: Vec::new(),
             view: View::Edit,
             sector_selected: None,
+            sector_selected_route: None,
             sector_selected_subsector: None,
             sector_hex_size: 44.0,
             system_side: 700.0,
@@ -169,6 +171,7 @@ impl App {
         self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
         self.sector = Some(Arc::new(sector.clone()));
         self.sector_selected = None;
+        self.sector_selected_route = None;
         self.sector_selected_subsector = None;
         self.history_selected_event = None;
         self.planner.clear();
@@ -209,6 +212,7 @@ impl App {
             } => {
                 if self.set_active_segmentum_child(&child_id) {
                     self.sector_selected = Some(system_id.clone());
+                    self.sector_selected_route = None;
                     self.view = View::System {
                         system_id,
                         selection: SystemSelection::None,
@@ -631,6 +635,45 @@ impl App {
             )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
+                    if let Some(sel) = self.sector_selected_route.clone() {
+                        if let Some(route) =
+                            sector.routes.iter().find(|r| r.id.as_str() == sel.as_str())
+                        {
+                            let from = route.from_system_id.clone();
+                            let to = route.to_system_id.clone();
+                            info_panel::route_summary(ui, route, &sector);
+                            ui.add_space(10.0);
+                            ui.horizontal(|ui| {
+                                if ui.button(RichText::new("OPEN FROM").monospace()).clicked() {
+                                    self.sector_selected = Some(from.clone());
+                                    self.sector_selected_route = None;
+                                    self.sector_selected_subsector = None;
+                                    self.view = View::System {
+                                        system_id: from.clone(),
+                                        selection: SystemSelection::None,
+                                    };
+                                }
+                                if ui.button(RichText::new("OPEN TO").monospace()).clicked() {
+                                    self.sector_selected = Some(to.clone());
+                                    self.sector_selected_route = None;
+                                    self.sector_selected_subsector = None;
+                                    self.view = View::System {
+                                        system_id: to.clone(),
+                                        selection: SystemSelection::None,
+                                    };
+                                }
+                            });
+                            if ui
+                                .button(RichText::new("CLEAR ROUTE").monospace())
+                                .clicked()
+                            {
+                                self.sector_selected_route = None;
+                            }
+                            ui.separator();
+                        } else {
+                            self.sector_selected_route = None;
+                        }
+                    }
                     if let Some(sel) = self.sector_selected.as_deref() {
                         if let (Some(sys), Some(sector)) =
                             (self.system_by_id(sel), self.sector.as_ref())
@@ -1101,6 +1144,7 @@ impl App {
                     let (_resp, click) = SectorView {
                         sector: &sector,
                         selected_system: self.sector_selected.as_deref(),
+                        selected_route: self.sector_selected_route.as_deref(),
                         hex_size: self.sector_hex_size,
                         path_route_ids: Some(&route_ids),
                         path_waypoints: Some(&waypoints),
@@ -1112,11 +1156,18 @@ impl App {
                     match click {
                         Some(SectorClick::System(id)) => {
                             self.sector_selected = Some(id);
+                            self.sector_selected_route = None;
+                            self.sector_selected_subsector = None;
+                        }
+                        Some(SectorClick::Route(id)) => {
+                            self.sector_selected_route = Some(id);
+                            self.sector_selected = None;
                             self.sector_selected_subsector = None;
                         }
                         Some(SectorClick::Subsector(id)) => {
                             self.sector_selected_subsector = Some(id);
                             self.sector_selected = None;
+                            self.sector_selected_route = None;
                         }
                         None => {}
                     }
@@ -1696,6 +1747,7 @@ impl App {
                     let (_resp, click) = SectorView {
                         sector: &sector,
                         selected_system: selected,
+                        selected_route: None,
                         hex_size: self.planner_hex_size,
                         path_route_ids: Some(&route_ids),
                         path_waypoints: Some(&waypoints),
@@ -2009,6 +2061,7 @@ impl App {
             let (_resp, click) = SectorView {
                 sector: &sector,
                 selected_system: self.sector_selected.as_deref(),
+                selected_route: self.sector_selected_route.as_deref(),
                 hex_size: self.sector_hex_size,
                 path_route_ids: None,
                 path_waypoints: None,
@@ -2023,12 +2076,25 @@ impl App {
                         self.sector_pick_export = false;
                         self.pending_export = Some(PendingExport::SystemPng(id));
                     } else if self.sector_selected.as_deref() == Some(id.as_str()) {
+                        self.sector_selected_route = None;
                         self.view = View::System {
                             system_id: id,
                             selection: SystemSelection::None,
                         };
                     } else {
                         self.sector_selected = Some(id);
+                        self.sector_selected_route = None;
+                        self.sector_selected_subsector = None;
+                    }
+                }
+                Some(SectorClick::Route(id)) => {
+                    if self.sector_pick_export {
+                        // routes are not valid export targets
+                    } else if self.sector_selected_route.as_deref() == Some(id.as_str()) {
+                        self.sector_selected_route = None;
+                    } else {
+                        self.sector_selected_route = Some(id);
+                        self.sector_selected = None;
                         self.sector_selected_subsector = None;
                     }
                 }
@@ -2040,6 +2106,7 @@ impl App {
                     } else {
                         self.sector_selected_subsector = Some(id);
                         self.sector_selected = None;
+                        self.sector_selected_route = None;
                     }
                 }
                 None => {}

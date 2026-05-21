@@ -1,0 +1,34 @@
+
+  Status Overview
+   * Total LOC: ~50,000 Rust.
+   * File count: 88 .rs files.
+   * Module count: 55 modules in lib.rs.
+   * Structure: Heavy data-driven architecture. Large structs in sector_model.rs (~115 fields across core types) suggest
+     high memory usage per sector.
+
+  Bloat Indicators
+   1. Massive UI Component: src/gui/app/mod.rs (2,770 lines) handles state, layout, input, and business logic. Violates
+      SoC. Refactor → move logic to App methods in separate files, keep mod.rs for wiring.
+   2. String Allocation Bloat: ~400 .to_string() and ~940 .into(). Many likely unnecessary string copies for static
+      identifiers or UI labels. Use Cow<'static, str> or &str where possible.
+   3. Primitive Error Handling: 20+ instances of Result<T, String>. Poor for debug/recovery. Refactor → use thiserror
+      for all modules (already in Cargo.toml).
+   4. Parameter Explosion: Multiple functions with 8+ arguments (e.g., src/history.rs, src/personae.rs). Use "Parameter
+      Object" pattern (structs) to clean call sites.
+   5. Excessive Derives: 550+ derive attributes. While standard for Serde, many large structs derive Clone, leading to
+      expensive deep copies (700+ .clone() calls). Use Arc or references for immutable data.
+
+  Refactoring Strategy
+   1. Slab/ECS for Worlds: GeneratedSector owns Vec<GeneratedSystem>, which owns Vec<GeneratedWorld>. Deep nesting →
+      hard to traverse/mutate without cloning. Use flat storage with IDs.
+   2. Modularize UI: Split src/gui/app/mod.rs by feature (navigation, sector_ops, system_ops).
+   3. String Interning: For recurring tags/faction IDs, use SmolStr or interning to reduce heap churn.
+   4. Strict Clippy: Existing allow(clippy::too_many_arguments) hides structural issues. Fix root cause, don't suppress.
+
+  Recommended Fixes
+   * Immediate: Run cargo clippy -- -W clippy::pedantic and fix "manual_contains" and "unnecessary_cast" warnings.
+   * Structural: Move inline UI logic from App::update to dedicated widget structs.
+   * Performance: Replace String with Arc<str> or &str in hot generation loops.
+
+  Codebase is functional but nearing "maintenance trap" phase due to UI coupling and data nesting. Refactor before
+  adding more features.

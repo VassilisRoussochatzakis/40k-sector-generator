@@ -8,6 +8,18 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum FactionDesignerError {
+    #[error("validation error: {field} - {message}")]
+    Validation { field: String, message: String },
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Config error: {0}")]
+    Config(String),
+}
+
 use egui::{Color32, ComboBox, DragValue, RichText, Sense, Stroke, Ui};
 use rfd::FileDialog;
 
@@ -771,7 +783,7 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
                         .unwrap_or_default();
                     state.status = format!("added {added}");
                 }
-                Err(e) => state.status = e,
+                Err(e) => state.status = e.to_string(),
             }
         }
     });
@@ -1086,7 +1098,7 @@ fn apply_preset_to_builder(state: &mut FactionDesignerState, p: OverallPreset) {
     state.new_features = join_static_list(p.features);
 }
 
-fn add_builder_row(state: &mut FactionDesignerState) -> Result<(), String> {
+fn add_builder_row(state: &mut FactionDesignerState) -> Result<(), FactionDesignerError> {
     let name = non_empty_trim(&state.new_name, "name")?;
     let kind = non_empty_trim(&state.new_kind, "kind")?;
     let mut id = state.new_id.trim().to_string();
@@ -1094,7 +1106,10 @@ fn add_builder_row(state: &mut FactionDesignerState) -> Result<(), String> {
         id = slug_id(&name);
     }
     if id.is_empty() {
-        return Err("id is empty".to_string());
+        return Err(FactionDesignerError::Validation {
+            field: "id".to_string(),
+            message: "cannot be empty (auto-slug from name failed)".to_string(),
+        });
     }
     validate_weight(state.new_weight, "new row")?;
     state.rows.push(DesignerFactionRow {
@@ -1114,7 +1129,7 @@ fn choose_and_save_designer_toml(
     state: &FactionDesignerState,
     sector: &GeneratedSector,
     project_dir: Option<&Path>,
-) -> Result<Option<String>, String> {
+) -> Result<Option<String>, FactionDesignerError> {
     let file = designer_rows_to_factions_file(&state.rows)?;
     let default_name = format!("{}-factions.toml", sector.id);
     let mut dialog = FileDialog::new()
@@ -1126,14 +1141,19 @@ fn choose_and_save_designer_toml(
     let Some(path) = dialog.save_file() else {
         return Ok(None);
     };
-    let text = toml::to_string_pretty(&file).map_err(|e| format!("encode toml: {e}"))?;
-    fs::write(&path, text).map_err(|e| format!("write {}: {e}", path.display()))?;
+    let text = toml::to_string_pretty(&file)
+        .map_err(|e| FactionDesignerError::Config(format!("encode toml: {e}")))?;
+    fs::write(&path, text)?;
     Ok(Some(path.display().to_string()))
 }
 
-fn designer_rows_to_factions_file(rows: &[DesignerFactionRow]) -> Result<FactionsFile, String> {
+fn designer_rows_to_factions_file(
+    rows: &[DesignerFactionRow],
+) -> Result<FactionsFile, FactionDesignerError> {
     if rows.is_empty() {
-        return Err("designer has no rows".to_string());
+        return Err(FactionDesignerError::Config(
+            "designer has no rows".to_string(),
+        ));
     }
     let mut used: BTreeSet<String> = BTreeSet::new();
     let mut factions = Vec::with_capacity(rows.len());
@@ -1142,7 +1162,10 @@ fn designer_rows_to_factions_file(rows: &[DesignerFactionRow]) -> Result<Faction
         let name = non_empty_trim(&row.name, &format!("row {} name", i + 1))?;
         let kind = non_empty_trim(&row.kind, &format!("row {} kind", i + 1))?;
         if !used.insert(id.clone()) {
-            return Err(format!("duplicate id '{id}'"));
+            return Err(FactionDesignerError::Validation {
+                field: format!("row {} id", i + 1),
+                message: format!("duplicate id '{id}'"),
+            });
         }
         validate_weight(row.weight, &format!("row {}", i + 1))?;
         factions.push(FactionDef {
@@ -1173,18 +1196,24 @@ fn default_faction_dir(project_dir: Option<&Path>) -> Option<PathBuf> {
     }
 }
 
-fn non_empty_trim(value: &str, field: &str) -> Result<String, String> {
+fn non_empty_trim(value: &str, field: &str) -> Result<String, FactionDesignerError> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
-        Err(format!("{field} is empty"))
+        Err(FactionDesignerError::Validation {
+            field: field.to_string(),
+            message: "cannot be empty".to_string(),
+        })
     } else {
         Ok(trimmed.to_string())
     }
 }
 
-fn validate_weight(weight: f64, field: &str) -> Result<(), String> {
+fn validate_weight(weight: f64, field: &str) -> Result<(), FactionDesignerError> {
     if !weight.is_finite() || weight <= 0.0 {
-        Err(format!("{field} weight must be > 0"))
+        Err(FactionDesignerError::Validation {
+            field: field.to_string(),
+            message: "weight must be finite and > 0".to_string(),
+        })
     } else {
         Ok(())
     }
@@ -1339,6 +1368,6 @@ mod tests {
             features: String::new(),
         };
         let err = designer_rows_to_factions_file(&[row.clone(), row]).expect_err("duplicate id");
-        assert!(err.contains("duplicate id"));
+        assert!(err.to_string().contains("duplicate id"));
     }
 }

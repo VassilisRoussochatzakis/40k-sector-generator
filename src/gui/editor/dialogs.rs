@@ -75,7 +75,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             if let Some(name) = load {
                 match super::file_ops::load_project_sector(&name) {
                     Ok((sec, path)) => state.set_sector(sec, Some(path)),
-                    Err(e) => state.dialog = Dialog::Message(e),
+                    Err(e) => state.dialog = Dialog::Message(e.to_string()),
                 }
                 keep = false;
             }
@@ -197,8 +197,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         }
                         Err(e) => {
                             state.dialog = Dialog::SaveAs {
-                                name,
-                                error: Some(e),
+                                name: name.to_string(),
+                                error: Some(e.to_string()),
                             };
                         }
                     }

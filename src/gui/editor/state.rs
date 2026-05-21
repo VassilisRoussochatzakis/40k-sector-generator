@@ -1,11 +1,10 @@
 //! Editor state machine. Holds the working sector + selection + pending dialogs.
 
-use std::collections::BTreeSet;
-
 use crate::ids::{FactionId, SystemId};
 use crate::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
 };
+use std::collections::BTreeSet;
 
 /// Sort order for the factions panel (§14).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

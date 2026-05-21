@@ -10,6 +10,7 @@
 use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -29,11 +30,11 @@ macro_rules! define_id {
             Default,
         )]
         #[serde(transparent)]
-        pub struct $name(pub String);
+        pub struct $name(pub Arc<str>);
 
         impl $name {
             #[must_use]
-            pub fn new(value: impl Into<String>) -> Self {
+            pub fn new(value: impl Into<Arc<str>>) -> Self {
                 Self(value.into())
             }
 
@@ -44,7 +45,7 @@ macro_rules! define_id {
 
             #[must_use]
             pub fn into_string(self) -> String {
-                self.0
+                self.0.to_string()
             }
 
             #[must_use]
@@ -80,67 +81,67 @@ macro_rules! define_id {
 
         impl From<String> for $name {
             fn from(value: String) -> Self {
-                Self(value)
+                Self(Arc::from(value))
             }
         }
 
         impl From<&str> for $name {
             fn from(value: &str) -> Self {
-                Self(value.to_string())
+                Self(Arc::from(value))
             }
         }
 
         impl From<&String> for $name {
             fn from(value: &String) -> Self {
-                Self(value.clone())
+                Self(Arc::from(value.as_str()))
             }
         }
 
         impl From<$name> for String {
             fn from(value: $name) -> String {
-                value.0
+                value.0.to_string()
             }
         }
 
         impl From<&$name> for String {
             fn from(value: &$name) -> String {
-                value.0.clone()
+                value.0.to_string()
             }
         }
 
         impl PartialEq<str> for $name {
             fn eq(&self, other: &str) -> bool {
-                self.0 == other
+                &*self.0 == other
             }
         }
 
         impl PartialEq<&str> for $name {
             fn eq(&self, other: &&str) -> bool {
-                self.0 == *other
+                &*self.0 == *other
             }
         }
 
         impl PartialEq<String> for $name {
             fn eq(&self, other: &String) -> bool {
-                &self.0 == other
+                &*self.0 == other
             }
         }
 
         impl PartialEq<$name> for str {
             fn eq(&self, other: &$name) -> bool {
-                self == other.0
+                self == &*other.0
             }
         }
 
         impl PartialEq<$name> for &str {
             fn eq(&self, other: &$name) -> bool {
-                *self == other.0
+                *self == &*other.0
             }
         }
 
         impl PartialEq<$name> for String {
             fn eq(&self, other: &$name) -> bool {
-                self == &other.0
+                self == &*other.0
             }
         }
     };
@@ -165,18 +166,18 @@ define_id!(
 
 #[must_use]
 pub fn system_id(index: usize) -> SystemId {
-    SystemId(format!("sys-{index:04}"))
+    SystemId(Arc::from(format!("sys-{index:04}")))
 }
 
 #[must_use]
 pub fn world_id(system_index: usize, world_index: usize) -> WorldId {
-    WorldId(format!("sys-{system_index:04}-w{world_index:02}"))
+    WorldId(Arc::from(format!("sys-{system_index:04}-w{world_index:02}")))
 }
 
 #[must_use]
 pub fn route_id(a: &SystemId, b: &SystemId) -> RouteId {
     let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
-    RouteId(format!("route-{lo}-{hi}"))
+    RouteId(Arc::from(format!("route-{lo}-{hi}")))
 }
 
 #[cfg(test)]

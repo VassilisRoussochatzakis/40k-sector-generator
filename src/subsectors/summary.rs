@@ -412,7 +412,7 @@ fn build_faction_control(
     for tid in &config.tracked_faction_ids {
         if !rows.iter().any(|r| r.faction_id.as_str() == tid.as_str()) {
             rows.push(FactionControlSummary {
-                faction_id: crate::ids::FactionId::new(tid),
+                faction_id: crate::ids::FactionId::new(tid.as_str()),
                 owned_system_count: 0,
                 owned_inhabited_system_count: 0,
                 owned_world_count: 0,

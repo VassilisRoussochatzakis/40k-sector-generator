@@ -257,7 +257,7 @@ pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -
             if centres.len() >= target {
                 break;
             }
-            if !centres.iter().any(|p| p == c) {
+            if !centres.contains(c) {
                 centres.push(*c);
             }
         }
@@ -516,8 +516,8 @@ fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool 
 }
 
 fn push_route_tag(route: &mut GeneratedRoute, tag: &str) {
-    if !route.tags.iter().any(|t| t == tag) {
-        route.tags.push(tag.into());
+    if !route.tags.contains(&tag.to_string()) {
+        route.tags.push(tag.to_string());
     }
 }
 

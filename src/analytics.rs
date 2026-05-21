@@ -181,16 +181,16 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.claim_kind_counts = claim_counts;
     a.dominance_counts = dominance_counts;
     a.system_state_counts = compute_system_state_counts(sector);
-    a.world_type_distribution = compute_distribution(sector, |w| w.world.world_type.clone());
+    a.world_type_distribution = compute_distribution(sector, |w| w.world.world_type.to_string());
     a.star_colour_distribution = sector
         .systems
         .iter()
-        .map(|s| s.star.colour_name.clone())
+        .map(|s| s.star.colour_name.to_string())
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
         });
-    a.population_distribution = compute_distribution(sector, |w| w.world.population.clone());
+    a.population_distribution = compute_distribution(sector, |w| w.world.population.to_string());
     a.route_type_distribution = sector
         .routes
         .iter()

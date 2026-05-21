@@ -14,6 +14,18 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum WorldError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("CSV parse error: {0}")]
+    Csv(String),
+    #[error("invalid data: {0}")]
+    Invalid(String),
+}
+
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -377,16 +389,16 @@ fn cell_str(cell: &str) -> Option<&str> {
 
 /// Parse a CSV file into header + rows (RFC 4180: quoted fields, "" escapes ").
 /// Returns (header, rows). Empty trailing lines skipped.
-pub fn parse_csv(text: &str) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+pub fn parse_csv(text: &str) -> Result<(Vec<String>, Vec<Vec<String>>), WorldError> {
     let records = parse_csv_records(text)?;
     let mut iter = records.into_iter();
     let header = iter
         .next()
-        .ok_or_else(|| "csv has no header row".to_string())?;
+        .ok_or_else(|| WorldError::Csv("csv has no header row".to_string()))?;
     Ok((header, iter.collect()))
 }
 
-fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, String> {
+fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, WorldError> {
     let mut records: Vec<Vec<String>> = Vec::new();
     let mut field = String::new();
     let mut record: Vec<String> = Vec::new();
@@ -434,7 +446,7 @@ fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, String> {
         }
     }
     if in_quotes {
-        return Err("csv ended inside a quoted field".to_string());
+        return Err(WorldError::Csv("csv ended inside a quoted field".to_string()));
     }
     if !field.is_empty() || !record.is_empty() {
         record.push(std::mem::take(&mut field));
@@ -449,18 +461,52 @@ fn is_empty_record(record: &[String]) -> bool {
     record.iter().all(|f| f.trim().is_empty())
 }
 
+const KEY_HEADER: &[&str] = &[
+    "star_colour",
+    "world_type",
+    "atmosphere",
+    "temperature",
+    "biosphere",
+    "population",
+    "tech_level",
+    "government",
+    "notable_feature",
+];
+
+fn validate_header(actual: &[String], expected: &[&str]) -> Result<(), WorldError> {
+    if actual.len() < expected.len() {
+        return Err(WorldError::Csv(format!(
+            "not enough columns: expected at least {}, found {}",
+            expected.len(),
+            actual.len()
+        )));
+    }
+    for (i, &name) in expected.iter().enumerate() {
+        if actual[i].to_lowercase() != name {
+            return Err(WorldError::Csv(format!(
+                "invalid header at column {}: expected '{}', found '{}'",
+                i + 1,
+                name,
+                actual[i]
+            )));
+        }
+    }
+    Ok(())
+}
+
 impl KeyTables {
     /// Parse a `key.csv` file. Expected header (case-insensitive, order fixed):
     ///   `star_colour,world_type,atmosphere,temperature,biosphere`,
     ///   `population,tech_level,government,notable_feature`
-    pub fn from_csv_path(path: impl AsRef<Path>) -> Result<Self, String> {
+    pub fn from_csv_path(path: impl AsRef<Path>) -> Result<Self, WorldError> {
         let path = path.as_ref();
-        let text = fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+        let text = fs::read_to_string(path)?;
         Self::from_csv_str(&text)
     }
 
-    pub fn from_csv_str(text: &str) -> Result<Self, String> {
-        let (_header, rows) = parse_csv(text)?;
+    pub fn from_csv_str(text: &str) -> Result<Self, WorldError> {
+        let (header, rows) = parse_csv(text)?;
+        validate_header(&header, KEY_HEADER)?;
         let mut tables = Self::default();
         for row in rows {
             let get = |idx: usize| row.get(idx).map(|s| s.as_str()).and_then(cell_str);
@@ -562,19 +608,33 @@ fn parse_generation_row(row: &[String]) -> GenerationRow {
     }
 }
 
+const GEN_HEADER: &[&str] = &[
+    "star_colour",
+    "world_type",
+    "atmosphere",
+    "temperature",
+    "biosphere",
+    "population",
+    "tech_level",
+    "government",
+    "notable_feature",
+    "counter",
+    "weight",
+];
+
 /// Load a project's world data: `key.csv` + `generator.csv` from the given dir.
 pub fn load_generation_rows(
     data_dir: impl AsRef<Path>,
-) -> Result<(KeyTables, Vec<GenerationRow>), String> {
+) -> Result<(KeyTables, Vec<GenerationRow>), WorldError> {
     let dir = data_dir.as_ref();
     let key_path = dir.join("key.csv");
     let gen_path = dir.join("generator.csv");
 
     let tables = KeyTables::from_csv_path(&key_path)?;
 
-    let gen_text =
-        fs::read_to_string(&gen_path).map_err(|e| format!("read {}: {e}", gen_path.display()))?;
-    let (_header, records) = parse_csv(&gen_text)?;
+    let gen_text = fs::read_to_string(&gen_path)?;
+    let (header, records) = parse_csv(&gen_text)?;
+    validate_header(&header, GEN_HEADER)?;
     let rows: Vec<GenerationRow> = records.iter().map(|r| parse_generation_row(r)).collect();
 
     Ok((tables, rows))
@@ -877,6 +937,113 @@ impl std::str::FromStr for NotableFeature {
             "Zombies" => Self::Zombies,
             _ => return Err(()),
         })
+    }
+}
+
+impl AsRef<str> for NotableFeature {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Abhumans => "Abhumans",
+            Self::AlteredHumans => "AlteredHumans",
+            Self::AncientArchive => "AncientArchive",
+            Self::AncientTombs => "AncientTombs",
+            Self::ArchaeotechRuins => "ArchaeotechRuins",
+            Self::BlindingMists => "BlindingMists",
+            Self::CelestialPhenomena => "CelestialPhenomena",
+            Self::ChaosCultists => "ChaosCultists",
+            Self::CivilWar => "CivilWar",
+            Self::ColdWar => "ColdWar",
+            Self::CrumblingArcologies => "CrumblingArcologies",
+            Self::DaemonicCorruption => "DaemonicCorruption",
+            Self::DangerousWildlife => "DangerousWildlife",
+            Self::DesertWorld => "DesertWorld",
+            Self::DeviantReligion => "DeviantReligion",
+            Self::EugenicCult => "EugenicCult",
+            Self::ExtremeEnvironment => "ExtremeEnvironment",
+            Self::FactionalFragmentation => "FactionalFragmentation",
+            Self::FailedParadise => "FailedParadise",
+            Self::FlyingCities => "FlyingCities",
+            Self::ForbiddenTech => "ForbiddenTech",
+            Self::ForeignControl => "ForeignControl",
+            Self::FreakGeology => "FreakGeology",
+            Self::FreakWeather => "FreakWeather",
+            Self::Freeport => "Freeport",
+            Self::FriendlyXenos => "FriendlyXenos",
+            Self::FrozenWorld => "FrozenWorld",
+            Self::GoldRush => "GoldRush",
+            Self::GreatWork => "GreatWork",
+            Self::HeavyIndustry => "HeavyIndustry",
+            Self::HeavyMining => "HeavyMining",
+            Self::Hereteks => "Hereteks",
+            Self::HolyWar => "HolyWar",
+            Self::HostileBiosphere => "HostileBiosphere",
+            Self::HostileXenos => "HostileXenos",
+            Self::ImpendingDoom => "ImpendingDoom",
+            Self::ImperialKnights => "ImperialKnights",
+            Self::ImportantShrine => "ImportantShrine",
+            Self::InquisitionOutpost => "InquisitionOutpost",
+            Self::JungleWorld => "JungleWorld",
+            Self::Libertines => "Libertines",
+            Self::LocalSpecialty => "LocalSpecialty",
+            Self::LocalTech => "LocalTech",
+            Self::MajorSpaceyard => "MajorSpaceyard",
+            Self::MartialLaw => "MartialLaw",
+            Self::MassPanic => "MassPanic",
+            Self::MinimalContact => "MinimalContact",
+            Self::Missionaries => "Missionaries",
+            Self::MutantHordes => "MutantHordes",
+            Self::NavalBlockade => "NavalBlockade",
+            Self::NavalOutpost => "NavalOutpost",
+            Self::NavigatorHouse => "NavigatorHouse",
+            Self::NomadicCities => "NomadicCities",
+            Self::NotableLocal => "NotableLocal",
+            Self::OceanWorld => "OceanWorld",
+            Self::OutOfContact => "OutOfContact",
+            Self::Pandemic => "Pandemic",
+            Self::PilgrimageSite => "PilgrimageSite",
+            Self::PocketEmpire => "PocketEmpire",
+            Self::PoliceState => "PoliceState",
+            Self::PopularUprising => "PopularUprising",
+            Self::PowerfulCriminals => "PowerfulCriminals",
+            Self::PowerfulNobles => "PowerfulNobles",
+            Self::PrimitiveXenos => "PrimitiveXenos",
+            Self::Prosperous => "Prosperous",
+            Self::PsykerAcademy => "PsykerAcademy",
+            Self::PsykerCult => "PsykerCult",
+            Self::Quarantined => "Quarantined",
+            Self::Radioactive => "Radioactive",
+            Self::RecentlyRediscovered => "RecentlyRediscovered",
+            Self::ScholaProgenium => "ScholaProgenium",
+            Self::SeagoingCities => "SeagoingCities",
+            Self::SealedMenace => "SealedMenace",
+            Self::SecretMasters => "SecretMasters",
+            Self::Sectarians => "Sectarians",
+            Self::SeismicInstability => "SeismicInstability",
+            Self::Separatists => "Separatists",
+            Self::SilicaAnimus => "SilicaAnimus",
+            Self::SoleSuppliers => "SoleSuppliers",
+            Self::SororitasConvent => "SororitasConvent",
+            Self::SpaceHulks => "SpaceHulks",
+            Self::StrangeCustoms => "StrangeCustoms",
+            Self::StrangeHatred => "StrangeHatred",
+            Self::SubsectorHegemon => "SubsectorHegemon",
+            Self::TechPriestCult => "TechPriestCult",
+            Self::TestSite => "TestSite",
+            Self::TheSilentTrade => "TheSilentTrade",
+            Self::TradeHub => "TradeHub",
+            Self::AdministrativeHub => "AdministrativeHub",
+            Self::UnmappedWastes => "UnmappedWastes",
+            Self::VastFortresses => "VastFortresses",
+            Self::VerdantEcology => "VerdantEcology",
+            Self::WarZone => "WarZone",
+            Self::WarpPhenomena => "WarpPhenomena",
+            Self::WitchHunt => "WitchHunt",
+            Self::XenoRuins => "XenoRuins",
+            Self::Xenophiles => "Xenophiles",
+            Self::Xenophobes => "Xenophobes",
+            Self::XenosInfiltrators => "XenosInfiltrators",
+            Self::Zombies => "Zombies",
+        }
     }
 }
 

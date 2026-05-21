@@ -6,17 +6,24 @@
 
 use camino::Utf8PathBuf;
 use egui::{Color32, RichText, ScrollArea, Ui};
+use thiserror::Error;
 
 use crate::presets::{self, PresetEntry};
 
 use super::palette::{TEXT, TEXT_DIM};
+
+#[derive(Debug, Error, Clone)]
+pub enum PresetGalleryError {
+    #[error("failed to list presets: {0}")]
+    Load(String),
+}
 
 #[derive(Default)]
 pub struct PresetGalleryState {
     pub open: bool,
     pub presets_dir: Option<Utf8PathBuf>,
     /// `None` means "list not loaded yet"; `Some(Err)` means load failed.
-    cached: Option<Result<Vec<PresetEntry>, String>>,
+    cached: Option<Result<Vec<PresetEntry>, PresetGalleryError>>,
     /// Path the user is typing for the destination directory.
     pub dest_text: String,
     pub seed_text: String,
@@ -29,7 +36,7 @@ impl PresetGalleryState {
             return;
         }
         let dir = self.resolved_dir();
-        self.cached = Some(presets::list(&dir).map_err(|e| e.to_string()));
+        self.cached = Some(presets::list(&dir).map_err(|e| PresetGalleryError::Load(e.to_string())));
     }
 
     pub fn invalidate(&mut self) {

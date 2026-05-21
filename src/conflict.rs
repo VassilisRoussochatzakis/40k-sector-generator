@@ -170,7 +170,7 @@ pub fn advance_sector(sector: &mut GeneratedSector) {
     let bias = sector.relations.feed_conflict;
     let relations = sector.relations.clone();
     for sys in sector.systems.iter_mut() {
-        for w in sys.worlds.iter_mut() {
+        for w in &mut sys.worlds {
             if bias {
                 apply_relations_bias(&mut w.conflict, &relations);
             }

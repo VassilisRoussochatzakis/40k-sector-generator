@@ -67,7 +67,7 @@ impl FactionDef {
     pub fn subfaction_id(&self) -> crate::ids::FactionId {
         self.subfaction
             .clone()
-            .unwrap_or_else(|| crate::ids::FactionId::new(&self.kind))
+            .unwrap_or_else(|| crate::ids::FactionId::new(self.kind.as_str()))
     }
 
     #[must_use]

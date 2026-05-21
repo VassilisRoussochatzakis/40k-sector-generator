@@ -1,8 +1,7 @@
 //! Output DTOs for a generated sector. Separate from worlds.rs.
 
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::ids::{FactionId, RouteId, SystemId, WorldId};
 
@@ -59,6 +58,7 @@ pub struct GeneratedSystem {
     pub name: String,
     pub coord: HexCoord,
     pub star: GeneratedStar,
+    #[serde(default)]
     pub worlds: Vec<GeneratedWorld>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primary_factions: Vec<FactionId>,
@@ -171,19 +171,60 @@ pub struct WorldDto {
 }
 
 impl From<&crate::worlds::World> for WorldDto {
-    fn from(w: &crate::worlds::World) -> Self {
+    fn from(world: &crate::worlds::World) -> Self {
         Self {
-            star_colour: w.star_colour.short_name().to_string(),
-            star_colour_code: w.star_colour.code().to_string(),
-            world_type: format!("{}", w.world_type),
-            atmosphere: format!("{}", w.atmosphere),
-            temperature: format!("{}", w.temperature),
-            biosphere: format!("{}", w.biosphere),
-            population: format!("{}", w.population),
-            tech_level: format!("{}", w.tech_level),
-            government: format!("{}", w.government),
-            notable_features: w.notable_features.iter().map(|f| format!("{f}")).collect(),
+            star_colour: world.star_colour.short_name().to_string(),
+            star_colour_code: world.star_colour.code().to_string(),
+            world_type: world.world_type.to_string(),
+            atmosphere: world.atmosphere.to_string(),
+            temperature: world.temperature.to_string(),
+            biosphere: world.biosphere.to_string(),
+            population: world.population.to_string(),
+            tech_level: world.tech_level.to_string(),
+            government: world.government.to_string(),
+            notable_features: world
+                .notable_features
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
         }
+    }
+}
+
+impl GeneratedSector {
+    pub fn get_system(&self, id: &crate::ids::SystemId) -> Option<&GeneratedSystem> {
+        self.systems.iter().find(|s| &s.id == id)
+    }
+
+    pub fn get_system_mut(&mut self, id: &crate::ids::SystemId) -> Option<&mut GeneratedSystem> {
+        self.systems.iter_mut().find(|s| &s.id == id)
+    }
+
+    pub fn get_world(&self, id: &crate::ids::WorldId) -> Option<&GeneratedWorld> {
+        self.systems
+            .iter()
+            .flat_map(|s| s.worlds.iter())
+            .find(|w| &w.id == id)
+    }
+
+    pub fn get_world_mut(&mut self, id: &crate::ids::WorldId) -> Option<&mut GeneratedWorld> {
+        self.systems
+            .iter_mut()
+            .flat_map(|s| s.worlds.iter_mut())
+            .find(|w| &w.id == id)
+    }
+
+    /// Iterator over all worlds in the sector.
+    pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
+        self.systems.iter().flat_map(|s| s.worlds.iter())
+    }
+
+    /// Iterator over worlds belonging to a specific system.
+    pub fn system_worlds<'a>(
+        &'a self,
+        sys: &'a GeneratedSystem,
+    ) -> impl Iterator<Item = &'a GeneratedWorld> {
+        sys.worlds.iter()
     }
 }
 
@@ -416,7 +457,6 @@ impl RouteType {
         )
     }
 }
-
 
 fn stable_pattern_hash(route_type: RouteType, key: &str) -> u32 {
     fn feed(hash: &mut u32, bytes: &[u8]) {

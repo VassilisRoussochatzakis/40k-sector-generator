@@ -280,10 +280,10 @@ pub struct WorkbookStats {
 
 pub fn inspect_workbook(path: &str) -> Result<WorkbookStats, SectorError> {
     let (tables, rows) =
-        crate::worlds::load_generation_rows(std::path::Path::new(path)).map_err(|message| {
+        crate::worlds::load_generation_rows(std::path::Path::new(path)).map_err(|e| {
             SectorError::WorldDataLoad {
                 path: path.to_string(),
-                message,
+                message: e.to_string(),
             }
         })?;
 

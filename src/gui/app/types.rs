@@ -1,0 +1,42 @@
+use crate::gui::system_view::SystemSelection;
+
+#[derive(Debug, Clone)]
+pub enum PendingExport {
+    SectorPng,
+    AllSystemPngs,
+    SystemPng(crate::ids::SystemId),
+    /// §11 NEW.md: self-contained interactive HTML map.
+    SectorHtml,
+}
+
+#[derive(Debug, Clone)]
+pub enum View {
+    Sector,
+    System {
+        system_id: crate::ids::SystemId,
+        selection: SystemSelection,
+    },
+    Edit,
+    Data,
+    Planner,
+    Dashboard,
+    Factions,
+    Relations,
+    Regions,
+    Trade,
+    History,
+    Segmentum,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SectorEditTool {
+    Select,
+    AddSystem,
+    AddRoute,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FactionsMode {
+    Overview,
+    Designer,
+}

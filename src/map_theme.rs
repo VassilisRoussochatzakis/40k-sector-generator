@@ -5,6 +5,19 @@
 
 use image::Rgba;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum MapThemeError {
+    #[error("unknown map theme '{0}' (expected one of: {})", BUILTIN_THEME_NAMES.join(", "))]
+    UnknownTheme(String),
+    #[error("{field} has invalid color '{value}' (expected #RRGGBB or #RRGGBBAA)")]
+    InvalidColor { field: String, value: String },
+    #[error("{name} must be finite")]
+    InvalidFactor { name: String },
+    #[error("invalid map theme file: {0}")]
+    InvalidFile(String),
+}
 
 pub const BUILTIN_THEME_NAMES: &[&str] = &[
     "gm_dark",
@@ -419,14 +432,9 @@ impl MapTheme {
     }
 }
 
-pub fn resolve_map_theme(cfg: &MapThemeConfig) -> Result<MapTheme, String> {
+pub fn resolve_map_theme(cfg: &MapThemeConfig) -> Result<MapTheme, MapThemeError> {
     let name = cfg.name.as_deref().unwrap_or("gm_dark");
-    let mut theme = MapTheme::builtin(name).ok_or_else(|| {
-        format!(
-            "unknown map theme '{name}' (expected one of: {})",
-            BUILTIN_THEME_NAMES.join(", ")
-        )
-    })?;
+    let mut theme = MapTheme::builtin(name).ok_or_else(|| MapThemeError::UnknownTheme(name.to_string()))?;
 
     macro_rules! color_override {
         ($cfg_field:ident, $theme_field:ident) => {
@@ -487,13 +495,13 @@ pub fn resolve_map_theme(cfg: &MapThemeConfig) -> Result<MapTheme, String> {
     Ok(theme)
 }
 
-pub fn parse_map_theme_file(text: &str) -> Result<MapThemeConfig, String> {
+pub fn parse_map_theme_file(text: &str) -> Result<MapThemeConfig, MapThemeError> {
     match toml::from_str::<MapThemeFile>(text) {
         Ok(file) => Ok(file.map_theme),
         Err(with_table_err) => toml::from_str::<MapThemeConfig>(text).map_err(|bare_err| {
-            format!(
-                "invalid map theme file: {with_table_err}; also failed as bare theme: {bare_err}"
-            )
+            MapThemeError::InvalidFile(format!(
+                "{with_table_err}; also failed as bare theme: {bare_err}"
+            ))
         }),
     }
 }
@@ -502,12 +510,14 @@ pub fn normalize_name(name: &str) -> String {
     name.trim().to_ascii_lowercase().replace('-', "_")
 }
 
-fn parse_color(s: &str, field: &str) -> Result<Rgba<u8>, String> {
+fn parse_color(s: &str, field: &str) -> Result<Rgba<u8>, MapThemeError> {
     let raw = s.trim();
     let hex = raw.strip_prefix('#').unwrap_or(raw);
-    let parse_pair = |idx: usize| -> Result<u8, String> {
-        u8::from_str_radix(&hex[idx..idx + 2], 16)
-            .map_err(|_| format!("{field} has invalid color '{s}'"))
+    let parse_pair = |idx: usize| -> Result<u8, MapThemeError> {
+        u8::from_str_radix(&hex[idx..idx + 2], 16).map_err(|_| MapThemeError::InvalidColor {
+            field: field.to_string(),
+            value: s.to_string(),
+        })
     };
     match hex.len() {
         6 => Ok(Rgba([parse_pair(0)?, parse_pair(2)?, parse_pair(4)?, 255])),
@@ -517,15 +527,18 @@ fn parse_color(s: &str, field: &str) -> Result<Rgba<u8>, String> {
             parse_pair(4)?,
             parse_pair(6)?,
         ])),
-        _ => Err(format!(
-            "{field} has invalid color '{s}' (expected #RRGGBB or #RRGGBBAA)"
-        )),
+        _ => Err(MapThemeError::InvalidColor {
+            field: field.to_string(),
+            value: s.to_string(),
+        }),
     }
 }
 
-fn factor(name: &str, value: f32, min: f32, max: f32) -> Result<f32, String> {
+fn factor(name: &str, value: f32, min: f32, max: f32) -> Result<f32, MapThemeError> {
     if !value.is_finite() {
-        return Err(format!("{name} must be finite"));
+        return Err(MapThemeError::InvalidFactor {
+            name: name.to_string(),
+        });
     }
     Ok(value.clamp(min, max))
 }

@@ -175,13 +175,13 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, 
     for sys in sector.systems.iter_mut() {
         let mut max_score: f32 = 0.0;
         let mut max_visibility: f32 = 0.0;
-        let mut tomb_tag = false;
+        let mut has_tomb = false;
         for w in &sys.worlds {
             if w.world.notable_features.iter().any(|f| f == "TombWorld") {
-                tomb_tag = true;
+                has_tomb = true;
             }
             if w.world.world_type == "TombWorld" {
-                tomb_tag = true;
+                has_tomb = true;
             }
             for p in &w.factions {
                 let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
@@ -191,6 +191,7 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, 
                 }
             }
         }
+        let tomb_tag = has_tomb;
         sys.archetype.necron_phase = if max_score <= 0.0 && !tomb_tag {
             NecronPhase::None
         } else if max_visibility < 20.0 && max_score < 35.0 {
@@ -238,7 +239,7 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
             TyranidStage::Consumed | TyranidStage::Besieged
         ) {
             // Tag every world: shadow_of_the_warp.
-            for w in sys.worlds.iter_mut() {
+            for w in &mut sys.worlds {
                 let tag = "feature:shadow_of_the_warp".to_string();
                 if !w.tags.iter().any(|t| t == &tag) {
                     w.tags.push(tag);

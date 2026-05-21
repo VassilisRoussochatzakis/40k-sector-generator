@@ -56,12 +56,9 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.add_space(6.0);
     section(ui, "STAR COLOUR (display)");
-    if combo_str(
-        ui,
-        "w_star_code",
-        &mut w.world.star_colour_code,
-        STAR_COLOUR_CODES,
-    ) {
+    let mut star_code = w.world.star_colour_code.to_string();
+    if combo_str(ui, "w_star_code", &mut star_code, STAR_COLOUR_CODES) {
+        w.world.star_colour_code = star_code;
         w.world.star_colour = star_colour_name(&w.world.star_colour_code).to_string();
         dirty = true;
     }
@@ -72,7 +69,15 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     row(
         ui,
         "TYPE",
-        |ui| combo_str(ui, "w_type", &mut w.world.world_type, WORLD_TYPES),
+        |ui| {
+            let mut val = w.world.world_type.to_string();
+            if combo_str(ui, "w_type", &mut val, WORLD_TYPES) {
+                w.world.world_type = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
 
@@ -81,19 +86,43 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     row(
         ui,
         "ATMOSPHERE",
-        |ui| combo_str(ui, "w_atm", &mut w.world.atmosphere, ATMOSPHERES),
+        |ui| {
+            let mut val = w.world.atmosphere.to_string();
+            if combo_str(ui, "w_atm", &mut val, ATMOSPHERES) {
+                w.world.atmosphere = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
     row(
         ui,
         "TEMPERATURE",
-        |ui| combo_str(ui, "w_temp", &mut w.world.temperature, TEMPERATURES),
+        |ui| {
+            let mut val = w.world.temperature.to_string();
+            if combo_str(ui, "w_temp", &mut val, TEMPERATURES) {
+                w.world.temperature = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
     row(
         ui,
         "BIOSPHERE",
-        |ui| combo_str(ui, "w_bio", &mut w.world.biosphere, BIOSPHERES),
+        |ui| {
+            let mut val = w.world.biosphere.to_string();
+            if combo_str(ui, "w_bio", &mut val, BIOSPHERES) {
+                w.world.biosphere = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
 
@@ -102,19 +131,43 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     row(
         ui,
         "POPULATION",
-        |ui| combo_str(ui, "w_pop", &mut w.world.population, POPULATIONS),
+        |ui| {
+            let mut val = w.world.population.to_string();
+            if combo_str(ui, "w_pop", &mut val, POPULATIONS) {
+                w.world.population = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
     row(
         ui,
         "TECH",
-        |ui| combo_str(ui, "w_tech", &mut w.world.tech_level, TECH_LEVELS),
+        |ui| {
+            let mut val = w.world.tech_level.to_string();
+            if combo_str(ui, "w_tech", &mut val, TECH_LEVELS) {
+                w.world.tech_level = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
     row(
         ui,
         "GOVERNMENT",
-        |ui| combo_str(ui, "w_gov", &mut w.world.government, GOVERNMENTS),
+        |ui| {
+            let mut val = w.world.government.to_string();
+            if combo_str(ui, "w_gov", &mut val, GOVERNMENTS) {
+                w.world.government = val;
+                true
+            } else {
+                false
+            }
+        },
         &mut dirty,
     );
 
@@ -126,7 +179,9 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let mut remove: Option<usize> = None;
     for (i, feat) in w.world.notable_features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            if combo_str(ui, &format!("w_feat_{i}"), feat, NOTABLE_FEATURES) {
+            let mut val = feat.to_string();
+            if combo_str(ui, &format!("w_feat_{i}"), &mut val, NOTABLE_FEATURES) {
+                *feat = val;
                 dirty = true;
             }
             if ui

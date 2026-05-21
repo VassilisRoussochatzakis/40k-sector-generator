@@ -52,7 +52,7 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     if let Some(rel) = config.outputs.bitmap.theme_file.clone() {
         let text = read_relative(&root_dir, &rel, &mut digests)?;
         let theme = crate::map_theme::parse_map_theme_file(&text)
-            .map_err(|e| SectorError::config_parse(rel.clone(), e))?;
+            .map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?;
         config.outputs.bitmap.theme = config.outputs.bitmap.theme.clone().overlay(theme);
     }
 
@@ -68,9 +68,9 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     digests.insert(gen_rel, blake3_of_bytes(&gen_bytes));
 
     let (world_tables, world_rows) = crate::worlds::load_generation_rows(data_dir.as_std_path())
-        .map_err(|message| SectorError::WorldDataLoad {
+        .map_err(|e| SectorError::WorldDataLoad {
             path: data_dir.to_string(),
-            message,
+            message: e.to_string(),
         })?;
 
     let mut names = NameTables::default();

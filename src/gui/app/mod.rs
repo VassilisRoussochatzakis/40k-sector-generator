@@ -1,110 +1,81 @@
-//! Top-level eframe app: holds loaded sector + navigation state, dispatches
-//! between sector view, system view, and edit view.
+//! Main GUI application entry point and top-level layout router.
+//!
+//! §1.1 NEW.md: Unified sector/system view with feature tabs.
+//! §15.2 GUIDE.md: App architecture and state management.
 
-use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
-use rfd::FileDialog;
+use egui::{Color32, RichText, TopBottomPanel};
 
-use crate::{
-    sector_model::{GeneratedSector, GeneratedSystem},
-    subsectors::{build_subsectors, Subsector, SubsectorConfig},
-};
+use crate::gui::dashboard::DashboardState;
+use crate::gui::data_editor::DataEditor;
+use crate::gui::editor::state::EditorState;
+use crate::gui::heatmap::{HeatmapCache, HeatmapMode};
+use crate::gui::preset_gallery::PresetGalleryState;
+use crate::gui::route_planner::RoutePlannerState;
+use crate::sector_model::GeneratedSector;
+use crate::subsectors::Subsector;
 
-use super::dashboard::{self, DashboardState};
-use super::data_editor::DataEditor;
-use super::editor::{self, EditorState};
-use super::factions_overview;
-use super::heatmap::{HeatmapCache, HeatmapMode};
-use super::info_panel;
-use super::palette::{self, TEXT, TEXT_DIM};
-use super::preset_gallery::{self, PresetGalleryState};
-use super::route_planner::{self, Metric, PickTarget, RoutePlannerState, Severity};
-use super::sector_view::{SectorClick, SectorView};
-use super::segmentum_view::{self, SegmentumAction, SegmentumBundle};
-use super::system_view::{SystemClick, SystemSelection, SystemView};
+use super::{dashboard, editor, factions_overview, info_panel, palette, preset_gallery};
+use crate::gui::segmentum_view::SegmentumBundle;
+use crate::gui::system_view::SystemSelection;
+
+mod types;
+pub use types::*;
+
+mod analytics_views;
+mod editor_views;
+mod lifecycle;
+mod other_views;
+mod planner_view;
+mod sector_view;
+mod segmentum;
+mod system_view;
+mod ui_helpers;
+
+mod export_ui;
+
+pub const TEXT: egui::Color32 = palette::TEXT;
+pub const TEXT_DIM: egui::Color32 = palette::TEXT_DIM;
 
 pub struct App {
-    sector: Option<Arc<GeneratedSector>>,
-    sector_source_path: Option<PathBuf>,
-    live_dirty: bool,
-    subsectors: Vec<Subsector>,
-    view: View,
-    sector_selected: Option<crate::ids::SystemId>,
-    sector_selected_route: Option<crate::ids::RouteId>,
-    sector_selected_subsector: Option<String>,
-    map_edit_mode: bool,
-    sector_edit_tool: SectorEditTool,
-    pending_route_start: Option<crate::ids::SystemId>,
-    sector_hex_size: f32,
-    system_side: f32,
-    editor: EditorState,
-    data_editor: DataEditor,
-    project_dir: Option<PathBuf>,
-    planner: RoutePlannerState,
-    planner_hex_size: f32,
-    export_status: String,
-    pending_export: Option<PendingExport>,
-    sector_pick_export: bool,
-    export_scale: u32,
-    export_theme_name: String,
-    heatmap_mode: HeatmapMode,
-    heatmap_cache: HeatmapCache,
-    sector_overview_cache: info_panel::SectorOverviewCache,
-    dashboard: DashboardState,
-    preset_gallery: PresetGalleryState,
-    segmentum: Option<Arc<SegmentumBundle>>,
-    segmentum_active_child: Option<String>,
-    segmentum_selected_link: Option<String>,
-    factions_mode: FactionsMode,
-    faction_designer: factions_overview::FactionDesignerState,
-    history_selected_event: Option<String>,
+    pub(super) sector: Option<Arc<GeneratedSector>>,
+    pub(super) sector_source_path: Option<PathBuf>,
+    pub(super) live_dirty: bool,
+    pub(super) subsectors: Vec<Subsector>,
+    pub(super) view: View,
+    pub(super) sector_selected: Option<crate::ids::SystemId>,
+    pub(super) sector_selected_route: Option<crate::ids::RouteId>,
+    pub(super) sector_selected_subsector: Option<String>,
+    pub(super) map_edit_mode: bool,
+    pub(super) sector_edit_tool: SectorEditTool,
+    pub(super) pending_route_start: Option<crate::ids::SystemId>,
+    pub(super) sector_hex_size: f32,
+    pub(super) system_side: f32,
+    pub(super) editor: EditorState,
+    pub(super) data_editor: DataEditor,
+    pub(super) project_dir: Option<PathBuf>,
+    pub(super) planner: RoutePlannerState,
+    pub(super) planner_hex_size: f32,
+    pub(super) export_status: String,
+    pub(super) pending_export: Option<PendingExport>,
+    pub(super) sector_pick_export: bool,
+    pub(super) export_scale: u32,
+    pub(super) export_theme_name: String,
+    pub(super) heatmap_mode: HeatmapMode,
+    pub(super) heatmap_cache: HeatmapCache,
+    pub(super) sector_overview_cache: info_panel::SectorOverviewCache,
+    pub(super) dashboard: DashboardState,
+    pub(super) preset_gallery: PresetGalleryState,
+    pub(super) segmentum: Option<Arc<SegmentumBundle>>,
+    pub(super) segmentum_active_child: Option<String>,
+    pub(super) segmentum_selected_link: Option<String>,
+    pub(super) factions_mode: FactionsMode,
+    pub(super) faction_designer: factions_overview::FactionDesignerState,
+    pub(super) history_selected_event: Option<String>,
     pub route_view_mode: crate::sector_model::RouteViewMode,
-}
-
-#[derive(Debug, Clone)]
-enum PendingExport {
-    SectorPng,
-    AllSystemPngs,
-    SystemPng(crate::ids::SystemId),
-    /// §11 NEW.md: self-contained interactive HTML map.
-    SectorHtml,
-}
-
-#[derive(Debug, Clone)]
-enum View {
-    Sector,
-    System {
-        system_id: crate::ids::SystemId,
-        selection: SystemSelection,
-    },
-    Edit,
-    Data,
-    Planner,
-    Dashboard,
-    Factions,
-    Relations,
-    Regions,
-    Trade,
-    History,
-    Segmentum,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SectorEditTool {
-    Select,
-    AddSystem,
-    AddRoute,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum FactionsMode {
-    View,
-    Edit,
-    Designer,
 }
 
 impl Default for App {
@@ -114,20 +85,20 @@ impl Default for App {
             sector_source_path: None,
             live_dirty: false,
             subsectors: Vec::new(),
-            view: View::Edit,
+            view: View::Sector,
             sector_selected: None,
             sector_selected_route: None,
             sector_selected_subsector: None,
             map_edit_mode: false,
             sector_edit_tool: SectorEditTool::Select,
             pending_route_start: None,
-            sector_hex_size: 44.0,
-            system_side: 700.0,
+            sector_hex_size: 40.0,
+            system_side: 800.0,
             editor: EditorState::default(),
             data_editor: DataEditor::default(),
             project_dir: None,
             planner: RoutePlannerState::default(),
-            planner_hex_size: 44.0,
+            planner_hex_size: 40.0,
             export_status: String::new(),
             pending_export: None,
             sector_pick_export: false,
@@ -141,10 +112,10 @@ impl Default for App {
             segmentum: None,
             segmentum_active_child: None,
             segmentum_selected_link: None,
-            factions_mode: FactionsMode::View,
+            factions_mode: FactionsMode::Overview,
             faction_designer: factions_overview::FactionDesignerState::default(),
             history_selected_event: None,
-            route_view_mode: crate::sector_model::RouteViewMode::default(),
+            route_view_mode: crate::sector_model::RouteViewMode::Detailed,
         }
     }
 }
@@ -153,27 +124,18 @@ impl App {
     pub fn new(sector: GeneratedSector) -> Self {
         let mut app = Self::default();
         app.set_loaded_sector(sector, None);
-        app.view = View::Sector;
         app
     }
 
     pub fn new_with_source(sector: GeneratedSector, source_path: PathBuf) -> Self {
         let mut app = Self::default();
         app.set_loaded_sector(sector, Some(source_path.to_string_lossy().to_string()));
-        app.view = View::Sector;
         app
     }
 
     pub fn new_segmentum(bundle: SegmentumBundle) -> Self {
-        let first_child = bundle.children.first().map(|c| c.id.clone());
-        let mut app = Self {
-            segmentum: Some(Arc::new(bundle)),
-            view: View::Segmentum,
-            ..Self::default()
-        };
-        if let Some(id) = first_child {
-            app.set_active_segmentum_child(&id);
-        }
+        let mut app = Self::default();
+        app.segmentum = Some(Arc::new(bundle));
         app.view = View::Segmentum;
         app
     }
@@ -182,417 +144,138 @@ impl App {
         Self::default()
     }
 
-    /// Set the project directory and try to preload world-data CSVs.
     pub fn with_project_dir(mut self, dir: PathBuf) -> Self {
+        self.project_dir = Some(dir.clone());
         if let Err(e) = self.data_editor.load_from_project(&dir) {
             self.data_editor.status = format!("load failed: {e}");
         }
-        self.project_dir = Some(dir);
         self
-    }
-
-    fn system_by_id(&self, id: &str) -> Option<&GeneratedSystem> {
-        self.sector.as_ref()?.systems.iter().find(|s| s.id == id)
-    }
-
-    fn set_loaded_sector(&mut self, sector: GeneratedSector, source_path: Option<String>) {
-        self.sector_source_path = source_path.as_ref().map(PathBuf::from);
-        self.live_dirty = false;
-        self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
-        self.sector = Some(Arc::new(sector.clone()));
-        self.sector_selected = None;
-        self.sector_selected_route = None;
-        self.sector_selected_subsector = None;
-        self.sector_edit_tool = SectorEditTool::Select;
-        self.pending_route_start = None;
-        self.history_selected_event = None;
-        self.planner.clear();
-        self.dashboard.invalidate();
-        self.heatmap_cache.invalidate();
-        self.sector_overview_cache.invalidate();
-        if !self.editor.dirty {
-            self.editor.set_sector(sector, source_path);
-        }
-    }
-
-    fn set_active_segmentum_child(&mut self, child_id: &str) -> bool {
-        let Some(bundle) = self.segmentum.clone() else {
-            return false;
-        };
-        let Some(child) = bundle.child(child_id) else {
-            self.export_status = format!("segmentum child '{}' not found", child_id);
-            return false;
-        };
-        self.segmentum_active_child = Some(child_id.to_string());
-        self.set_loaded_sector(
-            child.sector.clone(),
-            Some(child.sector_path.as_str().to_string()),
-        );
-        true
-    }
-
-    fn handle_segmentum_action(&mut self, action: SegmentumAction) {
-        match action {
-            SegmentumAction::OpenChild(child_id) => {
-                if self.set_active_segmentum_child(&child_id) {
-                    self.view = View::Sector;
-                }
-            }
-            SegmentumAction::OpenSystem {
-                child_id,
-                system_id,
-            } => {
-                if self.set_active_segmentum_child(&child_id) {
-                    self.sector_selected = Some(system_id.clone());
-                    self.sector_selected_route = None;
-                    self.view = View::System {
-                        system_id,
-                        selection: SystemSelection::None,
-                    };
-                }
-            }
-        }
     }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        apply_theme(ctx);
+        ui_helpers::apply_theme(ctx);
 
-        TopBottomPanel::top("nav")
+        TopBottomPanel::top("top_bar")
             .frame(
                 egui::Frame::none()
                     .fill(palette::PANEL_BG)
-                    .inner_margin(8.0),
+                    .inner_margin(6.0),
             )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    let on_sector = matches!(self.view, View::Sector);
-                    let on_edit = matches!(self.view, View::Edit);
-                    let on_data = matches!(self.view, View::Data);
-                    let on_planner = matches!(self.view, View::Planner);
-                    let has_sector = self.sector.is_some();
-                    let has_segmentum = self.segmentum.is_some();
                     if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_sector,
-                                RichText::new("SECTOR MAP").color(TEXT).monospace(),
-                            ),
-                        )
+                        .selectable_label(matches!(self.view, View::Sector), "SECTOR")
                         .clicked()
                     {
                         self.view = View::Sector;
                     }
-                    let on_segmentum = matches!(self.view, View::Segmentum);
                     if ui
-                        .add_enabled(
-                            has_segmentum,
-                            egui::SelectableLabel::new(
-                                on_segmentum,
-                                RichText::new("SEGMENTUM").color(TEXT).monospace(),
-                            ),
-                        )
+                        .selectable_label(matches!(self.view, View::System { .. }), "SYSTEM")
+                        .clicked()
+                    {
+                        if let Some(id) = self.sector_selected.clone() {
+                            self.view = View::System {
+                                system_id: id,
+                                selection: SystemSelection::None,
+                            };
+                        }
+                    }
+                    if ui
+                        .selectable_label(matches!(self.view, View::Segmentum), "SEGMENTUM")
                         .clicked()
                     {
                         self.view = View::Segmentum;
                     }
+                    ui.separator();
                     if ui
-                        .selectable_label(on_edit, RichText::new("EDIT").color(TEXT).monospace())
-                        .clicked()
-                    {
-                        // Entering edit mode: copy current viewed sector into
-                        // the editor if the editor is empty.
-                        if self.editor.sector.is_none() {
-                            if let Some(s) = self.sector.as_ref() {
-                                self.editor.set_sector((**s).clone(), None);
-                            }
-                        }
-                        self.view = View::Edit;
-                    }
-                    if ui
-                        .selectable_label(
-                            on_data,
-                            RichText::new("WORLD DATA").color(TEXT).monospace(),
-                        )
-                        .clicked()
-                    {
-                        self.view = View::Data;
-                    }
-                    if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_planner,
-                                RichText::new("ROUTE PLANNER").color(TEXT).monospace(),
-                            ),
-                        )
-                        .clicked()
-                    {
-                        self.view = View::Planner;
-                    }
-                    let on_dashboard = matches!(self.view, View::Dashboard);
-                    if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_dashboard,
-                                RichText::new("DASHBOARD").color(TEXT).monospace(),
-                            ),
-                        )
-                        .on_hover_text("Analytics dashboard (§8 NEW.md)")
+                        .selectable_label(matches!(self.view, View::Dashboard), "DASHBOARD")
                         .clicked()
                     {
                         self.view = View::Dashboard;
                     }
-                    let on_history = matches!(self.view, View::History);
                     if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_history,
-                                RichText::new("HISTORY").color(TEXT).monospace(),
-                            ),
-                        )
-                        .on_hover_text("Sector timeline and chronicle (§1 NEW2.md)")
-                        .clicked()
-                    {
-                        self.view = View::History;
-                    }
-                    let on_factions = matches!(self.view, View::Factions);
-                    if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_factions,
-                                RichText::new("FACTIONS").color(TEXT).monospace(),
-                            ),
-                        )
-                        .on_hover_text("High-level faction overview and broad edits")
+                        .selectable_label(matches!(self.view, View::Factions), "FACTIONS")
                         .clicked()
                     {
                         self.view = View::Factions;
                     }
-                    let on_relations = matches!(self.view, View::Relations);
                     if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_relations,
-                                RichText::new("DIPLOMACY").color(TEXT).monospace(),
-                            ),
-                        )
-                        .on_hover_text("Inter-faction attitude matrix (§5 NEW2.md)")
+                        .selectable_label(matches!(self.view, View::Relations), "RELATIONS")
                         .clicked()
                     {
                         self.view = View::Relations;
                     }
-                    let on_regions = matches!(self.view, View::Regions);
                     if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_regions,
-                                RichText::new("REGIONS").color(TEXT).monospace(),
-                            ),
-                        )
-                        .on_hover_text("Regional warp phenomena overlay (§5 NEW.md)")
-                        .clicked()
-                    {
-                        self.view = View::Regions;
-                    }
-                    let on_trade = matches!(self.view, View::Trade);
-                    if ui
-                        .add_enabled(
-                            has_sector,
-                            egui::SelectableLabel::new(
-                                on_trade,
-                                RichText::new("TRADE").color(TEXT).monospace(),
-                            ),
-                        )
-                        .on_hover_text("Economy & trade volumes (§12 NEW.md)")
+                        .selectable_label(matches!(self.view, View::Trade), "TRADE")
                         .clicked()
                     {
                         self.view = View::Trade;
                     }
                     if ui
-                        .button(RichText::new("NEW…").color(TEXT).monospace())
-                        .on_hover_text("Scaffold a fresh project from a preset (§9 NEW.md)")
+                        .selectable_label(matches!(self.view, View::History), "HISTORY")
                         .clicked()
                     {
-                        self.preset_gallery.open = !self.preset_gallery.open;
+                        self.view = View::History;
+                    }
+                    if ui
+                        .selectable_label(matches!(self.view, View::Regions), "REGIONS")
+                        .clicked()
+                    {
+                        self.view = View::Regions;
+                    }
+                    if ui
+                        .selectable_label(matches!(self.view, View::Planner), "PLANNER")
+                        .clicked()
+                    {
+                        self.view = View::Planner;
                     }
 
                     ui.separator();
-                    ui.label(RichText::new("ROUTE VIEW:").color(TEXT_DIM).monospace());
                     if ui
-                        .selectable_label(
-                            self.route_view_mode == crate::sector_model::RouteViewMode::TopLevel,
-                            RichText::new("TOP-LEVEL").monospace(),
-                        )
-                        .on_hover_text("Show only Warp vs Webway hierarchy")
+                        .selectable_label(matches!(self.view, View::Edit), "EDIT-MAP")
                         .clicked()
                     {
-                        self.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
-                        self.editor.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
+                        self.view = View::Edit;
                     }
                     if ui
-                        .selectable_label(
-                            self.route_view_mode == crate::sector_model::RouteViewMode::Detailed,
-                            RichText::new("DETAILED").monospace(),
-                        )
-                        .on_hover_text("Show all specific route types")
+                        .selectable_label(matches!(self.view, View::Data), "DATA-RAW")
                         .clicked()
                     {
-                        self.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
-                        self.editor.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
+                        self.view = View::Data;
                     }
 
-                    ui.add_enabled_ui(has_sector && !on_edit, |ui| {
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("NEW").clicked() {
+                            self.preset_gallery.open = true;
+                        }
+                        if ui.button("OPEN").clicked() {
+                            self.open_sector_dialog();
+                        }
                         if ui
-                            .button(RichText::new("SAVE").color(TEXT).monospace())
+                            .add_enabled(self.sector.is_some(), egui::Button::new("SAVE"))
                             .clicked()
                         {
                             self.save_sector_to_source();
                         }
                         if ui
-                            .button(RichText::new("SAVE AS…").color(TEXT).monospace())
+                            .add_enabled(self.sector.is_some(), egui::Button::new("EXPORT"))
                             .clicked()
                         {
-                            self.save_sector_as();
+                            self.pending_export = Some(PendingExport::SectorPng);
                         }
-                    });
-                    if let Some(bundle) = self.segmentum.clone() {
-                        ui.menu_button(RichText::new("CHILD ▾").color(TEXT).monospace(), |ui| {
-                            for child in &bundle.children {
-                                let active = self.segmentum_active_child.as_deref()
-                                    == Some(child.id.as_str());
-                                let label = format!(
-                                    "{}  {} sys",
-                                    child.id.to_uppercase(),
-                                    child.sector.systems.len()
-                                );
-                                if ui
-                                    .selectable_label(active, RichText::new(label).monospace())
-                                    .clicked()
-                                {
-                                    ui.close_menu();
-                                    if self.set_active_segmentum_child(&child.id) {
-                                        self.view = View::Sector;
-                                    }
-                                }
-                            }
-                        });
-                    }
-                    let systems_list: Vec<(crate::ids::SystemId, String)> = self
-                        .sector
-                        .as_ref()
-                        .map(|s| {
-                            s.systems
-                                .iter()
-                                .map(|x| (x.id.clone(), x.name.clone()))
-                                .collect()
-                        })
-                        .unwrap_or_default();
-                    ui.add_enabled_ui(has_sector, |ui| {
-                        ui.menu_button(RichText::new("EXPORT ▾").color(TEXT).monospace(), |ui| {
-                            if ui
-                                .button(RichText::new("Bundle (JSON / MD / CSV)").monospace())
-                                .on_hover_text(
-                                    "Save all JSONs, markdown, CSVs, and a copy of the data \
-                                         folder (no images) to a folder",
-                                )
-                                .clicked()
-                            {
-                                ui.close_menu();
-                                self.export_sector_json(ctx);
-                            }
-                            if ui
-                                .button(RichText::new("Sector Map PNG").monospace())
-                                .clicked()
-                            {
-                                ui.close_menu();
-                                self.pending_export = Some(PendingExport::SectorPng);
-                            }
-                            if ui
-                                .button(RichText::new("All System Maps PNG").monospace())
-                                .clicked()
-                            {
-                                ui.close_menu();
-                                self.pending_export = Some(PendingExport::AllSystemPngs);
-                            }
-                            if ui
-                                .button(RichText::new("Interactive HTML").monospace())
-                                .clicked()
-                            {
-                                ui.close_menu();
-                                self.pending_export = Some(PendingExport::SectorHtml);
-                            }
-                            ui.menu_button(
-                                RichText::new("Single System Map PNG ▸").monospace(),
-                                |ui| {
-                                    if ui
-                                        .button(RichText::new("Pick from sector map").monospace())
-                                        .clicked()
-                                    {
-                                        ui.close_menu();
-                                        self.sector_pick_export = true;
-                                        self.view = View::Sector;
-                                    }
-                                    ui.separator();
-                                    ScrollArea::vertical().max_height(280.0).show(ui, |ui| {
-                                        for (id, name) in &systems_list {
-                                            if ui.button(RichText::new(name).monospace()).clicked()
-                                            {
-                                                ui.close_menu();
-                                                self.pending_export =
-                                                    Some(PendingExport::SystemPng(id.clone()));
-                                            }
-                                        }
-                                    });
-                                },
-                            );
-                        });
-                    });
-                    if let View::System { system_id, .. } = &self.view {
-                        ui.label(RichText::new("›").color(TEXT_DIM).monospace());
-                        ui.label(
-                            RichText::new(format!("SYSTEM {}", system_id.to_uppercase()))
-                                .color(TEXT)
-                                .monospace(),
-                        );
-                    }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if let Some(s) = &self.sector {
-                            let prefix = self
-                                .segmentum_active_child
-                                .as_ref()
-                                .map(|id| format!("{} / ", id.to_uppercase()))
-                                .unwrap_or_default();
-                            ui.label(
-                                RichText::new(format!(
-                                    "{}{}{} - {} sys, {} worlds",
-                                    prefix,
-                                    s.id.to_uppercase(),
-                                    if self.live_dirty { " *" } else { "" },
-                                    s.systems.len(),
-                                    s.manifest.world_count
-                                ))
-                                .color(TEXT_DIM)
-                                .monospace(),
-                            );
-                        } else {
-                            ui.label(
-                                RichText::new("NO SECTOR LOADED")
-                                    .color(TEXT_DIM)
-                                    .monospace(),
-                            );
+                        if ui
+                            .add_enabled(self.sector.is_some(), egui::Button::new("EXPORT BUNDLE"))
+                            .clicked()
+                        {
+                            self.export_sector_json(ctx);
                         }
+
                         if !self.export_status.is_empty() {
                             ui.label(
                                 RichText::new(&self.export_status)
-                                    .color(egui::Color32::from_rgb(235, 200, 90))
+                                    .color(Color32::from_rgb(235, 200, 90))
                                     .monospace(),
                             );
                         }
@@ -610,11 +293,11 @@ impl eframe::App for App {
             View::Data => self.draw_data_layout(ctx),
             View::Planner => self.draw_planner_layout(ctx),
             View::Dashboard => self.draw_dashboard_layout(ctx),
-            View::History => self.draw_history_layout(ctx),
             View::Factions => self.draw_factions_layout(ctx),
             View::Relations => self.draw_relations_layout(ctx),
             View::Regions => self.draw_regions_layout(ctx),
             View::Trade => self.draw_trade_layout(ctx),
+            View::History => self.draw_history_layout(ctx),
             View::Segmentum => self.draw_segmentum_layout(ctx),
         }
 
@@ -623,1966 +306,11 @@ impl eframe::App for App {
     }
 }
 
+use rfd::FileDialog;
+
 impl App {
-    fn draw_segmentum_layout(&mut self, ctx: &egui::Context) {
-        let Some(bundle) = self.segmentum.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no segmentum loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-
-        let mut action = None;
-        SidePanel::right("segmentum_info")
-            .resizable(true)
-            .default_width(380.0)
-            .min_width(300.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    let next = segmentum_view::show_side_panel(
-                        ui,
-                        &bundle,
-                        self.segmentum_active_child.as_deref(),
-                        &mut self.segmentum_selected_link,
-                        self.route_view_mode,
-                    );
-                    if action.is_none() {
-                        action = next;
-                    }
-                });
-            });
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
-            .show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| {
-                    let next = segmentum_view::show_overview(
-                        ui,
-                        &bundle,
-                        self.segmentum_active_child.as_deref(),
-                        &mut self.segmentum_selected_link,
-                        self.route_view_mode,
-                    );
-                    if action.is_none() {
-                        action = next;
-                    }
-                });
-            });
-
-        if let Some(action) = action {
-            self.handle_segmentum_action(action);
-        }
-    }
-
-    fn draw_sector_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-        let overview_buckets = self.sector_overview_cache.buckets_for(&sector);
-        SidePanel::right("info")
-            .resizable(true)
-            .default_width(320.0)
-            .min_width(260.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    if let Some(sel) = self.sector_selected_route.clone() {
-                        if let Some(route) =
-                            sector.routes.iter().find(|r| r.id.as_str() == sel.as_str())
-                        {
-                            let from = route.from_system_id.clone();
-                            let to = route.to_system_id.clone();
-                            info_panel::route_summary(ui, route, &sector, self.route_view_mode);
-                            ui.add_space(10.0);
-                            ui.horizontal(|ui| {
-                                if ui.button(RichText::new("OPEN FROM").monospace()).clicked() {
-                                    self.sector_selected = Some(from.clone());
-                                    self.sector_selected_route = None;
-                                    self.sector_selected_subsector = None;
-                                    self.view = View::System {
-                                        system_id: from.clone(),
-                                        selection: SystemSelection::None,
-                                    };
-                                }
-                                if ui.button(RichText::new("OPEN TO").monospace()).clicked() {
-                                    self.sector_selected = Some(to.clone());
-                                    self.sector_selected_route = None;
-                                    self.sector_selected_subsector = None;
-                                    self.view = View::System {
-                                        system_id: to.clone(),
-                                        selection: SystemSelection::None,
-                                    };
-                                }
-                            });
-                            if ui
-                                .button(RichText::new("CLEAR ROUTE").monospace())
-                                .clicked()
-                            {
-                                self.sector_selected_route = None;
-                            }
-                            ui.separator();
-                        } else {
-                            self.sector_selected_route = None;
-                        }
-                    }
-                    if let Some(sel) = self.sector_selected.as_deref() {
-                        if let (Some(sys), Some(sector)) =
-                            (self.system_by_id(sel), self.sector.as_ref())
-                        {
-                            info_panel::system_summary(ui, sys, sector);
-                            ui.add_space(10.0);
-                            if ui
-                                .button(RichText::new("OPEN SYSTEM →").monospace())
-                                .clicked()
-                            {
-                                self.view = View::System {
-                                    system_id: sys.id.clone(),
-                                    selection: SystemSelection::None,
-                                };
-                            }
-                            ui.separator();
-                        }
-                    }
-                    info_panel::sector_overview_with_buckets(
-                        ui,
-                        &sector,
-                        overview_buckets.as_slice(),
-                        self.route_view_mode,
-                    );
-                });
-            });
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| self.show_sector(ui));
-
-        self.draw_subsector_popup(ctx, &sector);
-    }
-
-    fn draw_subsector_popup(&mut self, ctx: &egui::Context, sector: &GeneratedSector) {
-        let Some(sub_id) = self.sector_selected_subsector.clone() else {
-            return;
-        };
-        let Some(sub) = self.subsectors.iter().find(|s| s.id == sub_id).cloned() else {
-            self.sector_selected_subsector = None;
-            return;
-        };
-        let mut open = true;
-        let title = format!("SUBSECTOR {} - {}", sub.label, sub.name);
-        egui::Window::new(RichText::new(&title).monospace().strong())
-            .open(&mut open)
-            .collapsible(true)
-            .resizable(true)
-            .default_width(340.0)
-            .default_height(520.0)
-            .anchor(egui::Align2::RIGHT_TOP, [-360.0, 60.0])
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    info_panel::subsector_summary(ui, &sub, sector);
-                });
-            });
-        if !open {
-            self.sector_selected_subsector = None;
-        }
-    }
-
-    fn draw_system_layout(
-        &mut self,
-        ctx: &egui::Context,
-        system_id: &str,
-        selection: SystemSelection,
-    ) {
-        SidePanel::right("info")
-            .resizable(true)
-            .default_width(320.0)
-            .min_width(260.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    let sys_opt = self.system_by_id(system_id).cloned();
-                    if let Some(sys) = sys_opt.as_ref() {
-                        let sector = self.sector.as_ref().expect("sector loaded");
-                        match selection {
-                            SystemSelection::World(idx) => {
-                                if let Some(w) = sys.worlds.iter().find(|w| w.index == idx) {
-                                    info_panel::world_detail(ui, w);
-                                    info_panel::world_history(ui, sector, w.id.as_str());
-                                    ui.add_space(10.0);
-                                }
-                            }
-                            SystemSelection::Star => {
-                                info_panel::star_detail(ui, sys);
-                                ui.add_space(10.0);
-                            }
-                            SystemSelection::None => {}
-                        }
-                        ui.separator();
-                        info_panel::system_summary(ui, sys, sector);
-                        ui.add_space(10.0);
-                        if ui
-                            .button(RichText::new("← BACK TO SECTOR").monospace())
-                            .clicked()
-                        {
-                            self.view = View::Sector;
-                        }
-                    }
-                });
-            });
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| self.show_system(ui, system_id, selection));
-    }
-
-    fn draw_edit_layout(&mut self, ctx: &egui::Context) {
-        TopBottomPanel::top("edit_toolbar")
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(6.0),
-            )
-            .show(ctx, |ui| {
-                editor::editor_toolbar(ui, &mut self.editor);
-            });
-
-        SidePanel::right("edit_inspector")
-            .resizable(true)
-            .default_width(360.0)
-            .min_width(300.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    use editor::state::Selection as Sel;
-                    let sel = self.editor.selection.clone();
-                    match self.editor.tab {
-                        editor::state::Tab::Map => match sel {
-                            Sel::World { .. } => editor::show_world_inspector(ui, &mut self.editor),
-                            Sel::System(_) => editor::show_system_inspector(ui, &mut self.editor),
-                            Sel::None => {
-                                ui.label(
-                                    RichText::new("click a hex to add or select a system")
-                                        .color(TEXT_DIM)
-                                        .monospace(),
-                                );
-                            }
-                        },
-                        editor::state::Tab::Routes => editor::show_routes(ui, &mut self.editor),
-                        editor::state::Tab::Factions => editor::show_factions(ui, &mut self.editor),
-                        editor::state::Tab::Settings => editor::show_settings(ui, &mut self.editor),
-                    }
-                });
-            });
-
-        TopBottomPanel::bottom("edit_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
-                    ui.add(
-                        egui::Slider::new(&mut self.editor.hex_size, 20.0..=80.0).show_value(false),
-                    );
-                });
-            });
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| match self.editor.tab {
-                    editor::state::Tab::Map | editor::state::Tab::Routes => {
-                        editor::show_map(ui, &mut self.editor)
-                    }
-                    _ => {
-                        ui.label(
-                            RichText::new("(switch to MAP tab to view the hex grid)")
-                                .color(TEXT_DIM)
-                                .monospace(),
-                        );
-                    }
-                });
-            });
-
-        editor::draw_dialog(ctx, &mut self.editor);
-        self.route_view_mode = self.editor.route_view_mode;
-    }
-
-    fn draw_preset_gallery(&mut self, ctx: &egui::Context) {
-        if !self.preset_gallery.open {
-            return;
-        }
-        let mut open = true;
-        egui::Window::new(
-            RichText::new("NEW PROJECT FROM PRESET")
-                .monospace()
-                .strong(),
-        )
-        .open(&mut open)
-        .collapsible(false)
-        .resizable(true)
-        .default_width(560.0)
-        .default_height(620.0)
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            preset_gallery::show(ui, &mut self.preset_gallery);
-        });
-        if !open {
-            self.preset_gallery.open = false;
-        }
-    }
-
-    fn draw_data_layout(&mut self, ctx: &egui::Context) {
-        TopBottomPanel::top("data_toolbar")
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(6.0),
-            )
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    let can_reload = self.project_dir.is_some();
-                    if ui
-                        .add_enabled(
-                            can_reload,
-                            egui::Button::new(RichText::new("RELOAD").monospace()),
-                        )
-                        .on_hover_text("re-read CSVs from disk (discards unsaved edits)")
-                        .clicked()
-                    {
-                        if let Some(dir) = self.project_dir.clone() {
-                            if let Err(e) = self.data_editor.load_from_project(&dir) {
-                                self.data_editor.status = format!("load failed: {e}");
-                            }
-                        }
-                    }
-                    let can_save = self.data_editor.key_path.is_some();
-                    if ui
-                        .add_enabled(
-                            can_save,
-                            egui::Button::new(RichText::new("SAVE").monospace()),
-                        )
-                        .clicked()
-                    {
-                        if let Err(e) = self.data_editor.save() {
-                            self.data_editor.status = format!("save failed: {e}");
-                        }
-                    }
-                    if let Some(dir) = &self.project_dir {
-                        ui.label(
-                            RichText::new(dir.display().to_string())
-                                .color(TEXT_DIM)
-                                .monospace(),
-                        );
-                    } else {
-                        ui.label(
-                            RichText::new(
-                                "no project loaded — pass --project <dir> when launching",
-                            )
-                            .color(TEXT_DIM)
-                            .monospace(),
-                        );
-                    }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label(
-                            RichText::new(&self.data_editor.status)
-                                .color(TEXT_DIM)
-                                .monospace(),
-                        );
-                    });
-                });
-            });
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(8.0))
-            .show(ctx, |ui| {
-                crate::gui::data_editor::show(ui, &mut self.data_editor);
-            });
-    }
-
-    fn draw_dashboard_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-        TopBottomPanel::top("dashboard_toolbar")
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(6.0),
-            )
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    if ui
-                        .button(RichText::new("RECOMPUTE").monospace())
-                        .on_hover_text("re-run analytics on the current sector")
-                        .clicked()
-                    {
-                        self.dashboard.invalidate();
-                    }
-                    ui.label(
-                        RichText::new("§8 NEW.md — analytics dashboard")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            });
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    dashboard::show(ui, &sector, &mut self.dashboard);
-                });
-            });
-    }
-
-    fn draw_history_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-
-        SidePanel::right("history_timeline")
-            .resizable(true)
-            .default_width(430.0)
-            .min_width(320.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(
-                        RichText::new("SECTOR HISTORY")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("§1 NEW2.md — typed timeline records")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                    ui.add_space(8.0);
-                    if sector.chronicle.events.is_empty() {
-                        ui.label(
-                            RichText::new("no chronicle events embedded in this sector")
-                                .color(TEXT_DIM)
-                                .monospace(),
-                        );
-                        return;
-                    }
-
-                    let selected = self.history_selected_event.clone();
-                    for e in &sector.chronicle.events {
-                        let is_selected = selected.as_deref() == Some(e.id.as_str());
-                        let label = format!("{}  {:?}  {}", e.date, e.kind, e.summary);
-                        if ui
-                            .selectable_label(
-                                is_selected,
-                                RichText::new(short(&label, 72)).monospace(),
-                            )
-                            .clicked()
-                        {
-                            self.history_selected_event = Some(e.id.clone());
-                        }
-                    }
-
-                    ui.add_space(10.0);
-                    ui.separator();
-                    ui.add_space(8.0);
-
-                    let active = self
-                        .history_selected_event
-                        .as_ref()
-                        .and_then(|id| sector.chronicle.events.iter().find(|e| &e.id == id))
-                        .or_else(|| sector.chronicle.events.first());
-                    if let Some(e) = active {
-                        ui.label(
-                            RichText::new("EVENT DETAIL")
-                                .color(TEXT)
-                                .monospace()
-                                .strong(),
-                        );
-                        ui.label(RichText::new(&e.id).color(TEXT_DIM).monospace());
-                        ui.add_space(4.0);
-                        ui.label(
-                            RichText::new(format!("{} · {} · {:?}", e.date, e.era_label, e.kind))
-                                .color(TEXT)
-                                .monospace(),
-                        );
-                        ui.label(RichText::new(&e.narrative).color(TEXT).monospace());
-                        if !e.entities.is_empty() {
-                            ui.add_space(6.0);
-                            ui.label(RichText::new("REFS").color(TEXT_DIM).monospace().strong());
-                            for ent in &e.entities {
-                                let role = ent.role.as_deref().unwrap_or("");
-                                ui.label(
-                                    RichText::new(format!("{:?}  {}  {}", ent.kind, ent.id, role))
-                                        .color(TEXT_DIM)
-                                        .monospace(),
-                                );
-                            }
-                        }
-                        if !e.consequences.is_empty() {
-                            ui.add_space(6.0);
-                            ui.label(
-                                RichText::new("CONSEQUENCES")
-                                    .color(TEXT_DIM)
-                                    .monospace()
-                                    .strong(),
-                            );
-                            for c in &e.consequences {
-                                ui.label(
-                                    RichText::new(format!(
-                                        "{:?}  sev{}  {}",
-                                        c.kind, c.severity, c.description
-                                    ))
-                                    .color(TEXT_DIM)
-                                    .monospace(),
-                                );
-                            }
-                        }
-                        if let Some(sys_id) = first_system_from_event(e) {
-                            ui.add_space(8.0);
-                            if ui
-                                .button(RichText::new("OPEN FIRST SYSTEM").monospace())
-                                .clicked()
-                            {
-                                self.view = View::System {
-                                    system_id: sys_id,
-                                    selection: SystemSelection::None,
-                                };
-                            }
-                        }
-                    }
-                });
-            });
-
-        let active = self
-            .history_selected_event
-            .as_ref()
-            .and_then(|id| sector.chronicle.events.iter().find(|e| &e.id == id))
-            .or_else(|| sector.chronicle.events.first());
-        let (route_ids, waypoints) = active
-            .map(history_highlights)
-            .unwrap_or_else(|| (HashSet::new(), HashSet::new()));
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| {
-                    let (_resp, click) = SectorView {
-                        sector: &sector,
-                        selected_system: self.sector_selected.as_deref(),
-                        selected_route: self.sector_selected_route.as_deref(),
-                        hex_size: self.sector_hex_size,
-                        path_route_ids: Some(&route_ids),
-                        path_waypoints: Some(&waypoints),
-                        subsectors: Some(self.subsectors.as_slice()),
-                        selected_subsector: self.sector_selected_subsector.as_deref(),
-                        heatmap: None,
-                        empty_hex_clicks: false,
-                        route_view_mode: self.route_view_mode,
-                    }
-                    .show(ui);
-                    match click {
-                        Some(SectorClick::System(id)) => {
-                            self.sector_selected = Some(id);
-                            self.sector_selected_route = None;
-                            self.sector_selected_subsector = None;
-                        }
-                        Some(SectorClick::Route(id)) => {
-                            self.sector_selected_route = Some(id);
-                            self.sector_selected = None;
-                            self.sector_selected_subsector = None;
-                        }
-                        Some(SectorClick::Subsector(id)) => {
-                            self.sector_selected_subsector = Some(id);
-                            self.sector_selected = None;
-                            self.sector_selected_route = None;
-                        }
-                        Some(SectorClick::EmptyHex(_)) => {}
-                        None => {}
-                    }
-                });
-            });
-    }
-
-    fn draw_factions_layout(&mut self, ctx: &egui::Context) {
-        TopBottomPanel::top("factions_toolbar")
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(6.0),
-            )
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    let has_sector = self.sector.is_some();
-                    ui.add_enabled_ui(has_sector, |ui| {
-                        ui.selectable_value(
-                            &mut self.factions_mode,
-                            FactionsMode::View,
-                            RichText::new("VIEW").monospace(),
-                        );
-                        ui.selectable_value(
-                            &mut self.factions_mode,
-                            FactionsMode::Edit,
-                            RichText::new("EDIT MODE").monospace(),
-                        );
-                        ui.selectable_value(
-                            &mut self.factions_mode,
-                            FactionsMode::Designer,
-                            RichText::new("DESIGNER").monospace(),
-                        );
-                    });
-                    if let Some(sector) = self.sector.as_ref() {
-                        ui.label(
-                            RichText::new(format!(
-                                "{} factions in {}",
-                                sector.factions.len(),
-                                sector.id.to_uppercase()
-                            ))
-                            .color(TEXT_DIM)
-                            .monospace(),
-                        );
-                    }
-                });
-            });
-
-        let mode = self.factions_mode;
-        let project_dir = self.project_dir.clone();
-        let mut changed = false;
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| match mode {
-                    FactionsMode::View => {
-                        let Some(sector) = self.sector.as_ref() else {
-                            ui.label(
-                                RichText::new("no sector loaded")
-                                    .color(TEXT_DIM)
-                                    .monospace(),
-                            );
-                            return;
-                        };
-                        factions_overview::show_readonly(ui, sector.as_ref());
-                    }
-                    FactionsMode::Edit => {
-                        let Some(sector) = self.sector.as_mut() else {
-                            ui.label(
-                                RichText::new("no sector loaded")
-                                    .color(TEXT_DIM)
-                                    .monospace(),
-                            );
-                            return;
-                        };
-                        changed = factions_overview::show_editor(ui, Arc::make_mut(sector));
-                    }
-                    FactionsMode::Designer => {
-                        let Some(sector) = self.sector.as_ref() else {
-                            ui.label(
-                                RichText::new("no sector loaded")
-                                    .color(TEXT_DIM)
-                                    .monospace(),
-                            );
-                            return;
-                        };
-                        factions_overview::show_designer(
-                            ui,
-                            sector.as_ref(),
-                            &mut self.faction_designer,
-                            project_dir.as_deref(),
-                        );
-                    }
-                });
-            });
-
-        if changed {
-            self.after_live_faction_edit();
-        }
-    }
-
-    fn after_live_faction_edit(&mut self) {
-        self.mark_live_sector_dirty("factions edited".into());
-    }
-
-    fn draw_relations_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
-            .show(ctx, |ui| {
-                ui.label(
-                    RichText::new("DIPLOMACY MATRIX")
-                        .color(TEXT)
-                        .monospace()
-                        .strong(),
-                );
-                ui.label(
-                    RichText::new("§5 NEW2.md — public/secret attitude + relation dimensions")
-                        .color(TEXT_DIM)
-                        .monospace(),
-                );
-                ui.add_space(8.0);
-                if sector.relations.pairs.is_empty() {
-                    ui.label(
-                        RichText::new(
-                            "relations matrix is empty (need ≥2 factions or set \
-                            inputs.relations in sectorforge.toml)",
-                        )
-                        .color(TEXT_DIM)
-                        .monospace(),
-                    );
-                    return;
-                }
-                // Fixed column widths so virtualized rows align with the
-                // header without a Grid (Grid is incompatible with
-                // ScrollArea::show_rows virtualization).
-                const COL_A: f32 = 220.0;
-                const COL_B: f32 = 220.0;
-                const COL_STANCE: f32 = 96.0;
-                const COL_TREATY: f32 = 110.0;
-                const COL_TENSION: f32 = 70.0;
-                let header = |ui: &mut egui::Ui| {
-                    ui.horizontal(|ui| {
-                        ui.add_sized(
-                            [COL_A, 0.0],
-                            egui::Label::new(
-                                RichText::new("A").color(TEXT_DIM).monospace().strong(),
-                            ),
-                        );
-                        ui.add_sized(
-                            [COL_B, 0.0],
-                            egui::Label::new(
-                                RichText::new("B").color(TEXT_DIM).monospace().strong(),
-                            ),
-                        );
-                        ui.add_sized(
-                            [COL_STANCE, 0.0],
-                            egui::Label::new(
-                                RichText::new("PUBLIC").color(TEXT_DIM).monospace().strong(),
-                            ),
-                        );
-                        ui.add_sized(
-                            [COL_STANCE, 0.0],
-                            egui::Label::new(
-                                RichText::new("SECRET").color(TEXT_DIM).monospace().strong(),
-                            ),
-                        );
-                        ui.add_sized(
-                            [COL_TREATY, 0.0],
-                            egui::Label::new(
-                                RichText::new("TREATY").color(TEXT_DIM).monospace().strong(),
-                            ),
-                        );
-                        ui.add_sized(
-                            [COL_TENSION, 0.0],
-                            egui::Label::new(
-                                RichText::new("TENSION")
-                                    .color(TEXT_DIM)
-                                    .monospace()
-                                    .strong(),
-                            ),
-                        );
-                        ui.label(RichText::new("CAUSE").color(TEXT_DIM).monospace().strong());
-                    });
-                };
-                header(ui);
-                ui.separator();
-                let row_h = ui.text_style_height(&egui::TextStyle::Monospace) + 4.0;
-                let total = sector.relations.pairs.len();
-                ScrollArea::vertical().auto_shrink([false; 2]).show_rows(
-                    ui,
-                    row_h,
-                    total,
-                    |ui, range| {
-                        for i in range {
-                            let p = &sector.relations.pairs[i];
-                            let public_color = stance_color(p.public_stance);
-                            let secret_color = stance_color(p.secret_stance);
-                            ui.horizontal(|ui| {
-                                ui.add_sized(
-                                    [COL_A, row_h],
-                                    egui::Label::new(RichText::new(&p.a).monospace()),
-                                );
-                                ui.add_sized(
-                                    [COL_B, row_h],
-                                    egui::Label::new(RichText::new(&p.b).monospace()),
-                                );
-                                ui.add_sized(
-                                    [COL_STANCE, row_h],
-                                    egui::Label::new(
-                                        RichText::new(format!("{:?}", p.public_attitude))
-                                            .color(public_color)
-                                            .monospace(),
-                                    ),
-                                );
-                                ui.add_sized(
-                                    [COL_STANCE, row_h],
-                                    egui::Label::new(
-                                        RichText::new(format!("{:?}", p.secret_attitude))
-                                            .color(secret_color)
-                                            .monospace(),
-                                    ),
-                                );
-                                ui.add_sized(
-                                    [COL_TREATY, row_h],
-                                    egui::Label::new(
-                                        RichText::new(format!("{:?}", p.treaty_status)).monospace(),
-                                    ),
-                                );
-                                ui.add_sized(
-                                    [COL_TENSION, row_h],
-                                    egui::Label::new(
-                                        RichText::new(format!("{:.0}", p.tension)).monospace(),
-                                    ),
-                                );
-                                ui.label(RichText::new(&p.cause).color(TEXT_DIM).monospace());
-                            });
-                        }
-                    },
-                );
-            });
-    }
-
-    fn draw_regions_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(
-                        RichText::new("WARP REGIONS")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("§5 NEW.md — regional warp phenomena overlay")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                    ui.add_space(8.0);
-                    if sector.regions.is_empty() {
-                        ui.label(
-                            RichText::new(
-                                "no regions configured — enable in regions.toml or \
-                                sectorforge.toml",
-                            )
-                            .color(TEXT_DIM)
-                            .monospace(),
-                        );
-                        return;
-                    }
-                    egui::Grid::new("regions_grid")
-                        .num_columns(5)
-                        .striped(true)
-                        .show(ui, |ui| {
-                            ui.label(RichText::new("ID").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("NAME").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("KIND").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("HEXES").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("CENTRE").color(TEXT_DIM).monospace().strong());
-                            ui.end_row();
-                            for r in &sector.regions {
-                                ui.label(RichText::new(&r.id).monospace());
-                                ui.label(RichText::new(&r.name).monospace());
-                                ui.label(
-                                    RichText::new(format!("{:?}", r.kind))
-                                        .color(Color32::from_rgb(220, 160, 60))
-                                        .monospace(),
-                                );
-                                ui.label(RichText::new(r.hexes.len().to_string()).monospace());
-                                ui.label(
-                                    RichText::new(format!("({},{})", r.centre.q, r.centre.r))
-                                        .monospace(),
-                                );
-                                ui.end_row();
-                            }
-                        });
-                });
-            });
-    }
-
-    fn draw_trade_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(
-                        RichText::new("TRADE & ECONOMY")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
-                    );
-                    ui.label(
-                        RichText::new("§12 NEW.md — trade volume + resource balance")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                    ui.add_space(8.0);
-                    if !sector.economy.enabled {
-                        ui.label(
-                            RichText::new(
-                                "economy derivation disabled — set [economy].enabled = true",
-                            )
-                            .color(TEXT_DIM)
-                            .monospace(),
-                        );
-                        return;
-                    }
-                    ui.label(
-                        RichText::new("SECTOR BALANCE")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
-                    );
-                    egui::Grid::new("sector_balance")
-                        .num_columns(2)
-                        .show(ui, |ui| {
-                            for k in crate::economy::RESOURCE_KEYS {
-                                let v = sector.economy.sector_balance.get(k);
-                                ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
-                                ui.label(RichText::new(format!("{:.1}", v)).monospace());
-                                ui.end_row();
-                            }
-                        });
-                    ui.add_space(10.0);
-                    ui.label(
-                        RichText::new("STRATEGIC OUTPUT")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
-                    );
-                    egui::Grid::new("strategic_output")
-                        .num_columns(2)
-                        .show(ui, |ui| {
-                            for k in crate::economy::STRATEGIC_RESOURCE_KEYS {
-                                let v = sector.economy.strategic_output.get(k);
-                                ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
-                                ui.label(RichText::new(format!("{:.1}", v)).monospace());
-                                ui.end_row();
-                            }
-                        });
-                    let stressed: Vec<_> = sector
-                        .economy
-                        .systems
-                        .iter()
-                        .filter(|s| {
-                            s.supply_risk >= crate::economy::SupplyRisk::Disrupted
-                                || matches!(
-                                    s.tithe_status,
-                                    crate::economy::TitheStatus::Delinquent
-                                        | crate::economy::TitheStatus::Failed
-                                        | crate::economy::TitheStatus::Falsified
-                                )
-                        })
-                        .collect();
-                    if !stressed.is_empty() {
-                        ui.add_space(10.0);
-                        ui.label(
-                            RichText::new("TITHE / SUPPLY STRESS")
-                                .color(Color32::from_rgb(235, 190, 90))
-                                .monospace()
-                                .strong(),
-                        );
-                        egui::Grid::new("tithe_supply_stress")
-                            .num_columns(4)
-                            .striped(true)
-                            .show(ui, |ui| {
-                                ui.label(RichText::new("SYSTEM").color(TEXT_DIM).monospace());
-                                ui.label(RichText::new("TITHE").color(TEXT_DIM).monospace());
-                                ui.label(RichText::new("SUPPLY").color(TEXT_DIM).monospace());
-                                ui.label(RichText::new("PRIORITY").color(TEXT_DIM).monospace());
-                                ui.end_row();
-                                for sy in stressed.iter().take(12) {
-                                    ui.label(RichText::new(&sy.system_id).monospace());
-                                    ui.label(
-                                        RichText::new(format!("{:?}", sy.tithe_status)).monospace(),
-                                    );
-                                    ui.label(
-                                        RichText::new(format!("{:?}", sy.supply_risk)).monospace(),
-                                    );
-                                    ui.label(
-                                        RichText::new(format!("{:?}", sy.strategic_priority))
-                                            .monospace(),
-                                    );
-                                    ui.end_row();
-                                }
-                            });
-                    }
-                    ui.add_space(10.0);
-                    ui.label(
-                        RichText::new("TOP TRADE LANES")
-                            .color(TEXT)
-                            .monospace()
-                            .strong(),
-                    );
-                    let mut routes: Vec<_> = sector.economy.routes.iter().collect();
-                    routes.sort_by(|a, b| {
-                        b.volume
-                            .partial_cmp(&a.volume)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    });
-                    egui::Grid::new("trade_routes")
-                        .num_columns(4)
-                        .striped(true)
-                        .show(ui, |ui| {
-                            ui.label(RichText::new("FROM").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("TO").color(TEXT_DIM).monospace().strong());
-                            ui.label(RichText::new("VOLUME").color(TEXT_DIM).monospace().strong());
-                            ui.label(
-                                RichText::new("FRICTION")
-                                    .color(TEXT_DIM)
-                                    .monospace()
-                                    .strong(),
-                            );
-                            ui.end_row();
-                            for r in routes.iter().take(20) {
-                                ui.label(RichText::new(&r.from_system_id).monospace());
-                                ui.label(RichText::new(&r.to_system_id).monospace());
-                                ui.label(RichText::new(format!("{:.1}", r.volume)).monospace());
-                                ui.label(RichText::new(format!("{:.2}", r.friction)).monospace());
-                                ui.end_row();
-                            }
-                        });
-                    let stranded: Vec<_> = sector
-                        .economy
-                        .worlds
-                        .iter()
-                        .filter(|w| w.stranded)
-                        .collect();
-                    if !stranded.is_empty() {
-                        ui.add_space(10.0);
-                        ui.label(
-                            RichText::new("STRANDED WORLDS")
-                                .color(Color32::from_rgb(235, 90, 90))
-                                .monospace()
-                                .strong(),
-                        );
-                        for w in stranded {
-                            ui.label(
-                                RichText::new(format!(
-                                    "{} in {} — {}",
-                                    w.world_id,
-                                    w.system_id,
-                                    if w.shortages.is_empty() {
-                                        "(systemic)".to_string()
-                                    } else {
-                                        w.shortages.join(", ")
-                                    }
-                                ))
-                                .monospace(),
-                            );
-                        }
-                    }
-                });
-            });
-    }
-
-    fn draw_planner_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
-                .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            return;
-        };
-
-        SidePanel::right("planner_panel")
-            .resizable(true)
-            .default_width(340.0)
-            .min_width(280.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    self.draw_planner_panel(ui, &sector);
-                });
-            });
-
-        TopBottomPanel::bottom("planner_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
-                    ui.add(
-                        egui::Slider::new(&mut self.planner_hex_size, 20.0..=80.0)
-                            .show_value(false),
-                    );
-                    ui.label(
-                        RichText::new("click hexes to set FROM, then TO  ·  third click resets")
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                });
-            });
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| {
-                    let route_ids = self.planner.highlighted_route_ids();
-                    let waypoints = self.planner.waypoint_set();
-                    let selected = self.planner.to.as_deref().or(self.planner.from.as_deref());
-                    let (_resp, click) = SectorView {
-                        sector: &sector,
-                        selected_system: selected,
-                        selected_route: None,
-                        hex_size: self.planner_hex_size,
-                        path_route_ids: Some(&route_ids),
-                        path_waypoints: Some(&waypoints),
-                        subsectors: None,
-                        selected_subsector: None,
-                        heatmap: None,
-                        empty_hex_clicks: false,
-                        route_view_mode: self.route_view_mode,
-                    }
-                    .show(ui);
-                    match click {
-                        Some(SectorClick::System(id)) => {
-                            self.planner.click_system(&id);
-                            self.recompute_plan();
-                        }
-                        Some(SectorClick::Route(_))
-                        | Some(SectorClick::Subsector(_))
-                        | Some(SectorClick::EmptyHex(_))
-                        | None => {}
-                    }
-                });
-            });
-    }
-
-    fn draw_planner_panel(&mut self, ui: &mut egui::Ui, sector: &GeneratedSector) {
-        ui.label(
-            RichText::new("ROUTE PLANNER")
-                .color(TEXT)
-                .monospace()
-                .strong(),
-        );
-        ui.add_space(6.0);
-
-        let options: Vec<(crate::ids::SystemId, String)> = sector
-            .systems
-            .iter()
-            .map(|s| (s.id.clone(), s.name.clone()))
-            .collect();
-
-        let mut dirty = false;
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("FROM").color(TEXT_DIM).monospace());
-            let armed = self.planner.picker == PickTarget::From;
-            if ui
-                .selectable_label(armed, RichText::new("◎ PICK").monospace())
-                .on_hover_text("arm picker — next map click sets FROM")
-                .clicked()
-            {
-                self.planner.picker = if armed {
-                    PickTarget::None
-                } else {
-                    PickTarget::From
-                };
-            }
-        });
-        dirty |= system_combo(ui, "planner_from", &mut self.planner.from, &options);
-        ui.add_space(4.0);
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("TO").color(TEXT_DIM).monospace());
-            let armed = self.planner.picker == PickTarget::To;
-            if ui
-                .selectable_label(armed, RichText::new("◎ PICK").monospace())
-                .on_hover_text("arm picker — next map click sets TO")
-                .clicked()
-            {
-                self.planner.picker = if armed {
-                    PickTarget::None
-                } else {
-                    PickTarget::To
-                };
-            }
-        });
-        dirty |= system_combo(ui, "planner_to", &mut self.planner.to, &options);
-
-        if self.planner.picker != PickTarget::None {
-            ui.add_space(4.0);
-            let target = match self.planner.picker {
-                PickTarget::From => "FROM",
-                PickTarget::To => "TO",
-                PickTarget::None => "",
-            };
-            ui.label(
-                RichText::new(format!("◉ click a hex to set {}", target))
-                    .color(palette::PATH_WAYPOINT)
-                    .monospace(),
-            );
-        }
-
-        ui.add_space(6.0);
-        ui.label(RichText::new("METRIC").color(TEXT_DIM).monospace());
-        ui.horizontal(|ui| {
-            if ui
-                .selectable_label(
-                    self.planner.metric == Metric::Safest,
-                    RichText::new("SAFEST").monospace(),
-                )
-                .clicked()
-            {
-                self.planner.metric = Metric::Safest;
-                dirty = true;
-            }
-            if ui
-                .selectable_label(
-                    self.planner.metric == Metric::Shortest,
-                    RichText::new("SHORTEST").monospace(),
-                )
-                .clicked()
-            {
-                self.planner.metric = Metric::Shortest;
-                dirty = true;
-            }
-            if ui
-                .selectable_label(
-                    self.planner.metric == Metric::Strategic,
-                    RichText::new("STRATEGIC").monospace(),
-                )
-                .clicked()
-            {
-                self.planner.metric = Metric::Strategic;
-                dirty = true;
-            }
-        });
-
-        ui.add_space(8.0);
-        ui.horizontal(|ui| {
-            if ui.button(RichText::new("PLAN").monospace()).clicked() {
-                dirty = true;
-            }
-            if ui.button(RichText::new("CLEAR").monospace()).clicked() {
-                self.planner.clear();
-            }
-            if let (Some(a), Some(b)) = (self.planner.from.clone(), self.planner.to.clone()) {
-                if ui.button(RichText::new("SWAP").monospace()).clicked() {
-                    self.planner.from = Some(b);
-                    self.planner.to = Some(a);
-                    dirty = true;
-                }
-            }
-        });
-
-        if dirty {
-            self.recompute_plan();
-        }
-
-        if !self.planner.status.is_empty() {
-            ui.add_space(6.0);
-            ui.label(
-                RichText::new(&self.planner.status)
-                    .color(Color32::from_rgb(235, 90, 90))
-                    .monospace(),
-            );
-        }
-
-        ui.add_space(10.0);
-        ui.separator();
-
-        if let Some(plan) = self.planner.plan.clone() {
-            let name_of = |id: &str| -> String {
-                sector
-                    .systems
-                    .iter()
-                    .find(|s| s.id == id)
-                    .map(|s| s.name.clone())
-                    .unwrap_or_else(|| id.to_string())
-            };
-            let metric_label = match plan.metric {
-                Metric::Safest => "SAFEST",
-                Metric::Shortest => "SHORTEST",
-                Metric::Strategic => "STRATEGIC",
-            };
-            let cost_label = match plan.metric {
-                Metric::Safest => format!("risk score {:.1}", plan.total_cost),
-                Metric::Shortest => format!("{} hops", plan.total_cost as i64),
-                Metric::Strategic => format!("strategic cost {:.1}", plan.total_cost),
-            };
-            ui.label(
-                RichText::new(format!("PATH ({}) — {}", metric_label, cost_label))
-                    .color(TEXT)
-                    .monospace()
-                    .strong(),
-            );
-            ui.add_space(4.0);
-            for (i, hop) in plan.hops.iter().enumerate() {
-                let prefix = if i == 0 {
-                    "◉"
-                } else if i == plan.hops.len() - 1 {
-                    "◎"
-                } else {
-                    "→"
-                };
-                ui.label(
-                    RichText::new(format!("{} {}", prefix, name_of(hop)))
-                        .color(TEXT)
-                        .monospace(),
-                );
-            }
-
-            ui.add_space(8.0);
-            if plan.hazards.is_empty() {
-                ui.label(
-                    RichText::new("no hazards along path")
-                        .color(palette::stability_color(
-                            crate::sector_model::RouteStability::Stable,
-                        ))
-                        .monospace(),
-                );
-            } else {
-                ui.label(RichText::new("HAZARDS").color(TEXT_DIM).monospace());
-                for h in &plan.hazards {
-                    let color = match h.severity {
-                        Severity::Danger => Color32::from_rgb(235, 90, 90),
-                        Severity::Caution => Color32::from_rgb(240, 200, 90),
-                        Severity::Info => TEXT_DIM,
-                    };
-                    ui.label(
-                        RichText::new(format!(
-                            "{}  {} ↔ {}",
-                            severity_tag(h.severity),
-                            name_of(&h.from),
-                            name_of(&h.to)
-                        ))
-                        .color(color)
-                        .monospace(),
-                    );
-                    ui.label(
-                        RichText::new(format!("   {}", h.note))
-                            .color(TEXT_DIM)
-                            .monospace(),
-                    );
-                }
-            }
-        } else if self.planner.from.is_some() || self.planner.to.is_some() {
-            ui.label(
-                RichText::new("pick both endpoints to plan a route")
-                    .color(TEXT_DIM)
-                    .monospace(),
-            );
-        } else {
-            ui.label(
-                RichText::new("click a system hex to set the origin")
-                    .color(TEXT_DIM)
-                    .monospace(),
-            );
-        }
-    }
-
-    fn recompute_plan(&mut self) {
-        self.planner.status.clear();
-        self.planner.plan = None;
-        let Some(sector) = &self.sector else { return };
-        let (Some(from), Some(to)) = (self.planner.from.clone(), self.planner.to.clone()) else {
-            return;
-        };
-        if from == to {
-            self.planner.status = "origin and destination are the same".to_string();
-            return;
-        }
-        match route_planner::plan_route(sector, &from, &to, self.planner.metric) {
-            Some(p) => self.planner.plan = Some(p),
-            None => {
-                self.planner.status =
-                    "no passable route — try the other metric or check for Perilous lanes"
-                        .to_string();
-            }
-        }
-    }
-
-    fn show_sector(&mut self, ui: &mut egui::Ui) {
-        let Some(sector) = self.sector.clone() else {
-            return;
-        };
-        TopBottomPanel::bottom("sector_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
-            .show_inside(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
-                    ui.add(
-                        egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),
-                    );
-                    ui.separator();
-                    ui.label(RichText::new("HEATMAP").color(TEXT_DIM).monospace());
-                    egui::ComboBox::from_id_salt("sector_heatmap")
-                        .selected_text(
-                            RichText::new(self.heatmap_mode.label())
-                                .monospace()
-                                .color(TEXT),
-                        )
-                        .show_ui(ui, |ui| {
-                            for &m in HeatmapMode::ALL {
-                                let sel = m == self.heatmap_mode;
-                                if ui
-                                    .selectable_label(sel, RichText::new(m.label()).monospace())
-                                    .clicked()
-                                    && !sel
-                                {
-                                    self.heatmap_mode = m;
-                                }
-                            }
-                        });
-                    ui.separator();
-                    if ui
-                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
-                        .clicked()
-                    {
-                        self.map_edit_mode = !self.map_edit_mode;
-                        self.sector_edit_tool = SectorEditTool::Select;
-                        self.pending_route_start = None;
-                    }
-                    if self.map_edit_mode {
-                        if ui
-                            .selectable_label(
-                                self.sector_edit_tool == SectorEditTool::AddSystem,
-                                RichText::new("ADD SYSTEM").monospace(),
-                            )
-                            .clicked()
-                        {
-                            self.sector_edit_tool = SectorEditTool::AddSystem;
-                            self.pending_route_start = None;
-                            self.sector_pick_export = false;
-                        }
-                        if ui
-                            .selectable_label(
-                                self.sector_edit_tool == SectorEditTool::AddRoute,
-                                RichText::new("ADD WARP ROUTE").monospace(),
-                            )
-                            .clicked()
-                        {
-                            self.sector_edit_tool = SectorEditTool::AddRoute;
-                            self.pending_route_start = None;
-                            self.sector_pick_export = false;
-                        }
-                        if ui
-                            .add_enabled(
-                                self.sector_selected.is_some(),
-                                egui::Button::new(RichText::new("REMOVE SYSTEM").monospace()),
-                            )
-                            .clicked()
-                        {
-                            self.remove_selected_system();
-                        }
-                        if ui
-                            .add_enabled(
-                                self.sector_selected_route.is_some(),
-                                egui::Button::new(RichText::new("REMOVE WARP ROUTE").monospace()),
-                            )
-                            .clicked()
-                        {
-                            self.remove_selected_route();
-                        }
-                        if let Some(start) = self.pending_route_start.as_ref() {
-                            ui.label(
-                                RichText::new(format!("ROUTE FROM {}", start.to_uppercase()))
-                                    .color(Color32::from_rgb(235, 200, 90))
-                                    .monospace(),
-                            );
-                        }
-                    }
-                    if self.live_dirty {
-                        ui.label(
-                            RichText::new("UNSAVED")
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
-                        );
-                    }
-                    if self.sector_pick_export {
-                        ui.label(
-                            RichText::new("◉ click a system hex to pick for PNG export")
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
-                        );
-                        if ui
-                            .button(RichText::new("CANCEL PICK").monospace())
-                            .clicked()
-                        {
-                            self.sector_pick_export = false;
-                        }
-                    }
-                });
-            });
-        let heatmap = self
-            .heatmap_cache
-            .get_or_compute(&sector, self.heatmap_mode);
-        ScrollArea::both().show(ui, |ui| {
-            let (_resp, click) = SectorView {
-                sector: &sector,
-                selected_system: self.sector_selected.as_deref(),
-                selected_route: self.sector_selected_route.as_deref(),
-                hex_size: self.sector_hex_size,
-                path_route_ids: None,
-                path_waypoints: None,
-                subsectors: Some(self.subsectors.as_slice()),
-                selected_subsector: self.sector_selected_subsector.as_deref(),
-                heatmap: heatmap.as_deref(),
-                empty_hex_clicks: self.map_edit_mode
-                    && self.sector_edit_tool == SectorEditTool::AddSystem,
-                route_view_mode: self.route_view_mode,
-            }
-            .show(ui);
-            match click {
-                Some(SectorClick::System(id)) => {
-                    if self.sector_pick_export {
-                        self.sector_pick_export = false;
-                        self.pending_export = Some(PendingExport::SystemPng(id));
-                    } else if self.map_edit_mode
-                        && self.sector_edit_tool == SectorEditTool::AddRoute
-                    {
-                        self.pick_route_endpoint(id);
-                    } else if self.sector_selected.as_deref() == Some(id.as_str()) {
-                        self.sector_selected_route = None;
-                        self.view = View::System {
-                            system_id: id,
-                            selection: SystemSelection::None,
-                        };
-                    } else {
-                        self.sector_selected = Some(id);
-                        self.sector_selected_route = None;
-                        self.sector_selected_subsector = None;
-                    }
-                }
-                Some(SectorClick::Route(id)) => {
-                    if self.sector_pick_export {
-                        // routes are not valid export targets
-                    } else if self.sector_selected_route.as_deref() == Some(id.as_str()) {
-                        self.sector_selected_route = None;
-                    } else {
-                        self.sector_selected_route = Some(id);
-                        self.sector_selected = None;
-                        self.sector_selected_subsector = None;
-                    }
-                }
-                Some(SectorClick::Subsector(id)) => {
-                    if self.sector_pick_export {
-                        // empty hexes are not valid export targets
-                    } else if self.sector_selected_subsector.as_deref() == Some(id.as_str()) {
-                        self.sector_selected_subsector = None;
-                    } else {
-                        self.sector_selected_subsector = Some(id);
-                        self.sector_selected = None;
-                        self.sector_selected_route = None;
-                    }
-                }
-                Some(SectorClick::EmptyHex(coord)) => {
-                    if self.map_edit_mode && self.sector_edit_tool == SectorEditTool::AddSystem {
-                        self.add_system_at(coord);
-                    }
-                }
-                None => {}
-            }
-        });
-    }
-
-    fn show_system(&mut self, ui: &mut egui::Ui, system_id: &str, selection: SystemSelection) {
-        let sys_id_owned = crate::ids::SystemId::new(system_id);
-        TopBottomPanel::bottom("system_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
-            .show_inside(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("SIZE").color(TEXT_DIM).monospace());
-                    ui.add(
-                        egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),
-                    );
-                    if ui
-                        .button(RichText::new("EXPORT MAP PNG").monospace())
-                        .on_hover_text("export this system's map to a PNG")
-                        .clicked()
-                    {
-                        self.pending_export = Some(PendingExport::SystemPng(sys_id_owned.clone()));
-                    }
-                    ui.separator();
-                    if ui
-                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
-                        .clicked()
-                    {
-                        self.map_edit_mode = !self.map_edit_mode;
-                        self.sector_edit_tool = SectorEditTool::Select;
-                        self.pending_route_start = None;
-                    }
-                    if self.map_edit_mode {
-                        if ui.button(RichText::new("ADD PLANET").monospace()).clicked() {
-                            if let Some(world_index) = self.add_planet_to_system(&sys_id_owned) {
-                                self.view = View::System {
-                                    system_id: sys_id_owned.clone(),
-                                    selection: SystemSelection::World(world_index),
-                                };
-                            }
-                        }
-                        let selected_world = match selection {
-                            SystemSelection::World(idx) => Some(idx),
-                            SystemSelection::None | SystemSelection::Star => None,
-                        };
-                        if ui
-                            .add_enabled(
-                                selected_world.is_some(),
-                                egui::Button::new(RichText::new("REMOVE PLANET").monospace()),
-                            )
-                            .clicked()
-                        {
-                            if let Some(idx) = selected_world {
-                                self.remove_planet_from_system(&sys_id_owned, idx);
-                            }
-                        }
-                    }
-                    if self.live_dirty {
-                        ui.label(
-                            RichText::new("UNSAVED")
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
-                        );
-                    }
-                });
-            });
-        ScrollArea::both().show(ui, |ui| {
-            let sys_clone = self.system_by_id(system_id).cloned();
-            let Some(sys) = sys_clone else {
-                ui.label(RichText::new("system not found").color(Color32::RED));
-                return;
-            };
-            let (_resp, click) = SystemView {
-                system: &sys,
-                selected: selection,
-                side: self.system_side,
-            }
-            .show(ui);
-            if let Some(c) = click {
-                let new_sel = match c {
-                    SystemClick::Star => SystemSelection::Star,
-                    SystemClick::World(i) => SystemSelection::World(i),
-                };
-                self.view = View::System {
-                    system_id: crate::ids::SystemId::new(system_id),
-                    selection: new_sel,
-                };
-            }
-        });
-    }
-
-    fn add_system_at(&mut self, coord: crate::sector_model::HexCoord) {
-        let Some(sector) = self.sector.as_mut() else {
-            self.export_status = "no sector loaded".into();
-            return;
-        };
-        let sector = Arc::make_mut(sector);
-        if sector.systems.iter().any(|s| s.coord == coord) {
-            self.export_status = "hex already has a system".into();
-            return;
-        }
-        let index = sector
-            .systems
-            .iter()
-            .map(|sys| sys.index)
-            .max()
-            .unwrap_or(0)
-            + 1;
-        let id = crate::ids::system_id(index);
-        let sys = editor::state::empty_system(id.clone(), index, format!("System {index}"), coord);
-        sector.systems.push(sys);
-        self.sector_selected = Some(id.clone());
-        self.sector_selected_route = None;
-        self.sector_selected_subsector = None;
-        self.sector_edit_tool = SectorEditTool::Select;
-        self.pending_route_start = None;
-        self.mark_live_sector_dirty(format!("added system {}", id));
-    }
-
-    fn remove_selected_system(&mut self) {
-        let Some(id) = self.sector_selected.clone() else {
-            self.export_status = "select a system first".into();
-            return;
-        };
-        let Some(sector) = self.sector.as_mut() else {
-            self.export_status = "no sector loaded".into();
-            return;
-        };
-        let sector = Arc::make_mut(sector);
-        let world_ids: HashSet<_> = sector
-            .systems
-            .iter()
-            .find(|s| s.id == id)
-            .map(|s| s.worlds.iter().map(|w| w.id.clone()).collect())
-            .unwrap_or_default();
-        let before = sector.systems.len();
-        sector.systems.retain(|s| s.id != id);
-        if sector.systems.len() == before {
-            self.export_status = "selected system not found".into();
-            self.sector_selected = None;
-            return;
-        }
-        sector
-            .routes
-            .retain(|r| r.from_system_id != id && r.to_system_id != id);
-        for faction in &mut sector.factions {
-            faction.system_presence.retain(|x| x != &id);
-            faction.world_presence.retain(|x| !world_ids.contains(x));
-        }
-        self.sector_selected = None;
-        self.sector_selected_route = None;
-        self.sector_selected_subsector = None;
-        self.pending_route_start = None;
-        self.mark_live_sector_dirty(format!("removed system {}", id));
-    }
-
-    fn pick_route_endpoint(&mut self, id: crate::ids::SystemId) {
-        if let Some(from) = self.pending_route_start.clone() {
-            if from == id {
-                self.export_status = "choose a different destination system".into();
-                return;
-            }
-            self.add_route_between(from, id);
-            self.pending_route_start = None;
-            self.sector_edit_tool = SectorEditTool::Select;
-        } else {
-            self.pending_route_start = Some(id.clone());
-            self.sector_selected = Some(id.clone());
-            self.sector_selected_route = None;
-            self.sector_selected_subsector = None;
-            self.export_status = format!("route start {}", id);
-        }
-    }
-
-    fn add_route_between(&mut self, from: crate::ids::SystemId, to: crate::ids::SystemId) {
-        let Some(sector) = self.sector.as_mut() else {
-            self.export_status = "no sector loaded".into();
-            return;
-        };
-        let sector = Arc::make_mut(sector);
-        let route_id = crate::ids::route_id(&from, &to);
-        if sector.routes.iter().any(|r| r.id == route_id) {
-            self.export_status = format!("route {} already exists", route_id);
-            return;
-        }
-        let from_coord = sector
-            .systems
-            .iter()
-            .find(|s| s.id == from)
-            .map(|s| s.coord);
-        let to_coord = sector.systems.iter().find(|s| s.id == to).map(|s| s.coord);
-        let (Some(a), Some(b)) = (from_coord, to_coord) else {
-            self.export_status = "route endpoint missing".into();
-            return;
-        };
-        let mut route = editor::state::empty_route(from, to);
-        route.distance = crate::sector_model::hex_distance(a, b);
-        self.sector_selected = None;
-        self.sector_selected_route = Some(route.id.clone());
-        self.sector_selected_subsector = None;
-        let status = format!("added route {}", route.id);
-        sector.routes.push(route);
-        self.mark_live_sector_dirty(status);
-    }
-
-    fn remove_selected_route(&mut self) {
-        let Some(id) = self.sector_selected_route.clone() else {
-            self.export_status = "select a route first".into();
-            return;
-        };
-        let Some(sector) = self.sector.as_mut() else {
-            self.export_status = "no sector loaded".into();
-            return;
-        };
-        let sector = Arc::make_mut(sector);
-        let before = sector.routes.len();
-        sector.routes.retain(|r| r.id != id);
-        if sector.routes.len() == before {
-            self.export_status = "selected route not found".into();
-            self.sector_selected_route = None;
-            return;
-        }
-        self.sector_selected_route = None;
-        self.mark_live_sector_dirty(format!("removed route {}", id));
-    }
-
-    fn add_planet_to_system(&mut self, system_id: &crate::ids::SystemId) -> Option<usize> {
-        let Some(sector) = self.sector.as_mut() else {
-            self.export_status = "no sector loaded".into();
-            return None;
-        };
-        let sector = Arc::make_mut(sector);
-        let Some(sys) = sector.systems.iter_mut().find(|s| &s.id == system_id) else {
-            self.export_status = "system not found".into();
-            return None;
-        };
-        let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
-        let mut world = editor::state::empty_world(sys.index, next, format!("Planet {next}"));
-        world.world.star_colour = sys.star.colour_name.clone();
-        world.world.star_colour_code = sys.star.colour_code.clone();
-        sys.worlds.push(world);
-        self.mark_live_sector_dirty(format!("added planet {}:{}", system_id, next));
-        Some(next)
-    }
-
-    fn remove_planet_from_system(&mut self, system_id: &crate::ids::SystemId, world_index: usize) {
-        let Some(sector) = self.sector.as_mut() else {
-            self.export_status = "no sector loaded".into();
-            return;
-        };
-        let sector = Arc::make_mut(sector);
-        let Some(sys) = sector.systems.iter_mut().find(|s| &s.id == system_id) else {
-            self.export_status = "system not found".into();
-            return;
-        };
-        let removed_world_id = sys
-            .worlds
-            .iter()
-            .find(|w| w.index == world_index)
-            .map(|w| w.id.clone());
-        let before = sys.worlds.len();
-        sys.worlds.retain(|w| w.index != world_index);
-        if sys.worlds.len() == before {
-            self.export_status = "selected planet not found".into();
-            return;
-        }
-        if let Some(world_id) = removed_world_id {
-            for faction in &mut sector.factions {
-                faction.world_presence.retain(|x| x != &world_id);
-            }
-        }
-        self.view = View::System {
-            system_id: system_id.clone(),
-            selection: SystemSelection::None,
-        };
-        self.mark_live_sector_dirty(format!("removed planet {}:{}", system_id, world_index));
-    }
-
-    fn mark_live_sector_dirty(&mut self, status: String) {
-        self.live_dirty = true;
-        self.dashboard.invalidate();
-        self.heatmap_cache.invalidate();
-        self.sector_overview_cache.invalidate();
-        let source = self
-            .sector_source_path
-            .as_ref()
-            .map(|p| p.to_string_lossy().to_string());
-        if let Some(sector) = self.sector.as_mut() {
-            let sector = Arc::make_mut(sector);
-            Self::refresh_live_manifest_counts(sector);
-            self.subsectors =
-                build_subsectors(sector, SubsectorConfig::default()).unwrap_or_default();
-            if !self.editor.dirty {
-                self.editor.set_sector(sector.clone(), source);
-            }
-        }
-        self.export_status = status;
-    }
-
-    fn refresh_live_manifest_counts(sector: &mut GeneratedSector) {
-        sector.manifest.system_count = sector.systems.len();
-        sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
-        sector.manifest.route_count = sector.routes.len();
-    }
-
-    fn save_sector_to_source(&mut self) {
-        if let Some(path) = self.sector_source_path.clone() {
-            self.write_sector_to_path(path);
-        } else {
-            self.save_sector_as();
-        }
-    }
-
-    fn save_sector_as(&mut self) {
-        let Some(sector) = self.sector.as_ref() else {
-            self.export_status = "no sector to save".into();
-            return;
-        };
-        let mut dialog = FileDialog::new()
-            .add_filter("Sector JSON", &["json"])
-            .set_file_name("sector.json");
+    fn open_sector_dialog(&mut self) {
+        let mut dialog = FileDialog::new().add_filter("Sector JSON", &["json"]);
         if let Some(dir) = self
             .sector_source_path
             .as_ref()
@@ -2591,179 +319,20 @@ impl App {
         {
             dialog = dialog.set_directory(dir);
         }
-        let Some(path) = dialog.save_file() else {
-            return;
-        };
-        if path.file_name().is_none() {
-            self.export_status = format!("save failed: invalid path for {}", sector.id);
-            return;
-        }
-        self.write_sector_to_path(path);
-    }
-
-    fn write_sector_to_path(&mut self, path: PathBuf) {
-        let text = match self.sector.as_mut() {
-            Some(sector) => {
-                let sector = Arc::make_mut(sector);
-                Self::refresh_live_manifest_counts(sector);
-                serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {e}"))
-            }
-            None => Err("no sector to save".into()),
-        };
-        let text = match text {
-            Ok(text) => text,
-            Err(e) => {
-                self.export_status = format!("save failed: {e}");
-                return;
-            }
-        };
-        if let Some(parent) = path.parent() {
-            if let Err(e) = fs::create_dir_all(parent) {
-                self.export_status = format!("save failed: mkdir {}: {}", parent.display(), e);
-                return;
-            }
-        }
-        match fs::write(&path, text) {
-            Ok(()) => {
-                self.sector_source_path = Some(path.clone());
-                self.live_dirty = false;
-                self.export_status = format!("saved {}", path.display());
-                if let Some(sector) = self.sector.as_ref() {
-                    self.editor.set_sector(
-                        sector.as_ref().clone(),
-                        Some(path.to_string_lossy().to_string()),
-                    );
+        if let Some(path) = dialog.pick_file() {
+            match fs::read_to_string(&path) {
+                Ok(text) => match serde_json::from_str::<GeneratedSector>(text.as_str()) {
+                    Ok(sector) => {
+                        self.set_loaded_sector(sector, Some(path.to_string_lossy().to_string()));
+                    }
+                    Err(e) => {
+                        self.export_status = format!("load failed: parse error: {e}");
+                    }
+                },
+                Err(e) => {
+                    self.export_status = format!("load failed: read error: {e}");
                 }
             }
-            Err(e) => {
-                self.export_status = format!("save failed: write {}: {}", path.display(), e);
-            }
         }
     }
-}
-
-mod export_ui;
-
-fn history_highlights(
-    event: &crate::history::HistoryEvent,
-) -> (HashSet<crate::ids::RouteId>, HashSet<crate::ids::SystemId>) {
-    let mut routes = HashSet::new();
-    let mut systems = HashSet::new();
-    match &event.anchor {
-        crate::history::HistoryAnchor::System { system_id } => {
-            systems.insert(system_id.clone());
-        }
-        crate::history::HistoryAnchor::World { system_id, .. } => {
-            systems.insert(system_id.clone());
-        }
-        crate::history::HistoryAnchor::Route {
-            route_id,
-            from_system_id,
-            to_system_id,
-        } => {
-            routes.insert(route_id.clone());
-            systems.insert(from_system_id.clone());
-            systems.insert(to_system_id.clone());
-        }
-        _ => {}
-    }
-    for ent in &event.entities {
-        match ent.kind {
-            crate::history::HistoryEntityKind::System => {
-                systems.insert(crate::ids::SystemId::new(ent.id.clone()));
-            }
-            crate::history::HistoryEntityKind::Route => {
-                routes.insert(crate::ids::RouteId::new(ent.id.clone()));
-            }
-            _ => {}
-        }
-    }
-    (routes, systems)
-}
-
-fn first_system_from_event(event: &crate::history::HistoryEvent) -> Option<crate::ids::SystemId> {
-    let (_, systems) = history_highlights(event);
-    systems.into_iter().min()
-}
-
-fn short(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        s.to_string()
-    } else {
-        let mut out: String = s.chars().take(max.saturating_sub(1)).collect();
-        out.push('.');
-        out
-    }
-}
-
-fn system_combo(
-    ui: &mut egui::Ui,
-    id: &str,
-    value: &mut Option<crate::ids::SystemId>,
-    options: &[(crate::ids::SystemId, String)],
-) -> bool {
-    let mut changed = false;
-    let label = value
-        .as_ref()
-        .and_then(|sel| {
-            options
-                .iter()
-                .find(|(oid, _)| oid == sel)
-                .map(|(_, name)| name.clone())
-        })
-        .unwrap_or_else(|| "—".to_string());
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(label).monospace())
-        .width(220.0)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(value.is_none(), "— none —").clicked() && value.is_some() {
-                *value = None;
-                changed = true;
-            }
-            for (oid, name) in options {
-                let sel = value.as_deref() == Some(oid.as_str());
-                if ui
-                    .selectable_label(sel, RichText::new(name).monospace())
-                    .clicked()
-                    && !sel
-                {
-                    *value = Some(oid.clone());
-                    changed = true;
-                }
-            }
-        });
-    changed
-}
-
-fn stance_color(s: crate::relations::Stance) -> Color32 {
-    use crate::relations::Stance;
-    match s {
-        Stance::Allied => Color32::from_rgb(90, 200, 110),
-        Stance::Aligned => Color32::from_rgb(160, 220, 140),
-        Stance::Neutral => Color32::from_rgb(190, 190, 190),
-        Stance::Rival => Color32::from_rgb(240, 200, 90),
-        Stance::Hostile => Color32::from_rgb(235, 130, 60),
-        Stance::AtWar => Color32::from_rgb(235, 90, 90),
-    }
-}
-
-fn severity_tag(s: Severity) -> &'static str {
-    match s {
-        Severity::Danger => "[!!]",
-        Severity::Caution => "[!]",
-        Severity::Info => "[·]",
-    }
-}
-
-fn apply_theme(ctx: &egui::Context) {
-    let mut visuals = egui::Visuals::dark();
-    visuals.panel_fill = palette::PANEL_BG;
-    visuals.window_fill = palette::PANEL_BG;
-    visuals.extreme_bg_color = palette::BG;
-    visuals.widgets.noninteractive.bg_fill = palette::PANEL_BG;
-    visuals.widgets.inactive.bg_fill = palette::HEX_EMPTY;
-    visuals.widgets.hovered.bg_fill = palette::HEX_OUTLINE;
-    visuals.widgets.active.bg_fill = palette::SELECTION;
-    visuals.override_text_color = Some(TEXT);
-    ctx.set_visuals(visuals);
 }

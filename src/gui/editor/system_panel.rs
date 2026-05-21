@@ -58,12 +58,9 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     section(ui, "STAR");
     ui.horizontal(|ui| {
         label(ui, "COLOUR");
-        if combo_str(
-            ui,
-            "sys_star_colour",
-            &mut sys.star.colour_code,
-            STAR_COLOUR_CODES,
-        ) {
+        let mut star_code = sys.star.colour_code.to_string();
+        if combo_str(ui, "sys_star_colour", &mut star_code, STAR_COLOUR_CODES) {
+            sys.star.colour_code = star_code;
             sys.star.colour_name = star_colour_name(&sys.star.colour_code).to_string();
             sys.star.spectral_type = Some(sys.star.colour_code.clone());
             dirty = true;

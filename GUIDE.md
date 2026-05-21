@@ -1228,6 +1228,11 @@ fog-of-war record ([src/intel.rs](src/intel.rs) §7 NEXT), and an
 `archetype` block of faction-specific narrative state
 ([src/archetypes.rs](src/archetypes.rs) §11 NEXT).
 
+Worlds are embedded under `systems[].worlds`; there is no separate
+top-level world table or `world_ids` array in the serialized sector model.
+Use `GeneratedSector::all_worlds()` / `system_worlds()` when caller code
+needs iterator access without reaching into each system manually.
+
 Default-valued state fields (`control`, `stability`, `blockade`,
 `conflict`, `intel`, `archetype`) are omitted from the serialized
 `sector.json` when their value equals the type default. They round-trip
@@ -1500,6 +1505,9 @@ navigation bar:
 The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
 sector overview, a single system map, or all per-system maps. The current
 HEATMAP selection in the sector view is carried into the exported sector PNG.
+Top-bar **EXPORT BUNDLE** writes a complete sector bundle to a chosen folder:
+`<sector-id>/out/sector.json`, manifest, validation placeholder, Markdown,
+CSVs, and a filtered `data/` copy when the sector was loaded from a project.
 
 ### Launching the GUI
 

@@ -8,6 +8,18 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum DataEditorError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("CSV error: {0}")]
+    Csv(String),
+    #[error("Config error: {0}")]
+    Config(String),
+}
+
 use egui::{Color32, RichText, ScrollArea, Stroke, TextEdit};
 
 use crate::worlds::parse_csv;
@@ -87,21 +99,18 @@ pub enum DataView {
 }
 
 impl DataEditor {
-    pub fn load_from_project(&mut self, project_dir: &Path) -> Result<(), String> {
+    pub fn load_from_project(&mut self, project_dir: &Path) -> Result<(), DataEditorError> {
         let cfg_path = project_dir.join("sectorforge.toml");
-        let cfg_text = fs::read_to_string(&cfg_path)
-            .map_err(|e| format!("read {}: {e}", cfg_path.display()))?;
+        let cfg_text = fs::read_to_string(&cfg_path)?;
         let data_rel = extract_world_data_dir(&cfg_text)?;
         let data_dir = project_dir.join(&data_rel);
         let key_path = data_dir.join("key.csv");
         let gen_path = data_dir.join("generator.csv");
 
-        let key_text = fs::read_to_string(&key_path)
-            .map_err(|e| format!("read {}: {e}", key_path.display()))?;
-        let gen_text = fs::read_to_string(&gen_path)
-            .map_err(|e| format!("read {}: {e}", gen_path.display()))?;
-        let (_kh, key_rows) = parse_csv(&key_text)?;
-        let (_gh, gen_rows) = parse_csv(&gen_text)?;
+        let key_text = fs::read_to_string(&key_path)?;
+        let gen_text = fs::read_to_string(&gen_path)?;
+        let (_kh, key_rows) = parse_csv(&key_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
+        let (_gh, gen_rows) = parse_csv(&gen_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
 
         self.project_dir = Some(project_dir.to_path_buf());
         self.key_path = Some(key_path);
@@ -117,19 +126,19 @@ impl DataEditor {
         Ok(())
     }
 
-    pub fn save(&mut self) -> Result<(), String> {
+    pub fn save(&mut self) -> Result<(), DataEditorError> {
         let key_path = self
             .key_path
             .as_ref()
-            .ok_or_else(|| "no key.csv path".to_string())?;
+            .ok_or_else(|| DataEditorError::Config("no key.csv path".to_string()))?;
         let gen_path = self
             .gen_path
             .as_ref()
-            .ok_or_else(|| "no generator.csv path".to_string())?;
+            .ok_or_else(|| DataEditorError::Config("no generator.csv path".to_string()))?;
         let key_text = serialize_csv(KEY_HEADER, &self.key_rows);
         let gen_text = serialize_csv(GEN_HEADER, &self.gen_rows);
-        fs::write(key_path, key_text).map_err(|e| format!("write {}: {e}", key_path.display()))?;
-        fs::write(gen_path, gen_text).map_err(|e| format!("write {}: {e}", gen_path.display()))?;
+        fs::write(key_path, key_text)?;
+        fs::write(gen_path, gen_text)?;
         self.dirty = false;
         self.status = format!(
             "saved {} key rows, {} generator rows",
@@ -140,7 +149,7 @@ impl DataEditor {
     }
 }
 
-fn extract_world_data_dir(toml_text: &str) -> Result<String, String> {
+fn extract_world_data_dir(toml_text: &str) -> Result<String, DataEditorError> {
     #[derive(serde::Deserialize)]
     struct Mini {
         inputs: MiniInputs,
@@ -150,7 +159,7 @@ fn extract_world_data_dir(toml_text: &str) -> Result<String, String> {
         world_data_dir: String,
     }
     let parsed: Mini =
-        toml::from_str(toml_text).map_err(|e| format!("parse sectorforge.toml: {e}"))?;
+        toml::from_str(toml_text).map_err(|e| DataEditorError::Config(format!("parse sectorforge.toml: {e}")))?;
     Ok(parsed.inputs.world_data_dir)
 }
 

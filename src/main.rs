@@ -562,7 +562,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             out,
             json,
             strict,
-        } => run_analyze(project, sector, out, json, strict),
+        } => run_analyze(project.as_ref(), sector.as_ref(), out.as_ref(), json, strict),
         Command::New {
             out,
             preset,
@@ -595,59 +595,59 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             out,
             json,
             strict,
-        } => run_search(project, wishes, base_seed, budget, out, json, strict),
+        } => run_search(&project, &wishes, base_seed, budget, out.as_ref(), json, strict),
         Command::History {
             project,
             sector,
             out,
             json,
-        } => run_history(project, sector, out, json),
+        } => run_history(project.as_ref(), sector.as_ref(), out.as_ref(), json),
         Command::Personae {
             project,
             sector,
             out,
             json,
-        } => run_personae(project, sector, out, json),
+        } => run_personae(project.as_ref(), sector.as_ref(), out.as_ref(), json),
         Command::Hooks {
             project,
             sector,
             out,
             json,
             player,
-        } => run_hooks(project, sector, out, json, player),
+        } => run_hooks(project.as_ref(), sector.as_ref(), out.as_ref(), json, player),
         Command::Prose {
             project,
             sector,
             out,
             json,
             dispatch,
-        } => run_prose(project, sector, out, json, dispatch),
+        } => run_prose(project.as_ref(), sector.as_ref(), out.as_ref(), json, dispatch),
         Command::Relations {
             project,
             sector,
             out,
             json,
-        } => run_relations(project, sector, out, json),
-        Command::Regions { project, out, json } => run_regions(project, out, json),
+        } => run_relations(project.as_ref(), sector.as_ref(), out.as_ref(), json),
+        Command::Regions { project, out, json } => run_regions(&project, out.as_ref(), json),
         Command::Economy {
             project,
             sector,
             out,
             json,
-        } => run_economy(project, sector, out, json),
+        } => run_economy(project.as_ref(), sector.as_ref(), out.as_ref(), json),
         Command::Compose {
             segmentum,
             out,
             stitch_seed,
             json,
-        } => run_compose(segmentum, out, stitch_seed, json),
+        } => run_compose(&segmentum, &out, stitch_seed, json),
         Command::Interestingness {
             project,
             sector,
             out,
             json,
             profile,
-        } => run_interestingness(project, sector, out, json, profile),
+        } => run_interestingness(project.as_ref(), sector.as_ref(), out.as_ref(), json, profile),
         Command::Briefing {
             project,
             sector,
@@ -655,21 +655,28 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             preset,
             observer,
             min_confidence,
-        } => run_briefing(project, sector, out, preset, observer, min_confidence),
+        } => run_briefing(
+            project.as_ref(),
+            sector.as_ref(),
+            &out,
+            preset,
+            observer,
+            min_confidence,
+        ),
         Command::Missions {
             project,
             sector,
             out,
             json,
             player,
-        } => run_missions(project, sector, out, json, player),
+        } => run_missions(project.as_ref(), sector.as_ref(), out.as_ref(), json, player),
         Command::Sites {
             project,
             sector,
             out,
             json,
             player,
-        } => run_sites(project, sector, out, json, player),
+        } => run_sites(project.as_ref(), sector.as_ref(), out.as_ref(), json, player),
         Command::Diff {
             before,
             after,
@@ -679,7 +686,7 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             json,
             skip_worlds,
             skip_routes,
-        } => run_diff(
+        } => run_diff(DiffArgs {
             before,
             after,
             project,
@@ -688,14 +695,14 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             json,
             skip_worlds,
             skip_routes,
-        ),
+        }),
     }
 }
 
 fn run_analyze(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     strict: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
@@ -717,7 +724,7 @@ fn run_analyze(
         }
     };
     let analysis = sectorforge::analyze_sector_with(&sec, &cfg);
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_analysis(dir, &analysis)?;
         println!("Wrote {dir}/analysis.md and {dir}/analysis.json");
     } else if json {
@@ -733,13 +740,12 @@ fn run_analyze(
     Ok(ExitCode::SUCCESS)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_search(
-    project: Utf8PathBuf,
-    wishes: Utf8PathBuf,
+    project: &Utf8PathBuf,
+    wishes: &Utf8PathBuf,
     base_seed: Option<String>,
     budget: Option<u32>,
-    out: Option<Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     strict: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
@@ -758,7 +764,7 @@ fn run_search(
         }
         return Ok(ExitCode::from(1));
     }
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_search_outcome(dir, &outcome)?;
         println!("Wrote {dir}/search.md and {dir}/search.json");
     } else if json {
@@ -790,9 +796,9 @@ fn load_or_regenerate(
 }
 
 fn run_history(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     let (sec, mut cfg) = match (project, sector) {
@@ -826,14 +832,14 @@ fn run_history(
 }
 
 fn run_personae(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let report = sectorforge::derive_personae(&sec);
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_personae(dir, &report)?;
         println!("Wrote {dir}/personae.md and {dir}/personae.json");
     } else if json {
@@ -846,13 +852,13 @@ fn run_personae(
 }
 
 fn run_hooks(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     player: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let cfg = sectorforge::hooks::HooksConfig {
         hide_hidden_hooks: player,
         ..Default::default()
@@ -871,14 +877,14 @@ fn run_hooks(
 }
 
 fn run_relations(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     // When using --project the per-project relations.toml is honoured;
     // --sector falls back to the built-in defaults.
-    let (sec, cfg) = match (&project, &sector) {
+    let (sec, cfg) = match (project, sector) {
         (Some(p), None) => {
             let input = sectorforge::load_project(p)?;
             let cfg = input.relations.clone();
@@ -900,7 +906,7 @@ fn run_relations(
         seed: sec.seed.clone(),
         matrix,
     };
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_relations(dir, &report)?;
         println!("Wrote {dir}/relations.md and {dir}/relations.json");
     } else if json {
@@ -913,8 +919,8 @@ fn run_relations(
 }
 
 fn run_regions(
-    project: Utf8PathBuf,
-    out: Option<Utf8PathBuf>,
+    project: &Utf8PathBuf,
+    out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     let input = sectorforge::load_project(&project)?;
@@ -925,7 +931,7 @@ fn run_regions(
         input.config.generation.sector_height,
         &cfg,
     );
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_regions(dir, &input.config.project.id, &regs)?;
         println!("Wrote {dir}/regions.md and {dir}/regions.json");
     } else if json {
@@ -938,12 +944,12 @@ fn run_regions(
 }
 
 fn run_economy(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let (sec, cfg) = match (&project, &sector) {
+    let (sec, cfg) = match (project, sector) {
         (Some(p), None) => {
             let input = sectorforge::load_project(p)?;
             let cfg = sectorforge::economy::EconomyConfig {
@@ -966,7 +972,7 @@ fn run_economy(
         }
     };
     let report = sectorforge::derive_economy_with(&sec, &cfg);
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_economy(dir, &sec.id, &report)?;
         println!("Wrote {dir}/economy.md, {dir}/economy.json, and {dir}/economy.csv");
     } else if json {
@@ -979,13 +985,13 @@ fn run_economy(
 }
 
 fn run_prose(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     dispatch: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let cfg = sectorforge::prose::ProseConfig {
         tone: if dispatch {
             sectorforge::prose::ProseTone::Dispatch
@@ -995,7 +1001,7 @@ fn run_prose(
         ..Default::default()
     };
     let report = sectorforge::derive_prose_with(&sec, &cfg);
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_prose(dir, &report)?;
         println!("Wrote {dir}/gazetteer.md and {dir}/gazetteer.json");
     } else if json {
@@ -1008,8 +1014,8 @@ fn run_prose(
 }
 
 fn run_compose(
-    segmentum_path: Utf8PathBuf,
-    out: Utf8PathBuf,
+    segmentum_path: &Utf8PathBuf,
+    out: &Utf8PathBuf,
     stitch_seed: Option<String>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
@@ -1218,13 +1224,13 @@ fn progress_stride(total: usize) -> usize {
 }
 
 fn run_interestingness(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     profile: Option<String>,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let mut cfg = sectorforge::interestingness::InterestingnessConfig::default();
     if let Some(p) = profile.as_deref() {
         cfg.profile = parse_interestingness_profile(p)?;
@@ -1258,14 +1264,14 @@ fn parse_interestingness_profile(
 }
 
 fn run_briefing(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Utf8PathBuf,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: &Utf8PathBuf,
     preset: String,
     observer: Option<String>,
     min_confidence: Option<u8>,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let audience = sectorforge::briefing::parse_preset(&preset).ok_or_else(|| {
         sectorforge::SectorError::InvalidConfig(format!(
             "unknown briefing preset '{preset}' (expected gm|navy|inquisition|trader|governor|public)"
@@ -1279,7 +1285,7 @@ fn run_briefing(
         profile.minimum_intel_confidence = m;
     }
     let pack = sectorforge::apply_briefing(&sec, &profile);
-    sectorforge::write_briefing(&out, &pack, &profile)?;
+    sectorforge::write_briefing(out, &pack, &profile)?;
     println!(
         "Wrote {out}/briefing-{}.md and {out}/briefing-{}.json",
         profile.id, profile.id
@@ -1288,13 +1294,13 @@ fn run_briefing(
 }
 
 fn run_missions(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     player: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let cfg = sectorforge::missions::MissionsConfig {
         player_edition: player,
         ..Default::default()
@@ -1312,13 +1318,13 @@ fn run_missions(
 }
 
 fn run_sites(
-    project: Option<Utf8PathBuf>,
-    sector: Option<Utf8PathBuf>,
-    out: Option<Utf8PathBuf>,
+    project: Option<&Utf8PathBuf>,
+    sector: Option<&Utf8PathBuf>,
+    out: Option<&Utf8PathBuf>,
     json: bool,
     player: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project, sector)?;
+    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
     let cfg = sectorforge::sites::SitesConfig {
         player_edition: player,
         ..Default::default()
@@ -1335,8 +1341,7 @@ fn run_sites(
     Ok(ExitCode::SUCCESS)
 }
 
-#[allow(clippy::too_many_arguments)]
-fn run_diff(
+struct DiffArgs {
     before: Option<Utf8PathBuf>,
     after: Option<Utf8PathBuf>,
     project: Option<Utf8PathBuf>,
@@ -1345,13 +1350,15 @@ fn run_diff(
     json: bool,
     skip_worlds: bool,
     skip_routes: bool,
-) -> Result<ExitCode, sectorforge::SectorError> {
+}
+
+fn run_diff(args: DiffArgs) -> Result<ExitCode, sectorforge::SectorError> {
     let cfg = sectorforge::diff::DiffConfig {
-        skip_worlds,
-        skip_routes,
+        skip_worlds: args.skip_worlds,
+        skip_routes: args.skip_routes,
         ..Default::default()
     };
-    let diff = match (before, after, project, ticks) {
+    let diff = match (args.before, args.after, args.project, args.ticks) {
         (Some(a), Some(b), None, None) => {
             let sa = sectorforge::load_sector_json(&a)?;
             let sb = sectorforge::load_sector_json(&b)?;
@@ -1369,10 +1376,10 @@ fn run_diff(
             ));
         }
     };
-    if let Some(dir) = &out {
+    if let Some(dir) = &args.out {
         sectorforge::write_diff(dir, &diff)?;
         println!("Wrote {dir}/diff.md and {dir}/diff.json");
-    } else if json {
+    } else if args.json {
         print_json(&diff)?;
     } else {
         let md = sectorforge::render_diff_markdown(&diff);

@@ -3,6 +3,17 @@
 
 use std::fs;
 use std::path::PathBuf;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum EditorFileError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("invalid project name: {0}")]
+    InvalidProjectName(String),
+}
 
 const EXAMPLES_DIR: &str = "examples";
 
@@ -37,29 +48,32 @@ pub fn project_sector_path(name: &str) -> PathBuf {
 
 pub fn load_project_sector(
     name: &str,
-) -> Result<(crate::sector_model::GeneratedSector, String), String> {
+) -> Result<(crate::sector_model::GeneratedSector, String), EditorFileError> {
     let path = project_sector_path(name);
-    let text = fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path.display(), e))?;
-    let sector: crate::sector_model::GeneratedSector =
-        serde_json::from_str(&text).map_err(|e| format!("parse {}: {}", path.display(), e))?;
+    let text = fs::read_to_string(&path)?;
+    let sector: crate::sector_model::GeneratedSector = serde_json::from_str(&text)?;
     Ok((sector, path.to_string_lossy().to_string()))
 }
 
 pub fn save_project_sector(
     name: &str,
     sector: &crate::sector_model::GeneratedSector,
-) -> Result<String, String> {
+) -> Result<String, EditorFileError> {
     if name.trim().is_empty() {
-        return Err("project name is empty".to_string());
+        return Err(EditorFileError::InvalidProjectName(
+            "project name is empty".to_string(),
+        ));
     }
     if name.contains('/') || name.contains('\\') || name == "." || name == ".." {
-        return Err("project name contains forbidden characters".to_string());
+        return Err(EditorFileError::InvalidProjectName(
+            "project name contains forbidden characters".to_string(),
+        ));
     }
     let path = project_sector_path(name);
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {}", parent.display(), e))?;
+        fs::create_dir_all(parent)?;
     }
-    let text = serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {e}"))?;
-    fs::write(&path, text).map_err(|e| format!("write {}: {}", path.display(), e))?;
+    let text = serde_json::to_string_pretty(sector)?;
+    fs::write(&path, text)?;
     Ok(path.to_string_lossy().to_string())
 }

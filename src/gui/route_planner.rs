@@ -443,7 +443,7 @@ fn classify(r: &GeneratedRoute) -> (Severity, String) {
         (RouteStability::Hazardous | RouteStability::Perilous, _) => Severity::Danger,
         (RouteStability::Unstable, _) | (_, RouteType::SecretPassage) => Severity::Caution,
         (_, RouteType::SmugglingLane) => Severity::Caution,
-        (_, RouteType::Webway) | (_, RouteType::BlackShip) => Severity::Info,
+        (_, RouteType::Webway | RouteType::BlackShip) => Severity::Info,
         _ => Severity::Info,
     };
     let mut parts = vec![stab_label.to_string()];

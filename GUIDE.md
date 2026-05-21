@@ -1430,11 +1430,19 @@ navigation bar:
   [src/gui/heatmap.rs](src/gui/heatmap.rs).
   Heatmap cells are cached per loaded sector and mode, so toggling a
   non-`OFF` heatmap does not rescore every frame; the cache is invalidated
-  when a new sector loads or live faction edits change map data.
+  when a new sector loads or live map/faction edits change map data. Toggle
+  **EDIT MAP** in the bottom controls to edit the loaded sector directly:
+  **ADD SYSTEM** arms empty-hex placement, **ADD WARP ROUTE** lets you click
+  two systems to create a `ChartedPassage`, and **REMOVE SYSTEM** /
+  **REMOVE WARP ROUTE** delete the current map selection. Top-bar **SAVE**
+  writes the changed `sector.json` back to the loaded path; **SAVE AS…** picks
+  a new JSON path.
   The sector info panel also caches its faction legend buckets for the same
   loaded-sector lifetime instead of rebuilding the rollup every repaint.
 - **System** — per-system detail panel: worlds, coords, star type, tags,
-  factions, neighboring systems.
+  factions, neighboring systems. With **EDIT MAP** enabled, **ADD PLANET**
+  appends a default world/planet to the current system and **REMOVE PLANET**
+  deletes the selected planet from the system map.
 - **Edit** — sector editor (rename systems, add/remove worlds, adjust tags
   and per-world factions). The **Factions** tab shows a deterministic colour
   + glyph chip per faction (derived from `kind`, `id`, `disposition` — see

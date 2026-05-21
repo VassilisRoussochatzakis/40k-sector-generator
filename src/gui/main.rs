@@ -53,7 +53,7 @@ fn main() -> ExitCode {
         match sectorforge::load_sector_json(&p) {
             Ok(s) => {
                 let t = format!("sectorforge — {}", s.id);
-                (App::new(s), t)
+                (App::new_with_source(s, p.clone().into_std_path_buf()), t)
             }
             Err(e) => {
                 eprintln!("failed to load sector json '{p}': {e}");

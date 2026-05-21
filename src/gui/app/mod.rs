@@ -2,10 +2,12 @@
 //! between sector view, system view, and edit view.
 
 use std::collections::HashSet;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
+use rfd::FileDialog;
 
 use crate::{
     sector_model::{GeneratedSector, GeneratedSystem},
@@ -27,11 +29,16 @@ use super::system_view::{SystemClick, SystemSelection, SystemView};
 
 pub struct App {
     sector: Option<Arc<GeneratedSector>>,
+    sector_source_path: Option<PathBuf>,
+    live_dirty: bool,
     subsectors: Vec<Subsector>,
     view: View,
     sector_selected: Option<crate::ids::SystemId>,
     sector_selected_route: Option<crate::ids::RouteId>,
     sector_selected_subsector: Option<String>,
+    map_edit_mode: bool,
+    sector_edit_tool: SectorEditTool,
+    pending_route_start: Option<crate::ids::SystemId>,
     sector_hex_size: f32,
     system_side: f32,
     editor: EditorState,
@@ -86,6 +93,13 @@ enum View {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SectorEditTool {
+    Select,
+    AddSystem,
+    AddRoute,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FactionsMode {
     View,
     Edit,
@@ -96,11 +110,16 @@ impl Default for App {
     fn default() -> Self {
         Self {
             sector: None,
+            sector_source_path: None,
+            live_dirty: false,
             subsectors: Vec::new(),
             view: View::Edit,
             sector_selected: None,
             sector_selected_route: None,
             sector_selected_subsector: None,
+            map_edit_mode: false,
+            sector_edit_tool: SectorEditTool::Select,
+            pending_route_start: None,
             sector_hex_size: 44.0,
             system_side: 700.0,
             editor: EditorState::default(),
@@ -132,6 +151,13 @@ impl App {
     pub fn new(sector: GeneratedSector) -> Self {
         let mut app = Self::default();
         app.set_loaded_sector(sector, None);
+        app.view = View::Sector;
+        app
+    }
+
+    pub fn new_with_source(sector: GeneratedSector, source_path: PathBuf) -> Self {
+        let mut app = Self::default();
+        app.set_loaded_sector(sector, Some(source_path.to_string_lossy().to_string()));
         app.view = View::Sector;
         app
     }
@@ -168,11 +194,15 @@ impl App {
     }
 
     fn set_loaded_sector(&mut self, sector: GeneratedSector, source_path: Option<String>) {
+        self.sector_source_path = source_path.as_ref().map(PathBuf::from);
+        self.live_dirty = false;
         self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
         self.sector = Some(Arc::new(sector.clone()));
         self.sector_selected = None;
         self.sector_selected_route = None;
         self.sector_selected_subsector = None;
+        self.sector_edit_tool = SectorEditTool::Select;
+        self.pending_route_start = None;
         self.history_selected_event = None;
         self.planner.clear();
         self.dashboard.invalidate();
@@ -391,6 +421,20 @@ impl eframe::App for App {
                     {
                         self.preset_gallery.open = !self.preset_gallery.open;
                     }
+                    ui.add_enabled_ui(has_sector && !on_edit, |ui| {
+                        if ui
+                            .button(RichText::new("SAVE").color(TEXT).monospace())
+                            .clicked()
+                        {
+                            self.save_sector_to_source();
+                        }
+                        if ui
+                            .button(RichText::new("SAVE AS…").color(TEXT).monospace())
+                            .clicked()
+                        {
+                            self.save_sector_as();
+                        }
+                    });
                     if let Some(bundle) = self.segmentum.clone() {
                         ui.menu_button(RichText::new("CHILD ▾").color(TEXT).monospace(), |ui| {
                             for child in &bundle.children {
@@ -500,9 +544,10 @@ impl eframe::App for App {
                                 .unwrap_or_default();
                             ui.label(
                                 RichText::new(format!(
-                                    "{}{} - {} sys, {} worlds",
+                                    "{}{}{} - {} sys, {} worlds",
                                     prefix,
                                     s.id.to_uppercase(),
+                                    if self.live_dirty { " *" } else { "" },
                                     s.systems.len(),
                                     s.manifest.world_count
                                 ))
@@ -1151,6 +1196,7 @@ impl App {
                         subsectors: Some(self.subsectors.as_slice()),
                         selected_subsector: self.sector_selected_subsector.as_deref(),
                         heatmap: None,
+                        empty_hex_clicks: false,
                     }
                     .show(ui);
                     match click {
@@ -1169,6 +1215,7 @@ impl App {
                             self.sector_selected = None;
                             self.sector_selected_route = None;
                         }
+                        Some(SectorClick::EmptyHex(_)) => {}
                         None => {}
                     }
                 });
@@ -1270,18 +1317,7 @@ impl App {
     }
 
     fn after_live_faction_edit(&mut self) {
-        self.dashboard.invalidate();
-        self.heatmap_cache.invalidate();
-        self.sector_overview_cache.invalidate();
-        if let Some(sector) = self.sector.as_ref() {
-            self.subsectors =
-                build_subsectors(sector.as_ref(), SubsectorConfig::default()).unwrap_or_default();
-            if !self.editor.dirty {
-                self.editor.set_sector(sector.as_ref().clone(), None);
-                self.editor.mark_dirty();
-            }
-        }
-        self.export_status = "factions edited".into();
+        self.mark_live_sector_dirty("factions edited".into());
     }
 
     fn draw_relations_layout(&mut self, ctx: &egui::Context) {
@@ -1754,11 +1790,18 @@ impl App {
                         subsectors: None,
                         selected_subsector: None,
                         heatmap: None,
+                        empty_hex_clicks: false,
                     }
                     .show(ui);
-                    if let Some(SectorClick::System(id)) = click {
-                        self.planner.click_system(&id);
-                        self.recompute_plan();
+                    match click {
+                        Some(SectorClick::System(id)) => {
+                            self.planner.click_system(&id);
+                            self.recompute_plan();
+                        }
+                        Some(SectorClick::Route(_))
+                        | Some(SectorClick::Subsector(_))
+                        | Some(SectorClick::EmptyHex(_))
+                        | None => {}
                     }
                 });
             });
@@ -2039,6 +2082,71 @@ impl App {
                                 }
                             }
                         });
+                    ui.separator();
+                    if ui
+                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
+                        .clicked()
+                    {
+                        self.map_edit_mode = !self.map_edit_mode;
+                        self.sector_edit_tool = SectorEditTool::Select;
+                        self.pending_route_start = None;
+                    }
+                    if self.map_edit_mode {
+                        if ui
+                            .selectable_label(
+                                self.sector_edit_tool == SectorEditTool::AddSystem,
+                                RichText::new("ADD SYSTEM").monospace(),
+                            )
+                            .clicked()
+                        {
+                            self.sector_edit_tool = SectorEditTool::AddSystem;
+                            self.pending_route_start = None;
+                            self.sector_pick_export = false;
+                        }
+                        if ui
+                            .selectable_label(
+                                self.sector_edit_tool == SectorEditTool::AddRoute,
+                                RichText::new("ADD WARP ROUTE").monospace(),
+                            )
+                            .clicked()
+                        {
+                            self.sector_edit_tool = SectorEditTool::AddRoute;
+                            self.pending_route_start = None;
+                            self.sector_pick_export = false;
+                        }
+                        if ui
+                            .add_enabled(
+                                self.sector_selected.is_some(),
+                                egui::Button::new(RichText::new("REMOVE SYSTEM").monospace()),
+                            )
+                            .clicked()
+                        {
+                            self.remove_selected_system();
+                        }
+                        if ui
+                            .add_enabled(
+                                self.sector_selected_route.is_some(),
+                                egui::Button::new(RichText::new("REMOVE WARP ROUTE").monospace()),
+                            )
+                            .clicked()
+                        {
+                            self.remove_selected_route();
+                        }
+                        if let Some(start) = self.pending_route_start.as_ref() {
+                            ui.label(
+                                RichText::new(format!("ROUTE FROM {}", start.to_uppercase()))
+                                    .color(Color32::from_rgb(235, 200, 90))
+                                    .monospace(),
+                            );
+                        }
+                    }
+                    if self.live_dirty {
+                        ui.label(
+                            RichText::new("UNSAVED")
+                                .color(Color32::from_rgb(235, 200, 90))
+                                .monospace(),
+                        );
+                    }
                     if self.sector_pick_export {
                         ui.label(
                             RichText::new("◉ click a system hex to pick for PNG export")
@@ -2068,6 +2176,8 @@ impl App {
                 subsectors: Some(self.subsectors.as_slice()),
                 selected_subsector: self.sector_selected_subsector.as_deref(),
                 heatmap: heatmap.as_deref(),
+                empty_hex_clicks: self.map_edit_mode
+                    && self.sector_edit_tool == SectorEditTool::AddSystem,
             }
             .show(ui);
             match click {
@@ -2075,6 +2185,10 @@ impl App {
                     if self.sector_pick_export {
                         self.sector_pick_export = false;
                         self.pending_export = Some(PendingExport::SystemPng(id));
+                    } else if self.map_edit_mode
+                        && self.sector_edit_tool == SectorEditTool::AddRoute
+                    {
+                        self.pick_route_endpoint(id);
                     } else if self.sector_selected.as_deref() == Some(id.as_str()) {
                         self.sector_selected_route = None;
                         self.view = View::System {
@@ -2109,6 +2223,11 @@ impl App {
                         self.sector_selected_route = None;
                     }
                 }
+                Some(SectorClick::EmptyHex(coord)) => {
+                    if self.map_edit_mode && self.sector_edit_tool == SectorEditTool::AddSystem {
+                        self.add_system_at(coord);
+                    }
+                }
                 None => {}
             }
         });
@@ -2129,7 +2248,48 @@ impl App {
                         .on_hover_text("export this system's map to a PNG")
                         .clicked()
                     {
-                        self.pending_export = Some(PendingExport::SystemPng(sys_id_owned));
+                        self.pending_export = Some(PendingExport::SystemPng(sys_id_owned.clone()));
+                    }
+                    ui.separator();
+                    if ui
+                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
+                        .clicked()
+                    {
+                        self.map_edit_mode = !self.map_edit_mode;
+                        self.sector_edit_tool = SectorEditTool::Select;
+                        self.pending_route_start = None;
+                    }
+                    if self.map_edit_mode {
+                        if ui.button(RichText::new("ADD PLANET").monospace()).clicked() {
+                            if let Some(world_index) = self.add_planet_to_system(&sys_id_owned) {
+                                self.view = View::System {
+                                    system_id: sys_id_owned.clone(),
+                                    selection: SystemSelection::World(world_index),
+                                };
+                            }
+                        }
+                        let selected_world = match selection {
+                            SystemSelection::World(idx) => Some(idx),
+                            SystemSelection::None | SystemSelection::Star => None,
+                        };
+                        if ui
+                            .add_enabled(
+                                selected_world.is_some(),
+                                egui::Button::new(RichText::new("REMOVE PLANET").monospace()),
+                            )
+                            .clicked()
+                        {
+                            if let Some(idx) = selected_world {
+                                self.remove_planet_from_system(&sys_id_owned, idx);
+                            }
+                        }
+                    }
+                    if self.live_dirty {
+                        ui.label(
+                            RichText::new("UNSAVED")
+                                .color(Color32::from_rgb(235, 200, 90))
+                                .monospace(),
+                        );
                     }
                 });
             });
@@ -2156,6 +2316,294 @@ impl App {
                 };
             }
         });
+    }
+
+    fn add_system_at(&mut self, coord: crate::sector_model::HexCoord) {
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "no sector loaded".into();
+            return;
+        };
+        let sector = Arc::make_mut(sector);
+        if sector.systems.iter().any(|s| s.coord == coord) {
+            self.export_status = "hex already has a system".into();
+            return;
+        }
+        let index = sector
+            .systems
+            .iter()
+            .map(|sys| sys.index)
+            .max()
+            .unwrap_or(0)
+            + 1;
+        let id = crate::ids::system_id(index);
+        let sys = editor::state::empty_system(id.clone(), index, format!("System {index}"), coord);
+        sector.systems.push(sys);
+        self.sector_selected = Some(id.clone());
+        self.sector_selected_route = None;
+        self.sector_selected_subsector = None;
+        self.sector_edit_tool = SectorEditTool::Select;
+        self.pending_route_start = None;
+        self.mark_live_sector_dirty(format!("added system {}", id));
+    }
+
+    fn remove_selected_system(&mut self) {
+        let Some(id) = self.sector_selected.clone() else {
+            self.export_status = "select a system first".into();
+            return;
+        };
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "no sector loaded".into();
+            return;
+        };
+        let sector = Arc::make_mut(sector);
+        let world_ids: HashSet<_> = sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| s.worlds.iter().map(|w| w.id.clone()).collect())
+            .unwrap_or_default();
+        let before = sector.systems.len();
+        sector.systems.retain(|s| s.id != id);
+        if sector.systems.len() == before {
+            self.export_status = "selected system not found".into();
+            self.sector_selected = None;
+            return;
+        }
+        sector
+            .routes
+            .retain(|r| r.from_system_id != id && r.to_system_id != id);
+        for faction in &mut sector.factions {
+            faction.system_presence.retain(|x| x != &id);
+            faction.world_presence.retain(|x| !world_ids.contains(x));
+        }
+        self.sector_selected = None;
+        self.sector_selected_route = None;
+        self.sector_selected_subsector = None;
+        self.pending_route_start = None;
+        self.mark_live_sector_dirty(format!("removed system {}", id));
+    }
+
+    fn pick_route_endpoint(&mut self, id: crate::ids::SystemId) {
+        if let Some(from) = self.pending_route_start.clone() {
+            if from == id {
+                self.export_status = "choose a different destination system".into();
+                return;
+            }
+            self.add_route_between(from, id);
+            self.pending_route_start = None;
+            self.sector_edit_tool = SectorEditTool::Select;
+        } else {
+            self.pending_route_start = Some(id.clone());
+            self.sector_selected = Some(id.clone());
+            self.sector_selected_route = None;
+            self.sector_selected_subsector = None;
+            self.export_status = format!("route start {}", id);
+        }
+    }
+
+    fn add_route_between(&mut self, from: crate::ids::SystemId, to: crate::ids::SystemId) {
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "no sector loaded".into();
+            return;
+        };
+        let sector = Arc::make_mut(sector);
+        let route_id = crate::ids::route_id(&from, &to);
+        if sector.routes.iter().any(|r| r.id == route_id) {
+            self.export_status = format!("route {} already exists", route_id);
+            return;
+        }
+        let from_coord = sector
+            .systems
+            .iter()
+            .find(|s| s.id == from)
+            .map(|s| s.coord);
+        let to_coord = sector.systems.iter().find(|s| s.id == to).map(|s| s.coord);
+        let (Some(a), Some(b)) = (from_coord, to_coord) else {
+            self.export_status = "route endpoint missing".into();
+            return;
+        };
+        let mut route = editor::state::empty_route(from, to);
+        route.distance = crate::sector_model::hex_distance(a, b);
+        self.sector_selected = None;
+        self.sector_selected_route = Some(route.id.clone());
+        self.sector_selected_subsector = None;
+        let status = format!("added route {}", route.id);
+        sector.routes.push(route);
+        self.mark_live_sector_dirty(status);
+    }
+
+    fn remove_selected_route(&mut self) {
+        let Some(id) = self.sector_selected_route.clone() else {
+            self.export_status = "select a route first".into();
+            return;
+        };
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "no sector loaded".into();
+            return;
+        };
+        let sector = Arc::make_mut(sector);
+        let before = sector.routes.len();
+        sector.routes.retain(|r| r.id != id);
+        if sector.routes.len() == before {
+            self.export_status = "selected route not found".into();
+            self.sector_selected_route = None;
+            return;
+        }
+        self.sector_selected_route = None;
+        self.mark_live_sector_dirty(format!("removed route {}", id));
+    }
+
+    fn add_planet_to_system(&mut self, system_id: &crate::ids::SystemId) -> Option<usize> {
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "no sector loaded".into();
+            return None;
+        };
+        let sector = Arc::make_mut(sector);
+        let Some(sys) = sector.systems.iter_mut().find(|s| &s.id == system_id) else {
+            self.export_status = "system not found".into();
+            return None;
+        };
+        let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
+        let mut world = editor::state::empty_world(sys.index, next, format!("Planet {next}"));
+        world.world.star_colour = sys.star.colour_name.clone();
+        world.world.star_colour_code = sys.star.colour_code.clone();
+        sys.worlds.push(world);
+        self.mark_live_sector_dirty(format!("added planet {}:{}", system_id, next));
+        Some(next)
+    }
+
+    fn remove_planet_from_system(&mut self, system_id: &crate::ids::SystemId, world_index: usize) {
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "no sector loaded".into();
+            return;
+        };
+        let sector = Arc::make_mut(sector);
+        let Some(sys) = sector.systems.iter_mut().find(|s| &s.id == system_id) else {
+            self.export_status = "system not found".into();
+            return;
+        };
+        let removed_world_id = sys
+            .worlds
+            .iter()
+            .find(|w| w.index == world_index)
+            .map(|w| w.id.clone());
+        let before = sys.worlds.len();
+        sys.worlds.retain(|w| w.index != world_index);
+        if sys.worlds.len() == before {
+            self.export_status = "selected planet not found".into();
+            return;
+        }
+        if let Some(world_id) = removed_world_id {
+            for faction in &mut sector.factions {
+                faction.world_presence.retain(|x| x != &world_id);
+            }
+        }
+        self.view = View::System {
+            system_id: system_id.clone(),
+            selection: SystemSelection::None,
+        };
+        self.mark_live_sector_dirty(format!("removed planet {}:{}", system_id, world_index));
+    }
+
+    fn mark_live_sector_dirty(&mut self, status: String) {
+        self.live_dirty = true;
+        self.dashboard.invalidate();
+        self.heatmap_cache.invalidate();
+        self.sector_overview_cache.invalidate();
+        let source = self
+            .sector_source_path
+            .as_ref()
+            .map(|p| p.to_string_lossy().to_string());
+        if let Some(sector) = self.sector.as_mut() {
+            let sector = Arc::make_mut(sector);
+            Self::refresh_live_manifest_counts(sector);
+            self.subsectors =
+                build_subsectors(sector, SubsectorConfig::default()).unwrap_or_default();
+            if !self.editor.dirty {
+                self.editor.set_sector(sector.clone(), source);
+            }
+        }
+        self.export_status = status;
+    }
+
+    fn refresh_live_manifest_counts(sector: &mut GeneratedSector) {
+        sector.manifest.system_count = sector.systems.len();
+        sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
+        sector.manifest.route_count = sector.routes.len();
+    }
+
+    fn save_sector_to_source(&mut self) {
+        if let Some(path) = self.sector_source_path.clone() {
+            self.write_sector_to_path(path);
+        } else {
+            self.save_sector_as();
+        }
+    }
+
+    fn save_sector_as(&mut self) {
+        let Some(sector) = self.sector.as_ref() else {
+            self.export_status = "no sector to save".into();
+            return;
+        };
+        let mut dialog = FileDialog::new()
+            .add_filter("Sector JSON", &["json"])
+            .set_file_name("sector.json");
+        if let Some(dir) = self
+            .sector_source_path
+            .as_ref()
+            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+            .or_else(|| self.project_dir.as_ref().map(|p| p.join("out")))
+        {
+            dialog = dialog.set_directory(dir);
+        }
+        let Some(path) = dialog.save_file() else {
+            return;
+        };
+        if path.file_name().is_none() {
+            self.export_status = format!("save failed: invalid path for {}", sector.id);
+            return;
+        }
+        self.write_sector_to_path(path);
+    }
+
+    fn write_sector_to_path(&mut self, path: PathBuf) {
+        let text = match self.sector.as_mut() {
+            Some(sector) => {
+                let sector = Arc::make_mut(sector);
+                Self::refresh_live_manifest_counts(sector);
+                serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {e}"))
+            }
+            None => Err("no sector to save".into()),
+        };
+        let text = match text {
+            Ok(text) => text,
+            Err(e) => {
+                self.export_status = format!("save failed: {e}");
+                return;
+            }
+        };
+        if let Some(parent) = path.parent() {
+            if let Err(e) = fs::create_dir_all(parent) {
+                self.export_status = format!("save failed: mkdir {}: {}", parent.display(), e);
+                return;
+            }
+        }
+        match fs::write(&path, text) {
+            Ok(()) => {
+                self.sector_source_path = Some(path.clone());
+                self.live_dirty = false;
+                self.export_status = format!("saved {}", path.display());
+                if let Some(sector) = self.sector.as_ref() {
+                    self.editor.set_sector(
+                        sector.as_ref().clone(),
+                        Some(path.to_string_lossy().to_string()),
+                    );
+                }
+            }
+            Err(e) => {
+                self.export_status = format!("save failed: write {}: {}", path.display(), e);
+            }
+        }
     }
 }
 

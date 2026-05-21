@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
 use crate::regions::RegionConditionKind;
-use crate::sector_model::{self, GeneratedSector};
+use crate::sector_model::{self, GeneratedSector, HexCoord};
 
 use crate::subsectors::Subsector;
 
@@ -31,6 +31,8 @@ pub struct SectorView<'a> {
     /// Per-system heatmap samples. Hexes for systems present in the map are
     /// blended toward the cell's colour scaled by intensity (§9.5 / §10).
     pub heatmap: Option<&'a HashMap<crate::ids::SystemId, HeatCell>>,
+    /// When true, clicks on empty cells are returned to callers for live editing.
+    pub empty_hex_clicks: bool,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
@@ -45,6 +47,7 @@ pub enum SectorClick {
     System(crate::ids::SystemId),
     Route(crate::ids::RouteId),
     Subsector(String),
+    EmptyHex(HexCoord),
 }
 
 impl<'a> SectorView<'a> {
@@ -542,6 +545,15 @@ impl<'a> SectorView<'a> {
                     .min_by(|(_, a), (_, b)| a.total_cmp(b))
                 {
                     click = Some(SectorClick::Route(route.id.clone()));
+                } else if self.empty_hex_clicks {
+                    if let Some(coord) =
+                        hex_pick(pos - origin, &g, self.sector.width, self.sector.height)
+                    {
+                        let occupied = self.sector.systems.iter().any(|s| s.coord == coord);
+                        if !occupied {
+                            click = Some(SectorClick::EmptyHex(coord));
+                        }
+                    }
                 } else if !hex_subsector.is_empty() {
                     // No system under cursor — try empty hex inside a known
                     // subsector. Nearest hex center wins as long as it's within
@@ -609,6 +621,21 @@ fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
     let x = g.margin + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
     let y = g.margin + vert_step * r as f32 + g.hex_size;
     Pos2::new(x, y)
+}
+
+fn hex_pick(local_pos: Vec2, g: &Geom, width: u32, height: u32) -> Option<HexCoord> {
+    let mut best: Option<(HexCoord, f32)> = None;
+    let p = Pos2::new(local_pos.x, local_pos.y);
+    for r in 0..height as i32 {
+        for q in 0..width as i32 {
+            let c = hex_center(q, r, g);
+            let d = (c - p).length();
+            if d <= g.hex_size * 0.95 && best.is_none_or(|(_, bd)| d < bd) {
+                best = Some((HexCoord { q, r }, d));
+            }
+        }
+    }
+    best.map(|(coord, _)| coord)
 }
 
 fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {

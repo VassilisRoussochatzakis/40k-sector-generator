@@ -83,6 +83,7 @@ pub fn export_all(
                     faction_fill: bm.faction_fill,
                     heatmap: bm.heatmap,
                     theme: map_theme.clone(),
+                    route_view_mode: crate::sector_model::RouteViewMode::default(),
                 };
                 crate::bitmap::write_bitmap_with(sector, output_dir, bm.sector_scale, None, opts)?;
                 wrote_image = true;

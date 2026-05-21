@@ -207,7 +207,7 @@ impl GeneratedRoute {
     /// seed/id so same local route ids in different sectors do not all draw
     /// with the same pattern.
     #[must_use]
-    pub fn pattern_with_salt(&self, salt: &str) -> RoutePattern {
+    pub fn pattern_with_salt(&self, salt: &str, mode: RouteViewMode) -> RoutePattern {
         let key = format!(
             "{}\0{}\0{}\0{}\0{}\0{}",
             salt,
@@ -217,12 +217,12 @@ impl GeneratedRoute {
             self.distance,
             self.stability.pattern_key()
         );
-        self.route_type.pattern_for_key(&key)
+        self.route_type.pattern_for_key(&key, mode)
     }
 
     #[must_use]
-    pub fn pattern(&self) -> RoutePattern {
-        self.pattern_with_salt("")
+    pub fn pattern(&self, mode: RouteViewMode) -> RoutePattern {
+        self.pattern_with_salt("", mode)
     }
 }
 
@@ -244,6 +244,41 @@ pub enum RouteType {
     SmugglingLane,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RouteKind {
+    Warp,
+    Webway,
+}
+
+impl RouteKind {
+    pub const ALL: [Self; 2] = [Self::Warp, Self::Webway];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            RouteKind::Warp => "WARP ROUTE",
+            RouteKind::Webway => "WEBWAY THREAD",
+        }
+    }
+
+    #[must_use]
+    pub fn patterns(self) -> &'static [RoutePattern] {
+        match self {
+            RouteKind::Warp => &[RoutePattern::Solid],
+            RouteKind::Webway => &[RoutePattern::Burst],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum RouteViewMode {
+    #[default]
+    Detailed,
+    TopLevel,
+}
+
 impl RouteType {
     pub const ALL: [Self; 6] = [
         Self::StableWarpLane,
@@ -253,6 +288,14 @@ impl RouteType {
         Self::BlackShip,
         Self::SmugglingLane,
     ];
+
+    #[must_use]
+    pub const fn kind(self) -> RouteKind {
+        match self {
+            RouteType::Webway => RouteKind::Webway,
+            _ => RouteKind::Warp,
+        }
+    }
 
     #[must_use]
     pub const fn key(self) -> &'static str {
@@ -305,8 +348,11 @@ impl RouteType {
 
     /// Canonical legend/default pattern for this route type.
     #[must_use]
-    pub fn pattern(self) -> RoutePattern {
-        self.patterns()[0]
+    pub fn pattern(self, mode: RouteViewMode) -> RoutePattern {
+        match mode {
+            RouteViewMode::Detailed => self.patterns()[0],
+            RouteViewMode::TopLevel => self.kind().patterns()[0],
+        }
     }
 
     /// Full pattern family for this route type. Families are disjoint and cover
@@ -348,9 +394,14 @@ impl RouteType {
     }
 
     #[must_use]
-    pub fn pattern_for_key(self, key: &str) -> RoutePattern {
-        let pool = self.patterns();
-        pool[(stable_pattern_hash(self, key) as usize) % pool.len()]
+    pub fn pattern_for_key(self, key: &str, mode: RouteViewMode) -> RoutePattern {
+        match mode {
+            RouteViewMode::Detailed => {
+                let pool = self.patterns();
+                pool[(stable_pattern_hash(self, key) as usize) % pool.len()]
+            }
+            RouteViewMode::TopLevel => self.kind().patterns()[0],
+        }
     }
 
     /// True for the three hidden classes introduced by §3 (NEXT.md). Hidden
@@ -365,6 +416,7 @@ impl RouteType {
         )
     }
 }
+
 
 fn stable_pattern_hash(route_type: RouteType, key: &str) -> u32 {
     fn feed(hash: &mut u32, bytes: &[u8]) {
@@ -881,7 +933,7 @@ mod tests {
     fn route_type_default_patterns_are_unique() {
         let mut defaults = Vec::new();
         for route_type in RouteType::ALL {
-            let pattern = route_type.pattern();
+            let pattern = route_type.pattern(RouteViewMode::Detailed);
             assert!(
                 !defaults.contains(&pattern),
                 "{route_type:?} duplicated default pattern {pattern:?}"
@@ -951,7 +1003,7 @@ mod tests {
             tags: Vec::new(),
             controls: Vec::new(),
         };
-        let pattern = route.pattern_with_salt("sector-a");
+        let pattern = route.pattern_with_salt("sector-a", RouteViewMode::Detailed);
         assert!(route.route_type.patterns().contains(&pattern));
     }
 }

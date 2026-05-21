@@ -62,6 +62,7 @@ pub struct App {
     factions_mode: FactionsMode,
     faction_designer: factions_overview::FactionDesignerState,
     history_selected_event: Option<String>,
+    pub route_view_mode: crate::sector_model::RouteViewMode,
 }
 
 #[derive(Debug, Clone)]
@@ -143,6 +144,7 @@ impl Default for App {
             factions_mode: FactionsMode::View,
             faction_designer: factions_overview::FactionDesignerState::default(),
             history_selected_event: None,
+            route_view_mode: crate::sector_model::RouteViewMode::default(),
         }
     }
 }
@@ -421,6 +423,32 @@ impl eframe::App for App {
                     {
                         self.preset_gallery.open = !self.preset_gallery.open;
                     }
+
+                    ui.separator();
+                    ui.label(RichText::new("ROUTE VIEW:").color(TEXT_DIM).monospace());
+                    if ui
+                        .selectable_label(
+                            self.route_view_mode == crate::sector_model::RouteViewMode::TopLevel,
+                            RichText::new("TOP-LEVEL").monospace(),
+                        )
+                        .on_hover_text("Show only Warp vs Webway hierarchy")
+                        .clicked()
+                    {
+                        self.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
+                        self.editor.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
+                    }
+                    if ui
+                        .selectable_label(
+                            self.route_view_mode == crate::sector_model::RouteViewMode::Detailed,
+                            RichText::new("DETAILED").monospace(),
+                        )
+                        .on_hover_text("Show all specific route types")
+                        .clicked()
+                    {
+                        self.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
+                        self.editor.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
+                    }
+
                     ui.add_enabled_ui(has_sector && !on_edit, |ui| {
                         if ui
                             .button(RichText::new("SAVE").color(TEXT).monospace())
@@ -627,6 +655,7 @@ impl App {
                         &bundle,
                         self.segmentum_active_child.as_deref(),
                         &mut self.segmentum_selected_link,
+                        self.route_view_mode,
                     );
                     if action.is_none() {
                         action = next;
@@ -643,6 +672,7 @@ impl App {
                         &bundle,
                         self.segmentum_active_child.as_deref(),
                         &mut self.segmentum_selected_link,
+                        self.route_view_mode,
                     );
                     if action.is_none() {
                         action = next;
@@ -686,7 +716,7 @@ impl App {
                         {
                             let from = route.from_system_id.clone();
                             let to = route.to_system_id.clone();
-                            info_panel::route_summary(ui, route, &sector);
+                            info_panel::route_summary(ui, route, &sector, self.route_view_mode);
                             ui.add_space(10.0);
                             ui.horizontal(|ui| {
                                 if ui.button(RichText::new("OPEN FROM").monospace()).clicked() {
@@ -741,6 +771,7 @@ impl App {
                         ui,
                         &sector,
                         overview_buckets.as_slice(),
+                        self.route_view_mode,
                     );
                 });
             });
@@ -903,6 +934,7 @@ impl App {
             });
 
         editor::draw_dialog(ctx, &mut self.editor);
+        self.route_view_mode = self.editor.route_view_mode;
     }
 
     fn draw_preset_gallery(&mut self, ctx: &egui::Context) {
@@ -1197,6 +1229,7 @@ impl App {
                         selected_subsector: self.sector_selected_subsector.as_deref(),
                         heatmap: None,
                         empty_hex_clicks: false,
+                        route_view_mode: self.route_view_mode,
                     }
                     .show(ui);
                     match click {
@@ -1791,6 +1824,7 @@ impl App {
                         selected_subsector: None,
                         heatmap: None,
                         empty_hex_clicks: false,
+                        route_view_mode: self.route_view_mode,
                     }
                     .show(ui);
                     match click {
@@ -2178,6 +2212,7 @@ impl App {
                 heatmap: heatmap.as_deref(),
                 empty_hex_clicks: self.map_edit_mode
                     && self.sector_edit_tool == SectorEditTool::AddSystem,
+                route_view_mode: self.route_view_mode,
             }
             .show(ui);
             match click {

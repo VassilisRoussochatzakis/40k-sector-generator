@@ -116,17 +116,18 @@ pub fn show_overview(
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
     selected_link: &mut Option<String>,
+    mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
     header(ui, bundle);
     ui.add_space(10.0);
-    action = action.or_else(|| super_map(ui, bundle, active_child_id, selected_link));
+    action = action.or_else(|| super_map(ui, bundle, active_child_id, selected_link, mode));
     ui.add_space(12.0);
     action = action.or_else(|| super_grid(ui, bundle, active_child_id));
     ui.add_space(12.0);
     action = action.or_else(|| child_table(ui, bundle, active_child_id));
     ui.add_space(12.0);
-    action = action.or_else(|| link_table(ui, bundle, selected_link));
+    action = action.or_else(|| link_table(ui, bundle, selected_link, mode));
     action
 }
 
@@ -135,6 +136,7 @@ pub fn show_side_panel(
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
     selected_link: &mut Option<String>,
+    mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
     ui.label(RichText::new("SEGMENTUM").color(TEXT).monospace().strong());
@@ -148,7 +150,7 @@ pub fn show_side_panel(
     if let Some(link_id) = selected_link.as_deref() {
         if let Some(link) = bundle.link(link_id) {
             ui.separator();
-            action = action.or_else(|| link_detail(ui, bundle, link));
+            action = action.or_else(|| link_detail(ui, bundle, link, mode));
             ui.add_space(8.0);
             if ui.button(RichText::new("CLEAR LINK").monospace()).clicked() {
                 *selected_link = None;
@@ -234,6 +236,7 @@ fn super_map(
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
     selected_link: &mut Option<String>,
+    mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     ui.label(RichText::new("SUPER-MAP").color(TEXT).monospace().strong());
     ui.add_space(4.0);
@@ -316,7 +319,7 @@ fn super_map(
                         b,
                         1.0,
                         stability_color(route.stability).linear_multiply(0.55),
-                        route.route_type.pattern(),
+                        route.route_type.pattern(mode),
                     );
                 }
             }
@@ -348,10 +351,13 @@ fn super_map(
             b,
             if selected { 3.2 } else { 1.8 },
             color,
-            link.route_type.pattern_for_key(&format!(
-                "{}:{}:{}",
-                bundle.segmentum.stitch_seed, link.id, link.distance_units
-            )),
+            link.route_type.pattern_for_key(
+                &format!(
+                    "{}:{}:{}",
+                    bundle.segmentum.stitch_seed, link.id, link.distance_units
+                ),
+                mode,
+            ),
         );
         let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
         painter.text(
@@ -530,6 +536,7 @@ fn link_table(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     selected_link: &mut Option<String>,
+    mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
     ui.label(
@@ -560,7 +567,11 @@ fn link_table(
                 endpoint_label(ui, bundle, &l.to_child_id, &l.to_system_id);
                 ui.label(RichText::new(orientation_label(l.orientation)).monospace());
                 ui.label(RichText::new(l.distance_units.to_string()).monospace());
-                ui.label(RichText::new(format!("{:?}", l.route_type)).monospace());
+                let type_label = match mode {
+                    crate::sector_model::RouteViewMode::Detailed => l.route_type.label(),
+                    crate::sector_model::RouteViewMode::TopLevel => l.route_type.kind().label(),
+                };
+                ui.label(RichText::new(type_label).monospace());
                 ui.label(
                     RichText::new(format!("{:?}", l.stability))
                         .color(stability_color(l.stability))
@@ -593,6 +604,7 @@ fn link_detail(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     link: &InterSectorLink,
+    mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
     ui.label(
@@ -603,8 +615,15 @@ fn link_detail(
     );
     kv(ui, "edge", orientation_label(link.orientation));
     kv(ui, "units", &link.distance_units.to_string());
-    kv(ui, "type", &format!("{:?}", link.route_type));
-    kv(ui, "stability", &format!("{:?}", link.stability));
+    match mode {
+        crate::sector_model::RouteViewMode::Detailed => {
+            kv(ui, "type", link.route_type.label());
+        }
+        crate::sector_model::RouteViewMode::TopLevel => {
+            kv(ui, "type", link.route_type.kind().label());
+        }
+    }
+    kv(ui, "stability", &format!("{:?}", link.stability).to_uppercase());
     ui.add_space(6.0);
 
     let from_name = bundle.system_name(&link.from_child_id, &link.from_system_id);

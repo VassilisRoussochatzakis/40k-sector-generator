@@ -33,6 +33,7 @@ pub struct RenderOptions {
     pub heatmap: HeatmapMode,
     /// §13 NEW2.md: presentation-only map theme.
     pub theme: MapTheme,
+    pub route_view_mode: crate::sector_model::RouteViewMode,
 }
 
 impl Default for RenderOptions {
@@ -41,6 +42,7 @@ impl Default for RenderOptions {
             faction_fill: true,
             heatmap: HeatmapMode::Off,
             theme: MapTheme::gm_dark(),
+            route_view_mode: crate::sector_model::RouteViewMode::default(),
         }
     }
 }
@@ -206,7 +208,7 @@ fn render(
     if draw_subsectors {
         draw_subsector_borders(&mut img, sector, subs, &g, &opts.theme);
     }
-    draw_routes(&mut img, sector, &g, &opts.theme);
+    draw_routes(&mut img, sector, &g, &opts);
     draw_region_labels(&mut img, sector, &g, &opts.theme);
     draw_systems(&mut img, sector, subs, &g, &opts);
     if draw_subsectors && !matches!(opts.theme.label_density, LabelDensity::None) {
@@ -318,7 +320,7 @@ fn compute_region_tints(
     out
 }
 
-fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, theme: &MapTheme) {
+fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) {
     let mut centers: HashMap<&str, (i32, i32)> = HashMap::new();
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
@@ -335,8 +337,8 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, theme: &
         let Some(((sx, sy), (ex, ey))) = shorten_to_star(a, b, star_r) else {
             continue;
         };
-        let color = stability_color(theme, route.stability);
-        let thickness = route_thickness(theme, route.stability, g);
+        let color = stability_color(&opts.theme, route.stability);
+        let thickness = route_thickness(&opts.theme, route.stability, g);
         draw_route_line_thick(
             img,
             sx,
@@ -345,9 +347,9 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, theme: &
             ey,
             color,
             thickness,
-            route.pattern_with_salt(&sector.seed),
+            route.pattern_with_salt(&sector.seed, opts.route_view_mode),
         );
-        draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness, theme);
+        draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness, &opts.theme);
     }
 }
 
@@ -1620,26 +1622,39 @@ fn draw_legend(
 
     draw_text(img, x0, y, "ROUTE TYPE", opts.theme.text, body);
     y += line_h;
-    for rtype in RouteType::ALL {
-        draw_route_line_thick(
-            img,
-            x0,
-            y + 8 * g.scale,
-            x0 + 30 * g.scale,
-            y + 8 * g.scale,
-            opts.theme.route_type,
-            3 * g.scale,
-            rtype.pattern(),
-        );
-        draw_text(
-            img,
-            x0 + 38 * g.scale,
-            y,
-            rtype.label(),
-            opts.theme.text,
-            body,
-        );
-        y += line_h;
+    match opts.route_view_mode {
+        crate::sector_model::RouteViewMode::Detailed => {
+            for rtype in RouteType::ALL {
+                draw_route_line_thick(
+                    img,
+                    x0,
+                    y + 8 * g.scale,
+                    x0 + 30 * g.scale,
+                    y + 8 * g.scale,
+                    opts.theme.route_type,
+                    3 * g.scale,
+                    rtype.pattern(opts.route_view_mode),
+                );
+                draw_text(img, x0 + 38 * g.scale, y, rtype.label(), opts.theme.text, body);
+                y += line_h;
+            }
+        }
+        crate::sector_model::RouteViewMode::TopLevel => {
+            for kind in crate::sector_model::RouteKind::ALL {
+                draw_route_line_thick(
+                    img,
+                    x0,
+                    y + 8 * g.scale,
+                    x0 + 30 * g.scale,
+                    y + 8 * g.scale,
+                    opts.theme.route_type,
+                    3 * g.scale,
+                    kind.patterns()[0],
+                );
+                draw_text(img, x0 + 38 * g.scale, y, kind.label(), opts.theme.text, body);
+                y += line_h;
+            }
+        }
     }
     y += 4 * g.scale;
 

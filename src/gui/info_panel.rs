@@ -71,15 +71,20 @@ impl SectorOverviewCache {
     }
 }
 
-pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
+pub fn sector_overview(
+    ui: &mut Ui,
+    sector: &GeneratedSector,
+    mode: crate::sector_model::RouteViewMode,
+) {
     let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
-    sector_overview_with_buckets(ui, sector, &buckets);
+    sector_overview_with_buckets(ui, sector, &buckets, mode);
 }
 
 pub fn sector_overview_with_buckets(
     ui: &mut Ui,
     sector: &GeneratedSector,
     buckets: &[DisplayBucket],
+    mode: crate::sector_model::RouteViewMode,
 ) {
     title(ui, &format!("SECTOR: {}", sector.id.to_uppercase()));
     dim(ui, &format!("SEED: {}", short(&sector.seed, 20)));
@@ -102,8 +107,17 @@ pub fn sector_overview_with_buckets(
     ui.add_space(8.0);
 
     section(ui, "ROUTE TYPE");
-    for rtype in crate::sector_model::RouteType::ALL {
-        legend_route_row(ui, TEXT, rtype.pattern(), rtype.label());
+    match mode {
+        crate::sector_model::RouteViewMode::Detailed => {
+            for rtype in crate::sector_model::RouteType::ALL {
+                legend_route_row(ui, TEXT, rtype.pattern(mode), rtype.label());
+            }
+        }
+        crate::sector_model::RouteViewMode::TopLevel => {
+            for kind in crate::sector_model::RouteKind::ALL {
+                legend_route_row(ui, TEXT, kind.patterns()[0], kind.label());
+            }
+        }
     }
     legend_route_row(ui, PATH_HIGHLIGHT, RoutePattern::Solid, "PLANNED PATH");
     ui.add_space(8.0);
@@ -300,7 +314,12 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
     }
 }
 
-pub fn route_summary(ui: &mut Ui, route: &GeneratedRoute, sector: &GeneratedSector) {
+pub fn route_summary(
+    ui: &mut Ui,
+    route: &GeneratedRoute,
+    sector: &GeneratedSector,
+    mode: crate::sector_model::RouteViewMode,
+) {
     title(ui, "ROUTE");
     kv(ui, "ID", route.id.as_str());
     kv(
@@ -309,7 +328,14 @@ pub fn route_summary(ui: &mut Ui, route: &GeneratedRoute, sector: &GeneratedSect
         &route_endpoint_label(sector, &route.from_system_id),
     );
     kv(ui, "TO", &route_endpoint_label(sector, &route.to_system_id));
-    kv(ui, "TYPE", route.route_type.label());
+    match mode {
+        crate::sector_model::RouteViewMode::Detailed => {
+            kv(ui, "TYPE", route.route_type.label());
+        }
+        crate::sector_model::RouteViewMode::TopLevel => {
+            kv(ui, "TYPE", route.route_type.kind().label());
+        }
+    }
     kv(
         ui,
         "STABILITY",
@@ -320,8 +346,11 @@ pub fn route_summary(ui: &mut Ui, route: &GeneratedRoute, sector: &GeneratedSect
     legend_route_row(
         ui,
         stability_color(route.stability),
-        route.route_type.pattern(),
-        route.route_type.label(),
+        route.route_type.pattern(mode),
+        match mode {
+            crate::sector_model::RouteViewMode::Detailed => route.route_type.label(),
+            crate::sector_model::RouteViewMode::TopLevel => route.route_type.kind().label(),
+        },
     );
 
     if !route.tags.is_empty() {

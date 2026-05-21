@@ -115,6 +115,7 @@ impl App {
                     faction_fill: true,
                     heatmap: self.heatmap_mode,
                     theme: self.export_theme(),
+                    route_view_mode: self.route_view_mode,
                 };
                 match crate::bitmap::write_sector_png_to_with(&sector, &p, scale, subs, opts) {
                     Ok(()) => self.export_status = format!("exported {}", p),

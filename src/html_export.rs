@@ -115,6 +115,7 @@ pub fn render_html(
     <label>Heatmap <select id=\"heat\"></select></label>\n\
     <label><input type=\"checkbox\" id=\"factionFill\" checked>Faction fill</label>\n\
     <label><input type=\"checkbox\" id=\"showRoutes\" checked>Routes</label>\n\
+    <label><input type=\"checkbox\" id=\"routeTopLevel\">Top-level only</label>\n\
     <label><input type=\"checkbox\" id=\"showLabels\" checked>Labels</label>\n\
     <span id=\"filter\"></span>\n\
   </footer>\n\

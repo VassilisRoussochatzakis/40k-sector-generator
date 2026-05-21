@@ -10,6 +10,7 @@ const panel = document.getElementById("panel");
 const heatSel = document.getElementById("heat");
 const factionFillBox = document.getElementById("factionFill");
 const showRoutesBox = document.getElementById("showRoutes");
+const routeTopLevelBox = document.getElementById("routeTopLevel");
 const showLabelsBox = document.getElementById("showLabels");
 const filterDiv = document.getElementById("filter");
 
@@ -32,6 +33,7 @@ const state = {
   heat: "off",
   factionFill: true,
   showRoutes: true,
+  routeTopLevel: false,
   showLabels: true,
   hiddenFactions: new Set(),
 };
@@ -286,6 +288,10 @@ const ROUTE_PATTERN_STRIDES = {
 const ROUTE_TEXT_ENCODER = new TextEncoder();
 
 function patternForRoute(route){
+  if (state.routeTopLevel){
+    const rtk = routeTypeKey(route.route_type);
+    return rtk === "webway" ? "Burst" : "Solid";
+  }
   const routeType = routeTypeKey(route.route_type);
   const pool = ROUTE_PATTERN_POOLS[routeType] || ROUTE_PATTERN_POOLS.charted_passage;
   const salt = SECTOR.seed || SECTOR.id || "";
@@ -770,6 +776,7 @@ canvas.addEventListener("wheel", e => {
 heatSel.addEventListener("change", () => { state.heat = heatSel.value; draw(); });
 factionFillBox.addEventListener("change", () => { state.factionFill = factionFillBox.checked; draw(); });
 showRoutesBox.addEventListener("change", () => { state.showRoutes = showRoutesBox.checked; draw(); });
+routeTopLevelBox.addEventListener("change", () => { state.routeTopLevel = routeTopLevelBox.checked; updatePanel(); draw(); });
 showLabelsBox.addEventListener("change", () => { state.showLabels = showLabelsBox.checked; draw(); });
 window.addEventListener("resize", resize);
 

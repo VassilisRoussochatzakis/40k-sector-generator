@@ -99,6 +99,7 @@ pub struct EditorState {
     pub faction_filter_disposition: Option<String>,
     pub faction_sort: FactionSort,
     pub faction_pinned: BTreeSet<FactionId>,
+    pub route_view_mode: crate::sector_model::RouteViewMode,
 }
 
 impl Default for EditorState {
@@ -117,6 +118,7 @@ impl Default for EditorState {
             faction_filter_disposition: None,
             faction_sort: FactionSort::default(),
             faction_pinned: BTreeSet::new(),
+            route_view_mode: crate::sector_model::RouteViewMode::default(),
         }
     }
 }

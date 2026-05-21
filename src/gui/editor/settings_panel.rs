@@ -50,6 +50,30 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     });
 
     ui.add_space(8.0);
+    section(ui, "VIEW");
+    ui.horizontal(|ui| {
+        label(ui, "ROUTE VIEW");
+        if ui
+            .selectable_label(
+                state.route_view_mode == crate::sector_model::RouteViewMode::TopLevel,
+                "TOP-LEVEL",
+            )
+            .clicked()
+        {
+            state.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
+        }
+        if ui
+            .selectable_label(
+                state.route_view_mode == crate::sector_model::RouteViewMode::Detailed,
+                "DETAILED",
+            )
+            .clicked()
+        {
+            state.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
+        }
+    });
+
+    ui.add_space(8.0);
     section(ui, "STATS (auto-updated on save)");
     dim(ui, &format!("systems: {}", sector.systems.len()));
     dim(

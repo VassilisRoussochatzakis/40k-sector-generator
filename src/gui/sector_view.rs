@@ -33,6 +33,7 @@ pub struct SectorView<'a> {
     pub heatmap: Option<&'a HashMap<crate::ids::SystemId, HeatCell>>,
     /// When true, clicks on empty cells are returned to callers for live editing.
     pub empty_hex_clicks: bool,
+    pub route_view_mode: crate::sector_model::RouteViewMode,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
@@ -188,7 +189,7 @@ impl<'a> SectorView<'a> {
                 b2,
                 route_thickness,
                 stability_color(route.stability),
-                route.route_type.pattern(),
+                route.route_type.pattern(self.route_view_mode),
             );
         }
 
@@ -246,7 +247,7 @@ impl<'a> SectorView<'a> {
                     b2,
                     route_thickness * 1.9,
                     SELECTION,
-                    route.route_type.pattern(),
+                    route.route_type.pattern(self.route_view_mode),
                 );
             }
         }

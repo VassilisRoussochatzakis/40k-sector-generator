@@ -1,0 +1,144 @@
+star_colour,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_feature,counter,weight
+G,Agri-World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Ecclesiarchical Appointee,Verdant Ecology,Agri-World,2
+A,Agri-World,Breathable,Temperate,Thriving,Lightly Populated,Low,Traditionalist Aristocracy,Prosperous,Agri-World,2
+F,Agri-World,Breathable,Hot,Thriving,Sole Settlement,Standard,Corrupt Aristocrats,Sole Suppliers,Agri-World,1
+K,Agri-World,Breathable,Cold,Thriving,Lightly Populated,Low,Clans / Tribes,Nomadic Cities,Agri-World,1
+G,Agri-World,Breathable,Temperate,Thriving,Densely Populated,Standard,Megacorporations,Trade Hub,Agri-World,1
+K,Asteroid,Airless,Freezing,Nonexistent,Minimal,Standard,Guilds / Combines,Heavy Mining,Asteroid,8
+M,Asteroid,Airless,Freezing,Nonexistent,Uninhabited,Low,None,Gold Rush,Asteroid,5
+F,Asteroid,Exotic,Cold,Nonexistent,Minimal,High,Rogue Trader Dynasty,Freeport,Asteroid,4
+B,Asteroid,Airless,Freezing,Nonexistent,Sole Settlement,Standard,Megacorporations,Heavy Industry,Asteroid,6
+A,Bastion World,Thin,Temperate,Minimal,Densely Populated,High,Military Governor,Vast Fortresses,Bastion World,8
+F,Bastion World,Tainted,Hot,Poisoned,Sole Settlement,High,Loyalist Mass Movement,Naval Outpost,Bastion World,6
+G,Bastion World,Breathable,Temperate,Minimal,Lightly Populated,High,Local Religious Authorities,Sealed Menace,Bastion World,5
+K,Bastion World,Thin,Cold,Minimal,Sole Settlement,Standard,Magistrate Council,Sealed Menace,Bastion World,4
+A,Death World,Tainted,Hot,Xeno Hybrid,Minimal,Low,None,Hostile Biosphere,Death World,7
+G,Death World,Toxic,Hot,Poisoned,Uninhabited,Primitive,None,Extreme Environment,Death World,8
+F,Death World,Corrosive,Boiling,Xeno Dominance,Minimal,Low,Warlords,Hostile Xenos,Death World,6
+M,Death World,Toxic,Freezing,Poisoned,Minimal,Primitive,Clans / Tribes,Dangerous Wildlife,Death World,5
+B,Death World,Exotic,Hot,Xeno Hybrid,Uninhabited,Primitive,None,Jungle World,Death World,4
+M,Dead World,Airless,Freezing,Nonexistent,Uninhabited,Primitive,None,Ancient Tombs,Dead World,9
+K,Dead World,Toxic,Boiling,Nonexistent,Uninhabited,Archaeotech,None,Archaeotech Ruins,Dead World,4
+F,Dead World,Airless,Cold,Nonexistent,Uninhabited,Low,None,Frozen World,Dead World,6
+M,Dead World,Tainted,Freezing,Nonexistent,Uninhabited,Primitive,None,Xeno Ruins,Dead World,5
+G,Extractive Colony,Toxic,Hot,Nonexistent,Sole Settlement,Standard,Megacorporations,Heavy Mining,Extractive Colony,10
+K,Extractive Colony,Tainted,Cold,Poisoned,Minimal,Standard,Guilds / Combines,Gold Rush,Extractive Colony,8
+M,Extractive Colony,Corrosive,Hot,Nonexistent,Sole Settlement,Low,Corrupt Aristocrats,Heavy Industry,Extractive Colony,5
+F,Extractive Colony,Airless,Cold,Nonexistent,Minimal,Standard,Rogue Trader Dynasty,Powerful Criminals,Extractive Colony,4
+M,Feral World,Breathable,Hot,Thriving,Sole Settlement,Primitive,Clans / Tribes,Abhumans,Feral World,9
+K,Feral World,Breathable,Temperate,Thriving,Lightly Populated,Primitive,Warrior Aristocracy,Strange Customs,Feral World,7
+G,Feral World,Breathable,Cold,Thriving,Sole Settlement,Primitive,Clans / Tribes,Primitive Xenos,Feral World,6
+A,Feral World,Tainted,Hot,Xeno Hybrid,Minimal,Primitive,Warlords,Mutant Hordes,Feral World,4
+F,Feudal World,Breathable,Temperate,Thriving,Lightly Populated,Low,Warrior Aristocracy,Imperial Knights,Feudal World,10
+G,Feudal World,Breathable,Temperate,Thriving,Densely Populated,Low,Traditionalist Aristocracy,Powerful Nobles,Feudal World,8
+K,Feudal World,Breathable,Cold,Thriving,Lightly Populated,Low,Balkanized Local Factions,Civil War,Feudal World,6
+A,Feudal World,Thin,Cold,Minimal,Sole Settlement,Low,Demagogue,Strange Customs,Feudal World,4
+B,Forge World,Tainted,Hot,Poisoned,Densely Populated,High,Mechanicus Forge-Lord,Major Spaceyard,Forge World,9
+F,Forge World,Toxic,Hot,Poisoned,Densely Populated,High,Mechanicus Forge-Lord,Heavy Industry,Forge World,7
+K,Forge World,Tainted,Cold,Poisoned,Densely Populated,High,Mechanicus Forge-Lord,Archaeotech Ruins,Forge World,5
+A,Forge World,Toxic,Hot,Poisoned,Extremely Dense,High,Mechanicus Forge-Lord,Local Tech,Forge World,4
+G,Frontier World,Breathable,Temperate,Thriving,Minimal,Standard,Rogue Trader Dynasty,Recently Rediscovered,Frontier World,11
+F,Frontier World,Breathable,Cold,Minimal,Sole Settlement,Standard,Communards,Freeport,Frontier World,9
+A,Frontier World,Thin,Hot,Minimal,Lightly Populated,Standard,Explorator Authority,Notable Local,Frontier World,7
+K,Frontier World,Breathable,Cold,Thriving,Minimal,Low,Demagogue,Out of Contact,Frontier World,8
+M,Frontier World,Tainted,Temperate,Minimal,Sole Settlement,Low,Warlords,Unmapped Wastes,Frontier World,5
+G,Hive World,Tainted,Temperate,Poisoned,Extremely Dense,Standard,Elitist Tyrant,Crumbling Arcologies,Hive World,10
+A,Hive World,Tainted,Hot,Poisoned,Extremely Dense,Standard,Megacorporations,Powerful Criminals,Hive World,8
+K,Hive World,Toxic,Hot,Poisoned,Extremely Dense,Standard,Magistrate Council,Mutant Hordes,Hive World,7
+F,Hive World,Tainted,Cold,Poisoned,Extremely Dense,Standard,Military Governor,Police State,Hive World,6
+B,Hive World,Tainted,Temperate,Poisoned,Densely Populated,High,Megacorporations,Trade Hub,Hive World,5
+G,Industrial World,Tainted,Temperate,Poisoned,Densely Populated,Standard,Megacorporations,Heavy Industry,Industrial World,9
+K,Industrial World,Tainted,Cold,Poisoned,Densely Populated,Standard,Guilds / Combines,Sole Suppliers,Industrial World,7
+F,Industrial World,Toxic,Hot,Poisoned,Densely Populated,Standard,Corrupt Aristocrats,Heavy Mining,Industrial World,6
+A,Industrial World,Tainted,Temperate,Poisoned,Densely Populated,Standard,Traditionalist Aristocracy,Major Spaceyard,Industrial World,5
+A,Orbital,Airless,Cold,Nonexistent,Sole Settlement,High,Mechanicus Forge-Lord,Major Spaceyard,Orbital,8
+G,Orbital,Airless,Temperate,Nonexistent,Lightly Populated,Standard,Rogue Trader Dynasty,Trade Hub,Orbital,7
+B,Orbital,Exotic,Cold,Nonexistent,Minimal,High,Magistrate Council,Naval Outpost,Orbital,5
+F,Orbital,Airless,Cold,Nonexistent,Sole Settlement,Standard,Megacorporations,Freeport,Orbital,4
+M,Penal World,Tainted,Hot,Poisoned,Densely Populated,Low,Infractionist Gang,Police State,Penal World,8
+K,Penal World,Toxic,Freezing,Minimal,Densely Populated,Low,Military Governor,Quarantined,Penal World,6
+F,Penal World,Corrosive,Hot,Poisoned,Sole Settlement,Standard,Magistrate Council,Mass Panic,Penal World,5
+G,Penal World,Breathable,Cold,Minimal,Densely Populated,Low,Loyalist Mass Movement,Witch Hunt,Penal World,4
+M,Planetary Dump,Toxic,Hot,Poisoned,Minimal,Low,Megacorporations,Radioactive,Planetary Dump,5
+K,Planetary Dump,Tainted,Cold,Poisoned,Minimal,Low,Corrupt Aristocrats,Foreign Control,Planetary Dump,4
+F,Planetary Dump,Toxic,Boiling,Poisoned,Uninhabited,Primitive,None,Forbidden Tech,Planetary Dump,3
+A,Planetary Monument,Thin,Cold,Minimal,Minimal,Archaeotech,Local Religious Authorities,Important Shrine,Planetary Monument,6
+G,Planetary Monument,Breathable,Temperate,Minimal,Sole Settlement,Standard,Ecclesiarchical Appointee,Great Work,Planetary Monument,4
+B,Planetary Monument,Exotic,Cold,Nonexistent,Uninhabited,Archaeotech,None,Ancient Archive,Planetary Monument,3
+A,Pleasure World,Breathable,Temperate,Thriving,Lightly Populated,High,Corrupt Aristocrats,Libertines,Pleasure World,7
+G,Pleasure World,Breathable,Temperate,Thriving,Sole Settlement,High,Corrupt Aristocrats,Flying Cities,Pleasure World,5
+F,Pleasure World,Breathable,Hot,Thriving,Lightly Populated,High,Megacorporations,Seagoing Cities,Pleasure World,4
+A,Research Station,Exotic,Freezing,Minimal,Minimal,High,Mechanicus Forge-Lord,Test Site,Research Station,7
+B,Research Station,Airless,Freezing,Nonexistent,Minimal,Archaeotech,Explorator Authority,Ancient Archive,Research Station,5
+F,Research Station,Thin,Cold,Minimal,Minimal,High,Magistrate Council,Psyker Academy,Research Station,4
+K,Research Station,Exotic,Cold,Xeno Hybrid,Minimal,High,Shadowy Psyker Cabal,Secret Masters,Research Station,3
+G,Shrine World,Breathable,Temperate,Minimal,Sole Settlement,Standard,Ecclesiarchical Appointee,Pilgrimage Site,Shrine World,10
+A,Shrine World,Breathable,Cold,Minimal,Lightly Populated,Standard,Local Religious Authorities,Important Shrine,Shrine World,8
+F,Shrine World,Thin,Hot,Minimal,Sole Settlement,Standard,Ecclesiarchical Appointee,Sororitas Convent,Shrine World,6
+K,Shrine World,Breathable,Cold,Minimal,Lightly Populated,Standard,Heretical Imperial Cult,Schola Progenium,Shrine World,4
+M,Tomb World,Airless,Freezing,Nonexistent,Uninhabited,Xeno Hybrid,Xenos Overlords,Xeno Ruins,Tomb World,6
+K,Tomb World,Tainted,Cold,Xeno Dominance,Uninhabited,Xeno Hybrid,Xenos Overlords,Sealed Menace,Tomb World,5
+B,Tomb World,Exotic,Freezing,Nonexistent,Minimal,Archaeotech,None,Ancient Tombs,Tomb World,4
+M,Tomb World,Toxic,Freezing,Xeno Dominance,Uninhabited,Xeno Hybrid,None,Silica Animus,Tomb World,3
+F,Warp-Lost World,Exotic,Cold,Minimal,Sole Settlement,Low,Chaos Cult,Warp Phenomena,Warp-Lost World,5
+M,Warp-Lost World,Tainted,Temperate,Poisoned,Minimal,Low,Hereteks,Daemonic Corruption,Warp-Lost World,4
+B,Warp-Lost World,Exotic,Hot,Poisoned,Minimal,Standard,Shadowy Psyker Cabal,Psyker Cult,Warp-Lost World,3
+F,Worldship,Exotic,Temperate,Minimal,Sole Settlement,High,Traditional Oligarchy,Nomadic Cities,Worldship,4
+A,Worldship,Exotic,Cold,Minimal,Lightly Populated,High,Rogue Trader Dynasty,Friendly Xenos,Worldship,3
+G,Worldship,Exotic,Temperate,Xeno Hybrid,Sole Settlement,High,Xenos Overlords,Xenophiles,Worldship,3
+K,Xenos World,Tainted,Hot,Xeno Dominance,Minimal,Xeno Hybrid,Xenos Overlords,Hostile Xenos,Xenos World,6
+M,Xenos World,Exotic,Cold,Xeno Dominance,Minimal,Xeno Hybrid,Xenos Overlords,Xenos Infiltrators,Xenos World,5
+F,Xenos World,Breathable,Temperate,Xeno Hybrid,Lightly Populated,Low,Xenos Overlords,Friendly Xenos,Xenos World,4
+B,Xenos World,Corrosive,Hot,Xeno Dominance,Sole Settlement,High,Xenos Overlords,Forbidden Tech,Xenos World,3
+O,Hive World,Tainted,Hot,Poisoned,Extremely Dense,High,Megacorporations,Subsector Hegemon,Hive World,3
+O,Forge World,Toxic,Hot,Poisoned,Densely Populated,Archaeotech,Mechanicus Forge-Lord,Forbidden Tech,Forge World,2
+O,Bastion World,Thin,Temperate,Minimal,Densely Populated,High,Military Governor,Naval Blockade,Bastion World,2
+A,Frontier World,Breathable,Temperate,Thriving,Minimal,Standard,Populist Tyrant,Pocket Empire,Frontier World,5
+G,Hive World,Tainted,Temperate,Poisoned,Extremely Dense,Standard,Heretical Imperial Cult,Chaos Cultists,Hive World,4
+K,Forge World,Tainted,Hot,Poisoned,Densely Populated,High,Hereteks,Hereteks,Forge World,3
+F,Industrial World,Tainted,Cold,Poisoned,Densely Populated,Standard,Revolutionary Junta,Popular Uprising,Industrial World,4
+G,Agri-World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Puppet Government,Foreign Control,Agri-World,1
+A,Death World,Tainted,Hot,Xeno Hybrid,Minimal,Standard,None,Eugenic Cult,Death World,3
+M,Penal World,Toxic,Hot,Poisoned,Densely Populated,Low,None,Zombies,Penal World,3
+F,Frontier World,Breathable,Cold,Thriving,Minimal,Standard,None,Missionaries,Frontier World,4
+B,Bastion World,Thin,Temperate,Minimal,Sole Settlement,High,Loyalist Mass Movement,Inquisition Outpost,Bastion World,4
+K,Tomb World,Airless,Freezing,Nonexistent,Uninhabited,Archaeotech,None,Failed Paradise,Tomb World,3
+G,Feudal World,Breathable,Temperate,Thriving,Lightly Populated,Low,Warrior Aristocracy,Holy War,Feudal World,4
+A,Shrine World,Breathable,Temperate,Minimal,Sole Settlement,Standard,Ecclesiarchical Appointee,Martial Law,Shrine World,3
+G,Industrial World,Tainted,Temperate,Poisoned,Densely Populated,Standard,Traditional Oligarchy,Seismic Instability,Industrial World,3
+M,Asteroid,Airless,Freezing,Nonexistent,Minimal,Low,Infractionist Gang,Space Hulks,Asteroid,3
+K,Frontier World,Thin,Cold,Minimal,Sole Settlement,Standard,Rogue Trader Dynasty,Navigator House,Frontier World,3
+F,Pleasure World,Breathable,Temperate,Thriving,Lightly Populated,High,Demagogue,Deviant Religion,Pleasure World,3
+G,Agri-World,Breathable,Temperate,Thriving,Densely Populated,Standard,Balkanized Local Factions,Factional Fragmentation,Agri-World,1
+A,Hive World,Tainted,Hot,Poisoned,Extremely Dense,High,Elitist Tyrant,Strange Hatred,Hive World,3
+F,Death World,Exotic,Hot,Xeno Hybrid,Minimal,Standard,None,Freak Geology,Death World,3
+K,Feral World,Breathable,Cold,Thriving,Sole Settlement,Primitive,Clans / Tribes,Freak Weather,Feral World,4
+M,Dead World,Tainted,Freezing,Nonexistent,Uninhabited,Primitive,None,Impending Doom,Dead World,3
+B,Research Station,Exotic,Freezing,Nonexistent,Minimal,Archaeotech,Explorator Authority,Ocean World,Research Station,2
+G,Frontier World,Breathable,Cold,Minimal,Minimal,Low,None,Minimal Contact,Frontier World,4
+A,Bastion World,Tainted,Hot,Poisoned,Densely Populated,High,Military Governor,War Zone,Bastion World,3
+F,Forge World,Toxic,Hot,Poisoned,Densely Populated,High,Mechanicus Forge-Lord,Tech-Priest Cult,Forge World,3
+G,Shrine World,Breathable,Temperate,Minimal,Lightly Populated,Standard,Local Religious Authorities,Sectarians,Shrine World,3
+K,Frontier World,Breathable,Temperate,Thriving,Minimal,Standard,Rogue Trader Dynasty,The Silent Trade,Frontier World,4
+M,Xenos World,Tainted,Hot,Xeno Dominance,Minimal,Xeno Hybrid,Xenos Overlords,Xenophobes,Xenos World,4
+F,Industrial World,Tainted,Temperate,Poisoned,Densely Populated,Standard,Revolutionary Junta,Separatists,Industrial World,3
+G,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Ecclesiarchical Appointee,Pilgrimage Site,Imperial World,18
+A,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Military Governor,Subsector Hegemon,Imperial World,16
+F,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Traditionalist Aristocracy,Powerful Nobles,Imperial World,15
+K,Imperial World,Breathable,Cold,Thriving,Densely Populated,Standard,Magistrate Council,Prosperous,Imperial World,14
+G,Imperial World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Local Religious Authorities,Important Shrine,Imperial World,14
+A,Imperial World,Thin,Temperate,Minimal,Densely Populated,Standard,Megacorporations,Trade Hub,Imperial World,13
+G,Imperial World,Breathable,Hot,Thriving,Densely Populated,Standard,Corrupt Aristocrats,Powerful Criminals,Imperial World,12
+F,Imperial World,Breathable,Cold,Minimal,Lightly Populated,Low,Demagogue,Mass Panic,Imperial World,11
+K,Imperial World,Tainted,Temperate,Poisoned,Densely Populated,Standard,Loyalist Mass Movement,Martial Law,Imperial World,12
+G,Imperial World,Breathable,Temperate,Thriving,Densely Populated,High,Explorator Authority,Major Spaceyard,Imperial World,10
+M,Imperial World,Breathable,Cold,Minimal,Lightly Populated,Low,Traditional Oligarchy,Notable Local,Imperial World,11
+A,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Guilds / Combines,Sole Suppliers,Imperial World,13
+G,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Populist Tyrant,Popular Uprising,Imperial World,9
+F,Imperial World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Puppet Government,Civil War,Imperial World,8
+K,Imperial World,Breathable,Cold,Minimal,Sole Settlement,Standard,Balkanized Local Factions,Cold War,Imperial World,8
+B,Imperial World,Thin,Hot,Poisoned,Densely Populated,High,Military Governor,War Zone,Imperial World,7
+G,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Heretical Imperial Cult,Witch Hunt,Imperial World,6
+A,Imperial World,Breathable,Temperate,Thriving,Densely Populated,Standard,Elitist Tyrant,Police State,Imperial World,8
+G,Imperial World,Breathable,Temperate,Thriving,Lightly Populated,Standard,Ecclesiarchical Appointee,Missionaries,Imperial World,9
+F,Imperial World,Tainted,Hot,Poisoned,Densely Populated,Standard,Military Governor,Naval Blockade,Imperial World,7

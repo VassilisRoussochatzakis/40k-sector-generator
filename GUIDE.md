@@ -860,7 +860,15 @@ to a segmentum: same seeds + same digests ⇒ same composed bytes.
 ## 3. Project directory layout
 
 A project is a folder that contains a `sectorforge.toml` and data sub-directories.
-The bundled example is at [examples/m42_project/](examples/m42_project/):
+The bundled example is at [examples/m42_project/](examples/m42_project/).
+Scale fixtures live in [examples/big_test/](examples/big_test/) and
+[examples/big_sparse_test/](examples/big_sparse_test/); the sparse fixture uses
+the same data as `big_test` with `system_count = 80` and
+`route_density = 0.048`:
+
+```bash
+cargo run --bin sectorforge -- generate --project examples/big_sparse_test
+```
 
 ```
 my-sector-project/

@@ -1,0 +1,15 @@
+[system_names]
+prefixes = [
+    "Acheron", "Belisarius", "Cyrene", "Drusus", "Eidolon", "Furor", "Gaunt",
+    "Hadrian", "Iocanthos", "Justinian", "Kessel", "Lethe", "Malfi",
+    "Numidian", "Orsuum", "Praeses", "Quaddis", "Regulus", "Scintilla",
+    "Tarsus", "Ulm", "Vaxanide", "Wyrm", "Xerxes", "Ylar", "Zaragoz",
+]
+suffixes = [
+    "Reach", "Terminus", "Anchorage", "Gate", "Crown", "Span", "Hold",
+    "March", "Watch", "Verge", "Pass", "Brink", "Hollow", "Spire",
+]
+single_names = [
+    "Malfi", "Scintilla", "Vaxanide", "Quaddis", "Zayth", "Mara", "Sepheris",
+    "Karis", "Heres", "Solomon", "Calixis", "Eustis", "Iocanthos",
+]

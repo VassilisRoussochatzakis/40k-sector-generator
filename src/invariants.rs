@@ -69,20 +69,35 @@ fn check_regions(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
     }
 }
 
-/// §5 NEW.md: if region effects (storm/turbulence) leave the route graph
-/// disconnected when restricted to navigable lanes (non-Perilous), surface a
-/// warning so the user can adjust region density or relax effects.
+/// §5 NEW.md: if region effects (storm/turbulence) increase route-graph
+/// disconnectedness when restricted to navigable lanes (non-Perilous), surface
+/// a violation so the user can adjust region density or relax effects.
 fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
     if s.regions.is_empty() || s.systems.len() < 2 {
         return;
     }
-    let region_tagged = s
+    let region_perilous = s
         .routes
         .iter()
-        .any(|r| r.tags.iter().any(|t| t.starts_with("region:")));
-    if !region_tagged {
+        .any(|r| r.tags.iter().any(|t| t == "region:perilous_applied"));
+    if !region_perilous {
         return;
     }
+    let actual = navigable_component_count(s, false);
+    let before_region_perilous = navigable_component_count(s, true);
+    if actual > before_region_perilous {
+        v.push(violation(
+            "REGION_ISOLATES_SECTOR",
+            &format!(
+                "region effects split the navigable route graph ({} -> {} components)",
+                before_region_perilous, actual
+            ),
+            Some("regions"),
+        ));
+    }
+}
+
+fn navigable_component_count(s: &GeneratedSector, restore_region_perilous: bool) -> usize {
     use crate::sector_model::RouteStability;
     let idx: BTreeMap<&str, usize> = s
         .systems
@@ -92,7 +107,9 @@ fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation
         .collect();
     let mut parent: Vec<usize> = (0..s.systems.len()).collect();
     for r in &s.routes {
-        if matches!(r.stability, RouteStability::Perilous) {
+        let restored =
+            restore_region_perilous && r.tags.iter().any(|t| t == "region:perilous_applied");
+        if matches!(r.stability, RouteStability::Perilous) && !restored {
             continue;
         }
         let (Some(&a), Some(&b)) = (
@@ -111,16 +128,7 @@ fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation
     for i in 0..parent.len() {
         roots.insert(find_root(&mut parent, i));
     }
-    if roots.len() > 1 {
-        v.push(violation(
-            "REGION_ISOLATES_SECTOR",
-            &format!(
-                "region effects leave the route graph disconnected ({} components on navigable lanes)",
-                roots.len()
-            ),
-            Some("regions"),
-        ));
-    }
+    roots.len()
 }
 
 fn find_root(parent: &mut [usize], mut i: usize) -> usize {

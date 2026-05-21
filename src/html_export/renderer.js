@@ -15,6 +15,13 @@ const filterDiv = document.getElementById("filter");
 
 const STAR_COLORS = {O:"#ff9646",B:"#b4d2ff",A:"#ffc85a",F:"#dc5ac8",G:"#6ed282",K:"#c8be82",M:"#c83c46"};
 const STABILITY_COLORS = {stable:"#6ed282",unstable:"#f0c85a",hazardous:"#eb5a5a",perilous:"#a564d7"};
+const REGION_COLORS = {
+  warp_storm:"#aa3cb4",
+  turbulence:"#8c64c8",
+  calm_corridor:"#5ac8b4",
+  blackout:"#3c3c50",
+  anomaly:"#dca03c",
+};
 
 // View state.
 const state = {
@@ -34,6 +41,10 @@ const systemById = {};
 for (const s of SECTOR.systems) systemById[s.id] = s;
 const factionById = {};
 for (const f of SECTOR.factions) factionById[f.id] = f;
+const regionByHex = new Map();
+for (const r of SECTOR.regions || []){
+  for (const h of r.hexes || []) regionByHex.set(h.q+","+h.r, r);
+}
 
 // ── Geometry ───────────────────────────────────────────────────────────────
 function hexCenter(q, r){
@@ -115,7 +126,8 @@ function draw(){
     for (let q=0; q<SECTOR.width; q++){
       const [cx,cy] = hexCenter(q,r);
       const sys = sysSet.get(q+","+r);
-      let fill = THEME.hex;
+      const reg = regionByHex.get(q+","+r);
+      let fill = reg ? mixHex(regionColor(reg.kind), THEME.hex, 0.35) : THEME.hex;
       if (sys){
         const [intensity, dom] = heatScore(sys, state.heat);
         if (state.heat !== "off" && intensity > 0){
@@ -149,6 +161,8 @@ function draw(){
     ctx.setLineDash([]);
   }
 
+  if (state.showLabels) drawRegionLabels();
+
   // Systems + labels.
   const starR = state.hexSize * STAR_R_RATIO;
   for (const s of SECTOR.systems){
@@ -172,6 +186,47 @@ function draw(){
     }
   }
   ctx.restore();
+}
+
+function drawRegionLabels(){
+  const regs = SECTOR.regions || [];
+  if (regs.length === 0) return;
+  const fontPx = Math.max(9, state.hexSize*0.31)|0;
+  ctx.font = "600 " + fontPx + "px ui-monospace,monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const reg of regs){
+    const p = regionCentroid(reg);
+    if (!p) continue;
+    const label = shortLabel((reg.name || reg.id || "REGION").toUpperCase(), 18);
+    const w = ctx.measureText(label).width + 12;
+    const h = fontPx * 1.35;
+    ctx.fillStyle = "rgba(10,9,14,0.72)";
+    ctx.fillRect(p[0]-w/2, p[1]-h/2, w, h);
+    ctx.strokeStyle = "rgba(180,170,210,0.25)";
+    ctx.strokeRect(p[0]-w/2, p[1]-h/2, w, h);
+    ctx.fillStyle = THEME.dim;
+    ctx.fillText(label, p[0], p[1]+1);
+  }
+}
+
+function regionCentroid(reg){
+  const hexes = reg.hexes || [];
+  if (hexes.length === 0) return null;
+  let sx=0, sy=0;
+  for (const h of hexes){
+    const [cx, cy] = hexCenter(h.q, h.r);
+    sx += cx; sy += cy;
+  }
+  return [sx/hexes.length, sy/hexes.length];
+}
+
+function shortLabel(s, max){
+  return s.length <= max ? s : s.slice(0, max-1) + ".";
+}
+
+function regionColor(kind){
+  return REGION_COLORS[kind] || THEME.accent;
 }
 
 function drawHex(cx, cy, fill, outline){

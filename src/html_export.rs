@@ -239,6 +239,7 @@ fn redact_for_observer(sector: &GeneratedSector, observer: &str, min_conf: u8) -
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::regions::{RegionConditionKind, WarpRegion};
     use crate::sector_model::{
         DominanceState, FactionInfluence, GeneratedFaction, GeneratedStar, GeneratedSystem,
         GeneratedWorld, GenerationManifest, HexCoord, PresenceDimensions, WorldDto,
@@ -459,6 +460,21 @@ mod tests {
         ] {
             assert!(html.contains(marker), "missing marker {marker}");
         }
+    }
+
+    #[test]
+    fn output_includes_region_label_renderer() {
+        let mut s = sample(90.0, 10.0);
+        s.regions.push(WarpRegion {
+            id: "reg-0001".into(),
+            name: "Aurelian Maelstrom".into(),
+            kind: RegionConditionKind::WarpStorm,
+            hexes: vec![HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 }],
+            centre: HexCoord { q: 0, r: 0 },
+        });
+        let html = render_html(&s, &HtmlConfig::default()).unwrap();
+        assert!(html.contains("drawRegionLabels"));
+        assert!(html.contains("Aurelian Maelstrom"));
     }
 
     #[test]

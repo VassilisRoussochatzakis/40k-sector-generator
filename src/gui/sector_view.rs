@@ -36,6 +36,9 @@ const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
 const SUBSECTOR_LABEL: Color32 = Color32::from_rgb(230, 195, 120);
 const SUBSECTOR_HIGHLIGHT: Color32 = Color32::from_rgba_premultiplied(40, 40, 44, 70);
 const CAPITAL_MARKER: Color32 = Color32::from_rgb(255, 220, 100);
+const REGION_LABEL: Color32 = Color32::from_rgb(178, 174, 196);
+const REGION_LABEL_BG: Color32 = Color32::from_rgba_premultiplied(16, 14, 22, 190);
+const REGION_LABEL_OUTLINE: Color32 = Color32::from_rgba_premultiplied(42, 40, 53, 90);
 
 pub enum SectorClick {
     System(crate::ids::SystemId),
@@ -210,6 +213,8 @@ impl<'a> SectorView<'a> {
                 painter.line_segment([a2, b2], Stroke::new(core_thick, PATH_HIGHLIGHT));
             }
         }
+
+        draw_region_labels(&painter, self.sector, origin, &g, rect);
 
         // Pass 1: all system hex fills + stars + pips. So later hexes can't
         // paint over earlier system labels.
@@ -619,6 +624,69 @@ fn region_color(kind: RegionConditionKind) -> Color32 {
         RegionConditionKind::CalmCorridor => Color32::from_rgb(90, 200, 180),
         RegionConditionKind::Blackout => Color32::from_rgb(60, 60, 80),
         RegionConditionKind::Anomaly => Color32::from_rgb(220, 160, 60),
+    }
+}
+
+fn draw_region_labels(
+    painter: &egui::Painter,
+    sector: &GeneratedSector,
+    origin: Pos2,
+    g: &Geom,
+    bounds: egui::Rect,
+) {
+    if sector.regions.is_empty() {
+        return;
+    }
+    let font = FontId::monospace((g.hex_size * 0.31).max(10.0));
+    let pad = Vec2::new(6.0, 3.0);
+    for region in &sector.regions {
+        let Some(anchor) = region_label_anchor(region, origin, g) else {
+            continue;
+        };
+        let label = region_label_text(&region.name);
+        let galley = painter.layout_no_wrap(label, font.clone(), REGION_LABEL);
+        let size = galley.size();
+        let min_x = bounds.left() + pad.x;
+        let max_x = bounds.right() - size.x - pad.x;
+        let min_y = bounds.top() + pad.y;
+        let max_y = bounds.bottom() - size.y - pad.y;
+        let x = (anchor.x - size.x / 2.0).clamp(min_x, max_x.max(min_x));
+        let y = (anchor.y - size.y / 2.0).clamp(min_y, max_y.max(min_y));
+        let pos = Pos2::new(x, y);
+        let bg = egui::Rect::from_min_size(pos - pad, size + pad * 2.0);
+        painter.rect_filled(bg, 3.0, REGION_LABEL_BG);
+        painter.rect_stroke(bg, 3.0, Stroke::new(1.0, REGION_LABEL_OUTLINE));
+        painter.galley(pos, galley, REGION_LABEL);
+    }
+}
+
+fn region_label_anchor(
+    region: &crate::regions::WarpRegion,
+    origin: Pos2,
+    g: &Geom,
+) -> Option<Pos2> {
+    if region.hexes.is_empty() {
+        return None;
+    }
+    let mut sx = 0.0;
+    let mut sy = 0.0;
+    for h in &region.hexes {
+        let c = hex_center(h.q, h.r, g) + origin.to_vec2();
+        sx += c.x;
+        sy += c.y;
+    }
+    let n = region.hexes.len() as f32;
+    Some(Pos2::new(sx / n, sy / n))
+}
+
+fn region_label_text(name: &str) -> String {
+    let up = name.to_ascii_uppercase();
+    if up.chars().count() <= 18 {
+        up
+    } else {
+        let mut out: String = up.chars().take(17).collect();
+        out.push('.');
+        out
     }
 }
 

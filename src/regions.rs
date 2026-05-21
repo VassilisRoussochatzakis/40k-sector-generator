@@ -34,8 +34,8 @@ use crate::sector_model::{
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum RegionConditionKind {
-    /// Routes crossing become Perilous, world generation biased toward warp
-    /// phenomena features.
+    /// Routes crossing become Perilous unless that would isolate the navigable
+    /// route graph; bridge lanes are capped at Hazardous.
     WarpStorm,
     /// Routes crossing degrade by one hazard tier.
     Turbulence,
@@ -424,10 +424,10 @@ pub fn apply_route_effects(
     }
     let by_id: BTreeMap<&str, HexCoord> =
         systems.iter().map(|s| (s.id.as_str(), s.coord)).collect();
-    for r in routes.iter_mut() {
+    for idx in 0..routes.len() {
         let (Some(&a), Some(&b)) = (
-            by_id.get(r.from_system_id.as_str()),
-            by_id.get(r.to_system_id.as_str()),
+            by_id.get(routes[idx].from_system_id.as_str()),
+            by_id.get(routes[idx].to_system_id.as_str()),
         ) else {
             continue;
         };
@@ -436,28 +436,88 @@ pub fn apply_route_effects(
         };
         match cond {
             RegionConditionKind::WarpStorm => {
-                r.stability = RouteStability::Perilous;
-                if !r.tags.iter().any(|t| t == "region:warp_storm") {
-                    r.tags.push("region:warp_storm".into());
-                }
+                apply_route_stability(routes, idx, RouteStability::Perilous, "region:warp_storm");
             }
             RegionConditionKind::Turbulence => {
-                r.stability = degrade(r.stability);
-                if !r.tags.iter().any(|t| t == "region:turbulence") {
-                    r.tags.push("region:turbulence".into());
-                }
+                let target = degrade(routes[idx].stability);
+                apply_route_stability(routes, idx, target, "region:turbulence");
             }
             RegionConditionKind::CalmCorridor => {
                 // Only upgrades when not already perilous (per lattice doc).
-                if !matches!(r.stability, RouteStability::Perilous) {
-                    r.stability = upgrade(r.stability);
-                    if !r.tags.iter().any(|t| t == "region:calm_corridor") {
-                        r.tags.push("region:calm_corridor".into());
-                    }
+                if !matches!(routes[idx].stability, RouteStability::Perilous) {
+                    let target = upgrade(routes[idx].stability);
+                    apply_route_stability(routes, idx, target, "region:calm_corridor");
                 }
             }
             _ => {}
         }
+    }
+}
+
+fn apply_route_stability(
+    routes: &mut [GeneratedRoute],
+    idx: usize,
+    target: RouteStability,
+    tag: &str,
+) {
+    let was_navigable = routes[idx].stability != RouteStability::Perilous;
+    let preserve_bridge =
+        target == RouteStability::Perilous && was_navigable && is_navigable_bridge(routes, idx);
+    let marks_perilous = target == RouteStability::Perilous && was_navigable && !preserve_bridge;
+    routes[idx].stability = if preserve_bridge {
+        RouteStability::Hazardous
+    } else {
+        target
+    };
+    push_route_tag(&mut routes[idx], tag);
+    if marks_perilous {
+        push_route_tag(&mut routes[idx], "region:perilous_applied");
+    }
+    if preserve_bridge {
+        push_route_tag(&mut routes[idx], "region:connectivity_preserved");
+    }
+}
+
+fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool {
+    let Some(candidate) = routes.get(candidate_idx) else {
+        return false;
+    };
+    if candidate.stability == RouteStability::Perilous {
+        return false;
+    }
+    let from = candidate.from_system_id.as_str();
+    let to = candidate.to_system_id.as_str();
+    let mut seen: BTreeSet<&str> = BTreeSet::new();
+    let mut queue: VecDeque<&str> = VecDeque::new();
+    seen.insert(from);
+    queue.push_back(from);
+    while let Some(cur) = queue.pop_front() {
+        for (idx, route) in routes.iter().enumerate() {
+            if idx == candidate_idx || route.stability == RouteStability::Perilous {
+                continue;
+            }
+            let a = route.from_system_id.as_str();
+            let b = route.to_system_id.as_str();
+            let next = if a == cur {
+                Some(b)
+            } else if b == cur {
+                Some(a)
+            } else {
+                None
+            };
+            if let Some(next) = next {
+                if seen.insert(next) {
+                    queue.push_back(next);
+                }
+            }
+        }
+    }
+    !seen.contains(to)
+}
+
+fn push_route_tag(route: &mut GeneratedRoute, tag: &str) {
+    if !route.tags.iter().any(|t| t == tag) {
+        route.tags.push(tag.into());
     }
 }
 
@@ -584,5 +644,58 @@ mod tests {
         let cond =
             dominant_route_condition(&[region], HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
         assert_eq!(cond, Some(RegionConditionKind::WarpStorm));
+    }
+
+    #[test]
+    fn perilous_effect_caps_navigable_bridge() {
+        let mut routes = vec![
+            route("r1", "a", "b", RouteStability::Hazardous),
+            route("r2", "b", "c", RouteStability::Stable),
+        ];
+        apply_route_stability(
+            &mut routes,
+            0,
+            RouteStability::Perilous,
+            "region:warp_storm",
+        );
+        assert_eq!(routes[0].stability, RouteStability::Hazardous);
+        assert!(routes[0].tags.iter().any(|t| t == "region:warp_storm"));
+        assert!(routes[0]
+            .tags
+            .iter()
+            .any(|t| t == "region:connectivity_preserved"));
+    }
+
+    #[test]
+    fn perilous_effect_removes_non_bridge() {
+        let mut routes = vec![
+            route("r1", "a", "b", RouteStability::Hazardous),
+            route("r2", "b", "c", RouteStability::Stable),
+            route("r3", "a", "c", RouteStability::Stable),
+        ];
+        apply_route_stability(
+            &mut routes,
+            0,
+            RouteStability::Perilous,
+            "region:warp_storm",
+        );
+        assert_eq!(routes[0].stability, RouteStability::Perilous);
+        assert!(!routes[0]
+            .tags
+            .iter()
+            .any(|t| t == "region:connectivity_preserved"));
+    }
+
+    fn route(id: &str, from: &str, to: &str, stability: RouteStability) -> GeneratedRoute {
+        GeneratedRoute {
+            id: crate::ids::RouteId::new(id),
+            from_system_id: crate::ids::SystemId::new(from),
+            to_system_id: crate::ids::SystemId::new(to),
+            distance: 1,
+            route_type: crate::sector_model::RouteType::StableWarpLane,
+            stability,
+            tags: Vec::new(),
+            controls: Vec::new(),
+        }
     }
 }

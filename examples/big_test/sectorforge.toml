@@ -10,6 +10,7 @@ system_names = "data/names/system_names.toml"
 world_names = "data/names/world_names.toml"
 factions = "data/factions/factions.toml"
 route_rules = "data/routes/route_rules.toml"
+regions = "data/routes/regions.toml"
 
 [generation]
 seed = "big-test-default-seed"

@@ -563,8 +563,10 @@ grid *before* route generation; the chosen condition modifies route
 stability inside the footprint and tints PNG-export hexes for the
 overlay:
 
-* `WarpStorm` → forces routes crossing the footprint to `Perilous`.
-* `Turbulence` → degrades by one stability tier.
+* `WarpStorm` → forces routes crossing the footprint to `Perilous`, except
+  sole navigable bridge lanes are capped at `Hazardous`.
+* `Turbulence` → degrades by one stability tier, with the same bridge cap
+  when the downgrade would make the route `Perilous`.
 * `CalmCorridor` → upgrades by one tier (cannot upgrade above
   `Hazardous` when another rule already forced `Perilous`).
 * `Blackout` → marks the area for no covert / hidden routes.
@@ -585,11 +587,14 @@ cargo run --bin sectorforge -- generate --project examples/m42_project
 Writes `regions.md` + `regions.json`. The shipped
 [data/routes/regions.toml](examples/m42_project/data/routes/regions.toml)
 defaults to `enabled = false`; flip it on to grow regions for the project.
+The file must also be referenced from `[inputs].regions`; an unreferenced
+`data/routes/regions.toml` is ignored and the loader uses disabled defaults.
 Regions are embedded on `sector.json` under the `regions` field and
-rendered as a translucent tint underneath the existing hex grid in both
-the PNG export and the on-screen GUI sector map. The Markdown sector map
-prints region glyphs over empty hexes: `~` warp storm, `^` turbulence,
-`=` calm corridor, `#` blackout, `*` anomaly.
+rendered as a translucent tint underneath the existing hex grid in the
+PNG export, interactive HTML map, and on-screen GUI sector map. Each
+region also gets a subdued center label chip using the region name. The
+Markdown sector map prints region glyphs over empty hexes: `~` warp
+storm, `^` turbulence, `=` calm corridor, `#` blackout, `*` anomaly.
 
 `Blackout` regions also gate the hidden-route stage: webway, black-ship,
 and smuggling-lane endpoints inside a blackout footprint are excluded so
@@ -1411,9 +1416,9 @@ navigation bar:
 
 - **Sector** — hex map with zoom/pan, colored by primary star colour,
   faction tint, subsector overlay, deterministic route-pattern geometry,
-  and a translucent warp-region tint
-  (§5) for every hex covered by a `WarpRegion`. Click a hex to drill into
-  the system. The bottom controls expose a **HEATMAP** dropdown that
+  and a translucent warp-region tint plus subdued center labels
+  (§5) for every `WarpRegion`. Click a hex to drill into the system. The
+  bottom controls expose a **HEATMAP** dropdown that
   tints every system hex by a per-mode score: `CONTROL` (dominant-faction
   colour × control-score intensity), `MILITARY`, `TRADE`, `INDUSTRY`,
   `COVERT`, `FAITH`, `THREAT` (military × covert restricted to

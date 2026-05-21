@@ -505,9 +505,9 @@ fn shorten_to_star(a: (i32, i32), b: (i32, i32), star_r: f32) -> Option<((i32, i
     Some((s, e))
 }
 
-/// Draws a line styled by `pattern`. For `Solid`, falls back to `draw_line_thick`.
-/// Dashes are sized as multiples of a `unit` that scales with `thickness`, so the
-/// pattern stays readable at any zoom. Short "dot" runs render as filled discs.
+/// Draws a route styled by `pattern`. Motif-heavy patterns use rails, ladders,
+/// ticks, chevrons, bursts, and triangles so the PNG map stays visually close
+/// to the live GUI.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn draw_route_line_thick(
     img: &mut RgbaImage,
@@ -519,31 +519,191 @@ pub(crate) fn draw_route_line_thick(
     thickness: i32,
     pattern: RoutePattern,
 ) {
-    let strides = pattern.strides();
+    let Some(geom) = BitmapRouteGeom::new(x0, y0, x1, y1, thickness) else {
+        return;
+    };
+    match pattern {
+        RoutePattern::Solid => draw_line_thick(img, x0, y0, x1, y1, color, thickness),
+        RoutePattern::Dashed | RoutePattern::DotDash | RoutePattern::Dotted => {
+            draw_bitmap_strided_route(img, geom, color, thickness, pattern.strides());
+        }
+        RoutePattern::Cracked => {
+            draw_bitmap_jagged_route(
+                img,
+                geom,
+                color,
+                thickness,
+                geom.unit * 3.0,
+                thickness as f32 * 1.7,
+            );
+        }
+        RoutePattern::Ghost => {
+            draw_bitmap_strided_route(
+                img,
+                geom,
+                dim_rgba(color, 0.62),
+                thickness,
+                pattern.strides(),
+            );
+        }
+        RoutePattern::Burst => {
+            draw_bitmap_bursts(img, geom, color, thickness, geom.unit * 5.0);
+        }
+        RoutePattern::Staccato => {
+            draw_bitmap_zigzag_route(
+                img,
+                geom,
+                color,
+                thickness,
+                geom.unit * 3.2,
+                thickness as f32 * 1.8,
+            );
+        }
+        RoutePattern::Gravel => {
+            draw_bitmap_disc_trail(img, geom, color, thickness, geom.unit * 1.55, false, true);
+        }
+        RoutePattern::Twin => {
+            draw_bitmap_parallel_routes(img, geom, color, thickness, thickness as f32);
+        }
+        RoutePattern::Tripod => {
+            draw_bitmap_triangles(img, geom, color, thickness, geom.unit * 5.0);
+        }
+        RoutePattern::Tick => {
+            draw_bitmap_base_spine(img, geom, color, thickness, 0.28);
+            draw_bitmap_ticks(
+                img,
+                geom,
+                color,
+                thickness,
+                geom.unit * 4.5,
+                thickness as f32 * 2.2,
+            );
+        }
+        RoutePattern::Bridge => {
+            draw_bitmap_strided_route(
+                img,
+                geom,
+                dim_rgba(color, 0.72),
+                stroke_px(thickness, 0.8),
+                &[3.0, 2.0],
+            );
+            draw_bitmap_ticks(
+                img,
+                geom,
+                color,
+                thickness,
+                geom.unit * 5.0,
+                thickness as f32 * 1.8,
+            );
+        }
+        RoutePattern::Patter => {
+            draw_bitmap_disc_trail(img, geom, color, thickness, geom.unit * 2.2, true, false);
+        }
+        RoutePattern::Quartet => {
+            draw_bitmap_dot_clusters(img, geom, color, thickness, geom.unit * 8.0, 4);
+        }
+        RoutePattern::Railroad => {
+            let offset = thickness as f32 * 1.25;
+            draw_bitmap_parallel_routes(img, geom, color, stroke_px(thickness, 0.8), offset);
+            draw_bitmap_ticks(
+                img,
+                geom,
+                color,
+                stroke_px(thickness, 0.75),
+                geom.unit * 5.5,
+                offset * 1.15,
+            );
+        }
+        RoutePattern::DoubleTap => {
+            draw_bitmap_double_taps(img, geom, color, thickness, geom.unit * 7.0);
+        }
+        RoutePattern::Pebble => {
+            draw_bitmap_disc_trail(img, geom, color, thickness, geom.unit * 2.6, false, true);
+        }
+        RoutePattern::Whisper => {
+            draw_bitmap_disc_trail(
+                img,
+                geom,
+                dim_rgba(color, 0.78),
+                thickness,
+                geom.unit * 7.0,
+                false,
+                false,
+            );
+        }
+        RoutePattern::March => {
+            draw_bitmap_chevrons(img, geom, color, thickness, geom.unit * 5.5);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct BitmapRouteGeom {
+    x0: i32,
+    y0: i32,
+    x1: i32,
+    y1: i32,
+    ux: f32,
+    uy: f32,
+    nx: f32,
+    ny: f32,
+    total: f32,
+    unit: f32,
+}
+
+impl BitmapRouteGeom {
+    fn new(x0: i32, y0: i32, x1: i32, y1: i32, thickness: i32) -> Option<Self> {
+        let dx = (x1 - x0) as f32;
+        let dy = (y1 - y0) as f32;
+        let total = (dx * dx + dy * dy).sqrt();
+        if total <= 0.0 {
+            return None;
+        }
+        let ux = dx / total;
+        let uy = dy / total;
+        Some(Self {
+            x0,
+            y0,
+            x1,
+            y1,
+            ux,
+            uy,
+            nx: -uy,
+            ny: ux,
+            total,
+            unit: (thickness as f32).max(2.0),
+        })
+    }
+
+    fn at(self, t: f32, offset: f32) -> (i32, i32) {
+        let t = t.clamp(0.0, self.total);
+        (
+            (self.x0 as f32 + self.ux * t + self.nx * offset).round() as i32,
+            (self.y0 as f32 + self.uy * t + self.ny * offset).round() as i32,
+        )
+    }
+}
+
+fn draw_bitmap_strided_route(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    strides: &[f32],
+) {
     if strides.is_empty() {
-        draw_line_thick(img, x0, y0, x1, y1, color, thickness);
+        draw_line_thick(img, geom.x0, geom.y0, geom.x1, geom.y1, color, thickness);
         return;
     }
-    let unit = (thickness as f32).max(2.0);
-    let dx = (x1 - x0) as f32;
-    let dy = (y1 - y0) as f32;
-    let total = (dx * dx + dy * dy).sqrt();
-    if total <= 0.0 {
-        return;
-    }
-    let ux = dx / total;
-    let uy = dy / total;
     let mut t = 0.0_f32;
     let mut idx: usize = 0;
-    while t < total {
+    while t < geom.total {
         let stride = strides[idx % strides.len()];
-        let seg = stride * unit;
-        let next_t = (t + seg).min(total);
+        let seg = stride * geom.unit;
+        let next_t = (t + seg).min(geom.total);
         if idx.is_multiple_of(2) {
-            let sx = (x0 as f32 + ux * t).round() as i32;
-            let sy = (y0 as f32 + uy * t).round() as i32;
-            let ex = (x0 as f32 + ux * next_t).round() as i32;
-            let ey = (y0 as f32 + uy * next_t).round() as i32;
+            let (sx, sy) = geom.at(t, 0.0);
+            let (ex, ey) = geom.at(next_t, 0.0);
             if stride <= 1.5 {
                 let mx = (sx + ex) / 2;
                 let my = (sy + ey) / 2;
@@ -556,6 +716,267 @@ pub(crate) fn draw_route_line_thick(
         t = next_t;
         idx += 1;
     }
+}
+
+fn draw_bitmap_parallel_routes(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    offset: f32,
+) {
+    for side in [-offset, offset] {
+        let (sx, sy) = geom.at(0.0, side);
+        let (ex, ey) = geom.at(geom.total, side);
+        draw_line_thick(img, sx, sy, ex, ey, color, thickness);
+    }
+}
+
+fn draw_bitmap_base_spine(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    dim: f32,
+) {
+    draw_line_thick(
+        img,
+        geom.x0,
+        geom.y0,
+        geom.x1,
+        geom.y1,
+        dim_rgba(color, dim),
+        stroke_px(thickness, 0.7),
+    );
+}
+
+fn draw_bitmap_ticks(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+    half_len: f32,
+) {
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let (mx, my) = geom.at(t, 0.0);
+        let sx = (mx as f32 - geom.nx * half_len).round() as i32;
+        let sy = (my as f32 - geom.ny * half_len).round() as i32;
+        let ex = (mx as f32 + geom.nx * half_len).round() as i32;
+        let ey = (my as f32 + geom.ny * half_len).round() as i32;
+        draw_line_thick(img, sx, sy, ex, ey, color, stroke_px(thickness, 0.75));
+        t += spacing;
+    }
+}
+
+fn draw_bitmap_jagged_route(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+    amplitude: f32,
+) {
+    let mut prev = (geom.x0, geom.y0);
+    let mut t = spacing;
+    let mut sign = 1.0;
+    while t < geom.total {
+        let next = geom.at(t, amplitude * sign);
+        draw_line_thick(img, prev.0, prev.1, next.0, next.1, color, thickness);
+        prev = next;
+        t += spacing;
+        sign = -sign;
+    }
+    draw_line_thick(img, prev.0, prev.1, geom.x1, geom.y1, color, thickness);
+}
+
+fn draw_bitmap_zigzag_route(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+    amplitude: f32,
+) {
+    let mut prev = geom.at(0.0, -amplitude);
+    let mut t = spacing * 0.5;
+    let mut sign = 1.0;
+    while t < geom.total {
+        let next = geom.at(t, amplitude * sign);
+        draw_line_thick(img, prev.0, prev.1, next.0, next.1, color, thickness);
+        prev = next;
+        t += spacing;
+        sign = -sign;
+    }
+    let end = geom.at(geom.total, -amplitude * sign);
+    draw_line_thick(img, prev.0, prev.1, end.0, end.1, color, thickness);
+}
+
+fn draw_bitmap_disc_trail(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+    hollow: bool,
+    alternating: bool,
+) {
+    let mut t = spacing * 0.5;
+    let mut i = 0usize;
+    while t < geom.total {
+        let radius = if alternating && i.is_multiple_of(2) {
+            thickness as f32 * 0.85
+        } else {
+            thickness as f32 * 0.55
+        }
+        .round() as i32;
+        let (mx, my) = geom.at(t, 0.0);
+        if hollow {
+            draw_circle(img, mx, my, radius.max(1), color);
+        } else {
+            fill_circle(img, mx, my, radius.max(1), color);
+        }
+        t += spacing;
+        i += 1;
+    }
+}
+
+fn draw_bitmap_dot_clusters(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+    count: usize,
+) {
+    let dot_gap = geom.unit * 1.25;
+    let radius = ((thickness as f32) * 0.55).round() as i32;
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let center = (count as f32 - 1.0) * 0.5;
+        for i in 0..count {
+            let local = (i as f32 - center) * dot_gap;
+            let (mx, my) = geom.at(t + local, 0.0);
+            fill_circle(img, mx, my, radius.max(1), color);
+        }
+        t += spacing;
+    }
+}
+
+fn draw_bitmap_double_taps(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+) {
+    let pair_gap = geom.unit * 1.3;
+    let half_len = thickness as f32 * 1.8;
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        for local in [-pair_gap * 0.5, pair_gap * 0.5] {
+            let (mx, my) = geom.at(t + local, 0.0);
+            let sx = (mx as f32 - geom.nx * half_len).round() as i32;
+            let sy = (my as f32 - geom.ny * half_len).round() as i32;
+            let ex = (mx as f32 + geom.nx * half_len).round() as i32;
+            let ey = (my as f32 + geom.ny * half_len).round() as i32;
+            draw_line_thick(img, sx, sy, ex, ey, color, stroke_px(thickness, 0.8));
+        }
+        t += spacing;
+    }
+}
+
+fn draw_bitmap_chevrons(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+) {
+    let size = geom.unit * 1.8;
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let tip = geom.at(t + size * 0.35, 0.0);
+        let back = geom.at(t - size * 0.35, 0.0);
+        let left = (
+            (back.0 as f32 + geom.nx * size * 0.35).round() as i32,
+            (back.1 as f32 + geom.ny * size * 0.35).round() as i32,
+        );
+        let right = (
+            (back.0 as f32 - geom.nx * size * 0.35).round() as i32,
+            (back.1 as f32 - geom.ny * size * 0.35).round() as i32,
+        );
+        draw_line_thick(img, left.0, left.1, tip.0, tip.1, color, thickness);
+        draw_line_thick(img, right.0, right.1, tip.0, tip.1, color, thickness);
+        t += spacing;
+    }
+}
+
+fn draw_bitmap_triangles(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+) {
+    let size = (geom.unit * 1.7).max(thickness as f32 * 2.0);
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let tip = geom.at(t + size * 0.45, 0.0);
+        let base = geom.at(t - size * 0.35, 0.0);
+        let left = (
+            (base.0 as f32 + geom.nx * size * 0.38).round() as i32,
+            (base.1 as f32 + geom.ny * size * 0.38).round() as i32,
+        );
+        let right = (
+            (base.0 as f32 - geom.nx * size * 0.38).round() as i32,
+            (base.1 as f32 - geom.ny * size * 0.38).round() as i32,
+        );
+        fill_polygon(img, &[tip, left, right], color);
+        t += spacing;
+    }
+}
+
+fn draw_bitmap_bursts(
+    img: &mut RgbaImage,
+    geom: BitmapRouteGeom,
+    color: Rgba<u8>,
+    thickness: i32,
+    spacing: f32,
+) {
+    let radius = (thickness as f32 * 1.6).max(2.0);
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let mid = geom.at(t, 0.0);
+        let a = geom.at(t - radius, 0.0);
+        let b = geom.at(t + radius, 0.0);
+        let c = (
+            (mid.0 as f32 - geom.nx * radius).round() as i32,
+            (mid.1 as f32 - geom.ny * radius).round() as i32,
+        );
+        let d = (
+            (mid.0 as f32 + geom.nx * radius).round() as i32,
+            (mid.1 as f32 + geom.ny * radius).round() as i32,
+        );
+        draw_line_thick(img, a.0, a.1, b.0, b.1, color, stroke_px(thickness, 0.65));
+        draw_line_thick(img, c.0, c.1, d.0, d.1, color, stroke_px(thickness, 0.65));
+        fill_circle(img, mid.0, mid.1, stroke_px(thickness, 0.45), color);
+        t += spacing;
+    }
+}
+
+fn stroke_px(thickness: i32, factor: f32) -> i32 {
+    ((thickness as f32) * factor).round().max(1.0) as i32
+}
+
+fn dim_rgba(color: Rgba<u8>, factor: f32) -> Rgba<u8> {
+    Rgba([
+        ((color.0[0] as f32) * factor).round().clamp(0.0, 255.0) as u8,
+        ((color.0[1] as f32) * factor).round().clamp(0.0, 255.0) as u8,
+        ((color.0[2] as f32) * factor).round().clamp(0.0, 255.0) as u8,
+        color.0[3],
+    ])
 }
 
 fn draw_systems(
@@ -1132,15 +1553,7 @@ fn draw_legend(
 
     draw_text(img, x0, y, "ROUTE TYPE", opts.theme.text, body);
     y += line_h;
-    for (rtype, name) in [
-        (RouteType::StableWarpLane, "STABLE WARP LANE"),
-        (RouteType::ChartedPassage, "CHARTED PASSAGE"),
-        (RouteType::DangerousPassage, "DANGEROUS PASSAGE"),
-        (RouteType::SecretPassage, "SECRET PASSAGE"),
-        (RouteType::Webway, "WEBWAY THREAD"),
-        (RouteType::BlackShip, "BLACK-SHIP LANE"),
-        (RouteType::SmugglingLane, "SMUGGLING LANE"),
-    ] {
+    for rtype in RouteType::ALL {
         draw_route_line_thick(
             img,
             x0,
@@ -1151,7 +1564,14 @@ fn draw_legend(
             3 * g.scale,
             rtype.pattern(),
         );
-        draw_text(img, x0 + 38 * g.scale, y, name, opts.theme.text, body);
+        draw_text(
+            img,
+            x0 + 38 * g.scale,
+            y,
+            rtype.label(),
+            opts.theme.text,
+            body,
+        );
         y += line_h;
     }
     y += 4 * g.scale;

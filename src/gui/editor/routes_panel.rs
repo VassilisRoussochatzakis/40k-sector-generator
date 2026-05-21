@@ -155,28 +155,11 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
 }
 
 fn route_type_str(rt: RouteType) -> &'static str {
-    match rt {
-        RouteType::StableWarpLane => "stable_warp_lane",
-        RouteType::ChartedPassage => "charted_passage",
-        RouteType::DangerousPassage => "dangerous_passage",
-        RouteType::SecretPassage => "secret_passage",
-        RouteType::Webway => "webway",
-        RouteType::BlackShip => "black_ship",
-        RouteType::SmugglingLane => "smuggling_lane",
-    }
+    rt.key()
 }
 
 fn route_type_from_str(s: &str) -> Option<RouteType> {
-    Some(match s {
-        "stable_warp_lane" => RouteType::StableWarpLane,
-        "charted_passage" => RouteType::ChartedPassage,
-        "dangerous_passage" => RouteType::DangerousPassage,
-        "secret_passage" => RouteType::SecretPassage,
-        "webway" => RouteType::Webway,
-        "black_ship" => RouteType::BlackShip,
-        "smuggling_lane" => RouteType::SmugglingLane,
-        _ => return None,
-    })
+    RouteType::from_key(s)
 }
 
 fn route_stab_str(rs: RouteStability) -> &'static str {

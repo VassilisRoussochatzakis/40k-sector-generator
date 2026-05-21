@@ -2,6 +2,8 @@
 //! `WorldDto` (`Debug` of the enum in `worlds.rs`), plus star colour codes and
 //! route enums via `serde` rename rules.
 
+use crate::sector_model::RouteType;
+
 pub const STAR_COLOUR_CODES: &[&str] = &["O", "B", "A", "F", "G", "K", "M"];
 
 pub fn star_colour_name(code: &str) -> &'static str {
@@ -220,10 +222,27 @@ pub const NOTABLE_FEATURES: &[&str] = &[
 ];
 
 pub const ROUTE_TYPES: &[(&str, &str)] = &[
-    ("stable_warp_lane", "stable warp lane"),
-    ("charted_passage", "charted passage"),
-    ("dangerous_passage", "dangerous passage"),
-    ("secret_passage", "secret passage"),
+    (
+        RouteType::StableWarpLane.key(),
+        RouteType::StableWarpLane.editor_label(),
+    ),
+    (
+        RouteType::ChartedPassage.key(),
+        RouteType::ChartedPassage.editor_label(),
+    ),
+    (
+        RouteType::SecretPassage.key(),
+        RouteType::SecretPassage.editor_label(),
+    ),
+    (RouteType::Webway.key(), RouteType::Webway.editor_label()),
+    (
+        RouteType::BlackShip.key(),
+        RouteType::BlackShip.editor_label(),
+    ),
+    (
+        RouteType::SmugglingLane.key(),
+        RouteType::SmugglingLane.editor_label(),
+    ),
 ];
 
 pub const ROUTE_STABILITIES: &[(&str, &str)] = &[

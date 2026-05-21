@@ -1850,7 +1850,7 @@ mod tests {
             from_system_id: "sys-0001".into(),
             to_system_id: "sys-0002".into(),
             distance: 1,
-            route_type: RouteType::DangerousPassage,
+            route_type: RouteType::ChartedPassage,
             stability: RouteStability::Perilous,
             tags: Vec::new(),
             controls: Vec::new(),

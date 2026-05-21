@@ -230,8 +230,8 @@ impl GeneratedRoute {
 #[serde(rename_all = "snake_case")]
 pub enum RouteType {
     StableWarpLane,
+    #[serde(alias = "dangerous_passage", alias = "DangerousPassage")]
     ChartedPassage,
-    DangerousPassage,
     SecretPassage,
     /// Aeldari webway thread — invisible to non-Aeldari observers (§3 NEXT,
     /// §16.10).
@@ -245,6 +245,64 @@ pub enum RouteType {
 }
 
 impl RouteType {
+    pub const ALL: [Self; 6] = [
+        Self::StableWarpLane,
+        Self::ChartedPassage,
+        Self::SecretPassage,
+        Self::Webway,
+        Self::BlackShip,
+        Self::SmugglingLane,
+    ];
+
+    #[must_use]
+    pub const fn key(self) -> &'static str {
+        match self {
+            RouteType::StableWarpLane => "stable_warp_lane",
+            RouteType::ChartedPassage => "charted_passage",
+            RouteType::SecretPassage => "secret_passage",
+            RouteType::Webway => "webway",
+            RouteType::BlackShip => "black_ship",
+            RouteType::SmugglingLane => "smuggling_lane",
+        }
+    }
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            RouteType::StableWarpLane => "STABLE WARP LANE",
+            RouteType::ChartedPassage => "CHARTED PASSAGE",
+            RouteType::SecretPassage => "SECRET PASSAGE",
+            RouteType::Webway => "WEBWAY THREAD",
+            RouteType::BlackShip => "BLACK-SHIP LANE",
+            RouteType::SmugglingLane => "SMUGGLING LANE",
+        }
+    }
+
+    #[must_use]
+    pub const fn editor_label(self) -> &'static str {
+        match self {
+            RouteType::StableWarpLane => "stable warp lane",
+            RouteType::ChartedPassage => "charted passage",
+            RouteType::SecretPassage => "secret passage",
+            RouteType::Webway => "webway thread",
+            RouteType::BlackShip => "black-ship lane",
+            RouteType::SmugglingLane => "smuggling lane",
+        }
+    }
+
+    #[must_use]
+    pub fn from_key(s: &str) -> Option<Self> {
+        Some(match s {
+            "stable_warp_lane" => RouteType::StableWarpLane,
+            "charted_passage" | "dangerous_passage" => RouteType::ChartedPassage,
+            "secret_passage" => RouteType::SecretPassage,
+            "webway" => RouteType::Webway,
+            "black_ship" => RouteType::BlackShip,
+            "smuggling_lane" => RouteType::SmugglingLane,
+            _ => return None,
+        })
+    }
+
     /// Canonical legend/default pattern for this route type.
     #[must_use]
     pub fn pattern(self) -> RoutePattern {
@@ -266,8 +324,6 @@ impl RouteType {
                 RoutePattern::Dashed,
                 RoutePattern::Bridge,
                 RoutePattern::Twin,
-            ],
-            RouteType::DangerousPassage => &[
                 RoutePattern::DotDash,
                 RoutePattern::Cracked,
                 RoutePattern::Staccato,
@@ -329,15 +385,7 @@ fn stable_pattern_hash(route_type: RouteType, key: &str) -> u32 {
 
 impl RouteType {
     fn pattern_key(self) -> &'static str {
-        match self {
-            RouteType::StableWarpLane => "stable_warp_lane",
-            RouteType::ChartedPassage => "charted_passage",
-            RouteType::DangerousPassage => "dangerous_passage",
-            RouteType::SecretPassage => "secret_passage",
-            RouteType::Webway => "webway",
-            RouteType::BlackShip => "black_ship",
-            RouteType::SmugglingLane => "smuggling_lane",
-        }
+        self.key()
     }
 }
 
@@ -348,46 +396,44 @@ pub enum RoutePattern {
     Dashed,
     DotDash,
     Dotted,
-    /// Short bars on short gaps — busy texture, reads as "active"
+    /// Jagged broken line, reads as unstable or damaged.
     Cracked,
-    /// Long dash / very long gap — barely-there, ghostly
+    /// Sparse low-contrast long dashes, barely-there / ghostly.
     Ghost,
-    /// Triple-burst pattern: three quick dashes then rest
+    /// Repeating cross-burst marks.
     Burst,
-    /// Zigzag rhythm: alternating long/short bars
+    /// Sawtooth / zigzag route.
     Staccato,
-    /// Fine gravel: short dash / tight gap, denser than Cracked
+    /// Dense irregular dot trail.
     Gravel,
-    /// Two thick bars separated by medium gap
+    /// Parallel twin lane.
     Twin,
-    /// Long dash / tiny gap / tiny dot / tiny gap — "triple" motif
+    /// Repeating triangular markers.
     Tripod,
-    /// Short dash / long gap — sparse tick marks
+    /// Sparse perpendicular tick marks over a faint spine.
     Tick,
-    /// Medium dash / short gap / medium dash / short gap (symmetric)
+    /// Ladder / bridge marks over a faint spine.
     Bridge,
-    /// Rapid dots: very short dash, tight gap
+    /// Hollow pip trail.
     Patter,
-    /// Long bar / short gap / long bar / very long gap (4-part cycle)
+    /// Four-dot clusters.
     Quartet,
-    /// Extra-long bars: heavy-duty look
+    /// Parallel rails with cross-ties.
     Railroad,
-    /// Two short bars with medium gap — "double-tap" rhythm
+    /// Paired perpendicular ticks.
     DoubleTap,
-    /// Tiny dots very close together — near-solid at small scale
+    /// Alternating pebble dots.
     Pebble,
-    /// Very short dash / very long gap — barely-punctuated
+    /// Very sparse small dots.
     Whisper,
-    /// Five equal dashes evenly spaced — ceremonial, regular
+    /// Repeating chevrons.
     March,
 }
 
 impl RoutePattern {
-    /// Alternating on/off run-lengths in multiples of the stroke unit.
-    /// An empty slice means a solid line.
-    /// Runs whose length is `<= 1.5` units are rendered as a dot (filled disc)
-    /// rather than a short rectangle, so dotted styles read clearly at low
-    /// thickness.
+    /// Fallback alternating on/off run-lengths in multiples of the stroke unit.
+    /// Geometric renderers use this directly for the dash/dot family and use
+    /// custom motifs for rails, ticks, chevrons, bursts, and marker trails.
     pub fn strides(self) -> &'static [f32] {
         match self {
             RoutePattern::Solid => &[],
@@ -833,17 +879,8 @@ mod tests {
 
     #[test]
     fn route_type_default_patterns_are_unique() {
-        let route_types = [
-            RouteType::StableWarpLane,
-            RouteType::ChartedPassage,
-            RouteType::DangerousPassage,
-            RouteType::SecretPassage,
-            RouteType::Webway,
-            RouteType::BlackShip,
-            RouteType::SmugglingLane,
-        ];
         let mut defaults = Vec::new();
-        for route_type in route_types {
+        for route_type in RouteType::ALL {
             let pattern = route_type.pattern();
             assert!(
                 !defaults.contains(&pattern),
@@ -855,15 +892,6 @@ mod tests {
 
     #[test]
     fn route_pattern_pools_cover_all_patterns_once() {
-        let route_types = [
-            RouteType::StableWarpLane,
-            RouteType::ChartedPassage,
-            RouteType::DangerousPassage,
-            RouteType::SecretPassage,
-            RouteType::Webway,
-            RouteType::BlackShip,
-            RouteType::SmugglingLane,
-        ];
         let all_patterns = [
             RoutePattern::Solid,
             RoutePattern::Dashed,
@@ -887,7 +915,7 @@ mod tests {
             RoutePattern::March,
         ];
         let mut seen = Vec::new();
-        for route_type in route_types {
+        for route_type in RouteType::ALL {
             for pattern in route_type.patterns() {
                 assert!(
                     !seen.contains(pattern),
@@ -900,6 +928,15 @@ mod tests {
         for pattern in all_patterns {
             assert!(seen.contains(&pattern), "{pattern:?} missing from pools");
         }
+    }
+
+    #[test]
+    fn legacy_dangerous_route_type_loads_as_charted() {
+        let route_type: RouteType = serde_json::from_str("\"dangerous_passage\"").unwrap();
+        assert_eq!(route_type, RouteType::ChartedPassage);
+
+        let route_type: RouteType = serde_json::from_str("\"DangerousPassage\"").unwrap();
+        assert_eq!(route_type, RouteType::ChartedPassage);
     }
 
     #[test]

@@ -192,9 +192,6 @@ fn edge_weight(sector: &GeneratedSector, r: &GeneratedRoute, metric: Metric) -> 
         RouteStability::Hazardous => 8.0,
         RouteStability::Perilous => f64::INFINITY,
     };
-    if matches!(r.route_type, RouteType::DangerousPassage) {
-        w += 2.0;
-    }
     if matches!(r.route_type, RouteType::SecretPassage) {
         w += 1.0;
     }
@@ -437,14 +434,13 @@ fn classify(r: &GeneratedRoute) -> (Severity, String) {
     let type_label = match r.route_type {
         RouteType::StableWarpLane => None,
         RouteType::ChartedPassage => None,
-        RouteType::DangerousPassage => Some("dangerous passage"),
         RouteType::SecretPassage => Some("secret passage"),
         RouteType::Webway => Some("webway thread"),
         RouteType::BlackShip => Some("black-ship convoy"),
         RouteType::SmugglingLane => Some("smuggling lane"),
     };
     let sev = match (r.stability, r.route_type) {
-        (RouteStability::Hazardous, _) | (_, RouteType::DangerousPassage) => Severity::Danger,
+        (RouteStability::Hazardous | RouteStability::Perilous, _) => Severity::Danger,
         (RouteStability::Unstable, _) | (_, RouteType::SecretPassage) => Severity::Caution,
         (_, RouteType::SmugglingLane) => Severity::Caution,
         (_, RouteType::Webway) | (_, RouteType::BlackShip) => Severity::Info,

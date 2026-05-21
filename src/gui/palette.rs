@@ -3,7 +3,7 @@
 //! Ported from `bitmap.rs` / `system_map.rs` so the GUI matches the PNG export
 //! aesthetic. Keep all colors here so future restyling is one-file.
 
-use egui::{Color32, Pos2, Stroke};
+use egui::{Color32, Pos2, Stroke, Vec2};
 
 use crate::sector_model::{GeneratedFaction, RoutePattern, RouteStability};
 
@@ -31,11 +31,9 @@ pub fn star_color(code: &str) -> Color32 {
     }
 }
 
-/// Renders a line from `a` to `b` using the given `pattern`. Solid patterns
-/// emit a single `line_segment`; dashed/dotted patterns walk the segment and
-/// stamp alternating on/off runs whose lengths scale with `thickness`. Short
-/// "dot" runs render as filled discs so the dotted style stays visible at
-/// thin strokes.
+/// Renders a route from `a` to `b` using the given `pattern`. Most patterns
+/// draw geometric motifs (rails, ladders, ticks, chevrons, bursts) instead of
+/// only changing dash rhythm, so route classes remain distinct on dense maps.
 pub fn draw_route_line(
     painter: &egui::Painter,
     a: Pos2,
@@ -44,27 +42,203 @@ pub fn draw_route_line(
     color: Color32,
     pattern: RoutePattern,
 ) {
-    let strides = pattern.strides();
+    let Some(geom) = RouteGeom::new(a, b, thickness) else {
+        return;
+    };
+    match pattern {
+        RoutePattern::Solid => {
+            painter.line_segment([a, b], Stroke::new(thickness, color));
+        }
+        RoutePattern::Dashed | RoutePattern::DotDash | RoutePattern::Dotted => {
+            draw_strided_route(painter, geom, color, thickness, pattern.strides());
+        }
+        RoutePattern::Cracked => {
+            draw_jagged_route(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 3.0,
+                thickness * 1.7,
+            );
+        }
+        RoutePattern::Ghost => {
+            draw_strided_route(
+                painter,
+                geom,
+                fade(color, 0.45),
+                thickness,
+                pattern.strides(),
+            );
+        }
+        RoutePattern::Burst => {
+            draw_bursts(painter, geom, color, thickness, geom.unit * 5.0);
+        }
+        RoutePattern::Staccato => {
+            draw_zigzag_route(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 3.2,
+                thickness * 1.8,
+            );
+        }
+        RoutePattern::Gravel => {
+            draw_disc_trail(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 1.55,
+                false,
+                true,
+            );
+        }
+        RoutePattern::Twin => {
+            draw_parallel_routes(painter, geom, color, thickness, thickness * 1.0);
+        }
+        RoutePattern::Tripod => {
+            draw_triangles(painter, geom, color, thickness, geom.unit * 5.0);
+        }
+        RoutePattern::Tick => {
+            draw_base_spine(painter, geom, color, thickness, 0.28);
+            draw_ticks(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 4.5,
+                thickness * 2.2,
+            );
+        }
+        RoutePattern::Bridge => {
+            draw_strided_route(
+                painter,
+                geom,
+                fade(color, 0.55),
+                thickness * 0.8,
+                &[3.0, 2.0],
+            );
+            draw_ticks(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 5.0,
+                thickness * 1.8,
+            );
+        }
+        RoutePattern::Patter => {
+            draw_disc_trail(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 2.2,
+                true,
+                false,
+            );
+        }
+        RoutePattern::Quartet => {
+            draw_dot_clusters(painter, geom, color, thickness, geom.unit * 8.0, 4);
+        }
+        RoutePattern::Railroad => {
+            let offset = thickness * 1.25;
+            draw_parallel_routes(painter, geom, color, thickness * 0.8, offset);
+            draw_ticks(
+                painter,
+                geom,
+                color,
+                thickness * 0.75,
+                geom.unit * 5.5,
+                offset * 1.15,
+            );
+        }
+        RoutePattern::DoubleTap => {
+            draw_double_taps(painter, geom, color, thickness, geom.unit * 7.0);
+        }
+        RoutePattern::Pebble => {
+            draw_disc_trail(
+                painter,
+                geom,
+                color,
+                thickness,
+                geom.unit * 2.6,
+                false,
+                true,
+            );
+        }
+        RoutePattern::Whisper => {
+            draw_disc_trail(
+                painter,
+                geom,
+                fade(color, 0.7),
+                thickness,
+                geom.unit * 7.0,
+                false,
+                false,
+            );
+        }
+        RoutePattern::March => {
+            draw_chevrons(painter, geom, color, thickness, geom.unit * 5.5);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RouteGeom {
+    a: Pos2,
+    b: Pos2,
+    dir: Vec2,
+    normal: Vec2,
+    total: f32,
+    unit: f32,
+}
+
+impl RouteGeom {
+    fn new(a: Pos2, b: Pos2, thickness: f32) -> Option<Self> {
+        let delta = b - a;
+        let total = delta.length();
+        if total <= 0.0 {
+            return None;
+        }
+        let dir = delta / total;
+        Some(Self {
+            a,
+            b,
+            dir,
+            normal: Vec2::new(-dir.y, dir.x),
+            total,
+            unit: thickness.max(2.0),
+        })
+    }
+
+    fn at(self, t: f32, offset: f32) -> Pos2 {
+        self.a + self.dir * t.clamp(0.0, self.total) + self.normal * offset
+    }
+}
+
+fn draw_strided_route(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    strides: &[f32],
+) {
     if strides.is_empty() {
-        painter.line_segment([a, b], Stroke::new(thickness, color));
+        painter.line_segment([geom.a, geom.b], Stroke::new(thickness, color));
         return;
     }
-    let unit = thickness.max(2.0);
-    let delta = b - a;
-    let total = delta.length();
-    if total <= 0.0 {
-        return;
-    }
-    let dir = delta / total;
     let mut t = 0.0_f32;
     let mut idx: usize = 0;
-    while t < total {
+    while t < geom.total {
         let stride = strides[idx % strides.len()];
-        let seg = stride * unit;
-        let next_t = (t + seg).min(total);
+        let seg = stride * geom.unit;
+        let next_t = (t + seg).min(geom.total);
         if idx.is_multiple_of(2) {
-            let p0 = a + dir * t;
-            let p1 = a + dir * next_t;
+            let p0 = geom.at(t, 0.0);
+            let p1 = geom.at(next_t, 0.0);
             if stride <= 1.5 {
                 let mid = p0 + (p1 - p0) * 0.5;
                 painter.circle_filled(mid, thickness * 0.6, color);
@@ -75,6 +249,252 @@ pub fn draw_route_line(
         t = next_t;
         idx += 1;
     }
+}
+
+fn draw_parallel_routes(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    offset: f32,
+) {
+    for side in [-offset, offset] {
+        painter.line_segment(
+            [geom.at(0.0, side), geom.at(geom.total, side)],
+            Stroke::new(thickness, color),
+        );
+    }
+}
+
+fn draw_base_spine(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    alpha: f32,
+) {
+    painter.line_segment(
+        [geom.a, geom.b],
+        Stroke::new((thickness * 0.7).max(1.0), fade(color, alpha)),
+    );
+}
+
+fn draw_ticks(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+    half_len: f32,
+) {
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let mid = geom.at(t, 0.0);
+        painter.line_segment(
+            [mid - geom.normal * half_len, mid + geom.normal * half_len],
+            Stroke::new((thickness * 0.75).max(1.0), color),
+        );
+        t += spacing;
+    }
+}
+
+fn draw_jagged_route(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+    amplitude: f32,
+) {
+    let mut prev = geom.a;
+    let mut t = spacing;
+    let mut sign = 1.0;
+    while t < geom.total {
+        let next = geom.at(t, amplitude * sign);
+        painter.line_segment([prev, next], Stroke::new(thickness, color));
+        prev = next;
+        t += spacing;
+        sign = -sign;
+    }
+    painter.line_segment([prev, geom.b], Stroke::new(thickness, color));
+}
+
+fn draw_zigzag_route(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+    amplitude: f32,
+) {
+    let mut prev = geom.at(0.0, -amplitude);
+    let mut t = spacing * 0.5;
+    let mut sign = 1.0;
+    while t < geom.total {
+        let next = geom.at(t, amplitude * sign);
+        painter.line_segment([prev, next], Stroke::new(thickness, color));
+        prev = next;
+        t += spacing;
+        sign = -sign;
+    }
+    painter.line_segment(
+        [prev, geom.at(geom.total, -amplitude * sign)],
+        Stroke::new(thickness, color),
+    );
+}
+
+fn draw_disc_trail(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+    hollow: bool,
+    alternating: bool,
+) {
+    let mut t = spacing * 0.5;
+    let mut i = 0usize;
+    while t < geom.total {
+        let radius = if alternating && i.is_multiple_of(2) {
+            thickness * 0.85
+        } else {
+            thickness * 0.55
+        }
+        .max(1.0);
+        let mid = geom.at(t, 0.0);
+        if hollow {
+            painter.circle_stroke(mid, radius, Stroke::new((thickness * 0.45).max(1.0), color));
+        } else {
+            painter.circle_filled(mid, radius, color);
+        }
+        t += spacing;
+        i += 1;
+    }
+}
+
+fn draw_dot_clusters(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+    count: usize,
+) {
+    let dot_gap = geom.unit * 1.25;
+    let radius = (thickness * 0.55).max(1.0);
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let center = (count as f32 - 1.0) * 0.5;
+        for i in 0..count {
+            let local = (i as f32 - center) * dot_gap;
+            painter.circle_filled(geom.at(t + local, 0.0), radius, color);
+        }
+        t += spacing;
+    }
+}
+
+fn draw_double_taps(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+) {
+    let pair_gap = geom.unit * 1.3;
+    let half = thickness * 1.8;
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        for local in [-pair_gap * 0.5, pair_gap * 0.5] {
+            let mid = geom.at(t + local, 0.0);
+            painter.line_segment(
+                [mid - geom.normal * half, mid + geom.normal * half],
+                Stroke::new((thickness * 0.8).max(1.0), color),
+            );
+        }
+        t += spacing;
+    }
+}
+
+fn draw_chevrons(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+) {
+    let size = geom.unit * 1.8;
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let tip = geom.at(t + size * 0.35, 0.0);
+        let back = geom.at(t - size * 0.35, 0.0);
+        painter.line_segment(
+            [back + geom.normal * size * 0.35, tip],
+            Stroke::new(thickness, color),
+        );
+        painter.line_segment(
+            [back - geom.normal * size * 0.35, tip],
+            Stroke::new(thickness, color),
+        );
+        t += spacing;
+    }
+}
+
+fn draw_triangles(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+) {
+    let size = (geom.unit * 1.7).max(thickness * 2.0);
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let tip = geom.at(t + size * 0.45, 0.0);
+        let base = geom.at(t - size * 0.35, 0.0);
+        painter.add(egui::Shape::convex_polygon(
+            vec![
+                tip,
+                base + geom.normal * size * 0.38,
+                base - geom.normal * size * 0.38,
+            ],
+            color,
+            Stroke::NONE,
+        ));
+        t += spacing;
+    }
+}
+
+fn draw_bursts(
+    painter: &egui::Painter,
+    geom: RouteGeom,
+    color: Color32,
+    thickness: f32,
+    spacing: f32,
+) {
+    let radius = (thickness * 1.6).max(2.0);
+    let mut t = spacing * 0.5;
+    while t < geom.total {
+        let mid = geom.at(t, 0.0);
+        painter.line_segment(
+            [mid - geom.dir * radius, mid + geom.dir * radius],
+            Stroke::new((thickness * 0.65).max(1.0), color),
+        );
+        painter.line_segment(
+            [mid - geom.normal * radius, mid + geom.normal * radius],
+            Stroke::new((thickness * 0.65).max(1.0), color),
+        );
+        painter.circle_filled(mid, (thickness * 0.45).max(1.0), color);
+        t += spacing;
+    }
+}
+
+fn fade(color: Color32, alpha: f32) -> Color32 {
+    Color32::from_rgba_unmultiplied(
+        color.r(),
+        color.g(),
+        color.b(),
+        ((color.a() as f32) * alpha).round().clamp(0.0, 255.0) as u8,
+    )
 }
 
 pub fn stability_color(s: RouteStability) -> Color32 {

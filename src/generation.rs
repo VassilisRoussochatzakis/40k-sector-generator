@@ -1524,12 +1524,12 @@ fn classify_route(
     let has = |tag: &str| tags.iter().any(|t| t.as_str() == tag);
     if has("feature:warp_phenomena") || has("feature:daemonic_corruption") {
         if dist >= max_dist - 2 && dist < max_dist {
-            return (RouteType::DangerousPassage, RouteStability::Perilous);
+            return (RouteType::ChartedPassage, RouteStability::Perilous);
         }
-        return (RouteType::DangerousPassage, RouteStability::Hazardous);
+        return (RouteType::ChartedPassage, RouteStability::Hazardous);
     }
     if has("feature:war_zone") {
-        return (RouteType::DangerousPassage, RouteStability::Perilous);
+        return (RouteType::ChartedPassage, RouteStability::Perilous);
     }
     if dist >= max_dist {
         return (RouteType::ChartedPassage, RouteStability::Unstable);

@@ -131,7 +131,7 @@ function draw(){
 
   // Routes.
   if (state.showRoutes){
-    ctx.lineWidth = Math.max(2, state.hexSize*0.08);
+    const routeWidth = Math.max(2, state.hexSize*0.08);
     for (const r of SECTOR.routes){
       const a = systemById[r.from_system_id];
       const b = systemById[r.to_system_id];
@@ -139,10 +139,12 @@ function draw(){
       if (factionFiltered(a) || factionFiltered(b)) continue;
       const [ax,ay] = hexCenter(a.coord.q, a.coord.r);
       const [bx,by] = hexCenter(b.coord.q, b.coord.r);
-      ctx.strokeStyle = STABILITY_COLORS[r.stability] || THEME.text;
-      ctx.setLineDash(dashesForRoute(r));
-      ctx.beginPath();
-      ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+      drawRoutePattern(
+        ax, ay, bx, by,
+        STABILITY_COLORS[r.stability] || THEME.text,
+        routeWidth,
+        patternForRoute(r)
+      );
     }
     ctx.setLineDash([]);
   }
@@ -189,7 +191,8 @@ function drawHex(cx, cy, fill, outline){
 const ROUTE_TYPE_ALIASES = {
   StableWarpLane:"stable_warp_lane",
   ChartedPassage:"charted_passage",
-  DangerousPassage:"dangerous_passage",
+  DangerousPassage:"charted_passage",
+  dangerous_passage:"charted_passage",
   SecretPassage:"secret_passage",
   Webway:"webway",
   BlackShip:"black_ship",
@@ -197,8 +200,7 @@ const ROUTE_TYPE_ALIASES = {
 };
 const ROUTE_PATTERN_POOLS = {
   stable_warp_lane:["Solid","Railroad","March"],
-  charted_passage:["Dashed","Bridge","Twin"],
-  dangerous_passage:["DotDash","Cracked","Staccato"],
+  charted_passage:["Dashed","Bridge","Twin","DotDash","Cracked","Staccato"],
   secret_passage:["Dotted","Tick","Whisper"],
   webway:["Burst","Tripod","Patter"],
   black_ship:["Quartet","DoubleTap"],
@@ -228,7 +230,7 @@ const ROUTE_PATTERN_STRIDES = {
 };
 const ROUTE_TEXT_ENCODER = new TextEncoder();
 
-function dashesForRoute(route){
+function patternForRoute(route){
   const routeType = routeTypeKey(route.route_type);
   const pool = ROUTE_PATTERN_POOLS[routeType] || ROUTE_PATTERN_POOLS.charted_passage;
   const salt = SECTOR.seed || SECTOR.id || "";
@@ -240,9 +242,7 @@ function dashesForRoute(route){
     route.distance || 0,
     stabilityKey(route.stability),
   ].join("\0");
-  const pattern = pool[stableRoutePatternHash(routeType, key) % pool.length];
-  const unit = Math.max(2, ctx.lineWidth || 2);
-  return (ROUTE_PATTERN_STRIDES[pattern] || []).map(v => v * unit);
+  return pool[stableRoutePatternHash(routeType, key) % pool.length];
 }
 
 function routeTypeKey(routeType){
@@ -273,6 +273,298 @@ function fnvFeed(hash, text){
 function fnvFeedByte(hash, byte){
   hash ^= byte;
   return Math.imul(hash, 16777619) >>> 0;
+}
+
+function drawRoutePattern(x0, y0, x1, y1, color, width, pattern){
+  const g = routeGeom(x0, y0, x1, y1, width);
+  if (!g) return;
+  switch (pattern){
+    case "Solid":
+      drawRouteSolid(g, color, width);
+      break;
+    case "Dashed":
+    case "DotDash":
+    case "Dotted":
+      drawRouteStrides(g, color, width, ROUTE_PATTERN_STRIDES[pattern] || []);
+      break;
+    case "Cracked":
+      drawRouteJagged(g, color, width, g.unit*3.0, width*1.7);
+      break;
+    case "Ghost":
+      drawRouteStrides(g, color, width, ROUTE_PATTERN_STRIDES[pattern] || [], 0.45);
+      break;
+    case "Burst":
+      drawRouteBursts(g, color, width, g.unit*5.0);
+      break;
+    case "Staccato":
+      drawRouteZigzag(g, color, width, g.unit*3.2, width*1.8);
+      break;
+    case "Gravel":
+      drawRouteDots(g, color, width, g.unit*1.55, false, true);
+      break;
+    case "Twin":
+      drawRouteParallel(g, color, width, width);
+      break;
+    case "Tripod":
+      drawRouteTriangles(g, color, width, g.unit*5.0);
+      break;
+    case "Tick":
+      drawRouteSpine(g, color, width, 0.28);
+      drawRouteTicks(g, color, width, g.unit*4.5, width*2.2);
+      break;
+    case "Bridge":
+      drawRouteStrides(g, color, width*0.8, [3,2], 0.55);
+      drawRouteTicks(g, color, width, g.unit*5.0, width*1.8);
+      break;
+    case "Patter":
+      drawRouteDots(g, color, width, g.unit*2.2, true, false);
+      break;
+    case "Quartet":
+      drawRouteDotClusters(g, color, width, g.unit*8.0, 4);
+      break;
+    case "Railroad": {
+      const offset = width*1.25;
+      drawRouteParallel(g, color, width*0.8, offset);
+      drawRouteTicks(g, color, width*0.75, g.unit*5.5, offset*1.15);
+      break;
+    }
+    case "DoubleTap":
+      drawRouteDoubleTaps(g, color, width, g.unit*7.0);
+      break;
+    case "Pebble":
+      drawRouteDots(g, color, width, g.unit*2.6, false, true);
+      break;
+    case "Whisper":
+      drawRouteDots(g, color, width, g.unit*7.0, false, false, 0.7);
+      break;
+    case "March":
+      drawRouteChevrons(g, color, width, g.unit*5.5);
+      break;
+    default:
+      drawRouteStrides(g, color, width, ROUTE_PATTERN_STRIDES[pattern] || []);
+  }
+}
+
+function routeGeom(x0, y0, x1, y1, width){
+  const dx = x1-x0, dy = y1-y0;
+  const total = Math.hypot(dx, dy);
+  if (total <= 0) return null;
+  const ux = dx/total, uy = dy/total;
+  return {x0,y0,x1,y1,total,ux,uy,nx:-uy,ny:ux,unit:Math.max(2,width)};
+}
+
+function routePoint(g, t, off=0){
+  const tt = Math.max(0, Math.min(g.total, t));
+  return [g.x0 + g.ux*tt + g.nx*off, g.y0 + g.uy*tt + g.ny*off];
+}
+
+function withRouteStroke(color, width, alpha, fn){
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1, width);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.globalAlpha *= alpha == null ? 1 : alpha;
+  ctx.setLineDash([]);
+  fn();
+  ctx.restore();
+}
+
+function drawRouteSolid(g, color, width){
+  withRouteStroke(color, width, 1, () => {
+    ctx.beginPath();
+    ctx.moveTo(g.x0,g.y0);
+    ctx.lineTo(g.x1,g.y1);
+    ctx.stroke();
+  });
+}
+
+function drawRouteStrides(g, color, width, strides, alpha=1){
+  if (!strides.length){
+    withRouteStroke(color, width, alpha, () => {
+      ctx.beginPath();
+      ctx.moveTo(g.x0,g.y0);
+      ctx.lineTo(g.x1,g.y1);
+      ctx.stroke();
+    });
+    return;
+  }
+  withRouteStroke(color, width, alpha, () => {
+    const dash = strides.map(v => v*g.unit);
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    ctx.moveTo(g.x0,g.y0);
+    ctx.lineTo(g.x1,g.y1);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+
+function drawRouteParallel(g, color, width, offset){
+  withRouteStroke(color, width, 1, () => {
+    for (const side of [-offset, offset]){
+      const a = routePoint(g, 0, side);
+      const b = routePoint(g, g.total, side);
+      ctx.beginPath();
+      ctx.moveTo(a[0],a[1]);
+      ctx.lineTo(b[0],b[1]);
+      ctx.stroke();
+    }
+  });
+}
+
+function drawRouteSpine(g, color, width, alpha){
+  drawRouteStrides(g, color, Math.max(1, width*0.7), [], alpha);
+}
+
+function drawRouteTicks(g, color, width, spacing, halfLen){
+  withRouteStroke(color, width*0.75, 1, () => {
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const p = routePoint(g, t, 0);
+      ctx.beginPath();
+      ctx.moveTo(p[0]-g.nx*halfLen, p[1]-g.ny*halfLen);
+      ctx.lineTo(p[0]+g.nx*halfLen, p[1]+g.ny*halfLen);
+      ctx.stroke();
+    }
+  });
+}
+
+function drawRouteJagged(g, color, width, spacing, amp){
+  withRouteStroke(color, width, 1, () => {
+    let prev = [g.x0,g.y0], sign = 1;
+    for (let t=spacing; t<g.total; t+=spacing){
+      const p = routePoint(g, t, amp*sign);
+      ctx.beginPath();
+      ctx.moveTo(prev[0],prev[1]);
+      ctx.lineTo(p[0],p[1]);
+      ctx.stroke();
+      prev = p;
+      sign = -sign;
+    }
+    ctx.beginPath();
+    ctx.moveTo(prev[0],prev[1]);
+    ctx.lineTo(g.x1,g.y1);
+    ctx.stroke();
+  });
+}
+
+function drawRouteZigzag(g, color, width, spacing, amp){
+  withRouteStroke(color, width, 1, () => {
+    let prev = routePoint(g, 0, -amp), sign = 1;
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const p = routePoint(g, t, amp*sign);
+      ctx.beginPath();
+      ctx.moveTo(prev[0],prev[1]);
+      ctx.lineTo(p[0],p[1]);
+      ctx.stroke();
+      prev = p;
+      sign = -sign;
+    }
+    const end = routePoint(g, g.total, -amp*sign);
+    ctx.beginPath();
+    ctx.moveTo(prev[0],prev[1]);
+    ctx.lineTo(end[0],end[1]);
+    ctx.stroke();
+  });
+}
+
+function drawRouteDots(g, color, width, spacing, hollow, alternating, alpha=1){
+  withRouteStroke(color, width, alpha, () => {
+    let i = 0;
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const p = routePoint(g, t, 0);
+      const r = Math.max(1, width*(alternating && i%2===0 ? 0.85 : 0.55));
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], r, 0, Math.PI*2);
+      if (hollow) ctx.stroke(); else ctx.fill();
+      i++;
+    }
+  });
+}
+
+function drawRouteDotClusters(g, color, width, spacing, count){
+  withRouteStroke(color, width, 1, () => {
+    const dotGap = g.unit*1.25;
+    const r = Math.max(1, width*0.55);
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const center = (count-1)*0.5;
+      for (let i=0; i<count; i++){
+        const p = routePoint(g, t + (i-center)*dotGap, 0);
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], r, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  });
+}
+
+function drawRouteDoubleTaps(g, color, width, spacing){
+  const pairGap = g.unit*1.3;
+  const half = width*1.8;
+  withRouteStroke(color, width*0.8, 1, () => {
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      for (const local of [-pairGap*0.5, pairGap*0.5]){
+        const p = routePoint(g, t+local, 0);
+        ctx.beginPath();
+        ctx.moveTo(p[0]-g.nx*half, p[1]-g.ny*half);
+        ctx.lineTo(p[0]+g.nx*half, p[1]+g.ny*half);
+        ctx.stroke();
+      }
+    }
+  });
+}
+
+function drawRouteChevrons(g, color, width, spacing){
+  const size = g.unit*1.8;
+  withRouteStroke(color, width, 1, () => {
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const tip = routePoint(g, t+size*0.35, 0);
+      const back = routePoint(g, t-size*0.35, 0);
+      ctx.beginPath();
+      ctx.moveTo(back[0]+g.nx*size*0.35, back[1]+g.ny*size*0.35);
+      ctx.lineTo(tip[0], tip[1]);
+      ctx.moveTo(back[0]-g.nx*size*0.35, back[1]-g.ny*size*0.35);
+      ctx.lineTo(tip[0], tip[1]);
+      ctx.stroke();
+    }
+  });
+}
+
+function drawRouteTriangles(g, color, width, spacing){
+  const size = Math.max(g.unit*1.7, width*2);
+  withRouteStroke(color, width, 1, () => {
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const tip = routePoint(g, t+size*0.45, 0);
+      const base = routePoint(g, t-size*0.35, 0);
+      ctx.beginPath();
+      ctx.moveTo(tip[0], tip[1]);
+      ctx.lineTo(base[0]+g.nx*size*0.38, base[1]+g.ny*size*0.38);
+      ctx.lineTo(base[0]-g.nx*size*0.38, base[1]-g.ny*size*0.38);
+      ctx.closePath();
+      ctx.fill();
+    }
+  });
+}
+
+function drawRouteBursts(g, color, width, spacing){
+  const radius = Math.max(2, width*1.6);
+  withRouteStroke(color, width*0.65, 1, () => {
+    for (let t=spacing*0.5; t<g.total; t+=spacing){
+      const p = routePoint(g, t, 0);
+      const a = routePoint(g, t-radius, 0);
+      const b = routePoint(g, t+radius, 0);
+      ctx.beginPath();
+      ctx.moveTo(a[0],a[1]);
+      ctx.lineTo(b[0],b[1]);
+      ctx.moveTo(p[0]-g.nx*radius, p[1]-g.ny*radius);
+      ctx.lineTo(p[0]+g.nx*radius, p[1]+g.ny*radius);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], Math.max(1,width*0.45), 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
 }
 
 function darken(hex, amt){

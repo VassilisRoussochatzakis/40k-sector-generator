@@ -1001,6 +1001,19 @@ are:
 | `inquisition_redacted` | Classified red/black briefing style |
 | `subsector_political` | Strong subsector borders and faction tinting |
 
+Route visuals are also presentation-only. The generator chooses a deterministic
+`RoutePattern` from each route type's pattern family, salted by sector seed and
+route id. GUI, PNG, and HTML maps render those patterns with distinct geometry:
+solid lines, rails, ladders, twin lanes, ticks, chevrons, jagged / zigzag lanes,
+dot clusters, bursts, hollow pips, and triangle markers. This makes dense route
+graphs easier to scan than dash-length variation alone.
+
+Active route types are `StableWarpLane`, `ChartedPassage`, `SecretPassage`,
+`Webway`, `BlackShip`, and `SmugglingLane`. GUI and PNG legends plus the route
+editor dropdown use this same set; route danger is represented by
+`RouteStability` (`Stable`, `Unstable`, `Hazardous`, `Perilous`), not by a
+separate route type.
+
 For compatibility with the proposal syntax, a top-level `[map_theme]` table is
 also accepted and merged into `[outputs.bitmap.theme]`.
 
@@ -1399,7 +1412,8 @@ built with egui + eframe. It exposes the following views via the top
 navigation bar:
 
 - **Sector** — hex map with zoom/pan, colored by primary star colour,
-  faction tint, subsector overlay, and a translucent warp-region tint
+  faction tint, subsector overlay, deterministic route-pattern geometry,
+  and a translucent warp-region tint
   (§5) for every hex covered by a `WarpRegion`. Click a hex to drill into
   the system. The bottom controls expose a **HEATMAP** dropdown that
   tints every system hex by a per-mode score: `CONTROL` (dominant-faction
@@ -1436,8 +1450,8 @@ navigation bar:
   the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
-  weights — avoid Unstable / Hazardous / Dangerous) or `Shortest` (BFS over
-  hop count). `Perilous` routes are always impassable.
+  weights — avoid `Unstable` / `Hazardous`; `Perilous` routes are impassable)
+  or `Shortest` (BFS over hop count).
 - **Diplomacy** (§5 NEW2.md/DONE) — table view of
   `sector.relations.pairs`: every faction pair with public/secret
   attitudes, treaty status, tension scalar, and cause text. Backed by

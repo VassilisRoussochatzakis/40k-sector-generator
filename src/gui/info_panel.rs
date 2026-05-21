@@ -94,31 +94,8 @@ pub fn sector_overview_with_buckets(
     ui.add_space(8.0);
 
     section(ui, "ROUTE TYPE");
-    for (rtype, name) in [
-        (
-            crate::sector_model::RouteType::StableWarpLane,
-            "STABLE WARP LANE",
-        ),
-        (
-            crate::sector_model::RouteType::ChartedPassage,
-            "CHARTED PASSAGE",
-        ),
-        (
-            crate::sector_model::RouteType::DangerousPassage,
-            "DANGEROUS PASSAGE",
-        ),
-        (
-            crate::sector_model::RouteType::SecretPassage,
-            "SECRET PASSAGE",
-        ),
-        (crate::sector_model::RouteType::Webway, "WEBWAY THREAD"),
-        (crate::sector_model::RouteType::BlackShip, "BLACK-SHIP LANE"),
-        (
-            crate::sector_model::RouteType::SmugglingLane,
-            "SMUGGLING LANE",
-        ),
-    ] {
-        legend_route_row(ui, TEXT, rtype.pattern(), name);
+    for rtype in crate::sector_model::RouteType::ALL {
+        legend_route_row(ui, TEXT, rtype.pattern(), rtype.label());
     }
     ui.add_space(8.0);
 

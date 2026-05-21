@@ -57,8 +57,8 @@ pub fn write_system_maps(
     let systems_dir = output_dir.join("systems");
     fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
     for sys in &sector.systems {
-        let path = systems_dir.join(format!("{}.png", sys.id));
-        let img = render_system(sys, &sector.factions, scale, opts.clone());
+        let path = systems_dir.join(format!("{}.png", sys.1.id));
+        let img = render_system(sys.1, &sector.factions, scale, opts.clone());
         save_png_fast(&img, &path)?;
     }
     Ok(())
@@ -124,7 +124,7 @@ fn render_system(
     scale: u32,
     opts: SystemRenderOptions,
 ) -> RgbaImage {
-    let max_orbit = i32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0));
+    let max_orbit = i32::from(sector.get_worlds_for_system(sys).iter().map(|w| w.orbit).max().unwrap_or(0));
     let g = SysGeom::new(scale, max_orbit);
     let total_w = g.side + g.legend_w;
     let total_h = g.side;
@@ -151,7 +151,7 @@ fn render_system(
     draw_circle(&mut img, cx, cy, g.star_r, darken(star, 0.55));
 
     // Planets.
-    for w in &sys.worlds {
+    for w in &sector.get_worlds_for_system(sys) {
         let orbit = i32::from(w.orbit.max(1));
         let r = g.orbit_base + (orbit - 1) * g.orbit_step;
         let a = orbit_angle(w.index, orbit).to_radians();
@@ -277,7 +277,7 @@ fn draw_legend(
     // Worlds: orbit + name + type, with a per-type color swatch.
     draw_text(img, x0, y, "WORLDS", theme.text, body);
     y += g.line_h;
-    for w in &sys.worlds {
+    for w in &sector.get_worlds_for_system(sys) {
         let color = world_type_color(&w.world.world_type);
         fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, color);
         draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(color, 0.5));
@@ -294,7 +294,7 @@ fn draw_legend(
 
     // Distinct world-type legend (so the color coding is unambiguous).
     let mut seen: Vec<&str> = Vec::new();
-    for w in &sys.worlds {
+    for w in &sector.get_worlds_for_system(sys) {
         let t = w.world.world_type.as_str();
         if !seen.contains(&t) {
             seen.push(t);

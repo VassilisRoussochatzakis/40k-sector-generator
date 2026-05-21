@@ -1182,7 +1182,7 @@ fn build_cooccurrence(sector: &GeneratedSector) -> BTreeMap<(String, String), Co
         // pair in the system.
         if let Some(crate::sector_model::SystemState::Warzone) = sys.control.state {
             let mut sys_ids: BTreeSet<&str> = BTreeSet::new();
-            for w in &sys.worlds {
+            for w in sector.get_worlds_for_system(sys) {
                 for p in &w.factions {
                     sys_ids.insert(p.faction_id.as_str());
                 }

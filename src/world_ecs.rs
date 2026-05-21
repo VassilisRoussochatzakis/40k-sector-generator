@@ -107,25 +107,25 @@ pub fn build(sector: &GeneratedSector) -> EntityWorld {
     };
 
     let mut system_eids: BTreeMap<crate::ids::SystemId, EntityId> = BTreeMap::new();
-    for sys in &sector.systems {
+    for sys in sector.systems.values() {
         let eid = alloc(&mut w, &sys.id, EntityKind::System);
         system_eids.insert(sys.id.clone(), eid);
     }
-    for sys in &sector.systems {
+    for sys in sector.systems.values() {
         let sys_eid = system_eids[&sys.id];
-        let mut world_eids: Vec<EntityId> = Vec::with_capacity(sys.worlds.len());
-        for wld in &sys.worlds {
-            let weid = alloc(&mut w, &wld.id, EntityKind::World);
-            world_eids.push(weid);
-            w.world_components.insert(
-                weid,
+        let worlds = sector.get_worlds_for_system(sys);
+        let mut world_eids: Vec<EntityId> = Vec::with_capacity(worlds.len());
+        for w in worlds {
+            let eid = alloc(&mut w_ecs, &w.id, EntityKind::World);
+            world_eids.push(eid);
+            w_ecs.world_components.insert(
+                eid,
                 WorldComponents {
-                    id: wld.id.clone(),
+                    id: w.id.clone(),
                     system_entity: sys_eid,
-                    dominant: wld.control.dominant.clone(),
-                    contested: wld.control.contested,
-                    presences: wld
-                        .factions
+                    dominant: w.control.dominant.clone(),
+                    contested: w.control.contested,
+                    presences: w.factions
                         .iter()
                         .map(|p| {
                             (

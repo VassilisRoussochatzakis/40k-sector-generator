@@ -178,7 +178,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
     let mut out: Vec<Persona> = Vec::new();
     let mut used_names: BTreeSet<String> = BTreeSet::new();
 
-    for sys in &sector.systems {
+    for sys in sector.systems.values() {
         // System-slot personae.
         let max_per_system = cfg.max_per_system as usize;
         for (sys_count, (slot, faction_id)) in system_slot_factions(sys).into_iter().enumerate() {
@@ -203,7 +203,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
         }
 
         // World personae.
-        for world in &sys.worlds {
+        for world in sector.get_worlds_for_system(sys) {
             let mut world_count = 0u32;
             for p in &world.factions {
                 if world_count >= cfg.max_per_world {

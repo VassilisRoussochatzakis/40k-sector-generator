@@ -7,8 +7,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use egui::{Color32, RichText, TopBottomPanel};
-
 use crate::gui::dashboard::DashboardState;
 use crate::gui::data_editor::DataEditor;
 use crate::gui::editor::state::EditorState;
@@ -20,7 +18,6 @@ use crate::subsectors::Subsector;
 
 use super::{dashboard, editor, factions_overview, info_panel, palette, preset_gallery};
 use crate::gui::segmentum_view::SegmentumBundle;
-use crate::gui::system_view::SystemSelection;
 
 mod types;
 pub use types::*;
@@ -34,8 +31,14 @@ mod sector_view;
 mod segmentum;
 mod system_view;
 mod ui_helpers;
+mod layout;
 
 mod export_ui;
+mod factions_view;
+mod regions_view;
+mod relations_view;
+mod trade_view;
+
 
 pub const TEXT: egui::Color32 = palette::TEXT;
 pub const TEXT_DIM: egui::Color32 = palette::TEXT_DIM;
@@ -157,149 +160,8 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ui_helpers::apply_theme(ctx);
 
-        TopBottomPanel::top("top_bar")
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(6.0),
-            )
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    if ui
-                        .selectable_label(matches!(self.view, View::Sector), "SECTOR")
-                        .clicked()
-                    {
-                        self.view = View::Sector;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::System { .. }), "SYSTEM")
-                        .clicked()
-                    {
-                        if let Some(id) = self.sector_selected.clone() {
-                            self.view = View::System {
-                                system_id: id,
-                                selection: SystemSelection::None,
-                            };
-                        }
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Segmentum), "SEGMENTUM")
-                        .clicked()
-                    {
-                        self.view = View::Segmentum;
-                    }
-                    ui.separator();
-                    if ui
-                        .selectable_label(matches!(self.view, View::Dashboard), "DASHBOARD")
-                        .clicked()
-                    {
-                        self.view = View::Dashboard;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Factions), "FACTIONS")
-                        .clicked()
-                    {
-                        self.view = View::Factions;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Relations), "RELATIONS")
-                        .clicked()
-                    {
-                        self.view = View::Relations;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Trade), "TRADE")
-                        .clicked()
-                    {
-                        self.view = View::Trade;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::History), "HISTORY")
-                        .clicked()
-                    {
-                        self.view = View::History;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Regions), "REGIONS")
-                        .clicked()
-                    {
-                        self.view = View::Regions;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Planner), "PLANNER")
-                        .clicked()
-                    {
-                        self.view = View::Planner;
-                    }
-
-                    ui.separator();
-                    if ui
-                        .selectable_label(matches!(self.view, View::Edit), "EDIT-MAP")
-                        .clicked()
-                    {
-                        self.view = View::Edit;
-                    }
-                    if ui
-                        .selectable_label(matches!(self.view, View::Data), "DATA-RAW")
-                        .clicked()
-                    {
-                        self.view = View::Data;
-                    }
-
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("NEW").clicked() {
-                            self.preset_gallery.open = true;
-                        }
-                        if ui.button("OPEN").clicked() {
-                            self.open_sector_dialog();
-                        }
-                        if ui
-                            .add_enabled(self.sector.is_some(), egui::Button::new("SAVE"))
-                            .clicked()
-                        {
-                            self.save_sector_to_source();
-                        }
-                        if ui
-                            .add_enabled(self.sector.is_some(), egui::Button::new("EXPORT"))
-                            .clicked()
-                        {
-                            self.pending_export = Some(PendingExport::SectorPng);
-                        }
-                        if ui
-                            .add_enabled(self.sector.is_some(), egui::Button::new("EXPORT BUNDLE"))
-                            .clicked()
-                        {
-                            self.export_sector_json(ctx);
-                        }
-
-                        if !self.export_status.is_empty() {
-                            ui.label(
-                                RichText::new(&self.export_status)
-                                    .color(Color32::from_rgb(235, 200, 90))
-                                    .monospace(),
-                            );
-                        }
-                    });
-                });
-            });
-
-        match self.view.clone() {
-            View::Sector => self.draw_sector_layout(ctx),
-            View::System {
-                system_id,
-                selection,
-            } => self.draw_system_layout(ctx, &system_id, selection),
-            View::Edit => self.draw_edit_layout(ctx),
-            View::Data => self.draw_data_layout(ctx),
-            View::Planner => self.draw_planner_layout(ctx),
-            View::Dashboard => self.draw_dashboard_layout(ctx),
-            View::Factions => self.draw_factions_layout(ctx),
-            View::Relations => self.draw_relations_layout(ctx),
-            View::Regions => self.draw_regions_layout(ctx),
-            View::Trade => self.draw_trade_layout(ctx),
-            View::History => self.draw_history_layout(ctx),
-            View::Segmentum => self.draw_segmentum_layout(ctx),
-        }
+        layout::draw_top_bar(self, ctx);
+        layout::draw_main_view(self, ctx);
 
         self.draw_preset_gallery(ctx);
         self.draw_export_dialog(ctx);

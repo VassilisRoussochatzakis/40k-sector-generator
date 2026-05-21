@@ -60,7 +60,7 @@ impl FactionDef {
     pub fn top_faction_name(&self) -> String {
         self.faction_name
             .clone()
-            .unwrap_or_else(|| legacy_top_faction_name(&self.kind))
+            .unwrap_or_else(|| legacy_top_faction_name(&self.kind).into_owned())
     }
 
     #[must_use]
@@ -74,8 +74,7 @@ impl FactionDef {
     pub fn subfaction_name(&self) -> String {
         self.subfaction_name
             .clone()
-            .unwrap_or_else(|| display_name_from_id(&self.kind))
-    }
+            .unwrap_or_else(|| display_name_from_id(&self.kind).into_owned())    }
 }
 
 #[must_use]
@@ -118,55 +117,57 @@ pub fn legacy_top_faction_id(kind: &str) -> String {
 }
 
 #[must_use]
-pub fn legacy_top_faction_name(kind: &str) -> String {
+pub fn legacy_top_faction_name(kind: &str) -> Cow<'static, str> {
     match legacy_top_faction_id(kind).as_str() {
-        "imperial" => "Imperium",
-        "chaos" => "Chaos",
-        "ork" => "Orks",
-        "tau" => "T'au Empire",
-        "necron" => "Necrons",
-        "tyranid" => "Tyranids",
-        "aeldari" => "Aeldari",
-        "drukhari" => "Drukhari",
-        "leagues_of_votann" => "Leagues of Votann",
-        "xenos" => "Xenos",
-        "merchant" => "Merchant Powers",
-        "criminal" => "Criminal Powers",
-        "rebel" => "Rebel Powers",
+        "imperial" => Cow::Borrowed("Imperium"),
+        "chaos" => Cow::Borrowed("Chaos"),
+        "ork" => Cow::Borrowed("Orks"),
+        "tau" => Cow::Borrowed("T'au Empire"),
+        "necron" => Cow::Borrowed("Necrons"),
+        "tyranid" => Cow::Borrowed("Tyranids"),
+        "aeldari" => Cow::Borrowed("Aeldari"),
+        "drukhari" => Cow::Borrowed("Drukhari"),
+        "leagues_of_votann" => Cow::Borrowed("Leagues of Votann"),
+        "xenos" => Cow::Borrowed("Xenos"),
+        "merchant" => Cow::Borrowed("Merchant Powers"),
+        "criminal" => Cow::Borrowed("Criminal Powers"),
+        "rebel" => Cow::Borrowed("Rebel Powers"),
         _ => return display_name_from_id(kind),
     }
-    .to_string()
 }
 
+use std::borrow::Cow;
+
 #[must_use]
-pub fn display_name_from_id(id: &str) -> String {
+pub fn display_name_from_id(id: &str) -> Cow<'static, str> {
     match id {
-        "imperial" => "Imperial Institutions".to_string(),
-        "tau" => "T'au".to_string(),
-        "ork" => "Orks".to_string(),
-        "tyranid" => "Tyranids".to_string(),
-        "necron" => "Necrons".to_string(),
-        "aeldari" => "Aeldari".to_string(),
-        "drukhari" => "Drukhari".to_string(),
-        "harlequin" => "Harlequins".to_string(),
-        "xenos" => "Xenos".to_string(),
-        "minor_xenos" => "Minor Xenos".to_string(),
-        "leagues_of_votann" => "Leagues of Votann".to_string(),
-        _ => id
-            .split('_')
-            .filter(|s| !s.is_empty())
-            .map(|s| {
-                let mut chars = s.chars();
-                match chars.next() {
-                    Some(first) => {
-                        let mut out = first.to_uppercase().collect::<String>();
-                        out.push_str(chars.as_str());
-                        out
+        "imperial" => Cow::Borrowed("Imperial Institutions"),
+        "tau" => Cow::Borrowed("T'au"),
+        "ork" => Cow::Borrowed("Orks"),
+        "tyranid" => Cow::Borrowed("Tyranids"),
+        "necron" => Cow::Borrowed("Necrons"),
+        "aeldari" => Cow::Borrowed("Aeldari"),
+        "drukhari" => Cow::Borrowed("Drukhari"),
+        "harlequin" => Cow::Borrowed("Harlequins"),
+        "xenos" => Cow::Borrowed("Xenos"),
+        "minor_xenos" => Cow::Borrowed("Minor Xenos"),
+        "leagues_of_votann" => Cow::Borrowed("Leagues of Votann"),
+        _ => Cow::Owned(
+            id.split('_')
+                .filter(|s| !s.is_empty())
+                .map(|s| {
+                    let mut chars = s.chars();
+                    match chars.next() {
+                        Some(first) => {
+                            let mut out = first.to_uppercase().collect::<String>();
+                            out.push_str(chars.as_str());
+                            out
+                        }
+                        None => String::new(),
                     }
-                    None => String::new(),
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(" "),
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+        ),
     }
 }

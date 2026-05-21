@@ -406,6 +406,13 @@ pub fn derive(sector: &GeneratedSector) -> HistoryReport {
     derive_with(sector, &HistoryConfig::default())
 }
 
+struct EmitContext<'a> {
+    cfg: &'a HistoryConfig,
+    sector: &'a GeneratedSector,
+    faction_names: &'a BTreeMap<&'a str, &'a str>,
+    system_names: &'a BTreeMap<&'a str, &'a str>,
+}
+
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryReport {
     if !cfg.enabled {
@@ -428,22 +435,29 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
         .map(|s| (s.id.as_str(), s.name.as_str()))
         .collect();
 
+    let ctx = EmitContext {
+        cfg,
+        sector,
+        faction_names: &faction_names,
+        system_names: &system_names,
+    };
+
     let mut events: Vec<HistoryEvent> = Vec::new();
 
-    emit_subsector_events(sector, cfg, &mut events);
-    emit_region_events(sector, cfg, &mut events);
+    emit_subsector_events(&ctx, &mut events);
+    emit_region_events(&ctx, &mut events);
 
     // Per-system + per-world events.
     for sys in &sector.systems {
-        emit_system_events(sys, &faction_names, cfg, sector, &mut events);
+        emit_system_events(&ctx, sys, &mut events);
         for world in &sys.worlds {
-            emit_world_events(sys, world, &faction_names, cfg, sector, &mut events);
+            emit_world_events(&ctx, sys, world, &mut events);
         }
     }
     for route in &sector.routes {
-        emit_route_events(route, &system_names, cfg, sector, &mut events);
+        emit_route_events(&ctx, route, &mut events);
     }
-    apply_event_rules(sector, &faction_names, cfg, &mut events);
+    apply_event_rules(&ctx, &mut events);
 
     // Stable sort: epoch date then anchor then kind rank. Dates were chosen
     // so that the topo rank already orders events within an anchor; sorting
@@ -523,11 +537,9 @@ fn build_event(
 }
 
 fn emit_world_events(
+    ctx: &EmitContext,
     sys: &GeneratedSystem,
     w: &GeneratedWorld,
-    faction_names: &BTreeMap<&str, &str>,
-    cfg: &HistoryConfig,
-    sector: &GeneratedSector,
     out: &mut Vec<HistoryEvent>,
 ) {
     let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
@@ -548,7 +560,7 @@ fn emit_world_events(
 
     // Claim-derived events.
     for c in &w.claims {
-        let fname = faction_names
+        let fname = ctx.faction_names
             .get(c.faction_id.as_str())
             .copied()
             .unwrap_or(c.faction_id.as_str());
@@ -612,8 +624,8 @@ fn emit_world_events(
     if w.control.contested {
         if let (Some(dom), Some(sov)) = (&w.control.dominant, &w.control.sovereign) {
             if dom != sov {
-                let dom_n = faction_names.get(dom.as_str()).copied().unwrap_or(dom);
-                let sov_n = faction_names.get(sov.as_str()).copied().unwrap_or(sov);
+                let dom_n = ctx.faction_names.get(dom.as_str()).copied().unwrap_or(dom);
+                let sov_n = ctx.faction_names.get(sov.as_str()).copied().unwrap_or(sov);
                 buf.push((
                     EventKind::Reconquest,
                     format!(
@@ -626,7 +638,7 @@ fn emit_world_events(
             }
         }
         if let Some(hidden) = &w.control.hidden_master {
-            let n = faction_names
+            let n = ctx.faction_names
                 .get(hidden.as_str())
                 .copied()
                 .unwrap_or(hidden);
@@ -646,11 +658,11 @@ fn emit_world_events(
     if w.conflict.intensity >= 60 {
         let attacker = w.conflict.attacker.clone().unwrap_or_default();
         let defender = w.conflict.defender.clone().unwrap_or_default();
-        let an = faction_names
+        let an = ctx.faction_names
             .get(attacker.as_str())
             .copied()
             .unwrap_or(attacker.as_str());
-        let dn = faction_names
+        let dn = ctx.faction_names
             .get(defender.as_str())
             .copied()
             .unwrap_or(defender.as_str());
@@ -669,12 +681,12 @@ fn emit_world_events(
     }
 
     // Truncate per-world, retain strongest.
-    if buf.len() as u32 > cfg.max_events_per_world {
+    if buf.len() as u32 > ctx.cfg.max_events_per_world {
         buf.sort_by(|a, b| {
             b.3.cmp(&a.3)
                 .then_with(|| a.0.topo_rank().cmp(&b.0.topo_rank()))
         });
-        buf.truncate(cfg.max_events_per_world as usize);
+        buf.truncate(ctx.cfg.max_events_per_world as usize);
     }
 
     // Resort by topological rank so the chronicle reads forward.
@@ -686,8 +698,8 @@ fn emit_world_events(
             world_id: w.id.clone(),
         };
         out.push(build_event(
-            &sector.seed,
-            cfg,
+            &ctx.sector.seed,
+            ctx.cfg,
             anchor,
             kind,
             text,
@@ -699,10 +711,8 @@ fn emit_world_events(
 }
 
 fn emit_system_events(
+    ctx: &EmitContext,
     sys: &GeneratedSystem,
-    faction_names: &BTreeMap<&str, &str>,
-    cfg: &HistoryConfig,
-    sector: &GeneratedSector,
     out: &mut Vec<HistoryEvent>,
 ) {
     let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
@@ -721,7 +731,7 @@ fn emit_system_events(
             SystemState::Blockaded => {
                 if sys.blockade.under_blockade {
                     let b = sys.blockade.blockader.clone().unwrap_or_default();
-                    let bn = faction_names.get(b.as_str()).copied().unwrap_or(b.as_str());
+                    let bn = ctx.faction_names.get(b.as_str()).copied().unwrap_or(b.as_str());
                     buf.push((
                         EventKind::Blockade,
                         format!("{bn} threw a void blockade around {}.", sys.name),
@@ -865,12 +875,12 @@ fn emit_system_events(
         ));
     }
 
-    if buf.len() as u32 > cfg.max_events_per_system {
+    if buf.len() as u32 > ctx.cfg.max_events_per_system {
         buf.sort_by(|a, b| {
             b.3.cmp(&a.3)
                 .then_with(|| a.0.topo_rank().cmp(&b.0.topo_rank()))
         });
-        buf.truncate(cfg.max_events_per_system as usize);
+        buf.truncate(ctx.cfg.max_events_per_system as usize);
     }
     buf.sort_by(|a, b| a.0.topo_rank().cmp(&b.0.topo_rank()));
 
@@ -879,8 +889,8 @@ fn emit_system_events(
             system_id: sys.id.clone(),
         };
         out.push(build_event(
-            &sector.seed,
-            cfg,
+            &ctx.sector.seed,
+            ctx.cfg,
             anchor,
             kind,
             text,
@@ -892,17 +902,15 @@ fn emit_system_events(
 }
 
 fn emit_route_events(
+    ctx: &EmitContext,
     route: &GeneratedRoute,
-    system_names: &BTreeMap<&str, &str>,
-    cfg: &HistoryConfig,
-    sector: &GeneratedSector,
     out: &mut Vec<HistoryEvent>,
 ) {
-    let from = system_names
+    let from = ctx.system_names
         .get(route.from_system_id.as_str())
         .copied()
         .unwrap_or(route.from_system_id.as_str());
-    let to = system_names
+    let to = ctx.system_names
         .get(route.to_system_id.as_str())
         .copied()
         .unwrap_or(route.to_system_id.as_str());
@@ -982,9 +990,9 @@ fn emit_route_events(
         ));
     }
 
-    if buf.len() as u32 > cfg.max_events_per_route {
+    if buf.len() as u32 > ctx.cfg.max_events_per_route {
         buf.sort_by(|a, b| b.3.cmp(&a.3));
-        buf.truncate(cfg.max_events_per_route as usize);
+        buf.truncate(ctx.cfg.max_events_per_route as usize);
     }
     buf.sort_by(|a, b| a.0.topo_rank().cmp(&b.0.topo_rank()));
 
@@ -995,8 +1003,8 @@ fn emit_route_events(
             to_system_id: route.to_system_id.clone(),
         };
         out.push(build_event(
-            &sector.seed,
-            cfg,
+            &ctx.sector.seed,
+            ctx.cfg,
             anchor,
             kind,
             text,
@@ -1008,15 +1016,14 @@ fn emit_route_events(
 }
 
 fn emit_subsector_events(
-    sector: &GeneratedSector,
-    cfg: &HistoryConfig,
+    ctx: &EmitContext,
     out: &mut Vec<HistoryEvent>,
 ) {
-    if sector.systems.is_empty() {
+    if ctx.sector.systems.is_empty() {
         return;
     }
     let Ok(subsectors) =
-        crate::subsectors::build_subsectors(sector, crate::subsectors::SubsectorConfig::default())
+        crate::subsectors::build_subsectors(ctx.sector, crate::subsectors::SubsectorConfig::default())
     else {
         return;
     };
@@ -1024,7 +1031,7 @@ fn emit_subsector_events(
         let Some(cap_sys) = &sub.summary.subsector_capital_system_id else {
             continue;
         };
-        let sys_name = sector
+        let sys_name = ctx.sector
             .systems
             .iter()
             .find(|s| s.id == *cap_sys)
@@ -1044,8 +1051,8 @@ fn emit_subsector_events(
             subsector_id: sub.id.clone(),
         };
         let mut ev = build_event(
-            &sector.seed,
-            cfg,
+            &ctx.sector.seed,
+            ctx.cfg,
             anchor,
             EventKind::Foundation,
             text,
@@ -1075,8 +1082,8 @@ fn emit_subsector_events(
     }
 }
 
-fn emit_region_events(sector: &GeneratedSector, cfg: &HistoryConfig, out: &mut Vec<HistoryEvent>) {
-    for (i, reg) in sector.regions.iter().enumerate() {
+fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
+    for (i, reg) in ctx.sector.regions.iter().enumerate() {
         let (kind, text, weight) = match reg.kind {
             crate::regions::RegionConditionKind::WarpStorm => (
                 EventKind::WarpStormSurge,
@@ -1114,7 +1121,7 @@ fn emit_region_events(sector: &GeneratedSector, cfg: &HistoryConfig, out: &mut V
         let anchor = HistoryAnchor::Region {
             region_id: reg.id.clone(),
         };
-        let mut ev = build_event(&sector.seed, cfg, anchor, kind, text, Vec::new(), weight, i);
+        let mut ev = build_event(&ctx.sector.seed, ctx.cfg, anchor, kind, text, Vec::new(), weight, i);
         ev.consequences.push(HistoryConsequence {
             kind: HistoryConsequenceKind::RegionRecorded,
             description: format!("{:?} effects entered the sector chronicle.", reg.kind),
@@ -1126,16 +1133,14 @@ fn emit_region_events(sector: &GeneratedSector, cfg: &HistoryConfig, out: &mut V
 }
 
 fn apply_event_rules(
-    sector: &GeneratedSector,
-    faction_names: &BTreeMap<&str, &str>,
-    cfg: &HistoryConfig,
+    ctx: &EmitContext,
     out: &mut Vec<HistoryEvent>,
 ) {
-    for (rule_idx, rule) in cfg.event_rules.iter().enumerate() {
+    for (rule_idx, rule) in ctx.cfg.event_rules.iter().enumerate() {
         let Some(kind) = rule.prefer_event.as_deref().and_then(event_kind_from_str) else {
             continue;
         };
-        for sys in &sector.systems {
+        for sys in &ctx.sector.systems {
             if !rule_matches_system(rule, sys) {
                 continue;
             }
@@ -1148,13 +1153,13 @@ fn apply_event_rules(
                 })
                 .count() as u32;
             for extra in existing..rule.minimum_events {
-                let text = rule_event_text(kind, sys, faction_names);
+                let text = rule_event_text(kind, sys, ctx.faction_names);
                 let anchor = HistoryAnchor::System {
                     system_id: sys.id.clone(),
                 };
                 let mut ev = build_event(
-                    &sector.seed,
-                    cfg,
+                    &ctx.sector.seed,
+                    ctx.cfg,
                     anchor,
                     kind,
                     text,

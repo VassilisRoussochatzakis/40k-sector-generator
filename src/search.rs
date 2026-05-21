@@ -448,8 +448,8 @@ fn count_world_type_dominant(
     dominant_faction_id: Option<&str>,
 ) -> u32 {
     let mut n = 0u32;
-    for sys in &sector.systems {
-        for w in &sys.worlds {
+    for sys in sector.systems.values() {
+        for w in sector.get_worlds_for_system(sys) {
             if w.world.world_type != world_type {
                 continue;
             }
@@ -466,8 +466,8 @@ fn count_world_type_dominant(
 
 fn count_contested_worlds(sector: &GeneratedSector, n_way: Option<u32>) -> u32 {
     let mut n = 0u32;
-    for sys in &sector.systems {
-        for w in &sys.worlds {
+    for sys in sector.systems.values() {
+        for w in sector.get_worlds_for_system(sys) {
             if !w.control.contested {
                 continue;
             }
@@ -485,7 +485,7 @@ fn count_contested_worlds(sector: &GeneratedSector, n_way: Option<u32>) -> u32 {
 fn count_system_state(sector: &GeneratedSector, target: SystemState) -> u32 {
     sector
         .systems
-        .iter()
+        .values()
         .filter(|s| s.control.state == Some(target))
         .count() as u32
 }

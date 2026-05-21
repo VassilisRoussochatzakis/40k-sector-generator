@@ -73,13 +73,17 @@ impl BlockadeReport {
 /// Derive a system's `orbital_assets` and blockade summary from finalised
 /// per-world presences. Pure; runs after `control::derive_system_control`.
 #[must_use]
-pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, BlockadeReport) {
-    if sys.worlds.is_empty() {
+pub fn derive_orbital_assets(
+    sector: &GeneratedSector,
+    sys: &GeneratedSystem,
+) -> (Vec<OrbitalAsset>, BlockadeReport) {
+    let worlds = sector.get_worlds_for_system(sys);
+    if worlds.is_empty() {
         return (Vec::new(), BlockadeReport::default());
     }
 
     let mut sums: BTreeMap<&str, PresenceDimensions> = BTreeMap::new();
-    for w in &sys.worlds {
+    for w in worlds {
         for p in &w.factions {
             let entry = sums.entry(p.faction_id.as_str()).or_default();
             entry.admin += p.dimensions.admin;
@@ -92,21 +96,21 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
         }
     }
 
-    let has_spaceyard = sys.worlds.iter().any(|w| {
+    let has_spaceyard = sector.get_worlds_for_system(sys).iter().any(|w| {
         w.world
             .notable_features
             .iter()
             .any(|f| f == "MajorSpaceyard")
     });
-    let war_zone = sys.worlds.iter().any(|w| {
+    let war_zone = sector.get_worlds_for_system(sys).iter().any(|w| {
         w.tags.iter().any(|t| t.ends_with(":war_zone"))
             || w.world
                 .notable_features
                 .iter()
                 .any(|f| f == "WarZone" || f == "DaemonicCorruption")
     });
-    let quarantined = sys
-        .worlds
+    let quarantined = sector
+        .get_worlds_for_system(sys)
         .iter()
         .any(|w| w.tags.iter().any(|t| t.ends_with(":quarantined")));
 

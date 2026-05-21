@@ -20,29 +20,30 @@ pub struct GeneratedSector {
     pub generator_version: String,
     pub width: u32,
     pub height: u32,
-    pub systems: Vec<GeneratedSystem>,
+    pub systems: BTreeMap<SystemId, GeneratedSystem>,
+    pub worlds: BTreeMap<WorldId, GeneratedWorld>,
     pub routes: Vec<GeneratedRoute>,
     pub factions: Vec<GeneratedFaction>,
     pub manifest: GenerationManifest,
     /// Continuous area layers (§9 NEXT, §9.3) — Voronoi-style influence
     /// polygons + soft territory bands. Empty by default.
     #[serde(default)]
-    pub influence_field: crate::influence_field::InfluenceField,
+    pub influence_field: std::sync::Arc<crate::influence_field::InfluenceField>,
     /// Per-faction route-graph projection map (§4 NEXT, §7.2). Empty
     /// when no factions or routes exist.
     #[serde(default)]
-    pub power_projection: crate::power_projection::PowerProjectionMap,
+    pub power_projection: std::sync::Arc<crate::power_projection::PowerProjectionMap>,
     /// §5 NEW2.md: inter-faction diplomacy / relationship matrix. Empty when
     /// fewer than two factions exist or relations derivation is skipped.
     #[serde(default)]
-    pub relations: crate::relations::RelationsMatrix,
+    pub relations: std::sync::Arc<crate::relations::RelationsMatrix>,
     /// §5 NEW.md: regional warp phenomena overlays. Empty by default.
     #[serde(default)]
-    pub regions: Vec<crate::regions::WarpRegion>,
+    pub regions: std::sync::Arc<Vec<crate::regions::WarpRegion>>,
     /// §12 NEW.md: derived per-world / per-system / sector economy snapshot.
     /// Default = no derivation run.
     #[serde(default)]
-    pub economy: crate::economy::EconomyReport,
+    pub economy: std::sync::Arc<crate::economy::EconomyReport>,
     /// §1 NEW2.md: deterministic typed timeline explaining present state.
     #[serde(
         default,
@@ -59,7 +60,7 @@ pub struct GeneratedSystem {
     pub coord: HexCoord,
     pub star: GeneratedStar,
     #[serde(default)]
-    pub worlds: Vec<GeneratedWorld>,
+    pub world_ids: Vec<WorldId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primary_factions: Vec<FactionId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -192,39 +193,27 @@ impl From<&crate::worlds::World> for WorldDto {
 }
 
 impl GeneratedSector {
-    pub fn get_system(&self, id: &crate::ids::SystemId) -> Option<&GeneratedSystem> {
-        self.systems.iter().find(|s| &s.id == id)
+    pub fn get_system(&self, id: &SystemId) -> Option<&GeneratedSystem> {
+        self.systems.get(id)
     }
 
-    pub fn get_system_mut(&mut self, id: &crate::ids::SystemId) -> Option<&mut GeneratedSystem> {
-        self.systems.iter_mut().find(|s| &s.id == id)
+    pub fn get_system_mut(&mut self, id: &SystemId) -> Option<&mut GeneratedSystem> {
+        self.systems.get_mut(id)
     }
 
-    pub fn get_world(&self, id: &crate::ids::WorldId) -> Option<&GeneratedWorld> {
-        self.systems
+    pub fn get_world(&self, id: &WorldId) -> Option<&GeneratedWorld> {
+        self.worlds.get(id)
+    }
+
+    pub fn get_worlds_for_system(&self, sys: &GeneratedSystem) -> Vec<&GeneratedWorld> {
+        sys.world_ids
             .iter()
-            .flat_map(|s| s.worlds.iter())
-            .find(|w| &w.id == id)
+            .filter_map(|id| self.worlds.get(id))
+            .collect()
     }
 
-    pub fn get_world_mut(&mut self, id: &crate::ids::WorldId) -> Option<&mut GeneratedWorld> {
-        self.systems
-            .iter_mut()
-            .flat_map(|s| s.worlds.iter_mut())
-            .find(|w| &w.id == id)
-    }
-
-    /// Iterator over all worlds in the sector.
     pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
-        self.systems.iter().flat_map(|s| s.worlds.iter())
-    }
-
-    /// Iterator over worlds belonging to a specific system.
-    pub fn system_worlds<'a>(
-        &'a self,
-        sys: &'a GeneratedSystem,
-    ) -> impl Iterator<Item = &'a GeneratedWorld> {
-        sys.worlds.iter()
+        self.worlds.values()
     }
 }
 

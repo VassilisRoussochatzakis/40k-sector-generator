@@ -1,0 +1,62 @@
+# Deterministic chronicle / historical timeline (§1 NEW2.md).
+
+[history]
+enabled = true
+epoch_start = 3000
+epoch_end = 3300
+max_events_per_world = 4
+max_events_per_system = 6
+max_events_per_route = 2
+key_events_top_n = 20
+
+# Eras for chronicle labeling (relative epoch bands).
+[[history.eras]]
+id = "late_30s"
+label = "Age of Strife II"
+relative_start = 36
+relative_end = 42
+weight = 1.0
+allowed_events = ["uprising", "necron_awakening", "blockade"]
+
+[[history.eras]]
+id = "early_31s"
+label = "Apostasy Wars"
+relative_start = 42
+relative_end = 48
+weight = 2.0
+allowed_events = ["reconquest", "purge", "cult_exposed", "secession"]
+
+[[history.eras]]
+id = "mid_31s"
+label = "Xeno Incursion Era"
+relative_start = 48
+relative_end = 54
+weight = 2.0
+allowed_events = ["tyranid_contact", "tau_contact", "aeldari_activity", "chaos_incursion"]
+
+[[history.eras]]
+id = "late_31s"
+label = "Dark Age of Discovery (Current)"
+relative_start = 54
+relative_end = 60
+weight = 3.0
+allowed_events = ["discovery", "foundation", "annexation", "imperial_mandate_granted", "commercial_charter"]
+
+# Event rules: guarantee certain event types for matching current-state facts.
+[[history.event_rules]]
+id = "hive_war"
+when_system_state = "warzone"
+prefer_event = "reconquest"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "daemon_incursion"
+when_system_state = "daemonic_corruption"
+prefer_event = "chaos_incursion"
+minimum_events = 2
+
+[[history.event_rules]]
+id = "warp_storm"
+when_system_state = "warp_phenomena"
+prefer_event = "warp_storm_surge"
+minimum_events = 1

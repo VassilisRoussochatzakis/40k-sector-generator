@@ -99,10 +99,9 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
 
     let mut entries: Vec<SystemProse> = Vec::new();
     if cfg.include_per_system {
-        for sys in &sector.systems {
+        for (id, sys) in &sector.systems {
             entries.push(system_prose(sys, sector, cfg, &faction_names));
-        }
-    }
+        }    }
 
     ProseReport {
         sector_id: sector.id.clone(),

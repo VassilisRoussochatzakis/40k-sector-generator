@@ -132,13 +132,14 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &MissionsConfig) -> MissionsRe
     let mut out: Vec<MissionSeed> = Vec::new();
     let by_sys: BTreeMap<&str, &GeneratedSystem> =
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
-
-    for sys in &sector.systems {
-        for w in &sys.worlds {
-            emit_world_missions(sector, sys, w, &mut out);
-        }
-        emit_system_missions(sector, sys, &mut out);
+for sys in sector.systems.values() {
+    // ... (rest of the logic)
+    let worlds = sector.get_worlds_for_system(sys);
+    for w in worlds {
+        emit_world_missions(sector, sys, w, &mut out);
     }
+    emit_system_missions(sector, sys, &mut out);
+}
     for r in &sector.routes {
         emit_route_missions(sector, r, &by_sys, &mut out);
     }

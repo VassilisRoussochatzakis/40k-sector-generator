@@ -449,6 +449,9 @@ fn check_factions(
                     ));
                 }
             }
+        }
+    for sys in s.systems.values() {
+        for w in s.get_worlds_for_system(sys) {
             check_world_control(sys, w, &summary_ids, v);
             for pf in &sys.primary_factions {
                 if !summary_ids.contains(pf.as_str()) {
@@ -464,6 +467,7 @@ fn check_factions(
             }
         }
         check_system_control(sys, &summary_ids, v);
+    }
     }
 }
 

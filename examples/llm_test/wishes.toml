@@ -1,0 +1,61 @@
+# §2 seed search — wishes/constraints file for the Labyrinthine Frontier.
+# Run: cargo run --bin sectorforge -- search --wishes wishes.toml
+
+[search]
+base_seed = null
+budget = 1024
+
+# ── Constraints (all must be satisfied for a seed to win) ─────────────────────
+# Each constraint checks a property of the generated sector + analytics.
+
+# Want at least one Xenos World in the sector.
+[[constraints]]
+type = "at_least"
+field = "world_type_count"
+target = "XenosWorld"
+min = 1
+
+# Want at least one Warp-Lost World.
+[[constraints]]
+type = "at_least"
+field = "world_type_count"
+target = "WarpLostWorld"
+min = 1
+
+# Want a minimum of 3 distinct star colours.
+[[constraints]]
+type = "gte"
+field = "star_colour_diversity"
+value = 5
+
+# Want at least 40% of systems to have routes connecting to Forge Worlds.
+[[constraints]]
+type = "gte"
+field = "route_to_world_type_ratio"
+target = "ForgeWorld"
+value = 0.3
+
+# Want faction balance: no single faction > 40% of worlds.
+[[constraints]]
+type = "lte"
+field = "max_faction_share"
+value = 0.40
+
+# Want some tension — at least 3 pairs at War or Hostile stance.
+[[constraints]]
+type = "gte"
+field = "hot_stance_pairs"
+value = 3
+
+# Want the route graph connected.
+[[constraints]]
+type = "eq"
+field = "route_graph_connected"
+value = true
+
+# Want some xenos presence but not too much (< 15% of worlds).
+[[constraints]]
+type = "lte"
+field = "world_type_share"
+target = "XenosWorld"
+max = 0.15

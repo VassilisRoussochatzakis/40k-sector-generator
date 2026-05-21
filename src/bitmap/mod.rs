@@ -240,7 +240,7 @@ fn compute_system_tints(
     heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
 ) -> HashMap<(i32, i32), Rgba<u8>> {
     let mut out = HashMap::new();
-    for sys in &sector.systems {
+    for sys in sector.systems.values() {
         let key = (sys.coord.q, sys.coord.r);
         // Heatmap overrides faction fill for non-Control modes. For Control
         // mode the underlying score already drives `faction_style.fill`, so
@@ -304,7 +304,7 @@ fn compute_region_tints(
 ) -> HashMap<(i32, i32), Rgba<u8>> {
     use crate::regions::RegionConditionKind;
     let mut out = HashMap::new();
-    for region in &sector.regions {
+    for region in sector.regions.iter() {
         let base = match region.kind {
             RegionConditionKind::WarpStorm => Rgba([120, 60, 180, 255]),
             RegionConditionKind::Turbulence => Rgba([110, 100, 160, 255]),
@@ -322,7 +322,7 @@ fn compute_region_tints(
 
 fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) {
     let mut centers: HashMap<&str, (i32, i32)> = HashMap::new();
-    for sys in &sector.systems {
+    for sys in sector.systems.values() {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         centers.insert(sys.id.as_str(), (cx, cy));
     }
@@ -1015,7 +1015,7 @@ fn draw_systems(
         }
 
         // World-count pip on the lower-right of the hex.
-        let pip = sys.worlds.len();
+        let pip = sector.get_worlds_for_system(sys).len();
         if pip > 0 {
             let label = format!("{pip}");
             let (tw, th) = text_size(&label, pip_scale);
@@ -1052,7 +1052,7 @@ fn draw_region_labels(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, t
     let bg = tint_against(theme.panel_bg, 0.70, theme.hex_empty);
     let outline = darken(theme.text_dim, 0.45);
     let MapBounds { w: map_w, h: map_h } = map_bounds(sector, g);
-    for region in &sector.regions {
+    for region in sector.regions.iter() {
         let Some((cx, cy)) = region_label_anchor(region, g) else {
             continue;
         };
@@ -1110,8 +1110,8 @@ fn draw_system_labels(
     let pad_x = 3 * g.scale;
     let pad_y = g.scale;
     let star_r = (g.hex_size * star_radius_ratio()) as i32;
-    for sys in &sector.systems {
-        if !system_label_visible(sys, subsectors, &opts.theme) {
+    for sys in sector.systems.values() {
+        if !system_label_visible(sys, subsectors, &opts.theme, sector) {
             continue;
         }
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
@@ -1137,12 +1137,13 @@ fn system_label_visible(
     sys: &crate::sector_model::GeneratedSystem,
     subsectors: &[Subsector],
     theme: &MapTheme,
+    sector: &GeneratedSector,
 ) -> bool {
     match theme.label_density {
         LabelDensity::All => true,
         LabelDensity::None => false,
         LabelDensity::ImportantOnly => {
-            sys.worlds.len() >= 4
+            sector.get_worlds_for_system(sys).len() >= 4
                 || !sys.primary_factions.is_empty()
                 || subsectors.iter().any(|s| {
                     s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())

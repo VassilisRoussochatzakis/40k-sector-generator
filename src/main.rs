@@ -708,13 +708,13 @@ fn run_analyze(
 ) -> Result<ExitCode, sectorforge::SectorError> {
     let (sec, cfg) = match (project, sector) {
         (Some(project), None) => {
-            let input = sectorforge::load_project(&project)?;
+            let input = sectorforge::load_project(project)?;
             let cfg = input.config.analyze.clone();
             let sec = sectorforge::generate_sector(input)?;
             (sec, cfg)
         }
         (None, Some(sector)) => {
-            let sec = sectorforge::load_sector_json(&sector)?;
+            let sec = sectorforge::load_sector_json(sector)?;
             (sec, sectorforge::analytics::AnalyzeConfig::default())
         }
         (Some(_), Some(_)) | (None, None) => {
@@ -749,8 +749,8 @@ fn run_search(
     json: bool,
     strict: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let input = sectorforge::load_project(&project)?;
-    let mut wishes_file = sectorforge::search::load_wishes(&wishes)?;
+    let input = sectorforge::load_project(project)?;
+    let mut wishes_file = sectorforge::search::load_wishes(wishes)?;
     if let Some(b) = base_seed {
         wishes_file.search.base_seed = Some(b);
     }
@@ -803,12 +803,12 @@ fn run_history(
 ) -> Result<ExitCode, sectorforge::SectorError> {
     let (sec, mut cfg) = match (project, sector) {
         (Some(project), None) => {
-            let input = sectorforge::load_project(&project)?;
+            let input = sectorforge::load_project(project)?;
             let cfg = input.history.clone();
             (sectorforge::generate_sector(input)?, cfg)
         }
         (None, Some(sector)) => (
-            sectorforge::load_sector_json(&sector)?,
+            sectorforge::load_sector_json(sector)?,
             sectorforge::history::HistoryConfig::default(),
         ),
         (Some(_), Some(_)) | (None, None) => {
@@ -923,7 +923,7 @@ fn run_regions(
     out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let input = sectorforge::load_project(&project)?;
+    let input = sectorforge::load_project(project)?;
     let cfg = input.regions.clone();
     let regs = sectorforge::build_regions(
         &input.config.generation.seed,
@@ -1020,7 +1020,7 @@ fn run_compose(
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     log_progress(format_args!("segmentum: loading config {segmentum_path}"));
-    let mut file = sectorforge::load_segmentum_file(&segmentum_path)?;
+    let mut file = sectorforge::load_segmentum_file(segmentum_path)?;
     if let Some(s) = stitch_seed {
         file.segmentum.stitch_seed = s;
     }
@@ -1036,7 +1036,7 @@ fn run_compose(
     let seg = sectorforge::compose_segmentum_with_progress(
         &file,
         &base_dir,
-        &out,
+        out,
         log_segmentum_progress,
     )?;
     if json {
@@ -1044,7 +1044,7 @@ fn run_compose(
         print_json(&seg)?;
     } else {
         log_progress(format_args!("segmentum: writing reports to {out}"));
-        sectorforge::write_segmentum(&out, &seg)?;
+        sectorforge::write_segmentum(out, &seg)?;
         println!(
             "Composed segmentum '{}' — {} children, {} inter-sector links, {} systems",
             seg.id,
@@ -1211,7 +1211,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
 }
 
 fn should_log_progress(current: usize, total: usize) -> bool {
-    current == 1 || current == total || current % progress_stride(total) == 0
+    current == 1 || current == total || current.is_multiple_of(progress_stride(total))
 }
 
 fn progress_stride(total: usize) -> usize {

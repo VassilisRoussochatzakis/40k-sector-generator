@@ -646,8 +646,8 @@ fn stitch_pair(
                 BorderOrientation::EastWest => {
                     // a is left, take rightmost columns. q in [width-depth, width-1].
                     let w = sec_a.width as i32;
-                    if s.coord.q >= w - depth as i32 && s.coord.q < w {
-                        Some((w - 1 - s.coord.q) as u32)
+                    if s.1.coord.q >= w - depth as i32 && s.1.coord.q < w {
+                        Some((w - 1 - s.1.coord.q) as u32)
                     } else {
                         None
                     }
@@ -655,14 +655,14 @@ fn stitch_pair(
                 BorderOrientation::NorthSouth => {
                     // a is upper, take bottom-most rows. r in [height-depth, height-1].
                     let h = sec_a.height as i32;
-                    if s.coord.r >= h - depth as i32 && s.coord.r < h {
-                        Some((h - 1 - s.coord.r) as u32)
+                    if s.1.coord.r >= h - depth as i32 && s.1.coord.r < h {
+                        Some((h - 1 - s.1.coord.r) as u32)
                     } else {
                         None
                     }
                 }
             };
-            coord.map(|d| (s.id.as_str(), d))
+            coord.map(|d| (s.1.id.as_str(), d))
         })
         .collect();
     let donors_b: Vec<(&str, u32)> = sec_b
@@ -671,21 +671,21 @@ fn stitch_pair(
         .filter_map(|s| {
             let coord = match orientation {
                 BorderOrientation::EastWest => {
-                    if s.coord.q >= 0 && s.coord.q < depth as i32 {
-                        Some(s.coord.q as u32)
+                    if s.1.coord.q >= 0 && s.1.coord.q < depth as i32 {
+                        Some(s.1.coord.q as u32)
                     } else {
                         None
                     }
                 }
                 BorderOrientation::NorthSouth => {
-                    if s.coord.r >= 0 && s.coord.r < depth as i32 {
-                        Some(s.coord.r as u32)
+                    if s.1.coord.r >= 0 && s.1.coord.r < depth as i32 {
+                        Some(s.1.coord.r as u32)
                     } else {
                         None
                     }
                 }
             };
-            coord.map(|d| (s.id.as_str(), d))
+            coord.map(|d| (s.1.id.as_str(), d))
         })
         .collect();
 

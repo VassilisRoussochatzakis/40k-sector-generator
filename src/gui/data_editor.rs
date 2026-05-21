@@ -14,10 +14,12 @@ use thiserror::Error;
 pub enum DataEditorError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("CSV error: {0}")]
+    #[error("CSV parse error: {0}")]
     Csv(String),
-    #[error("Config error: {0}")]
+    #[error("Config file error: {0}")]
     Config(String),
+    #[error("Failed to parse TOML: {0}")]
+    Toml(#[from] toml::de::Error),
 }
 
 use egui::{Color32, RichText, ScrollArea, Stroke, TextEdit};
@@ -158,8 +160,7 @@ fn extract_world_data_dir(toml_text: &str) -> Result<String, DataEditorError> {
     struct MiniInputs {
         world_data_dir: String,
     }
-    let parsed: Mini =
-        toml::from_str(toml_text).map_err(|e| DataEditorError::Config(format!("parse sectorforge.toml: {e}")))?;
+    let parsed: Mini = toml::from_str(toml_text)?;
     Ok(parsed.inputs.world_data_dir)
 }
 

@@ -7,15 +7,14 @@
      high memory usage per sector.
 
   Bloat Indicators
-   1. Massive UI Component: src/gui/app/mod.rs (2,770 lines) handles state, layout, input, and business logic. Violates
-      SoC. Refactor → move logic to App methods in separate files, keep mod.rs for wiring.
+   1. [DONE] Massive UI Component: src/gui/app/mod.rs (2,770 lines) handles state, layout, input, and business logic.
    2. String Allocation Bloat: ~400 .to_string() and ~940 .into(). Many likely unnecessary string copies for static
       identifiers or UI labels. Use Cow<'static, str> or &str where possible.
    3. Primitive Error Handling: 20+ instances of Result<T, String>. Poor for debug/recovery. Refactor → use thiserror
       for all modules (already in Cargo.toml).
    4. Parameter Explosion: Multiple functions with 8+ arguments (e.g., src/history.rs, src/personae.rs). Use "Parameter
       Object" pattern (structs) to clean call sites.
-   5. Excessive Derives: 550+ derive attributes. While standard for Serde, many large structs derive Clone, leading to
+   5. [DONE] Excessive Derives: 550+ derive attributes. While standard for Serde, many large structs derive Clone, leading to
       expensive deep copies (700+ .clone() calls). Use Arc or references for immutable data.
 
   Refactoring Strategy
@@ -26,7 +25,7 @@
    4. Strict Clippy: Existing allow(clippy::too_many_arguments) hides structural issues. Fix root cause, don't suppress.
 
   Recommended Fixes
-   * Immediate: Run cargo clippy -- -W clippy::pedantic and fix "manual_contains" and "unnecessary_cast" warnings.
+   * Immediate: [DONE] Run cargo clippy -- -W clippy::pedantic and fix warnings.
    * Structural: Move inline UI logic from App::update to dedicated widget structs.
    * Performance: Replace String with Arc<str> or &str in hot generation loops.
 

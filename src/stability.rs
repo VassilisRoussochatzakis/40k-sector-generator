@@ -5,10 +5,11 @@
 //! deterministic given a finalised sector.
 
 use std::collections::BTreeMap;
+use crate::sector_model::{GeneratedSector, GeneratedSystem};
 
 use serde::{Deserialize, Serialize};
 
-use crate::sector_model::{GeneratedFaction, GeneratedSystem, GeneratedWorld, SystemState};
+use crate::sector_model::{GeneratedFaction, GeneratedWorld, SystemState};
 
 /// All fields are 0.0..=100.0. Higher = more of the named thing.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
@@ -56,7 +57,7 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
                 .as_deref()
                 .or_else(|| kinds.get(p.faction_id.as_str()).copied())
                 .unwrap_or("");
-            needles.iter().any(|n| k == *n)
+            needles.contains(&k)
         })
     };
     let any_kind_starts = |prefixes: &[&str]| {
@@ -228,13 +229,14 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
 /// by the system-level state classification so a Warzone / Blockaded system
 /// reads as more unstable than the per-world average alone.
 #[must_use]
-pub fn derive_system_stability(sys: &GeneratedSystem) -> StabilityState {
-    if sys.worlds.is_empty() {
+pub fn derive_system_stability(sector: &GeneratedSector, sys: &GeneratedSystem) -> StabilityState {
+    let worlds = sector.get_worlds_for_system(sys);
+    if worlds.is_empty() {
         return StabilityState::default();
     }
-    let n = sys.worlds.len() as f32;
+    let n = worlds.len() as f32;
     let mut acc = StabilityState::default();
-    for w in &sys.worlds {
+    for w in worlds {
         acc.public_order += w.stability.public_order;
         acc.corruption += w.stability.corruption;
         acc.fear += w.stability.fear;

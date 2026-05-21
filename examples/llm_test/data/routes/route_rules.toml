@@ -1,0 +1,47 @@
+[routes]
+default_weight = 1.0
+max_distance = 5
+prefer_populated_worlds = true
+prefer_trade_hubs = true
+avoid_warp_phenomena = true
+
+# Boost routes to/from worlds with trade value.
+[[routes.modifiers]]
+when = { notable_feature = "TradeHub" }
+multiplier = 2.5
+
+[[routes.modifiers]]
+when = { notable_feature = "AdministrativeHub" }
+multiplier = 2.0
+
+[[routes.modifiers]]
+when = { notable_feature = "Freeport" }
+multiplier = 1.75
+
+[[routes.modifiers]]
+when = { world_type = "ForgeWorld" }
+multiplier = 1.75
+
+# Penalize routes through dangerous areas.
+[[routes.modifiers]]
+when = { notable_feature = "WarpPhenomena" }
+multiplier = 0.15
+
+[[routes.modifiers]]
+when = { notable_feature = "DaemonicCorruption" }
+multiplier = 0.1
+
+# Xenos worlds rarely connect to each other (border disputes).
+[[routes.modifiers]]
+when = { world_type = "XenosWorld" }
+multiplier = 0.5
+
+# Warp-lost worlds are nearly inaccessible.
+[[routes.modifiers]]
+when = { world_type = "WarpLostWorld" }
+multiplier = 0.25
+
+# Bridge routes across gaps via Navigator hubs.
+[[routes.modifiers]]
+when = { notable_feature = "NavigatorHouse" }
+multiplier = 1.5

@@ -309,7 +309,7 @@ where
         influence_field: Default::default(),
         power_projection: Default::default(),
         relations: Default::default(),
-        regions: warp_regions,
+        regions: warp_regions.into(),
         economy: Default::default(),
         chronicle: Default::default(),
     };
@@ -318,13 +318,13 @@ where
     crate::archetypes::apply_all(&mut sector);
     progress(SectorProgress::OverlayDerived { name: "archetypes" });
     // §4 NEXT: power projection over routes (decays + doctrine).
-    sector.power_projection = crate::power_projection::project_sector(&sector);
+    sector.power_projection = crate::power_projection::project_sector(&sector).into();
     crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
     progress(SectorProgress::OverlayDerived {
         name: "power_projection",
     });
     // §9 NEXT: continuous area layers.
-    sector.influence_field = crate::influence_field::build(&sector);
+    sector.influence_field = crate::influence_field::build(&sector).into();
     progress(SectorProgress::OverlayDerived {
         name: "influence_field",
     });
@@ -337,13 +337,13 @@ where
         &sector,
         &relations_cfg,
         config.generation.relations.min_world_presence,
-    );
+    ).into();
     progress(SectorProgress::OverlayDerived { name: "relations" });
 
     // §12 NEW.md: derive the economy snapshot last so it can read final
     // route stability + control records. Optional `feed_stability` nudge
     // applies after the snapshot is built.
-    sector.economy = crate::economy::derive_with(&sector, &economy_cfg);
+    sector.economy = crate::economy::derive_with(&sector, &economy_cfg).into();
     if economy_cfg.feed_stability && sector.economy.enabled {
         let snap = sector.economy.clone();
         crate::economy::apply_stability_nudge(&snap, &mut sector);
@@ -873,7 +873,7 @@ fn tags_for_world(world: &crate::worlds::World) -> Vec<String> {
         ),
     ];
     for f in &world.notable_features {
-        tags.push(format!("feature:{}", snake(&f.to_string())));
+        tags.push(format!("feature:{}", snake(f.as_ref())));
     }
     tags.sort();
     tags
@@ -1123,7 +1123,7 @@ fn build_faction_groups(factions: &[FactionDef]) -> Vec<FactionGroup<'_>> {
             let name = group_members
                 .first()
                 .map(|f| f.top_faction_name())
-                .unwrap_or_else(|| crate::factions::display_name_from_id(top_id.as_str()));
+                .unwrap_or_else(|| crate::factions::display_name_from_id(top_id.as_str()).into_owned());
             FactionGroup {
                 id: top_id.clone(),
                 name,
@@ -1160,7 +1160,7 @@ fn build_subfactions_for_group<'a>(
                 id: sub_id.clone(),
                 name: first
                     .map(FactionDef::subfaction_name)
-                    .unwrap_or_else(|| crate::factions::display_name_from_id(sub_id.as_str())),
+                    .unwrap_or_else(|| crate::factions::display_name_from_id(sub_id.as_str()).into_owned()),
                 kind: first
                     .map(|f| f.kind.clone())
                     .unwrap_or_else(|| sub_id.to_string()),

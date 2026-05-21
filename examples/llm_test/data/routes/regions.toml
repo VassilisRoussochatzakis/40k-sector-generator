@@ -1,0 +1,85 @@
+# §5 — Regional warp phenomena overlay + custom condition pool.
+# Sampled by weight during generation. Conditions modify route stability
+# inside their footprint and add world-level hazards.
+
+[regions]
+enabled = true
+count = 6
+mean_size = 10
+apply_to_routes = true
+
+# ── Custom condition pool ─────────────────────────────────────────────────────
+# When this list is non-empty, conditions are sampled from it instead of
+# the built-in defaults (WarpStorm / Turbulence / CalmCorridor etc.).
+
+[[regions.conditions]]
+kind = "warp_storm"
+weight = 3.0
+label = "The Shroud of Lethander"
+description = "A permanent maelstrom of psychic fury wrecks navigation and unmakes warp traffic."
+stability_modifier = -0.6
+route_stability_penalty = 0.4
+
+[[regions.conditions]]
+kind = "warp_storm"
+weight = 2.0
+label = "The Screaming Veil"
+description = "Wraithbone monoliths project a cacophony that drives voidfarers mad."
+stability_modifier = -0.5
+route_stability_penalty = 0.3
+
+[[regions.conditions]]
+kind = "turbulence"
+weight = 2.5
+label = "The Rending Swell"
+description = "Chaotic slipstream currents tear apart poorly-welded warp routes."
+stability_modifier = -0.3
+route_stability_penalty = 0.2
+
+[[regions.conditions]]
+kind = "calm_corridor"
+weight = 1.5
+label = "The Astropathic Whisperway"
+description = "Astropathic resonance creates a rare corridor of stable warp travel."
+stability_modifier = 0.4
+route_stability_penalty = -0.1
+
+[[regions.conditions]]
+kind = "blackout"
+weight = 2.0
+label = "The Null Expanse"
+description = "A zone of dead warp where no navigator can chart a course."
+stability_modifier = -1.0
+route_stability_penalty = 0.8
+
+[[regions.conditions]]
+kind = "anomaly"
+weight = 2.5
+label = "The Labyrinthine Rift"
+description = "A spatial anomaly that folds local realspace into an endless maze."
+stability_modifier = -0.2
+route_stability_penalty = 0.15
+
+[[regions.conditions]]
+kind = "warp_storm"
+weight = 1.0
+label = "The Maw of Tzeentch"
+description = "Shifting geometries and impossible colors mark this domain of the Changer of Ways."
+stability_modifier = -0.7
+route_stability_penalty = 0.5
+
+[[regions.conditions]]
+kind = "turbulence"
+weight = 1.5
+label = "The Gorgon Drift"
+description = "Ancient xenos navigational beacons warp local space-time unpredictably."
+stability_modifier = -0.25
+route_stability_penalty = 0.15
+
+[[regions.conditions]]
+kind = "anomaly"
+weight = 1.0
+label = "The Silent Archive"
+description = "A necrontir labyrinthe traps warp travelers in recursive time loops."
+stability_modifier = -0.35
+route_stability_penalty = 0.25

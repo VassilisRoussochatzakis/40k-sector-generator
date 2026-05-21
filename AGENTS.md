@@ -1,6 +1,6 @@
 # AGENTS.md
 Do not ever look in, or modify, anything in the "old" directory.
-
+OBEY ALL INSTRUCTIONS IN INPUT.md
 When making changes, update GUIDE.md accordingly.
 ## Commands
 

@@ -103,8 +103,6 @@ pub fn sector_overview_with_buckets(
     for rtype in crate::sector_model::RouteType::ALL {
         legend_route_row(ui, TEXT, rtype.pattern(), rtype.label());
     }
-    legend_route_row(ui, TEXT, RoutePattern::Tripod, "WARP FILAMENT (T-SHAPE)");
-    legend_route_row(ui, TEXT, RoutePattern::Staccato, "UNSTABLE RUN (ZIG-ZAG)");
     legend_route_row(ui, PATH_HIGHLIGHT, RoutePattern::Solid, "PLANNED PATH");
     ui.add_space(8.0);
 
@@ -999,11 +997,17 @@ fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
             }
             "PIRACY" => {
                 painter.line_segment(
-                    [center - Vec2::new(half, half), center + Vec2::new(half, half)],
+                    [
+                        center - Vec2::new(half, half),
+                        center + Vec2::new(half, half),
+                    ],
                     egui::Stroke::new(2.5, color),
                 );
                 painter.line_segment(
-                    [center - Vec2::new(half, -half), center + Vec2::new(half, -half)],
+                    [
+                        center - Vec2::new(half, -half),
+                        center + Vec2::new(half, -half),
+                    ],
                     egui::Stroke::new(2.5, color),
                 );
             }

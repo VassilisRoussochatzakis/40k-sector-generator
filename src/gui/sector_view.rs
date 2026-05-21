@@ -180,7 +180,7 @@ impl<'a> SectorView<'a> {
                 b2,
                 route_thickness,
                 stability_color(route.stability),
-                route.pattern_with_salt(&self.sector.seed),
+                route.route_type.pattern(),
             );
         }
 

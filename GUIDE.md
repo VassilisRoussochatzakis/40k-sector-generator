@@ -1001,16 +1001,14 @@ are:
 | `inquisition_redacted` | Classified red/black briefing style |
 | `subsector_political` | Strong subsector borders and faction tinting |
 
-Route visuals are also presentation-only. The generator chooses a deterministic
-`RoutePattern` from each route type's pattern family, salted by sector seed and
-route id. GUI, PNG, and HTML maps render those patterns with distinct geometry:
-solid lines, rails, ladders, twin lanes, ticks, chevrons, jagged / zigzag lanes,
-dot clusters, bursts, hollow pips, and triangle markers. This makes dense route
-graphs easier to scan than dash-length variation alone.
+Route visuals are also presentation-only. GUI sector maps use one canonical
+`RoutePattern` per route type so the sector info-panel legend is an exact guide:
+solid lines, dashed lanes, dotted lanes, bursts, dot clusters, and dense dot
+trails.
 
 Active route types are `StableWarpLane`, `ChartedPassage`, `SecretPassage`,
 `Webway`, `BlackShip`, and `SmugglingLane`. GUI and PNG legends plus the route
-editor dropdown use this same set; route danger is represented by
+editor dropdown use this same route-type set; route danger is represented by
 `RouteStability` (`Stable`, `Unstable`, `Hazardous`, `Perilous`), not by a
 separate route type.
 

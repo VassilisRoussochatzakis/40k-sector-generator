@@ -316,7 +316,7 @@ fn super_map(
                         b,
                         1.0,
                         stability_color(route.stability).linear_multiply(0.55),
-                        route.pattern_with_salt(&loaded.sector.seed),
+                        route.route_type.pattern(),
                     );
                 }
             }

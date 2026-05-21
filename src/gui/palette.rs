@@ -99,7 +99,7 @@ pub fn draw_route_line(
             draw_parallel_routes(painter, geom, color, thickness, thickness * 1.0);
         }
         RoutePattern::Tripod => {
-            draw_triangles(painter, geom, color, thickness, geom.unit * 5.0);
+            draw_tripods(painter, geom, color, thickness, geom.unit * 5.0);
         }
         RoutePattern::Tick => {
             draw_base_spine(painter, geom, color, thickness, 0.28);
@@ -439,27 +439,23 @@ fn draw_chevrons(
     }
 }
 
-fn draw_triangles(
+fn draw_tripods(
     painter: &egui::Painter,
     geom: RouteGeom,
     color: Color32,
     thickness: f32,
     spacing: f32,
 ) {
-    let size = (geom.unit * 1.7).max(thickness * 2.0);
+    let size = (geom.unit * 1.8).max(thickness * 2.5);
     let mut t = spacing * 0.5;
+    let stroke = Stroke::new(thickness, color);
     while t < geom.total {
-        let tip = geom.at(t + size * 0.45, 0.0);
-        let base = geom.at(t - size * 0.35, 0.0);
-        painter.add(egui::Shape::convex_polygon(
-            vec![
-                tip,
-                base + geom.normal * size * 0.38,
-                base - geom.normal * size * 0.38,
-            ],
-            color,
-            Stroke::NONE,
-        ));
+        let mid = geom.at(t, 0.0);
+        // Forward "leg"
+        painter.line_segment([mid, geom.at(t + size * 0.4, 0.0)], stroke);
+        // Lateral "legs" (creating the T/fork)
+        painter.line_segment([mid, mid + geom.normal * size * 0.4], stroke);
+        painter.line_segment([mid, mid - geom.normal * size * 0.4], stroke);
         t += spacing;
     }
 }

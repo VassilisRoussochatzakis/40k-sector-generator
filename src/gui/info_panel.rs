@@ -10,7 +10,7 @@ use crate::subsectors::Subsector;
 
 use super::palette::{
     darken, draw_route_line, faction_style_by_id, stability_color, star_color, world_type_color,
-    TEXT, TEXT_DIM,
+    PATH_HIGHLIGHT, STAR_LEGEND, TEXT, TEXT_DIM,
 };
 use crate::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
@@ -93,10 +93,19 @@ pub fn sector_overview_with_buckets(
     );
     ui.add_space(8.0);
 
+    section(ui, "STAR COLOURS");
+    for (code, name) in STAR_LEGEND {
+        legend_row(ui, star_color(code), &format!("{code} - {name}"));
+    }
+    ui.add_space(8.0);
+
     section(ui, "ROUTE TYPE");
     for rtype in crate::sector_model::RouteType::ALL {
         legend_route_row(ui, TEXT, rtype.pattern(), rtype.label());
     }
+    legend_route_row(ui, TEXT, RoutePattern::Tripod, "WARP FILAMENT (T-SHAPE)");
+    legend_route_row(ui, TEXT, RoutePattern::Staccato, "UNSTABLE RUN (ZIG-ZAG)");
+    legend_route_row(ui, PATH_HIGHLIGHT, RoutePattern::Solid, "PLANNED PATH");
     ui.add_space(8.0);
 
     section(ui, "ROUTE STABILITY");
@@ -109,6 +118,15 @@ pub fn sector_overview_with_buckets(
         legend_row(ui, stability_color(stab), name);
     }
     ui.add_space(8.0);
+
+    if sector.routes.iter().any(|r| !r.controls.is_empty()) {
+        section(ui, "ROUTE CONTROL");
+        legend_control_row(ui, "PATROL", "PATROL");
+        legend_control_row(ui, "TOLL", "TOLL");
+        legend_control_row(ui, "INTERDICTION", "INTERDICTION");
+        legend_control_row(ui, "PIRACY", "PIRACY");
+        ui.add_space(8.0);
+    }
 
     if !sector.factions.is_empty() {
         section(ui, "FACTIONS");
@@ -944,11 +962,54 @@ fn legend_row(ui: &mut Ui, color: Color32, text: &str) {
 
 fn legend_route_row(ui: &mut Ui, color: Color32, pattern: RoutePattern, text: &str) {
     ui.horizontal(|ui| {
-        let (rect, _) = ui.allocate_exact_size(Vec2::new(36.0, 12.0), egui::Sense::hover());
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(48.0, 12.0), egui::Sense::hover());
         let y = rect.center().y;
         let a = Pos2::new(rect.left(), y);
         let b = Pos2::new(rect.right(), y);
         draw_route_line(ui.painter(), a, b, 2.5, color, pattern);
+        ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
+    });
+}
+
+fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
+    ui.horizontal(|ui| {
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(36.0, 12.0), egui::Sense::hover());
+        let center = rect.center();
+        let size = 10.0;
+        let half = size / 2.0;
+        let color = TEXT_DIM;
+        let painter = ui.painter();
+
+        match kind {
+            "PATROL" => {
+                painter.circle_filled(center, half, color);
+            }
+            "TOLL" => {
+                painter.rect_filled(
+                    egui::Rect::from_center_size(center, Vec2::splat(size)),
+                    0.0,
+                    color,
+                );
+            }
+            "INTERDICTION" => {
+                painter.line_segment(
+                    [center - Vec2::new(0.0, half), center + Vec2::new(0.0, half)],
+                    egui::Stroke::new(2.5, color),
+                );
+            }
+            "PIRACY" => {
+                painter.line_segment(
+                    [center - Vec2::new(half, half), center + Vec2::new(half, half)],
+                    egui::Stroke::new(2.5, color),
+                );
+                painter.line_segment(
+                    [center - Vec2::new(half, -half), center + Vec2::new(half, -half)],
+                    egui::Stroke::new(2.5, color),
+                );
+            }
+            _ => {}
+        }
+
         ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
     });
 }

@@ -566,7 +566,7 @@ pub(crate) fn draw_route_line_thick(
             draw_bitmap_parallel_routes(img, geom, color, thickness, thickness as f32);
         }
         RoutePattern::Tripod => {
-            draw_bitmap_triangles(img, geom, color, thickness, geom.unit * 5.0);
+            draw_bitmap_tripods(img, geom, color, thickness, geom.unit * 5.0);
         }
         RoutePattern::Tick => {
             draw_bitmap_base_spine(img, geom, color, thickness, 0.28);
@@ -913,27 +913,35 @@ fn draw_bitmap_chevrons(
     }
 }
 
-fn draw_bitmap_triangles(
+fn draw_bitmap_tripods(
     img: &mut RgbaImage,
     geom: BitmapRouteGeom,
     color: Rgba<u8>,
     thickness: i32,
     spacing: f32,
 ) {
-    let size = (geom.unit * 1.7).max(thickness as f32 * 2.0);
+    let size = (geom.unit * 1.8).max(thickness as f32 * 2.5);
     let mut t = spacing * 0.5;
     while t < geom.total {
-        let tip = geom.at(t + size * 0.45, 0.0);
-        let base = geom.at(t - size * 0.35, 0.0);
-        let left = (
-            (base.0 as f32 + geom.nx * size * 0.38).round() as i32,
-            (base.1 as f32 + geom.ny * size * 0.38).round() as i32,
+        let mid = geom.at(t, 0.0);
+        let mid_p = (mid.0 as f32, mid.1 as f32);
+
+        // Forward leg
+        let fwd = geom.at(t + size * 0.4, 0.0);
+        draw_line_thick(img, mid.0, mid.1, fwd.0, fwd.1, color, thickness);
+
+        // Lateral legs
+        let l_pos = (
+            (mid_p.0 + geom.nx * size * 0.4).round() as i32,
+            (mid_p.1 + geom.ny * size * 0.4).round() as i32,
         );
-        let right = (
-            (base.0 as f32 - geom.nx * size * 0.38).round() as i32,
-            (base.1 as f32 - geom.ny * size * 0.38).round() as i32,
+        let r_pos = (
+            (mid_p.0 - geom.nx * size * 0.4).round() as i32,
+            (mid_p.1 - geom.ny * size * 0.4).round() as i32,
         );
-        fill_polygon(img, &[tip, left, right], color);
+        draw_line_thick(img, mid.0, mid.1, l_pos.0, l_pos.1, color, thickness);
+        draw_line_thick(img, mid.0, mid.1, r_pos.0, r_pos.1, color, thickness);
+
         t += spacing;
     }
 }

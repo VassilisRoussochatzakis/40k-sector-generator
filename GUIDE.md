@@ -1681,6 +1681,10 @@ cargo bench --bench generation -- --quick # ~10s smoke
 
 Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three sector sizes (8×10 / 16×20 / 24×30), `validate_project`, and `validate_sector_invariants`.
 
+Generation builds a world candidate pool once per project load. That pool also
+caches star-colour weight totals, so per-system star selection does not rescan
+every workbook row.
+
 ---
 
 ## 12. Customization recipes

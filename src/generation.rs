@@ -545,21 +545,11 @@ fn choose_system_star_colour(
     pool: &WorldCandidatePool,
     rng: &mut ChaCha8Rng,
 ) -> Result<StarColour, SectorError> {
-    let mut totals: BTreeMap<String, f64> = BTreeMap::new();
-    for c in &pool.candidates {
-        *totals
-            .entry(taxonomy::star_colour_variant_name(c.star_colour).to_string())
-            .or_insert(0.0) += c.weight;
-    }
-    let weighted: Vec<(StarColour, f64)> = totals
-        .into_iter()
-        .filter_map(|(name, w)| taxonomy::parse_star_colour_variant(&name).map(|sc| (sc, w)))
-        .collect();
-    if weighted.is_empty() {
+    if pool.star_colour_weights.is_empty() {
         return Err(SectorError::NoWorldCandidates);
     }
-    let idx = weighted_index(&weighted, rng, "system_star_colour")?;
-    Ok(weighted[idx].0)
+    let idx = weighted_index(&pool.star_colour_weights, rng, "system_star_colour")?;
+    Ok(pool.star_colour_weights[idx].0)
 }
 
 // ── System naming ─────────────────────────────────────────────────────────────

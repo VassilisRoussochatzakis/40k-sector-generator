@@ -47,6 +47,7 @@ pub struct WorldCandidatePool {
     pub candidates: Vec<WorldCandidate>,
     pub excluded_rows: Vec<ExcludedRow>,
     pub feature_pool: FeaturePool,
+    pub star_colour_weights: Vec<(StarColour, f64)>,
 }
 
 #[derive(Debug, Clone)]
@@ -217,7 +218,22 @@ pub fn build_pool(
         }
     }
 
+    pool.star_colour_weights = star_colour_weights(&pool.candidates);
+
     pool
+}
+
+fn star_colour_weights(candidates: &[WorldCandidate]) -> Vec<(StarColour, f64)> {
+    let mut totals: BTreeMap<String, f64> = BTreeMap::new();
+    for c in candidates {
+        *totals
+            .entry(taxonomy::star_colour_variant_name(c.star_colour).to_string())
+            .or_insert(0.0) += c.weight;
+    }
+    totals
+        .into_iter()
+        .filter_map(|(name, w)| taxonomy::parse_star_colour_variant(&name).map(|sc| (sc, w)))
+        .collect()
 }
 
 fn first_missing_field(row: &GenerationRow) -> Option<&'static str> {
@@ -406,5 +422,21 @@ mod tests {
         assert_eq!(w.star_colour, cand.star_colour);
         assert_eq!(w.world_type, cand.world_type);
         assert_eq!(w.notable_features, features);
+    }
+
+    #[test]
+    fn world_pool_caches_star_colour_weights() {
+        let mut blue = row(Some(2.5));
+        blue.star_colour = Some(StarColour::BlueWhite);
+        let rows = vec![row(Some(1.0)), blue, row(Some(3.0))];
+        let pool = build_pool(
+            &rows,
+            &KeyTables::default(),
+            &WorldSelectionConfig::default(),
+        );
+        assert_eq!(
+            pool.star_colour_weights,
+            vec![(StarColour::BlueWhite, 2.5), (StarColour::RedDwarf, 4.0)]
+        );
     }
 }

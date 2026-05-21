@@ -1,6 +1,6 @@
 //! Integration tests: full project → generate → export → reload.
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fs};
 
 use camino::Utf8PathBuf;
 
@@ -75,10 +75,51 @@ fn export_writes_all_expected_files() {
     assert!(tmp_path.join("sector.json").exists());
     assert!(tmp_path.join("sector.md").exists());
     assert!(tmp_path.join("manifest.json").exists());
-    assert!(tmp_path.join("systems").join("sys-0001.json").exists());
+    assert!(!tmp_path.join("systems").join("sys-0001.json").exists());
     assert!(tmp_path.join("csv").join("systems.csv").exists());
     assert!(tmp_path.join("csv").join("worlds.csv").exists());
     assert!(tmp_path.join("csv").join("routes.csv").exists());
+}
+
+#[test]
+fn export_can_opt_in_to_per_system_json() {
+    let project = fixture_project();
+    let input = sectorforge::load_project(&project).unwrap();
+    let mut output_cfg = input.config.outputs.clone();
+    output_cfg.write_per_system_files = true;
+    let sector = sectorforge::generate_sector(input).unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+
+    sectorforge::export_sector(&sector, &output_cfg, &tmp_path).unwrap();
+
+    assert!(tmp_path.join("sector.json").exists());
+    assert!(tmp_path.join("systems").join("sys-0001.json").exists());
+}
+
+#[test]
+fn export_removes_stale_per_system_json_when_disabled() {
+    let project = fixture_project();
+    let input = sectorforge::load_project(&project).unwrap();
+    let mut output_cfg = input.config.outputs.clone();
+    output_cfg.formats = vec![sectorforge::config::OutputFormat::Json];
+    output_cfg.write_manifest = false;
+    output_cfg.write_per_system_files = false;
+    let sector = sectorforge::generate_sector(input).unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    let systems_dir = tmp_path.join("systems");
+    fs::create_dir_all(&systems_dir).unwrap();
+    let stale_json = systems_dir.join(format!("{}.json", sector.systems[0].id));
+    let keep_png = systems_dir.join(format!("{}.png", sector.systems[0].id));
+    fs::write(&stale_json, "{}").unwrap();
+    fs::write(&keep_png, "not a real png").unwrap();
+
+    sectorforge::export_sector(&sector, &output_cfg, &tmp_path).unwrap();
+
+    assert!(tmp_path.join("sector.json").exists());
+    assert!(!stale_json.exists());
+    assert!(keep_png.exists());
 }
 
 #[test]

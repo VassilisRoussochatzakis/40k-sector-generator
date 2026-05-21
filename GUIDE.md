@@ -61,10 +61,6 @@ out/
   sector.json                  # canonical machine-readable sector, including chronicle when enabled
   sector.md                    # human-readable summary, including Sector History when present
   validation_report.json       # pre-generation validation note
-  systems/
-    sys-0001.json              # one JSON per system
-    sys-0002.json
-     ...
   csv/
     systems.csv
     worlds.csv
@@ -946,7 +942,7 @@ min_world_presence         = 1
 directory                  = "out"
 formats                    = ["json", "markdown", "csv", "bitmap", "html"]
 pretty_json                = true
-write_per_system_files     = true
+write_per_system_files     = false         # true = also write duplicate systems/sys-NNNN.json files
 write_manifest             = true
 write_diagnostics          = false   # reserved flag; no extra diagnostic files emitted yet
 
@@ -1216,6 +1212,15 @@ sectors compact (>5× shrink on a 200-system sector). Per-system `intel`
 is also scoped to observer factions with at least one presence in the
 system; rumor views for unrelated observers can be reconstructed on
 demand from the raw system state.
+
+`sector.json` is the canonical JSON artifact and already contains every
+`GeneratedSystem`. Per-system JSON files under `systems/sys-NNNN.json`
+duplicate those entries and are off by default. Enable
+`[outputs].write_per_system_files = true` only when a downstream tool needs
+standalone system files. Per-system bitmap PNGs are controlled separately by
+`[outputs.bitmap].render_systems`. When per-system JSON is disabled, export
+removes stale `systems/<current-system-id>.json` files but leaves PNGs and
+other files untouched.
 
 `GeneratedFaction` is the top-level faction rollup. Its `subfactions`
 array contains middle-level `GeneratedSubfaction` rows, and each subfaction

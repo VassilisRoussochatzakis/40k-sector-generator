@@ -54,7 +54,7 @@ min_world_presence = 2
 directory = "out"
 formats = ["json", "markdown", "csv"]
 pretty_json = false
-write_per_system_files = true
+write_per_system_files = false
 write_manifest = true
 
 [outputs.bitmap]
@@ -64,4 +64,3 @@ render_systems = true
 
 [outputs.bitmap.theme]
 name = "gm_dark"
-

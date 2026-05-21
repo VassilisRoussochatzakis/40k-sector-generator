@@ -111,27 +111,58 @@ fn write_json(
     output_dir: &Utf8Path,
     cfg: &OutputConfig,
 ) -> Result<(), SectorError> {
-    let sector_path = output_dir.join("sector.json");
-    let text = if cfg.pretty_json {
-        serde_json::to_string_pretty(sector)
-    } else {
-        serde_json::to_string(sector)
-    }
-    .map_err(|e| SectorError::export(sector_path.as_str(), e.to_string()))?;
-    fs::write(&sector_path, text).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
+    let format = JsonFormat::from_flag(cfg.pretty_json);
+    write_sector_json_file(sector, output_dir, format)?;
 
     if cfg.write_per_system_files {
-        let systems_dir = output_dir.join("systems");
-        fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
-        for sys in &sector.systems {
-            let path = systems_dir.join(format!("{}.json", sys.id));
-            let text = if cfg.pretty_json {
-                serde_json::to_string_pretty(sys)
-            } else {
-                serde_json::to_string(sys)
-            }
+        write_per_system_json_files(sector, output_dir, format)?;
+    } else {
+        remove_per_system_json_files(sector, output_dir)?;
+    }
+    Ok(())
+}
+
+fn write_sector_json_file(
+    sector: &GeneratedSector,
+    output_dir: &Utf8Path,
+    format: JsonFormat,
+) -> Result<(), SectorError> {
+    let sector_path = output_dir.join("sector.json");
+    let text = format
+        .render(sector)
+        .map_err(|e| SectorError::export(sector_path.as_str(), e.to_string()))?;
+    fs::write(&sector_path, text).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
+    Ok(())
+}
+
+fn write_per_system_json_files(
+    sector: &GeneratedSector,
+    output_dir: &Utf8Path,
+    format: JsonFormat,
+) -> Result<(), SectorError> {
+    let systems_dir = output_dir.join("systems");
+    fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
+    for sys in &sector.systems {
+        let path = systems_dir.join(format!("{}.json", sys.id));
+        let text = format
+            .render(sys)
             .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
-            fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
+        fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
+    }
+    Ok(())
+}
+
+fn remove_per_system_json_files(
+    sector: &GeneratedSector,
+    output_dir: &Utf8Path,
+) -> Result<(), SectorError> {
+    let systems_dir = output_dir.join("systems");
+    for sys in &sector.systems {
+        let path = systems_dir.join(format!("{}.json", sys.id));
+        match fs::remove_file(&path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(SectorError::io(path.as_str(), e)),
         }
     }
     Ok(())
@@ -168,27 +199,17 @@ fn write_validation_placeholder(
     Ok(())
 }
 
-/// Export sector.json + systems/*.json to the given directory.
-/// Simpler than `write_json` — always writes per-system files.
+/// Export the canonical `sector.json` to the given directory.
+/// Per-system JSON files duplicate `sector.json.systems[]`; use a full
+/// [`OutputConfig`] with `write_per_system_files = true` when callers need
+/// those convenience files.
 pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {
-    let sector_path = output_dir.join("sector.json");
-    let text = serde_json::to_string_pretty(sector)
-        .map_err(|e| SectorError::export(sector_path.as_str(), e.to_string()))?;
-    fs::write(&sector_path, text).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
-
-    let systems_dir = output_dir.join("systems");
-    fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
-    for sys in &sector.systems {
-        let path = systems_dir.join(format!("{}.json", sys.id));
-        let text = serde_json::to_string_pretty(sys)
-            .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
-        fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
-    }
-    Ok(())
+    write_sector_json_file(sector, output_dir, JsonFormat::Pretty)?;
+    remove_per_system_json_files(sector, output_dir)
 }
 
-/// Export everything for the sector EXCEPT images: all JSONs (sector,
-/// manifest, validation, per-system), markdown, CSVs, plus a recursive copy
+/// Export everything for the sector EXCEPT images: sector JSON,
+/// manifest, validation, markdown, CSVs, plus a recursive copy
 /// of the source data folder. Files with image extensions
 /// (.png/.bmp/.jpg/.jpeg/.gif/.webp/.tiff/.tif/.svg/.ico) are skipped during
 /// the data-folder copy.

@@ -242,7 +242,7 @@ pub struct OutputConfig {
     pub formats: Vec<OutputFormat>,
     #[serde(default = "default_true")]
     pub pretty_json: bool,
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub write_per_system_files: bool,
     #[serde(default = "default_true")]
     pub write_manifest: bool,

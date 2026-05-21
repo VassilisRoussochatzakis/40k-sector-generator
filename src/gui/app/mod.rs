@@ -16,7 +16,7 @@ use super::dashboard::{self, DashboardState};
 use super::data_editor::DataEditor;
 use super::editor::{self, EditorState};
 use super::factions_overview;
-use super::heatmap::{self, HeatmapMode};
+use super::heatmap::{HeatmapCache, HeatmapMode};
 use super::info_panel;
 use super::palette::{self, TEXT, TEXT_DIM};
 use super::preset_gallery::{self, PresetGalleryState};
@@ -44,6 +44,8 @@ pub struct App {
     export_scale: u32,
     export_theme_name: String,
     heatmap_mode: HeatmapMode,
+    heatmap_cache: HeatmapCache,
+    sector_overview_cache: info_panel::SectorOverviewCache,
     dashboard: DashboardState,
     preset_gallery: PresetGalleryState,
     segmentum: Option<Arc<SegmentumBundle>>,
@@ -110,6 +112,8 @@ impl Default for App {
             export_scale: 2,
             export_theme_name: "gm_dark".into(),
             heatmap_mode: HeatmapMode::Off,
+            heatmap_cache: HeatmapCache::default(),
+            sector_overview_cache: info_panel::SectorOverviewCache::default(),
             dashboard: DashboardState::default(),
             preset_gallery: PresetGalleryState::default(),
             segmentum: None,
@@ -169,6 +173,8 @@ impl App {
         self.history_selected_event = None;
         self.planner.clear();
         self.dashboard.invalidate();
+        self.heatmap_cache.invalidate();
+        self.sector_overview_cache.invalidate();
         if !self.editor.dirty {
             self.editor.set_sector(sector, source_path);
         }
@@ -613,6 +619,7 @@ impl App {
                 });
             return;
         };
+        let overview_buckets = self.sector_overview_cache.buckets_for(&sector);
         SidePanel::right("info")
             .resizable(true)
             .default_width(320.0)
@@ -642,7 +649,11 @@ impl App {
                             ui.separator();
                         }
                     }
-                    info_panel::sector_overview(ui, &sector);
+                    info_panel::sector_overview_with_buckets(
+                        ui,
+                        &sector,
+                        overview_buckets.as_slice(),
+                    );
                 });
             });
 
@@ -1209,6 +1220,8 @@ impl App {
 
     fn after_live_faction_edit(&mut self) {
         self.dashboard.invalidate();
+        self.heatmap_cache.invalidate();
+        self.sector_overview_cache.invalidate();
         if let Some(sector) = self.sector.as_ref() {
             self.subsectors =
                 build_subsectors(sector.as_ref(), SubsectorConfig::default()).unwrap_or_default();
@@ -1989,11 +2002,9 @@ impl App {
                     }
                 });
             });
-        let heatmap = if matches!(self.heatmap_mode, HeatmapMode::Off) {
-            None
-        } else {
-            Some(heatmap::compute(&sector, self.heatmap_mode))
-        };
+        let heatmap = self
+            .heatmap_cache
+            .get_or_compute(&sector, self.heatmap_mode);
         ScrollArea::both().show(ui, |ui| {
             let (_resp, click) = SectorView {
                 sector: &sector,
@@ -2003,7 +2014,7 @@ impl App {
                 path_waypoints: None,
                 subsectors: Some(self.subsectors.as_slice()),
                 selected_subsector: self.sector_selected_subsector.as_deref(),
-                heatmap: heatmap.as_ref(),
+                heatmap: heatmap.as_deref(),
             }
             .show(ui);
             match click {

@@ -1,6 +1,8 @@
 //! Right-side info panel. One pure render fn per entity kind so layout is easy
 //! to tweak in isolation.
 
+use std::sync::Arc;
+
 use egui::{Color32, FontId, Pos2, RichText, Ui, Vec2};
 
 use crate::sector_model::{GeneratedSector, GeneratedSystem, GeneratedWorld, RoutePattern};
@@ -14,7 +16,69 @@ use crate::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SectorOverviewCacheKey {
+    sector_id: String,
+    seed: String,
+    width: u32,
+    height: u32,
+    system_count: usize,
+    world_count: usize,
+    route_count: usize,
+    faction_count: usize,
+}
+
+impl SectorOverviewCacheKey {
+    fn from_sector(sector: &GeneratedSector) -> Self {
+        Self {
+            sector_id: sector.id.clone(),
+            seed: sector.seed.clone(),
+            width: sector.width,
+            height: sector.height,
+            system_count: sector.systems.len(),
+            world_count: sector.systems.iter().map(|s| s.worlds.len()).sum(),
+            route_count: sector.routes.len(),
+            faction_count: sector.factions.len(),
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct SectorOverviewCache {
+    key: Option<SectorOverviewCacheKey>,
+    buckets: Option<Arc<Vec<DisplayBucket>>>,
+}
+
+impl SectorOverviewCache {
+    pub fn buckets_for(&mut self, sector: &GeneratedSector) -> Arc<Vec<DisplayBucket>> {
+        let key = SectorOverviewCacheKey::from_sector(sector);
+        if self.key.as_ref() != Some(&key) || self.buckets.is_none() {
+            self.key = Some(key);
+            self.buckets = Some(Arc::new(compute_display_buckets(
+                sector,
+                DEFAULT_MINOR_FRACTION,
+                DEFAULT_DISPLAY_CAP,
+            )));
+        }
+        self.buckets.clone().unwrap_or_default()
+    }
+
+    pub fn invalidate(&mut self) {
+        self.key = None;
+        self.buckets = None;
+    }
+}
+
 pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
+    let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
+    sector_overview_with_buckets(ui, sector, &buckets);
+}
+
+pub fn sector_overview_with_buckets(
+    ui: &mut Ui,
+    sector: &GeneratedSector,
+    buckets: &[DisplayBucket],
+) {
     title(ui, &format!("SECTOR: {}", sector.id.to_uppercase()));
     dim(ui, &format!("SEED: {}", short(&sector.seed, 20)));
     dim(
@@ -71,8 +135,7 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
 
     if !sector.factions.is_empty() {
         section(ui, "FACTIONS");
-        let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
-        for b in &buckets {
+        for b in buckets {
             match b {
                 DisplayBucket::Faction {
                     id,
@@ -113,6 +176,38 @@ pub fn sector_overview(ui: &mut Ui, sector: &GeneratedSector) {
             }
         }
         ui.add_space(8.0);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+
+    #[test]
+    fn overview_cache_reuses_buckets_until_sector_key_changes() {
+        let mut sector = crate::gui::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let mut cache = SectorOverviewCache::default();
+
+        let first = cache.buckets_for(&sector);
+        let second = cache.buckets_for(&sector);
+        assert!(Arc::ptr_eq(&first, &second));
+
+        sector.height += 1;
+        let third = cache.buckets_for(&sector);
+        assert!(!Arc::ptr_eq(&second, &third));
+    }
+
+    #[test]
+    fn overview_cache_invalidate_drops_buckets() {
+        let sector = crate::gui::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let mut cache = SectorOverviewCache::default();
+
+        let first = cache.buckets_for(&sector);
+        cache.invalidate();
+        let second = cache.buckets_for(&sector);
+        assert!(!Arc::ptr_eq(&first, &second));
     }
 }
 

@@ -1409,6 +1409,11 @@ navigation bar:
   (§4 — sum of hostile/at-war pair tensions per system), or `TRADE VOL`
   (§12 — sum of incident route trade volumes). See
   [src/gui/heatmap.rs](src/gui/heatmap.rs).
+  Heatmap cells are cached per loaded sector and mode, so toggling a
+  non-`OFF` heatmap does not rescore every frame; the cache is invalidated
+  when a new sector loads or live faction edits change map data.
+  The sector info panel also caches its faction legend buckets for the same
+  loaded-sector lifetime instead of rebuilding the rollup every repaint.
 - **System** — per-system detail panel: worlds, coords, star type, tags,
   factions, neighboring systems.
 - **Edit** — sector editor (rename systems, add/remove worlds, adjust tags

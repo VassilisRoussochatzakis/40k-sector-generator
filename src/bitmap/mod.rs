@@ -311,6 +311,9 @@ fn compute_region_tints(
             RegionConditionKind::CalmCorridor => Rgba([80, 160, 170, 255]),
             RegionConditionKind::Blackout => Rgba([60, 60, 70, 255]),
             RegionConditionKind::Anomaly => Rgba([180, 130, 100, 255]),
+            RegionConditionKind::NecropolisDrift => Rgba([100, 120, 130, 255]),
+            RegionConditionKind::BeaconChain => Rgba([190, 180, 110, 255]),
+            RegionConditionKind::EmpyricBleed => Rgba([150, 80, 140, 255]),
         };
         let tinted = tint_against(base, theme.region_tint_strength, theme.hex_empty);
         for h in &region.hexes {

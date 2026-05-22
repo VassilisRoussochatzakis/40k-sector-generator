@@ -521,6 +521,9 @@ fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
         K::CalmCorridor => '=',
         K::Blackout => '#',
         K::Anomaly => '*',
+        K::NecropolisDrift => '+',
+        K::BeaconChain => 'I',
+        K::EmpyricBleed => '%',
     }
 }
 

@@ -46,26 +46,49 @@ pub enum RegionConditionKind {
     /// World-generation candidate weights biased toward ancient-ruins /
     /// warp-phenomena candidates nearby.
     Anomaly,
+    /// Dead worlds, ancient mausoleums. Route stability normal but eerie.
+    NecropolisDrift,
+    /// Ancient navigation beacons. Routes upgrade by one tier (like CalmCorridor).
+    BeaconChain,
+    /// Veil between realspace and warp is thin. Routes degrade by one tier (like Turbulence).
+    EmpyricBleed,
 }
 
 impl RegionConditionKind {
-    fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Self::WarpStorm => "Warp Storm",
             Self::Turbulence => "Turbulence",
             Self::CalmCorridor => "Calm Corridor",
             Self::Blackout => "Blackout",
             Self::Anomaly => "Anomaly",
+            Self::NecropolisDrift => "Necropolis Drift",
+            Self::BeaconChain => "Beacon Chain",
+            Self::EmpyricBleed => "Empyric Bleed",
         }
     }
+    
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::WarpStorm => "A raging empyric front that bleeds into realspace. Routes crossing or skirting this region are perilous. Navigation is harsh, failure carries dramatic consequences.",
+            Self::Turbulence => "An unstable region where currents buck and twist. Routes degrade by one tier (longer times, higher costs, more mishaps).",
+            Self::CalmCorridor => "A precious stretch of stable warp-space. Routes upgrade by one tier (smoother translation, predictable arrivals).",
+            Self::Blackout => "An area where augury and deep-range surveys fail. No hidden routes exist inside; its internal structure resists discovery.",
+            Self::Anomaly => "Ancient ruins, impossible physics, or ghost signals. World generation leans toward abandoned megastructures or reality-warping landmarks.",
+            Self::NecropolisDrift => "Scattered with dead worlds and void mausoleums. Travel is unnerving. World generation leans toward graveyard planets or reliquary sites.",
+            Self::BeaconChain => "Anchored by ancient navigation beacons. Routes are usually reliable (upgrades stability), but beacons attract pilgrims, raiders, and Imperial authorities.",
+            Self::EmpyricBleed => "The veil between realspace and the Warp is thin. Impossible lights and psychic echoes leak into normal space. Routes may degrade by one tier.",
+        }
+    }
+
     /// Route-effect lattice precedence (§5 NEW.md):
     /// `WarpStorm` (force Perilous) overrides `Turbulence` (one tier worse)
     /// which overrides `CalmCorridor` (one tier better). Higher = stronger.
-    fn route_precedence(self) -> i32 {
+    pub fn route_precedence(self) -> i32 {
         match self {
             Self::WarpStorm => 3,
-            Self::Turbulence => 2,
-            Self::CalmCorridor => 1,
+            Self::Turbulence | Self::EmpyricBleed => 2,
+            Self::CalmCorridor | Self::BeaconChain => 1,
             _ => 0,
         }
     }

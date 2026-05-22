@@ -1081,6 +1081,21 @@ fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
                 format!("Surveyors catalogued {} as a persistent anomaly.", reg.name),
                 55,
             ),
+            crate::regions::RegionConditionKind::NecropolisDrift => (
+                EventKind::Discovery,
+                format!("Vast debris and dead worlds were charted in {}.", reg.name),
+                55,
+            ),
+            crate::regions::RegionConditionKind::BeaconChain => (
+                EventKind::Discovery,
+                format!("Ancient navigation pylons were mapped aligning {}.", reg.name),
+                60,
+            ),
+            crate::regions::RegionConditionKind::EmpyricBleed => (
+                EventKind::WarpStormSurge,
+                format!("Unnatural empyric phenomena began bleeding into {}.", reg.name),
+                65,
+            ),
         };
         let anchor = HistoryAnchor::Region {
             region_id: reg.id.clone(),

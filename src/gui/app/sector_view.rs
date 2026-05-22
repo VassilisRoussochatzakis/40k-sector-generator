@@ -115,6 +115,7 @@ impl App {
             .show(ctx, |ui| self.show_sector(ui));
 
         self.draw_subsector_popup(ctx, &sector);
+        self.draw_region_popup(ctx, &sector);
     }
 
     pub(super) fn draw_subsector_popup(&mut self, ctx: &egui::Context, sector: &GeneratedSector) {
@@ -146,6 +147,45 @@ impl App {
             });
         if !open {
             self.sector_selected_subsector = None;
+        }
+    }
+
+    pub(super) fn draw_region_popup(&mut self, ctx: &egui::Context, sector: &GeneratedSector) {
+        let Some(region_id) = self.sector_selected_region.clone() else {
+            return;
+        };
+        let Some(region) = sector
+            .regions
+            .iter()
+            .find(|r| r.id == region_id)
+            .cloned()
+        else {
+            self.sector_selected_region = None;
+            return;
+        };
+        let mut open = true;
+        let title = format!("REGION - {}", region.name);
+        egui::Window::new(RichText::new(&title).monospace().strong())
+            .open(&mut open)
+            .collapsible(true)
+            .resizable(true)
+            .default_width(340.0)
+            .default_height(320.0)
+            .anchor(egui::Align2::RIGHT_TOP, [-360.0, 60.0])
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    ui.label(RichText::new(&region.name).strong().monospace().size(18.0));
+                    ui.add_space(4.0);
+                    ui.label(RichText::new(region.kind.label()).color(egui::Color32::from_rgb(220, 160, 60)).monospace());
+                    ui.add_space(8.0);
+                    ui.add(egui::Label::new(RichText::new(region.kind.description()).monospace().color(crate::gui::palette::TEXT_DIM)).wrap());
+                    ui.add_space(12.0);
+                    ui.label(RichText::new(format!("Hexes: {}", region.hexes.len())).monospace());
+                    ui.label(RichText::new(format!("Centre: ({}, {})", region.centre.q, region.centre.r)).monospace());
+                });
+            });
+        if !open {
+            self.sector_selected_region = None;
         }
     }
 
@@ -299,6 +339,7 @@ impl App {
                         self.sector_selected = Some(id);
                         self.sector_selected_route = None;
                         self.sector_selected_subsector = None;
+                        self.sector_selected_region = None;
                     }
                 }
                 Some(SectorClick::Route(id)) => {
@@ -310,6 +351,7 @@ impl App {
                         self.sector_selected_route = Some(id);
                         self.sector_selected = None;
                         self.sector_selected_subsector = None;
+                        self.sector_selected_region = None;
                     }
                 }
                 Some(SectorClick::Subsector(id)) => {
@@ -321,6 +363,19 @@ impl App {
                         self.sector_selected_subsector = Some(id.into());
                         self.sector_selected = None;
                         self.sector_selected_route = None;
+                        self.sector_selected_region = None;
+                    }
+                }
+                Some(SectorClick::Region(id)) => {
+                    if self.sector_pick_export {
+                        // empty hexes are not valid export targets
+                    } else if self.sector_selected_region.as_deref() == Some(id.as_str()) {
+                        self.sector_selected_region = None;
+                    } else {
+                        self.sector_selected_region = Some(id);
+                        self.sector_selected = None;
+                        self.sector_selected_route = None;
+                        self.sector_selected_subsector = None;
                     }
                 }
                 Some(SectorClick::EmptyHex(coord)) => {

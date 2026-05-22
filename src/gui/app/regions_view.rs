@@ -43,12 +43,13 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     return;
                 }
                 egui::Grid::new("regions_grid")
-                    .num_columns(5)
+                    .num_columns(6)
                     .striped(true)
                     .show(ui, |ui| {
                         ui.label(RichText::new("ID").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("NAME").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("KIND").color(TEXT_DIM).monospace().strong());
+                        ui.label(RichText::new("DESCRIPTION").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("HEXES").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("CENTRE").color(TEXT_DIM).monospace().strong());
                         ui.end_row();
@@ -56,9 +57,17 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                             ui.label(RichText::new(&r.id).monospace());
                             ui.label(RichText::new(&r.name).monospace());
                             ui.label(
-                                RichText::new(format!("{:?}", r.kind))
+                                RichText::new(r.kind.label())
                                     .color(Color32::from_rgb(220, 160, 60))
                                     .monospace(),
+                            );
+                            ui.add(
+                                egui::Label::new(
+                                    RichText::new(r.kind.description())
+                                        .color(TEXT_DIM)
+                                        .monospace(),
+                                )
+                                .wrap(),
                             );
                             ui.label(RichText::new(r.hexes.len().to_string()).monospace());
                             ui.label(

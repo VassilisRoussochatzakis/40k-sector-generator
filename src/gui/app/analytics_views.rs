@@ -227,16 +227,25 @@ impl App {
                             self.sector_selected = Some(id);
                             self.sector_selected_route = None;
                             self.sector_selected_subsector = None;
+                            self.sector_selected_region = None;
                         }
                         Some(SectorClick::Route(id)) => {
                             self.sector_selected_route = Some(id);
                             self.sector_selected = None;
                             self.sector_selected_subsector = None;
+                            self.sector_selected_region = None;
                         }
                         Some(SectorClick::Subsector(id)) => {
                             self.sector_selected_subsector = Some(id.into());
                             self.sector_selected = None;
                             self.sector_selected_route = None;
+                            self.sector_selected_region = None;
+                        }
+                        Some(SectorClick::Region(id)) => {
+                            self.sector_selected_region = Some(id);
+                            self.sector_selected = None;
+                            self.sector_selected_route = None;
+                            self.sector_selected_subsector = None;
                         }
                         Some(SectorClick::EmptyHex(_)) => {}
                         None => {}

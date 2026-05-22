@@ -87,6 +87,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     Some(
                         crate::gui::sector_view::SectorClick::Route(_)
                         | crate::gui::sector_view::SectorClick::Subsector(_)
+                        | crate::gui::sector_view::SectorClick::Region(_)
                         | crate::gui::sector_view::SectorClick::EmptyHex(_),
                     )
                     | None => {}

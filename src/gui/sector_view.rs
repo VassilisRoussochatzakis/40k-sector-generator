@@ -48,6 +48,7 @@ pub enum SectorClick {
     System(crate::ids::SystemId),
     Route(crate::ids::RouteId),
     Subsector(String),
+    Region(String),
     EmptyHex(HexCoord),
 }
 
@@ -82,9 +83,11 @@ impl<'a> SectorView<'a> {
 
         // §5: per-hex region lookup so the region overlay can tint cells.
         let mut hex_region: HashMap<(i32, i32), RegionConditionKind> = HashMap::new();
+        let mut hex_region_id: HashMap<(i32, i32), &str> = HashMap::new();
         for reg in self.sector.regions.iter() {
             for h in &reg.hexes {
                 hex_region.insert((h.q, h.r), reg.kind);
+                hex_region_id.insert((h.q, h.r), reg.id.as_str());
             }
         }
 
@@ -563,9 +566,9 @@ impl<'a> SectorView<'a> {
                             click = Some(SectorClick::EmptyHex(coord));
                         }
                     }
-                } else if !hex_subsector.is_empty() {
+                } else if !hex_region_id.is_empty() || !hex_subsector.is_empty() {
                     // No system under cursor — try empty hex inside a known
-                    // subsector. Nearest hex center wins as long as it's within
+                    // region or subsector. Nearest hex center wins as long as it's within
                     // the hex's inscribed radius.
                     let inscribed = g.hex_size * 3f32.sqrt() / 2.0;
                     let mut best: Option<((i32, i32), f32)> = None;
@@ -580,7 +583,9 @@ impl<'a> SectorView<'a> {
                     }
                     if let Some(((q, r), d)) = best {
                         if d <= inscribed {
-                            if let Some(&sid) = hex_subsector.get(&(q, r)) {
+                            if let Some(&rid) = hex_region_id.get(&(q, r)) {
+                                click = Some(SectorClick::Region(rid.to_string()));
+                            } else if let Some(&sid) = hex_subsector.get(&(q, r)) {
                                 click = Some(SectorClick::Subsector(sid.to_string()));
                             }
                         }
@@ -725,6 +730,9 @@ fn region_color(kind: RegionConditionKind) -> Color32 {
         RegionConditionKind::CalmCorridor => Color32::from_rgb(90, 200, 180),
         RegionConditionKind::Blackout => Color32::from_rgb(60, 60, 80),
         RegionConditionKind::Anomaly => Color32::from_rgb(220, 160, 60),
+        RegionConditionKind::NecropolisDrift => Color32::from_rgb(100, 130, 140),
+        RegionConditionKind::BeaconChain => Color32::from_rgb(230, 210, 100),
+        RegionConditionKind::EmpyricBleed => Color32::from_rgb(190, 70, 160),
     }
 }
 

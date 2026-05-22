@@ -403,7 +403,7 @@ mod tests {
             claims: vec![],
             control: Default::default(),
             stability: Default::default(),
-            regions: Vec::new().into(),
+            regions: Vec::new(),
             conflict: Default::default(),
         }
     }

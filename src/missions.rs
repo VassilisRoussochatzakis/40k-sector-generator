@@ -723,7 +723,7 @@ mod tests {
                     ..Default::default()
                 },
                 stability: Default::default(),
-                regions: vec![].into(),
+                regions: vec![],
                 conflict: Default::default(),
             }],
             primary_factions: vec![],

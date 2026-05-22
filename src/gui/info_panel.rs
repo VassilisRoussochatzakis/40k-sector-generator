@@ -188,38 +188,6 @@ pub fn sector_overview_with_buckets(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use super::*;
-
-    #[test]
-    fn overview_cache_reuses_buckets_until_sector_key_changes() {
-        let mut sector = crate::gui::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
-        let mut cache = SectorOverviewCache::default();
-
-        let first = cache.buckets_for(&sector);
-        let second = cache.buckets_for(&sector);
-        assert!(Arc::ptr_eq(&first, &second));
-
-        sector.height += 1;
-        let third = cache.buckets_for(&sector);
-        assert!(!Arc::ptr_eq(&second, &third));
-    }
-
-    #[test]
-    fn overview_cache_invalidate_drops_buckets() {
-        let sector = crate::gui::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
-        let mut cache = SectorOverviewCache::default();
-
-        let first = cache.buckets_for(&sector);
-        cache.invalidate();
-        let second = cache.buckets_for(&sector);
-        assert!(!Arc::ptr_eq(&first, &second));
-    }
-}
-
 pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
     title(ui, &format!("SYSTEM: {}", sys.id.to_uppercase()));
     body(ui, &short(&sys.name.to_uppercase(), 28));
@@ -1126,5 +1094,37 @@ fn short(s: &str, max: usize) -> String {
         let mut out: String = s.chars().take(max.saturating_sub(1)).collect();
         out.push('.');
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+
+    #[test]
+    fn overview_cache_reuses_buckets_until_sector_key_changes() {
+        let mut sector = crate::gui::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let mut cache = SectorOverviewCache::default();
+
+        let first = cache.buckets_for(&sector);
+        let second = cache.buckets_for(&sector);
+        assert!(Arc::ptr_eq(&first, &second));
+
+        sector.height += 1;
+        let third = cache.buckets_for(&sector);
+        assert!(!Arc::ptr_eq(&second, &third));
+    }
+
+    #[test]
+    fn overview_cache_invalidate_drops_buckets() {
+        let sector = crate::gui::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let mut cache = SectorOverviewCache::default();
+
+        let first = cache.buckets_for(&sector);
+        cache.invalidate();
+        let second = cache.buckets_for(&sector);
+        assert!(!Arc::ptr_eq(&first, &second));
     }
 }

@@ -132,7 +132,7 @@ pub fn legacy_top_faction_name(kind: &str) -> Cow<'static, str> {
         "merchant" => Cow::Borrowed("Merchant Powers"),
         "criminal" => Cow::Borrowed("Criminal Powers"),
         "rebel" => Cow::Borrowed("Rebel Powers"),
-        _ => return display_name_from_id(kind),
+        _ => display_name_from_id(kind),
     }
 }
 

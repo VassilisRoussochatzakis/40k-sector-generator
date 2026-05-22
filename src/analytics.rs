@@ -167,8 +167,13 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     };
 
     a.faction_balance = compute_faction_balance(sector);
-    let (contested, total_worlds_with_factions, total_claims, claim_counts, dominance_counts) =
-        compute_world_stats(sector);
+    let WorldStats {
+        contested,
+        total_with_factions: total_worlds_with_factions,
+        total_claims,
+        claim_counts,
+        dominance_counts,
+    } = compute_world_stats(sector);
     a.contested_world_ratio = if total_worlds_with_factions == 0 {
         0.0
     } else {
@@ -278,15 +283,15 @@ fn gini_coefficient(values: &[f32]) -> f32 {
 
 // ── Per-world counters ─────────────────────────────────────────────────────────
 
-fn compute_world_stats(
-    sector: &GeneratedSector,
-) -> (
-    u32,
-    u32,
-    u32,
-    BTreeMap<Arc<str>, u32>,
-    BTreeMap<Arc<str>, u32>,
-) {
+struct WorldStats {
+    contested: u32,
+    total_with_factions: u32,
+    total_claims: u32,
+    claim_counts: BTreeMap<Arc<str>, u32>,
+    dominance_counts: BTreeMap<Arc<str>, u32>,
+}
+
+fn compute_world_stats(sector: &GeneratedSector) -> WorldStats {
     let mut contested = 0u32;
     let mut total_with_factions = 0u32;
     let mut total_claims = 0u32;
@@ -311,13 +316,13 @@ fn compute_world_stats(
             }
         }
     }
-    (
+    WorldStats {
         contested,
         total_with_factions,
         total_claims,
         claim_counts,
         dominance_counts,
-    )
+    }
 }
 
 fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<Arc<str>, u32> {

@@ -501,7 +501,7 @@ pub fn build_system_with_bias(
     })?;
 
     Ok(GeneratedSystem {
-        id: sys_id.into(),
+        id: sys_id,
         index: system_index,
         name: name.into(),
         coord,
@@ -681,7 +681,7 @@ fn generate_worlds_for_system(
         let name = pick_world_name(names, system_name, w_idx, &mut w_rng);
 
         worlds.push(GeneratedWorld {
-            id: world_id.into(),
+            id: world_id,
             index: w_idx,
             name: name.into(),
             orbit: w_idx as u8,
@@ -693,7 +693,7 @@ fn generate_worlds_for_system(
             claims: Vec::new(),
             control: WorldControlSummary::default(),
             stability: crate::stability::StabilityState::default(),
-            regions: Vec::new().into(),
+            regions: Vec::new(),
             conflict: Default::default(),
         });
     }
@@ -1150,9 +1150,9 @@ fn build_faction_groups(factions: &[FactionDef]) -> Vec<FactionGroup<'_>> {
                 .unwrap_or_else(|| crate::factions::display_name_from_id(top_id.as_str()).into_owned());
             FactionGroup {
                 id: top_id.clone(),
-                name: name.into(),
-                kind: top_id.to_string().into(),
-                disposition: disposition.into(),
+                name,
+                kind: top_id.to_string(),
+                disposition,
                 order: order.get(&top_id).copied().unwrap_or(usize::MAX),
                 subfactions: build_subfactions_for_group(&top_id, group_members),
             }

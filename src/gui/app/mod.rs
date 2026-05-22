@@ -137,10 +137,11 @@ impl App {
     }
 
     pub fn new_segmentum(bundle: SegmentumBundle) -> Self {
-        let mut app = Self::default();
-        app.segmentum = Some(Arc::new(bundle));
-        app.view = View::Segmentum;
-        app
+        Self {
+            segmentum: Some(Arc::new(bundle)),
+            view: View::Segmentum,
+            ..Self::default()
+        }
     }
 
     pub fn new_empty() -> Self {

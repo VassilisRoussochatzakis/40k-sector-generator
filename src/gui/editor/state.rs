@@ -247,7 +247,7 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
         claims: Vec::new(),
         control: Default::default(),
         stability: Default::default(),
-        regions: Vec::new().into(),
+        regions: Vec::new(),
         conflict: Default::default(),
     }
 }

@@ -495,8 +495,7 @@ fn anchor_key(a: &HistoryAnchor) -> String {
 // ── Event emission ─────────────────────────────────────────────────────────────
 
 fn build_event(
-    seed: &str,
-    cfg: &HistoryConfig,
+    ctx: &EmitContext,
     anchor: HistoryAnchor,
     kind: EventKind,
     text: String,
@@ -505,12 +504,12 @@ fn build_event(
     ordinal: usize,
 ) -> HistoryEvent {
     let mut rng = stage_rng(
-        seed,
+        &ctx.sector.seed,
         "history-event",
         &format!("{}:{kind:?}:{ordinal}", anchor_key(&anchor)),
     );
-    let date = synthesise_date(&mut rng, cfg, kind, ordinal);
-    let (era_id, era_label, relative_year) = synthesise_era(&mut rng, cfg, kind);
+    let date = synthesise_date(&mut rng, ctx.cfg, kind, ordinal);
+    let (era_id, era_label, relative_year) = synthesise_era(&mut rng, ctx.cfg, kind);
     let mut entities = entities_for_anchor(&anchor);
     for faction_id in &factions {
         entities.push(HistoryEntityRef {
@@ -697,16 +696,7 @@ fn emit_world_events(
             system_id: sys.id.clone(),
             world_id: w.id.clone(),
         };
-        out.push(build_event(
-            &ctx.sector.seed,
-            ctx.cfg,
-            anchor,
-            kind,
-            text,
-            factions,
-            weight,
-            i,
-        ));
+        out.push(build_event(ctx, anchor, kind, text, factions, weight, i));
     }
 }
 
@@ -888,16 +878,7 @@ fn emit_system_events(
         let anchor = HistoryAnchor::System {
             system_id: sys.id.clone(),
         };
-        out.push(build_event(
-            &ctx.sector.seed,
-            ctx.cfg,
-            anchor,
-            kind,
-            text,
-            factions,
-            weight,
-            i,
-        ));
+        out.push(build_event(ctx, anchor, kind, text, factions, weight, i));
     }
 }
 
@@ -1003,8 +984,7 @@ fn emit_route_events(
             to_system_id: route.to_system_id.clone(),
         };
         out.push(build_event(
-            &ctx.sector.seed,
-            ctx.cfg,
+            ctx,
             anchor,
             kind,
             text,
@@ -1051,8 +1031,7 @@ fn emit_subsector_events(
             subsector_id: sub.id.to_string(),
         };
         let mut ev = build_event(
-            &ctx.sector.seed,
-            ctx.cfg,
+            ctx,
             anchor,
             EventKind::Foundation,
             text,
@@ -1121,7 +1100,7 @@ fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
         let anchor = HistoryAnchor::Region {
             region_id: reg.id.clone(),
         };
-        let mut ev = build_event(&ctx.sector.seed, ctx.cfg, anchor, kind, text, Vec::new(), weight, i);
+        let mut ev = build_event(ctx, anchor, kind, text, Vec::new(), weight, i);
         ev.consequences.push(HistoryConsequence {
             kind: HistoryConsequenceKind::RegionRecorded,
             description: format!("{:?} effects entered the sector chronicle.", reg.kind),
@@ -1158,8 +1137,7 @@ fn apply_event_rules(
                     system_id: sys.id.clone(),
                 };
                 let mut ev = build_event(
-                    &ctx.sector.seed,
-                    ctx.cfg,
+                    ctx,
                     anchor,
                     kind,
                     text,
@@ -1750,7 +1728,7 @@ mod tests {
             claims: vec![],
             control: WorldControlSummary::default(),
             stability: Default::default(),
-            regions: vec![].into(),
+            regions: vec![],
             conflict: Default::default(),
         }
     }

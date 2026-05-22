@@ -171,7 +171,9 @@ pub fn system_id(index: usize) -> SystemId {
 
 #[must_use]
 pub fn world_id(system_index: usize, world_index: usize) -> WorldId {
-    WorldId(Arc::from(format!("sys-{system_index:04}-w{world_index:02}")))
+    WorldId(Arc::from(format!(
+        "sys-{system_index:04}-w{world_index:02}"
+    )))
 }
 
 #[must_use]

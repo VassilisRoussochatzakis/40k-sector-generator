@@ -564,7 +564,8 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
                     top.faction_id,
                     top.share * 100.0,
                     cfg.warn_faction_share * 100.0
-                ).into(),
+                )
+                .into(),
             });
         }
     }
@@ -575,7 +576,8 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
             message: format!(
                 "route graph has {} components (largest = {})",
                 a.connectivity.component_count, a.connectivity.largest_component_size
-            ).into(),
+            )
+            .into(),
         });
     }
     if cfg.warn_if_articulation {
@@ -595,7 +597,8 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
                 "{:.0}% of inhabited worlds are contested (threshold {:.0}%)",
                 a.contested_world_ratio * 100.0,
                 cfg.warn_contested_ratio * 100.0
-            ).into(),
+            )
+            .into(),
         });
     }
     if !a.connectivity.isolated_system_ids.is_empty() {
@@ -606,7 +609,8 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
                 "{} system(s) have no incident routes: {}",
                 a.connectivity.isolated_system_ids.len(),
                 join_ids(&a.connectivity.isolated_system_ids)
-            ).into(),
+            )
+            .into(),
         });
     }
     if a.low_confidence {
@@ -616,7 +620,8 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
             message: format!(
                 "sector has only {} systems; connectivity metrics are low-confidence",
                 a.system_count
-            ).into(),
+            )
+            .into(),
         });
     }
     out
@@ -970,6 +975,9 @@ mod tests {
         };
         s.factions = vec![f1, f2];
         let a = analyze(&s);
-        assert!(a.health_flags.iter().any(|f| f.code.as_ref() == "FACTION_DOMINANCE"));
+        assert!(a
+            .health_flags
+            .iter()
+            .any(|f| f.code.as_ref() == "FACTION_DOMINANCE"));
     }
 }

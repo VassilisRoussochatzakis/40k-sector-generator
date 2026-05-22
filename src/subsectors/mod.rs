@@ -221,9 +221,7 @@ pub fn build_subsectors(
     let k = seed_indices.len();
     let mut cells: Vec<Subsector> = (0..k)
         .map(|i| {
-            let seed_sys = sector
-                .get_system(&seed_ids[i])
-                .expect("seed id missing");
+            let seed_sys = sector.get_system(&seed_ids[i]).expect("seed id missing");
             Subsector {
                 id: format!("subsector-tmp-{i}").into(),
                 sector_id: sector.id.clone(),
@@ -372,8 +370,14 @@ pub fn build_subsectors(
             let from_id = cells[from_cell].id.clone();
             cells[from_cell].route_ids_border.push(route.id.clone());
             cells[to_cell].route_ids_border.push(route.id.clone());
-            push_unique(&mut cells[from_cell].connected_subsector_ids, to_id.to_string());
-            push_unique(&mut cells[to_cell].connected_subsector_ids, from_id.to_string());
+            push_unique(
+                &mut cells[from_cell].connected_subsector_ids,
+                to_id.to_string(),
+            );
+            push_unique(
+                &mut cells[to_cell].connected_subsector_ids,
+                from_id.to_string(),
+            );
         }
     }
 
@@ -532,7 +536,12 @@ fn cluster_systems(
                 })
                 .min()
                 .unwrap_or(0);
-            let cand = (min_d, *scores.get(&sys.id).unwrap(), sys.index, sys.id.clone());
+            let cand = (
+                min_d,
+                *scores.get(&sys.id).unwrap(),
+                sys.index,
+                sys.id.clone(),
+            );
             let take = match &best {
                 None => true,
                 Some(b) => {
@@ -641,10 +650,7 @@ fn seed_score(sys: &GeneratedSystem, route_degree: &BTreeMap<&str, u32>) -> i32 
 
 /// Assign every hex in the sector to its nearest seed system, with stable
 /// tie-breaking on cluster index. Returns a per-hex `(q,r) → cluster_idx` map.
-fn assign_hex_grid(
-    sector: &GeneratedSector,
-    seed_ids: &[SystemId],
-) -> BTreeMap<(u32, u32), usize> {
+fn assign_hex_grid(sector: &GeneratedSector, seed_ids: &[SystemId]) -> BTreeMap<(u32, u32), usize> {
     let mut out = BTreeMap::new();
     let seed_coords: Vec<HexCoord> = seed_ids
         .iter()
@@ -730,7 +736,8 @@ fn push_unique(v: &mut Vec<String>, s: String) {
 
 mod summary;
 use summary::{
-    pick_capital, populate_summary, population_rank, resolve_system_owners, tech_rank, SummaryParams,
+    pick_capital, populate_summary, population_rank, resolve_system_owners, tech_rank,
+    SummaryParams,
 };
 
 // ── Tests ──────────────────────────────────────────────────────────────────────

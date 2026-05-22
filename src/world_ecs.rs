@@ -131,10 +131,7 @@ pub fn build(sector: &GeneratedSector) -> EntityWorld {
                         .map(|p| {
                             (
                                 p.faction_id.clone(),
-                                p.dimensions
-                                    .local_control_score()
-                                    .clamp(0.0, 100.0)
-                                    .round() as u8,
+                                p.dimensions.local_control_score().clamp(0.0, 100.0).round() as u8,
                             )
                         })
                         .collect(),

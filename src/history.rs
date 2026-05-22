@@ -559,7 +559,8 @@ fn emit_world_events(
 
     // Claim-derived events.
     for c in &w.claims {
-        let fname = ctx.faction_names
+        let fname = ctx
+            .faction_names
             .get(c.faction_id.as_str())
             .copied()
             .unwrap_or(c.faction_id.as_str());
@@ -637,7 +638,8 @@ fn emit_world_events(
             }
         }
         if let Some(hidden) = &w.control.hidden_master {
-            let n = ctx.faction_names
+            let n = ctx
+                .faction_names
                 .get(hidden.as_str())
                 .copied()
                 .unwrap_or(hidden);
@@ -657,11 +659,13 @@ fn emit_world_events(
     if w.conflict.intensity >= 60 {
         let attacker = w.conflict.attacker.clone().unwrap_or_default();
         let defender = w.conflict.defender.clone().unwrap_or_default();
-        let an = ctx.faction_names
+        let an = ctx
+            .faction_names
             .get(attacker.as_str())
             .copied()
             .unwrap_or(attacker.as_str());
-        let dn = ctx.faction_names
+        let dn = ctx
+            .faction_names
             .get(defender.as_str())
             .copied()
             .unwrap_or(defender.as_str());
@@ -700,11 +704,7 @@ fn emit_world_events(
     }
 }
 
-fn emit_system_events(
-    ctx: &EmitContext,
-    sys: &GeneratedSystem,
-    out: &mut Vec<HistoryEvent>,
-) {
+fn emit_system_events(ctx: &EmitContext, sys: &GeneratedSystem, out: &mut Vec<HistoryEvent>) {
     let mut buf: Vec<(EventKind, String, Vec<crate::ids::FactionId>, u8)> = Vec::new();
 
     if let Some(state) = sys.control.state {
@@ -721,7 +721,11 @@ fn emit_system_events(
             SystemState::Blockaded => {
                 if sys.blockade.under_blockade {
                     let b = sys.blockade.blockader.clone().unwrap_or_default();
-                    let bn = ctx.faction_names.get(b.as_str()).copied().unwrap_or(b.as_str());
+                    let bn = ctx
+                        .faction_names
+                        .get(b.as_str())
+                        .copied()
+                        .unwrap_or(b.as_str());
                     buf.push((
                         EventKind::Blockade,
                         format!("{bn} threw a void blockade around {}.", sys.name),
@@ -882,16 +886,14 @@ fn emit_system_events(
     }
 }
 
-fn emit_route_events(
-    ctx: &EmitContext,
-    route: &GeneratedRoute,
-    out: &mut Vec<HistoryEvent>,
-) {
-    let from = ctx.system_names
+fn emit_route_events(ctx: &EmitContext, route: &GeneratedRoute, out: &mut Vec<HistoryEvent>) {
+    let from = ctx
+        .system_names
         .get(route.from_system_id.as_str())
         .copied()
         .unwrap_or(route.from_system_id.as_str());
-    let to = ctx.system_names
+    let to = ctx
+        .system_names
         .get(route.to_system_id.as_str())
         .copied()
         .unwrap_or(route.to_system_id.as_str());
@@ -983,35 +985,26 @@ fn emit_route_events(
             from_system_id: route.from_system_id.clone(),
             to_system_id: route.to_system_id.clone(),
         };
-        out.push(build_event(
-            ctx,
-            anchor,
-            kind,
-            text,
-            factions,
-            weight,
-            i,
-        ));
+        out.push(build_event(ctx, anchor, kind, text, factions, weight, i));
     }
 }
 
-fn emit_subsector_events(
-    ctx: &EmitContext,
-    out: &mut Vec<HistoryEvent>,
-) {
+fn emit_subsector_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
     if ctx.sector.systems.is_empty() {
         return;
     }
-    let Ok(subsectors) =
-        crate::subsectors::build_subsectors(ctx.sector, crate::subsectors::SubsectorConfig::default())
-    else {
+    let Ok(subsectors) = crate::subsectors::build_subsectors(
+        ctx.sector,
+        crate::subsectors::SubsectorConfig::default(),
+    ) else {
         return;
     };
     for (i, sub) in subsectors.iter().enumerate() {
         let Some(cap_sys) = &sub.summary.subsector_capital_system_id else {
             continue;
         };
-        let sys_name = ctx.sector
+        let sys_name = ctx
+            .sector
             .systems
             .iter()
             .find(|s| s.id == *cap_sys)
@@ -1030,15 +1023,7 @@ fn emit_subsector_events(
         let anchor = HistoryAnchor::Subsector {
             subsector_id: sub.id.to_string(),
         };
-        let mut ev = build_event(
-            ctx,
-            anchor,
-            EventKind::Foundation,
-            text,
-            Vec::new(),
-            35,
-            i,
-        );
+        let mut ev = build_event(ctx, anchor, EventKind::Foundation, text, Vec::new(), 35, i);
         ev.entities.push(HistoryEntityRef {
             kind: HistoryEntityKind::System,
             id: cap_sys.to_string(),
@@ -1111,10 +1096,7 @@ fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
     }
 }
 
-fn apply_event_rules(
-    ctx: &EmitContext,
-    out: &mut Vec<HistoryEvent>,
-) {
+fn apply_event_rules(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
     for (rule_idx, rule) in ctx.cfg.event_rules.iter().enumerate() {
         let Some(kind) = rule.prefer_event.as_deref().and_then(event_kind_from_str) else {
             continue;

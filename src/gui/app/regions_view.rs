@@ -1,6 +1,6 @@
-use egui::{Color32, RichText, ScrollArea};
-use crate::gui::{palette, App};
 use crate::gui::palette::{TEXT, TEXT_DIM};
+use crate::gui::{palette, App};
+use egui::{Color32, RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {

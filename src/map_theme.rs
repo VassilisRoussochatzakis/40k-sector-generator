@@ -434,7 +434,8 @@ impl MapTheme {
 
 pub fn resolve_map_theme(cfg: &MapThemeConfig) -> Result<MapTheme, MapThemeError> {
     let name = cfg.name.as_deref().unwrap_or("gm_dark");
-    let mut theme = MapTheme::builtin(name).ok_or_else(|| MapThemeError::UnknownTheme(name.to_string()))?;
+    let mut theme =
+        MapTheme::builtin(name).ok_or_else(|| MapThemeError::UnknownTheme(name.to_string()))?;
 
     macro_rules! color_override {
         ($cfg_field:ident, $theme_field:ident) => {

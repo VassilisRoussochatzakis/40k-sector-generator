@@ -338,7 +338,8 @@ where
         &sector,
         &relations_cfg,
         config.generation.relations.min_world_presence,
-    ).into();
+    )
+    .into();
     progress(SectorProgress::OverlayDerived { name: "relations" });
 
     // §12 NEW.md: derive the economy snapshot last so it can read final
@@ -621,9 +622,7 @@ struct WorldGenParams<'a> {
     anomaly_bias: bool,
 }
 
-fn generate_worlds_for_system(
-    params: WorldGenParams,
-) -> Result<Vec<GeneratedWorld>, SectorError> {
+fn generate_worlds_for_system(params: WorldGenParams) -> Result<Vec<GeneratedWorld>, SectorError> {
     let WorldGenParams {
         config,
         pool,
@@ -894,7 +893,8 @@ fn tags_for_world(world: &crate::worlds::World) -> Vec<Arc<str>> {
         format!(
             "star:{}",
             snake(taxonomy::star_colour_variant_name(world.star_colour))
-        ).into(),
+        )
+        .into(),
     ];
     for f in &world.notable_features {
         tags.push(format!("feature:{}", snake(f.as_ref())).into());
@@ -1147,7 +1147,9 @@ fn build_faction_groups(factions: &[FactionDef]) -> Vec<FactionGroup<'_>> {
             let name = group_members
                 .first()
                 .map(|f| f.top_faction_name())
-                .unwrap_or_else(|| crate::factions::display_name_from_id(top_id.as_str()).into_owned());
+                .unwrap_or_else(|| {
+                    crate::factions::display_name_from_id(top_id.as_str()).into_owned()
+                });
             FactionGroup {
                 id: top_id.clone(),
                 name,
@@ -1182,9 +1184,9 @@ fn build_subfactions_for_group<'a>(
             SubfactionGroup {
                 faction_id: top_id.clone(),
                 id: sub_id.clone(),
-                name: first
-                    .map(FactionDef::subfaction_name)
-                    .unwrap_or_else(|| crate::factions::display_name_from_id(sub_id.as_str()).into_owned()),
+                name: first.map(FactionDef::subfaction_name).unwrap_or_else(|| {
+                    crate::factions::display_name_from_id(sub_id.as_str()).into_owned()
+                }),
                 kind: first
                     .map(|f| f.kind.clone())
                     .unwrap_or_else(|| sub_id.to_string()),
@@ -1235,7 +1237,13 @@ fn faction_weight_for_world(f: &FactionDef, world: &GeneratedWorld) -> f64 {
     let feat_hits = f
         .preferred_notable_features
         .iter()
-        .filter(|s| world.world.notable_features.iter().any(|nf| nf.as_ref() == *s))
+        .filter(|s| {
+            world
+                .world
+                .notable_features
+                .iter()
+                .any(|nf| nf.as_ref() == *s)
+        })
         .count();
     if feat_hits > 0 {
         w *= 1.3_f64.powi(feat_hits as i32);

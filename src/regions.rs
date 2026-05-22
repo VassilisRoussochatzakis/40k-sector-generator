@@ -659,7 +659,10 @@ mod tests {
             "region:warp_storm",
         );
         assert_eq!(routes[0].stability, RouteStability::Hazardous);
-        assert!(routes[0].tags.iter().any(|t| t.as_ref() == "region:warp_storm"));
+        assert!(routes[0]
+            .tags
+            .iter()
+            .any(|t| t.as_ref() == "region:warp_storm"));
         assert!(routes[0]
             .tags
             .iter()

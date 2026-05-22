@@ -349,7 +349,15 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, opts: &R
             thickness,
             pattern: route.pattern_with_salt(&sector.seed, opts.route_view_mode),
         });
-        draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness, &opts.theme);
+        draw_route_control_glyph(
+            img,
+            sector,
+            route,
+            (sx, sy),
+            (ex, ey),
+            thickness,
+            &opts.theme,
+        );
     }
 }
 
@@ -1635,7 +1643,14 @@ fn draw_legend(
                     thickness: 3 * g.scale,
                     pattern: rtype.pattern(opts.route_view_mode),
                 });
-                draw_text(img, x0 + 38 * g.scale, y, rtype.label(), opts.theme.text, body);
+                draw_text(
+                    img,
+                    x0 + 38 * g.scale,
+                    y,
+                    rtype.label(),
+                    opts.theme.text,
+                    body,
+                );
                 y += line_h;
             }
         }
@@ -1651,7 +1666,14 @@ fn draw_legend(
                     thickness: 3 * g.scale,
                     pattern: kind.patterns()[0],
                 });
-                draw_text(img, x0 + 38 * g.scale, y, kind.label(), opts.theme.text, body);
+                draw_text(
+                    img,
+                    x0 + 38 * g.scale,
+                    y,
+                    kind.label(),
+                    opts.theme.text,
+                    body,
+                );
                 y += line_h;
             }
         }

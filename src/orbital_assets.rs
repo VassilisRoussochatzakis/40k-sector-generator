@@ -74,9 +74,7 @@ impl BlockadeReport {
 /// Derive a system's `orbital_assets` and blockade summary from finalised
 /// per-world presences. Pure; runs after `control::derive_system_control`.
 #[must_use]
-pub fn derive_orbital_assets(
-    sys: &GeneratedSystem,
-) -> (Vec<OrbitalAsset>, BlockadeReport) {
+pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, BlockadeReport) {
     let worlds = &sys.worlds;
     if worlds.is_empty() {
         return (Vec::new(), BlockadeReport::default());
@@ -111,10 +109,11 @@ pub fn derive_orbital_assets(
                 .any(|f: &Arc<str>| f.as_ref() == "WarZone" || f.as_ref() == "DaemonicCorruption")
     });
 
-    let quarantined = sys
-        .worlds
-        .iter()
-        .any(|w| w.tags.iter().any(|t: &Arc<str>| t.ends_with(":quarantined")));
+    let quarantined = sys.worlds.iter().any(|w| {
+        w.tags
+            .iter()
+            .any(|t: &Arc<str>| t.ends_with(":quarantined"))
+    });
 
     let mut assets: Vec<OrbitalAsset> = Vec::new();
     for (id, d) in &sums {

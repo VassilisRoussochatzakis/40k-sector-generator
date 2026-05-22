@@ -444,7 +444,10 @@ where
             project: project_path.to_string(),
             column: child.column,
             row: child.row,
-            title: child.title.clone().unwrap_or_else(|| sector.title.to_string()),
+            title: child
+                .title
+                .clone()
+                .unwrap_or_else(|| sector.title.to_string()),
             sector_id: sector.id.to_string(),
             seed: sector.seed.to_string(),
             sector_digest: digest.clone(),

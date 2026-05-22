@@ -4,8 +4,8 @@
 //! present, and the existing multi-winner control summary. Values are
 //! deterministic given a finalised sector.
 
-use std::collections::BTreeMap;
 use crate::sector_model::GeneratedSystem;
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 

@@ -256,7 +256,10 @@ pub(super) fn populate_summary(params: SummaryParams) {
         let rt_key = format!("{:?}", r.route_type);
         let rs_key = format!("{:?}", r.stability);
         *summary.route_type_counts.entry(rt_key.into()).or_default() += 1;
-        *summary.route_stability_counts.entry(rs_key.into()).or_default() += 1;
+        *summary
+            .route_stability_counts
+            .entry(rs_key.into())
+            .or_default() += 1;
         for t in &r.tags {
             *summary.tag_counts.entry(t.clone()).or_default() += 1;
         }
@@ -412,7 +415,9 @@ fn build_faction_control(
         .map(|r| primary_share(r, use_inhabited))
         .unwrap_or(0);
     if let Some(first) = rows.first_mut() {
-        first.control_tier = control_tier(leader_primary, runner_primary).to_string().into();
+        first.control_tier = control_tier(leader_primary, runner_primary)
+            .to_string()
+            .into();
     }
     for r in rows.iter_mut().skip(1) {
         r.control_tier = "presence".to_string().into();
@@ -656,7 +661,12 @@ pub(super) fn pick_capital(
         let has_hazard = sys
             .tags
             .iter()
-            .chain(sector.get_worlds_for_system(sys).iter().flat_map(|w| w.tags.iter()))
+            .chain(
+                sector
+                    .get_worlds_for_system(sys)
+                    .iter()
+                    .flat_map(|w| w.tags.iter()),
+            )
             .any(|t| {
                 let l = t.to_ascii_lowercase();
                 l.contains("hazard")

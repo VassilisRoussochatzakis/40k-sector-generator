@@ -182,7 +182,11 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, 
         let mut max_visibility: f32 = 0.0;
         let mut has_tomb = false;
         for w in &sys.worlds {
-            if w.world.notable_features.iter().any(|f| f.as_ref() == "TombWorld") {
+            if w.world
+                .notable_features
+                .iter()
+                .any(|f| f.as_ref() == "TombWorld")
+            {
                 has_tomb = true;
             }
             if w.world.world_type.as_ref() == "TombWorld" {
@@ -345,12 +349,14 @@ fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<Facti
 fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_bands: BTreeMap<SystemId, TauSphereBand> = BTreeMap::new();
     for sys in &sector.systems {
-        let max_local = sys.worlds.iter()
+        let max_local = sys
+            .worlds
+            .iter()
             .flat_map(|w| w.factions.iter())
             .filter(|p| kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("") == "tau")
             .map(|p| p.dimensions.local_control_score())
             .fold(0.0_f32, f32::max);
-            
+
         let band = match max_local {
             s if s >= 70.0 => TauSphereBand::Core,
             s if s >= 45.0 => TauSphereBand::Client,

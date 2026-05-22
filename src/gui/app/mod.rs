@@ -24,6 +24,7 @@ pub use types::*;
 
 mod analytics_views;
 mod editor_views;
+mod layout;
 mod lifecycle;
 mod other_views;
 mod planner_view;
@@ -31,14 +32,12 @@ mod sector_view;
 mod segmentum;
 mod system_view;
 mod ui_helpers;
-mod layout;
 
 mod export_ui;
 mod factions_view;
 mod regions_view;
 mod relations_view;
 mod trade_view;
-
 
 pub const TEXT: egui::Color32 = palette::TEXT;
 pub const TEXT_DIM: egui::Color32 = palette::TEXT_DIM;

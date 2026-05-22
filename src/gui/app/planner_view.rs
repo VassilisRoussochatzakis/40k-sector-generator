@@ -1,8 +1,6 @@
 use egui::{Color32, RichText, ScrollArea, SidePanel};
 
-use crate::{
-    sector_model::GeneratedSector,
-};
+use crate::sector_model::GeneratedSector;
 
 use super::{palette, App, TEXT, TEXT_DIM};
 use crate::gui::route_planner::{self, Metric, PickTarget, Severity};
@@ -32,7 +30,12 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         )
         .show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
-                ui.label(RichText::new("NAV-PLANNER").color(TEXT).monospace().strong());
+                ui.label(
+                    RichText::new("NAV-PLANNER")
+                        .color(TEXT)
+                        .monospace()
+                        .strong(),
+                );
                 ui.label(
                     RichText::new("§3 NEXT — optimal warp routing")
                         .color(TEXT_DIM)
@@ -49,9 +52,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
-                ui.add(
-                    egui::Slider::new(&mut app.planner_hex_size, 20.0..=80.0).show_value(false),
-                );
+                ui.add(egui::Slider::new(&mut app.planner_hex_size, 20.0..=80.0).show_value(false));
                 ui.separator();
                 if ui.button(RichText::new("CLEAR PLAN").monospace()).clicked() {
                     app.planner.clear();
@@ -87,7 +88,8 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         crate::gui::sector_view::SectorClick::Route(_)
                         | crate::gui::sector_view::SectorClick::Subsector(_)
                         | crate::gui::sector_view::SectorClick::EmptyHex(_),
-                    ) | None => {}
+                    )
+                    | None => {}
                 }
             });
         });
@@ -330,8 +332,7 @@ fn recompute_plan(app: &mut App) {
         Some(p) => app.planner.plan = Some(p),
         None => {
             app.planner.status =
-                "no passable route — try the other metric or check for Perilous lanes"
-                    .to_string();
+                "no passable route — try the other metric or check for Perilous lanes".to_string();
         }
     }
 }

@@ -124,13 +124,7 @@ fn render_system(
     scale: u32,
     opts: SystemRenderOptions,
 ) -> RgbaImage {
-    let max_orbit = i32::from(
-        sys.worlds
-            .iter()
-            .map(|w| w.orbit)
-            .max()
-            .unwrap_or(0),
-    );
+    let max_orbit = i32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0));
     let g = SysGeom::new(scale, max_orbit);
     let total_w = g.side + g.legend_w;
     let total_h = g.side;

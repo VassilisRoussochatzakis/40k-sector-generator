@@ -36,7 +36,8 @@ impl PresetGalleryState {
             return;
         }
         let dir = self.resolved_dir();
-        self.cached = Some(presets::list(&dir).map_err(|e| PresetGalleryError::Load(e.to_string())));
+        self.cached =
+            Some(presets::list(&dir).map_err(|e| PresetGalleryError::Load(e.to_string())));
     }
 
     pub fn invalidate(&mut self) {

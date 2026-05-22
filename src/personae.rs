@@ -285,10 +285,7 @@ struct PersonaParams<'a> {
     world: Option<&'a crate::sector_model::GeneratedWorld>,
 }
 
-fn build_persona(
-    params: PersonaParams,
-    used: &mut BTreeSet<String>,
-) -> Persona {
+fn build_persona(params: PersonaParams, used: &mut BTreeSet<String>) -> Persona {
     let PersonaParams {
         sector,
         cfg,

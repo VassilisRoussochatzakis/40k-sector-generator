@@ -446,7 +446,9 @@ fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, WorldError> {
         }
     }
     if in_quotes {
-        return Err(WorldError::Csv("csv ended inside a quoted field".to_string()));
+        return Err(WorldError::Csv(
+            "csv ended inside a quoted field".to_string(),
+        ));
     }
     if !field.is_empty() || !record.is_empty() {
         record.push(std::mem::take(&mut field));

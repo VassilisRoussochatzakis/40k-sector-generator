@@ -1,6 +1,6 @@
-use egui::{Color32, RichText, ScrollArea};
-use crate::gui::{palette, App};
 use crate::gui::palette::{TEXT, TEXT_DIM};
+use crate::gui::{palette, App};
+use egui::{Color32, RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
@@ -33,11 +33,9 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 ui.add_space(8.0);
                 if !sector.economy.enabled {
                     ui.label(
-                        RichText::new(
-                            "economy derivation disabled — set [economy].enabled = true",
-                        )
-                        .color(TEXT_DIM)
-                        .monospace(),
+                        RichText::new("economy derivation disabled — set [economy].enabled = true")
+                            .color(TEXT_DIM)
+                            .monospace(),
                     );
                     return;
                 }

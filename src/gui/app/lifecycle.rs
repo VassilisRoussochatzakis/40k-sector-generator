@@ -12,7 +12,11 @@ use crate::{
 use super::App;
 
 impl App {
-    pub(super) fn set_loaded_sector(&mut self, sector: GeneratedSector, source_path: Option<String>) {
+    pub(super) fn set_loaded_sector(
+        &mut self,
+        sector: GeneratedSector,
+        source_path: Option<String>,
+    ) {
         self.sector_source_path = source_path.as_ref().map(PathBuf::from);
         self.live_dirty = false;
         self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();

@@ -5,10 +5,12 @@ use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use crate::{
     sector_model::{GeneratedSector, GeneratedSystem},
-    subsectors::{SubsectorConfig},
+    subsectors::SubsectorConfig,
 };
 
-use super::{editor, info_panel, palette, App, PendingExport, SectorEditTool, View, TEXT, TEXT_DIM};
+use super::{
+    editor, info_panel, palette, App, PendingExport, SectorEditTool, View, TEXT, TEXT_DIM,
+};
 use crate::gui::sector_view::{SectorClick, SectorView};
 use crate::gui::system_view::SystemSelection;
 
@@ -119,7 +121,12 @@ impl App {
         let Some(sub_id) = self.sector_selected_subsector.clone() else {
             return;
         };
-        let Some(sub) = self.subsectors.iter().find(|s| s.id.as_ref() == sub_id.as_ref()).cloned() else {
+        let Some(sub) = self
+            .subsectors
+            .iter()
+            .find(|s| s.id.as_ref() == sub_id.as_ref())
+            .cloned()
+        else {
             self.sector_selected_subsector = None;
             return;
         };
@@ -174,34 +181,6 @@ impl App {
                                 }
                             }
                         });
-                    ui.separator();
-                    ui.label(RichText::new("ROUTE VIEW").color(TEXT_DIM).monospace());
-                    if ui
-                        .selectable_label(
-                            self.route_view_mode
-                                == crate::sector_model::RouteViewMode::TopLevel,
-                            RichText::new("TOP-LEVEL").monospace(),
-                        )
-                        .on_hover_text("Group routes by Warp / Webway / etc.")
-                        .clicked()
-                    {
-                        self.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
-                        self.editor.route_view_mode =
-                            crate::sector_model::RouteViewMode::TopLevel;
-                    }
-                    if ui
-                        .selectable_label(
-                            self.route_view_mode
-                                == crate::sector_model::RouteViewMode::Detailed,
-                            RichText::new("DETAILED").monospace(),
-                        )
-                        .on_hover_text("Show all specialized route types")
-                        .clicked()
-                    {
-                        self.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
-                        self.editor.route_view_mode =
-                            crate::sector_model::RouteViewMode::Detailed;
-                    }
                     ui.separator();
                     if ui
                         .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
@@ -437,7 +416,11 @@ impl App {
         }
     }
 
-    pub(super) fn add_route_between(&mut self, from: crate::ids::SystemId, to: crate::ids::SystemId) {
+    pub(super) fn add_route_between(
+        &mut self,
+        from: crate::ids::SystemId,
+        to: crate::ids::SystemId,
+    ) {
         let Some(sector) = self.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;
@@ -502,7 +485,8 @@ impl App {
             let sector = Arc::make_mut(sector);
             Self::refresh_live_manifest_counts(sector);
             self.subsectors =
-                crate::subsectors::build_subsectors(sector, SubsectorConfig::default()).unwrap_or_default();
+                crate::subsectors::build_subsectors(sector, SubsectorConfig::default())
+                    .unwrap_or_default();
             if !self.editor.dirty {
                 self.editor.set_sector(sector.clone(), source);
             }

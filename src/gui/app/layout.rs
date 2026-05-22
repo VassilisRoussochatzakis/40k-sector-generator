@@ -1,6 +1,7 @@
-use crate::gui::app::{App, View};
-use egui::{Color32, RichText, TopBottomPanel};
 use crate::gui::app::palette;
+use crate::gui::app::{App, View};
+use crate::sector_model::RouteViewMode;
+use egui::{Color32, RichText, TopBottomPanel};
 
 pub struct TopBar<'a> {
     app: &'a mut App,
@@ -118,6 +119,35 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     .clicked()
                 {
                     app.view = View::Data;
+                }
+
+                ui.separator();
+                ui.label(
+                    RichText::new("ROUTE VIEW")
+                        .color(palette::TEXT_DIM)
+                        .monospace(),
+                );
+                if ui
+                    .selectable_label(
+                        app.route_view_mode == RouteViewMode::TopLevel,
+                        RichText::new("TOP-LEVEL").monospace(),
+                    )
+                    .on_hover_text("Group routes by Warp / Webway / etc.")
+                    .clicked()
+                {
+                    app.route_view_mode = RouteViewMode::TopLevel;
+                    app.editor.route_view_mode = RouteViewMode::TopLevel;
+                }
+                if ui
+                    .selectable_label(
+                        app.route_view_mode == RouteViewMode::Detailed,
+                        RichText::new("DETAILED").monospace(),
+                    )
+                    .on_hover_text("Show all specialized route types")
+                    .clicked()
+                {
+                    app.route_view_mode = RouteViewMode::Detailed;
+                    app.editor.route_view_mode = RouteViewMode::Detailed;
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

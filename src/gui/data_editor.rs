@@ -111,8 +111,10 @@ impl DataEditor {
 
         let key_text = fs::read_to_string(&key_path)?;
         let gen_text = fs::read_to_string(&gen_path)?;
-        let (_kh, key_rows) = parse_csv(&key_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
-        let (_gh, gen_rows) = parse_csv(&gen_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
+        let (_kh, key_rows) =
+            parse_csv(&key_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
+        let (_gh, gen_rows) =
+            parse_csv(&gen_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
 
         self.project_dir = Some(project_dir.to_path_buf());
         self.key_path = Some(key_path);

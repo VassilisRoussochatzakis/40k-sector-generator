@@ -60,7 +60,12 @@ impl App {
             .show(ctx, |ui| self.show_system(ui, system_id, selection));
     }
 
-    pub(super) fn show_system(&mut self, ui: &mut egui::Ui, system_id: &SystemId, selection: SystemSelection) {
+    pub(super) fn show_system(
+        &mut self,
+        ui: &mut egui::Ui,
+        system_id: &SystemId,
+        selection: SystemSelection,
+    ) {
         let sys_id_owned = system_id.clone();
         TopBottomPanel::bottom("system_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
@@ -145,7 +150,10 @@ impl App {
         });
     }
 
-    pub(super) fn add_planet_to_system(&mut self, system_id: &crate::ids::SystemId) -> Option<usize> {
+    pub(super) fn add_planet_to_system(
+        &mut self,
+        system_id: &crate::ids::SystemId,
+    ) -> Option<usize> {
         let Some(sector) = self.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return None;
@@ -164,7 +172,11 @@ impl App {
         Some(next)
     }
 
-    pub(super) fn remove_planet_from_system(&mut self, system_id: &crate::ids::SystemId, world_index: usize) {
+    pub(super) fn remove_planet_from_system(
+        &mut self,
+        system_id: &crate::ids::SystemId,
+        world_index: usize,
+    ) {
         let Some(sector) = self.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;

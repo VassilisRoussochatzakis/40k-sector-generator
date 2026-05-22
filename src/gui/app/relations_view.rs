@@ -1,6 +1,6 @@
-use egui::{RichText, ScrollArea};
-use crate::gui::{palette, App};
 use crate::gui::palette::{TEXT, TEXT_DIM};
+use crate::gui::{palette, App};
+use egui::{RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
@@ -31,7 +31,11 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
             );
             ui.add_space(8.0);
             if sector.relations.pairs.is_empty() {
-                ui.label(RichText::new("no relations defined").color(TEXT_DIM).monospace());
+                ui.label(
+                    RichText::new("no relations defined")
+                        .color(TEXT_DIM)
+                        .monospace(),
+                );
             } else {
                 let row_h = ui.text_style_height(&egui::TextStyle::Monospace) + 4.0;
                 let total = sector.relations.pairs.len();
@@ -40,7 +44,13 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         let p = &sector.relations.pairs[i];
                         ui.horizontal(|ui| {
                             ui.label(RichText::new(format!("{} ↔ {}", p.a, p.b)).monospace());
-                            ui.label(RichText::new(format!("{:?}/{:?}", p.public_attitude, p.secret_attitude)).monospace());
+                            ui.label(
+                                RichText::new(format!(
+                                    "{:?}/{:?}",
+                                    p.public_attitude, p.secret_attitude
+                                ))
+                                .monospace(),
+                            );
                         });
                     }
                 });

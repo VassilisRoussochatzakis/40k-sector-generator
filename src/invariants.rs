@@ -76,10 +76,11 @@ fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation
     if s.regions.is_empty() || s.systems.len() < 2 {
         return;
     }
-    let region_perilous = s
-        .routes
-        .iter()
-        .any(|r| r.tags.iter().any(|t| t.as_ref() == "region:perilous_applied"));
+    let region_perilous = s.routes.iter().any(|r| {
+        r.tags
+            .iter()
+            .any(|t| t.as_ref() == "region:perilous_applied")
+    });
     if !region_perilous {
         return;
     }
@@ -107,8 +108,10 @@ fn navigable_component_count(s: &GeneratedSector, restore_region_perilous: bool)
         .collect();
     let mut parent: Vec<usize> = (0..s.systems.len()).collect();
     for r in &s.routes {
-        let restored =
-            restore_region_perilous && r.tags.iter().any(|t| t.as_ref() == "region:perilous_applied");
+        let restored = restore_region_perilous
+            && r.tags
+                .iter()
+                .any(|t| t.as_ref() == "region:perilous_applied");
         if matches!(r.stability, RouteStability::Perilous) && !restored {
             continue;
         }

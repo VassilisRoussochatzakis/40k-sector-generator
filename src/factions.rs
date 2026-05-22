@@ -74,7 +74,8 @@ impl FactionDef {
     pub fn subfaction_name(&self) -> String {
         self.subfaction_name
             .clone()
-            .unwrap_or_else(|| display_name_from_id(&self.kind).into_owned())    }
+            .unwrap_or_else(|| display_name_from_id(&self.kind).into_owned())
+    }
 }
 
 #[must_use]

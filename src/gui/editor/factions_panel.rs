@@ -22,11 +22,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     section(ui, &format!("FACTIONS ({})", sector.factions.len()));
 
     // ── Filter / sort row (§14) ────────────────────────────────────────────
-    let kinds: BTreeSet<String> = sector
-        .factions
-        .iter()
-        .map(|f| f.kind.to_string())
-        .collect();
+    let kinds: BTreeSet<String> = sector.factions.iter().map(|f| f.kind.to_string()).collect();
     let dispositions: BTreeSet<String> = sector
         .factions
         .iter()

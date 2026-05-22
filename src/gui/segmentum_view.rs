@@ -624,7 +624,11 @@ fn link_detail(
             kv(ui, "type", link.route_type.kind().label());
         }
     }
-    kv(ui, "stability", &format!("{:?}", link.stability).to_uppercase());
+    kv(
+        ui,
+        "stability",
+        &format!("{:?}", link.stability).to_uppercase(),
+    );
     ui.add_space(6.0);
 
     let from_name = bundle.system_name(&link.from_child_id, &link.from_system_id);

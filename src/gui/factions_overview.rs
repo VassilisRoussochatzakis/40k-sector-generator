@@ -956,9 +956,7 @@ fn remove_faction_everywhere(sector: &mut GeneratedSector, id: &FactionId) {
             }
         }
     }
-    influence_field
-        .bands
-        .retain(|band| &band.faction_id != id);
+    influence_field.bands.retain(|band| &band.faction_id != id);
 
     for route in &mut sector.routes {
         route.controls.retain(|control| &control.faction_id != id);

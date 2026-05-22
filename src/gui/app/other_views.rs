@@ -1,4 +1,3 @@
 use super::App;
 
-impl App {
-}
+impl App {}

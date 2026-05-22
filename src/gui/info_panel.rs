@@ -12,7 +12,7 @@ use crate::subsectors::Subsector;
 
 use super::palette::{
     darken, draw_route_line, faction_style_by_id, stability_color, star_color, world_type_color,
-    PATH_HIGHLIGHT, STAR_LEGEND, TEXT, TEXT_DIM,
+    PATH_HIGHLIGHT, TEXT, TEXT_DIM,
 };
 use crate::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
@@ -98,12 +98,6 @@ pub fn sector_overview_with_buckets(
             sector.manifest.world_count,
         ),
     );
-    ui.add_space(8.0);
-
-    section(ui, "STAR COLOURS");
-    for (code, name) in STAR_LEGEND {
-        legend_row(ui, star_color(code), &format!("{code} - {name}"));
-    }
     ui.add_space(8.0);
 
     section(ui, "ROUTE TYPE");

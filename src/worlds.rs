@@ -28,7 +28,7 @@ pub enum WorldError {
 
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum StarColour {
     BlueHypergiant, // O
     BlueWhite,      // B
@@ -65,7 +65,7 @@ impl StarColour {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum WorldType {
     AgriWorld,
     Asteroid,
@@ -177,7 +177,7 @@ pub enum Government {
     XenosOverlords,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum NotableFeature {
     Abhumans,
     AlteredHumans,

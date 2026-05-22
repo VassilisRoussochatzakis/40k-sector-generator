@@ -77,8 +77,8 @@ impl std::fmt::Display for ExclusionReason {
 
 #[derive(Debug, Clone, Default)]
 pub struct FeaturePool {
-    pub by_world_type: BTreeMap<String, Vec<WeightedFeature>>,
-    pub by_star_colour: BTreeMap<String, Vec<WeightedFeature>>,
+    pub by_world_type: BTreeMap<WorldType, Vec<WeightedFeature>>,
+    pub by_star_colour: BTreeMap<StarColour, Vec<WeightedFeature>>,
     pub global: Vec<WeightedFeature>,
     pub key_table_features: Vec<NotableFeature>,
 }
@@ -194,12 +194,12 @@ pub fn build_pool(
             };
             pool.feature_pool
                 .by_world_type
-                .entry(cand.world_type.to_string())
+                .entry(cand.world_type.clone())
                 .or_default()
                 .push(wf.clone());
             pool.feature_pool
                 .by_star_colour
-                .entry(taxonomy::star_colour_variant_name(cand.star_colour).to_string())
+                .entry(cand.star_colour)
                 .or_default()
                 .push(wf.clone());
             pool.feature_pool.global.push(wf);
@@ -224,16 +224,11 @@ pub fn build_pool(
 }
 
 fn star_colour_weights(candidates: &[WorldCandidate]) -> Vec<(StarColour, f64)> {
-    let mut totals: BTreeMap<String, f64> = BTreeMap::new();
+    let mut totals: BTreeMap<StarColour, f64> = BTreeMap::new();
     for c in candidates {
-        *totals
-            .entry(taxonomy::star_colour_variant_name(c.star_colour).to_string())
-            .or_insert(0.0) += c.weight;
+        *totals.entry(c.star_colour).or_insert(0.0) += c.weight;
     }
-    totals
-        .into_iter()
-        .filter_map(|(name, w)| taxonomy::parse_star_colour_variant(&name).map(|sc| (sc, w)))
-        .collect()
+    totals.into_iter().collect()
 }
 
 fn first_missing_field(row: &GenerationRow) -> Option<&'static str> {

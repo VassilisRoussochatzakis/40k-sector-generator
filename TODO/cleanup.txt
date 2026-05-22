@@ -26,8 +26,8 @@
 
   Recommended Fixes
    * Immediate: [DONE] Run cargo clippy -- -W clippy::pedantic and fix warnings.
-   * Structural: Move inline UI logic from App::update to dedicated widget structs.
-   * Performance: Replace String with Arc<str> or &str in hot generation loops.
+   * [DONE] Structural: App::update delegates to layout::TopBar / layout::MainView widget structs; dialog draws stay as App methods.
+   * [DONE] Performance: FeaturePool keyed by WorldType/StarColour enums; used_world_types is BTreeSet<WorldType>; pick_features `seen` is BTreeSet<NotableFeature>; star_colour_weights uses enum key. Eliminated per-world to_string allocations in choose_world_candidate + pick_features hot loops. Added PartialOrd/Ord derives on StarColour, WorldType, NotableFeature.
 
   Codebase is functional but nearing "maintenance trap" phase due to UI coupling and data nesting. Refactor before
   adding more features.

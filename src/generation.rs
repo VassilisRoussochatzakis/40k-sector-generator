@@ -643,7 +643,7 @@ fn generate_worlds_for_system(
         sys_rng.gen_range(min_w..=max_w)
     };
 
-    let mut used_world_types: BTreeSet<String> = BTreeSet::new();
+    let mut used_world_types: BTreeSet<crate::worlds::WorldType> = BTreeSet::new();
     let mut worlds: Vec<GeneratedWorld> = Vec::with_capacity(world_count);
 
     for w_idx in 1..=world_count {
@@ -664,7 +664,7 @@ fn generate_worlds_for_system(
             .world_selection
             .avoid_duplicate_world_type_in_system
         {
-            used_world_types.insert(cand.world_type.to_string());
+            used_world_types.insert(cand.world_type.clone());
         }
 
         let features = pick_features(
@@ -706,7 +706,7 @@ fn choose_world_candidate<'a>(
     pool: &'a WorldCandidatePool,
     star_colour: StarColour,
     cfg: &WorldSelectionConfig,
-    used_world_types: &BTreeSet<String>,
+    used_world_types: &BTreeSet<crate::worlds::WorldType>,
     rng: &mut ChaCha8Rng,
     anomaly_bias: bool,
 ) -> Result<&'a WorldCandidate, SectorError> {
@@ -719,7 +719,7 @@ fn choose_world_candidate<'a>(
                 }
                 if skip_dup
                     && cfg.avoid_duplicate_world_type_in_system
-                    && used_world_types.contains(&c.world_type.to_string())
+                    && used_world_types.contains(&c.world_type)
                 {
                     return None;
                 }
@@ -775,37 +775,25 @@ fn pick_features(
     rng: &mut ChaCha8Rng,
 ) -> Vec<NotableFeature> {
     let mut chosen: Vec<NotableFeature> = Vec::with_capacity(target_count);
-    let mut seen: BTreeSet<String> = BTreeSet::new();
+    let mut seen: BTreeSet<NotableFeature> = BTreeSet::new();
 
     if let Some(f) = &cand.primary_feature {
         chosen.push(f.clone());
-        seen.insert(f.to_string());
+        seen.insert(f.clone());
     }
 
-    let by_wt_key = cand.world_type.to_string();
-    let by_sc_key = taxonomy::star_colour_variant_name(star_colour).to_string();
-
-    let tiers: Vec<Vec<crate::world_pool::WeightedFeature>> = vec![
+    let tiers: [&[crate::world_pool::WeightedFeature]; 3] = [
         pool.feature_pool
             .by_world_type
-            .get(&by_wt_key)
-            .cloned()
-            .unwrap_or_default(),
+            .get(&cand.world_type)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]),
         pool.feature_pool
             .by_star_colour
-            .get(&by_sc_key)
-            .cloned()
-            .unwrap_or_default(),
-        pool.feature_pool.global.clone(),
-        pool.feature_pool
-            .key_table_features
-            .iter()
-            .cloned()
-            .map(|f| crate::world_pool::WeightedFeature {
-                feature: f,
-                weight: 1.0,
-            })
-            .collect(),
+            .get(&star_colour)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]),
+        pool.feature_pool.global.as_slice(),
     ];
 
     for tier in tiers {
@@ -813,9 +801,9 @@ fn pick_features(
             break;
         }
         let mut filtered: Vec<(NotableFeature, f64)> = tier
-            .into_iter()
-            .filter(|wf| !seen.contains(&wf.feature.to_string()))
-            .map(|wf| (wf.feature, wf.weight))
+            .iter()
+            .filter(|wf| !seen.contains(&wf.feature))
+            .map(|wf| (wf.feature.clone(), wf.weight))
             .collect();
         while chosen.len() < target_count && !filtered.is_empty() {
             let idx = match weighted_index(&filtered, rng, "feature") {
@@ -823,7 +811,28 @@ fn pick_features(
                 Err(_) => break,
             };
             let (feature, _) = filtered.remove(idx);
-            if seen.insert(feature.to_string()) {
+            if seen.insert(feature.clone()) {
+                chosen.push(feature);
+            }
+        }
+    }
+
+    if chosen.len() < target_count {
+        let key_tier: Vec<(NotableFeature, f64)> = pool
+            .feature_pool
+            .key_table_features
+            .iter()
+            .filter(|f| !seen.contains(*f))
+            .map(|f| (f.clone(), 1.0))
+            .collect();
+        let mut filtered = key_tier;
+        while chosen.len() < target_count && !filtered.is_empty() {
+            let idx = match weighted_index(&filtered, rng, "feature") {
+                Ok(i) => i,
+                Err(_) => break,
+            };
+            let (feature, _) = filtered.remove(idx);
+            if seen.insert(feature.clone()) {
                 chosen.push(feature);
             }
         }

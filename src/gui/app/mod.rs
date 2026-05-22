@@ -160,8 +160,8 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ui_helpers::apply_theme(ctx);
 
-        layout::draw_top_bar(self, ctx);
-        layout::draw_main_view(self, ctx);
+        layout::TopBar::new(self).show(ctx);
+        layout::MainView::new(self).show(ctx);
 
         self.draw_preset_gallery(ctx);
         self.draw_export_dialog(ctx);

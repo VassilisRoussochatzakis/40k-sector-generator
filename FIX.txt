@@ -1,0 +1,316 @@
+sectorforge — pending perf / efficiency suggestions
+===================================================
+
+Status legend
+  [done]    already applied (this audit pass)
+  [skip]    intentionally skipped; reason given
+  [bench]   apply only after measuring; risk of no-op or regression
+  [open]    safe to apply; needs a follow-up commit
+  [applied] applied this commit; see notes for what changed
+
+
+----------------------------------------------------------------
+1. Build profile                                               [done]
+----------------------------------------------------------------
+Cargo.toml now has [profile.release] (lto="fat", codegen-units=1,
+panic="abort", strip="symbols") and [profile.bench] (lto="thin",
+codegen-units=1). No further action.
+
+
+----------------------------------------------------------------
+2. Math-accuracy lints (mul_add, hypot)                        [skip]
+----------------------------------------------------------------
+~55 sites in src/bitmap/mod.rs, ~10 in src/gui/palette.rs.
+
+Lint:    clippy::suboptimal_flops / clippy::imprecise_flops
+Fix:     a*b + c            -> a.mul_add(b, c)
+         (dx*dx+dy*dy).sqrt -> dx.hypot(dy)
+Win:     1 fused op on FMA-capable CPUs; better numerical accuracy.
+Why skip:
+  Both transforms change the last-bit result. Sector PNGs and JSON
+  outputs are byte-deterministic and covered by golden snapshot
+  tests. Apply only if you regenerate golden fixtures in the same
+  commit.
+
+To apply later:
+  cargo clippy --fix --release --allow-dirty -- \
+    -W clippy::suboptimal_flops -W clippy::imprecise_flops
+  Then: cargo test  (expect snapshot diffs; review each)
+        Regenerate fixtures and commit together.
+
+
+----------------------------------------------------------------
+3. Float-loop convergence hazards                              [skip / open]
+----------------------------------------------------------------
+Sites (clippy::while_float):
+  src/bitmap/mod.rs:714, 776, 798, 819, 841, 870, 891, 913, 939, 972
+  src/gui/palette.rs:235, 291, 312, 333, 357, 386, 406, 427, 452, 472
+
+Pattern:    let mut f = start;  while f < limit { ...; f += step; }
+
+Risk:       Accumulated FP drift can shift the final iteration count
+            by ±1 versus the expected (limit-start)/step. With NaN it
+            never terminates.
+
+Correctness/perf fix:
+  let steps = ((limit - start) / step).round() as i32;
+  for i in 0..steps { let f = start + step * i as f32; ... }
+
+Why skip default:
+  Same byte-determinism risk as §2 — different last iteration value
+  can shift one pixel. Worth applying per-site if you audit the
+  golden output diff for that renderer. Safer in palette.rs (color
+  table generation) than in bitmap/mod.rs (pixel raster).
+
+
+----------------------------------------------------------------
+4. HashMap hasher swap                                         [bench]
+----------------------------------------------------------------
+~500 HashMap/HashSet sites. Default RandomState (SipHash) is
+DoS-hardened but slow. The crate has no adversarial input — keys
+are typed IDs, hex coords, world-type strings.
+
+Suggested:
+  Add dependency:  rustc-hash = "2"     (~5 KB, MIT/Apache)
+  Add type aliases in src/lib.rs:
+    pub(crate) type FxMap<K,V> = rustc_hash::FxHashMap<K,V>;
+    pub(crate) type FxSet<T>   = rustc_hash::FxHashSet<T>;
+  Bulk-swap call sites in hot paths first:
+    src/generation.rs, src/regions.rs, src/segmentum.rs,
+    src/economy.rs, src/route_control.rs, src/power_projection.rs
+
+Determinism rule (already followed): never iterate a hash map for
+output. Output writers must sort keys first. The crate already
+honours this; if you ever break the rule a Fx-hashed map will make
+the bug visible immediately.
+
+Expected win: 10-40% on map-heavy passes. Bench src/segmentum.rs
+stitch and src/search.rs evaluate first to confirm.
+
+
+----------------------------------------------------------------
+5. Preallocate hot Vec/String constructors                     [applied]
+----------------------------------------------------------------
+Applied this commit:
+  src/generation.rs:402  leftover           with_capacity(all.len()-target)
+  src/generation.rs:1385 candidates         with_capacity(N*(N-1)/2)
+  src/generation.rs:1457 chosen             with_capacity(target_count)
+  src/economy.rs:793     worlds             with_capacity(sum of sys.worlds.len())
+  src/economy.rs:794     systems            with_capacity(sector.systems.len())
+  src/segmentum.rs:709   chosen             with_capacity(cap)
+  src/regions.rs:242     centres            with_capacity(target)
+  src/regions.rs:330     hexes              with_capacity(target)
+Remaining open candidates (no obvious upper bound, lower priority):
+  src/economy.rs:881  stranded_world_idx (worst-case = worlds.len(); rare path)
+  src/economy.rs:1084 out
+  src/segmentum.rs:586 links (bound = sum over slot adjacencies × max_links_per_pair)
+  src/render.rs / html_export.rs String buffers (need profile data)
+
+321 Vec::new() / String::new() vs 27 with_capacity() in src/.
+
+Worth a careful pass in these files (upper bound is knowable from
+caller args or sector dims):
+
+  src/generation.rs    — placed, leftover, candidates, route lists
+  src/regions.rs       — blob growth queues
+  src/segmentum.rs     — pairs, bucket vectors
+  src/economy.rs       — per-faction balance accumulators
+  src/render.rs        — string buffers (use String::with_capacity
+                         for known Markdown section sizes)
+  src/html_export.rs   — JSON / HTML string assembly
+
+Rule of thumb: if you can write `for ... in src.iter()` and push,
+you can `Vec::with_capacity(src.len())` first. Same for filter +
+collect when bound is the source.
+
+
+----------------------------------------------------------------
+6. Repeated linear scans                                       [applied / open]
+----------------------------------------------------------------
+search.rs already fixed (build_faction_index).
+
+Applied this commit:
+  src/conflict.rs   advance_sector builds a BTreeMap<&str, BTreeMap<&str, Stance>>
+                    once when feed_conflict is true, replacing the per-world
+                    pairs.iter().find(...) in apply_relations_bias with an
+                    O(log n) map-of-maps lookup. For a sector with W worlds and
+                    P pairs the inner cost drops from W*P to W*log(P).
+                    apply_relations_bias signature now takes the stance index
+                    (private helper, no public API change).
+  src/economy.rs:1398  the `stranded` Vec collect was used twice (empty-check
+                    + iter). Replaced with a `peekable()` filter — same two-use
+                    pattern, no Vec allocation.
+
+Remaining open:
+  src/route_control.rs
+    Per-route iteration over faction lists. If route count grows,
+    consider a HashMap<&FactionId, RouteControl> per system rather
+    than Vec<RouteControl>.
+
+  src/power_projection.rs
+    BFS uses HashMap<SystemId, f32>. If FxHashMap is adopted (§4)
+    this is the single biggest hot loop in the crate.
+
+
+----------------------------------------------------------------
+7. GUI per-frame allocations                                   [open / skip]
+----------------------------------------------------------------
+Reviewed but not applied: the cited `.iter().cloned().collect()` sites in
+src/gui/factions_overview.rs are inside `ui.button(...).clicked()` arms
+(`ALL SYS`, `NO SYS`, `FROM WORLD DATA`) — they fire only on user input, not
+every frame. `rebuild_all_summaries_from_world_data` is invoked from the
+"FROM WORLD DATA" button only. The route_planner.rs:118,125 sites convert
+Vec → HashSet via collect, so `clone_from` does not apply directly. FIX.txt
+itself notes "Profile first with puffin or tracing-tracy before refactoring";
+deferred until a profile shows GUI repaint dominating.
+
+Original notes preserved below for reference:
+
+src/gui/factions_overview.rs lines 650-916 contains 12+ patterns of
+the form:
+
+    fac.system_presence = stats.systems.iter().cloned().collect();
+
+These run inside egui frame callbacks. If `stats.systems` is a
+Vec<T: Clone>, prefer:
+  - `fac.system_presence.clone_from(&stats.systems)`  (reuses Vec
+    allocation across frames)
+  - or hoist the assignment out of the hot frame loop into a
+    "dirty flag" path that only rebuilds when sector mutates.
+
+Same for src/gui/route_planner.rs:118,125.
+
+Profile first with puffin or tracing-tracy before refactoring —
+GUI repaints can mask real perf elsewhere.
+
+
+----------------------------------------------------------------
+8. Vec<u8> over String for write-only buffers                  [bench]
+----------------------------------------------------------------
+src/render.rs and src/html_export.rs do heavy
+  let mut s = String::new();
+  writeln!(s, "...").unwrap();
+
+If the output is immediately written to disk (export.rs), consider:
+  let mut buf: Vec<u8> = Vec::with_capacity(estimate);
+  writeln!(buf, "...").unwrap();
+  fs::write(path, &buf)?;
+
+Skips one final UTF-8 validation pass. Mild win; only do if
+profiling shows render dominating.
+
+
+----------------------------------------------------------------
+9. small-string interning for IDs                              [bench]
+----------------------------------------------------------------
+FactionId / SystemId / WorldId are short fixed-prefix strings used
+as map keys throughout. Two options if profiling points here:
+
+  a) ecow::EcoString  — inline small string, ref-counted growth.
+     Cheaper Clone than Arc<str>.
+  b) string-interner + Symbol(u32) for hot loops.
+
+Behavioural change; keep public API on the existing newtypes and
+intern internally.
+
+
+----------------------------------------------------------------
+10. Drop a serde feature                                       [skip / documented]
+----------------------------------------------------------------
+Cargo.toml: serde = { ..., features = ["derive", "rc"] }
+
+VERIFIED REQUIRED. Removing "rc" produces 200+ errors of the form
+`Arc<str>: serde::Deserialize<'de> is not satisfied` because the
+DTOs in src/sector_model.rs, src/ids.rs (FactionId/SystemId/WorldId
+wrap Arc<str>), and others derive Serialize/Deserialize on Arc<str>
+fields. The "rc" feature gates serde's Serialize/Deserialize impl
+for Rc<T> / Arc<T>, including Arc<str>.
+
+Keep "rc". Do not revisit unless DTOs migrate off Arc<str> entirely.
+
+
+----------------------------------------------------------------
+11. rand 0.8 vs proptest's rand 0.9 duplication                [bench]
+----------------------------------------------------------------
+`cargo tree` shows rand pulled twice (0.8 from us, 0.9 from
+proptest 1.x via rand_xorshift). Both link, dev-only impact, but
+release build links only the 0.8 copy — not a runtime hit.
+
+If/when you upgrade to rand 0.9 (post-rand_chacha 0.4), do it in a
+focused commit because RNG output is API-stable but the trait
+shape (Rng vs RngCore) changes.
+
+
+----------------------------------------------------------------
+12. clippy::nursery additional items                           [applied / clean]
+----------------------------------------------------------------
+Re-ran `cargo clippy --release -- -W clippy::collection_is_never_read`
+after the §5/§6 changes — no findings. The previously-cited
+src/bitmap/mod.rs:1383 line is now `cands.iter()` (a value that IS
+read by the sort_by_key + try_place loop below), so the original
+nursery flag was either stale or a false positive. No action.
+
+Style-only nursery items (unnecessary_struct_name_repetition, doc
+comment first paragraph) intentionally skipped per INPUT.md scope rules.
+
+
+----------------------------------------------------------------
+13. Parallelism                                                [bench]
+----------------------------------------------------------------
+Generation, search enumeration, and segmentum compose are the three
+embarrassingly-parallel passes:
+
+  src/search.rs   evaluate_all over candidate seeds (independent)
+  src/segmentum.rs compose loop over child sectors (independent)
+  Bitmap rendering of multiple sectors
+
+rayon would parallelise each in one line:
+  candidates.par_iter().map(|seed| evaluate_all(...)).collect()
+
+Determinism: rayon preserves iteration order in collect, so output
+is unchanged. Risk: any shared mutable state (RNG, caches). The
+crate currently threads `ChaCha8Rng` by value — safe.
+
+Bench: cargo bench --bench generation before/after.
+
+
+----------------------------------------------------------------
+14. Bitmap loop body sub-pixel reuse                           [bench]
+----------------------------------------------------------------
+src/bitmap/mod.rs hex-fill loops compute the same `(cx, cy, r2)`
+per pixel. Hoist invariants out of the inner `for x in ...` loop
+and pre-square radius once. ~5-15% on large maps.
+
+Profile target: cargo flamegraph --bin sectorforge -- \
+  generate --project examples/m42_project --formats png
+
+
+----------------------------------------------------------------
+Suggested apply order for the next pass
+----------------------------------------------------------------
+  1.  §5 with_capacity audit              (safe, mechanical) — APPLIED
+  2.  §6 linear-scan dedupe in relations  (algorithmic)      — APPLIED
+      (also: economy.rs stranded peekable                    — APPLIED)
+  3.  §7 GUI per-frame Clone hoisting     (puffin-guided)    — DEFERRED
+      (sites are click-handler branches, not per-frame; need profile data)
+  4.  §13 rayon for search.rs             (bench-gated)
+  5.  §4 Fx hasher                        (bench-gated, dep)
+  6.  §2 / §3 math-accuracy + float-loop  (with golden regen)
+
+----------------------------------------------------------------
+This-commit summary
+----------------------------------------------------------------
+  Applied: §5 (Vec with_capacity at 8 hot bound-known sites),
+           §6 (stance lookup index in conflict.rs;
+               economy stranded via peekable).
+  Verified: §10 (serde "rc" required by Arc<str> DTOs — keep),
+            §12 (collection_is_never_read clippy run is clean).
+  Deferred: §7 (GUI per-frame allocs — needs profile),
+            §2/§3 (math-accuracy — golden regen required),
+            §4/§8/§9/§11/§13/§14 (all [bench]-gated).
+  All 143 library unit tests pass post-change. No public API
+  surface changed (RelationsMatrix::stance_between remains, only
+  conflict.rs's private bias helper signature changed).
+
+
+End of FIX.txt

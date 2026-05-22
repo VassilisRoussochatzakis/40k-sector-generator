@@ -706,10 +706,10 @@ fn stitch_pair(
 
     let mut rng = rng::stage_rng(stitch_seed, "stitch", &format!("{}:{}", a.id, b.id));
 
-    let mut chosen: Vec<InterSectorLink> = Vec::new();
+    let cap = stitch.max_links_per_pair as usize;
+    let mut chosen: Vec<InterSectorLink> = Vec::with_capacity(cap);
     let mut used_a: BTreeSet<usize> = BTreeSet::new();
     let mut used_b: BTreeSet<usize> = BTreeSet::new();
-    let cap = stitch.max_links_per_pair as usize;
     if cap == 0 {
         return vec![];
     }

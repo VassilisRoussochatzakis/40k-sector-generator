@@ -12,9 +12,11 @@
 //! they reach the desired age. Generation is single-shot, but the API
 //! lets a tool drive ticks externally.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
-use crate::relations::{RelationsMatrix, Stance};
+use crate::relations::Stance;
 use crate::sector_model::{
     GeneratedSector, GeneratedSystem, GeneratedWorld, SystemControlSummary, SystemState,
 };
@@ -168,11 +170,25 @@ pub fn advance_sector(sector: &mut GeneratedSector) {
     // matrix mirrors the flag and we apply a stance-driven momentum/intensity
     // bias before the standard tick logic. Read-only on the matrix.
     let bias = sector.relations.feed_conflict;
+    // Cache canonical-pair stance lookups so the inner per-world bias call is
+    // O(log n) on map-of-maps instead of an O(n) linear scan over `pairs`.
+    // `pairs` already stores canonical (a <= b), so the lookup mirrors that.
     let relations = sector.relations.clone();
+    let stance_idx: BTreeMap<&str, BTreeMap<&str, Stance>> = if bias {
+        let mut idx: BTreeMap<&str, BTreeMap<&str, Stance>> = BTreeMap::new();
+        for p in &relations.pairs {
+            idx.entry(p.a.as_str())
+                .or_default()
+                .insert(p.b.as_str(), p.stance);
+        }
+        idx
+    } else {
+        BTreeMap::new()
+    };
     for sys in sector.systems.iter_mut() {
         for w in &mut sys.worlds {
             if bias {
-                apply_relations_bias(&mut w.conflict, &relations);
+                apply_relations_bias(&mut w.conflict, &stance_idx);
             }
             advance_one(&mut w.conflict);
         }
@@ -182,14 +198,18 @@ pub fn advance_sector(sector: &mut GeneratedSector) {
     }
 }
 
-fn apply_relations_bias(c: &mut ConflictState, relations: &RelationsMatrix) {
+fn apply_relations_bias(
+    c: &mut ConflictState,
+    stance_idx: &BTreeMap<&str, BTreeMap<&str, Stance>>,
+) {
     let (Some(a), Some(d)) = (c.attacker.as_deref(), c.defender.as_deref()) else {
         return;
     };
     if a == d {
         return;
     }
-    let Some(stance) = relations.stance_between(a, d) else {
+    let (lo, hi) = if a <= d { (a, d) } else { (d, a) };
+    let Some(stance) = stance_idx.get(lo).and_then(|m| m.get(hi)).copied() else {
         return;
     };
     match stance {

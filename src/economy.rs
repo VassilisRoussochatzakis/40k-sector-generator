@@ -790,8 +790,9 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
     if !cfg.enabled {
         return EconomyReport::default();
     }
-    let mut worlds: Vec<WorldEconomy> = Vec::new();
-    let mut systems: Vec<SystemEconomy> = Vec::new();
+    let world_upper: usize = sector.systems.iter().map(|s| s.worlds.len()).sum();
+    let mut worlds: Vec<WorldEconomy> = Vec::with_capacity(world_upper);
+    let mut systems: Vec<SystemEconomy> = Vec::with_capacity(sector.systems.len());
 
     for sys in &sector.systems {
         let mut sys_vec = ResourceVector::default();
@@ -1395,10 +1396,10 @@ pub fn render_markdown(sector_id: &str, report: &EconomyReport) -> String {
         }
     }
 
-    let stranded: Vec<&WorldEconomy> = report.worlds.iter().filter(|w| w.stranded).collect();
-    if !stranded.is_empty() {
+    let mut stranded_iter = report.worlds.iter().filter(|w| w.stranded).peekable();
+    if stranded_iter.peek().is_some() {
         let _ = writeln!(s, "\n## Stranded worlds");
-        for w in stranded {
+        for w in stranded_iter {
             let _ = writeln!(
                 s,
                 "- `{}` in `{}` — shortages: {}",

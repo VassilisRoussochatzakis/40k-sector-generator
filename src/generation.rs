@@ -399,7 +399,7 @@ fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
     }
 
     let mut placed: Vec<HexCoord> = Vec::with_capacity(target);
-    let mut leftover: Vec<HexCoord> = Vec::new();
+    let mut leftover: Vec<HexCoord> = Vec::with_capacity(all.len().saturating_sub(target));
     let min_dist = g.placement.minimum_system_distance;
     for c in all {
         if placed.len() >= target {
@@ -1382,7 +1382,8 @@ fn generate_routes(
         .max(rules.max_distance);
     let density = config.generation.routes.route_density.clamp(0.0, 1.0);
 
-    let mut candidates: Vec<(usize, usize, f64, u32)> = Vec::new();
+    let pair_upper = systems.len().saturating_sub(1) * systems.len() / 2;
+    let mut candidates: Vec<(usize, usize, f64, u32)> = Vec::with_capacity(pair_upper);
     for i in 0..systems.len() {
         for j in (i + 1)..systems.len() {
             let dist = hex_distance(systems[i].coord, systems[j].coord);
@@ -1454,7 +1455,7 @@ fn generate_routes(
     let target_count = ((total_pairs as f64) * density).round() as usize;
     let target_count = target_count.max(systems.len().saturating_sub(1));
 
-    let mut chosen: Vec<(usize, usize, u32, Vec<Arc<str>>)> = Vec::new();
+    let mut chosen: Vec<(usize, usize, u32, Vec<Arc<str>>)> = Vec::with_capacity(target_count);
     let mut chosen_set: BTreeSet<(usize, usize)> = BTreeSet::new();
 
     // Top-weight portion (deterministic).

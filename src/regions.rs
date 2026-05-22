@@ -239,7 +239,7 @@ pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -
     // Pick non-overlapping centres separated by a small minimum hex distance
     // so two regions don't grow on top of each other immediately.
     let min_centre_dist = mean_size.saturating_sub(1).max(1) as u32;
-    let mut centres: Vec<HexCoord> = Vec::new();
+    let mut centres: Vec<HexCoord> = Vec::with_capacity(target);
     for c in &all {
         if centres.len() >= target {
             break;
@@ -327,7 +327,7 @@ fn grow_blob(
     occupied: &mut BTreeSet<(i32, i32)>,
     rng: &mut rand_chacha::ChaCha8Rng,
 ) -> Vec<HexCoord> {
-    let mut hexes: Vec<HexCoord> = Vec::new();
+    let mut hexes: Vec<HexCoord> = Vec::with_capacity(target);
     let mut queue: VecDeque<HexCoord> = VecDeque::new();
     let in_bounds = |c: HexCoord| c.q >= 0 && c.r >= 0 && c.q < width && c.r < height;
 

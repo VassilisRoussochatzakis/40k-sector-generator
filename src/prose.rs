@@ -135,7 +135,7 @@ fn sector_overview(
             faction_names
                 .get(f.id.as_str())
                 .copied()
-                .unwrap_or(f.name.as_ref())
+                .unwrap_or_else(|| f.name.as_ref())
         });
 
     let opener_pool: &[&str] = match cfg.tone {

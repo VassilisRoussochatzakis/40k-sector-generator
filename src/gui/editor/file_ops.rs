@@ -35,7 +35,7 @@ pub fn list_projects() -> Vec<String> {
             }
         }
     }
-    out.sort();
+    out.sort_unstable();
     out
 }
 

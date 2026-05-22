@@ -179,7 +179,7 @@ fn render_system(
         draw_circle(&mut img, px, py, g.planet_r, darken(color, 0.5));
 
         // Orbit number centered on the planet.
-        let num = format!("{}", w.orbit);
+        let num = w.orbit.to_string();
         let (nw, nh) = text_size(&num, g.text_scale);
         draw_text(
             &mut img,

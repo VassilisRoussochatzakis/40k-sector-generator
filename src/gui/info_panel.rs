@@ -362,7 +362,7 @@ pub fn world_history(ui: &mut Ui, sector: &GeneratedSector, world_id: &str) {
     if hits.is_empty() {
         return;
     }
-    hits.sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+    hits.sort_unstable_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
     ui.add_space(8.0);
     section(ui, "HISTORY");
     for e in hits {
@@ -403,7 +403,7 @@ fn system_history(ui: &mut Ui, sector: &GeneratedSector, system_id: &str) {
     if hits.is_empty() {
         return;
     }
-    hits.sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+    hits.sort_unstable_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
     ui.add_space(8.0);
     section(ui, "LOCAL HISTORY");
     for e in hits.iter().take(8) {
@@ -707,7 +707,7 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
     if !sub.summary.world_type_counts.is_empty() {
         section(ui, "WORLD TYPES");
         let mut v: Vec<_> = sub.summary.world_type_counts.iter().collect();
-        v.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         for (k, n) in v.iter().take(10) {
             dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
         }
@@ -717,7 +717,7 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
     if !sub.summary.population_counts.is_empty() {
         section(ui, "POPULATION");
         let mut v: Vec<_> = sub.summary.population_counts.iter().collect();
-        v.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         for (k, n) in v.iter().take(8) {
             dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
         }
@@ -727,7 +727,7 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
     if !sub.summary.tech_level_counts.is_empty() {
         section(ui, "TECH LEVEL");
         let mut v: Vec<_> = sub.summary.tech_level_counts.iter().collect();
-        v.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         for (k, n) in v.iter().take(8) {
             dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
         }
@@ -737,7 +737,7 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
     if !sub.summary.government_counts.is_empty() {
         section(ui, "GOVERNMENT");
         let mut v: Vec<_> = sub.summary.government_counts.iter().collect();
-        v.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         for (k, n) in v.iter().take(8) {
             dim(ui, &format!("{}  x{}", k.to_uppercase(), n));
         }
@@ -747,7 +747,7 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
     if !sub.summary.feature_counts.is_empty() {
         section(ui, "NOTABLE FEATURES");
         let mut v: Vec<_> = sub.summary.feature_counts.iter().collect();
-        v.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+        v.sort_unstable_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         for (k, n) in v.iter().take(10) {
             dim(ui, &format!("{}  x{}", k, n));
         }
@@ -842,7 +842,7 @@ fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
     if hits.is_empty() {
         return;
     }
-    hits.sort_by(|a, b| a.id.cmp(&b.id));
+    hits.sort_unstable_by(|a, b| a.id.cmp(&b.id));
     ui.add_space(8.0);
     section(ui, &format!("ROUTES ({})", hits.len()));
     for r in hits {
@@ -878,7 +878,7 @@ fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
             if active.is_empty() {
                 continue;
             }
-            active.sort();
+            active.sort_unstable();
             let style = faction_style_by_id(&sector.factions, &c.faction_id);
             legend_row(
                 ui,

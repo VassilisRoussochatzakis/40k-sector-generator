@@ -362,7 +362,7 @@ impl<'a> SectorView<'a> {
                 let name_part = s
                     .name
                     .strip_prefix("Subsector ")
-                    .unwrap_or(s.name.as_ref())
+                    .unwrap_or_else(|| s.name.as_ref())
                     .to_ascii_uppercase();
                 let top_galley =
                     painter.layout_no_wrap("SUBSECTOR".to_string(), font.clone(), SUBSECTOR_LABEL);

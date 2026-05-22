@@ -235,7 +235,7 @@ pub fn derive_route_controls(
             out.push(rc);
         }
     }
-    out.sort_by(|a, b| a.faction_id.cmp(&b.faction_id));
+    out.sort_unstable_by(|a, b| a.faction_id.cmp(&b.faction_id));
     out
 }
 

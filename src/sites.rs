@@ -145,7 +145,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     if cfg.player_edition {
         out.retain(|s| s.public_status == s.actual_status);
     }
-    out.sort_by(|a, b| a.world_id.cmp(&b.world_id).then_with(|| a.id.cmp(&b.id)));
+    out.sort_unstable_by(|a, b| a.world_id.cmp(&b.world_id).then_with(|| a.id.cmp(&b.id)));
     SitesReport {
         sector_id: sector.id.to_string(),
         seed: sector.seed.to_string(),
@@ -488,7 +488,7 @@ fn tags_for(kind: SiteKind, w: &GeneratedWorld) -> Vec<String> {
     if w.control.contested {
         t.push("contested".to_string());
     }
-    t.sort();
+    t.sort_unstable();
     t
 }
 

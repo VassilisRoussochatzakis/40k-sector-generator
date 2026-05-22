@@ -281,7 +281,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
                             continue;
                         }
                         ui.label(
-                            RichText::new(format!("{}", row_idx + 1))
+                            RichText::new((row_idx + 1).to_string())
                                 .color(super::palette::TEXT_DIM)
                                 .monospace(),
                         );
@@ -405,7 +405,7 @@ fn filter_dropdown(
                 let empty = HashSet::new();
                 let set = key_sets.get(column).unwrap_or(&empty);
                 let mut opts: Vec<&String> = set.iter().collect();
-                opts.sort();
+                opts.sort_unstable();
                 for opt in opts {
                     if ui.selectable_label(selected == opt, opt).clicked() {
                         *selected = opt.clone();

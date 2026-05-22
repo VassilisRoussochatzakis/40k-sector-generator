@@ -19,7 +19,7 @@
 //! Constraints evaluate against the finished sector + its analytics report,
 //! so they reuse the same fields the analytics dashboard exposes (§8).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
 
 use camino::Utf8Path;
@@ -412,34 +412,27 @@ fn referenced_faction(c: &Constraint) -> Option<String> {
 
 // ── Constraint evaluation ──────────────────────────────────────────────────────
 
-fn share_of(analysis: &SectorAnalysis, faction_id: &str) -> f32 {
+type FactionIndex<'a> = HashMap<&'a str, &'a analytics::FactionShare>;
+
+fn build_faction_index(analysis: &SectorAnalysis) -> FactionIndex<'_> {
     analysis
         .faction_balance
         .top_factions
         .iter()
-        .find(|f| f.faction_id == faction_id)
-        .map(|f| f.share)
-        .unwrap_or(0.0)
+        .map(|f| (f.faction_id.as_str(), f))
+        .collect()
 }
 
-fn world_count_of(analysis: &SectorAnalysis, faction_id: &str) -> u32 {
-    analysis
-        .faction_balance
-        .top_factions
-        .iter()
-        .find(|f| f.faction_id == faction_id)
-        .map(|f| f.world_presence_count)
-        .unwrap_or(0)
+fn share_of(idx: &FactionIndex<'_>, faction_id: &str) -> f32 {
+    idx.get(faction_id).map_or(0.0, |f| f.share)
 }
 
-fn system_count_of(analysis: &SectorAnalysis, faction_id: &str) -> u32 {
-    analysis
-        .faction_balance
-        .top_factions
-        .iter()
-        .find(|f| f.faction_id == faction_id)
-        .map(|f| f.system_presence_count)
-        .unwrap_or(0)
+fn world_count_of(idx: &FactionIndex<'_>, faction_id: &str) -> u32 {
+    idx.get(faction_id).map_or(0, |f| f.world_presence_count)
+}
+
+fn system_count_of(idx: &FactionIndex<'_>, faction_id: &str) -> u32 {
+    idx.get(faction_id).map_or(0, |f| f.system_presence_count)
 }
 
 fn count_world_type_dominant(
@@ -496,10 +489,11 @@ fn evaluate(
     c: &Constraint,
     sector: &GeneratedSector,
     analysis: &SectorAnalysis,
+    fac_idx: &FactionIndex<'_>,
 ) -> ConstraintReport {
     match c {
         Constraint::FactionShareMin { faction_id, min } => {
-            let s = share_of(analysis, faction_id);
+            let s = share_of(fac_idx, faction_id);
             let passed = s >= *min;
             let miss = (*min - s).max(0.0);
             ConstraintReport {
@@ -511,7 +505,7 @@ fn evaluate(
             }
         }
         Constraint::FactionShareMax { faction_id, max } => {
-            let s = share_of(analysis, faction_id);
+            let s = share_of(fac_idx, faction_id);
             let passed = s <= *max;
             let miss = (s - *max).max(0.0);
             ConstraintReport {
@@ -523,7 +517,7 @@ fn evaluate(
             }
         }
         Constraint::FactionWorldCountMin { faction_id, min } => {
-            let n = world_count_of(analysis, faction_id);
+            let n = world_count_of(fac_idx, faction_id);
             let passed = n >= *min;
             let miss = if passed {
                 0.0
@@ -539,7 +533,7 @@ fn evaluate(
             }
         }
         Constraint::FactionWorldCountMax { faction_id, max } => {
-            let n = world_count_of(analysis, faction_id);
+            let n = world_count_of(fac_idx, faction_id);
             let passed = n <= *max;
             let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
             ConstraintReport {
@@ -551,7 +545,7 @@ fn evaluate(
             }
         }
         Constraint::FactionSystemCountMin { faction_id, min } => {
-            let n = system_count_of(analysis, faction_id);
+            let n = system_count_of(fac_idx, faction_id);
             let passed = n >= *min;
             let miss = if passed {
                 0.0
@@ -567,7 +561,7 @@ fn evaluate(
             }
         }
         Constraint::FactionSystemCountMax { faction_id, max } => {
-            let n = system_count_of(analysis, faction_id);
+            let n = system_count_of(fac_idx, faction_id);
             let passed = n <= *max;
             let miss = if passed { 0.0 } else { n as f32 - *max as f32 };
             ConstraintReport {
@@ -850,9 +844,10 @@ fn evaluate_all(
     n: u32,
     seed: &str,
 ) -> CandidateReport {
+    let fac_idx = build_faction_index(analysis);
     let reports: Vec<ConstraintReport> = constraints
         .iter()
-        .map(|c| evaluate(c, sector, analysis))
+        .map(|c| evaluate(c, sector, analysis, &fac_idx))
         .collect();
     let passed = reports.iter().all(|r| r.passed);
     let total_miss: f32 = reports.iter().map(|r| r.miss).sum();

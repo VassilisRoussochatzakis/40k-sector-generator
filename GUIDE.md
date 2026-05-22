@@ -1862,3 +1862,49 @@ across runs, so a regression check is a diff away.
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI; egui wrapper around [src/faction_style.rs](src/faction_style.rs) (`faction_style`, glyph + border) |
 | [src/gui/heatmap.rs](src/gui/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |
+
+## 14. Build & performance
+
+### Release profile
+
+[Cargo.toml](Cargo.toml) declares an explicit `[profile.release]`:
+
+```toml
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1
+```
+
+- `lto = "fat"` + `codegen-units = 1` give the optimiser whole-crate visibility (no parallel codegen splits). Slower link, ~10-30% faster runtime on the generation hot path.
+- `panic = "abort"` removes unwind tables. The crate has no `catch_unwind` / `std::panic::set_hook` usage — panics are bugs, not control flow.
+- `strip = "symbols"` shrinks the binary; debug symbols still ship in `target/release/deps/*.d` for backtrace use during development.
+- `[profile.bench]` uses `lto = "thin"` so `cargo bench` (criterion harness in [benches/generation.rs](benches/generation.rs)) links in seconds rather than minutes while still getting cross-crate inlining.
+
+If you ever add `catch_unwind` (e.g. driving the GUI from a worker thread that must survive a panic), revisit `panic = "abort"`.
+
+### Code-level perf conventions
+
+These hold across the crate and are enforced by review, not lints:
+
+- **`sort_unstable*` by default.** `Vec::sort` is a stable mergesort — it allocates and runs slower than `sort_unstable*`. Use `sort_unstable_by` / `sort_unstable_by_key` / `sort_unstable` whenever the sort key is totally ordered (typed IDs, integers, owned strings). Stable sort is reserved for partial-cmp float sorts where ties matter for determinism (see [src/search.rs:944](src/search.rs#L944), [src/world_pool.rs:334](src/world_pool.rs#L334), [src/diff.rs:772](src/diff.rs#L772)) — leave those as `sort_by`.
+- **Build an index once.** When a function does repeated `find` / linear scans by key, build a `HashMap<&str, &T>` up front and pass it in. Example: [src/search.rs](src/search.rs) `build_faction_index` is built once in `evaluate_all` and shared across every constraint evaluation, replacing O(C·F) with O(C+F).
+- **`std::mem::take(&mut v)` over `v.drain(..)`** when the loop body needs to reassign `v` afterwards. `drain(..)` keeps the original allocation but obscures intent; `mem::take` is one move and lets the compiler reason about the move-out.
+- **`unwrap_or_else(|| ...)` when the fallback is not a trivial copy.** `unwrap_or(expr)` evaluates `expr` eagerly even on the happy path. For `&str` borrows of fields owned by surrounding scope, `unwrap_or_else` avoids the spurious borrow.
+- **`x.to_string()` over `format!("{}", x)`** for single-argument display — skips the format machinery and a temporary `Arguments` struct.
+- **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/generation.rs:422](src/generation.rs#L422) for the recent fill-relax loop.
+
+### Math-accuracy lints (intentionally NOT applied)
+
+`cargo clippy -- -W clippy::nursery` flags `mul_add` and `hypot` opportunities across [src/bitmap/mod.rs](src/bitmap/mod.rs) and [src/gui/palette.rs](src/gui/palette.rs). They are **not** applied because the crate's golden outputs (PNGs, JSON snapshots) are byte-deterministic and `a.mul_add(b, c)` / `dx.hypot(dy)` produce different last-bit results from `a*b + c` / `(dx*dx+dy*dy).sqrt()`. If you ever benchmark a hot per-pixel loop and want the FMA win, regenerate the golden fixtures in the same commit.
+
+Same caveat for the `while condition comparing floats` warnings in the bitmap/palette renderers — converting them to integer-step loops changes the last iteration's `f` value and the rendered output.
+
+### Hashing
+
+Maps and sets across the crate use the std default `RandomState` (SipHash). For determinism we **never** iterate a `HashMap` for output — JSON / Markdown / CSV writers sort keys via a `BTreeMap` or an explicit `sort_unstable_by` before emission. If you switch to a faster hasher (`rustc_hash::FxHashMap`, `ahash`), the same rule applies: sort before emit, never iterate in output order.

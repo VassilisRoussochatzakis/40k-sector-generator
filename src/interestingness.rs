@@ -135,7 +135,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &InterestingnessConfig) -> Int
             weight: target.weight,
         });
     }
-    scores.sort_by(|a, b| a.name.cmp(&b.name));
+    scores.sort_unstable_by(|a, b| a.name.cmp(&b.name));
 
     let (overall, strengths, weaknesses) = aggregate(&scores);
     InterestingnessReport {
@@ -347,8 +347,8 @@ fn aggregate(scores: &[MetricScore]) -> (u8, Vec<String>, Vec<String>) {
         .filter(|s| s.fit < 0.5)
         .map(|s| describe(s, false))
         .collect();
-    strengths.sort();
-    weaknesses.sort();
+    strengths.sort_unstable();
+    weaknesses.sort_unstable();
     (overall, strengths, weaknesses)
 }
 

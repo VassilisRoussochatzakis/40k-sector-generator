@@ -1348,7 +1348,10 @@ fn draw_subsector_labels(
         let top = "SUBSECTOR";
         let bot_owned: String;
         let bot: &str = {
-            let raw = s.name.strip_prefix("Subsector ").unwrap_or(s.name.as_ref());
+            let raw = s
+                .name
+                .strip_prefix("Subsector ")
+                .unwrap_or_else(|| s.name.as_ref());
             bot_owned = raw.to_ascii_uppercase();
             bot_owned.as_str()
         };

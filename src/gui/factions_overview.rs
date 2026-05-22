@@ -333,8 +333,8 @@ pub fn show_readonly(ui: &mut Ui, sector: &GeneratedSector) {
     show_table_header(ui, false);
 
     let observed = observed_presence(sector);
-    let mut order = faction_order(sector);
-    for i in order.drain(..) {
+    let order = faction_order(sector);
+    for i in order {
         show_readonly_row(
             ui,
             &sector.factions[i],
@@ -372,7 +372,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
             .on_hover_text("sort sector faction list by id")
             .clicked()
         {
-            sector.factions.sort_by(|a, b| a.id.cmp(&b.id));
+            sector.factions.sort_unstable_by(|a, b| a.id.cmp(&b.id));
             dirty = true;
         }
     });
@@ -388,9 +388,9 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
         .flat_map(|s| s.worlds.iter().map(|w| w.id.clone()))
         .collect();
     let mut remove: Option<FactionId> = None;
-    let mut order = faction_order(sector);
+    let order = faction_order(sector);
 
-    for i in order.drain(..) {
+    for i in order {
         let fac_id = sector.factions[i].id.clone();
         let obs = observed.get(&fac_id).cloned().unwrap_or_default();
         let fac = &mut sector.factions[i];

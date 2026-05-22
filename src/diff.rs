@@ -300,22 +300,21 @@ fn diff_relations(before: &GeneratedSector, after: &GeneratedSector) -> Vec<Stan
     for p in &before.relations.pairs {
         by_pair.insert((p.a.clone(), p.b.clone()), p.stance);
     }
-    let mut out: Vec<StanceChange> = Vec::new();
-    let mut seen: BTreeSet<(FactionId, FactionId)> = BTreeSet::new();
+    let mut out: Vec<StanceChange> = Vec::with_capacity(after.relations.pairs.len());
     for p in &after.relations.pairs {
         let key = (p.a.clone(), p.b.clone());
-        seen.insert(key.clone());
-        match by_pair.get(&key) {
-            Some(prev) if *prev != p.stance => out.push(StanceChange {
-                a: p.a.clone(),
-                b: p.b.clone(),
-                before: *prev,
-                after: p.stance,
-            }),
-            _ => {}
+        if let Some(prev) = by_pair.get(&key) {
+            if *prev != p.stance {
+                out.push(StanceChange {
+                    a: p.a.clone(),
+                    b: p.b.clone(),
+                    before: *prev,
+                    after: p.stance,
+                });
+            }
         }
     }
-    out.sort_by(|x, y| x.a.cmp(&y.a).then_with(|| x.b.cmp(&y.b)));
+    out.sort_unstable_by(|x, y| x.a.cmp(&y.a).then_with(|| x.b.cmp(&y.b)));
     out
 }
 

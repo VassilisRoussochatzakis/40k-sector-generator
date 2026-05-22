@@ -419,8 +419,8 @@ fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorError> {
         let mut relaxed = min_dist;
         while placed.len() < target && relaxed > 1 {
             relaxed -= 1;
-            let mut still_blocked: Vec<HexCoord> = Vec::new();
-            for c in leftover.drain(..) {
+            let mut still_blocked: Vec<HexCoord> = Vec::with_capacity(leftover.len());
+            for c in std::mem::take(&mut leftover) {
                 if placed.len() >= target {
                     still_blocked.push(c);
                     continue;

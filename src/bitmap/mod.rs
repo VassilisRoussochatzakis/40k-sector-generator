@@ -1508,8 +1508,8 @@ fn legend_height(sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) -> i3
         let lines = 4 + 1 + 5 + 1 + factions_visible(sector) + heatmap_lines;
         return g.legend_pad * 2 + lines as i32 * g.line_h;
     }
-    // title block (4) + spacer + 7 star rows + spacer
-    // + ROUTE TYPE header + 4 type rows + spacer
+    // title block (4) + spacer
+    // + ROUTE TYPE header + N type rows + spacer
     // + ROUTE STABILITY header + 4 stab rows + spacer
     // + optional ROUTE CONTROL header + 4 rows + spacer
     // + factions block + optional heatmap row + footer pad.
@@ -1523,21 +1523,24 @@ fn legend_height(sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) -> i3
     } else {
         0
     };
+    let route_type_rows = match opts.route_view_mode {
+        crate::sector_model::RouteViewMode::Detailed => RouteType::ALL.len() as i32,
+        crate::sector_model::RouteViewMode::TopLevel => {
+            crate::sector_model::RouteKind::ALL.len() as i32
+        }
+    };
     let lines = 4
         + 1
-        + 7
-        + 1
-        + 1
-        + 4
+        + route_type_rows
         + 1
         + 1
         + 4
         + 1
         + route_control_lines
         + 1
-        + factions_visible(sector)
+        + factions_visible(sector) as i32
         + heatmap_lines;
-    g.legend_pad * 2 + lines as i32 * g.line_h
+    g.legend_pad * 2 + lines * g.line_h
 }
 
 use crate::importance::{
@@ -1613,24 +1616,6 @@ fn draw_legend(
         draw_compact_legend_body(img, sector, x0, y, g, opts);
         return;
     }
-
-    draw_text(img, x0, y, "STAR COLOURS", opts.theme.text, body);
-    y += line_h;
-    for (code, name) in STAR_LEGEND {
-        let color = star_color(code);
-        fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, color);
-        draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(color, 0.5));
-        draw_text(
-            img,
-            x0 + swatch + 8 * g.scale,
-            y,
-            &format!("{code} - {name}"),
-            opts.theme.text,
-            body,
-        );
-        y += line_h;
-    }
-    y += 4 * g.scale;
 
     draw_text(img, x0, y, "ROUTE TYPE", opts.theme.text, body);
     y += line_h;
@@ -1986,16 +1971,6 @@ pub(crate) use primitives::{
 use primitives::{draw_line, fill_polygon};
 
 // ── Color helpers ───────────────────────────────────────────────────────────
-
-pub(crate) const STAR_LEGEND: &[(&str, &str)] = &[
-    ("O", "ORANGE DWARF"),
-    ("B", "BLUE-WHITE"),
-    ("A", "AMBER"),
-    ("F", "FUCHSIA"),
-    ("G", "GREEN"),
-    ("K", "KHAKI"),
-    ("M", "MAROON"),
-];
 
 pub(crate) fn star_color(code: &str) -> Rgba<u8> {
     match code.trim().to_ascii_uppercase().as_str() {

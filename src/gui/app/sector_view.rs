@@ -175,6 +175,34 @@ impl App {
                             }
                         });
                     ui.separator();
+                    ui.label(RichText::new("ROUTE VIEW").color(TEXT_DIM).monospace());
+                    if ui
+                        .selectable_label(
+                            self.route_view_mode
+                                == crate::sector_model::RouteViewMode::TopLevel,
+                            RichText::new("TOP-LEVEL").monospace(),
+                        )
+                        .on_hover_text("Group routes by Warp / Webway / etc.")
+                        .clicked()
+                    {
+                        self.route_view_mode = crate::sector_model::RouteViewMode::TopLevel;
+                        self.editor.route_view_mode =
+                            crate::sector_model::RouteViewMode::TopLevel;
+                    }
+                    if ui
+                        .selectable_label(
+                            self.route_view_mode
+                                == crate::sector_model::RouteViewMode::Detailed,
+                            RichText::new("DETAILED").monospace(),
+                        )
+                        .on_hover_text("Show all specialized route types")
+                        .clicked()
+                    {
+                        self.route_view_mode = crate::sector_model::RouteViewMode::Detailed;
+                        self.editor.route_view_mode =
+                            crate::sector_model::RouteViewMode::Detailed;
+                    }
+                    ui.separator();
                     if ui
                         .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
                         .clicked()

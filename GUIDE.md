@@ -1433,7 +1433,11 @@ navigation bar:
   (§5) for every `WarpRegion`. Click a hex to drill into the system; click a
   route line to highlight that route and inspect its endpoints, type,
   stability, distance, tags, and per-faction route-control values. The
-  bottom controls expose a **HEATMAP** dropdown that
+  bottom controls expose a **ROUTE VIEW** toggle (`TOP-LEVEL` groups routes
+  by `RouteKind` — Warp/Webway/etc. — and the legend shows only category rows;
+  `DETAILED` renders every specialized `RouteType` with its canonical pattern
+  and lists each specialized type in the legend) and a **HEATMAP** dropdown
+  that
   tints every system hex by a per-mode score: `CONTROL` (dominant-faction
   colour × control-score intensity), `MILITARY`, `TRADE`, `INDUSTRY`,
   `COVERT`, `FAITH`, `THREAT` (military × covert restricted to

@@ -20,8 +20,7 @@ pub struct GeneratedSector {
     pub generator_version: String,
     pub width: u32,
     pub height: u32,
-    pub systems: BTreeMap<SystemId, GeneratedSystem>,
-    pub worlds: BTreeMap<WorldId, GeneratedWorld>,
+    pub systems: Vec<GeneratedSystem>,
     pub routes: Vec<GeneratedRoute>,
     pub factions: Vec<GeneratedFaction>,
     pub manifest: GenerationManifest,
@@ -60,7 +59,7 @@ pub struct GeneratedSystem {
     pub coord: HexCoord,
     pub star: GeneratedStar,
     #[serde(default)]
-    pub world_ids: Vec<WorldId>,
+    pub worlds: Vec<GeneratedWorld>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primary_factions: Vec<FactionId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -194,26 +193,30 @@ impl From<&crate::worlds::World> for WorldDto {
 
 impl GeneratedSector {
     pub fn get_system(&self, id: &SystemId) -> Option<&GeneratedSystem> {
-        self.systems.get(id)
+        self.systems.iter().find(|s| s.id == *id)
     }
 
     pub fn get_system_mut(&mut self, id: &SystemId) -> Option<&mut GeneratedSystem> {
-        self.systems.get_mut(id)
+        self.systems.iter_mut().find(|s| s.id == *id)
     }
 
     pub fn get_world(&self, id: &WorldId) -> Option<&GeneratedWorld> {
-        self.worlds.get(id)
+        for sys in &self.systems {
+            for w in &sys.worlds {
+                if w.id == *id {
+                    return Some(w);
+                }
+            }
+        }
+        None
     }
 
-    pub fn get_worlds_for_system(&self, sys: &GeneratedSystem) -> Vec<&GeneratedWorld> {
-        sys.world_ids
-            .iter()
-            .filter_map(|id| self.worlds.get(id))
-            .collect()
+    pub fn get_worlds_for_system<'a>(&self, sys: &'a GeneratedSystem) -> Vec<&'a GeneratedWorld> {
+        sys.worlds.iter().collect()
     }
 
     pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
-        self.worlds.values()
+        self.systems.iter().flat_map(|s| s.worlds.iter())
     }
 }
 

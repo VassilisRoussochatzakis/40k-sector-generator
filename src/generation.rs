@@ -678,7 +678,7 @@ fn generate_worlds_for_system(
             claims: Vec::new(),
             control: WorldControlSummary::default(),
             stability: crate::stability::StabilityState::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             conflict: Default::default(),
         });
     }

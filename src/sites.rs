@@ -127,7 +127,7 @@ pub fn derive(sector: &GeneratedSector) -> SitesReport {
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     let mut out: Vec<WorldSite> = Vec::new();
-    for sys in sector.systems.values() {
+    for sys in &sector.systems {
         for w in sector.get_worlds_for_system(sys) {
             if cfg.skip_uninhabited && w.world.population == "Uninhabited" {
                 // Skip unless the world type still has interest (tomb / dead).
@@ -692,7 +692,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }
@@ -752,7 +752,7 @@ mod tests {
                 ..Default::default()
             },
             stability: Default::default(),
-            regions: vec![],
+            regions: vec![].into(),
             conflict: Default::default(),
         }
     }

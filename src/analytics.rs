@@ -159,7 +159,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
         sector_id: sector.id.clone(),
         seed: sector.seed.clone(),
         system_count: sector.systems.len(),
-        world_count: sector.worlds.len(),
+        world_count: sector.all_worlds().count(),
         route_count: sector.routes.len(),
         faction_count: sector.factions.len(),
         ..Default::default()
@@ -184,7 +184,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.world_type_distribution = compute_distribution(sector, |w| w.world.world_type.to_string());
     a.star_colour_distribution = sector
         .systems
-        .values()
+        .iter()
         .map(|s| s.star.colour_name.to_string())
         .fold(BTreeMap::<String, u32>::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
@@ -285,7 +285,7 @@ fn compute_world_stats(
     let mut total_claims = 0u32;
     let mut claim_counts: BTreeMap<String, u32> = BTreeMap::new();
     let mut dominance_counts: BTreeMap<String, u32> = BTreeMap::new();
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         for w in sector.get_worlds_for_system(sys) {
             if !w.factions.is_empty() {
                 total_with_factions += 1;
@@ -315,7 +315,7 @@ fn compute_world_stats(
 
 fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<String, u32> {
     let mut out: BTreeMap<String, u32> = BTreeMap::new();
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         if let Some(state) = sys.control.state {
             let key = format!("{:?}", state);
             *out.entry(key).or_insert(0) += 1;
@@ -329,7 +329,7 @@ where
     F: Fn(&crate::sector_model::GeneratedWorld) -> String,
 {
     let mut out: BTreeMap<String, u32> = BTreeMap::new();
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         for w in sector.get_worlds_for_system(sys) {
             *out.entry(key(w)).or_insert(0) += 1;
         }
@@ -342,7 +342,7 @@ where
 fn build_adjacency(
     sector: &GeneratedSector,
 ) -> (Vec<SystemId>, BTreeMap<SystemId, usize>, Vec<Vec<usize>>) {
-    let ids: Vec<SystemId> = sector.systems.keys().cloned().collect();
+    let ids: Vec<SystemId> = sector.systems.iter().map(|s| s.id.clone()).collect();
     let index: BTreeMap<SystemId, usize> = ids.iter().cloned().zip(0..).collect();
     let n = ids.len();
     let mut adj: Vec<BTreeSet<usize>> = vec![BTreeSet::new(); n];
@@ -507,7 +507,7 @@ fn compute_subsector_variety(sector: &GeneratedSector) -> Vec<SubsectorVariety> 
         Err(_) => return Vec::new(),
     };
     let sys_by_id: BTreeMap<&str, &GeneratedSystem> =
-        sector.systems.iter().map(|(id, s)| (id.as_str(), s)).collect();
+        sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
     subs.iter()
         .map(|sub: &Subsector| {
             let mut dominants: BTreeSet<FactionId> = BTreeSet::new();
@@ -833,7 +833,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

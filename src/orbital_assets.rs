@@ -74,10 +74,9 @@ impl BlockadeReport {
 /// per-world presences. Pure; runs after `control::derive_system_control`.
 #[must_use]
 pub fn derive_orbital_assets(
-    sector: &GeneratedSector,
     sys: &GeneratedSystem,
 ) -> (Vec<OrbitalAsset>, BlockadeReport) {
-    let worlds = sector.get_worlds_for_system(sys);
+    let worlds = &sys.worlds;
     if worlds.is_empty() {
         return (Vec::new(), BlockadeReport::default());
     }
@@ -96,23 +95,25 @@ pub fn derive_orbital_assets(
         }
     }
 
-    let has_spaceyard = sector.get_worlds_for_system(sys).iter().any(|w| {
+    let has_spaceyard = sys.worlds.iter().any(|w| {
         w.world
             .notable_features
             .iter()
-            .any(|f| f == "MajorSpaceyard")
+            .any(|f: &String| f == "MajorSpaceyard")
     });
-    let war_zone = sector.get_worlds_for_system(sys).iter().any(|w| {
-        w.tags.iter().any(|t| t.ends_with(":war_zone"))
+
+    let war_zone = sys.worlds.iter().any(|w| {
+        w.tags.iter().any(|t: &String| t.ends_with(":war_zone"))
             || w.world
                 .notable_features
                 .iter()
-                .any(|f| f == "WarZone" || f == "DaemonicCorruption")
+                .any(|f: &String| f == "WarZone" || f == "DaemonicCorruption")
     });
-    let quarantined = sector
-        .get_worlds_for_system(sys)
+
+    let quarantined = sys
+        .worlds
         .iter()
-        .any(|w| w.tags.iter().any(|t| t.ends_with(":quarantined")));
+        .any(|w| w.tags.iter().any(|t: &String| t.ends_with(":quarantined")));
 
     let mut assets: Vec<OrbitalAsset> = Vec::new();
     for (id, d) in &sums {
@@ -280,7 +281,7 @@ mod tests {
                 claims: vec![],
                 control: WorldControlSummary::default(),
                 stability: Default::default(),
-                regions: Vec::new(),
+                regions: Vec::new().into(),
                 conflict: Default::default(),
             }],
             primary_factions: vec![],

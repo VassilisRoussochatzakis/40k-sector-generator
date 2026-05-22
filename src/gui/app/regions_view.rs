@@ -52,7 +52,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         ui.label(RichText::new("HEXES").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("CENTRE").color(TEXT_DIM).monospace().strong());
                         ui.end_row();
-                        for r in &sector.regions {
+                        for r in sector.regions.iter() {
                             ui.label(RichText::new(&r.id).monospace());
                             ui.label(RichText::new(&r.name).monospace());
                             ui.label(

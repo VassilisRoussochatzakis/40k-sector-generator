@@ -1545,7 +1545,7 @@ mod tests {
             claims: vec![],
             control: WorldControlSummary::default(),
             stability: Default::default(),
-            regions: vec![],
+            regions: vec![].into(),
             conflict: Default::default(),
         }
     }
@@ -1605,7 +1605,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: vec![],
+            regions: vec![].into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

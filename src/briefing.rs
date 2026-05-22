@@ -263,7 +263,8 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
     if !p.show_relations {
         out.relations = Default::default();
     } else if !p.show_secret_relations {
-        for rel in &mut out.relations.pairs {
+        let rels = std::sync::Arc::make_mut(&mut out.relations);
+        for rel in &mut rels.pairs {
             rel.secret_attitude = rel.public_attitude;
             rel.secret_stance = rel.public_stance;
             rel.stance = rel.public_stance;
@@ -437,7 +438,7 @@ pub fn render_markdown(pack: &BriefingPack, profile: &BriefingProfile) -> String
         if !sys.primary_factions.is_empty() {
             let _ = writeln!(s, "- Primary factions: {}", join_ids(&sys.primary_factions));
         }
-        for w in pack.sector.system_worlds(sys) {
+        for w in pack.sector.get_worlds_for_system(sys) {
             let claims = if profile.show_claims && !w.claims.is_empty() {
                 format!(
                     " — claims: {}",
@@ -568,7 +569,7 @@ mod tests {
             claims: vec![],
             control: Default::default(),
             stability: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             conflict: Default::default(),
         };
         let sys = GeneratedSystem {
@@ -664,7 +665,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

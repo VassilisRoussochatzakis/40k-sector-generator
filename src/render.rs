@@ -23,7 +23,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s.push_str(&format!("- **Systems:** {}\n", sector.systems.len()));
     s.push_str(&format!(
         "- **Worlds:** {}\n",
-        sector.worlds.len()
+        sector.systems.iter().map(|s| s.worlds.len()).sum::<usize>()
     ));
     s.push_str(&format!("- **Routes:** {}\n", sector.routes.len()));
     s.push_str(&format!("- **Factions:** {}\n\n", sector.factions.len()));
@@ -37,7 +37,7 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s.push_str("## System index\n\n");
     s.push_str("| ID | Name | Coord | Star | Worlds |\n");
     s.push_str("|---|---|---|---|---:|\n");
-    for sys in sector.systems.values() {
+    for sys in &sector.systems {
         s.push_str(&format!(
             "| {} | {} | (q={}, r={}) | {} / {} | {} |\n",
             sys.id,
@@ -51,8 +51,8 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     }
     s.push('\n');
 
-    for (id, sys) in &sector.systems {
-        s.push_str(&format_system_section((id, sys), sector));
+    for sys in &sector.systems {
+        s.push_str(&format_system_section(sys, sector));
     }
 
     s.push_str("## Routes\n\n");
@@ -318,7 +318,7 @@ fn format_sector_map(sector: &GeneratedSector) -> String {
     }
     // §5 NEW.md: warp region glyphs for empty hexes inside a region footprint.
     let mut region_at: HashMap<(i32, i32), char> = HashMap::new();
-    for reg in &sector.regions {
+    for reg in sector.regions.iter() {
         let g = region_glyph(reg.kind);
         for h in &reg.hexes {
             region_at.insert((h.q, h.r), g);
@@ -406,7 +406,7 @@ fn format_regions_section(sector: &GeneratedSector) -> String {
     s.push_str("## Warp regions\n\n");
     s.push_str("| ID | Name | Kind | Hexes | Centre |\n");
     s.push_str("|---|---|---|---:|---|\n");
-    for r in &sector.regions {
+    for r in sector.regions.iter() {
         s.push_str(&format!(
             "| {} | {} | {:?} | {} | (q={}, r={}) |\n",
             r.id,
@@ -520,23 +520,27 @@ fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
     }
 }
 
-fn format_system_section(sys: (&SystemId, &GeneratedSystem), sector: &GeneratedSector) -> String {
+fn format_system_section(sys: &GeneratedSystem, sector: &GeneratedSector) -> String {
     let mut s = String::new();
-    s.push_str(&format!("## {} — {}\n\n", sys.1.id.to_uppercase(), sys.1.name));
+    s.push_str(&format!("## {} — {}\n\n", sys.id.to_uppercase(), sys.name));
     s.push_str(&format!(
         "- **Coordinates:** q={}, r={}\n",
-        sys.1.coord.q, sys.1.coord.r
+        sys.coord.q, sys.coord.r
     ));
     s.push_str(&format!(
         "- **Star:** {} / {} / {}\n",
-        sys.1.star.colour_code,
-        sys.1.star.colour_name,
-        sys.1.star.spectral_type.as_deref().unwrap_or("?")
+        sys.star.colour_code,
+        sys.star.colour_name,
+        sys.star.spectral_type.as_deref().unwrap_or("?")
     ));
     if !sys.primary_factions.is_empty() {
         s.push_str(&format!(
             "- **Primary factions:** {}\n",
-            sys.primary_factions.join(", ")
+            sys.primary_factions
+                .iter()
+                .map(|f| f.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
     }
     s.push_str(&format_system_control(sys));
@@ -817,7 +821,8 @@ fn format_force(p: &crate::sector_model::WorldFactionPresence) -> String {
 
 fn format_world_table(sys: &GeneratedSystem) -> String {
     let mut s = String::new();
-    if sys.worlds.is_empty() {
+    let worlds = &sys.worlds;
+    if worlds.is_empty() {
         s.push_str("_No worlds._\n\n");
         return s;
     }
@@ -825,7 +830,7 @@ fn format_world_table(sys: &GeneratedSystem) -> String {
         "| Orbit | World | Type | Atmosphere | Population | Tech | Government | Features |\n",
     );
     s.push_str("|---:|---|---|---|---|---|---|---|\n");
-    for w in &sys.worlds {
+    for w in worlds {
         let features = w.world.notable_features.join("; ");
         s.push_str(&format!(
             "| {} | {} | {} | {} | {} | {} | {} | {} |\n",

@@ -685,7 +685,7 @@ mod tests {
             claims: vec![],
             control: WorldControlSummary::default(),
             stability: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             conflict: Default::default(),
         }
     }

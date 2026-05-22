@@ -189,7 +189,7 @@ pub fn empty_sector(
         influence_field: Default::default(),
         power_projection: Default::default(),
         relations: Default::default(),
-        regions: Vec::new(),
+        regions: Vec::new().into(),
         economy: Default::default(),
         chronicle: Default::default(),
     }
@@ -247,7 +247,7 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
         claims: Vec::new(),
         control: Default::default(),
         stability: Default::default(),
-        regions: Vec::new(),
+        regions: Vec::new().into(),
         conflict: Default::default(),
     }
 }

@@ -132,14 +132,13 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &MissionsConfig) -> MissionsRe
     let mut out: Vec<MissionSeed> = Vec::new();
     let by_sys: BTreeMap<&str, &GeneratedSystem> =
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
-for sys in sector.systems.values() {
-    // ... (rest of the logic)
-    let worlds = sector.get_worlds_for_system(sys);
-    for w in worlds {
-        emit_world_missions(sector, sys, w, &mut out);
+    for sys in sector.systems.iter() {
+        let worlds = sector.get_worlds_for_system(sys);
+        for w in worlds {
+            emit_world_missions(sector, sys, w, &mut out);
+        }
+        emit_system_missions(sector, sys, &mut out);
     }
-    emit_system_missions(sector, sys, &mut out);
-}
     for r in &sector.routes {
         emit_route_missions(sector, r, &by_sys, &mut out);
     }
@@ -348,8 +347,8 @@ fn emit_system_missions(
     // Assassination of the orbital controller when it differs from sovereign.
     if let (Some(ctrl), Some(sov)) = (&sys.control.orbital_controller, &sys.control.sovereign) {
         if ctrl != sov {
-            let target_world = sys
-                .worlds
+            let worlds = sector.get_worlds_for_system(sys);
+            let target_world = worlds
                 .first()
                 .map(|w| format!("{}/{}", sys.id, w.id))
                 .unwrap_or_else(|| sys.id.as_str().to_string());
@@ -427,21 +426,21 @@ fn emit_route_missions(
     ) else {
         return;
     };
-    let from_world = from
-        .worlds
+    let from_worlds = sector.get_worlds_for_system(from);
+    let to_worlds = sector.get_worlds_for_system(to);
+    let from_world = from_worlds
         .first()
         .map(|w| format!("{}/{}", from.id, w.id))
         .unwrap_or_else(|| from.id.as_str().to_string());
-    let to_world = to
-        .worlds
+    let to_world = to_worlds
         .first()
         .map(|w| format!("{}/{}", to.id, w.id))
         .unwrap_or_else(|| to.id.as_str().to_string());
 
     // Escort: any non-perilous route between two inhabited worlds.
     if !matches!(r.stability, RouteStability::Perilous)
-        && !from.worlds.is_empty()
-        && !to.worlds.is_empty()
+        && !from_worlds.is_empty()
+        && !to_worlds.is_empty()
     {
         out.push(MissionSeed {
             id: format!("mission-{}-escort", r.id),
@@ -641,7 +640,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }
@@ -724,7 +723,7 @@ mod tests {
                     ..Default::default()
                 },
                 stability: Default::default(),
-                regions: vec![],
+                regions: vec![].into(),
                 conflict: Default::default(),
             }],
             primary_factions: vec![],

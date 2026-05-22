@@ -7,7 +7,9 @@
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::sector_model::{FactionInfluence, GeneratedRoute, GeneratedSystem, GeneratedWorld};
+use crate::sector_model::{
+    FactionInfluence, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld,
+};
 
 use super::{
     ControlDenominator, FactionControlSummary, ScoredId, Subsector, SubsectorConfig,
@@ -32,7 +34,7 @@ pub(super) fn resolve_system_owners(
     sector: &GeneratedSector,
 ) -> BTreeMap<crate::ids::SystemId, SystemOwnership> {
     let mut out = BTreeMap::new();
-    for sys in sector.systems.values() {
+    for sys in &sector.systems {
         let mut scores: BTreeMap<crate::ids::FactionId, i32> = BTreeMap::new();
         let mut owned_worlds_by_faction: BTreeMap<crate::ids::FactionId, Vec<crate::ids::WorldId>> =
             BTreeMap::new();
@@ -259,13 +261,15 @@ pub(super) fn populate_summary(
     summary.dominant_factions = dominant;
 
     // Faction control. Build per-faction ownership tallies from member systems.
-    let (faction_control, controlling) = build_faction_control(cell, sys_by_id, owners, config);
+    let (faction_control, controlling) =
+        build_faction_control(sector, cell, sys_by_id, owners, config);
     summary.faction_control = faction_control;
     summary.controlling_faction_id = controlling;
 
     // Primary and capital systems.
     summary.primary_system_id = pick_primary_system(sector, cell, sys_by_id, route_degree);
     let (cap_sys, cap_world) = pick_capital(
+        sector,
         cell,
         sys_by_id,
         route_degree,
@@ -289,6 +293,7 @@ fn dominant_influence_weight(i: FactionInfluence) -> i32 {
 }
 
 fn build_faction_control(
+    sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
@@ -527,6 +532,7 @@ fn pick_primary_system(
 }
 
 pub(super) fn pick_capital(
+    sector: &GeneratedSector,
     cell: &Subsector,
     sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
     route_degree: &BTreeMap<&str, u32>,

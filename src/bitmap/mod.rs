@@ -240,7 +240,7 @@ fn compute_system_tints(
     heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
 ) -> HashMap<(i32, i32), Rgba<u8>> {
     let mut out = HashMap::new();
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         let key = (sys.coord.q, sys.coord.r);
         // Heatmap overrides faction fill for non-Control modes. For Control
         // mode the underlying score already drives `faction_style.fill`, so
@@ -322,7 +322,7 @@ fn compute_region_tints(
 
 fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) {
     let mut centers: HashMap<&str, (i32, i32)> = HashMap::new();
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
         centers.insert(sys.id.as_str(), (cx, cy));
     }
@@ -1110,7 +1110,7 @@ fn draw_system_labels(
     let pad_x = 3 * g.scale;
     let pad_y = g.scale;
     let star_r = (g.hex_size * star_radius_ratio()) as i32;
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         if !system_label_visible(sys, subsectors, &opts.theme, sector) {
             continue;
         }
@@ -1580,7 +1580,7 @@ fn draw_legend(
             sector.width,
             sector.height,
             sector.systems.len(),
-            sector.manifest.world_count,
+            sector.all_worlds().count(),
         ),
         opts.theme.text_dim,
         body,
@@ -2121,7 +2121,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

@@ -82,7 +82,7 @@ impl<'a> SectorView<'a> {
 
         // §5: per-hex region lookup so the region overlay can tint cells.
         let mut hex_region: HashMap<(i32, i32), RegionConditionKind> = HashMap::new();
-        for reg in &self.sector.regions {
+        for reg in self.sector.regions.iter() {
             for h in &reg.hexes {
                 hex_region.insert((h.q, h.r), reg.kind);
             }
@@ -732,7 +732,7 @@ fn draw_region_labels(
     }
     let font = FontId::monospace((g.hex_size * 0.31).max(10.0));
     let pad = Vec2::new(6.0, 3.0);
-    for region in &sector.regions {
+    for region in sector.regions.iter() {
         let Some(anchor) = region_label_anchor(region, origin, g) else {
             continue;
         };

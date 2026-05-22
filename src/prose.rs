@@ -99,9 +99,10 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
 
     let mut entries: Vec<SystemProse> = Vec::new();
     if cfg.include_per_system {
-        for (id, sys) in &sector.systems {
+        for sys in &sector.systems {
             entries.push(system_prose(sys, sector, cfg, &faction_names));
-        }    }
+        }
+    }
 
     ProseReport {
         sector_id: sector.id.clone(),
@@ -177,7 +178,7 @@ fn system_prose(
     let mut paragraphs: Vec<String> = Vec::new();
 
     // Paragraph 1: geographic / population framing.
-    let n_worlds = sys.worlds.len();
+    let n_worlds = sector.get_worlds_for_system(sys).len();
     let pop_words: &[&str] = match cfg.tone {
         ProseTone::Gazetteer => &["holding", "supporting", "burdened with", "graced with"],
         ProseTone::Dispatch => &["count", "rated", "logged at"],
@@ -347,7 +348,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

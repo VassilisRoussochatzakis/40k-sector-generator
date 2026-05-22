@@ -178,7 +178,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
     let mut out: Vec<Persona> = Vec::new();
     let mut used_names: BTreeSet<String> = BTreeSet::new();
 
-    for sys in sector.systems.values() {
+    for sys in sector.systems.iter() {
         // System-slot personae.
         let max_per_system = cfg.max_per_system as usize;
         for (sys_count, (slot, faction_id)) in system_slot_factions(sys).into_iter().enumerate() {
@@ -954,7 +954,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }
@@ -1023,7 +1023,7 @@ mod tests {
                     ..Default::default()
                 },
                 stability: Default::default(),
-                regions: vec![],
+                regions: vec![].into(),
                 conflict: Default::default(),
             }],
             primary_factions: vec!["imp".into()],

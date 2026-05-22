@@ -1138,7 +1138,7 @@ struct CooccurStats {
 fn build_cooccurrence(sector: &GeneratedSector) -> BTreeMap<(String, String), CooccurStats> {
     let mut out: BTreeMap<(String, String), CooccurStats> = BTreeMap::new();
     for sys in &sector.systems {
-        for world in &sys.worlds {
+        for world in sector.get_worlds_for_system(sys) {
             for i in 0..world.factions.len() {
                 for j in (i + 1)..world.factions.len() {
                     let pa = &world.factions[i];
@@ -1448,8 +1448,8 @@ mod tests {
             },
             influence_field: Default::default(),
             power_projection: Default::default(),
-            relations: RelationsMatrix::default(),
-            regions: vec![],
+            relations: RelationsMatrix::default().into(),
+            regions: vec![].into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

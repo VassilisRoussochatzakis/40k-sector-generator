@@ -43,7 +43,7 @@ pub fn check_sector(sector: &GeneratedSector) -> InvariantReport {
 /// must not overlap each other.
 fn check_regions(s: &GeneratedSector, v: &mut Vec<InvariantViolation>) {
     let mut seen: BTreeMap<(i32, i32), String> = BTreeMap::new();
-    for reg in &s.regions {
+    for reg in s.regions.iter() {
         for h in &reg.hexes {
             if h.q < 0 || h.r < 0 || h.q >= s.width as i32 || h.r >= s.height as i32 {
                 v.push(violation(
@@ -202,7 +202,7 @@ fn check_systems(
     let mut all_world_ids: BTreeSet<crate::ids::WorldId> = BTreeSet::new();
     let mut coords: BTreeMap<(i32, i32), crate::ids::SystemId> = BTreeMap::new();
 
-    for sys in &s.systems {
+    for sys in s.systems.iter() {
         if !sys_ids.insert(sys.id.clone()) {
             v.push(violation(
                 "DUPLICATE_SYSTEM_ID",
@@ -241,7 +241,7 @@ fn check_systems(
 
         // Worlds
         let mut local_world_ids: BTreeSet<crate::ids::WorldId> = BTreeSet::new();
-        for w in s.system_worlds(sys) {
+        for w in s.get_worlds_for_system(sys) {
             if !w.id.as_str().starts_with(sys.id.as_str()) {
                 v.push(violation(
                     "WORLD_ID_PREFIX",
@@ -415,8 +415,8 @@ fn check_factions(
         }
     }
 
-    for sys in &s.systems {
-        for w in s.system_worlds(sys) {
+    for sys in s.systems.iter() {
+        for w in s.get_worlds_for_system(sys) {
             for fp in &w.factions {
                 if !summary_ids.contains(fp.faction_id.as_str()) {
                     v.push(violation(
@@ -449,25 +449,21 @@ fn check_factions(
                     ));
                 }
             }
-        }
-    for sys in s.systems.values() {
-        for w in s.get_worlds_for_system(sys) {
             check_world_control(sys, w, &summary_ids, v);
-            for pf in &sys.primary_factions {
-                if !summary_ids.contains(pf.as_str()) {
-                    v.push(violation(
-                        "PRIMARY_FACTION_MISSING_SUMMARY",
-                        &format!(
-                            "system '{}' primary faction '{}' has no sector summary",
-                            sys.id, pf
-                        ),
-                        Some(&format!("systems.{}.primary_factions", sys.id)),
-                    ));
-                }
+        }
+        for pf in &sys.primary_factions {
+            if !summary_ids.contains(pf.as_str()) {
+                v.push(violation(
+                    "PRIMARY_FACTION_MISSING_SUMMARY",
+                    &format!(
+                        "system '{}' primary faction '{}' has no sector summary",
+                        sys.id, pf
+                    ),
+                    Some(&format!("systems.{}.primary_factions", sys.id)),
+                ));
             }
         }
         check_system_control(sys, &summary_ids, v);
-    }
     }
 }
 

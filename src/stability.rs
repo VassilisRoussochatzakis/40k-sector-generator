@@ -5,7 +5,7 @@
 //! deterministic given a finalised sector.
 
 use std::collections::BTreeMap;
-use crate::sector_model::{GeneratedSector, GeneratedSystem};
+use crate::sector_model::GeneratedSystem;
 
 use serde::{Deserialize, Serialize};
 
@@ -229,8 +229,8 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
 /// by the system-level state classification so a Warzone / Blockaded system
 /// reads as more unstable than the per-world average alone.
 #[must_use]
-pub fn derive_system_stability(sector: &GeneratedSector, sys: &GeneratedSystem) -> StabilityState {
-    let worlds = sector.get_worlds_for_system(sys);
+pub fn derive_system_stability(sys: &GeneratedSystem) -> StabilityState {
+    let worlds = &sys.worlds;
     if worlds.is_empty() {
         return StabilityState::default();
     }
@@ -337,7 +337,7 @@ mod tests {
             claims: vec![],
             control: WorldControlSummary::default(),
             stability: StabilityState::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             conflict: Default::default(),
         }
     }

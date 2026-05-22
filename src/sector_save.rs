@@ -116,7 +116,7 @@ pub fn merge(sector: &mut GeneratedSector, save: SectorSave) -> Result<(), Merge
             save: save.seed,
         });
     }
-    for sys in sector.systems.values_mut() {
+    for sys in &mut sector.systems {
         let Some(ss) = save.systems.get(&sys.id) else {
             continue;
         };
@@ -128,19 +128,19 @@ pub fn merge(sector: &mut GeneratedSector, save: SectorSave) -> Result<(), Merge
         sys.orbital_assets = ss.orbital_assets.clone();
         sys.blockade = ss.blockade.clone();
         sys.archetype = ss.archetype.clone();
-        for w_id in sys.world_ids.iter() {
-            if let Some(world) = save.worlds.get(w_id) {
-                if let Some(w) = sector.worlds.get_mut(w_id) {
-                    w.stability = world.stability;
-                    w.conflict = world.conflict.clone();
-                    w.claims = world.claims.clone();
-                    w.regions = world.regions.clone();
-                }
+        for w in &mut sys.worlds {
+            if let Some(ws) = ss.worlds.get(&w.id) {
+                w.stability = ws.stability;
+                w.conflict = ws.conflict.clone();
+                w.claims = ws.claims.clone();
+                w.regions = ws.regions.clone();
+                w.factions = ws.factions.clone();
+                w.control = ws.control.clone();
             }
         }
     }
     Ok(())
-    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum MergeError {
@@ -208,7 +208,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }

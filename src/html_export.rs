@@ -322,7 +322,7 @@ mod tests {
             claims: vec![],
             control: Default::default(),
             stability: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             conflict: Default::default(),
         };
         let sys = GeneratedSystem {
@@ -384,7 +384,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         }
@@ -466,7 +466,8 @@ mod tests {
     #[test]
     fn output_includes_region_label_renderer() {
         let mut s = sample(90.0, 10.0);
-        s.regions.push(WarpRegion {
+        let regs = std::sync::Arc::make_mut(&mut s.regions);
+        regs.push(WarpRegion {
             id: "reg-0001".into(),
             name: "Aurelian Maelstrom".into(),
             kind: RegionConditionKind::WarpStorm,

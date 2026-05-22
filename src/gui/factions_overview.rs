@@ -938,10 +938,13 @@ fn rebuild_all_summaries_from_world_data(sector: &mut GeneratedSector) {
 
 fn remove_faction_everywhere(sector: &mut GeneratedSector, id: &FactionId) {
     sector.factions.retain(|f| &f.id != id);
-    sector.relations.pairs.retain(|p| &p.a != id && &p.b != id);
-    sector.power_projection.by_faction.remove(id);
+    let relations = std::sync::Arc::make_mut(&mut sector.relations);
+    relations.pairs.retain(|p| &p.a != id && &p.b != id);
+    let power_projection = std::sync::Arc::make_mut(&mut sector.power_projection);
+    power_projection.by_faction.remove(id);
 
-    for cell in &mut sector.influence_field.cells {
+    let influence_field = std::sync::Arc::make_mut(&mut sector.influence_field);
+    for cell in &mut influence_field.cells {
         cell.top.retain(|(fid, _)| fid != id);
         if cell.dominant.as_ref() == Some(id) {
             if let Some((fid, score)) = cell.top.first() {
@@ -953,8 +956,7 @@ fn remove_faction_everywhere(sector: &mut GeneratedSector, id: &FactionId) {
             }
         }
     }
-    sector
-        .influence_field
+    influence_field
         .bands
         .retain(|band| &band.faction_id != id);
 

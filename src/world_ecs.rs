@@ -107,30 +107,34 @@ pub fn build(sector: &GeneratedSector) -> EntityWorld {
     };
 
     let mut system_eids: BTreeMap<crate::ids::SystemId, EntityId> = BTreeMap::new();
-    for sys in sector.systems.values() {
+    for sys in &sector.systems {
         let eid = alloc(&mut w, &sys.id, EntityKind::System);
         system_eids.insert(sys.id.clone(), eid);
     }
-    for sys in sector.systems.values() {
+    for sys in &sector.systems {
         let sys_eid = system_eids[&sys.id];
         let worlds = sector.get_worlds_for_system(sys);
         let mut world_eids: Vec<EntityId> = Vec::with_capacity(worlds.len());
-        for w in worlds {
-            let eid = alloc(&mut w_ecs, &w.id, EntityKind::World);
+        for world in worlds {
+            let eid = alloc(&mut w, &world.id, EntityKind::World);
             world_eids.push(eid);
-            w_ecs.world_components.insert(
+            w.world_components.insert(
                 eid,
                 WorldComponents {
-                    id: w.id.clone(),
+                    id: world.id.clone(),
                     system_entity: sys_eid,
-                    dominant: w.control.dominant.clone(),
-                    contested: w.control.contested,
-                    presences: w.factions
+                    dominant: world.control.dominant.clone(),
+                    contested: world.control.contested,
+                    presences: world
+                        .factions
                         .iter()
                         .map(|p| {
                             (
                                 p.faction_id.clone(),
-                                p.dimensions.local_control_score().clamp(0.0, 100.0).round() as u8,
+                                p.dimensions
+                                    .local_control_score()
+                                    .clamp(0.0, 100.0)
+                                    .round() as u8,
                             )
                         })
                         .collect(),
@@ -255,7 +259,7 @@ mod tests {
             influence_field: Default::default(),
             power_projection: Default::default(),
             relations: Default::default(),
-            regions: Vec::new(),
+            regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
         };

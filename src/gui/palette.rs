@@ -5,7 +5,7 @@
 
 use egui::{Color32, Pos2, Stroke, Vec2};
 
-use crate::sector_model::{GeneratedFaction, RoutePattern, RouteStability};
+use crate::sector_model::{GeneratedFaction, GeneratedRoute, RoutePattern, RouteStability};
 
 pub const BG: Color32 = Color32::from_rgb(14, 12, 20);
 pub const PANEL_BG: Color32 = Color32::from_rgb(22, 18, 30);
@@ -182,6 +182,106 @@ pub fn draw_route_line(
         }
         RoutePattern::March => {
             draw_chevrons(painter, geom, color, thickness, geom.unit * 5.5);
+        }
+    }
+}
+
+/// §3 route control glyph categories. Mirrors `bitmap::ControlKind` so the
+/// in-app sector view shows the same midpoint shapes (Patrol disc, Toll
+/// square, Interdiction crossbar, Piracy X) as the PNG export.
+#[derive(Clone, Copy)]
+pub enum RouteControlKind {
+    Patrol,
+    Toll,
+    Interdiction,
+    Piracy,
+}
+
+const ROUTE_CONTROL_MIN_SCORE: f32 = 40.0;
+
+#[must_use]
+pub fn top_route_control(route: &GeneratedRoute) -> Option<(String, RouteControlKind, f32)> {
+    let mut best: Option<(&str, RouteControlKind, f32)> = None;
+    for c in &route.controls {
+        for (kind, score) in [
+            (RouteControlKind::Interdiction, c.interdiction),
+            (RouteControlKind::Patrol, c.patrol),
+            (RouteControlKind::Piracy, c.piracy),
+            (RouteControlKind::Toll, c.toll),
+        ] {
+            if best.map(|(_, _, s)| score > s).unwrap_or(true) {
+                best = Some((c.faction_id.as_str(), kind, score));
+            }
+        }
+    }
+    best.map(|(id, k, s)| (id.to_string(), k, s))
+}
+
+/// At the midpoint of a route, draw a shape for the single strongest
+/// `RouteControl` category when its score is at least
+/// [`ROUTE_CONTROL_MIN_SCORE`]. Color comes from the controlling faction's
+/// fill so the reader can identify who asserts along the route.
+pub fn draw_route_control_glyph(
+    painter: &egui::Painter,
+    factions: &[GeneratedFaction],
+    route: &GeneratedRoute,
+    a: Pos2,
+    b: Pos2,
+    thickness: f32,
+) {
+    let Some((faction_id, kind, score)) = top_route_control(route) else {
+        return;
+    };
+    if score < ROUTE_CONTROL_MIN_SCORE {
+        return;
+    }
+    let color = faction_style_by_id(factions, &faction_id).fill;
+    let dark = darken(color, 0.5);
+    let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
+    let size = (thickness * 3.0).max(6.0);
+    let stroke_w = thickness.max(2.0);
+    let outline = Stroke::new(1.0, dark);
+    match kind {
+        RouteControlKind::Patrol => {
+            let r = size * 0.5;
+            painter.circle_filled(mid, r, color);
+            painter.circle_stroke(mid, r, outline);
+        }
+        RouteControlKind::Toll => {
+            let half = size * 0.5;
+            let rect =
+                egui::Rect::from_min_size(Pos2::new(mid.x - half, mid.y - half), Vec2::splat(size));
+            painter.rect_filled(rect, 0.0, color);
+            painter.rect_stroke(rect, 0.0, outline);
+        }
+        RouteControlKind::Interdiction => {
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let len = (dx * dx + dy * dy).sqrt().max(1.0);
+            let px = -dy / len;
+            let py = dx / len;
+            let half = size;
+            let p0 = Pos2::new(mid.x - px * half, mid.y - py * half);
+            let p1 = Pos2::new(mid.x + px * half, mid.y + py * half);
+            painter.line_segment([p0, p1], Stroke::new(stroke_w, color));
+        }
+        RouteControlKind::Piracy => {
+            let half = size * 0.5;
+            let stroke = Stroke::new(stroke_w, color);
+            painter.line_segment(
+                [
+                    Pos2::new(mid.x - half, mid.y - half),
+                    Pos2::new(mid.x + half, mid.y + half),
+                ],
+                stroke,
+            );
+            painter.line_segment(
+                [
+                    Pos2::new(mid.x - half, mid.y + half),
+                    Pos2::new(mid.x + half, mid.y - half),
+                ],
+                stroke,
+            );
         }
     }
 }

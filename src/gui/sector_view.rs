@@ -11,8 +11,8 @@ use crate::subsectors::Subsector;
 
 use super::heatmap::HeatCell;
 use super::palette::{
-    self, darken, draw_route_line, stability_color, star_color, HEX_EMPTY, HEX_OUTLINE,
-    PATH_HIGHLIGHT, PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
+    self, darken, draw_route_control_glyph, draw_route_line, stability_color, star_color,
+    HEX_EMPTY, HEX_OUTLINE, PATH_HIGHLIGHT, PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
 };
 
 pub struct SectorView<'a> {
@@ -190,6 +190,14 @@ impl<'a> SectorView<'a> {
                 route_thickness,
                 stability_color(route.stability),
                 route.route_type.pattern(self.route_view_mode),
+            );
+            draw_route_control_glyph(
+                &painter,
+                &self.sector.factions,
+                route,
+                a2,
+                b2,
+                route_thickness,
             );
         }
 

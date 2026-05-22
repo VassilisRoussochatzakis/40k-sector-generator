@@ -8,7 +8,7 @@ use super::state::{Dialog, EditorState, Tab};
 use super::ui_helpers::mono;
 
 pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         if ui
             .button(RichText::new("NEW SECTOR").font(mono(12.0)))
             .clicked()

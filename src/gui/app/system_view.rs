@@ -70,7 +70,7 @@ impl App {
         TopBottomPanel::bottom("system_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(RichText::new("SIZE").color(TEXT_DIM).monospace());
                     ui.add(
                         egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),

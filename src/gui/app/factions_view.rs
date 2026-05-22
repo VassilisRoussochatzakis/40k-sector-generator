@@ -19,11 +19,11 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
     TopBottomPanel::top("factions_toolbar")
         .frame(
             egui::Frame::none()
-                .fill(palette::PANEL_BG)
+                .fill(crate::gui::app::palette::PANEL_BG)
                 .inner_margin(6.0),
         )
         .show(ctx, |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 let on_overview = matches!(app.factions_mode, FactionsMode::Overview);
                 let on_designer = matches!(app.factions_mode, FactionsMode::Designer);
                 if ui

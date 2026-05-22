@@ -39,7 +39,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                 .inner_margin(6.0),
         )
         .show(ctx, |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if ui
                     .selectable_label(matches!(app.view, View::Sector), "SECTOR")
                     .clicked()
@@ -150,40 +150,39 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     app.editor.route_view_mode = RouteViewMode::Detailed;
                 }
 
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("NEW").clicked() {
-                        app.preset_gallery.open = true;
-                    }
-                    if ui.button("OPEN").clicked() {
-                        app.open_sector_dialog();
-                    }
-                    if ui
-                        .add_enabled(app.sector.is_some(), egui::Button::new("SAVE"))
-                        .clicked()
-                    {
-                        app.save_sector_to_source();
-                    }
-                    if ui
-                        .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT"))
-                        .clicked()
-                    {
-                        app.pending_export = Some(crate::gui::app::PendingExport::SectorPng);
-                    }
-                    if ui
-                        .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT BUNDLE"))
-                        .clicked()
-                    {
-                        app.export_sector_json(ctx);
-                    }
+                ui.separator();
+                if ui.button("NEW").clicked() {
+                    app.preset_gallery.open = true;
+                }
+                if ui.button("OPEN").clicked() {
+                    app.open_sector_dialog();
+                }
+                if ui
+                    .add_enabled(app.sector.is_some(), egui::Button::new("SAVE"))
+                    .clicked()
+                {
+                    app.save_sector_to_source();
+                }
+                if ui
+                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT"))
+                    .clicked()
+                {
+                    app.pending_export = Some(crate::gui::app::PendingExport::SectorPng);
+                }
+                if ui
+                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT BUNDLE"))
+                    .clicked()
+                {
+                    app.export_sector_json(ctx);
+                }
 
-                    if !app.export_status.is_empty() {
-                        ui.label(
-                            RichText::new(&app.export_status)
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
-                        );
-                    }
-                });
+                if !app.export_status.is_empty() {
+                    ui.label(
+                        RichText::new(&app.export_status)
+                            .color(Color32::from_rgb(235, 200, 90))
+                            .monospace(),
+                    );
+                }
             });
         });
 }

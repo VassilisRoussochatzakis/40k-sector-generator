@@ -156,7 +156,7 @@ impl App {
         TopBottomPanel::bottom("sector_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
                     ui.add(
                         egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),

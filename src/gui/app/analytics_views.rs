@@ -27,7 +27,7 @@ impl App {
                     .inner_margin(6.0),
             )
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     if ui
                         .button(RichText::new("RECOMPUTE").monospace())
                         .on_hover_text("re-run analytics on the current sector")

@@ -110,7 +110,7 @@ impl App {
                     .inner_margin(6.0),
             )
             .show(ctx, |ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     let can_reload = self.project_dir.is_some();
                     if ui
                         .add_enabled(
@@ -153,13 +153,11 @@ impl App {
                             .monospace(),
                         );
                     }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label(
-                            RichText::new(&self.data_editor.status)
-                                .color(TEXT_DIM)
-                                .monospace(),
-                        );
-                    });
+                    ui.label(
+                        RichText::new(&self.data_editor.status)
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
                 });
             });
 

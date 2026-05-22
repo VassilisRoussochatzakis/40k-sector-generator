@@ -173,7 +173,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
     let faction_kind: BTreeMap<&str, &str> = sector
         .factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_str()))
+        .map(|f| (f.id.as_str(), f.kind.as_ref()))
         .collect();
     let mut out: Vec<Persona> = Vec::new();
     let mut used_names: BTreeSet<String> = BTreeSet::new();
@@ -187,16 +187,18 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
             }
             let kind = faction_kind.get(faction_id.as_str()).copied().unwrap_or("");
             let p = build_persona(
-                sector,
-                cfg,
-                kind,
-                &faction_id,
-                PersonaAnchor::System {
-                    system_id: sys.id.clone(),
-                    slot,
+                PersonaParams {
+                    sector,
+                    cfg,
+                    kind,
+                    faction_id: &faction_id,
+                    anchor: PersonaAnchor::System {
+                        system_id: sys.id.clone(),
+                        slot,
+                    },
+                    sys,
+                    world: None,
                 },
-                sys,
-                None,
                 &mut used_names,
             );
             out.push(p);
@@ -223,16 +225,18 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
                     .copied()
                     .unwrap_or("");
                 let persona = build_persona(
-                    sector,
-                    cfg,
-                    kind,
-                    &p.faction_id,
-                    PersonaAnchor::World {
-                        system_id: sys.id.clone(),
-                        world_id: world.id.clone(),
+                    PersonaParams {
+                        sector,
+                        cfg,
+                        kind,
+                        faction_id: &p.faction_id,
+                        anchor: PersonaAnchor::World {
+                            system_id: sys.id.clone(),
+                            world_id: world.id.clone(),
+                        },
+                        sys,
+                        world: Some(world),
                     },
-                    sys,
-                    Some(world),
                     &mut used_names,
                 );
                 out.push(persona);
@@ -242,8 +246,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
     }
 
     PersonaeReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         personae: out,
     }
 }
@@ -271,17 +275,29 @@ fn system_slot_factions(sys: &GeneratedSystem) -> Vec<(SystemSlot, crate::ids::F
     out
 }
 
-#[allow(clippy::too_many_arguments)]
-fn build_persona(
-    sector: &GeneratedSector,
-    cfg: &PersonaeConfig,
-    kind: &str,
-    faction_id: &str,
+struct PersonaParams<'a> {
+    sector: &'a GeneratedSector,
+    cfg: &'a PersonaeConfig,
+    kind: &'a str,
+    faction_id: &'a str,
     anchor: PersonaAnchor,
-    sys: &GeneratedSystem,
-    world: Option<&crate::sector_model::GeneratedWorld>,
+    sys: &'a GeneratedSystem,
+    world: Option<&'a crate::sector_model::GeneratedWorld>,
+}
+
+fn build_persona(
+    params: PersonaParams,
     used: &mut BTreeSet<String>,
 ) -> Persona {
+    let PersonaParams {
+        sector,
+        cfg,
+        kind,
+        faction_id,
+        anchor,
+        sys,
+        world,
+    } = params;
     let anchor_disc = match &anchor {
         PersonaAnchor::System { system_id, slot } => format!("{system_id}:{slot:?}"),
         PersonaAnchor::World {
@@ -428,7 +444,7 @@ fn build_agenda(
     let where_phrase = match anchor {
         PersonaAnchor::World { world_id, .. } => world
             .map(|w| w.name.clone())
-            .unwrap_or_else(|| world_id.as_str().to_string()),
+            .unwrap_or_else(|| world_id.as_str().to_string().into()),
         PersonaAnchor::System { .. } => sys.name.clone(),
     };
     // Inspect competing claims for color.

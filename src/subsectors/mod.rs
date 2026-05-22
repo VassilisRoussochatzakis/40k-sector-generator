@@ -6,6 +6,7 @@
 //! `GeneratedSector` is not mutated.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -22,10 +23,10 @@ pub const DEFAULT_CLUSTER_ITERATIONS: u32 = 24;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subsector {
-    pub id: String,
-    pub sector_id: String,
-    pub label: String,
-    pub name: String,
+    pub id: Arc<str>,
+    pub sector_id: Arc<str>,
+    pub label: Arc<str>,
+    pub name: Arc<str>,
     pub index: u32,
     pub row: u32,
     pub col: u32,
@@ -68,15 +69,15 @@ pub struct SubsectorSummary {
 
     pub dominant_factions: Vec<ScoredId>,
     pub faction_control: Vec<FactionControlSummary>,
-    pub world_type_counts: BTreeMap<String, u32>,
-    pub star_colour_counts: BTreeMap<String, u32>,
-    pub population_counts: BTreeMap<String, u32>,
-    pub tech_level_counts: BTreeMap<String, u32>,
-    pub government_counts: BTreeMap<String, u32>,
-    pub feature_counts: BTreeMap<String, u32>,
-    pub route_type_counts: BTreeMap<String, u32>,
-    pub route_stability_counts: BTreeMap<String, u32>,
-    pub tag_counts: BTreeMap<String, u32>,
+    pub world_type_counts: BTreeMap<Arc<str>, u32>,
+    pub star_colour_counts: BTreeMap<Arc<str>, u32>,
+    pub population_counts: BTreeMap<Arc<str>, u32>,
+    pub tech_level_counts: BTreeMap<Arc<str>, u32>,
+    pub government_counts: BTreeMap<Arc<str>, u32>,
+    pub feature_counts: BTreeMap<Arc<str>, u32>,
+    pub route_type_counts: BTreeMap<Arc<str>, u32>,
+    pub route_stability_counts: BTreeMap<Arc<str>, u32>,
+    pub tag_counts: BTreeMap<Arc<str>, u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,7 +96,7 @@ pub struct FactionControlSummary {
     pub inhabited_system_share_basis_points: u32,
     pub world_share_basis_points: u32,
     pub control_score: i32,
-    pub control_tier: String,
+    pub control_tier: Arc<str>,
     pub contested_system_count: u32,
 }
 
@@ -224,10 +225,10 @@ pub fn build_subsectors(
                 .get_system(&seed_ids[i])
                 .expect("seed id missing");
             Subsector {
-                id: format!("subsector-tmp-{i}"),
+                id: format!("subsector-tmp-{i}").into(),
                 sector_id: sector.id.clone(),
-                label: String::new(),
-                name: format!("Subsector {}", seed_sys.name),
+                label: String::new().into(),
+                name: format!("Subsector {}", seed_sys.name).into(),
                 index: i as u32,
                 row: seed_sys.coord.r as u32,
                 col: seed_sys.coord.q as u32,
@@ -302,7 +303,7 @@ pub fn build_subsectors(
         cell.summary.subsector_capital_world_id = cap_world_id;
         if let Some(id) = &cap_sys_id {
             if let Some(&sys) = sys_by_id.get(id.as_str()) {
-                cell.name = format!("Subsector {}", sys.name);
+                cell.name = format!("Subsector {}", sys.name).into();
             }
         }
     }
@@ -322,7 +323,7 @@ pub fn build_subsectors(
     for (new_idx, &old_idx) in order.iter().enumerate() {
         let mut cell = cells[old_idx].clone();
         let label = subsector_label(new_idx as u32);
-        cell.label = label.clone();
+        cell.label = label.clone().into();
         cell.index = new_idx as u32;
         // Stable, human-readable id derived from capital name when available.
         let id_seed = cell
@@ -331,7 +332,7 @@ pub fn build_subsectors(
             .as_deref()
             .map(|s| s.to_string())
             .unwrap_or_else(|| label.to_ascii_lowercase());
-        cell.id = format!("subsector-{}", slugify(&id_seed));
+        cell.id = format!("subsector-{}", slugify(&id_seed)).into();
         relabeled.push(cell);
     }
     cells = relabeled;
@@ -371,8 +372,8 @@ pub fn build_subsectors(
             let from_id = cells[from_cell].id.clone();
             cells[from_cell].route_ids_border.push(route.id.clone());
             cells[to_cell].route_ids_border.push(route.id.clone());
-            push_unique(&mut cells[from_cell].connected_subsector_ids, to_id);
-            push_unique(&mut cells[to_cell].connected_subsector_ids, from_id);
+            push_unique(&mut cells[from_cell].connected_subsector_ids, to_id.to_string());
+            push_unique(&mut cells[to_cell].connected_subsector_ids, from_id.to_string());
         }
     }
 
@@ -387,16 +388,16 @@ pub fn build_subsectors(
 
     // Summaries.
     for cell in &mut cells {
-        populate_summary(
+        populate_summary(SummaryParams {
             sector,
             cell,
-            &sys_by_id,
-            &route_by_id,
-            &route_degree,
-            &stable_route_degree,
-            &owners,
-            &config,
-        );
+            sys_by_id: &sys_by_id,
+            route_by_id: &route_by_id,
+            route_degree: &route_degree,
+            stable_route_degree: &stable_route_degree,
+            owners: &owners,
+            config: &config,
+        });
     }
 
     if !config.include_empty_subsectors {
@@ -701,7 +702,7 @@ fn compute_neighbor_adjacency(
     adjacency
         .into_iter()
         .map(|set| {
-            let mut v: Vec<String> = set.into_iter().map(|i| cells[i].id.clone()).collect();
+            let mut v: Vec<String> = set.into_iter().map(|i| cells[i].id.to_string()).collect();
             v.sort();
             v
         })
@@ -728,7 +729,9 @@ fn push_unique(v: &mut Vec<String>, s: String) {
 }
 
 mod summary;
-use summary::{pick_capital, populate_summary, population_rank, resolve_system_owners, tech_rank};
+use summary::{
+    pick_capital, populate_summary, population_rank, resolve_system_owners, tech_rank, SummaryParams,
+};
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@
 
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use crate::sector_model::{
     FactionInfluence, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld,
@@ -162,17 +163,28 @@ fn influence_rank_inclusive(i: FactionInfluence) -> u8 {
 
 // ── Summary aggregation (spec §10) ─────────────────────────────────────────────
 
-#[allow(clippy::too_many_arguments)]
-pub(super) fn populate_summary(
-    sector: &GeneratedSector,
-    cell: &mut Subsector,
-    sys_by_id: &BTreeMap<&str, &GeneratedSystem>,
-    route_by_id: &BTreeMap<&str, &GeneratedRoute>,
-    route_degree: &BTreeMap<&str, u32>,
-    stable_route_degree: &BTreeMap<&str, u32>,
-    owners: &BTreeMap<crate::ids::SystemId, SystemOwnership>,
-    config: &SubsectorConfig,
-) {
+pub(super) struct SummaryParams<'a> {
+    pub sector: &'a GeneratedSector,
+    pub cell: &'a mut Subsector,
+    pub sys_by_id: &'a BTreeMap<&'a str, &'a GeneratedSystem>,
+    pub route_by_id: &'a BTreeMap<&'a str, &'a GeneratedRoute>,
+    pub route_degree: &'a BTreeMap<&'a str, u32>,
+    pub stable_route_degree: &'a BTreeMap<&'a str, u32>,
+    pub owners: &'a BTreeMap<crate::ids::SystemId, SystemOwnership>,
+    pub config: &'a SubsectorConfig,
+}
+
+pub(super) fn populate_summary(params: SummaryParams) {
+    let SummaryParams {
+        sector,
+        cell,
+        sys_by_id,
+        route_by_id,
+        route_degree,
+        stable_route_degree,
+        owners,
+        config,
+    } = params;
     let mut summary = SubsectorSummary {
         system_count: cell.system_ids.len() as u32,
         internal_route_count: cell.route_ids_internal.len() as u32,
@@ -244,8 +256,8 @@ pub(super) fn populate_summary(
         };
         let rt_key = format!("{:?}", r.route_type);
         let rs_key = format!("{:?}", r.stability);
-        *summary.route_type_counts.entry(rt_key).or_default() += 1;
-        *summary.route_stability_counts.entry(rs_key).or_default() += 1;
+        *summary.route_type_counts.entry(rt_key.into()).or_default() += 1;
+        *summary.route_stability_counts.entry(rs_key.into()).or_default() += 1;
         for t in &r.tags {
             *summary.tag_counts.entry(t.clone()).or_default() += 1;
         }
@@ -373,7 +385,7 @@ fn build_faction_control(
                 inhabited_system_share_basis_points: inh_share,
                 world_share_basis_points: w_share,
                 control_score,
-                control_tier: String::new(),
+                control_tier: String::new().into(),
                 contested_system_count: t.contested_systems,
             }
         })
@@ -401,13 +413,13 @@ fn build_faction_control(
         .map(|r| primary_share(r, use_inhabited))
         .unwrap_or(0);
     if let Some(first) = rows.first_mut() {
-        first.control_tier = control_tier(leader_primary, runner_primary).to_string();
+        first.control_tier = control_tier(leader_primary, runner_primary).to_string().into();
     }
     for r in rows.iter_mut().skip(1) {
-        r.control_tier = "presence".to_string();
+        r.control_tier = "presence".to_string().into();
         let p = primary_share(r, use_inhabited);
         if p == 0 {
-            r.control_tier = "trace".to_string();
+            r.control_tier = "trace".to_string().into();
         }
     }
 
@@ -426,7 +438,7 @@ fn build_faction_control(
                 inhabited_system_share_basis_points: 0,
                 world_share_basis_points: 0,
                 control_score: 0,
-                control_tier: "trace".to_string(),
+                control_tier: "trace".to_string().into(),
                 contested_system_count: 0,
             });
         }
@@ -446,7 +458,7 @@ fn build_faction_control(
 
     let controlling = rows
         .first()
-        .filter(|r| matches!(r.control_tier.as_str(), "absolute" | "clear" | "plurality"))
+        .filter(|r| matches!(r.control_tier.as_ref(), "absolute" | "clear" | "plurality"))
         .map(|r| r.faction_id.clone());
 
     (rows, controlling)
@@ -701,7 +713,7 @@ fn score_world_as_capital(
     }
     let gov = &w.world.government;
     if matches!(
-        gov.as_str(),
+        gov.as_ref(),
         "Republic" | "Corporate" | "Imperial" | "Federation" | "Theocracy"
     ) {
         score += 3;
@@ -783,12 +795,12 @@ fn is_capital_like_tag(tag: &str) -> bool {
 }
 
 /// Any tag in `iter` matches `is_capital_like_tag`.
-fn any_capital_like<'a, I: IntoIterator<Item = &'a String>>(iter: I) -> bool {
-    iter.into_iter().any(|t| is_capital_like_tag(t))
+fn any_capital_like<'a, S: AsRef<str> + 'a, I: IntoIterator<Item = &'a S>>(iter: I) -> bool {
+    iter.into_iter().any(|t| is_capital_like_tag(t.as_ref()))
 }
 
-pub(super) fn population_rank(value: &str) -> i32 {
-    match value {
+pub(super) fn population_rank(value: impl AsRef<str>) -> i32 {
+    match value.as_ref() {
         "Uninhabited" => 0,
         "Minimal" => 1,
         "SoleSettlement" => 2,
@@ -799,8 +811,8 @@ pub(super) fn population_rank(value: &str) -> i32 {
     }
 }
 
-pub(super) fn tech_rank(value: &str) -> i32 {
-    match value {
+pub(super) fn tech_rank(value: impl AsRef<str>) -> i32 {
+    match value.as_ref() {
         "Primitive" => 0,
         "Low" => 1,
         "Standard" => 2,

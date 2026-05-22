@@ -124,7 +124,11 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     if !sys.primary_factions.is_empty() {
         s.push_str(&format!(
             "- **Primary factions:** {}\n",
-            sys.primary_factions.join(", ")
+            sys.primary_factions
+                .iter()
+                .map(|f| f.as_ref())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
     }
     s.push_str(&format_system_control(sys));
@@ -314,7 +318,7 @@ fn format_faction_display_buckets(sector: &GeneratedSector) -> String {
 fn format_sector_map(sector: &GeneratedSector) -> String {
     let mut at: HashMap<(i32, i32), &str> = HashMap::new();
     for s in &sector.systems {
-        at.insert((s.coord.q, s.coord.r), s.star.colour_code.as_str());
+        at.insert((s.coord.q, s.coord.r), &s.star.colour_code);
     }
     // §5 NEW.md: warp region glyphs for empty hexes inside a region footprint.
     let mut region_at: HashMap<(i32, i32), char> = HashMap::new();
@@ -804,7 +808,7 @@ fn format_world_control_blocks(sys: &GeneratedSystem, sector: Option<&GeneratedS
 fn format_subfaction(p: &crate::sector_model::WorldFactionPresence) -> String {
     match (&p.subfaction_name, &p.subfaction_id) {
         (Some(name), Some(id)) => format!("{name} (`{id}`)"),
-        (Some(name), None) => name.clone(),
+        (Some(name), None) => name.to_string(),
         (None, Some(id)) => id.to_string(),
         (None, None) => String::new(),
     }
@@ -813,7 +817,7 @@ fn format_subfaction(p: &crate::sector_model::WorldFactionPresence) -> String {
 fn format_force(p: &crate::sector_model::WorldFactionPresence) -> String {
     match (&p.force_name, &p.force_id) {
         (Some(name), Some(id)) => format!("{name} (`{id}`)"),
-        (Some(name), None) => name.clone(),
+        (Some(name), None) => name.to_string(),
         (None, Some(id)) => id.to_string(),
         (None, None) => String::new(),
     }
@@ -831,7 +835,13 @@ fn format_world_table(sys: &GeneratedSystem) -> String {
     );
     s.push_str("|---:|---|---|---|---|---|---|---|\n");
     for w in worlds {
-        let features = w.world.notable_features.join("; ");
+        let features = w
+            .world
+            .notable_features
+            .iter()
+            .map(|f| f.as_ref())
+            .collect::<Vec<_>>()
+            .join("; ");
         s.push_str(&format!(
             "| {} | {} | {} | {} | {} | {} | {} | {} |\n",
             w.orbit,

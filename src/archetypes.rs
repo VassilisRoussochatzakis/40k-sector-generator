@@ -21,6 +21,7 @@
 //! 8. Chaos corruption + metaphysical layer (§16.12).
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -115,7 +116,7 @@ pub enum TauSphereBand {
 /// Apply all archetype rules. Mutates `sector` in place.
 /// Apply all archetype rules. Mutates `sector` in place.
 pub fn apply_all(sector: &mut GeneratedSector) {
-    let kinds: BTreeMap<FactionId, String> = sector
+    let kinds: BTreeMap<FactionId, Arc<str>> = sector
         .factions
         .iter()
         .map(|f| (f.id.clone(), f.kind.clone()))
@@ -133,7 +134,7 @@ pub fn apply_all(sector: &mut GeneratedSector) {
 
 // ── §16.1 Imperial governance stack ────────────────────────────────────────────
 
-fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let imperial_stack: &[&str] = &[
         "imperial",
         "adepta_sororitas",
@@ -149,7 +150,7 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Fact
         let mut co_sovereigns: BTreeSet<FactionId> = BTreeSet::new();
         for w in &sys.worlds {
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if imperial_stack.contains(&kind) {
                     let weight = p.dimensions.admin
                         + p.dimensions.legitimacy
@@ -174,21 +175,21 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Fact
 
 // ── §16.9 Necron dormant / awakening ───────────────────────────────────────────
 
-fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_phases: BTreeMap<SystemId, NecronPhase> = BTreeMap::new();
     for sys in &sector.systems {
         let mut max_score: f32 = 0.0;
         let mut max_visibility: f32 = 0.0;
         let mut has_tomb = false;
         for w in &sys.worlds {
-            if w.world.notable_features.iter().any(|f| f == "TombWorld") {
+            if w.world.notable_features.iter().any(|f| f.as_ref() == "TombWorld") {
                 has_tomb = true;
             }
-            if w.world.world_type == "TombWorld" {
+            if w.world.world_type.as_ref() == "TombWorld" {
                 has_tomb = true;
             }
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if kind == "necron" {
                     max_score = max_score.max(p.dimensions.local_control_score());
                     max_visibility = max_visibility.max(p.dimensions.visibility);
@@ -216,7 +217,7 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, 
 
 // ── §16.8 Tyranid biomass front ────────────────────────────────────────────────
 
-fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_stages: BTreeMap<SystemId, TyranidStage> = BTreeMap::new();
     let mut system_needs_shadow: BTreeSet<SystemId> = BTreeSet::new();
 
@@ -225,10 +226,10 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
         let mut consumed = false;
         for w in &sys.worlds {
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if kind == "tyranid" {
                     max_score = max_score.max(p.dimensions.local_control_score());
-                    if w.world.population == "Uninhabited"
+                    if w.world.population.as_ref() == "Uninhabited"
                         && p.dimensions.local_control_score() >= 60.0
                     {
                         consumed = true;
@@ -257,7 +258,7 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
         }
         if system_needs_shadow.contains(&sys.id) {
             for w in &mut sys.worlds {
-                let tag = "feature:shadow_of_the_warp".to_string();
+                let tag: Arc<str> = "feature:shadow_of_the_warp".into();
                 if !w.tags.iter().any(|t| t == &tag) {
                     w.tags.push(tag);
                     w.tags.sort();
@@ -269,14 +270,14 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
 
 // ── §16.7 Ork Waaagh! momentum ─────────────────────────────────────────────────
 
-fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_waaagh: BTreeMap<SystemId, u8> = BTreeMap::new();
     for sys in &sector.systems {
         let mut score: f32 = 0.0;
         let mut count = 0;
         for w in &sys.worlds {
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if kind == "ork" {
                     score += p.dimensions.military;
                     count += 1;
@@ -299,7 +300,7 @@ fn apply_ork_waaagh(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, St
 
 // ── §16.6 Genestealer staged uprising ─────────────────────────────────────────
 
-fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_stages: BTreeMap<SystemId, GscStage> = BTreeMap::new();
     for sys in &sector.systems {
         let mut max_score: f32 = 0.0;
@@ -307,7 +308,7 @@ fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<Facti
         let mut has_gsc = false;
         for w in &sys.worlds {
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if kind == "genestealer_cult" {
                     has_gsc = true;
                     max_score = max_score.max(p.dimensions.local_control_score());
@@ -341,12 +342,12 @@ fn apply_genestealer_stages(sector: &mut GeneratedSector, kinds: &BTreeMap<Facti
 
 // ── §16.11 Tau sphere of influence ────────────────────────────────────────────
 
-fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_bands: BTreeMap<SystemId, TauSphereBand> = BTreeMap::new();
     for sys in &sector.systems {
         let max_local = sys.worlds.iter()
             .flat_map(|w| w.factions.iter())
-            .filter(|p| kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("") == "tau")
+            .filter(|p| kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("") == "tau")
             .map(|p| p.dimensions.local_control_score())
             .fold(0.0_f32, f32::max);
             
@@ -368,13 +369,13 @@ fn apply_tau_sphere(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, St
 
 // ── §16.10 Aeldari intermittent ───────────────────────────────────────────────
 
-fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_activity: BTreeMap<SystemId, u8> = BTreeMap::new();
     for sys in &sector.systems {
         let mut max_covert: f32 = 0.0;
         for w in &sys.worlds {
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if matches!(kind, "aeldari" | "harlequin" | "drukhari") {
                     max_covert = max_covert.max(p.dimensions.covert);
                 }
@@ -391,20 +392,20 @@ fn apply_aeldari_intermittent(sector: &mut GeneratedSector, kinds: &BTreeMap<Fac
 
 // ── §16.12 Chaos corruption + metaphysical layer ──────────────────────────────
 
-fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, String>) {
+fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, Arc<str>>) {
     let mut system_chaos: BTreeMap<SystemId, (u8, u8)> = BTreeMap::new();
     for sys in &sector.systems {
         let mut traitor_military: f32 = 0.0;
         let mut daemonic_presence: f32 = 0.0;
         let mut warp_phen_count: u32 = 0;
         for w in &sys.worlds {
-            if w.tags.iter().any(|t: &String| t.contains("warp_phenomena"))
-                || w.tags.iter().any(|t: &String| t.contains("daemonic_corruption"))
+            if w.tags.iter().any(|t| t.contains("warp_phenomena"))
+                || w.tags.iter().any(|t| t.contains("daemonic_corruption"))
             {
                 warp_phen_count += 1;
             }
             for p in &w.factions {
-                let kind = kinds.get(&p.faction_id).map(|s| s.as_str()).unwrap_or("");
+                let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 match kind {
                     "chaos_space_marine"
                     | "chaos_knight"

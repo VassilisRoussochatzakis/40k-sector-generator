@@ -102,7 +102,7 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
     );
     ui.add_space(6.0);
 
-    let options: Vec<(crate::ids::SystemId, String)> = sector
+    let options: Vec<(crate::ids::SystemId, std::sync::Arc<str>)> = sector
         .systems
         .iter()
         .map(|s| (s.id.clone(), s.name.clone()))
@@ -231,7 +231,7 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
                 .systems
                 .iter()
                 .find(|s| s.id == id)
-                .map(|s| s.name.clone())
+                .map(|s| s.name.to_string())
                 .unwrap_or_else(|| id.to_string())
         };
         let metric_label = match plan.metric {
@@ -340,7 +340,7 @@ fn system_combo(
     ui: &mut egui::Ui,
     id: &str,
     value: &mut Option<crate::ids::SystemId>,
-    options: &[(crate::ids::SystemId, String)],
+    options: &[(crate::ids::SystemId, std::sync::Arc<str>)],
 ) -> bool {
     let mut changed = false;
     let label = value
@@ -349,7 +349,7 @@ fn system_combo(
             options
                 .iter()
                 .find(|(oid, _)| oid == sel)
-                .map(|(_, name)| name.clone())
+                .map(|(_, name)| name.to_string())
         })
         .unwrap_or_else(|| "—".to_string());
     egui::ComboBox::from_id_salt(id)

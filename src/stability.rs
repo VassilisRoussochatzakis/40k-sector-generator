@@ -37,7 +37,7 @@ fn clamp(v: f32) -> f32 {
 fn kind_map(factions: &[GeneratedFaction]) -> BTreeMap<&str, &str> {
     factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_str()))
+        .map(|f| (f.id.as_str(), f.kind.as_ref()))
         .collect()
 }
 
@@ -76,7 +76,7 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
     let warp_phen = world_has_tag(w, "warp_phenomena");
     let quarantined = world_has_tag(w, "quarantined");
     let famine = world_has_tag(w, "famine");
-    let warp_lost_world = w.world.world_type == "WarpLostWorld";
+    let warp_lost_world = w.world.world_type.as_ref() == "WarpLostWorld";
 
     let chaos = any_kind_starts(&["chaos_", "traitor_", "dark_mechanicum"])
         || any_kind(&["daemon", "cult"]);

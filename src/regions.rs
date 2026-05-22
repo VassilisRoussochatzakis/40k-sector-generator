@@ -516,8 +516,8 @@ fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool 
 }
 
 fn push_route_tag(route: &mut GeneratedRoute, tag: &str) {
-    if !route.tags.contains(&tag.to_string()) {
-        route.tags.push(tag.to_string());
+    if !route.tags.iter().any(|t| t.as_ref() == tag) {
+        route.tags.push(tag.to_string().into());
     }
 }
 

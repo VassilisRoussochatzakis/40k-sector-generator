@@ -15,19 +15,25 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     section(ui, "SECTOR");
     ui.horizontal(|ui| {
         label(ui, "ID");
-        if text_field(ui, &mut sector.id, "sector-id").changed() {
+        let mut id = sector.id.to_string();
+        if text_field(ui, &mut id, "sector-id").changed() {
+            sector.id = id.into();
             dirty = true;
         }
     });
     ui.horizontal(|ui| {
         label(ui, "TITLE");
-        if text_field(ui, &mut sector.title, "Title").changed() {
+        let mut title = sector.title.to_string();
+        if text_field(ui, &mut title, "Title").changed() {
+            sector.title = title.into();
             dirty = true;
         }
     });
     ui.horizontal(|ui| {
         label(ui, "SEED");
-        if text_field(ui, &mut sector.seed, "seed").changed() {
+        let mut seed = sector.seed.to_string();
+        if text_field(ui, &mut seed, "seed").changed() {
+            sector.seed = seed.clone().into();
             sector.manifest.seed = sector.seed.clone();
             dirty = true;
         }

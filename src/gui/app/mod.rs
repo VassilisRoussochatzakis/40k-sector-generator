@@ -51,7 +51,7 @@ pub struct App {
     pub(super) view: View,
     pub(super) sector_selected: Option<crate::ids::SystemId>,
     pub(super) sector_selected_route: Option<crate::ids::RouteId>,
-    pub(super) sector_selected_subsector: Option<String>,
+    pub(super) sector_selected_subsector: Option<std::sync::Arc<str>>,
     pub(super) map_edit_mode: bool,
     pub(super) sector_edit_tool: SectorEditTool,
     pub(super) pending_route_start: Option<crate::ids::SystemId>,
@@ -73,11 +73,11 @@ pub struct App {
     pub(super) dashboard: DashboardState,
     pub(super) preset_gallery: PresetGalleryState,
     pub(super) segmentum: Option<Arc<SegmentumBundle>>,
-    pub(super) segmentum_active_child: Option<String>,
-    pub(super) segmentum_selected_link: Option<String>,
+    pub(super) segmentum_active_child: Option<std::sync::Arc<str>>,
+    pub(super) segmentum_selected_link: Option<std::sync::Arc<str>>,
     pub(super) factions_mode: FactionsMode,
     pub(super) faction_designer: factions_overview::FactionDesignerState,
-    pub(super) history_selected_event: Option<String>,
+    pub(super) history_selected_event: Option<std::sync::Arc<str>>,
     pub route_view_mode: crate::sector_model::RouteViewMode,
 }
 

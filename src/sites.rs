@@ -10,6 +10,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::sync::Arc;
 
 use camino::Utf8Path;
 use rand::seq::SliceRandom;
@@ -129,10 +130,10 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     let mut out: Vec<WorldSite> = Vec::new();
     for sys in &sector.systems {
         for w in sector.get_worlds_for_system(sys) {
-            if cfg.skip_uninhabited && w.world.population == "Uninhabited" {
+            if cfg.skip_uninhabited && w.world.population.as_ref() == "Uninhabited" {
                 // Skip unless the world type still has interest (tomb / dead).
                 if !matches!(
-                    w.world.world_type.as_str(),
+                    w.world.world_type.as_ref(),
                     "TombWorld" | "DeadWorld" | "WarpLostWorld" | "DaemonWorld"
                 ) {
                     continue;
@@ -146,8 +147,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     }
     out.sort_by(|a, b| a.world_id.cmp(&b.world_id).then_with(|| a.id.cmp(&b.id)));
     SitesReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         sites: out,
     }
 }
@@ -221,7 +222,7 @@ fn emit_world_sites(
 
 // ── Candidate sites per world type ─────────────────────────────────────────────
 
-fn candidate_kinds(world_type: &str, features: &[String]) -> Vec<SiteKind> {
+fn candidate_kinds(world_type: &str, features: &[Arc<str>]) -> Vec<SiteKind> {
     use SiteKind::*;
     let mut v = match world_type {
         "HiveWorld" => vec![
@@ -342,7 +343,7 @@ fn status_from_world(
     rng: &mut impl Rng,
 ) -> SiteStatus {
     use SiteKind::*;
-    if w.world.population == "Uninhabited" {
+    if w.world.population.as_ref() == "Uninhabited" {
         if matches!(
             kind,
             TombComplex | XenosRuin | CrashedVoidship | QuarantineZone

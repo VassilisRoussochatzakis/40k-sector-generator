@@ -8,12 +8,10 @@
 
   Bloat Indicators
    1. [DONE] Massive UI Component: src/gui/app/mod.rs (2,770 lines) handles state, layout, input, and business logic.
-   2. String Allocation Bloat: ~400 .to_string() and ~940 .into(). Many likely unnecessary string copies for static
-      identifiers or UI labels. Use Cow<'static, str> or &str where possible.
+   2. [PARTIAL] String Allocation Bloat: Core DTOs in sector_model.rs and analytics.rs now use Arc<str>.
    3. Primitive Error Handling: 20+ instances of Result<T, String>. Poor for debug/recovery. Refactor → use thiserror
       for all modules (already in Cargo.toml).
-   4. Parameter Explosion: Multiple functions with 8+ arguments (e.g., src/history.rs, src/personae.rs). Use "Parameter
-      Object" pattern (structs) to clean call sites.
+   4. [DONE] Parameter Explosion: Main generation and scoring functions now use Parameter Objects (structs).
    5. [DONE] Excessive Derives: 550+ derive attributes. While standard for Serde, many large structs derive Clone, leading to
       expensive deep copies (700+ .clone() calls). Use Arc or references for immutable data.
 

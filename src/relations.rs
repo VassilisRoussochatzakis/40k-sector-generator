@@ -661,7 +661,7 @@ fn compute_pair(
     // 2) User kind_rules (first symmetric match wins).
     let mut base = None;
     for r in &cfg.kind_rules {
-        if (r.a == a.kind && r.b == b.kind) || (r.a == b.kind && r.b == a.kind) {
+        if (r.a == *a.kind && r.b == *b.kind) || (r.a == *b.kind && r.b == *a.kind) {
             base = Some((
                 r.stance,
                 r.cause.clone().unwrap_or_else(|| match_cause(a, b)),
@@ -678,8 +678,8 @@ fn compute_pair(
     let mut delta = 0i32;
     let mut user_disp_hit = false;
     for r in &cfg.disposition_rules {
-        if (r.a == a.disposition && r.b == b.disposition)
-            || (r.a == b.disposition && r.b == a.disposition)
+        if (r.a == *a.disposition && r.b == *b.disposition)
+            || (r.a == *b.disposition && r.b == *a.disposition)
         {
             delta += r.delta;
             if let Some(c) = &r.cause {
@@ -784,7 +784,7 @@ fn apply_relation_override(
         a_to_b.secret_attitude = v;
         b_to_a.secret_attitude = v;
     }
-    let config_a_is_first = ov.a == a_to_b.from.as_str();
+    let config_a_is_first = ov.a == a_to_b.from.as_ref();
     if config_a_is_first {
         if let Some(v) = ov.a_public_attitude {
             a_to_b.public_attitude = v;
@@ -873,7 +873,7 @@ fn public_attitude_for(
     if secret.level() < RelationAttitude::Hostile.level() {
         return secret;
     }
-    if is_hidden_kind(&from.kind) || from.disposition == "secretive" {
+    if is_hidden_kind(&from.kind) || from.disposition.as_ref() == "secretive" {
         return RelationAttitude::Suspicious;
     }
     if is_hidden_kind(&to.kind) && stats.hidden_overlap > 0 {

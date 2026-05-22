@@ -33,7 +33,9 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     );
 
     section(ui, "NAME");
-    if text_field(ui, &mut sys.name, "name").changed() {
+    let mut name = sys.name.to_string();
+    if text_field(ui, &mut name, "name").changed() {
+        sys.name = name.into();
         dirty = true;
     }
 
@@ -60,8 +62,8 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
         label(ui, "COLOUR");
         let mut star_code = sys.star.colour_code.to_string();
         if combo_str(ui, "sys_star_colour", &mut star_code, STAR_COLOUR_CODES) {
-            sys.star.colour_code = star_code;
-            sys.star.colour_name = star_colour_name(&sys.star.colour_code).to_string();
+            sys.star.colour_code = star_code.into();
+            sys.star.colour_name = star_colour_name(&sys.star.colour_code).into();
             sys.star.spectral_type = Some(sys.star.colour_code.clone());
             dirty = true;
         }
@@ -126,8 +128,8 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     if add_world {
         let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
         let mut w = empty_world(sys_index, next, format!("World {next}"));
-        w.world.star_colour = sys.star.colour_name.clone();
-        w.world.star_colour_code = sys.star.colour_code.clone();
+        w.world.star_colour = sys.star.colour_name.to_string();
+        w.world.star_colour_code = sys.star.colour_code.to_string();
         sys.worlds.push(w);
         dirty = true;
         state.selection = Selection::World {

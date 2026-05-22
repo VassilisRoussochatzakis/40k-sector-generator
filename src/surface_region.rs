@@ -54,8 +54,8 @@ pub enum RegionKind {
 /// worlds).
 #[must_use]
 pub fn derive_regions(w: &GeneratedWorld) -> Vec<SurfaceRegion> {
-    let wt = w.world.world_type.as_str();
-    let pop = w.world.population.as_str();
+    let wt = w.world.world_type.as_ref();
+    let pop = w.world.population.as_ref();
     if pop == "Uninhabited" && !matches!(wt, "TombWorld" | "DeadWorld" | "WarpLostWorld") {
         return Vec::new();
     }

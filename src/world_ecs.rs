@@ -161,7 +161,7 @@ pub fn build(sector: &GeneratedSector) -> EntityWorld {
             eid,
             FactionComponents {
                 id: f.id.clone(),
-                kind: f.kind.clone(),
+                kind: f.kind.to_string(),
                 total_projection: f.power.total_projection(),
                 system_count: f.system_presence.len() as u32,
                 world_count: f.world_presence.len() as u32,

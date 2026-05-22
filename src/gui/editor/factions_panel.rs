@@ -22,11 +22,15 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     section(ui, &format!("FACTIONS ({})", sector.factions.len()));
 
     // ── Filter / sort row (§14) ────────────────────────────────────────────
-    let kinds: BTreeSet<String> = sector.factions.iter().map(|f| f.kind.clone()).collect();
+    let kinds: BTreeSet<String> = sector
+        .factions
+        .iter()
+        .map(|f| f.kind.to_string())
+        .collect();
     let dispositions: BTreeSet<String> = sector
         .factions
         .iter()
-        .map(|f| f.disposition.clone())
+        .map(|f| f.disposition.to_string())
         .collect();
     ui.horizontal_wrapped(|ui| {
         label(ui, "KIND");
@@ -88,7 +92,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     let system_labels: Vec<(SystemId, String)> = sector
         .systems
         .iter()
-        .map(|s| (s.id.clone(), s.name.clone()))
+        .map(|s| (s.id.clone(), s.name.to_string()))
         .collect();
     let system_kv: Vec<(&str, &str)> = system_labels
         .iter()
@@ -104,11 +108,11 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             state
                 .faction_filter_kind
                 .as_deref()
-                .is_none_or(|k| f.kind == k)
+                .is_none_or(|k| f.kind.as_ref() == k)
                 && state
                     .faction_filter_disposition
                     .as_deref()
-                    .is_none_or(|d| f.disposition == d)
+                    .is_none_or(|d| f.disposition.as_ref() == d)
         })
         .collect();
     let pinned = &state.faction_pinned;
@@ -196,17 +200,23 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         });
         ui.horizontal(|ui| {
             label(ui, "NAME");
-            if text_field(ui, &mut fac.name, "name").changed() {
+            let mut name = fac.name.to_string();
+            if text_field(ui, &mut name, "name").changed() {
+                fac.name = name.into();
                 dirty = true;
             }
         });
         ui.horizontal(|ui| {
             label(ui, "KIND");
-            if text_field(ui, &mut fac.kind, "imperial / xenos / chaos…").changed() {
+            let mut kind = fac.kind.to_string();
+            if text_field(ui, &mut kind, "imperial / xenos / chaos…").changed() {
+                fac.kind = kind.into();
                 dirty = true;
             }
             label(ui, "DISPOSITION");
-            if text_field(ui, &mut fac.disposition, "neutral / hostile…").changed() {
+            let mut disposition = fac.disposition.to_string();
+            if text_field(ui, &mut disposition, "neutral / hostile…").changed() {
+                fac.disposition = disposition.into();
                 dirty = true;
             }
         });

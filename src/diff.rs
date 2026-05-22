@@ -250,12 +250,12 @@ pub fn diff_sectors_with(
     cfg: &DiffConfig,
 ) -> SectorDiff {
     let mut out = SectorDiff {
-        before_id: before.id.clone(),
-        after_id: after.id.clone(),
-        before_seed: before.seed.clone(),
-        after_seed: after.seed.clone(),
-        before_version: before.generator_version.clone(),
-        after_version: after.generator_version.clone(),
+        before_id: before.id.to_string(),
+        after_id: after.id.to_string(),
+        before_seed: before.seed.to_string(),
+        after_seed: after.seed.to_string(),
+        before_version: before.generator_version.to_string(),
+        after_version: after.generator_version.to_string(),
         catalog_compatible: before.id == after.id
             && before.generator_version == after.generator_version,
         schema_warnings: Vec::new(),
@@ -441,11 +441,11 @@ fn diff_systems(
         match (before_idx.get(id), after_idx.get(id)) {
             (None, Some(b)) => added.push(SystemRef {
                 id: b.id.clone(),
-                name: b.name.clone(),
+                name: b.name.to_string(),
             }),
             (Some(a), None) => removed.push(SystemRef {
                 id: a.id.clone(),
-                name: a.name.clone(),
+                name: a.name.to_string(),
             }),
             (Some(a), Some(b)) => {
                 if let Some(d) = system_diff(a, b, cfg) {
@@ -467,8 +467,8 @@ fn system_diff(a: &GeneratedSystem, b: &GeneratedSystem, cfg: &DiffConfig) -> Op
     let sovereign_changed = a.control.sovereign != b.control.sovereign;
     let occupier_changed = a.control.orbital_controller != b.control.orbital_controller;
 
-    let a_pf: BTreeSet<&str> = a.primary_factions.iter().map(|s| s.as_str()).collect();
-    let b_pf: BTreeSet<&str> = b.primary_factions.iter().map(|s| s.as_str()).collect();
+    let a_pf: BTreeSet<&str> = a.primary_factions.iter().map(|s| s.as_ref()).collect();
+    let b_pf: BTreeSet<&str> = b.primary_factions.iter().map(|s| s.as_ref()).collect();
     let pf_added: Vec<FactionId> = b_pf.difference(&a_pf).map(|s| FactionId::new(*s)).collect();
     let pf_removed: Vec<FactionId> = a_pf.difference(&b_pf).map(|s| FactionId::new(*s)).collect();
 
@@ -494,8 +494,8 @@ fn system_diff(a: &GeneratedSystem, b: &GeneratedSystem, cfg: &DiffConfig) -> Op
 
     Some(SystemDiff {
         id: a.id.clone(),
-        name_before: a.name.clone(),
-        name_after: b.name.clone(),
+        name_before: a.name.to_string(),
+        name_after: b.name.to_string(),
         renamed,
         state_before: a.control.state,
         state_after: b.control.state,
@@ -536,11 +536,11 @@ fn diff_worlds(
         match (before_idx.get(id), after_idx.get(id)) {
             (None, Some(w)) => added.push(WorldRef {
                 id: w.id.clone(),
-                name: w.name.clone(),
+                name: w.name.to_string(),
             }),
             (Some(w), None) => removed.push(WorldRef {
                 id: w.id.clone(),
-                name: w.name.clone(),
+                name: w.name.to_string(),
             }),
             (Some(a), Some(b)) => {
                 if let Some(d) = world_diff(a, b) {
@@ -576,8 +576,8 @@ fn world_diff(a: &GeneratedWorld, b: &GeneratedWorld) -> Option<WorldDiff> {
     }
     Some(WorldDiff {
         id: a.id.clone(),
-        name_before: a.name.clone(),
-        name_after: b.name.clone(),
+        name_before: a.name.to_string(),
+        name_after: b.name.to_string(),
         renamed,
         dominant_before: a.control.dominant.clone(),
         dominant_after: b.control.dominant.clone(),
@@ -741,7 +741,7 @@ fn compute_faction_deltas(
         let name = after_idx
             .get(id)
             .or_else(|| before_idx.get(id))
-            .map(|f| f.name.clone())
+            .map(|f| f.name.to_string())
             .unwrap_or_else(|| id.to_string());
         let w_before = before_idx
             .get(id)

@@ -1,6 +1,7 @@
 //! Deterministic sector generation pipeline.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
@@ -295,11 +296,11 @@ where
     });
 
     let mut sector = GeneratedSector {
-        id: config.project.id.clone(),
-        title: config.project.title.clone(),
-        seed: config.generation.seed.clone(),
-        generator_name: crate::GENERATOR_NAME.to_string(),
-        generator_version: crate::GENERATOR_VERSION.to_string(),
+        id: config.project.id.clone().into(),
+        title: config.project.title.clone().into(),
+        seed: config.generation.seed.clone().into(),
+        generator_name: crate::GENERATOR_NAME.to_string().into(),
+        generator_version: crate::GENERATOR_VERSION.to_string().into(),
         width: config.generation.sector_width,
         height: config.generation.sector_height,
         systems: sorted_systems,
@@ -487,27 +488,27 @@ pub fn build_system_with_bias(
     let name = pick_system_name(names, system_index, &mut sys_rng, used_system_names);
     used_system_names.insert(name.clone());
 
-    let worlds = generate_worlds_for_system(
+    let worlds = generate_worlds_for_system(WorldGenParams {
         config,
         pool,
         names,
         system_index,
-        &name,
+        system_name: &name,
         star_colour,
-        &mut sys_rng,
-        &config.generation.seed,
+        sys_rng: &mut sys_rng,
+        root_seed: &config.generation.seed,
         anomaly_bias,
-    )?;
+    })?;
 
     Ok(GeneratedSystem {
-        id: sys_id,
+        id: sys_id.into(),
         index: system_index,
-        name,
+        name: name.into(),
         coord,
         star: GeneratedStar {
-            colour_code: star_colour.code().to_string(),
-            colour_name: star_colour.short_name().to_string(),
-            spectral_type: Some(spectral_type_fallback(star_colour).to_string()),
+            colour_code: star_colour.code().to_string().into(),
+            colour_name: star_colour.short_name().to_string().into(),
+            spectral_type: Some(spectral_type_fallback(star_colour).to_string().into()),
             source_row_index: worlds.first().map(|w| w.source_row_index),
         },
         worlds,
@@ -608,18 +609,32 @@ fn deduplicate_name(base: String, used: &BTreeSet<String>) -> String {
 
 // ── World generation ──────────────────────────────────────────────────────────
 
-#[allow(clippy::too_many_arguments)]
-fn generate_worlds_for_system(
-    config: &AppConfig,
-    pool: &WorldCandidatePool,
-    names: &NameTables,
+struct WorldGenParams<'a> {
+    config: &'a AppConfig,
+    pool: &'a WorldCandidatePool,
+    names: &'a NameTables,
     system_index: usize,
-    system_name: &str,
+    system_name: &'a str,
     star_colour: StarColour,
-    sys_rng: &mut ChaCha8Rng,
-    root_seed: &str,
+    sys_rng: &'a mut ChaCha8Rng,
+    root_seed: &'a str,
     anomaly_bias: bool,
+}
+
+fn generate_worlds_for_system(
+    params: WorldGenParams,
 ) -> Result<Vec<GeneratedWorld>, SectorError> {
+    let WorldGenParams {
+        config,
+        pool,
+        names,
+        system_index,
+        system_name,
+        star_colour,
+        sys_rng,
+        root_seed,
+        anomaly_bias,
+    } = params;
     let min_w = config.generation.min_worlds_per_system;
     let max_w = config.generation.max_worlds_per_system;
     let world_count = if min_w == max_w {
@@ -666,9 +681,9 @@ fn generate_worlds_for_system(
         let name = pick_world_name(names, system_name, w_idx, &mut w_rng);
 
         worlds.push(GeneratedWorld {
-            id: world_id,
+            id: world_id.into(),
             index: w_idx,
-            name,
+            name: name.into(),
             orbit: w_idx as u8,
             source_row_index: cand.row_index,
             world: world_dto,
@@ -857,23 +872,23 @@ fn pick_world_name(
 
 // ── Tags ──────────────────────────────────────────────────────────────────────
 
-fn tags_for_world(world: &crate::worlds::World) -> Vec<String> {
+fn tags_for_world(world: &crate::worlds::World) -> Vec<Arc<str>> {
     let snake = |s: &str| taxonomy::to_snake_case(s);
-    let mut tags: Vec<String> = vec![
-        format!("world_type:{}", snake(&world.world_type.to_string())),
-        format!("atmosphere:{}", snake(&world.atmosphere.to_string())),
-        format!("temperature:{}", snake(&world.temperature.to_string())),
-        format!("biosphere:{}", snake(&world.biosphere.to_string())),
-        format!("population:{}", snake(&world.population.to_string())),
-        format!("tech:{}", snake(&world.tech_level.to_string())),
-        format!("gov:{}", snake(&world.government.to_string())),
+    let mut tags: Vec<Arc<str>> = vec![
+        format!("world_type:{}", snake(&world.world_type.to_string())).into(),
+        format!("atmosphere:{}", snake(&world.atmosphere.to_string())).into(),
+        format!("temperature:{}", snake(&world.temperature.to_string())).into(),
+        format!("biosphere:{}", snake(&world.biosphere.to_string())).into(),
+        format!("population:{}", snake(&world.population.to_string())).into(),
+        format!("tech:{}", snake(&world.tech_level.to_string())).into(),
+        format!("gov:{}", snake(&world.government.to_string())).into(),
         format!(
             "star:{}",
             snake(taxonomy::star_colour_variant_name(world.star_colour))
-        ),
+        ).into(),
     ];
     for f in &world.notable_features {
-        tags.push(format!("feature:{}", snake(f.as_ref())));
+        tags.push(format!("feature:{}", snake(f.as_ref())).into());
     }
     tags.sort();
     tags
@@ -909,9 +924,9 @@ fn assign_factions(systems: &mut [GeneratedSystem], factions: &[FactionDef], rng
             .iter()
             .map(|g| crate::sector_model::GeneratedFaction {
                 id: g.id.clone(),
-                name: g.name.clone(),
-                kind: g.kind.clone(),
-                disposition: g.disposition.clone(),
+                name: g.name.clone().into(),
+                kind: g.kind.clone().into(),
+                disposition: g.disposition.clone().into(),
                 subfactions: Vec::new(),
                 system_presence: vec![],
                 world_presence: vec![],
@@ -955,7 +970,7 @@ fn assign_factions_inner(
                 .find(|t| t.starts_with("population:"))
                 .cloned()
                 .unwrap_or_default();
-            let max_factions: usize = match pop_tag.as_str() {
+            let max_factions: usize = match pop_tag.as_ref() {
                 "population:uninhabited" => 0,
                 "population:minimal" | "population:lightly_populated" => 1,
                 "population:sole_settlement" => 2,
@@ -1016,11 +1031,11 @@ fn assign_factions_inner(
                     world.factions.push(WorldFactionPresence {
                         faction_id: g.faction_id.clone(),
                         subfaction_id: Some(g.id.clone()),
-                        subfaction_name: Some(g.name.clone()),
+                        subfaction_name: Some(g.name.clone().into()),
                         force_id: Some(f.id.clone()),
-                        force_name: Some(f.name.clone()),
+                        force_name: Some(f.name.clone().into()),
                         influence: *inf,
-                        relationship_to_government: f.default_disposition.clone(),
+                        relationship_to_government: f.default_disposition.clone().into(),
                         dimensions: dims,
                         dominance,
                         intel_confidence,
@@ -1126,9 +1141,9 @@ fn build_faction_groups(factions: &[FactionDef]) -> Vec<FactionGroup<'_>> {
                 .unwrap_or_else(|| crate::factions::display_name_from_id(top_id.as_str()).into_owned());
             FactionGroup {
                 id: top_id.clone(),
-                name,
-                kind: top_id.to_string(),
-                disposition,
+                name: name.into(),
+                kind: top_id.to_string().into(),
+                disposition: disposition.into(),
                 order: order.get(&top_id).copied().unwrap_or(usize::MAX),
                 subfactions: build_subfactions_for_group(&top_id, group_members),
             }
@@ -1198,20 +1213,20 @@ fn faction_weight_for_world(f: &FactionDef, world: &GeneratedWorld) -> f64 {
     let mut w = f.weight;
     if f.preferred_world_types
         .iter()
-        .any(|s| s == &world.world.world_type)
+        .any(|s| s == world.world.world_type.as_ref())
     {
         w *= 1.5;
     }
     if f.preferred_governments
         .iter()
-        .any(|s| s == &world.world.government)
+        .any(|s| s == world.world.government.as_ref())
     {
         w *= 1.4;
     }
     let feat_hits = f
         .preferred_notable_features
         .iter()
-        .filter(|s| world.world.notable_features.contains(s))
+        .filter(|s| world.world.notable_features.iter().any(|nf| nf.as_ref() == *s))
         .count();
     if feat_hits > 0 {
         w *= 1.3_f64.powi(feat_hits as i32);
@@ -1255,23 +1270,23 @@ fn aggregate_factions(
             g.id.clone(),
             GeneratedFaction {
                 id: g.id.clone(),
-                name: g.name,
-                kind: g.kind,
-                disposition: g.disposition,
+                name: g.name.into(),
+                kind: g.kind.into(),
+                disposition: g.disposition.into(),
                 subfactions: g
                     .subfactions
                     .iter()
                     .map(|sf| GeneratedSubfaction {
                         id: sf.id.clone(),
-                        name: sf.name.clone(),
-                        disposition: sf.disposition.clone(),
+                        name: sf.name.clone().into(),
+                        disposition: sf.disposition.clone().into(),
                         forces: sf
                             .members
                             .iter()
                             .map(|f| GeneratedForce {
                                 id: f.id.clone(),
-                                name: f.name.clone(),
-                                disposition: f.default_disposition.clone(),
+                                name: f.name.clone().into(),
+                                disposition: f.default_disposition.clone().into(),
                                 system_presence: Vec::new(),
                                 world_presence: Vec::new(),
                             })
@@ -1369,7 +1384,7 @@ fn generate_routes(
             // Distance falloff.
             w *= 1.0 / f64::from(dist);
 
-            let combined_tags: Vec<&String> = systems[i]
+            let combined_tags: Vec<&Arc<str>> = systems[i]
                 .worlds
                 .iter()
                 .chain(systems[j].worlds.iter())
@@ -1377,19 +1392,21 @@ fn generate_routes(
                 .collect();
 
             if combined_tags.iter().any(|t| {
-                t.as_str() == "feature:trade_hub"
-                    || t.as_str() == "feature:freeport"
-                    || t.as_str() == "feature:major_spaceyard"
-                    || t.as_str() == "feature:administrative_hub"
-                    || t.as_str() == "feature:subsector_hegemon"
+                let s = t.as_ref();
+                s == "feature:trade_hub"
+                    || s == "feature:freeport"
+                    || s == "feature:major_spaceyard"
+                    || s == "feature:administrative_hub"
+                    || s == "feature:subsector_hegemon"
             }) {
                 w *= 2.0;
             }
             if combined_tags.iter().any(|t| {
-                t.as_str() == "feature:warp_phenomena"
-                    || t.as_str() == "feature:quarantined"
-                    || t.as_str() == "feature:war_zone"
-                    || t.as_str() == "feature:daemonic_corruption"
+                let s = t.as_ref();
+                s == "feature:warp_phenomena"
+                    || s == "feature:quarantined"
+                    || s == "feature:war_zone"
+                    || s == "feature:daemonic_corruption"
             }) {
                 w *= 0.25;
             }
@@ -1398,13 +1415,13 @@ fn generate_routes(
             for m in &rules.modifiers {
                 if let Some(s) = &m.when.notable_feature {
                     let tag = format!("feature:{}", taxonomy::to_snake_case(s));
-                    if combined_tags.iter().any(|t| **t == tag) {
+                    if combined_tags.iter().any(|t| t.as_ref() == tag) {
                         w *= m.multiplier;
                     }
                 }
                 if let Some(s) = &m.when.world_type {
                     let tag = format!("world_type:{}", taxonomy::to_snake_case(s));
-                    if combined_tags.iter().any(|t| **t == tag) {
+                    if combined_tags.iter().any(|t| t.as_ref() == tag) {
                         w *= m.multiplier;
                     }
                 }
@@ -1428,7 +1445,7 @@ fn generate_routes(
     let target_count = ((total_pairs as f64) * density).round() as usize;
     let target_count = target_count.max(systems.len().saturating_sub(1));
 
-    let mut chosen: Vec<(usize, usize, u32, Vec<String>)> = Vec::new();
+    let mut chosen: Vec<(usize, usize, u32, Vec<Arc<str>>)> = Vec::new();
     let mut chosen_set: BTreeSet<(usize, usize)> = BTreeSet::new();
 
     // Top-weight portion (deterministic).
@@ -1455,7 +1472,7 @@ fn generate_routes(
                     continue;
                 }
                 if chosen_set.insert((i, j)) {
-                    chosen.push((i, j, dist, vec!["bridge".to_string()]));
+                    chosen.push((i, j, dist, vec!["bridge".into()]));
                     union(&mut parent, i, j);
                 }
             }
@@ -1515,13 +1532,13 @@ fn classify_route(
     dist: u32,
     max_dist: u32,
 ) -> (RouteType, RouteStability) {
-    let tags: Vec<&String> = a
+    let tags: Vec<&Arc<str>> = a
         .worlds
         .iter()
         .chain(b.worlds.iter())
         .flat_map(|w| w.tags.iter())
         .collect();
-    let has = |tag: &str| tags.iter().any(|t| t.as_str() == tag);
+    let has = |tag: &str| tags.iter().any(|t| t.as_ref() == tag);
     if has("feature:warp_phenomena") || has("feature:daemonic_corruption") {
         if dist >= max_dist - 2 && dist < max_dist {
             return (RouteType::ChartedPassage, RouteStability::Perilous);
@@ -1586,15 +1603,15 @@ fn build_manifest(
     let world_count: usize = systems.iter().map(|s| s.worlds.len()).sum();
 
     GenerationManifest {
-        project_id: config.project.id.clone(),
-        generated_at_policy: "not recorded by default".to_string(),
-        generator_name: crate::GENERATOR_NAME.to_string(),
-        generator_version: crate::GENERATOR_VERSION.to_string(),
-        seed: config.generation.seed.clone(),
-        seed_hash,
+        project_id: config.project.id.clone().into(),
+        generated_at_policy: "not recorded by default".to_string().into(),
+        generator_name: crate::GENERATOR_NAME.to_string().into(),
+        generator_version: crate::GENERATOR_VERSION.to_string().into(),
+        seed: config.generation.seed.clone().into(),
+        seed_hash: seed_hash.into(),
         profile: None,
         input_digests: input_digests.clone(),
-        settings_digest,
+        settings_digest: settings_digest.into(),
         system_count: systems.len(),
         world_count,
         route_count: routes.len(),

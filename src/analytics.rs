@@ -6,6 +6,7 @@
 //! political variety, plus a configurable set of health flags.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -65,8 +66,8 @@ fn default_contested() -> f32 {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SectorAnalysis {
-    pub sector_id: String,
-    pub seed: String,
+    pub sector_id: Arc<str>,
+    pub seed: Arc<str>,
     pub system_count: usize,
     pub world_count: usize,
     pub route_count: usize,
@@ -74,14 +75,14 @@ pub struct SectorAnalysis {
     pub faction_balance: FactionBalance,
     pub contested_world_ratio: f32,
     pub avg_claims_per_world: f32,
-    pub claim_kind_counts: BTreeMap<String, u32>,
-    pub system_state_counts: BTreeMap<String, u32>,
-    pub dominance_counts: BTreeMap<String, u32>,
-    pub world_type_distribution: BTreeMap<String, u32>,
-    pub star_colour_distribution: BTreeMap<String, u32>,
-    pub population_distribution: BTreeMap<String, u32>,
-    pub route_type_distribution: BTreeMap<String, u32>,
-    pub route_stability_distribution: BTreeMap<String, u32>,
+    pub claim_kind_counts: BTreeMap<Arc<str>, u32>,
+    pub system_state_counts: BTreeMap<Arc<str>, u32>,
+    pub dominance_counts: BTreeMap<Arc<str>, u32>,
+    pub world_type_distribution: BTreeMap<Arc<str>, u32>,
+    pub star_colour_distribution: BTreeMap<Arc<str>, u32>,
+    pub population_distribution: BTreeMap<Arc<str>, u32>,
+    pub route_type_distribution: BTreeMap<Arc<str>, u32>,
+    pub route_stability_distribution: BTreeMap<Arc<str>, u32>,
     pub connectivity: Connectivity,
     pub subsector_variety: Vec<SubsectorVariety>,
     pub health_flags: Vec<HealthFlag>,
@@ -100,8 +101,8 @@ pub struct FactionBalance {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FactionShare {
     pub faction_id: FactionId,
-    pub name: String,
-    pub kind: String,
+    pub name: Arc<str>,
+    pub kind: Arc<str>,
     pub total_projection: f32,
     pub share: f32,
     pub world_presence_count: u32,
@@ -122,9 +123,9 @@ pub struct Connectivity {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SubsectorVariety {
-    pub subsector_id: String,
-    pub label: String,
-    pub name: String,
+    pub subsector_id: Arc<str>,
+    pub label: Arc<str>,
+    pub name: Arc<str>,
     pub unique_dominants: u32,
     pub dominant_factions: Vec<FactionId>,
     pub contested_count: u32,
@@ -133,8 +134,8 @@ pub struct SubsectorVariety {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthFlag {
     pub severity: FlagSeverity,
-    pub code: String,
-    pub message: String,
+    pub code: Arc<str>,
+    pub message: Arc<str>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -181,20 +182,20 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.claim_kind_counts = claim_counts;
     a.dominance_counts = dominance_counts;
     a.system_state_counts = compute_system_state_counts(sector);
-    a.world_type_distribution = compute_distribution(sector, |w| w.world.world_type.to_string());
+    a.world_type_distribution = compute_distribution(sector, |w| w.world.world_type.clone());
     a.star_colour_distribution = sector
         .systems
         .iter()
-        .map(|s| s.star.colour_name.to_string())
-        .fold(BTreeMap::<String, u32>::new(), |mut m, k| {
+        .map(|s| s.star.colour_name.clone())
+        .fold(BTreeMap::<Arc<str>, u32>::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
         });
-    a.population_distribution = compute_distribution(sector, |w| w.world.population.to_string());
+    a.population_distribution = compute_distribution(sector, |w| w.world.population.clone());
     a.route_type_distribution = sector
         .routes
         .iter()
-        .map(|r| format!("{:?}", r.route_type))
+        .map(|r| format!("{:?}", r.route_type).into())
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
@@ -202,7 +203,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.route_stability_distribution = sector
         .routes
         .iter()
-        .map(|r| format!("{:?}", r.stability))
+        .map(|r| format!("{:?}", r.stability).into())
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
@@ -279,12 +280,18 @@ fn gini_coefficient(values: &[f32]) -> f32 {
 
 fn compute_world_stats(
     sector: &GeneratedSector,
-) -> (u32, u32, u32, BTreeMap<String, u32>, BTreeMap<String, u32>) {
+) -> (
+    u32,
+    u32,
+    u32,
+    BTreeMap<Arc<str>, u32>,
+    BTreeMap<Arc<str>, u32>,
+) {
     let mut contested = 0u32;
     let mut total_with_factions = 0u32;
     let mut total_claims = 0u32;
-    let mut claim_counts: BTreeMap<String, u32> = BTreeMap::new();
-    let mut dominance_counts: BTreeMap<String, u32> = BTreeMap::new();
+    let mut claim_counts: BTreeMap<Arc<str>, u32> = BTreeMap::new();
+    let mut dominance_counts: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
         for w in sector.get_worlds_for_system(sys) {
             if !w.factions.is_empty() {
@@ -295,11 +302,11 @@ fn compute_world_stats(
             }
             total_claims += w.claims.len() as u32;
             for c in &w.claims {
-                let key = format!("{:?}", c.claim_type);
+                let key: Arc<str> = format!("{:?}", c.claim_type).into();
                 *claim_counts.entry(key).or_insert(0) += 1;
             }
             for p in &w.factions {
-                let key = format!("{:?}", p.dominance);
+                let key: Arc<str> = format!("{:?}", p.dominance).into();
                 *dominance_counts.entry(key).or_insert(0) += 1;
             }
         }
@@ -313,22 +320,22 @@ fn compute_world_stats(
     )
 }
 
-fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<String, u32> {
-    let mut out: BTreeMap<String, u32> = BTreeMap::new();
+fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<Arc<str>, u32> {
+    let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
         if let Some(state) = sys.control.state {
-            let key = format!("{:?}", state);
+            let key: Arc<str> = format!("{:?}", state).into();
             *out.entry(key).or_insert(0) += 1;
         }
     }
     out
 }
 
-fn compute_distribution<F>(sector: &GeneratedSector, key: F) -> BTreeMap<String, u32>
+fn compute_distribution<F>(sector: &GeneratedSector, key: F) -> BTreeMap<Arc<str>, u32>
 where
-    F: Fn(&crate::sector_model::GeneratedWorld) -> String,
+    F: Fn(&crate::sector_model::GeneratedWorld) -> Arc<str>,
 {
-    let mut out: BTreeMap<String, u32> = BTreeMap::new();
+    let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
         for w in sector.get_worlds_for_system(sys) {
             *out.entry(key(w)).or_insert(0) += 1;
@@ -545,66 +552,66 @@ fn evaluate_flags(a: &SectorAnalysis, cfg: &AnalyzeConfig) -> Vec<HealthFlag> {
         if top.share > cfg.warn_faction_share {
             out.push(HealthFlag {
                 severity: FlagSeverity::Warning,
-                code: "FACTION_DOMINANCE".to_string(),
+                code: "FACTION_DOMINANCE".into(),
                 message: format!(
                     "{} ({}) holds {:.0}% of total faction projection (threshold {:.0}%)",
                     top.name,
                     top.faction_id,
                     top.share * 100.0,
                     cfg.warn_faction_share * 100.0
-                ),
+                ).into(),
             });
         }
     }
     if cfg.warn_if_disconnected && a.connectivity.component_count > 1 {
         out.push(HealthFlag {
             severity: FlagSeverity::Warning,
-            code: "ROUTE_GRAPH_DISCONNECTED".to_string(),
+            code: "ROUTE_GRAPH_DISCONNECTED".into(),
             message: format!(
                 "route graph has {} components (largest = {})",
                 a.connectivity.component_count, a.connectivity.largest_component_size
-            ),
+            ).into(),
         });
     }
     if cfg.warn_if_articulation {
         for id in &a.connectivity.articulation_point_ids {
             out.push(HealthFlag {
                 severity: FlagSeverity::Warning,
-                code: "ARTICULATION_POINT".to_string(),
-                message: format!("removing system {id} fragments the route graph"),
+                code: "ARTICULATION_POINT".into(),
+                message: format!("removing system {id} fragments the route graph").into(),
             });
         }
     }
     if a.contested_world_ratio > cfg.warn_contested_ratio {
         out.push(HealthFlag {
             severity: FlagSeverity::Info,
-            code: "HIGH_CONTESTED_RATIO".to_string(),
+            code: "HIGH_CONTESTED_RATIO".into(),
             message: format!(
                 "{:.0}% of inhabited worlds are contested (threshold {:.0}%)",
                 a.contested_world_ratio * 100.0,
                 cfg.warn_contested_ratio * 100.0
-            ),
+            ).into(),
         });
     }
     if !a.connectivity.isolated_system_ids.is_empty() {
         out.push(HealthFlag {
             severity: FlagSeverity::Info,
-            code: "ISOLATED_SYSTEMS".to_string(),
+            code: "ISOLATED_SYSTEMS".into(),
             message: format!(
                 "{} system(s) have no incident routes: {}",
                 a.connectivity.isolated_system_ids.len(),
                 join_ids(&a.connectivity.isolated_system_ids)
-            ),
+            ).into(),
         });
     }
     if a.low_confidence {
         out.push(HealthFlag {
             severity: FlagSeverity::Info,
-            code: "TINY_SECTOR".to_string(),
+            code: "TINY_SECTOR".into(),
             message: format!(
                 "sector has only {} systems; connectivity metrics are low-confidence",
                 a.system_count
-            ),
+            ).into(),
         });
     }
     out
@@ -776,7 +783,7 @@ fn join_ids<T: AsRef<str>>(ids: &[T]) -> String {
         .join(", ")
 }
 
-fn write_dist(s: &mut String, title: &str, map: &BTreeMap<String, u32>) {
+fn write_dist(s: &mut String, title: &str, map: &BTreeMap<Arc<str>, u32>) {
     use std::fmt::Write as _;
     if map.is_empty() {
         return;

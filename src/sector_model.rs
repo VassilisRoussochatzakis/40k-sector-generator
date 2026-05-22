@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::ids::{FactionId, RouteId, SystemId, WorldId};
 
@@ -13,11 +14,11 @@ pub struct HexCoord {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSector {
-    pub id: String,
-    pub title: String,
-    pub seed: String,
-    pub generator_name: String,
-    pub generator_version: String,
+    pub id: Arc<str>,
+    pub title: Arc<str>,
+    pub seed: Arc<str>,
+    pub generator_name: Arc<str>,
+    pub generator_version: Arc<str>,
     pub width: u32,
     pub height: u32,
     pub systems: Vec<GeneratedSystem>,
@@ -55,7 +56,7 @@ pub struct GeneratedSector {
 pub struct GeneratedSystem {
     pub id: SystemId,
     pub index: usize,
-    pub name: String,
+    pub name: Arc<str>,
     pub coord: HexCoord,
     pub star: GeneratedStar,
     #[serde(default)]
@@ -63,9 +64,9 @@ pub struct GeneratedSystem {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primary_factions: Vec<FactionId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<String>,
+    pub tags: Vec<Arc<str>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub notes: Vec<String>,
+    pub notes: Vec<Arc<str>>,
     /// Aggregated multi-winner control summary across this system's worlds.
     /// See `faction_sector_control_and_power_design.md` §6.4.
     #[serde(default, skip_serializing_if = "SystemControlSummary::is_default")]
@@ -109,9 +110,9 @@ pub struct GeneratedSystem {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedStar {
-    pub colour_code: String,
-    pub colour_name: String,
-    pub spectral_type: Option<String>,
+    pub colour_code: Arc<str>,
+    pub colour_name: Arc<str>,
+    pub spectral_type: Option<Arc<str>>,
     pub source_row_index: Option<usize>,
 }
 
@@ -119,16 +120,16 @@ pub struct GeneratedStar {
 pub struct GeneratedWorld {
     pub id: WorldId,
     pub index: usize,
-    pub name: String,
+    pub name: Arc<str>,
     pub orbit: u8,
     pub source_row_index: usize,
     pub world: WorldDto,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub factions: Vec<WorldFactionPresence>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<String>,
+    pub tags: Vec<Arc<str>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub notes: Vec<String>,
+    pub notes: Vec<Arc<str>>,
     /// Per-world political claims (border outlines per design §3.3).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub claims: Vec<FactionClaim>,
@@ -158,34 +159,34 @@ pub struct GeneratedWorld {
 /// because worlds.rs Display impls use Debug (e.g. "`HiveWorld`").
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorldDto {
-    pub star_colour: String,
-    pub star_colour_code: String,
-    pub world_type: String,
-    pub atmosphere: String,
-    pub temperature: String,
-    pub biosphere: String,
-    pub population: String,
-    pub tech_level: String,
-    pub government: String,
-    pub notable_features: Vec<String>,
+    pub star_colour: Arc<str>,
+    pub star_colour_code: Arc<str>,
+    pub world_type: Arc<str>,
+    pub atmosphere: Arc<str>,
+    pub temperature: Arc<str>,
+    pub biosphere: Arc<str>,
+    pub population: Arc<str>,
+    pub tech_level: Arc<str>,
+    pub government: Arc<str>,
+    pub notable_features: Vec<Arc<str>>,
 }
 
 impl From<&crate::worlds::World> for WorldDto {
     fn from(world: &crate::worlds::World) -> Self {
         Self {
-            star_colour: world.star_colour.short_name().to_string(),
-            star_colour_code: world.star_colour.code().to_string(),
-            world_type: world.world_type.to_string(),
-            atmosphere: world.atmosphere.to_string(),
-            temperature: world.temperature.to_string(),
-            biosphere: world.biosphere.to_string(),
-            population: world.population.to_string(),
-            tech_level: world.tech_level.to_string(),
-            government: world.government.to_string(),
+            star_colour: Arc::from(world.star_colour.short_name()),
+            star_colour_code: Arc::from(world.star_colour.code()),
+            world_type: Arc::from(world.world_type.to_string()),
+            atmosphere: Arc::from(world.atmosphere.to_string()),
+            temperature: Arc::from(world.temperature.to_string()),
+            biosphere: Arc::from(world.biosphere.to_string()),
+            population: Arc::from(world.population.to_string()),
+            tech_level: Arc::from(world.tech_level.to_string()),
+            government: Arc::from(world.government.to_string()),
             notable_features: world
                 .notable_features
                 .iter()
-                .map(ToString::to_string)
+                .map(|s| Arc::from(s.to_string()))
                 .collect(),
         }
     }
@@ -228,7 +229,7 @@ pub struct GeneratedRoute {
     pub distance: u32,
     pub route_type: RouteType,
     pub stability: RouteStability,
-    pub tags: Vec<String>,
+    pub tags: Vec<Arc<str>>,
     /// Per-faction control profile along this route (§3). Empty when no
     /// faction has meaningful endpoint presence.
     #[serde(default)]
@@ -572,9 +573,9 @@ impl RouteStability {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedFaction {
     pub id: FactionId,
-    pub name: String,
-    pub kind: String,
-    pub disposition: String,
+    pub name: Arc<str>,
+    pub kind: Arc<str>,
+    pub disposition: Arc<str>,
     /// Middle-level sub-factions grouped under this overall faction.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub subfactions: Vec<GeneratedSubfaction>,
@@ -588,8 +589,8 @@ pub struct GeneratedFaction {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSubfaction {
     pub id: FactionId,
-    pub name: String,
-    pub disposition: String,
+    pub name: Arc<str>,
+    pub disposition: Arc<str>,
     /// Force-level catalogue entries grouped under this sub-faction.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub forces: Vec<GeneratedForce>,
@@ -602,8 +603,8 @@ pub struct GeneratedSubfaction {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedForce {
     pub id: FactionId,
-    pub name: String,
-    pub disposition: String,
+    pub name: Arc<str>,
+    pub disposition: Arc<str>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub system_presence: Vec<SystemId>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -618,14 +619,14 @@ pub struct WorldFactionPresence {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subfaction_id: Option<FactionId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subfaction_name: Option<String>,
+    pub subfaction_name: Option<Arc<str>>,
     /// Force-level catalogue row selected under the sub-faction.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub force_id: Option<FactionId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub force_name: Option<String>,
+    pub force_name: Option<Arc<str>>,
     pub influence: FactionInfluence,
-    pub relationship_to_government: String,
+    pub relationship_to_government: Arc<str>,
     /// Multi-dimensional presence scores (§4.5). All fields in 0..=100.
     #[serde(default, skip_serializing_if = "PresenceDimensions::is_default")]
     pub dimensions: PresenceDimensions,
@@ -671,15 +672,15 @@ impl FactionInfluence {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerationManifest {
-    pub project_id: String,
-    pub generated_at_policy: String,
-    pub generator_name: String,
-    pub generator_version: String,
-    pub seed: String,
-    pub seed_hash: String,
-    pub profile: Option<String>,
+    pub project_id: Arc<str>,
+    pub generated_at_policy: Arc<str>,
+    pub generator_name: Arc<str>,
+    pub generator_version: Arc<str>,
+    pub seed: Arc<str>,
+    pub seed_hash: Arc<str>,
+    pub profile: Option<Arc<str>>,
     pub input_digests: BTreeMap<String, String>,
-    pub settings_digest: String,
+    pub settings_digest: Arc<str>,
     pub system_count: usize,
     pub world_count: usize,
     pub route_count: usize,

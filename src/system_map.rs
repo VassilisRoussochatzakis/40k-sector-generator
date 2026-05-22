@@ -301,7 +301,7 @@ fn draw_legend(
     // Distinct world-type legend (so the color coding is unambiguous).
     let mut seen: Vec<&str> = Vec::new();
     for w in &sys.worlds {
-        let t = w.world.world_type.as_str();
+        let t = w.world.world_type.as_ref();
         if !seen.contains(&t) {
             seen.push(t);
         }

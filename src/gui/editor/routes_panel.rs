@@ -26,7 +26,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     let system_labels: Vec<(SystemId, String)> = sector
         .systems
         .iter()
-        .map(|s| (s.id.clone(), s.name.clone()))
+        .map(|s| (s.id.clone(), s.name.to_string()))
         .collect();
     let opt_kv: Vec<(&str, &str)> = system_labels
         .iter()

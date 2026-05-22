@@ -89,7 +89,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
     let faction_names: BTreeMap<&str, &str> = sector
         .factions
         .iter()
-        .map(|f| (f.id.as_str(), f.name.as_str()))
+        .map(|f| (f.id.as_str(), f.name.as_ref()))
         .collect();
     let overview = if cfg.include_overview {
         sector_overview(sector, cfg, &faction_names)
@@ -105,8 +105,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
     }
 
     ProseReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         tone: format!("{:?}", cfg.tone),
         overview,
         system_entries: entries,
@@ -135,7 +135,7 @@ fn sector_overview(
             faction_names
                 .get(f.id.as_str())
                 .copied()
-                .unwrap_or(f.name.as_str())
+                .unwrap_or(f.name.as_ref())
         });
 
     let opener_pool: &[&str] = match cfg.tone {
@@ -273,7 +273,7 @@ fn system_prose(
 
     SystemProse {
         system_id: sys.id.clone(),
-        name: sys.name.clone(),
+        name: sys.name.to_string(),
         paragraphs,
     }
 }

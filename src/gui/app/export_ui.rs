@@ -228,7 +228,7 @@ impl App {
             match sector {
                 Some(s) => {
                     let data_dir = data_dir_pb.as_deref().and_then(camino::Utf8Path::from_path);
-                    let sector_subdir = path.join(&s.id);
+                    let sector_subdir = path.join(s.id.as_ref());
                     match export::export_bundle(&s, data_dir, path) {
                         Ok(()) => {
                             self.export_status = match data_dir {

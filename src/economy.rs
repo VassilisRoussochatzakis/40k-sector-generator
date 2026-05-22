@@ -805,17 +805,17 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 .unwrap_or_default();
             let base = cfg
                 .by_world_type
-                .get(&w.world.world_type)
+                .get(w.world.world_type.as_ref())
                 .cloned()
                 .unwrap_or_else(|| default_world_type_vector(&w.world.world_type));
             let tech = cfg
                 .by_tech_level
-                .get(&w.world.tech_level)
+                .get(w.world.tech_level.as_ref())
                 .copied()
                 .unwrap_or_else(|| default_tech_multiplier(&w.world.tech_level));
             let pop = cfg
                 .by_population
-                .get(&pop_tag)
+                .get(pop_tag.as_ref())
                 .copied()
                 .unwrap_or_else(|| default_population_multiplier(&pop_tag));
             let vector = base.scale(tech * pop);
@@ -984,7 +984,7 @@ fn derive_world_strategic_output(
     pop_tag: &str,
 ) -> (StrategicOutput, f32) {
     let mut out = default_strategic_world_type(&w.world.world_type);
-    if let Some(rule) = cfg.resources.world_type.get(&w.world.world_type) {
+    if let Some(rule) = cfg.resources.world_type.get(w.world.world_type.as_ref()) {
         out = apply_world_type_rule(out, rule);
     }
 
@@ -996,7 +996,7 @@ fn derive_world_strategic_output(
             multiplier *= rule.trade_multiplier.unwrap_or(1.0);
             resilience += rule.supply_resilience.unwrap_or(0.0);
         }
-        if let Some(rule) = cfg.resources.notable_feature.get(feature) {
+        if let Some(rule) = cfg.resources.notable_feature.get(feature.as_ref()) {
             apply_feature_rule(&mut out, rule);
             multiplier *= rule.trade_multiplier.unwrap_or(1.0);
             resilience += rule.supply_resilience.unwrap_or(0.0);

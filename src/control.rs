@@ -40,7 +40,7 @@ pub fn presence_dimensions(
         if def
             .preferred_world_types
             .iter()
-            .any(|s| s == &world.world.world_type)
+            .any(|s| s.as_str() == world.world.world_type.as_ref())
         {
             base.admin += 5.0;
             base.legitimacy += 5.0;
@@ -48,7 +48,7 @@ pub fn presence_dimensions(
         if def
             .preferred_governments
             .iter()
-            .any(|s| s == &world.world.government)
+            .any(|s| s.as_str() == world.world.government.as_ref())
         {
             base.admin += 5.0;
             base.legitimacy += 5.0;
@@ -56,7 +56,13 @@ pub fn presence_dimensions(
         let hits = def
             .preferred_notable_features
             .iter()
-            .filter(|s| world.world.notable_features.contains(s))
+            .filter(|s| {
+                world
+                    .world
+                    .notable_features
+                    .iter()
+                    .any(|f| f.as_ref() == s.as_str())
+            })
             .count() as f32;
         if hits > 0.0 {
             base.ideological += 4.0 * hits;
@@ -282,15 +288,15 @@ pub fn derive_world_claims(world: &GeneratedWorld) -> Vec<FactionClaim> {
 fn claim_for(faction_id: &str, p: &crate::sector_model::WorldFactionPresence) -> ClaimType {
     // Disposition / id heuristics keyed off relationship_to_government, which
     // generation seeds from the faction's default disposition.
-    let disposition = p.relationship_to_government.as_str();
+    let disposition = p.relationship_to_government.as_ref();
     let mut id = faction_id.to_string();
     if let Some(sub_id) = &p.subfaction_id {
         id.push(' ');
-        id.push_str(sub_id.as_str());
+        id.push_str(sub_id.as_ref());
     }
     if let Some(force_id) = &p.force_id {
         id.push(' ');
-        id.push_str(force_id.as_str());
+        id.push_str(force_id.as_ref());
     }
     let id = id.as_str();
     if id.contains("inquisition") {
@@ -438,11 +444,11 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     let mut quarantined = false;
 
     for w in &sys.worlds {
-        if w.world.population != "Uninhabited" {
+        if w.world.population.as_ref() != "Uninhabited" {
             populated_worlds += 1;
         }
         for tag in &w.tags {
-            let t = tag.as_str();
+            let t = tag.as_ref();
             if t.ends_with(":quarantined") {
                 quarantined = true;
             }
@@ -503,16 +509,16 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     });
     top.truncate(5);
 
-    let state = classify_system_state(
+    let state = classify_system_state(SystemStateParams {
         sys,
         populated_worlds,
         contested_worlds,
         warzone_signal,
         quarantined,
-        &dominant,
-        &orbital_controller,
-        &hidden_master,
-    );
+        dominant: &dominant,
+        orbital_controller: &orbital_controller,
+        hidden_master: &hidden_master,
+    });
 
     SystemControlSummary {
         state: Some(state),
@@ -525,17 +531,28 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn classify_system_state(
-    sys: &GeneratedSystem,
+struct SystemStateParams<'a> {
+    sys: &'a GeneratedSystem,
     populated_worlds: u32,
     contested_worlds: u32,
     warzone_signal: u32,
     quarantined: bool,
-    dominant: &Option<FactionId>,
-    orbital_controller: &Option<FactionId>,
-    hidden_master: &Option<FactionId>,
-) -> SystemState {
+    dominant: &'a Option<FactionId>,
+    orbital_controller: &'a Option<FactionId>,
+    hidden_master: &'a Option<FactionId>,
+}
+
+fn classify_system_state(params: SystemStateParams) -> SystemState {
+    let SystemStateParams {
+        sys,
+        populated_worlds,
+        contested_worlds,
+        warzone_signal,
+        quarantined,
+        dominant,
+        orbital_controller,
+        hidden_master,
+    } = params;
     if quarantined {
         return SystemState::Quarantined;
     }
@@ -571,7 +588,7 @@ fn unique_dominant_count(sys: &GeneratedSystem) -> usize {
     let mut set: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
     for w in &sys.worlds {
         if let Some(d) = &w.control.dominant {
-            set.insert(d.as_str());
+            set.insert(d.as_ref());
         }
     }
     set.len()
@@ -620,7 +637,7 @@ pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<FactionI
 }
 
 fn strategic_value(w: &GeneratedWorld) -> f32 {
-    let pop: f32 = match w.world.population.as_str() {
+    let pop: f32 = match w.world.population.as_ref() {
         "Uninhabited" => 0.0,
         "Minimal" => 1.0,
         "SoleSettlement" => 2.0,
@@ -629,7 +646,7 @@ fn strategic_value(w: &GeneratedWorld) -> f32 {
         "ExtremelyDense" => 5.0,
         _ => 1.0,
     };
-    let tech: f32 = match w.world.tech_level.as_str() {
+    let tech: f32 = match w.world.tech_level.as_ref() {
         "Primitive" => 0.0,
         "Low" => 1.0,
         "Standard" => 2.0,

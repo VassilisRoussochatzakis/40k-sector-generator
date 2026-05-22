@@ -13,9 +13,9 @@ use super::palette::{faction_style_by_id, TEXT, TEXT_DIM};
 pub struct DashboardState {
     analysis: Option<SectorAnalysis>,
     /// Cached sector id so we recompute when the user reloads.
-    cached_sector_id: Option<String>,
+    cached_sector_id: Option<std::sync::Arc<str>>,
     /// Cached seed so we also recompute after a re-roll (id stays the same).
-    cached_seed: Option<String>,
+    cached_seed: Option<std::sync::Arc<str>>,
 }
 
 impl DashboardState {

@@ -339,16 +339,16 @@ fn draw_routes(img: &mut RgbaImage, sector: &GeneratedSector, g: &Geom, opts: &R
         };
         let color = stability_color(&opts.theme, route.stability);
         let thickness = route_thickness(&opts.theme, route.stability, g);
-        draw_route_line_thick(
+        draw_route_line_thick(RouteLineParams {
             img,
-            sx,
-            sy,
-            ex,
-            ey,
+            x0: sx,
+            y0: sy,
+            x1: ex,
+            y1: ey,
             color,
             thickness,
-            route.pattern_with_salt(&sector.seed, opts.route_view_mode),
-        );
+            pattern: route.pattern_with_salt(&sector.seed, opts.route_view_mode),
+        });
         draw_route_control_glyph(img, sector, route, (sx, sy), (ex, ey), thickness, &opts.theme);
     }
 }
@@ -511,17 +511,28 @@ fn shorten_to_star(a: (i32, i32), b: (i32, i32), star_r: f32) -> Option<((i32, i
 /// Draws a route styled by `pattern`. Motif-heavy patterns use rails, ladders,
 /// ticks, chevrons, bursts, and triangles so the PNG map stays visually close
 /// to the live GUI.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn draw_route_line_thick(
-    img: &mut RgbaImage,
-    x0: i32,
-    y0: i32,
-    x1: i32,
-    y1: i32,
-    color: Rgba<u8>,
-    thickness: i32,
-    pattern: RoutePattern,
-) {
+pub struct RouteLineParams<'a> {
+    pub img: &'a mut RgbaImage,
+    pub x0: i32,
+    pub y0: i32,
+    pub x1: i32,
+    pub y1: i32,
+    pub color: Rgba<u8>,
+    pub thickness: i32,
+    pub pattern: RoutePattern,
+}
+
+pub(crate) fn draw_route_line_thick(params: RouteLineParams) {
+    let RouteLineParams {
+        img,
+        x0,
+        y0,
+        x1,
+        y1,
+        color,
+        thickness,
+        pattern,
+    } = params;
     let Some(geom) = BitmapRouteGeom::new(x0, y0, x1, y1, thickness) else {
         return;
     };
@@ -1221,7 +1232,7 @@ fn draw_subsector_borders(
     let mut owner: HashMap<(i32, i32), &str> = HashMap::new();
     for s in subsectors {
         for &(q, r) in &s.hex_cells {
-            owner.insert((q as i32, r as i32), s.id.as_str());
+            owner.insert((q as i32, r as i32), s.id.as_ref());
         }
     }
     if owner.is_empty() {
@@ -1337,7 +1348,7 @@ fn draw_subsector_labels(
         let top = "SUBSECTOR";
         let bot_owned: String;
         let bot: &str = {
-            let raw = s.name.strip_prefix("Subsector ").unwrap_or(s.name.as_str());
+            let raw = s.name.strip_prefix("Subsector ").unwrap_or(s.name.as_ref());
             bot_owned = raw.to_ascii_uppercase();
             bot_owned.as_str()
         };
@@ -1626,32 +1637,32 @@ fn draw_legend(
     match opts.route_view_mode {
         crate::sector_model::RouteViewMode::Detailed => {
             for rtype in RouteType::ALL {
-                draw_route_line_thick(
+                draw_route_line_thick(RouteLineParams {
                     img,
                     x0,
-                    y + 8 * g.scale,
-                    x0 + 30 * g.scale,
-                    y + 8 * g.scale,
-                    opts.theme.route_type,
-                    3 * g.scale,
-                    rtype.pattern(opts.route_view_mode),
-                );
+                    y0: y + 8 * g.scale,
+                    x1: x0 + 30 * g.scale,
+                    y1: y + 8 * g.scale,
+                    color: opts.theme.route_type,
+                    thickness: 3 * g.scale,
+                    pattern: rtype.pattern(opts.route_view_mode),
+                });
                 draw_text(img, x0 + 38 * g.scale, y, rtype.label(), opts.theme.text, body);
                 y += line_h;
             }
         }
         crate::sector_model::RouteViewMode::TopLevel => {
             for kind in crate::sector_model::RouteKind::ALL {
-                draw_route_line_thick(
+                draw_route_line_thick(RouteLineParams {
                     img,
                     x0,
-                    y + 8 * g.scale,
-                    x0 + 30 * g.scale,
-                    y + 8 * g.scale,
-                    opts.theme.route_type,
-                    3 * g.scale,
-                    kind.patterns()[0],
-                );
+                    y0: y + 8 * g.scale,
+                    x1: x0 + 30 * g.scale,
+                    y1: y + 8 * g.scale,
+                    color: opts.theme.route_type,
+                    thickness: 3 * g.scale,
+                    pattern: kind.patterns()[0],
+                });
                 draw_text(img, x0 + 38 * g.scale, y, kind.label(), opts.theme.text, body);
                 y += line_h;
             }

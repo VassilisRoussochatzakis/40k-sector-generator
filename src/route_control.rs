@@ -54,7 +54,7 @@ fn endpoint_aggregates(sys: &GeneratedSystem) -> BTreeMap<&str, Aggregate> {
     let mut m: BTreeMap<&str, Aggregate> = BTreeMap::new();
     for w in &sys.worlds {
         for p in &w.factions {
-            let e = m.entry(p.faction_id.as_str()).or_default();
+            let e = m.entry(p.faction_id.as_ref()).or_default();
             let d = &p.dimensions;
             e.military += d.military;
             e.economic += d.economic;
@@ -201,10 +201,10 @@ pub fn derive_route_controls(
     systems_by_id: &BTreeMap<&str, &GeneratedSystem>,
     factions: &[GeneratedFaction],
 ) -> Vec<RouteControl> {
-    let Some(a) = systems_by_id.get(route.from_system_id.as_str()).copied() else {
+    let Some(a) = systems_by_id.get(route.from_system_id.as_ref()).copied() else {
         return Vec::new();
     };
-    let Some(b) = systems_by_id.get(route.to_system_id.as_str()).copied() else {
+    let Some(b) = systems_by_id.get(route.to_system_id.as_ref()).copied() else {
         return Vec::new();
     };
     let agg_a = endpoint_aggregates(a);
@@ -214,7 +214,7 @@ pub fn derive_route_controls(
 
     let kind_of: BTreeMap<&str, &str> = factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_str()))
+        .map(|f| (f.id.as_ref(), f.kind.as_ref()))
         .collect();
 
     let mut ids: BTreeMap<&str, ()> = BTreeMap::new();

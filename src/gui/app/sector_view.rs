@@ -119,7 +119,7 @@ impl App {
         let Some(sub_id) = self.sector_selected_subsector.clone() else {
             return;
         };
-        let Some(sub) = self.subsectors.iter().find(|s| s.id == sub_id).cloned() else {
+        let Some(sub) = self.subsectors.iter().find(|s| s.id.as_ref() == sub_id.as_ref()).cloned() else {
             self.sector_selected_subsector = None;
             return;
         };

@@ -14,6 +14,7 @@
 //! `GeneratedSystem.blockade` and surfaced in the renderer.
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -99,21 +100,21 @@ pub fn derive_orbital_assets(
         w.world
             .notable_features
             .iter()
-            .any(|f: &String| f == "MajorSpaceyard")
+            .any(|f: &Arc<str>| f.as_ref() == "MajorSpaceyard")
     });
 
     let war_zone = sys.worlds.iter().any(|w| {
-        w.tags.iter().any(|t: &String| t.ends_with(":war_zone"))
+        w.tags.iter().any(|t: &Arc<str>| t.ends_with(":war_zone"))
             || w.world
                 .notable_features
                 .iter()
-                .any(|f: &String| f == "WarZone" || f == "DaemonicCorruption")
+                .any(|f: &Arc<str>| f.as_ref() == "WarZone" || f.as_ref() == "DaemonicCorruption")
     });
 
     let quarantined = sys
         .worlds
         .iter()
-        .any(|w| w.tags.iter().any(|t: &String| t.ends_with(":quarantined")));
+        .any(|w| w.tags.iter().any(|t: &Arc<str>| t.ends_with(":quarantined")));
 
     let mut assets: Vec<OrbitalAsset> = Vec::new();
     for (id, d) in &sums {

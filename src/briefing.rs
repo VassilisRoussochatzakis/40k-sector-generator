@@ -292,8 +292,8 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
 
     BriefingPack {
         profile_id: p.id.clone(),
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         sector: out,
         redacted_factions: redacted_factions.into_iter().collect(),
         redacted_routes: redacted_routes.into_iter().collect(),

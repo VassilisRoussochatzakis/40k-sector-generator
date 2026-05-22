@@ -9,8 +9,10 @@
   Bloat Indicators
    1. [DONE] Massive UI Component: src/gui/app/mod.rs (2,770 lines) handles state, layout, input, and business logic.
    2. [DONE] String Allocation Bloat: Core DTOs in sector_model.rs and analytics.rs use Arc<str>. Call sites converted (.to_string() / .as_ref() / .into() as needed). Helpers text_field_id / text_edit accept AsRef<str>+From<String>.
-   3. Primitive Error Handling: 20+ instances of Result<T, String>. Poor for debug/recovery. Refactor → use thiserror
-      for all modules (already in Cargo.toml).
+   3. [DONE] Primitive Error Handling: All `Result<T, String>` signatures removed. Modules use `thiserror` enums
+      (`SectorError`, `WorldError`, `MapThemeError`, `SubsectorError`, `PresetGalleryError`, `FactionDesignerError`,
+      `DataEditorError`, `FileOpsError`, `SectorSaveError`). Final local `Result<_, String>` in
+      `gui/app/lifecycle.rs::write_sector_to_path` flattened to direct `match`.
    4. [DONE] Parameter Explosion: Main generation and scoring functions now use Parameter Objects (structs).
    5. [DONE] Excessive Derives: 550+ derive attributes. While standard for Serde, many large structs derive Clone, leading to
       expensive deep copies (700+ .clone() calls). Use Arc or references for immutable data.

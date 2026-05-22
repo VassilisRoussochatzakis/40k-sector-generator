@@ -67,18 +67,16 @@ impl App {
     }
 
     pub(super) fn write_sector_to_path(&mut self, path: PathBuf) {
-        let text = match self.sector.as_mut() {
-            Some(sector) => {
-                let sector = Arc::make_mut(sector);
-                Self::refresh_live_manifest_counts(sector);
-                serde_json::to_string_pretty(sector).map_err(|e| format!("encode: {e}"))
-            }
-            None => Err("no sector to save".into()),
+        let Some(sector) = self.sector.as_mut() else {
+            self.export_status = "save failed: no sector to save".into();
+            return;
         };
-        let text = match text {
+        let sector = Arc::make_mut(sector);
+        Self::refresh_live_manifest_counts(sector);
+        let text = match serde_json::to_string_pretty(sector) {
             Ok(text) => text,
             Err(e) => {
-                self.export_status = format!("save failed: {e}");
+                self.export_status = format!("save failed: encode: {e}");
                 return;
             }
         };

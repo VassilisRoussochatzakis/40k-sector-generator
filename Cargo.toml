@@ -3,6 +3,9 @@ name = "sector-generator"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["gui"]
+
 [lib]
 name = "sectorforge"
 path = "src/lib.rs"
@@ -10,10 +13,6 @@ path = "src/lib.rs"
 [[bin]]
 name = "sectorforge"
 path = "src/main.rs"
-
-[[bin]]
-name = "sectorforge-gui"
-path = "src/gui/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -26,9 +25,6 @@ rand_chacha = "0.3"
 blake3 = "1"
 camino = { version = "1", features = ["serde1"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
-eframe = { version = "0.29", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
-egui = "0.29"
-rfd = "0.17"
 
 [dev-dependencies]
 tempfile = "3"

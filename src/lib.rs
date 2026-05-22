@@ -37,7 +37,6 @@ pub mod export;
 pub mod faction_style;
 pub mod factions;
 pub mod generation;
-pub mod gui;
 pub mod heatmap;
 pub mod hidden_routes;
 pub mod history;

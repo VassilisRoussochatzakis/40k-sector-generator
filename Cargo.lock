@@ -2581,16 +2581,30 @@ dependencies = [
  "camino",
  "clap",
  "criterion",
- "eframe",
- "egui",
  "image",
  "proptest",
  "rand 0.8.6",
  "rand_chacha 0.3.1",
- "rfd",
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror 1.0.69",
+ "toml",
+]
+
+[[package]]
+name = "sectorforge-gui"
+version = "0.1.0"
+dependencies = [
+ "camino",
+ "clap",
+ "eframe",
+ "egui",
+ "image",
+ "rfd",
+ "sector-generator",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
  "toml",
 ]

@@ -127,7 +127,7 @@ fn manifest_records_seed_and_input_digests() {
     let project = fixture_project();
     let input = sectorforge::load_project(&project).unwrap();
     let sector = sectorforge::generate_sector(input).unwrap();
-    assert_eq!(sector.manifest.seed, "m42-default-seed");
+    assert_eq!(sector.manifest.seed.as_ref(), "m42-default-seed");
     assert!(sector
         .manifest
         .input_digests

@@ -272,7 +272,7 @@ fn share_bar(
     });
 }
 
-fn dist_block(ui: &mut Ui, title: &str, map: &std::collections::BTreeMap<String, u32>) {
+fn dist_block(ui: &mut Ui, title: &str, map: &std::collections::BTreeMap<std::sync::Arc<str>, u32>) {
     if map.is_empty() {
         return;
     }

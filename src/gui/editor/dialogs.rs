@@ -255,8 +255,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
 }
 
 fn refresh_manifest_counts(sector: &mut crate::sector_model::GeneratedSector, name: &str) {
-    sector.id = name.to_string();
-    sector.manifest.project_id = name.to_string();
+    sector.id = name.into();
+    sector.manifest.project_id = name.into();
     sector.manifest.system_count = sector.systems.len();
     sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
     sector.manifest.route_count = sector.routes.len();

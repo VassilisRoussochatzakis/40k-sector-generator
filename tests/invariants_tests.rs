@@ -77,7 +77,7 @@ fn invariants_detect_unknown_faction_in_world() {
                 force_id: None,
                 force_name: None,
                 influence: FactionInfluence::Minor,
-                relationship_to_government: "test".to_string(),
+                relationship_to_government: "test".into(),
                 dimensions: Default::default(),
                 dominance: Default::default(),
                 intel_confidence: 100,

@@ -659,11 +659,11 @@ mod tests {
             "region:warp_storm",
         );
         assert_eq!(routes[0].stability, RouteStability::Hazardous);
-        assert!(routes[0].tags.iter().any(|t| t == "region:warp_storm"));
+        assert!(routes[0].tags.iter().any(|t| t.as_ref() == "region:warp_storm"));
         assert!(routes[0]
             .tags
             .iter()
-            .any(|t| t == "region:connectivity_preserved"));
+            .any(|t| t.as_ref() == "region:connectivity_preserved"));
     }
 
     #[test]
@@ -683,7 +683,7 @@ mod tests {
         assert!(!routes[0]
             .tags
             .iter()
-            .any(|t| t == "region:connectivity_preserved"));
+            .any(|t| t.as_ref() == "region:connectivity_preserved"));
     }
 
     fn route(id: &str, from: &str, to: &str, stability: RouteStability) -> GeneratedRoute {

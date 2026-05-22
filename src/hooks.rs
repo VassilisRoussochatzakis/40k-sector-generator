@@ -151,8 +151,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HooksConfig) -> HooksReport {
     }
 
     HooksReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         hooks: out,
     }
 }
@@ -284,7 +284,7 @@ fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Ve
                 }
                 let sys_name = by_sys_id
                     .get(endpoint)
-                    .map(|s| s.name.clone())
+                    .map(|s| s.name.to_string())
                     .unwrap_or_else(|| endpoint.to_string());
                 out.push(Hook {
                     id: format!("hook-{}-lifeline-{}-{}", r.id, crit, endpoint),

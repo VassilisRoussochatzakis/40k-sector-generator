@@ -311,7 +311,7 @@ impl App {
                     } else if self.sector_selected_subsector.as_deref() == Some(id.as_str()) {
                         self.sector_selected_subsector = None;
                     } else {
-                        self.sector_selected_subsector = Some(id);
+                        self.sector_selected_subsector = Some(id.into());
                         self.sector_selected = None;
                         self.sector_selected_route = None;
                     }

@@ -139,8 +139,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &InterestingnessConfig) -> Int
 
     let (overall, strengths, weaknesses) = aggregate(&scores);
     InterestingnessReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         profile: format!("{:?}", cfg.profile),
         overall,
         metric_scores: scores,

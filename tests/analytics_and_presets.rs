@@ -50,7 +50,7 @@ fn analyze_writers_emit_both_files() {
         &std::fs::read_to_string(dir.join("analysis.json").as_path()).unwrap(),
     )
     .unwrap();
-    assert_eq!(json["sector_id"].as_str().unwrap(), sector.id);
+    assert_eq!(json["sector_id"].as_str().unwrap(), sector.id.as_ref());
 }
 
 #[test]

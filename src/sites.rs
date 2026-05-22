@@ -279,7 +279,7 @@ fn candidate_kinds(world_type: &str, features: &[Arc<str>]) -> Vec<SiteKind> {
         _ => vec![GovernorsPalace, Manufactorum, ArbitesPrecinct],
     };
     for f in features {
-        match f.as_str() {
+        match f.as_ref() {
             "OrbitalDock" | "Shipyard" => v.push(StarFortDockyard),
             "VoidElevator" => v.push(VoidElevator),
             "Pilgrimage" | "PilgrimSite" => v.push(PilgrimNecropolis),

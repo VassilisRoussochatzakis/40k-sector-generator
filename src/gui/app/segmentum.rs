@@ -75,7 +75,7 @@ impl App {
             self.export_status = format!("segmentum child '{}' not found", child_id);
             return false;
         };
-        self.segmentum_active_child = Some(child_id.to_string());
+        self.segmentum_active_child = Some(child_id.into());
         self.set_loaded_sector(
             child.sector.clone(),
             Some(child.sector_path.as_str().to_string()),

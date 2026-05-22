@@ -9,7 +9,7 @@ use super::enums::{
     STAR_COLOUR_CODES, TECH_LEVELS, TEMPERATURES, WORLD_TYPES,
 };
 use super::state::{EditorState, Selection};
-use super::ui_helpers::{combo_str, dim, label, mono, section, text_field};
+use super::ui_helpers::{combo_str, dim, label, mono, section, text_field_id};
 
 pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let Selection::World {
@@ -38,7 +38,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     );
 
     section(ui, "NAME");
-    if text_field(ui, &mut w.name, "name").changed() {
+    if text_field_id(ui, &mut w.name, "name").changed() {
         dirty = true;
     }
 
@@ -58,8 +58,8 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     section(ui, "STAR COLOUR (display)");
     let mut star_code = w.world.star_colour_code.to_string();
     if combo_str(ui, "w_star_code", &mut star_code, STAR_COLOUR_CODES) {
-        w.world.star_colour_code = star_code;
-        w.world.star_colour = star_colour_name(&w.world.star_colour_code).to_string();
+        w.world.star_colour_code = star_code.into();
+        w.world.star_colour = star_colour_name(&w.world.star_colour_code).into();
         dirty = true;
     }
     dim(ui, &format!("({})", w.world.star_colour));
@@ -72,7 +72,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.world_type.to_string();
             if combo_str(ui, "w_type", &mut val, WORLD_TYPES) {
-                w.world.world_type = val;
+                w.world.world_type = val.into();
                 true
             } else {
                 false
@@ -89,7 +89,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.atmosphere.to_string();
             if combo_str(ui, "w_atm", &mut val, ATMOSPHERES) {
-                w.world.atmosphere = val;
+                w.world.atmosphere = val.into();
                 true
             } else {
                 false
@@ -103,7 +103,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.temperature.to_string();
             if combo_str(ui, "w_temp", &mut val, TEMPERATURES) {
-                w.world.temperature = val;
+                w.world.temperature = val.into();
                 true
             } else {
                 false
@@ -117,7 +117,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.biosphere.to_string();
             if combo_str(ui, "w_bio", &mut val, BIOSPHERES) {
-                w.world.biosphere = val;
+                w.world.biosphere = val.into();
                 true
             } else {
                 false
@@ -134,7 +134,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.population.to_string();
             if combo_str(ui, "w_pop", &mut val, POPULATIONS) {
-                w.world.population = val;
+                w.world.population = val.into();
                 true
             } else {
                 false
@@ -148,7 +148,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.tech_level.to_string();
             if combo_str(ui, "w_tech", &mut val, TECH_LEVELS) {
-                w.world.tech_level = val;
+                w.world.tech_level = val.into();
                 true
             } else {
                 false
@@ -162,7 +162,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.government.to_string();
             if combo_str(ui, "w_gov", &mut val, GOVERNMENTS) {
-                w.world.government = val;
+                w.world.government = val.into();
                 true
             } else {
                 false
@@ -181,7 +181,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui.horizontal(|ui| {
             let mut val = feat.to_string();
             if combo_str(ui, &format!("w_feat_{i}"), &mut val, NOTABLE_FEATURES) {
-                *feat = val;
+                *feat = val.into();
                 dirty = true;
             }
             if ui
@@ -200,7 +200,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         .button(RichText::new("+ ADD FEATURE").font(mono(12.0)))
         .clicked()
     {
-        w.world.notable_features.push("Prosperous".to_string());
+        w.world.notable_features.push("Prosperous".into());
         dirty = true;
     }
 

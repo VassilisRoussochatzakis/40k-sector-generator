@@ -1540,7 +1540,7 @@ mod tests {
                 notable_features: vec![],
             },
             factions: vec![],
-            tags: vec![pop_tag.to_string()],
+            tags: vec![pop_tag.into()],
             notes: vec![],
             claims: vec![],
             control: WorldControlSummary::default(),

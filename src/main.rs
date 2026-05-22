@@ -902,8 +902,8 @@ fn run_relations(
     };
     let matrix = sectorforge::derive_relations_with(&sec, &cfg);
     let report = sectorforge::relations::RelationsReport {
-        sector_id: sec.id.clone(),
-        seed: sec.seed.clone(),
+        sector_id: sec.id.to_string(),
+        seed: sec.seed.to_string(),
         matrix,
     };
     if let Some(dir) = out {

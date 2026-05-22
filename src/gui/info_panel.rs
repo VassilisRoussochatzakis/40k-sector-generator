@@ -33,8 +33,8 @@ struct SectorOverviewCacheKey {
 impl SectorOverviewCacheKey {
     fn from_sector(sector: &GeneratedSector) -> Self {
         Self {
-            sector_id: sector.id.clone(),
-            seed: sector.seed.clone(),
+            sector_id: sector.id.to_string(),
+            seed: sector.seed.to_string(),
             width: sector.width,
             height: sector.height,
             system_count: sector.systems.len(),
@@ -676,13 +676,13 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
             .systems
             .iter()
             .find(|s| s.id == id)
-            .map(|s| s.name.clone())
+            .map(|s| s.name.to_string())
             .unwrap_or_else(|| id.to_string())
     };
     let world_name = |id: &str| -> Option<String> {
         for s in &sector.systems {
             if let Some(w) = s.worlds.iter().find(|w| w.id == id) {
-                return Some(w.name.clone());
+                return Some(w.name.to_string());
             }
         }
         None

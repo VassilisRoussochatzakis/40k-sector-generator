@@ -746,7 +746,7 @@ mod tests {
         let mut sys_vec = Vec::new();
         for (i, (q, r)) in systems.into_iter().enumerate() {
             let id = crate::ids::SystemId::new(format!("sys-{:04}", i + 1));
-            let name = id.as_str().to_string();
+            let name: std::sync::Arc<str> = id.as_str().into();
             sys_vec.push(GeneratedSystem {
                 id,
                 index: i + 1,
@@ -863,15 +863,15 @@ mod tests {
     fn subsector_named_after_capital_system() {
         let sector = mini_sector(8, 8, vec![(0, 0), (1, 1)]);
         let mut sector = sector;
-        sector.systems[0].name = "Aurelia".to_string();
-        sector.systems[1].name = "Bromios".to_string();
+        sector.systems[0].name = "Aurelia".into();
+        sector.systems[1].name = "Bromios".into();
         let cfg = SubsectorConfig {
             target_systems_per_subsector: 1,
             ..SubsectorConfig::default()
         };
         let subs = build_subsectors(&sector, cfg).unwrap();
         // Each cluster should have one system, named after it.
-        let names: BTreeSet<String> = subs.iter().map(|s| s.name.clone()).collect();
+        let names: BTreeSet<String> = subs.iter().map(|s| s.name.to_string()).collect();
         assert!(names.contains("Subsector Aurelia"));
         assert!(names.contains("Subsector Bromios"));
         // And the capital id matches that single system.

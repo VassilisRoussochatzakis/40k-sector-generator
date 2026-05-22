@@ -417,8 +417,8 @@ struct EmitContext<'a> {
 pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryReport {
     if !cfg.enabled {
         return HistoryReport {
-            sector_id: sector.id.clone(),
-            seed: sector.seed.clone(),
+            sector_id: sector.id.to_string(),
+            seed: sector.seed.to_string(),
             eras: cfg.eras.clone(),
             events: Vec::new(),
         };
@@ -427,12 +427,12 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
     let faction_names: BTreeMap<&str, &str> = sector
         .factions
         .iter()
-        .map(|f| (f.id.as_str(), f.name.as_str()))
+        .map(|f| (f.id.as_str(), f.name.as_ref()))
         .collect();
     let system_names: BTreeMap<&str, &str> = sector
         .systems
         .iter()
-        .map(|s| (s.id.as_str(), s.name.as_str()))
+        .map(|s| (s.id.as_str(), s.name.as_ref()))
         .collect();
 
     let ctx = EmitContext {
@@ -471,8 +471,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
     });
 
     HistoryReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         eras: cfg.eras.clone(),
         events,
     }
@@ -1035,7 +1035,7 @@ fn emit_subsector_events(
             .systems
             .iter()
             .find(|s| s.id == *cap_sys)
-            .map(|s| s.name.as_str())
+            .map(|s| s.name.as_ref())
             .unwrap_or(cap_sys.as_str());
         let text = match &sub.summary.subsector_capital_world_id {
             Some(wid) => format!(
@@ -1048,7 +1048,7 @@ fn emit_subsector_events(
             ),
         };
         let anchor = HistoryAnchor::Subsector {
-            subsector_id: sub.id.clone(),
+            subsector_id: sub.id.to_string(),
         };
         let mut ev = build_event(
             &ctx.sector.seed,
@@ -1076,7 +1076,7 @@ fn emit_subsector_events(
             kind: HistoryConsequenceKind::SubsectorCapitalNamed,
             description: format!("{} gained a capital at {sys_name}.", sub.name),
             severity: 35,
-            entity_id: Some(sub.id.clone()),
+            entity_id: Some(sub.id.to_string()),
         });
         out.push(ev);
     }

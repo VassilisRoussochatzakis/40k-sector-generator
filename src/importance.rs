@@ -145,8 +145,8 @@ pub fn compute_display_buckets(
         if !force_aggregate {
             visible.push(DisplayBucket::Faction {
                 id: f.id.clone(),
-                name: f.name.clone(),
-                kind: f.kind.clone(),
+                name: f.name.to_string(),
+                kind: f.kind.to_string(),
                 importance: *importance,
                 system_count: f.system_presence.len(),
                 world_count: f.world_presence.len(),

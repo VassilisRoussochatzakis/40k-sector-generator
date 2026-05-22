@@ -163,7 +163,7 @@ fn build_faction_palette_json(sector: &GeneratedSector) -> Result<String, serde_
             "#{:02x}{:02x}{:02x}",
             style.fill.0, style.fill.1, style.fill.2
         );
-        entries.insert(f.id.as_str(), (hex, f.name.as_str()));
+        entries.insert(f.id.as_str(), (hex, f.name.as_ref()));
     }
     let mut out = String::from("{");
     let mut first = true;

@@ -6,7 +6,6 @@
 
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
 
 use crate::sector_model::{
     FactionInfluence, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld,

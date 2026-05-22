@@ -108,7 +108,7 @@ impl App {
                             )
                             .clicked()
                         {
-                            self.history_selected_event = Some(e.id.clone());
+                            self.history_selected_event = Some(e.id.as_str().into());
                         }
                     }
 
@@ -119,7 +119,7 @@ impl App {
                     let active = self
                         .history_selected_event
                         .as_ref()
-                        .and_then(|id| sector.chronicle.events.iter().find(|e| &e.id == id))
+                        .and_then(|id| sector.chronicle.events.iter().find(|e| e.id.as_str() == id.as_ref()))
                         .or_else(|| sector.chronicle.events.first());
                     if let Some(e) = active {
                         ui.label(
@@ -186,7 +186,7 @@ impl App {
         let active = self
             .history_selected_event
             .as_ref()
-            .and_then(|id| sector.chronicle.events.iter().find(|e| &e.id == id))
+            .and_then(|id| sector.chronicle.events.iter().find(|e| e.id.as_str() == id.as_ref()))
             .or_else(|| sector.chronicle.events.first());
         let (route_ids, waypoints) = active
             .map(history_highlights)
@@ -222,7 +222,7 @@ impl App {
                             self.sector_selected_subsector = None;
                         }
                         Some(SectorClick::Subsector(id)) => {
-                            self.sector_selected_subsector = Some(id);
+                            self.sector_selected_subsector = Some(id.into());
                             self.sector_selected = None;
                             self.sector_selected_route = None;
                         }

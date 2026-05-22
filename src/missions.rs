@@ -149,8 +149,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &MissionsConfig) -> MissionsRe
         out.retain(|m| !m.gm_only);
     }
     MissionsReport {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
         missions: out,
     }
 }

@@ -128,8 +128,8 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     if add_world {
         let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
         let mut w = empty_world(sys_index, next, format!("World {next}"));
-        w.world.star_colour = sys.star.colour_name.to_string();
-        w.world.star_colour_code = sys.star.colour_code.to_string();
+        w.world.star_colour = sys.star.colour_name.clone();
+        w.world.star_colour_code = sys.star.colour_code.clone();
         sys.worlds.push(w);
         dirty = true;
         state.selection = Selection::World {

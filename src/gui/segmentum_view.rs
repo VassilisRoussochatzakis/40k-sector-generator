@@ -1,6 +1,7 @@
 //! Segmentum overview widgets and on-disk bundle loading.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
@@ -90,7 +91,7 @@ impl SegmentumBundle {
                     .systems
                     .iter()
                     .find(|s| s.id == system_id)
-                    .map(|s| s.name.clone())
+                    .map(|s| s.name.to_string())
             })
             .unwrap_or_else(|| system_id.to_string())
     }
@@ -115,7 +116,7 @@ pub fn show_overview(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
-    selected_link: &mut Option<String>,
+    selected_link: &mut Option<Arc<str>>,
     mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
@@ -135,7 +136,7 @@ pub fn show_side_panel(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
-    selected_link: &mut Option<String>,
+    selected_link: &mut Option<Arc<str>>,
     mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
@@ -235,7 +236,7 @@ fn super_map(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
-    selected_link: &mut Option<String>,
+    selected_link: &mut Option<Arc<str>>,
     mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     ui.label(RichText::new("SUPER-MAP").color(TEXT).monospace().strong());
@@ -535,7 +536,7 @@ fn child_table(
 fn link_table(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
-    selected_link: &mut Option<String>,
+    selected_link: &mut Option<Arc<str>>,
     mode: crate::sector_model::RouteViewMode,
 ) -> Option<SegmentumAction> {
     let mut action = None;
@@ -579,7 +580,7 @@ fn link_table(
                 );
                 ui.horizontal(|ui| {
                     if ui.button(RichText::new("INFO").monospace()).clicked() {
-                        *selected_link = Some(l.id.clone());
+                        *selected_link = Some(Arc::from(l.id.as_str()));
                     }
                     if ui.button(RichText::new("FROM").monospace()).clicked() {
                         action = Some(SegmentumAction::OpenSystem {

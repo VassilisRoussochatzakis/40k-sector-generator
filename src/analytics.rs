@@ -965,6 +965,6 @@ mod tests {
         };
         s.factions = vec![f1, f2];
         let a = analyze(&s);
-        assert!(a.health_flags.iter().any(|f| f.code == "FACTION_DOMINANCE"));
+        assert!(a.health_flags.iter().any(|f| f.code.as_ref() == "FACTION_DOMINANCE"));
     }
 }

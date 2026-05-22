@@ -363,7 +363,7 @@ fn system_combo(
             for (oid, name) in options {
                 let sel = value.as_deref() == Some(oid.as_str());
                 if ui
-                    .selectable_label(sel, RichText::new(name).monospace())
+                    .selectable_label(sel, RichText::new(name.as_ref()).monospace())
                     .clicked()
                     && !sel
                 {

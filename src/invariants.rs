@@ -79,7 +79,7 @@ fn check_region_connectivity(s: &GeneratedSector, v: &mut Vec<InvariantViolation
     let region_perilous = s
         .routes
         .iter()
-        .any(|r| r.tags.iter().any(|t| t == "region:perilous_applied"));
+        .any(|r| r.tags.iter().any(|t| t.as_ref() == "region:perilous_applied"));
     if !region_perilous {
         return;
     }
@@ -108,7 +108,7 @@ fn navigable_component_count(s: &GeneratedSector, restore_region_perilous: bool)
     let mut parent: Vec<usize> = (0..s.systems.len()).collect();
     for r in &s.routes {
         let restored =
-            restore_region_perilous && r.tags.iter().any(|t| t == "region:perilous_applied");
+            restore_region_perilous && r.tags.iter().any(|t| t.as_ref() == "region:perilous_applied");
         if matches!(r.stability, RouteStability::Perilous) && !restored {
             continue;
         }
@@ -297,7 +297,7 @@ fn check_systems(
             // Deduplicated tags
             let mut tag_set: BTreeSet<&str> = BTreeSet::new();
             for t in &w.tags {
-                if !tag_set.insert(t.as_str()) {
+                if !tag_set.insert(t.as_ref()) {
                     v.push(violation(
                         "WORLD_TAG_DUPLICATE",
                         &format!("world '{}' has duplicate tag '{}'", w.id, t),

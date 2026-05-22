@@ -1617,10 +1617,17 @@ IDs are strongly typed via the newtypes in [src/ids.rs](src/ids.rs):
 
 | Type | Wraps | Used for |
 |---|---|---|
-| `SystemId` | `String` | `GeneratedSystem.id`, route endpoints, system-keyed maps |
-| `WorldId` | `String` | `GeneratedWorld.id`, world-keyed maps, stranded-world lists |
-| `FactionId` | `String` | `GeneratedFaction.id`, presence rows, control summaries |
-| `RouteId` | `String` | `GeneratedRoute.id`, hidden-route layers, route-keyed maps |
+| `SystemId` | `Arc<str>` | `GeneratedSystem.id`, route endpoints, system-keyed maps |
+| `WorldId` | `Arc<str>` | `GeneratedWorld.id`, world-keyed maps, stranded-world lists |
+| `FactionId` | `Arc<str>` | `GeneratedFaction.id`, presence rows, control summaries |
+| `RouteId` | `Arc<str>` | `GeneratedRoute.id`, hidden-route layers, route-keyed maps |
+
+Most string-valued DTO fields across `sector_model.rs` and `analytics.rs`
+(names, tags, kind/disposition, world classifications, distribution-map keys)
+use `Arc<str>` rather than `String` to cut clone cost on hot generation /
+analysis paths. The `text_edit` / `text_field_id` / `combo_*_id` GUI helpers
+accept any `AsRef<str> + From<String>` so they round-trip `Arc<str>` fields
+through a scratch `String` while keeping `egui::TextEdit` unchanged.
 
 Each newtype is `#[serde(transparent)]` so on-disk JSON is unchanged from the
 earlier String-based representation: existing `sector.json` files round-trip

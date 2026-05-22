@@ -37,8 +37,8 @@ struct HeatmapCacheKey {
 impl HeatmapCacheKey {
     fn from_sector(sector: &GeneratedSector) -> Self {
         Self {
-            sector_id: sector.id.clone(),
-            seed: sector.seed.clone(),
+            sector_id: sector.id.to_string(),
+            seed: sector.seed.to_string(),
             width: sector.width,
             height: sector.height,
             system_count: sector.systems.len(),

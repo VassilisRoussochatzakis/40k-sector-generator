@@ -42,7 +42,7 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                 .map(|s| s.id.clone())
                 .unwrap_or_default();
             state.dialog = Dialog::SaveAs {
-                name: default,
+                name: default.to_string(),
                 error: None,
             };
         }

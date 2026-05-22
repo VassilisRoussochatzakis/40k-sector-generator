@@ -74,7 +74,7 @@ pub fn append_hidden_routes_with_regions(
 
     let kinds: BTreeMap<&str, &str> = factions
         .iter()
-        .map(|f| (f.id.as_str(), f.kind.as_str()))
+        .map(|f| (f.id.as_str(), f.kind.as_ref()))
         .collect();
 
     let mut added = 0usize;
@@ -206,7 +206,7 @@ fn emit_layer(
             distance: dist,
             route_type: rtype,
             stability: RouteStability::Stable,
-            tags: vec![format!("hidden:{suffix}")],
+            tags: vec![format!("hidden:{suffix}").into()],
             controls: Vec::new(),
         });
         added += 1;
@@ -328,7 +328,7 @@ mod tests {
         let n = append_hidden_routes(&systems, &factions, &mut routes);
         assert_eq!(n, 1);
         assert_eq!(routes[0].route_type, RouteType::Webway);
-        assert!(routes[0].tags.iter().any(|t| t == "hidden:webway"));
+        assert!(routes[0].tags.iter().any(|t| t.as_ref() == "hidden:webway"));
     }
 
     #[test]

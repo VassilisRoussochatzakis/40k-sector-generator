@@ -93,9 +93,9 @@ pub fn split(sector: &GeneratedSector) -> SectorSave {
         );
     }
     SectorSave {
-        sector_id: sector.id.clone(),
-        seed: sector.seed.clone(),
-        generator_version: sector.generator_version.clone(),
+        sector_id: sector.id.to_string(),
+        seed: sector.seed.to_string(),
+        generator_version: sector.generator_version.to_string(),
         systems,
     }
 }
@@ -104,15 +104,15 @@ pub fn split(sector: &GeneratedSector) -> SectorSave {
 /// restore runtime state. Catalog mismatch (different sector id or seed)
 /// returns an error.
 pub fn merge(sector: &mut GeneratedSector, save: SectorSave) -> Result<(), MergeError> {
-    if sector.id != save.sector_id {
+    if sector.id.as_ref() != save.sector_id.as_str() {
         return Err(MergeError::SectorIdMismatch {
-            catalog: sector.id.clone(),
+            catalog: sector.id.to_string(),
             save: save.sector_id,
         });
     }
-    if sector.seed != save.seed {
+    if sector.seed.as_ref() != save.seed.as_str() {
         return Err(MergeError::SeedMismatch {
-            catalog: sector.seed.clone(),
+            catalog: sector.seed.to_string(),
             save: save.seed,
         });
     }

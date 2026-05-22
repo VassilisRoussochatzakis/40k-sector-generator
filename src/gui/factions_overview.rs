@@ -512,7 +512,7 @@ fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
 fn show_kind_summary(ui: &mut Ui, sector: &GeneratedSector) {
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     for f in &sector.factions {
-        *counts.entry(f.kind.as_str()).or_default() += 1;
+        *counts.entry(f.kind.as_ref()).or_default() += 1;
     }
     if counts.is_empty() {
         ui.label(
@@ -1021,9 +1021,9 @@ fn designer_rows_from_sector_output(sector: &GeneratedSector) -> Vec<DesignerFac
         if fac.subfactions.is_empty() {
             rows.push(DesignerFactionRow {
                 id: fac.id.as_str().to_string(),
-                name: fac.name.clone(),
-                kind: fac.kind.clone(),
-                disposition: fac.disposition.clone(),
+                name: fac.name.to_string(),
+                kind: fac.kind.to_string(),
+                disposition: fac.disposition.to_string(),
                 weight: output_weight(fac.system_presence.len(), fac.world_presence.len()),
                 world_types: String::new(),
                 governments: String::new(),
@@ -1034,12 +1034,12 @@ fn designer_rows_from_sector_output(sector: &GeneratedSector) -> Vec<DesignerFac
                 if sf.forces.is_empty() {
                     rows.push(DesignerFactionRow {
                         id: sf.id.as_str().to_string(),
-                        name: sf.name.clone(),
+                        name: sf.name.to_string(),
                         kind: sf.id.as_str().to_string(),
                         disposition: if sf.disposition.is_empty() {
-                            fac.disposition.clone()
+                            fac.disposition.to_string()
                         } else {
-                            sf.disposition.clone()
+                            sf.disposition.to_string()
                         },
                         weight: output_weight(sf.system_presence.len(), sf.world_presence.len()),
                         world_types: String::new(),
@@ -1050,12 +1050,12 @@ fn designer_rows_from_sector_output(sector: &GeneratedSector) -> Vec<DesignerFac
                     for force in &sf.forces {
                         rows.push(DesignerFactionRow {
                             id: force.id.as_str().to_string(),
-                            name: force.name.clone(),
+                            name: force.name.to_string(),
                             kind: sf.id.as_str().to_string(),
                             disposition: if force.disposition.is_empty() {
-                                sf.disposition.clone()
+                                sf.disposition.to_string()
                             } else {
-                                force.disposition.clone()
+                                force.disposition.to_string()
                             },
                             weight: output_weight(
                                 force.system_presence.len(),
@@ -1280,12 +1280,21 @@ fn field_label(ui: &mut Ui, text: &str) {
     ui.label(RichText::new(text).color(TEXT_DIM).monospace());
 }
 
-fn text_edit(ui: &mut Ui, value: &mut String, width: f32) -> bool {
-    ui.add_sized(
-        [width, 22.0],
-        egui::TextEdit::singleline(value).font(egui::FontId::monospace(12.0)),
-    )
-    .changed()
+fn text_edit<T>(ui: &mut Ui, value: &mut T, width: f32) -> bool
+where
+    T: AsRef<str> + From<String>,
+{
+    let mut buf = value.as_ref().to_string();
+    let changed = ui
+        .add_sized(
+            [width, 22.0],
+            egui::TextEdit::singleline(&mut buf).font(egui::FontId::monospace(12.0)),
+        )
+        .changed();
+    if changed {
+        *value = T::from(buf);
+    }
+    changed
 }
 
 fn faction_chip(ui: &mut Ui, style: FactionStyle) {

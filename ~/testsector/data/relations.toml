@@ -1,0 +1,31 @@
+# §5 NEW2.md: inter-faction diplomacy / attitude matrix overrides.
+# Built-in kind/disposition rules apply when this file is absent. This file
+# adds an explicit "feed_conflict" advisory bias and example pair-level
+# overrides demonstrating the schema.
+
+[relations]
+feed_conflict = false
+
+# Example: override a specific kind pair (Imperial vs. T'au) to Neutral.
+# [[relations.kind_rules]]
+# a = "imperial"
+# b = "tau"
+# stance = "neutral"
+# cause = "Ceasefire under sector treaty"
+
+# Example: pin a single faction-id pair.
+# [[relations.pair_overrides]]
+# a = "fac-imp-001"
+# b = "fac-tau-001"
+# stance = "rival"
+# cause = "Border dispute"
+
+# Example: pin public/secret attitudes and treaty status without replacing
+# the whole derived record.
+# [[relations.overrides]]
+# a = "fac-imp-001"
+# b = "fac-rogue-trader-001"
+# public_attitude = "friendly"
+# secret_attitude = "suspicious"
+# treaty_status = "charter"
+# reason = "Warrant honored in public, audited in private"

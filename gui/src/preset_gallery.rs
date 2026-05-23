@@ -18,6 +18,15 @@ pub enum PresetGalleryError {
     Load(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CreationTarget {
+    #[default]
+    Project,
+    Segmentum,
+    Sector,
+    System,
+}
+
 #[derive(Default)]
 pub struct PresetGalleryState {
     pub open: bool,
@@ -28,6 +37,11 @@ pub struct PresetGalleryState {
     pub dest_text: String,
     pub seed_text: String,
     pub status: String,
+    pub target: CreationTarget,
+    pub width: u32,
+    pub height: u32,
+    pub irregular_dimensions: bool,
+    pub add_to_existing: bool,
 }
 
 impl PresetGalleryState {
@@ -54,6 +68,52 @@ impl PresetGalleryState {
 /// Render the gallery body. Caller owns the surrounding window/panel.
 pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     state.ensure_loaded();
+
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("CREATE:").color(TEXT_DIM).monospace());
+        ui.selectable_value(&mut state.target, CreationTarget::Project, "PROJECT");
+        ui.selectable_value(&mut state.target, CreationTarget::Segmentum, "SEGMENTUM");
+        ui.selectable_value(&mut state.target, CreationTarget::Sector, "SECTOR");
+        ui.selectable_value(&mut state.target, CreationTarget::System, "SYSTEM");
+    });
+
+    ui.checkbox(&mut state.add_to_existing, "Add to existing project");
+    ui.add_space(4.0);
+
+    if state.target == CreationTarget::Sector {
+        ui.group(|ui| {
+            ui.label(RichText::new("SECTOR DIMENSIONS").color(TEXT_DIM).monospace());
+            ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
+
+            if state.irregular_dimensions {
+                ui.colored_label(
+                    Color32::from_rgb(235, 180, 50),
+                    "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
+                );
+            }
+
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("WIDTH").color(TEXT_DIM).monospace());
+                let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
+                ui.label(RichText::new("HEIGHT").color(TEXT_DIM).monospace());
+                let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
+
+                if !state.irregular_dimensions {
+                    if state.width == 0 {
+                        state.width = 8;
+                        state.height = 8;
+                    }
+                    if w_res.changed() {
+                        state.height = state.width;
+                    } else if h_res.changed() {
+                        state.width = state.height;
+                    }
+                }
+            });
+        });
+        ui.add_space(8.0);
+    }
+
     let dir = state.resolved_dir();
     ui.label(
         RichText::new(format!("PRESETS DIRECTORY: {dir}"))
@@ -89,9 +149,13 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     }
 
     ui.label(
-        RichText::new("DESTINATION DIRECTORY")
-            .color(TEXT_DIM)
-            .monospace(),
+        RichText::new(if state.add_to_existing {
+            "PROJECT DIRECTORY"
+        } else {
+            "DESTINATION DIRECTORY"
+        })
+        .color(TEXT_DIM)
+        .monospace(),
     );
     ui.text_edit_singleline(&mut state.dest_text);
     ui.add_space(4.0);
@@ -118,7 +182,12 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                         .monospace(),
                 );
                 if ui
-                    .button(RichText::new("CREATE FROM THIS PRESET").monospace())
+                    .button(RichText::new(format!("CREATE {} FROM THIS PRESET", match state.target {
+                        CreationTarget::Project => "PROJECT",
+                        CreationTarget::Segmentum => "SEGMENTUM",
+                        CreationTarget::Sector => "SECTOR",
+                        CreationTarget::System => "SYSTEM",
+                    })).monospace())
                     .clicked()
                 {
                     let dest_str = state.dest_text.trim();
@@ -132,6 +201,12 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                             Some(state.seed_text.trim().to_string())
                         };
                         let seed_ref = seed.as_deref();
+
+                        // NOTE: For now, segmentum/sector/system creation via preset 
+                        // might need specific backend logic. Project scaffolding works.
+                        // If add_to_existing is true, we might need to modify the 
+                        // existing project instead of creating a new one.
+                        
                         match presets::scaffold(&dir, &entry.id, &dest, seed_ref) {
                             Ok(_) => {
                                 state.status = format!("OK — scaffolded '{}' at {dest}", entry.id);

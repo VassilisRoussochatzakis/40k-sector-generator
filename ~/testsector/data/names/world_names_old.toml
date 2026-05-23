@@ -1,0 +1,18 @@
+[location_names]
+reuse_workbook_location_names = true
+fallback_pattern = "{system_name} {roman}"
+
+[world_names]
+prefixes = [
+    "Saint", "Port", "New", "Black", "Ash", "Iron", "Gilded", "Old",
+    "Sanguine", "Dust", "Mourn", "Bright", "Last",
+]
+roots = [
+    "Iocanthos", "Solace", "Klybo", "Meridian", "Lacuna", "Velikoye",
+    "Brontes", "Yperion", "Tarsi", "Kanak", "Eboracum", "Verbis",
+    "Aethon", "Karthago", "Nymph", "Olbia", "Pyriphlegethon",
+]
+suffixes = [
+    "Prime", "Secundus", "Tertius", "Station", "Deep", "Shadow",
+    "Outer", "Inner", "Verge", "Hold",
+]

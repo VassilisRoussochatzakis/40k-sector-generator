@@ -18,7 +18,8 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                 title: String::new(),
                 seed: "manual".to_string(),
                 width: 8,
-                height: 10,
+                height: 8,
+                irregular_dimensions: false,
             };
         }
         if ui.button(RichText::new("OPEN").font(mono(12.0))).clicked() {

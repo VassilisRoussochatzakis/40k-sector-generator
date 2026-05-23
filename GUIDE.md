@@ -1531,8 +1531,8 @@ cargo sgui --segmentum out/segmentumTEST/segmentum.json
 cargo sgui
 ```
 
-With no args, the GUI falls back to `examples/m42_project/out/sector.json`
-when that file exists, otherwise launches empty.
+With no args, the GUI launches an empty editor. To load the default example,
+use: `cargo sgui --project examples/m42_project`.
 
 **Note:** The GUI requires a graphical display (X11/Wayland on Linux, native on macOS/Windows).
 It will not run on headless servers. For CLI-only workflows, use `sectorforge generate`

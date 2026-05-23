@@ -4,7 +4,7 @@
 //!   sectorforge-gui <path/to/sector.json>
 //!   sectorforge-gui --project <project-dir>          # auto-loads out/sector.json
 //!   sectorforge-gui --segmentum <path/to/segmentum.json>
-//!   (no args)                                        # tries `examples/m42_project/out/sector.json`
+//!   (no args)                                        # launches editor with no sector loaded
 
 use std::process::ExitCode;
 
@@ -97,20 +97,12 @@ fn resolve_sector_path(cli: &Cli) -> Option<Utf8PathBuf> {
             return Some(p);
         }
     }
-    let default = Utf8PathBuf::from("examples/m42_project/out/sector.json");
-    if default.exists() {
-        return Some(default);
-    }
     None
 }
 
 fn resolve_project_dir(cli: &Cli) -> Option<Utf8PathBuf> {
     if let Some(dir) = &cli.project {
         return Some(dir.clone());
-    }
-    let default = Utf8PathBuf::from("examples/m42_project");
-    if default.join("sectorforge.toml").exists() {
-        return Some(default);
     }
     None
 }

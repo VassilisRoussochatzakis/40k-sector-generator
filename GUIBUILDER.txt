@@ -1,0 +1,35 @@
+# SPECIFICATION: INTERACTIVE SECTOR BUILDER GUI (GUIBUILDER.txt)
+
+## GOAL
+Transition from a "scaffold-then-cli-generate" workflow to a fully interactive, real-time sector design environment within the Sectorforge GUI.
+
+## 1. REAL-TIME GENERATION & FEEDBACK
+- [ ] LIVE PREVIEW: Updating generation settings (density, cluster bias, world types) should re-render the hex map immediately (or via a "Re-roll" button with the same seed).
+- [ ] SEED LOCKING: Ability to lock the seed while changing dimensions or distribution parameters.
+- [ ] PARTIAL GENERATION: Generate specific subsectors or systems without wiping manual changes in others.
+
+## 2. INTERACTIVE PLACEMENT & EDITING
+- [ ] DRAG-AND-DROP SYSTEMS: Move existing systems between hexes with automatic route recalculation.
+- [ ] TOOLBOX:
+    - [ ] "Add System" brush (click hex to place).
+    - [ ] "Delete" tool (remove systems/routes).
+    - [ ] "Route" tool (click-drag between systems to create manual warp lanes).
+- [ ] PROPERTY INSPECTOR: Side panel to edit system names, world counts, and faction presence on the fly.
+
+## 3. CONSTRAINT-BASED DESIGN
+- [ ] GUI FOR WISHES: Visual editor for `wishes.toml` (e.g., "I want at least 3 Forge Worlds", "Ensure Faction X has a base here").
+- [ ] SEARCH INTEGRATION: Run the "Search & Candidate" logic within the GUI, showing multiple candidate thumbnails to pick from.
+
+## 4. DIMENSIONS & SCAFFOLDING (Refined)
+- [ ] DYNAMIC RESIZING: Expand or shrink sector dimensions in the editor.
+- [ ] AUTO-SQUARE: Default to square (H=W) as established.
+- [ ] IRREGULAR WARNINGS: Persistent UI warning when dimensions are non-standard (segmentum joining risks).
+
+## 5. PROJECT INTEGRATION
+- [ ] AUTO-SAVE: Optional background saving to `sector.json` on every change.
+- [ ] VERSIONING: Integration with the `History` tab to "Snapshot" a state and revert if a re-roll goes poorly.
+- [ ] EXPORT SYNC: One-click refresh for PNG/HTML exports after manual edits.
+
+## 6. SEGMENTUM JOINING
+- [ ] STITCHING PREVIEW: Visual tool to align two sectors and see how routes/influence cross the boundary.
+- [ ] GAP FILLING: Automatically generate "bridge" systems for irregular-dimension joins.

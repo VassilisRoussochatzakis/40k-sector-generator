@@ -92,6 +92,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             mut seed,
             mut width,
             mut height,
+            mut irregular_dimensions,
         } => {
             let mut create = false;
             let mut cancel = false;
@@ -105,12 +106,32 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     text_field(ui, &mut title, "My Sector");
                     section(ui, "SEED");
                     text_field(ui, &mut seed, "seed");
+
+                    ui.add_space(8.0);
+                    ui.checkbox(&mut irregular_dimensions, "Irregular dimensions");
+
+                    if irregular_dimensions {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(235, 180, 50),
+                            "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
+                        );
+                    }
+
                     ui.horizontal(|ui| {
                         label(ui, "WIDTH");
-                        ui.add(egui::DragValue::new(&mut width).range(1..=64));
+                        let w_res = ui.add(egui::DragValue::new(&mut width).range(1..=64));
                         label(ui, "HEIGHT");
-                        ui.add(egui::DragValue::new(&mut height).range(1..=64));
+                        let h_res = ui.add(egui::DragValue::new(&mut height).range(1..=64));
+
+                        if !irregular_dimensions {
+                            if w_res.changed() {
+                                height = width;
+                            } else if h_res.changed() {
+                                width = height;
+                            }
+                        }
                     });
+
                     ui.horizontal(|ui| {
                         if ui
                             .add_enabled(
@@ -151,6 +172,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     seed,
                     width,
                     height,
+                    irregular_dimensions,
                 };
             }
         }

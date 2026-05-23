@@ -84,7 +84,7 @@ impl App {
         }
         let mut open = true;
         egui::Window::new(
-            RichText::new("NEW PROJECT FROM PRESET")
+            RichText::new("NEW")
                 .monospace()
                 .strong(),
         )

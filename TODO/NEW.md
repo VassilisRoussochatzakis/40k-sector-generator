@@ -49,7 +49,7 @@ A sandboxed, embedded scripting interface (e.g. a Rhai/Lua-style engine compiled
 
 ### Why it fits
 
-The OVERVIEW's whole "Customisation surface" section is about user control via data files, but every customisation today is *declarative weighting*. Power users will eventually want *logic* the TOML/CSV surface cannot express ("tag every world within 2 hops of a Forge World as 'Mechanicus client state'"). A sandboxed, deterministic scripting hook is the escape valve that keeps such users inside the tool and inside the reproducibility model, instead of post-processing JSON in an external script that escapes the manifest's audit chain.
+The OVERVIEW's whole "Customisation surface" section is about user control via data files, but every customisation today is *declarative weighting*. Power users will eventually want *logic* the TOML surface cannot express ("tag every world within 2 hops of a Forge World as 'Mechanicus client state'"). A sandboxed, deterministic scripting hook is the escape valve that keeps such users inside the tool and inside the reproducibility model, instead of post-processing JSON in an external script that escapes the manifest's audit chain.
 
 ### How it works (determinism-safe)
 

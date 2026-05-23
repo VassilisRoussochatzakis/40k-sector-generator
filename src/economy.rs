@@ -1432,7 +1432,7 @@ pub fn render_markdown(sector_id: &str, report: &EconomyReport) -> String {
     s
 }
 
-/// Write `economy.md` + `economy.json` (+ `economy.csv` summary) into a dir.
+/// Write `economy.md` + `economy.json` into a dir.
 ///
 /// # Errors
 ///
@@ -1448,45 +1448,7 @@ pub fn write_report(
         "economy",
         &render_markdown(sector_id, report),
         report,
-    )?;
-    let csv_path = output_dir.join("economy.csv");
-    fs::write(&csv_path, csv_render(report)).map_err(|e| SectorError::io(csv_path.as_str(), e))
-}
-
-fn csv_render(report: &EconomyReport) -> String {
-    let mut s = String::new();
-    s.push_str(
-        "system_id,world_id,ore,promethium,foodstuffs,manufactured,archeotech,recruits,strategic_food,strategic_ore,strategic_manufacturing,strategic_arms,strategic_ships,strategic_pilgrimage,strategic_psyker_tithe,strategic_manpower,strategic_knowledge,strategic_xenos_value,tithe_status,supply_risk,strategic_priority,stranded\n",
-    );
-    for w in &report.worlds {
-        let _ = writeln!(
-            s,
-            "{},{},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:.2},{:?},{:?},{:?},{}",
-            w.system_id,
-            w.world_id,
-            w.vector.ore,
-            w.vector.promethium,
-            w.vector.foodstuffs,
-            w.vector.manufactured,
-            w.vector.archeotech,
-            w.vector.recruits,
-            w.strategic_output.food,
-            w.strategic_output.ore,
-            w.strategic_output.manufacturing,
-            w.strategic_output.arms,
-            w.strategic_output.ships,
-            w.strategic_output.pilgrimage,
-            w.strategic_output.psyker_tithe,
-            w.strategic_output.manpower,
-            w.strategic_output.knowledge,
-            w.strategic_output.xenos_value,
-            w.tithe_status,
-            w.supply_risk,
-            w.strategic_priority,
-            w.stranded
-        );
-    }
-    s
+    )
 }
 
 /// §12 stability nudge: increase `famine_or_resource_stress` on every world

@@ -392,7 +392,7 @@ Why this matters: generators are often good at producing state but weak at ident
 
 The existing intel and fog-of-war system already supports asymmetric information, and Markdown export can produce human-readable documents. The natural next feature is configurable briefing packs for different audiences.
 
-A `BriefingProfile` would define what a reader is allowed to see. Profiles could be tied to a faction, an NPC office, a campaign role, or an arbitrary security level. The exporter would then produce redacted Markdown, JSON, CSV, or PNG outputs from that perspective.
+A `BriefingProfile` would define what a reader is allowed to see. Profiles could be tied to a faction, an NPC office, a campaign role, or an arbitrary security level. The exporter would then produce redacted Markdown, JSON, or PNG outputs from that perspective.
 
 Example profiles:
 
@@ -433,7 +433,7 @@ Comparison modes:
 
 - `seed-diff` — same project data, different seeds.
 - `config-diff` — same seed, changed generation settings.
-- `data-diff` — same seed, changed input CSV/TOML data.
+- `data-diff` — same seed, changed input TOML data.
 - `save-diff` — same static sector, different campaign save states.
 - `version-diff` — same inputs, different generator version.
 
@@ -469,7 +469,7 @@ Why this matters: deterministic generation is powerful, but iteration becomes mo
 
 ## 11. Mod Packs, Data Packages, and Dependency Management
 
-The project is intentionally data-driven, with editable CSV/TOML files for world taxonomy, names, factions, routes, and generation policy. As projects grow, users will want to share and reuse data sets. A mod-pack system would formalize this.
+The project is intentionally data-driven, with editable TOML files for world taxonomy, names, factions, routes, and generation policy. As projects grow, users will want to share and reuse data sets. A mod-pack system would formalize this.
 
 A `sectorforge-pack.toml` manifest could describe a reusable data package: name lists, faction sets, world tables, route modifiers, export themes, briefing profiles, and validation rules. Projects could depend on one or more packs and override specific records locally.
 
@@ -484,8 +484,7 @@ author = "Example Author"
 sectorforge_min_version = "0.8.0"
 
 [contents]
-world_key = "worlds/key.csv"
-world_generator = "worlds/generator.csv"
+worlds = "worlds/worlds.toml"
 factions = "factions.toml"
 system_names = "names/systems.toml"
 world_names = "names/worlds.toml"
@@ -587,7 +586,7 @@ Why this matters: different workflows need different maps. A GM screen, a player
 
 ## 14. Web/VTT Export Adapters
 
-The overview mentions downstream integration with campaign trackers, web maps, virtual tabletops, and wikis. The existing JSON/Markdown/CSV/PNG exports are a good base, but dedicated adapters would reduce friction for common workflows.
+The overview mentions downstream integration with campaign trackers, web maps, virtual tabletops, and wikis. The existing JSON/Markdown/PNG exports are a good base, but dedicated adapters would reduce friction for common workflows.
 
 This feature should add optional export adapters that transform a sector into directory structures expected by other tools. Because VTTs and wikis change over time, adapters should be modular and versioned separately from the core schema.
 
@@ -904,7 +903,7 @@ Second, data should remain inspectable and editable. If a feature introduces new
 
 Third, generated state and campaign state should stay separate. Generated facts belong in `sector.json`; user edits, session outcomes, completed missions, changed NPC status, and evolved fronts belong in `SectorSave` or related save files.
 
-Fourth, exports should remain consistent. If redaction hides something, it should hide it across Markdown, JSON, CSV, PNG, and adapters. If a map theme changes presentation, it should not change data.
+Fourth, exports should remain consistent. If redaction hides something, it should hide it across Markdown, JSON, PNG, and adapters. If a map theme changes presentation, it should not change data.
 
 Fifth, every derived conclusion should be explainable. Users should be able to inspect why a route exists, why a faction is present, why a crisis is forecast, or why a mission seed was suggested.
 

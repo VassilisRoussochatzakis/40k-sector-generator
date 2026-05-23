@@ -65,24 +65,8 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     let trimmed_rel = data_dir_rel.trim_end_matches('/');
     let toml_rel = format!("{}/{}", trimmed_rel, crate::worlds_toml::DEFAULT_FILENAME);
     let toml_path = data_dir.join(crate::worlds_toml::DEFAULT_FILENAME);
-    if toml_path.exists() {
-        // Native TOML path: a single digestable artifact.
-        let bytes = fs::read(&toml_path).map_err(|e| SectorError::io(toml_path.as_str(), e))?;
-        digests.insert(toml_rel, blake3_of_bytes(&bytes));
-    } else {
-        // Legacy CSV path: digest both files (key.csv optional).
-        let key_rel = format!("{}/key.csv", trimmed_rel);
-        let gen_rel = format!("{}/generator.csv", trimmed_rel);
-        let key_path = data_dir.join("key.csv");
-        let gen_path = data_dir.join("generator.csv");
-        if key_path.exists() {
-            let key_bytes =
-                fs::read(&key_path).map_err(|e| SectorError::io(key_path.as_str(), e))?;
-            digests.insert(key_rel, blake3_of_bytes(&key_bytes));
-        }
-        let gen_bytes = fs::read(&gen_path).map_err(|e| SectorError::io(gen_path.as_str(), e))?;
-        digests.insert(gen_rel, blake3_of_bytes(&gen_bytes));
-    }
+    let bytes = fs::read(&toml_path).map_err(|e| SectorError::io(toml_path.as_str(), e))?;
+    digests.insert(toml_rel, blake3_of_bytes(&bytes));
 
     let worlds_load = crate::worlds::load_worlds_data(data_dir.as_std_path()).map_err(|e| {
         SectorError::WorldDataLoad {

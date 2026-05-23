@@ -108,7 +108,7 @@ enum Command {
         out: Option<Utf8PathBuf>,
     },
     /// Print statistics for a standalone world-data directory
-    /// (containing key.csv + generator.csv).
+    /// (containing `worlds.toml`).
     InspectWorlds {
         #[arg(long)]
         data_dir: String,
@@ -1079,7 +1079,7 @@ fn run_economy(
     let report = sectorforge::derive_economy_with(&sec, &cfg);
     if let Some(dir) = out {
         sectorforge::write_economy(dir, &sec.id, &report)?;
-        println!("Wrote {dir}/economy.md, {dir}/economy.json, and {dir}/economy.csv");
+        println!("Wrote {dir}/economy.md and {dir}/economy.json");
     } else if json {
         print_json(&report)?;
     } else {

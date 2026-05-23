@@ -1,13 +1,11 @@
 # sectorforge — User Guide
 
 `sectorforge` is a deterministic Warhammer 40k star sector generator. It reads
-a project directory (typed TOML configuration files; CSV import/export
-adapter still supported) and produces a reproducible sector as JSON,
-Markdown, CSV, and bitmap images.
+a project directory of typed TOML configuration files and produces a
+reproducible sector as JSON, Markdown, and bitmap images.
 
-The world taxonomy lives in [src/worlds.rs](src/worlds.rs); the native
-typed config (`worlds.toml`) lives in [src/worlds_toml.rs](src/worlds_toml.rs);
-the legacy CSV parser remains in `src/worlds.rs` for spreadsheet workflows.
+The world taxonomy lives in [src/worlds.rs](src/worlds.rs); the typed
+config (`worlds.toml`) lives in [src/worlds_toml.rs](src/worlds_toml.rs).
 Everything else in this crate builds a sector-scale layer around it: candidate
 pools, deterministic placement, systems, worlds, routes, factions,
 subsector clustering, validation, export, and an interactive GUI viewer/editor.
@@ -64,10 +62,6 @@ out/
   sector.json                  # canonical machine-readable sector, including chronicle when enabled
   sector.md                    # human-readable summary, including Sector History when present
   validation_report.json       # pre-generation validation note
-  csv/
-    systems.csv
-    worlds.csv
-    routes.csv
   sector.png                   # bitmap overview (if `bitmap` in output formats)
   systems/sys-NNNN.png         # per-system bitmap renderings
 ```
@@ -156,9 +150,10 @@ regenerating Markdown from a stored JSON without rerunning generation.
 
 ### `sectorforge inspect-worlds --data-dir <DIR>`
 
-Standalone diagnostic for a world-data directory (containing `key.csv` + `generator.csv`).
-Prints key-table sizes, generator row counts, candidate counts, and top-weight
-star colours / world types / notable features. Useful when authoring or debugging data.
+Standalone diagnostic for a world-data directory (containing `worlds.toml`).
+Prints key-table sizes, generator row counts, candidate counts, and
+top-weight star colours / world types / notable features. Useful when
+authoring or debugging data.
 
 ### `sectorforge analyze` (§8 old/DONE.md)
 
@@ -630,9 +625,9 @@ cargo run --bin sectorforge -- economy --project examples/m42_project --out out/
 cargo run --bin sectorforge -- economy --sector out/sector.json
 ```
 
-Writes `economy.md`, `economy.json`, and `economy.csv` (per-world
-vectors, strategic output, tithe/supply status, plus a `stranded`
-boolean for worlds with shortages no inbound route can fix). The shipped
+Writes `economy.md` and `economy.json` (per-world vectors, strategic
+output, tithe/supply status, plus a `stranded` boolean for worlds with
+shortages no inbound route can fix). The shipped
 [data/worlds/economy.toml](examples/m42_project/data/worlds/economy.toml)
 defaults to `enabled = false`; users can override the production matrix
 per `world_type`, set per-`tech_level` multipliers, and set per-population
@@ -805,7 +800,7 @@ out/segmentum/
   segmentum.json
   super_manifest.json
   children/
-    <child-id-1>/    # full per-child generate output (sector.json, csv/, png, ...)
+    <child-id-1>/    # full per-child generate output (sector.json, png, ...)
     <child-id-2>/
 ```
 
@@ -877,10 +872,8 @@ cargo run --bin sectorforge -- generate --project examples/big_sparse_test
 my-sector-project/
   sectorforge.toml
   data/
-    worlds/                        # native typed config (preferred) OR legacy CSV
-      worlds.toml                  # §45: native — typed generation rows + feature pools
-      key.csv                      # legacy override (optional; enums are authoritative)
-      generator.csv                # legacy spreadsheet path
+    worlds/                        # native typed config
+      worlds.toml                  # §45: typed generation rows + feature pools
     names/system_names.toml
     names/world_names.toml
     factions/factions.toml
@@ -957,7 +950,7 @@ min_world_presence         = 1
 
 [outputs]
 directory                  = "out"
-formats                    = ["json", "markdown", "csv", "bitmap", "html"]
+formats                    = ["json", "markdown", "bitmap", "html"]
 pretty_json                = true
 write_per_system_files     = false         # true = also write duplicate systems/sys-NNNN.json files
 write_manifest             = true
@@ -1006,7 +999,7 @@ appears in `manifest.input_digests`; inline theme overrides are already covered
 by the `sectorforge.toml` digest.
 
 Map themes are presentation-only. They do not alter generated sector data,
-route topology, faction placement, or JSON/Markdown/CSV facts. The built-ins
+route topology, faction placement, or JSON/Markdown facts. The built-ins
 are:
 
 | Theme | Use |
@@ -1179,23 +1172,25 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
 
 ## 5. World data files
 
-`sectorforge` uses CSV files to define world generation candidates. The directory
-must contain two files in `data/worlds/`:
+`sectorforge` uses a typed TOML file to define world generation candidates.
+The directory must contain `worlds.toml` in `data/worlds/`:
 
-- **`key.csv`** — columns list the canonical values for star colour, world type,
-  atmosphere, temperature, biosphere, population, tech level, government, and
-  notable feature. Each column header is the field name; each row entry is a
-  valid variant name.
-- **`generator.csv`** (previously `Generator Template` sheet in Excel) — each data
-  row is one weighted candidate world. Columns map to enum strings for all required
-  fields, plus a counter column and a weight column.
+- **`[[generation]]`** — each table entry is one weighted candidate world.
+  Fields use the enum variant names (e.g. `world_type = "HiveWorld"`,
+  `star_colour = "Yellow"`), plus an optional `weight` for random selection.
+- **`[features]`** — optional structured feature pool with `global`,
+  `by_world_type.<Variant>`, and `by_star_colour.<Variant>` lists of
+  `{ feature = "...", weight = ... }` entries.
 
 A row is "usable" only when **all** required fields parse AND the weight is
 finite and > 0. Rows that don't qualify are reported by `validate` and
 `inspect-worlds`. The default `require_complete_rows = true` mode discards
 them.
 
-To add new candidates, append rows to `generator.csv`.
+To add new candidates, append `[[generation]]` tables to `worlds.toml`.
+The enum-derived variant set lives in [src/worlds.rs](src/worlds.rs) and
+is authoritative; the GUI's WORLD DATA tab exposes the same set via typed
+dropdowns.
 
 ---
 
@@ -1326,12 +1321,6 @@ the overlay is active), and an **Economy** section (§12 — sector
 balance, stranded worlds, top trade lanes) when the economy derivation
 is enabled.
 
-### `csv/*.csv`
-
-`systems.csv`, `worlds.csv`, `routes.csv` for spreadsheet use. Multi-value
-fields (factions, subfactions, forces, tags, features) are `;`-separated
-within a single cell.
-
 ### `sector.html` (§11 NEW.md)
 
 Self-contained, fully **offline** interactive map. Single file — no
@@ -1367,8 +1356,7 @@ but never blocks the write.
    "seed_hash": "blake3:...",
    "input_digests": {
      "sectorforge.toml": "blake3:...",
-     "data/worlds/key.csv": "blake3:...",
-     "data/worlds/generator.csv": "blake3:...",
+     "data/worlds/worlds.toml": "blake3:...",
      "data/names/system_names.toml": "blake3:...",
      ...
    },
@@ -1480,8 +1468,7 @@ navigation bar:
   or custom kind, add/edit export rows with weights and world preferences,
   import the loaded output's generated forces with **REPLACE FROM OUTPUT**,
   and save the result as a `factions.toml`-compatible TOML file.
-- **Data** — CSV data editor for `key.csv` / `generator.csv` from inside
-  the app.
+- **Data** — typed `worlds.toml` editor from inside the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
   weights — avoid `Unstable` / `Hazardous`; `Perilous` routes are impassable)
@@ -1515,7 +1502,7 @@ sector overview, a single system map, or all per-system maps. The current
 HEATMAP selection in the sector view is carried into the exported sector PNG.
 Top-bar **EXPORT BUNDLE** writes a complete sector bundle to a chosen folder:
 `<sector-id>/out/sector.json`, manifest, validation placeholder, Markdown,
-CSVs, and a filtered `data/` copy when the sector was loaded from a project.
+and a filtered `data/` copy when the sector was loaded from a project.
 
 ### Launching the GUI
 
@@ -1602,7 +1589,7 @@ Public surface:
 | `write_sector_json(path, &sector)` | Pretty-JSON sector writer |
 | `write_system_json(path, &system)` | Pretty-JSON standalone system writer |
 | `write_sector_markdown(path, &sector)` | Markdown writer |
-| `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / CSV / manifest + bitmaps |
+| `export_sector(&sector, &cfg, dir)` | Write JSON / Markdown / manifest + bitmaps |
 | `inspect_world_workbook(path)` | World-data diagnostics (used by `inspect-worlds`) |
 | `advance_sector(&mut sector)` | §5 NEXT — advance one conflict-simulation tick |
 | `split_sector_save(&sector)` | §13 NEXT — extract IDs-only `SectorSave` from a sector |
@@ -1690,7 +1677,7 @@ Common codes:
 | `GEN_WORLD_COUNT_RANGE` | `min_worlds_per_system > max_worlds_per_system` |
 | `WB_NO_USABLE_ROWS` | World data produced zero usable candidates |
 | `WB_EXCLUDED_ROWS` | At least one row was excluded (warning) |
-| `KEY_TABLE_EMPTY` | A key.csv column has no parseable entries |
+| `KEY_TABLE_EMPTY` | A key table built from enums had no entries |
 | `FACTION_DUPLICATE_ID` | Two factions share an `id` |
 | `FACTION_BAD_WEIGHT` | Faction weight is ≤ 0 or non-finite |
 | `FACTION_UNKNOWN_*` | Faction references a string that isn't a variant name |
@@ -1762,9 +1749,9 @@ In `[generation.world_selection]` set `strict_same_star_colour = true`.
 All worlds in each system will then share the system's primary star colour.
 
 **Use your own world data.**
-Place `key.csv` and `generator.csv` in a directory and update `[inputs].world_data_dir`.
-Each column must have a valid header name and rows filled with variant names from the
-canonical enum list. Add rows to introduce new candidate worlds.
+Place a `worlds.toml` in a directory and update `[inputs].world_data_dir`.
+Each `[[generation]]` table is one weighted candidate world with enum-variant
+fields. Add tables to introduce new candidate worlds.
 
 **Reproduce a previous sector exactly.**
 Pin the seed, keep `sectorforge.toml` unchanged, and keep every file
@@ -1799,7 +1786,7 @@ across runs, so a regression check is a diff away.
 | [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
 | [src/main.rs](src/main.rs) | Clap-based CLI (`sectorforge` binary) |
 | [src/gui/main.rs](src/gui/main.rs) | GUI binary entry point (`sectorforge-gui`) |
-| [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser (do not modify casually) |
+| [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
 | [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events. `build_system` is the unit reused by sector + standalone APIs |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
@@ -1807,7 +1794,7 @@ across runs, so a regression check is a diff away.
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
 | [src/invariants.rs](src/invariants.rs) | Spec §11.11 post-generation invariants |
 | [src/render.rs](src/render.rs) | Pure Markdown rendering (sector + standalone system). Includes faction display buckets (§15) and per-world / per-system stability (§11.1) |
-| [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest writers + bundle export |
+| [src/export.rs](src/export.rs) | JSON / Markdown / manifest writers + bundle export |
 | [src/html_export.rs](src/html_export.rs) | §11 NEW.md self-contained interactive HTML map: inlines sector JSON + theme CSS + vanilla-JS canvas renderer; supports player-edition redaction via the intel layer. Byte-deterministic. |
 | [src/map_theme.rs](src/map_theme.rs) | §13 NEW2.md bitmap map themes: built-in palettes, custom TOML theme parsing, color validation, label/legend/route/symbol style knobs |
 | [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + themed legend |
@@ -1860,7 +1847,7 @@ across runs, so a regression check is a diff away.
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
 | [src/gui/factions_overview.rs](src/gui/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
-| [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor UI |
+| [src/gui/data_editor.rs](src/gui/data_editor.rs) | `worlds.toml` data editor UI |
 | [src/gui/route_planner.rs](src/gui/route_planner.rs) | Route planner (Safest / Shortest) |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
@@ -1911,4 +1898,4 @@ Same caveat for the `while condition comparing floats` warnings in the bitmap/pa
 
 ### Hashing
 
-Maps and sets across the crate use the std default `RandomState` (SipHash). For determinism we **never** iterate a `HashMap` for output — JSON / Markdown / CSV writers sort keys via a `BTreeMap` or an explicit `sort_unstable_by` before emission. If you switch to a faster hasher (`rustc_hash::FxHashMap`, `ahash`), the same rule applies: sort before emit, never iterate in output order.
+Maps and sets across the crate use the std default `RandomState` (SipHash). For determinism we **never** iterate a `HashMap` for output — JSON / Markdown writers sort keys via a `BTreeMap` or an explicit `sort_unstable_by` before emission. If you switch to a faster hasher (`rustc_hash::FxHashMap`, `ahash`), the same rule applies: sort before emit, never iterate in output order.

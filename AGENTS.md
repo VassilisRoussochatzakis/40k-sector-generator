@@ -17,7 +17,7 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 
 | File | Purpose |
 |---|---|
-| [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser |
+| [src/worlds.rs](src/worlds.rs) | Canonical world enums |
 | [src/world_pool.rs](src/world_pool.rs) | GenerationRow → weighted candidate pool |
 | [src/generation.rs](src/generation.rs) | Sector generation: placement, systems, worlds, factions, routes |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs with Serialize/Deserialize |
@@ -25,7 +25,7 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 | [src/validation.rs](src/validation.rs) | Pre-generation validation |
 | [src/invariants.rs](src/invariants.rs) | Post-generation invariants (spec §11.11) |
 | [src/render.rs](src/render.rs) | Markdown rendering (sector + standalone system) |
-| [src/export.rs](src/export.rs) | JSON / Markdown / CSV / manifest / bitmap writers |
+| [src/export.rs](src/export.rs) | JSON / Markdown / manifest / bitmap writers |
 | [src/html_export.rs](src/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
 | [src/search.rs](src/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/diff.rs](src/diff.rs) | §10 sector diff: model-aware before/after report |
@@ -50,7 +50,7 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 | [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG/JSON export UI |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |
-| [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor |
+| [src/gui/data_editor.rs](src/gui/data_editor.rs) | `worlds.toml` data editor |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI |
 | [src/gui/palette.rs](src/gui/palette.rs) | Color palette |

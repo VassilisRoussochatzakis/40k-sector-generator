@@ -1,17 +1,6 @@
-/// World parameter types loaded from two CSV files in a project's worlds dir:
-///
-///   key.csv       — reference lookup tables (one column per enum kind):
-///     `star_colour`, `world_type`, atmosphere, temperature, biosphere,
-///     population, `tech_level`, government, `notable_feature`
-///
-///   generator.csv — weighted generator rows:
-///     `star_colour`, `world_type`, atmosphere, temperature, biosphere,
-///     population, `tech_level`, government, `notable_feature`, counter, weight
-///
-/// Both files have a header row. Empty cells are treated as missing. The CSV
-/// parser handles RFC 4180 quoted fields.
+/// World parameter types. The enum set in this module is the authoritative
+/// taxonomy; project data is loaded from `worlds.toml` via [`load_worlds_data`].
 use std::collections::HashMap;
-use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -21,8 +10,6 @@ use thiserror::Error;
 pub enum WorldError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("CSV parse error: {0}")]
-    Csv(String),
     #[error("invalid data: {0}")]
     Invalid(String),
 }
@@ -393,190 +380,6 @@ pub struct KeyTables {
     pub notable_features: Vec<String>,
 }
 
-/// Helper: trimmed non-empty string from a CSV cell.
-fn cell_str(cell: &str) -> Option<&str> {
-    let s = cell.trim();
-    if s.is_empty() {
-        None
-    } else {
-        Some(s)
-    }
-}
-
-/// Parse a CSV file into header + rows (RFC 4180: quoted fields, "" escapes ").
-/// Returns (header, rows). Empty trailing lines skipped.
-pub fn parse_csv(text: &str) -> Result<(Vec<String>, Vec<Vec<String>>), WorldError> {
-    let records = parse_csv_records(text)?;
-    let mut iter = records.into_iter();
-    let header = iter
-        .next()
-        .ok_or_else(|| WorldError::Csv("csv has no header row".to_string()))?;
-    Ok((header, iter.collect()))
-}
-
-fn parse_csv_records(text: &str) -> Result<Vec<Vec<String>>, WorldError> {
-    let mut records: Vec<Vec<String>> = Vec::new();
-    let mut field = String::new();
-    let mut record: Vec<String> = Vec::new();
-    let mut in_quotes = false;
-    let mut chars = text.chars().peekable();
-    while let Some(c) = chars.next() {
-        if in_quotes {
-            if c == '"' {
-                if chars.peek() == Some(&'"') {
-                    chars.next();
-                    field.push('"');
-                } else {
-                    in_quotes = false;
-                }
-            } else {
-                field.push(c);
-            }
-        } else {
-            match c {
-                '"' => in_quotes = true,
-                ',' => {
-                    record.push(std::mem::take(&mut field));
-                }
-                '\r' => {
-                    if chars.peek() == Some(&'\n') {
-                        chars.next();
-                    }
-                    record.push(std::mem::take(&mut field));
-                    if is_empty_record(&record) {
-                        record.clear();
-                    } else {
-                        records.push(std::mem::take(&mut record));
-                    }
-                }
-                '\n' => {
-                    record.push(std::mem::take(&mut field));
-                    if is_empty_record(&record) {
-                        record.clear();
-                    } else {
-                        records.push(std::mem::take(&mut record));
-                    }
-                }
-                _ => field.push(c),
-            }
-        }
-    }
-    if in_quotes {
-        return Err(WorldError::Csv(
-            "csv ended inside a quoted field".to_string(),
-        ));
-    }
-    if !field.is_empty() || !record.is_empty() {
-        record.push(std::mem::take(&mut field));
-        if !is_empty_record(&record) {
-            records.push(record);
-        }
-    }
-    Ok(records)
-}
-
-fn is_empty_record(record: &[String]) -> bool {
-    record.iter().all(|f| f.trim().is_empty())
-}
-
-const KEY_HEADER: &[&str] = &[
-    "star_colour",
-    "world_type",
-    "atmosphere",
-    "temperature",
-    "biosphere",
-    "population",
-    "tech_level",
-    "government",
-    "notable_feature",
-];
-
-fn validate_header(actual: &[String], expected: &[&str]) -> Result<(), WorldError> {
-    if actual.len() < expected.len() {
-        return Err(WorldError::Csv(format!(
-            "not enough columns: expected at least {}, found {}",
-            expected.len(),
-            actual.len()
-        )));
-    }
-    for (i, &name) in expected.iter().enumerate() {
-        if actual[i].to_lowercase() != name {
-            return Err(WorldError::Csv(format!(
-                "invalid header at column {}: expected '{}', found '{}'",
-                i + 1,
-                name,
-                actual[i]
-            )));
-        }
-    }
-    Ok(())
-}
-
-impl KeyTables {
-    /// Parse a `key.csv` file. Expected header (case-insensitive, order fixed):
-    ///   `star_colour,world_type,atmosphere,temperature,biosphere`,
-    ///   `population,tech_level,government,notable_feature`
-    pub fn from_csv_path(path: impl AsRef<Path>) -> Result<Self, WorldError> {
-        let path = path.as_ref();
-        let text = fs::read_to_string(path)?;
-        Self::from_csv_str(&text)
-    }
-
-    pub fn from_csv_str(text: &str) -> Result<Self, WorldError> {
-        let (header, rows) = parse_csv(text)?;
-        validate_header(&header, KEY_HEADER)?;
-        let mut tables = Self::default();
-        for row in rows {
-            let get = |idx: usize| row.get(idx).map(|s| s.as_str()).and_then(cell_str);
-
-            if let Some(s) = get(0) {
-                if let Ok(v) = s.parse::<StarColour>() {
-                    tables.star_colours.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(1) {
-                if let Ok(v) = s.parse::<WorldType>() {
-                    tables.world_types.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(2) {
-                if let Ok(v) = s.parse::<Atmosphere>() {
-                    tables.atmospheres.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(3) {
-                if let Ok(v) = s.parse::<Temperature>() {
-                    tables.temperatures.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(4) {
-                if let Ok(v) = s.parse::<Biosphere>() {
-                    tables.biospheres.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(5) {
-                if let Ok(v) = s.parse::<Population>() {
-                    tables.populations.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(6) {
-                if let Ok(v) = s.parse::<TechLevel>() {
-                    tables.tech_levels.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(7) {
-                if let Ok(v) = s.parse::<Government>() {
-                    tables.governments.insert(s.to_owned(), v);
-                }
-            }
-            if let Some(s) = get(8) {
-                tables.notable_features.push(s.to_owned());
-            }
-        }
-        Ok(tables)
-    }
-}
-
 impl std::str::FromStr for StarColour {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -593,62 +396,10 @@ impl std::str::FromStr for StarColour {
     }
 }
 
-/// Parse a single CSV record into a `GenerationRow`.
-fn parse_generation_row(row: &[String]) -> GenerationRow {
-    fn parse<T: std::str::FromStr>(row: &[String], idx: usize) -> Option<T> {
-        row.get(idx)
-            .map(|s| s.as_str())
-            .and_then(cell_str)
-            .and_then(|s| s.parse().ok())
-    }
-
-    GenerationRow {
-        star_colour: parse(row, 0),
-        world_type: parse(row, 1),
-        atmosphere: parse(row, 2),
-        temperature: parse(row, 3),
-        biosphere: parse(row, 4),
-        population: parse(row, 5),
-        tech: parse(row, 6),
-        government: parse(row, 7),
-        notable_feature: parse(row, 8),
-        counter: row
-            .get(9)
-            .map(|s| s.as_str())
-            .and_then(cell_str)
-            .and_then(|s| s.parse::<i64>().ok())
-            .map(|n| n as usize),
-        weight: row
-            .get(10)
-            .map(|s| s.as_str())
-            .and_then(cell_str)
-            .and_then(|s| s.parse::<f64>().ok()),
-    }
-}
-
-const GEN_HEADER: &[&str] = &[
-    "star_colour",
-    "world_type",
-    "atmosphere",
-    "temperature",
-    "biosphere",
-    "population",
-    "tech_level",
-    "government",
-    "notable_feature",
-    "counter",
-    "weight",
-];
-
 /// Load a project's world data from the given dir.
 ///
-/// Preference order:
-///   1. `worlds.toml` — native typed source of truth (preferred).
-///   2. `generator.csv` (+ optional `key.csv`) — legacy spreadsheet path.
-///
-/// When `key.csv` is absent in the CSV path, the enum-derived
-/// `KeyTables::from_enums()` is used instead — enums are the
-/// authoritative variant set.
+/// `worlds.toml` is the sole supported source of truth — the legacy
+/// twin-CSV path (`key.csv` + `generator.csv`) has been removed.
 pub fn load_generation_rows(
     data_dir: impl AsRef<Path>,
 ) -> Result<(KeyTables, Vec<GenerationRow>), WorldError> {
@@ -671,49 +422,28 @@ impl WorldsLoad {
 
 /// Load both row data and (when available) the authored feature pool.
 ///
+/// Reads `<data_dir>/worlds.toml` (the only supported format).
 /// Callers building a `WorldCandidatePool` should pass the returned
 /// `authored_features` to `world_pool::apply_authored_features` so the
 /// structured pool overlays the row-derived one.
 pub fn load_worlds_data(data_dir: impl AsRef<Path>) -> Result<WorldsLoad, WorldError> {
     let dir = data_dir.as_ref();
     let toml_path = dir.join(crate::worlds_toml::DEFAULT_FILENAME);
-    if toml_path.exists() {
-        let cfg = crate::worlds_toml::WorldsConfig::from_path(&toml_path)
-            .map_err(|e| WorldError::Invalid(format!("worlds.toml: {e}")))?;
-        let (tables, rows) = cfg.to_loader_inputs();
-        let features = cfg
-            .resolved_features()
-            .map_err(|e| WorldError::Invalid(format!("worlds.toml features: {e}")))?;
-        let authored = if features.is_empty() {
-            None
-        } else {
-            Some(features)
-        };
-        return Ok(WorldsLoad {
-            tables,
-            rows,
-            authored_features: authored,
-        });
-    }
-
-    let key_path = dir.join("key.csv");
-    let gen_path = dir.join("generator.csv");
-
-    let tables = if key_path.exists() {
-        KeyTables::from_csv_path(&key_path)?
+    let cfg = crate::worlds_toml::WorldsConfig::from_path(&toml_path)
+        .map_err(|e| WorldError::Invalid(format!("worlds.toml: {e}")))?;
+    let (tables, rows) = cfg.to_loader_inputs();
+    let features = cfg
+        .resolved_features()
+        .map_err(|e| WorldError::Invalid(format!("worlds.toml features: {e}")))?;
+    let authored_features = if features.is_empty() {
+        None
     } else {
-        KeyTables::from_enums()
+        Some(features)
     };
-
-    let gen_text = fs::read_to_string(&gen_path)?;
-    let (header, records) = parse_csv(&gen_text)?;
-    validate_header(&header, GEN_HEADER)?;
-    let rows: Vec<GenerationRow> = records.iter().map(|r| parse_generation_row(r)).collect();
-
     Ok(WorldsLoad {
         tables,
         rows,
-        authored_features: None,
+        authored_features,
     })
 }
 
@@ -1132,10 +862,9 @@ impl std::fmt::Display for NotableFeature {
 
 // ── Enum-authoritative variants + canonical display names ────────────────────
 //
-// `VARIANTS` exposes the compile-time-complete variant set for every enum, so
-// callers no longer need `key.csv` to know what choices exist. `display_name`
-// returns the canonical string form (matches `FromStr` keys, suitable for CSV
-// round-trip and GUI dropdown labels).
+// `VARIANTS` exposes the compile-time-complete variant set for every enum.
+// `display_name` returns the canonical string form (matches `FromStr` keys,
+// suitable for GUI dropdown labels).
 
 impl StarColour {
     pub const VARIANTS: &'static [Self] = &[
@@ -1595,8 +1324,8 @@ impl NotableFeature {
 impl KeyTables {
     /// Build a complete key table from the compiled enum variant set.
     ///
-    /// Use this when `key.csv` is absent — the enums are authoritative,
-    /// so the lookup map can always be reconstructed from `VARIANTS`.
+    /// Enums are authoritative, so the lookup map is always
+    /// reconstructed from `VARIANTS`.
     pub fn from_enums() -> Self {
         let mut t = Self::default();
         for v in StarColour::VARIANTS {

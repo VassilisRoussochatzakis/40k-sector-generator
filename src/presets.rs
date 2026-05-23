@@ -317,12 +317,12 @@ mod tests {
         )
         .unwrap();
         fs::write(preset.join("preset.toml"), "title = \"P1\"\n").unwrap();
-        fs::write(preset.join("data/sub/x.csv"), "a,b\n").unwrap();
+        fs::write(preset.join("data/sub/x.toml"), "a = 1\n").unwrap();
         let dest = Utf8PathBuf::from_path_buf(dir.path().join("dst")).unwrap();
         scaffold(&presets, "p1", &dest, Some("new")).unwrap();
         let toml = fs::read_to_string(dest.join("sectorforge.toml").as_path()).unwrap();
         assert!(toml.contains("seed = \"new\""));
-        assert!(dest.join("data/sub/x.csv").exists());
+        assert!(dest.join("data/sub/x.toml").exists());
         assert!(!dest.join("preset.toml").exists());
     }
 }

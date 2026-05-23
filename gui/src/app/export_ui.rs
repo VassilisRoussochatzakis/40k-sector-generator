@@ -218,7 +218,7 @@ impl App {
         let sector = self.sector.clone();
         let data_dir_pb: Option<PathBuf> = self
             .data_editor
-            .gen_path
+            .worlds_toml_path
             .as_ref()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()));
         if let Some(path) = FileDialog::new().pick_folder() {

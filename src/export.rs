@@ -1,4 +1,4 @@
-//! Sector export: JSON, Markdown, CSV, manifest. All file-creating code lives here.
+//! Sector export: JSON, Markdown, manifest. All file-creating code lives here.
 
 use std::fs;
 
@@ -8,7 +8,7 @@ use serde::Serialize;
 use crate::config::{OutputConfig, OutputFormat};
 use crate::errors::SectorError;
 use crate::render;
-use crate::sector_model::{GeneratedRoute, GeneratedSector};
+use crate::sector_model::GeneratedSector;
 
 /// How to render JSON. Replaces positional `pretty: bool` arguments so call
 /// sites read self-documenting (`JsonFormat::Pretty` instead of `true`).
@@ -77,7 +77,6 @@ pub fn export_all(
         match fmt {
             OutputFormat::Json => write_json(sector, output_dir, output_config)?,
             OutputFormat::Markdown => write_markdown(sector, output_dir)?,
-            OutputFormat::Csv => write_csv(sector, output_dir)?,
             OutputFormat::Bitmap => {
                 let opts = crate::bitmap::RenderOptions {
                     faction_fill: bm.faction_fill,
@@ -210,7 +209,7 @@ pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<()
 }
 
 /// Export everything for the sector EXCEPT images: sector JSON,
-/// manifest, validation, markdown, CSVs, plus a recursive copy
+/// manifest, validation, markdown, plus a recursive copy
 /// of the source data folder. Files with image extensions
 /// (.png/.bmp/.jpg/.jpeg/.gif/.webp/.tiff/.tif/.svg/.ico) are skipped during
 /// the data-folder copy.
@@ -229,7 +228,6 @@ pub fn export_bundle(
     write_manifest(sector, &out_dir, JsonFormat::Pretty)?;
     write_validation_placeholder(sector, &out_dir, JsonFormat::Pretty)?;
     write_markdown(sector, &out_dir)?;
-    write_csv(sector, &out_dir)?;
 
     if let Some(src) = data_dir {
         let dest = sector_dir.join("data");
@@ -302,143 +300,3 @@ fn write_markdown(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(),
     Ok(())
 }
 
-// ── CSV ───────────────────────────────────────────────────────────────────────
-
-fn write_csv(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {
-    let csv_dir = output_dir.join("csv");
-    fs::create_dir_all(&csv_dir).map_err(|e| SectorError::io(csv_dir.as_str(), e))?;
-    write_systems_csv(sector, &csv_dir)?;
-    write_worlds_csv(sector, &csv_dir)?;
-    write_routes_csv(&sector.routes, &csv_dir)?;
-    Ok(())
-}
-
-fn write_systems_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), SectorError> {
-    let path = dir.join("systems.csv");
-    let mut s = String::new();
-    s.push_str("id,index,name,q,r,star_colour_code,star_colour_name,spectral_type,world_count,primary_factions,tags\n");
-    for sys in &sector.systems {
-        let (sc_code, sc_name, spec) = if let Some(star) = &sys.star {
-            (
-                star.colour_code.as_ref(),
-                star.colour_name.as_ref(),
-                star.spectral_type.as_deref().unwrap_or(""),
-            )
-        } else {
-            ("none", "none", "")
-        };
-        s.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{},{},{}\n",
-            csv_escape(&sys.id),
-            sys.index,
-            csv_escape(&sys.name),
-            sys.coord.q,
-            sys.coord.r,
-            csv_escape(sc_code),
-            csv_escape(sc_name),
-            csv_escape(spec),
-            sys.worlds.len(),
-            csv_escape(&join_ids(&sys.primary_factions, ";")),
-            csv_escape(&sys.tags.join(";")),
-        ));
-    }
-    fs::write(&path, s).map_err(|e| SectorError::io(path.as_str(), e))?;
-    Ok(())
-}
-
-fn write_worlds_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), SectorError> {
-    let path = dir.join("worlds.csv");
-    let mut s = String::new();
-    s.push_str("id,system_id,index,name,orbit,source_row_index,star_colour_code,world_type,atmosphere,temperature,biosphere,population,tech_level,government,notable_features,factions,subfactions,forces,tags\n");
-    for sys in &sector.systems {
-        for w in &sys.worlds {
-            let factions: Vec<String> = w
-                .factions
-                .iter()
-                .map(|f| f.faction_id.as_str().to_string())
-                .collect();
-            let subfactions: Vec<String> = w
-                .factions
-                .iter()
-                .map(|f| {
-                    f.subfaction_id
-                        .as_deref()
-                        .or(f.subfaction_name.as_deref())
-                        .unwrap_or("")
-                        .to_string()
-                })
-                .collect();
-            let forces: Vec<String> = w
-                .factions
-                .iter()
-                .map(|f| {
-                    f.force_id
-                        .as_deref()
-                        .or(f.force_name.as_deref())
-                        .unwrap_or("")
-                        .to_string()
-                })
-                .collect();
-            s.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
-                csv_escape(&w.id),
-                csv_escape(&sys.id),
-                w.index,
-                csv_escape(&w.name),
-                w.orbit,
-                w.source_row_index,
-                csv_escape(&w.world.star_colour_code),
-                csv_escape(&w.world.world_type),
-                csv_escape(&w.world.atmosphere),
-                csv_escape(&w.world.temperature),
-                csv_escape(&w.world.biosphere),
-                csv_escape(&w.world.population),
-                csv_escape(&w.world.tech_level),
-                csv_escape(&w.world.government),
-                csv_escape(&w.world.notable_features.join(";")),
-                csv_escape(&factions.join(";")),
-                csv_escape(&subfactions.join(";")),
-                csv_escape(&forces.join(";")),
-                csv_escape(&w.tags.join(";")),
-            ));
-        }
-    }
-    fs::write(&path, s).map_err(|e| SectorError::io(path.as_str(), e))?;
-    Ok(())
-}
-
-fn write_routes_csv(routes: &[GeneratedRoute], dir: &Utf8Path) -> Result<(), SectorError> {
-    let path = dir.join("routes.csv");
-    let mut s = String::new();
-    s.push_str("id,from_system_id,to_system_id,distance,route_type,stability,tags\n");
-    for r in routes {
-        s.push_str(&format!(
-            "{},{},{},{},{:?},{:?},{}\n",
-            csv_escape(&r.id),
-            csv_escape(&r.from_system_id),
-            csv_escape(&r.to_system_id),
-            r.distance,
-            r.route_type,
-            r.stability,
-            csv_escape(&r.tags.join(";")),
-        ));
-    }
-    fs::write(&path, s).map_err(|e| SectorError::io(path.as_str(), e))?;
-    Ok(())
-}
-
-fn csv_escape(s: &str) -> String {
-    if s.contains(',') || s.contains('"') || s.contains('\n') {
-        let inner = s.replace('"', "\"\"");
-        format!("\"{inner}\"")
-    } else {
-        s.to_string()
-    }
-}
-
-fn join_ids<T: AsRef<str>>(ids: &[T], sep: &str) -> String {
-    ids.iter()
-        .map(|id| id.as_ref())
-        .collect::<Vec<_>>()
-        .join(sep)
-}

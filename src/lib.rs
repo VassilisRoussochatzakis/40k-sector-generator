@@ -1,9 +1,9 @@
 //! sectorforge — deterministic Warhammer 40k star sector generator.
 //!
-//! [`worlds`] owns the canonical world taxonomy and CSV parsing.
-//! Everything in this crate builds a sector-scale layer around it:
-//! candidate pools, deterministic placement, systems, worlds, routes,
-//! factions, validation, and export.
+//! [`worlds`] owns the canonical world taxonomy; [`worlds_toml`] loads it
+//! from `worlds.toml`. Everything in this crate builds a sector-scale layer
+//! around it: candidate pools, deterministic placement, systems, worlds,
+//! routes, factions, validation, and export.
 //!
 //! # Quick start
 //!
@@ -133,7 +133,7 @@ use camino::Utf8Path;
 /// Returns [`SectorError::Io`] if the project root or any referenced file
 /// cannot be read, [`SectorError::ConfigParse`] if `sectorforge.toml` or a
 /// TOML data file fails to parse, and [`SectorError::WorldDataLoad`] if
-/// `data/worlds/{key,generator}.csv` are malformed.
+/// `data/worlds/worlds.toml` is malformed.
 ///
 /// # Examples
 ///
@@ -404,7 +404,7 @@ pub fn write_sector_markdown(
 ///
 /// # Errors
 ///
-/// Propagates any error from the JSON/Markdown/CSV/bitmap writers — typically
+/// Propagates any error from the JSON/Markdown/bitmap writers — typically
 /// [`SectorError::Io`] or [`SectorError::ExportFailed`].
 pub fn export_sector(
     sector: &GeneratedSector,
@@ -715,7 +715,7 @@ pub fn derive_economy_with(
     economy::derive_with(sector, cfg)
 }
 
-/// §12 NEW.md: write `economy.md` + `economy.json` + `economy.csv` into a dir.
+/// §12 NEW.md: write `economy.md` + `economy.json` into a dir.
 ///
 /// # Errors
 ///
@@ -852,7 +852,7 @@ pub fn write_sites(
 ///
 /// # Errors
 ///
-/// Returns [`SectorError::WorldDataLoad`] if `key.csv`/`generator.csv` cannot
+/// Returns [`SectorError::WorldDataLoad`] if `worlds.toml` cannot
 /// be parsed.
 pub fn inspect_world_workbook(path: &str) -> Result<world_pool::WorkbookStats, SectorError> {
     world_pool::inspect_workbook(path)

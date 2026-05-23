@@ -76,9 +76,6 @@ fn export_writes_all_expected_files() {
     assert!(tmp_path.join("sector.md").exists());
     assert!(tmp_path.join("manifest.json").exists());
     assert!(!tmp_path.join("systems").join("sys-0001.json").exists());
-    assert!(tmp_path.join("csv").join("systems.csv").exists());
-    assert!(tmp_path.join("csv").join("worlds.csv").exists());
-    assert!(tmp_path.join("csv").join("routes.csv").exists());
 }
 
 #[test]

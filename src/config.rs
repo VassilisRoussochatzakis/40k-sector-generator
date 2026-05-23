@@ -42,7 +42,7 @@ pub struct ProjectConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InputConfig {
-    /// Directory containing `key.csv` and `generator.csv`.
+    /// Directory containing `worlds.toml`.
     pub world_data_dir: String,
     #[serde(default)]
     pub system_names: Option<String>,
@@ -320,7 +320,6 @@ fn default_scale() -> u32 {
 pub enum OutputFormat {
     Json,
     Markdown,
-    Csv,
     /// PNG hex map with legend.
     Bitmap,
     /// §11 NEW.md: self-contained interactive HTML map.

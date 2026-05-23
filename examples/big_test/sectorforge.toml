@@ -53,7 +53,7 @@ min_world_presence = 2
 
 [outputs]
 directory = "out"
-formats = ["json", "markdown", "csv"]
+formats = ["json", "markdown"]
 pretty_json = false
 write_per_system_files = false
 write_manifest = true

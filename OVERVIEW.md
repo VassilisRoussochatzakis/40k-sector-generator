@@ -14,9 +14,9 @@ The headline use case is **building reusable, deterministic Warhammer 40k sector
 - Re-roll until the political situation feels interesting, then lock the seed and never lose that sector.
 - Tweak a single faction's preferred world types, regenerate, and see how the balance of power shifts across the map.
 - Author and edit individual worlds, factions, and routes after generation through a graphical editor.
-- Export the result as machine-readable JSON, human-readable Markdown briefing documents, spreadsheet CSVs, or printable PNG bitmap maps — pick the format that fits your downstream workflow.
+- Export the result as machine-readable JSON, human-readable Markdown briefing documents, or printable PNG bitmap maps — pick the format that fits your downstream workflow.
 
-It is intentionally setting-agnostic at the data layer: the world taxonomy and faction model are designed for 40k, but the catalogues are CSV/TOML files you fully control, so it can be reskinned to other space-opera universes by replacing the data.
+It is intentionally setting-agnostic at the data layer: the world taxonomy and faction model are designed for 40k, but the catalogues are typed TOML files you fully control, so it can be reskinned to other space-opera universes by replacing the data.
 
 The app ships as two front ends — a command-line tool (`sectorforge`) for scripted, headless, batch workflows, and a desktop GUI (`sectorforge-gui`) for interactive viewing and editing. Both consume the same project directories and emit the same outputs, so you can flip between them in the same project.
 
@@ -32,7 +32,7 @@ The sector lives on a rectangular axial hex grid whose width and height you choo
 
 ### 2.2 Stars and worlds
 
-Every system gets a star, with a colour drawn from the project's catalogue. Each system then receives a randomised count of worlds (between configurable minimum and maximum). Every world is drawn from a weighted candidate pool authored as CSV — meaning the *probability distribution* of world types in your sector is entirely under your control. The world taxonomy is rich and matches what 40k readers expect:
+Every system gets a star, with a colour drawn from the project's catalogue. Each system then receives a randomised count of worlds (between configurable minimum and maximum). Every world is drawn from a weighted candidate pool authored in `worlds.toml` — meaning the *probability distribution* of world types in your sector is entirely under your control. The world taxonomy is rich and matches what 40k readers expect:
 
 - **World types** — hive worlds, forge worlds, agri worlds, death worlds, shrine worlds, feral worlds, civilised worlds, mining worlds, paradise worlds, fortress worlds, knight worlds, and many more.
 - **Atmosphere, temperature, biosphere** — independent axes capturing whether a world is breathable, lethal, frozen, blistering, lush, irradiated, etc.
@@ -156,7 +156,7 @@ A full sector editor lets you:
 
 ### 4.4 Data editor
 
-The CSV world-data editor (`key.csv` + `generator.csv`) is built into the application. You can author and tweak the world taxonomy and candidate pool entirely inside the GUI, with validation feedback live in the editor, without ever opening a spreadsheet program.
+The typed `worlds.toml` editor is built into the application. You can author and tweak the candidate pool entirely inside the GUI — variant dropdowns and live weight controls — with validation feedback in the editor, without ever opening a text editor.
 
 ### 4.5 Route planner
 
@@ -175,15 +175,15 @@ The GUI can export PNG maps at any integer scale (1× through 8×): the full sec
 
 ## 5. Output formats and downstream workflows
 
-Every generated sector can be exported in four flavours, chosen via the project's TOML or overridden on the command line.
+Every generated sector can be exported in several flavours, chosen via the project's TOML or overridden on the command line.
 
 - **JSON.** The canonical machine-readable export. A single top-level `sector.json` plus optional one-JSON-per-system files in `systems/`. This is the format you would integrate into another tool, a campaign-tracker web app, a virtual tabletop, etc. The schema includes all of the strata above: systems, worlds, factions, routes, subsectors, control summaries, claims, orbital assets, conflict, intel, archetypes, power projection, influence field.
 - **Markdown.** Human-readable, intended for a GM's binder or a campaign wiki. Includes a sector summary, an ASCII map, a system index table, one block per system (coords, star, world table, factions, notes), and full routes and factions tables. There's also a per-system Markdown render available — useful for spinning up a one-off briefing document for a single star.
-- **CSV.** Spreadsheet-friendly. Three files — `systems.csv`, `worlds.csv`, `routes.csv` — with multi-value cells (factions, tags, features) joined by semicolons. Ideal for sorting, filtering, pivot-tabling, and importing into other tools.
 - **Bitmap PNG.** Pixel-rendered maps. The sector PNG includes the hex grid, all systems, all routes (with per-route midpoint glyphs for route control), faction tinting per hex, subsector borders, and an embedded legend. Per-system PNGs render the worlds inside one system, each haloed in its dominant faction's colour. A 5×7 embedded font draws labels at any scale without external font assets. PNG scale is integer 1× through 8×.
+- **HTML.** Self-contained interactive sector map: one file with the sector JSON inlined alongside a vanilla-JS canvas renderer. Pan, zoom, click systems, toggle heatmaps, swap themes. No network calls, no external assets.
 - **Manifest.** A `manifest.json` lists the seed, seed hash, generator name and version, settings digest, BLAKE3 digest of every input file, and final counts (systems, worlds, routes). This is what makes the output *auditable*: anyone with the manifest can verify they have the exact same input files you ran the generator against.
 
-The four output formats are independent toggles, so you can run an integration pipeline that emits only JSON, an author workflow that emits only Markdown, or a print-shop workflow that emits only PNGs.
+The output formats are independent toggles, so you can run an integration pipeline that emits only JSON, an author workflow that emits only Markdown, or a print-shop workflow that emits only PNGs.
 
 ---
 
@@ -206,7 +206,7 @@ Sectorforge takes the position that *invalid output should not be possible*. To 
 
 If any invariant fails, the sector is not written. The whole point is that any file labelled `sector.json` is by construction internally consistent.
 
-There is also a dedicated **inspector** command (`inspect-worlds`) that diagnoses a world-data directory in isolation — useful when you're authoring CSV catalogues and want to know how many usable rows you have, what the top-weighted star colours / world types / notable features look like, and which rows were excluded.
+There is also a dedicated **inspector** command (`inspect-worlds`) that diagnoses a world-data directory in isolation — useful when you're authoring a `worlds.toml` and want to know how many usable rows you have, what the top-weighted star colours / world types / notable features look like, and which rows were excluded.
 
 ---
 
@@ -234,8 +234,8 @@ Practical consequences:
 
 Everything that drives the sector is user-editable.
 
-- **The world taxonomy is yours.** The set of legal star colours, world types, atmospheres, biospheres, governments, and notable features comes from `key.csv`. You can prune the canonical 40k taxonomy down to whatever subset you want, or extend it.
-- **The candidate pool is yours.** `generator.csv` is the weighted population the generator draws from. Adding a row adds a new candidate world template. Increasing a row's weight makes that template more common in generated sectors. Excluding a column makes that field unweighted.
+- **The world taxonomy is yours.** The set of legal star colours, world types, atmospheres, biospheres, governments, and notable features comes from the enum set in [src/worlds.rs](src/worlds.rs). Edit the source list to prune the canonical 40k taxonomy down to whatever subset you want, or extend it.
+- **The candidate pool is yours.** `worlds.toml` is the weighted population the generator draws from. Adding a `[[generation]]` table adds a new candidate world template. Increasing a row's weight makes that template more common in generated sectors. Omitting a field makes it unweighted.
 - **The names are yours.** Two name TOML files, one for systems and one for worlds, each accept either a list of complete names, or prefix and suffix pools to compose from, or both.
 - **The factions are yours.** A factions TOML file lists every faction that can appear, its kind, its dispositional flavour, its weight, and the world types / governments / notable features it prefers.
 - **The routes are yours.** A routes TOML file declares the route weighting policy, including arbitrary modifiers (`when notable_feature = "TradeHub", multiplier = 2.0`).

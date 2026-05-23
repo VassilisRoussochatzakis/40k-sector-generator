@@ -1,9 +1,7 @@
 //! Native typed worlds configuration (TOML).
 //!
-//! Replaces the twin-CSV (`key.csv` + `generator.csv`) shape as the
-//! authoritative source of truth for worlds data when the project is
-//! authored inside the application. CSV remains an optional
-//! import/export adapter for spreadsheet workflows.
+//! Authoritative source of truth for worlds data. Edited inside the
+//! application via typed widgets or hand-authored as plain TOML.
 //!
 //! Layout:
 //!
@@ -77,8 +75,8 @@ pub struct WorldsConfig {
     pub features: FeaturePoolConfig,
 }
 
-/// Structured feature pool. Replaces the implicit single-column
-/// `notable_feature` flattening that CSV forced on the generator.
+/// Structured feature pool with per-world-type and per-star-colour
+/// weighted overlays on top of a global pool.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FeaturePoolConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -116,8 +114,8 @@ impl WorldsConfig {
 
     /// Convert into the existing loader-tuple shape so downstream code
     /// (`world_pool::build_pool`) is untouched. Always uses the
-    /// enum-derived `KeyTables` since `worlds.toml` is by definition
-    /// the native, enum-aware source.
+    /// enum-derived `KeyTables` since enums are the authoritative
+    /// variant set.
     pub fn to_loader_inputs(&self) -> (KeyTables, Vec<GenerationRow>) {
         (KeyTables::from_enums(), self.generation.clone())
     }

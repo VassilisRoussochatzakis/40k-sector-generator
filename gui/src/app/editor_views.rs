@@ -123,7 +123,7 @@ impl App {
                             can_reload,
                             egui::Button::new(RichText::new("RELOAD").monospace()),
                         )
-                        .on_hover_text("re-read CSVs from disk (discards unsaved edits)")
+                        .on_hover_text("re-read worlds.toml from disk (discards unsaved edits)")
                         .clicked()
                     {
                         if let Some(dir) = self.project_dir.clone() {
@@ -132,7 +132,7 @@ impl App {
                             }
                         }
                     }
-                    let can_save = self.data_editor.key_path.is_some();
+                    let can_save = self.data_editor.worlds_toml.is_some();
                     if ui
                         .add_enabled(
                             can_save,

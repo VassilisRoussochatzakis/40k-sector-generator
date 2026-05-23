@@ -52,7 +52,7 @@ ensure_connected_graph = true
 
 [outputs]
 directory = "out"
-formats = ["json", "markdown", "csv", "bitmap"]
+formats = ["json", "markdown", "bitmap"]
 pretty_json = true
 write_per_system_files = true
 write_manifest = true

@@ -35,7 +35,7 @@ mode = "clustered"
 cluster_bias = 0.7
 minimum_system_distance = 2
 
-# World selection: weighted rows, allow partial rows for incomplete CSV data,
+# World selection: weighted rows, allow partial rows for incomplete data,
 # bias same-star-colour but don't require it, allow duplicate types per system
 # to exercise mixed-world systems.
 [generation.world_selection]
@@ -68,7 +68,7 @@ warn_contested_ratio = 0.25
 # ── Outputs ────────────────────────────────────────────────────────────────────
 [outputs]
 directory = "out"
-formats = ["json", "markdown", "csv", "bitmap", "html"]
+formats = ["json", "markdown", "bitmap", "html"]
 pretty_json = true
 write_per_system_files = true
 write_manifest = true

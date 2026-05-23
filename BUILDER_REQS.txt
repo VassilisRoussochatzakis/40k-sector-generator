@@ -1079,26 +1079,60 @@ done), index pre-build, `mem::take` for vec rotations,
 ================================================================================
 
 Phase A — Foundation
-  D1..D6, R1..R10, P1..P3, U1..U2, V1..V3, N1..N4.
+  D1..D6, 
+  R1..R10, 
+  P1..P3, 
+  U1..U2, 
+  V1..V3, 
+  N1..N4.
 
 Phase B — Direct entity edit
-  S1..S6, W1..W7, R1..R7, F1..F7, CL1..CL4, C1..C8.
+  S1..S6, 
+  W1..W7, 
+  R1..R7, 
+  F1..F7, 
+  CL1..CL4, 
+  C1..C8.
 
 Phase C — Overlays editable
-  REG1..REG7, SUB1..SUB5, E1..E7, REL1..REL9, H1..H8, I1..I5,
-  AR1..AR3, O1..O2, SU1..SU2, CF1..CF6.
+  REG1..REG7, 
+  SUB1..SUB5, 
+  E1..E7, 
+  REL1..REL9, 
+  H1..H8, 
+  I1..I5,
+  AR1..AR3, 
+  O1..O2, 
+  SU1..SU2, 
+  CF1..CF6.
 
 Phase D — Derivations + GM tools
-  PER1..PER5, HK1..HK6, ST1..ST4, M1..M5, PR1..PR4, BR1..BR5,
+  PER1..PER5, 
+  HK1..HK6, 
+  ST1..ST4, 
+  M1..M5, 
+  PR1..PR4, 
+  BR1..BR5,
   INT1..INT4.
 
 Phase E — Tooling
-  SR1..SR5, DF1..DF5, A1..A4, SG1..SG5, PF1..PF6, EX1..EX8,
-  T1..T5, LD1..LD4.
+  SR1..SR5, 
+  DF1..DF5, 
+  1..A4, 
+  SG1..SG5, 
+  PF1..PF6, 
+  EX1..EX8,
+  T1..T5, 
+  LD1..LD4.
 
 Phase F — Polish
-  U3..U6, T6..T7, PERF1..PERF7, command palette, keyboard
-  shortcuts, theme parity, accessibility.
+  U3..U6, 
+  T6..T7, 
+  PERF1..PERF7, 
+  command palette, 
+  keyboard shortcuts, 
+  theme parity, 
+  accessibility.
 
 ================================================================================
 44. OPEN QUESTIONS (resolve before Phase A locks)

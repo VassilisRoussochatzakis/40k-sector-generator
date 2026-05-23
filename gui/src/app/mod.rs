@@ -72,6 +72,7 @@ pub struct App {
     pub(super) export_theme_name: String,
     pub(super) heatmap_mode: HeatmapMode,
     pub(super) heatmap_cache: HeatmapCache,
+    pub(super) sector_map_cache: Option<crate::sector_view::SectorMapCache>,
     pub(super) sector_overview_cache: info_panel::SectorOverviewCache,
     pub(super) dashboard: DashboardState,
     pub(super) preset_gallery: PresetGalleryState,
@@ -115,6 +116,7 @@ impl Default for App {
             export_theme_name: "gm_dark".into(),
             heatmap_mode: HeatmapMode::Off,
             heatmap_cache: HeatmapCache::default(),
+            sector_map_cache: None,
             sector_overview_cache: info_panel::SectorOverviewCache::default(),
             dashboard: DashboardState::default(),
             preset_gallery: PresetGalleryState::default(),
@@ -185,6 +187,7 @@ impl eframe::App for App {
                     sectorforge::subsectors::SubsectorConfig::default(),
                 )
                 .unwrap_or_default();
+                self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(sec, &self.subsectors));
                 self.dashboard.invalidate();
                 self.heatmap_cache.invalidate();
                 self.sector_overview_cache.invalidate();

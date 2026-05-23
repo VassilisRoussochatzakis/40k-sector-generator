@@ -72,6 +72,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     path_route_ids: Some(&path_routes),
                     path_waypoints: Some(&path_waypoints),
                     subsectors: Some(app.subsectors.as_slice()),
+                    cache: None,
                     selected_subsector: None,
                     heatmap: None,
                     empty_hex_clicks: false,

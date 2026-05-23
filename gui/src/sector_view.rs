@@ -15,6 +15,59 @@ use super::palette::{
     HEX_EMPTY, HEX_OUTLINE, PATH_HIGHLIGHT, PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
 };
 
+pub struct SectorMapCache {
+    pub hex_subsector: HashMap<(i32, i32), String>,
+    pub hex_system: HashMap<(i32, i32), sectorforge::ids::SystemId>,
+    pub hex_region: HashMap<(i32, i32), (String, RegionConditionKind)>,
+    pub region_centroids: HashMap<String, Pos2>,
+}
+
+impl SectorMapCache {
+    pub fn new(sector: &GeneratedSector, subsectors: &[Subsector]) -> Self {
+        let mut hex_subsector = HashMap::new();
+        for s in subsectors {
+            for &(q, r) in &s.hex_cells {
+                hex_subsector.insert((q as i32, r as i32), s.id.as_ref().to_string());
+            }
+        }
+
+        let mut hex_system = HashMap::new();
+        for sys in &sector.systems {
+            hex_system.insert((sys.coord.q, sys.coord.r), sys.id.clone());
+        }
+
+        let mut hex_region = HashMap::new();
+        let mut region_hex_counts: HashMap<String, (f32, f32, f32)> = HashMap::new();
+
+        for reg in sector.regions.iter() {
+            let mut sx = 0.0;
+            let mut sy = 0.0;
+            for h in &reg.hexes {
+                hex_region.insert((h.q, h.r), (reg.id.to_string(), reg.kind));
+                sx += h.q as f32;
+                sy += h.r as f32;
+            }
+            if !reg.hexes.is_empty() {
+                let n = reg.hexes.len() as f32;
+                region_hex_counts.insert(reg.id.to_string(), (sx / n, sy / n, n));
+            }
+        }
+
+        let mut region_centroids = HashMap::new();
+        // Centroids are stored in axial coords (q, r) for now, will be projected in render.
+        for (id, (q, r, _)) in region_hex_counts {
+            region_centroids.insert(id, Pos2::new(q, r));
+        }
+
+        Self {
+            hex_subsector,
+            hex_system,
+            hex_region,
+            region_centroids,
+        }
+    }
+}
+
 pub struct SectorView<'a> {
     pub sector: &'a GeneratedSector,
     pub selected_system: Option<&'a str>,
@@ -26,6 +79,8 @@ pub struct SectorView<'a> {
     pub path_waypoints: Option<&'a HashSet<sectorforge::ids::SystemId>>,
     /// Subsector overlay: tile boundaries, labels, and capital markers.
     pub subsectors: Option<&'a [Subsector]>,
+    /// Pre-calculated lookups for systems, subsectors, and regions.
+    pub cache: Option<&'a SectorMapCache>,
     /// When set, every hex of this subsector gets a faint grey tint.
     pub selected_subsector: Option<&'a str>,
     /// Per-system heatmap samples. Hexes for systems present in the map are
@@ -63,96 +118,82 @@ impl<'a> SectorView<'a> {
 
         painter.rect_filled(rect, 0.0, palette::BG);
 
-        // Map each hex coord to its subsector id so we know where to paint
-        // borders. Clusters are arbitrary shapes — use the per-subsector
-        // `hex_cells` membership rather than a rectangular bounding box.
-        let mut hex_subsector: HashMap<(i32, i32), &str> = HashMap::new();
-        if let Some(subs) = self.subsectors {
-            for s in subs {
-                for &(q, r) in &s.hex_cells {
-                    hex_subsector.insert((q as i32, r as i32), s.id.as_ref());
-                }
+        // System-id keyed hex coords for heatmap lookup (still needed if cache not present)
+        let mut hex_system_fallback: HashMap<(i32, i32), &str> = HashMap::new();
+        if self.cache.is_none() {
+            for sys in &self.sector.systems {
+                hex_system_fallback.insert((sys.coord.q, sys.coord.r), sys.id.as_str());
             }
         }
 
-        // System-id keyed hex coords, so the heatmap pass can look up cells by
-        // (q, r) without scanning systems each iteration.
-        let mut hex_system: HashMap<(i32, i32), &str> = HashMap::new();
-        for sys in &self.sector.systems {
-            hex_system.insert((sys.coord.q, sys.coord.r), sys.id.as_str());
-        }
+        let horiz_step = g.hex_size * 3f32.sqrt();
+        let vert_step = g.hex_size * 1.5;
 
-        // §5: per-hex region lookup so the region overlay can tint cells.
-        let mut hex_region: HashMap<(i32, i32), RegionConditionKind> = HashMap::new();
-        let mut hex_region_id: HashMap<(i32, i32), &str> = HashMap::new();
-        for reg in self.sector.regions.iter() {
-            for h in &reg.hexes {
-                hex_region.insert((h.q, h.r), reg.kind);
-                hex_region_id.insert((h.q, h.r), reg.id.as_str());
-            }
-        }
+        // Performance: only iterate hexes visible in the current viewport
+        let min_r = ((rect.min.y - origin.y - g.margin - g.hex_size * 2.0) / vert_step).floor() as i32;
+        let max_r = ((rect.max.y - origin.y - g.margin + g.hex_size) / vert_step).ceil() as i32;
 
-        for r in 0..self.sector.height as i32 {
-            for q in 0..self.sector.width as i32 {
+        let min_q = ((rect.min.x - origin.x - g.margin - horiz_step * 1.5) / horiz_step).floor() as i32;
+        let max_q = ((rect.max.x - origin.x - g.margin + horiz_step) / horiz_step).ceil() as i32;
+
+        for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
+            for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
                 let c = hex_center(q, r, &g) + origin.to_vec2();
-                let base = match (self.heatmap, hex_system.get(&(q, r))) {
-                    (Some(map), Some(&sid)) => map
+                
+                let sid_opt = if let Some(cache) = self.cache {
+                    cache.hex_system.get(&(q, r)).map(|s| s.as_str())
+                } else {
+                    hex_system_fallback.get(&(q, r)).copied()
+                };
+
+                let base = match (self.heatmap, sid_opt) {
+                    (Some(map), Some(sid)) => map
                         .get(sid)
                         .map(|cell| blend_heat(HEX_EMPTY, cell.color, cell.intensity))
                         .unwrap_or(HEX_EMPTY),
                     _ => HEX_EMPTY,
                 };
-                let fill = match hex_region.get(&(q, r)) {
-                    Some(kind) => blend_heat(base, region_color(*kind), 0.5),
-                    None => base,
+                
+                let fill = if let Some(cache) = self.cache {
+                    match cache.hex_region.get(&(q, r)) {
+                        Some((_, kind)) => blend_heat(base, region_color(*kind), 0.5),
+                        None => base,
+                    }
+                } else {
+                    // Fallback region lookup (slow but safe)
+                    let mut f = base;
+                    for reg in self.sector.regions.iter() {
+                        if reg.hexes.iter().any(|h| h.q == q && h.r == r) {
+                            f = blend_heat(base, region_color(reg.kind), 0.5);
+                            break;
+                        }
+                    }
+                    f
                 };
+
                 draw_hex(&painter, c, g.hex_size, fill, HEX_OUTLINE);
             }
         }
 
         // Selected subsector: faint grey wash over every hex in the cluster.
-        // Drawn after the base hex fills so it tints them, but before borders,
-        // routes, and stars so those remain crisp.
         if let Some(sel) = self.selected_subsector {
-            for (&(q, r), &sid) in &hex_subsector {
-                if sid == sel {
-                    let c = hex_center(q, r, &g) + origin.to_vec2();
-                    draw_hex_fill(&painter, c, g.hex_size, SUBSECTOR_HIGHLIGHT);
+            if let Some(cache) = self.cache {
+                for (&(q, r), sid) in &cache.hex_subsector {
+                    if sid == sel {
+                        let c = hex_center(q, r, &g) + origin.to_vec2();
+                        if rect.expand(g.hex_size).contains(c) {
+                            draw_hex_fill(&painter, c, g.hex_size, SUBSECTOR_HIGHLIGHT);
+                        }
+                    }
                 }
-            }
-        }
-
-        // Subsector tile borders: draw thick line along each hex edge that
-        // separates two different subsectors (or the sector outer rim).
-        if !hex_subsector.is_empty() {
-            let border_thick = (g.hex_size * 0.10).max(2.5);
-            // Pointy-top odd-r offset edges (vertex i → vertex i+1):
-            // 0:E, 1:SE, 2:SW, 3:W, 4:NW, 5:NE — neighbor offsets depend
-            // on row parity, see `sector_model::offset_r_neighbors`.
-            for r in 0..self.sector.height as i32 {
-                let neighbor_deltas = sectorforge::sector_model::offset_r_neighbors(r);
-                for q in 0..self.sector.width as i32 {
-                    let here = hex_subsector.get(&(q, r)).copied();
-                    let Some(here_id) = here else { continue };
-                    let c = hex_center(q, r, &g) + origin.to_vec2();
-                    let v = hex_vertices(c, g.hex_size);
-                    for (i, (dq, dr)) in neighbor_deltas.iter().enumerate() {
-                        let other = hex_subsector.get(&(q + dq, r + dr)).copied();
-                        let differs = match other {
-                            Some(id) => id != here_id,
-                            None => true, // sector rim
-                        };
-                        if differs {
-                            let a = v[i];
-                            let b = v[(i + 1) % 6];
-                            let edge_len = a.distance(b);
-                            let dot_radius = (border_thick * 0.8).max(2.0);
-                            let spacing = dot_radius * 2.5;
-                            let segments = (edge_len / spacing).ceil() as usize;
-                            for j in 0..=segments {
-                                let t = j as f32 / segments as f32;
-                                let mid = Pos2::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
-                                painter.circle_filled(mid, dot_radius, SUBSECTOR_BORDER);
+            } else {
+                // Fallback (slow)
+                if let Some(subs) = self.subsectors {
+                    if let Some(s) = subs.iter().find(|s| s.id.as_ref() == sel) {
+                        for &(q, r) in &s.hex_cells {
+                            let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
+                            if rect.expand(g.hex_size).contains(c) {
+                                draw_hex_fill(&painter, c, g.hex_size, SUBSECTOR_HIGHLIGHT);
                             }
                         }
                     }
@@ -160,7 +201,46 @@ impl<'a> SectorView<'a> {
             }
         }
 
-        let mut centers: std::collections::HashMap<&str, Pos2> = Default::default();
+        // Subsector tile borders: always visible, solid lines
+        if let Some(subs) = self.subsectors {
+            if !subs.is_empty() {
+                let border_thick = (g.hex_size * 0.10).max(2.5);
+                for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
+                    let neighbor_deltas = sectorforge::sector_model::offset_r_neighbors(r);
+                    for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
+                        let here_id = if let Some(cache) = self.cache {
+                            cache.hex_subsector.get(&(q, r)).map(|s| s.as_str())
+                        } else {
+                            subs.iter().find(|s| s.hex_cells.iter().any(|&(hq, hr)| hq as i32 == q && hr as i32 == r)).map(|s| s.id.as_ref())
+                        };
+                        let Some(here_id) = here_id else { continue };
+                        
+                        let c = hex_center(q, r, &g) + origin.to_vec2();
+                        let v = hex_vertices(c, g.hex_size);
+                        for (i, (dq, dr)) in neighbor_deltas.iter().enumerate() {
+                            let (nq, nr) = (q + dq, r + dr);
+                            let other_id = if let Some(cache) = self.cache {
+                                cache.hex_subsector.get(&(nq, nr)).map(|s| s.as_str())
+                            } else {
+                                subs.iter().find(|s| s.hex_cells.iter().any(|&(hq, hr)| hq as i32 == nq && hr as i32 == nr)).map(|s| s.id.as_ref())
+                            };
+
+                            let differs = match other_id {
+                                Some(id) => id != here_id,
+                                None => true, // sector rim
+                            };
+                            if differs {
+                                let a = v[i];
+                                let b = v[(i + 1) % 6];
+                                painter.line_segment([a, b], Stroke::new(border_thick, SUBSECTOR_BORDER));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut centers: std::collections::HashMap<&str, Pos2> = HashMap::with_capacity(self.sector.systems.len());
         for sys in &self.sector.systems {
             let c = hex_center(sys.coord.q, sys.coord.r, &g) + origin.to_vec2();
             centers.insert(sys.id.as_str(), c);
@@ -184,6 +264,12 @@ impl<'a> SectorView<'a> {
             ) else {
                 continue;
             };
+
+            // Culling for routes: if both endpoints are way outside the screen, skip.
+            if !rect.expand(g.hex_size * 5.0).contains(a) && !rect.expand(g.hex_size * 5.0).contains(b) {
+                continue;
+            }
+
             let Some((a2, b2)) = shorten(a, b) else {
                 continue;
             };
@@ -264,12 +350,14 @@ impl<'a> SectorView<'a> {
             }
         }
 
-        draw_region_labels(&painter, self.sector, origin, &g, rect);
+        draw_region_labels(&painter, self.sector, origin, &g, rect, self.cache);
 
-        // Pass 1: all system hex fills + stars + pips. So later hexes can't
-        // paint over earlier system labels.
+        // Pass 1: all system hex fills + stars + pips.
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
+            if !rect.expand(g.hex_size).contains(c) {
+                continue;
+            }
             let is_sel = self.selected_system == Some(sys.id.as_str());
             if is_sel {
                 draw_hex_outline_only(&painter, c, g.hex_size + 2.0, SELECTION, 2.5);
@@ -343,93 +431,94 @@ impl<'a> SectorView<'a> {
         // map edges. Uses cluster name ("Subsector Aurelia" -> "AURELIA") rather
         // than the spreadsheet letter so the map reads politically. Skip
         // clusters with no member systems so empty frontier regions stay
-        // uncluttered.
+        // uncluttered. Hide if zoomed in too far.
         if let Some(subs) = self.subsectors {
-            let sub_label_size = (g.hex_size * 0.36).max(11.0);
-            let font = FontId::monospace(sub_label_size);
-            let sys_label_size = (g.hex_size * 0.28).max(9.0);
-            let sys_font = FontId::monospace(sys_label_size);
-            let pad = Vec2::new(6.0, 2.0);
-            let sys_pad = Vec2::new(3.0, 1.0);
-            let line_gap = 2.0;
-            let hex_half_w = g.hex_size * 3f32.sqrt() / 2.0;
+            if g.hex_size < 40.0 {
+                let sub_label_size = (g.hex_size * 0.36).max(11.0);
+                let font = FontId::monospace(sub_label_size);
+                let sys_label_size = (g.hex_size * 0.28).max(9.0);
+                let sys_font = FontId::monospace(sys_label_size);
+                let pad = Vec2::new(4.0, 1.5);
+                let sys_pad = Vec2::new(2.0, 0.5);
+                let line_gap = 2.0;
+                let hex_half_w = g.hex_size * 3f32.sqrt() / 2.0;
 
-            // Static obstacles: every system marker bbox + every system name
-            // label rect. Coordinates are screen-space (already include origin).
-            let mut obstacles: Vec<egui::Rect> = Vec::with_capacity(self.sector.systems.len() * 2);
-            for sys in &self.sector.systems {
-                let c = centers[sys.id.as_str()];
-                obstacles.push(egui::Rect::from_min_max(
-                    Pos2::new(c.x - hex_half_w, c.y - g.hex_size),
-                    Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
-                ));
-                let name = sys.name.to_ascii_uppercase();
-                let galley = painter.layout_no_wrap(name, sys_font.clone(), TEXT_DIM);
-                let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
-                obstacles.push(egui::Rect::from_min_size(
-                    pos - sys_pad,
-                    galley.size() + sys_pad * 2.0,
-                ));
-            }
-
-            // Already-placed subsector labels (avoid stacking on each other).
-            let mut placed: Vec<egui::Rect> = Vec::with_capacity(subs.len());
-
-            let sys_cells: HashSet<(i32, i32)> = self
-                .sector
-                .systems
-                .iter()
-                .map(|sys| (sys.coord.q, sys.coord.r))
-                .collect();
-
-            for s in subs {
-                if s.system_ids.is_empty() || s.hex_cells.is_empty() {
-                    continue;
+                // Static obstacles: every system marker bbox + every system name
+                // label rect. Coordinates are screen-space.
+                let mut obstacles: Vec<egui::Rect> = Vec::with_capacity(self.sector.systems.len() * 2);
+                for sys in &self.sector.systems {
+                    let c = centers[sys.id.as_str()];
+                    obstacles.push(egui::Rect::from_min_max(
+                        Pos2::new(c.x - hex_half_w, c.y - g.hex_size),
+                        Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
+                    ));
+                    let name = sys.name.to_ascii_uppercase();
+                    let galley = painter.layout_no_wrap(name, sys_font.clone(), TEXT_DIM);
+                    let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
+                    obstacles.push(egui::Rect::from_min_size(
+                        pos - sys_pad,
+                        galley.size() + sys_pad * 2.0,
+                    ));
                 }
 
-                let cells: HashSet<(i32, i32)> = s
-                    .hex_cells
+                // Already-placed subsector labels.
+                let mut placed: Vec<egui::Rect> = Vec::with_capacity(subs.len());
+
+                let sys_cells: HashSet<(i32, i32)> = self
+                    .sector
+                    .systems
                     .iter()
-                    .map(|&(q, r)| (q as i32, r as i32))
+                    .map(|sys| (sys.coord.q, sys.coord.r))
                     .collect();
 
-                let name_part = s
-                    .name
-                    .strip_prefix("Subsector ")
-                    .unwrap_or_else(|| s.name.as_ref())
-                    .to_ascii_uppercase();
-                let top_galley =
-                    painter.layout_no_wrap("SUBSECTOR".to_string(), font.clone(), SUBSECTOR_LABEL);
-                let bot_galley = painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
-                let block_w = top_galley.size().x.max(bot_galley.size().x);
-                let block_h = top_galley.size().y + line_gap + bot_galley.size().y;
+                for s in subs {
+                    if s.system_ids.is_empty() || s.hex_cells.is_empty() {
+                        continue;
+                    }
 
-                // Centroid in screen coords.
-                let mut sx: f32 = 0.0;
-                let mut sy: f32 = 0.0;
-                for &(q, r) in &s.hex_cells {
-                    let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
-                    sx += c.x;
-                    sy += c.y;
-                }
-                let n = s.hex_cells.len() as f32;
-                let cen = Pos2::new(sx / n, sy / n);
+                    let cells: HashSet<(i32, i32)> = s
+                        .hex_cells
+                        .iter()
+                        .map(|&(q, r)| (q as i32, r as i32))
+                        .collect();
 
-                // Candidate empty cells sorted by distance to centroid.
-                let mut cands: Vec<(i32, i32, f32)> = s
-                    .hex_cells
-                    .iter()
-                    .filter(|&&(q, r)| !sys_cells.contains(&(q as i32, r as i32)))
-                    .map(|&(q, r)| {
-                        let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
-                        let d = (c - cen).length_sq();
-                        (q as i32, r as i32, d)
-                    })
-                    .collect();
-                cands.sort_by(|a, b| a.2.total_cmp(&b.2));
+                    let name_part = s
+                        .name
+                        .strip_prefix("Subsector ")
+                        .unwrap_or_else(|| s.name.as_ref())
+                        .to_ascii_uppercase();
+                    let top_galley =
+                        painter.layout_no_wrap("SUBSECTOR".to_string(), font.clone(), SUBSECTOR_LABEL);
+                    let bot_galley = painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
+                    let block_w = top_galley.size().x.max(bot_galley.size().x);
+                    let block_h = top_galley.size().y + line_gap + bot_galley.size().y;
 
-                let try_place =
-                    |q: i32, r: i32, above: bool, placed: &[egui::Rect]| -> Option<(f32, f32)> {
+                    // Stable centroid in axial coords.
+                    let mut sq: f32 = 0.0;
+                    let mut sr: f32 = 0.0;
+                    for &(q, r) in &s.hex_cells {
+                        sq += q as f32;
+                        sr += r as f32;
+                    }
+                    let n = s.hex_cells.len() as f32;
+                    let aq = sq / n;
+                    let ar = sr / n;
+
+                    // Candidate empty cells sorted by axial distance to centroid.
+                    let mut cands: Vec<(i32, i32, f32)> = s
+                        .hex_cells
+                        .iter()
+                        .filter(|&&(q, r)| !sys_cells.contains(&(q as i32, r as i32)))
+                        .map(|&(q, r)| {
+                            let dq = q as f32 - aq;
+                            let dr = r as f32 - ar;
+                            (q as i32, r as i32, dq * dq + dr * dr)
+                        })
+                        .collect();
+                    cands.sort_by(|a, b| a.2.total_cmp(&b.2));
+
+                    let try_place =
+                        |q: i32, r: i32, above: bool, placed: &[egui::Rect]| -> Option<(f32, f32)> {
                         // offset_r_neighbors order: 0:E 1:SE 2:SW 3:W 4:NW 5:NE.
                         let nbrs = sector_model::offset_r_neighbors(r);
                         if above {
@@ -483,9 +572,9 @@ impl<'a> SectorView<'a> {
                         .hex_cells
                         .iter()
                         .min_by(|&&(q1, r1), &&(q2, r2)| {
-                            let c1 = hex_center(q1 as i32, r1 as i32, &g) + origin.to_vec2();
-                            let c2 = hex_center(q2 as i32, r2 as i32, &g) + origin.to_vec2();
-                            (c1 - cen).length_sq().total_cmp(&(c2 - cen).length_sq())
+                            let d1 = (q1 as f32 - aq).powi(2) + (r1 as f32 - ar).powi(2);
+                            let d2 = (q2 as f32 - aq).powi(2) + (r2 as f32 - ar).powi(2);
+                            d1.total_cmp(&d2)
                         })
                         .expect("non-empty");
                     let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
@@ -528,6 +617,7 @@ impl<'a> SectorView<'a> {
                 placed.push(bg_rect);
             }
         }
+    }
 
         // Pass 2: labels last, always on top of every hex.
         let label_size = (g.hex_size * 0.28).max(9.0);
@@ -589,14 +679,14 @@ impl<'a> SectorView<'a> {
                             click = Some(SectorClick::EmptyHex(coord));
                         }
                     }
-                } else if !hex_region_id.is_empty() || !hex_subsector.is_empty() {
+                } else {
                     // No system under cursor — try empty hex inside a known
                     // region or subsector. Nearest hex center wins as long as it's within
                     // the hex's inscribed radius.
                     let inscribed = g.hex_size * 3f32.sqrt() / 2.0;
                     let mut best: Option<((i32, i32), f32)> = None;
-                    for r in 0..self.sector.height as i32 {
-                        for q in 0..self.sector.width as i32 {
+                    for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
+                        for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
                             let c = hex_center(q, r, &g) + origin.to_vec2();
                             let d = (c - pos).length();
                             if best.map(|(_, bd)| d < bd).unwrap_or(true) {
@@ -606,10 +696,23 @@ impl<'a> SectorView<'a> {
                     }
                     if let Some(((q, r), d)) = best {
                         if d <= inscribed {
-                            if let Some(&rid) = hex_region_id.get(&(q, r)) {
-                                click = Some(SectorClick::Region(rid.to_string()));
-                            } else if let Some(&sid) = hex_subsector.get(&(q, r)) {
-                                click = Some(SectorClick::Subsector(sid.to_string()));
+                            if let Some(cache) = self.cache {
+                                if let Some((rid, _)) = cache.hex_region.get(&(q, r)) {
+                                    click = Some(SectorClick::Region(rid.to_string()));
+                                } else if let Some(sid) = cache.hex_subsector.get(&(q, r)) {
+                                    click = Some(SectorClick::Subsector(sid.to_string()));
+                                }
+                            } else {
+                                // Fallback (slow)
+                                let rid_opt = self.sector.regions.iter().find(|reg| reg.hexes.iter().any(|h| h.q == q && h.r == r)).map(|reg| reg.id.to_string());
+                                if let Some(rid) = rid_opt {
+                                    click = Some(SectorClick::Region(rid));
+                                } else if let Some(subs) = self.subsectors {
+                                    let sid_opt = subs.iter().find(|s| s.hex_cells.iter().any(|&(hq, hr)| hq as i32 == q && hr as i32 == r)).map(|s| s.id.to_string());
+                                    if let Some(sid) = sid_opt {
+                                        click = Some(SectorClick::Subsector(sid));
+                                    }
+                                }
                             }
                         }
                     }
@@ -668,15 +771,23 @@ fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
 }
 
 fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline: Color32) {
+    if size < 3.0 {
+        painter.circle_filled(c, size * 0.9, fill);
+        return;
+    }
     let pts = hex_vertices(c, size).to_vec();
     painter.add(egui::Shape::convex_polygon(
         pts,
         fill,
-        Stroke::new(1.0, outline),
+        Stroke::new(if size < 8.0 { 0.5 } else { 1.0 }, outline),
     ));
 }
 
 fn draw_hex_fill(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32) {
+    if size < 3.0 {
+        painter.circle_filled(c, size * 0.9, fill);
+        return;
+    }
     let pts = hex_vertices(c, size).to_vec();
     painter.add(egui::Shape::convex_polygon(pts, fill, Stroke::NONE));
 }
@@ -748,6 +859,7 @@ fn draw_region_labels(
     origin: Pos2,
     g: &Geom,
     bounds: egui::Rect,
+    cache: Option<&SectorMapCache>,
 ) {
     if sector.regions.is_empty() {
         return;
@@ -755,9 +867,23 @@ fn draw_region_labels(
     let font = FontId::monospace((g.hex_size * 0.31).max(10.0));
     let pad = Vec2::new(6.0, 3.0);
     for region in sector.regions.iter() {
-        let Some(anchor) = region_label_anchor(region, origin, g) else {
+        let anchor = if let Some(cache) = cache {
+            cache.region_centroids.get(region.id.as_str()).map(|&cp| {
+                // cp is in axial (q, r) coords, project it
+                hex_center(cp.x as i32, cp.y as i32, g) + origin.to_vec2()
+            })
+        } else {
+            region_label_anchor(region, origin, g)
+        };
+        
+        let Some(anchor) = anchor else {
             continue;
         };
+
+        if !bounds.expand(100.0).contains(anchor) {
+            continue;
+        }
+
         let label = region_label_text(&region.name);
         let galley = painter.layout_no_wrap(label, font.clone(), REGION_LABEL);
         let size = galley.size();

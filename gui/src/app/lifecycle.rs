@@ -19,6 +19,7 @@ impl App {
         self.sector_source_path = source_path.as_ref().map(PathBuf::from);
         self.live_dirty = false;
         self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
+        self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(&sector, &self.subsectors));
         self.sector = Some(Arc::new(sector.clone()));
         self.sector_selected = None;
         self.sector_selected_route = None;
@@ -78,7 +79,7 @@ impl App {
 
         // Target: fit into a reasonable area (e.g. 1000x1000) or use current ui if we had it.
         // Since we don't have UI size here, we use a heuristic or just center it.
-        self.sector_hex_size = (800.0 / w_units.max(h_units).max(1.0)).clamp(20.0, 80.0);
+        self.sector_hex_size = (800.0 / w_units.max(h_units).max(1.0)).clamp(5.0, 250.0);
         self.sector_pan = egui::Vec2::ZERO; // Reset pan
     }
 

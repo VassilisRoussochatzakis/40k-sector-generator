@@ -240,7 +240,7 @@ impl App {
                     ui.separator();
                     ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
                     ui.add(
-                        egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),
+                        egui::Slider::new(&mut self.sector_hex_size, 5.0..=250.0).show_value(false),
                     );
                     ui.separator();
                     ui.label(RichText::new("HEATMAP").color(TEXT_DIM).monospace());
@@ -350,19 +350,26 @@ impl App {
         let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
         
         // Handle zooming
-        let zoom_delta = ui.input(|i| i.zoom_delta());
+        let mut zoom_delta = ui.input(|i| i.zoom_delta());
+        if zoom_delta == 1.0 && response.hovered() {
+            let scroll = ui.input(|i| i.smooth_scroll_delta.y);
+            if scroll != 0.0 {
+                zoom_delta = (scroll / 400.0).exp();
+            }
+        }
+
         if zoom_delta != 1.0 {
             if let Some(mouse_pos) = response.hover_pos() {
                 // Zoom relative to mouse position
                 let old_zoom = self.sector_hex_size;
-                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(10.0, 150.0);
+                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(5.0, 250.0);
                 let actual_delta = self.sector_hex_size / old_zoom;
                 
                 // Adjust pan to keep mouse over the same map point
                 let map_origin = rect.min + self.sector_pan;
                 self.sector_pan = (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
             } else {
-                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(10.0, 150.0);
+                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(5.0, 250.0);
             }
         }
 
@@ -380,6 +387,7 @@ impl App {
                 path_route_ids: None,
                 path_waypoints: None,
                 subsectors: Some(self.subsectors.as_slice()),
+                cache: self.sector_map_cache.as_ref(),
                 selected_subsector: self.sector_selected_subsector.as_deref(),
                 heatmap: heatmap.as_deref(),
                 empty_hex_clicks: self.map_edit_mode

@@ -1,0 +1,1124 @@
+# BUILDER_REQS.txt
+# Requirements: Full GUI Sector Builder (1:1 parity with sectorforge CLI/generator)
+# Target crate: sectorforge-gui (gui/src/)
+# Backing crate: sectorforge (src/)
+# Goal: user constructs an arbitrary sector from scratch, system-by-system,
+#       through the GUI alone, with access to every CLI/library feature that
+#       affects sector data, derived overlays, validation, or export.
+
+================================================================================
+0. SCOPE
+================================================================================
+
+The builder must let a user:
+  * Start from a blank `GeneratedSector` (no CLI invocation required).
+  * Place / move / delete every entity (system, world, route, region, faction,
+    presence, claim, control state, orbital asset, surface region, archetype,
+    conflict state, intel record, history event, mission, site, persona).
+  * Configure every input file (sectorforge.toml, factions.toml,
+    relations.toml, route_rules.toml, regions.toml, economy.toml, history.toml,
+    system_names.toml, world_names.toml, wishes.toml, map_theme.toml,
+    segmentum.toml, world data CSV).
+  * Invoke every derivation pipeline (search, history, personae, hooks,
+    relations, regions, economy, prose, missions, sites, briefing,
+    interestingness, analyze, diff, compose) without leaving the GUI.
+  * Validate (pre + post invariants) and see errors anchored to the
+    offending entity in the model.
+  * Export every artifact (JSON, Markdown, CSV, sector PNG, per-system PNG,
+    self-contained HTML, manifest, super-manifest).
+  * Re-roll seeds, lock seeds, snapshot/revert via the in-memory history
+    layer, all without losing manual edits in unaffected entities.
+
+This document is a checklist. Each item is a separate, testable unit. The
+ordering inside a section is roughly dependency-first.
+
+================================================================================
+1. RUST ARCHITECTURE PRINCIPLES
+================================================================================
+
+R1.   Single source of truth = `GeneratedSector` from `src/sector_model.rs`.
+      The builder owns one `Arc<RwLock<GeneratedSector>>` (or `Rc<RefCell<>>`
+      if the GUI thread is sole writer). All panels read/write through this.
+
+R2.   Use the existing typed IDs (`SystemId`, `WorldId`, `FactionId`,
+      `RouteId`) from `src/ids.rs` everywhere. Never carry raw `String`
+      identifiers across panel boundaries. Forbid `.to_string()` round-trips.
+
+R3.   Maintain an index layer (`BuilderIndex`) keyed by `BTreeMap<SystemId,
+      usize>` etc., rebuilt on every structural mutation. Keep
+      `BTreeMap` (not `HashMap`) so iteration order is deterministic and
+      JSON exports stay byte-stable.
+
+R4.   Mutations route through a `BuilderCommand` enum (see §17). The
+      command bus enforces: (a) invariant re-checks after apply,
+      (b) snapshot/undo stack, (c) auto-save trigger, (d) cache
+      invalidation for subsectors/heatmaps/derivations.
+
+R5.   Derivations (history, hooks, prose, relations, regions, economy,
+      personae, missions, sites, briefing, interestingness, analytics,
+      conflict tick) are pure functions over `GeneratedSector`. Cache by
+      input digest (BLAKE3 over canonical JSON of the relevant slice). Reuse
+      `src/rng.rs` blake3-seeded RNG for any stochastic step.
+
+R6.   Errors flow through `thiserror`-defined `BuilderError` variants
+      (`ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`,
+      `EntityNotFound`, `StaleSnapshot`). Surface as toast + side-panel
+      details with file:line context.
+
+R7.   Long-running derivations (search, compose, diff with ticks, large
+      sector regeneration) run off the UI thread via `std::thread::spawn`
+      plus a `crossbeam_channel` for progress. eframe `Context::request_repaint`
+      on each progress tick. Cancel via `Arc<AtomicBool>`.
+
+R8.   Determinism: builder writes must produce the same `sector.json` bytes
+      across runs. Enforce in tests by round-tripping
+      `BuilderCommand` log → final sector → BLAKE3 hash equality.
+
+R9.   Crate dependencies (already in workspace): `egui`, `eframe`, `rfd`,
+      `serde`, `serde_json`, `toml`, `blake3`, `rand_chacha`, `thiserror`,
+      `camino`, `image`. Reuse — no new crates without justification.
+
+R10.  Editor panels are functions taking `&mut Ui, &mut BuilderState`.
+      No globals, no `lazy_static`. Modal state lives in
+      `BuilderState::modal: Option<ModalKind>`.
+
+================================================================================
+2. CURRENT GUI INVENTORY (what already exists)
+================================================================================
+
+Working today (see gui/src/editor/* and gui/src/app/*):
+
+  [x] New sector dialog (seed + dims), open project, save as
+  [x] Hex map: select / drag systems, add system tool, add/delete route tool
+  [x] System inspector: name, coord (Q,R), star presence, star colour
+  [x] World inspector: type/atmosphere/temp/bio/pop/tech/gov + features
+  [x] Routes panel: list + dropdown endpoints + type + stability + distance
+  [x] Factions panel: create/delete + assign systems/worlds + designer mode
+  [x] Generation panel: seed, dims, system count, world bounds, placement
+       mode, cluster bias, world-selection bias, route density
+  [x] Settings panel: id/title/seed/dims, route view mode, auto-save
+  [x] Wishes panel: edit wishes.toml, run search, apply winning seed
+  [x] Data editor: CSV key.csv + generator.csv inline edit
+  [x] Preset gallery: scaffold project/segmentum/sector/system from preset
+  [x] Export UI: PNG (sector / all systems / single), HTML, JSON
+  [x] Dashboard, history timeline (view), regions (view), relations (view),
+       trade (view), route planner (view), segmentum (view)
+  [x] Heatmap overlay (control/military/trade/...)
+  [x] Subsector overlay rendering
+
+================================================================================
+3. GAP MATRIX (must-build for parity)
+================================================================================
+
+Legend: [G] = gap, [P] = partial, [X] = exists. Section refs map to §6+.
+
+  Domain              Status    Section
+  ------------------- --------  ----------
+  Generation config   [X]       §6
+  System edit         [P]       §7
+  World edit          [P]       §8
+  Route edit          [P]       §9
+  Faction edit        [P]       §10
+  Control / presence  [G]       §11
+  Claims              [G]       §12
+  Subsectors          [P]       §13   (view only; need reassignment)
+  Regions             [G]       §14   (view only; need place/grow/edit)
+  Economy             [G]       §15   (view only; need override editor)
+  Relations           [G]       §16   (view only; need matrix + overrides)
+  History             [G]       §17   (view only; need event editor + eras)
+  Personae            [G]       §18
+  Hooks               [G]       §19
+  Sites               [G]       §20
+  Missions            [G]       §21
+  Prose / gazetteer   [G]       §22
+  Briefing            [G]       §23
+  Interestingness     [G]       §24
+  Analytics           [P]       §25   (dashboard exists; need full §8 fields)
+  Search              [P]       §26   (wishes UI exists; need full constraints)
+  Diff + ticks        [G]       §27
+  Conflict + stability[G]       §28
+  Intel / visibility  [G]       §29
+  Archetypes          [G]       §30
+  Orbital assets      [G]       §31
+  Surface regions     [G]       §32
+  Validation surface  [P]       §33
+  Invariants surface  [P]       §33
+  Export bundle       [P]       §34   (need manifest write, super-manifest)
+  Themes / heatmaps   [P]       §35
+  Segmentum compose   [G]       §36   (view only; need build pipeline)
+  Project / files     [P]       §37
+  Undo / snapshots    [G]       §38
+  Live derivations    [G]       §39
+
+================================================================================
+4. DATA-MODEL TASKS (foundation)
+================================================================================
+
+D1.   `GeneratedSector::empty(id, title, seed, width, height)` constructor
+      in `src/sector_model.rs`. Returns valid empty sector that passes
+      pre-validation. Required because the builder starts blank.
+
+D2.   `GeneratedSystem::new_at(id, coord, name)` and `GeneratedWorld::new(
+      id, name)` constructors. Default enum values must be the
+      lowest-impact variants (e.g. `Atmosphere::Standard`,
+      `TechLevel::Industrial`). Document defaults in doc-comments.
+
+D3.   Mutation API on `GeneratedSector` (new module
+      `src/sector_model/mutation.rs`):
+        - `add_system`, `remove_system`, `move_system`
+        - `add_world_to_system`, `remove_world`
+        - `add_route`, `remove_route`, `swap_route_endpoints`
+        - `add_faction`, `remove_faction`
+        - `add_world_presence`, `remove_world_presence`
+        - `add_claim`, `remove_claim`
+        - `set_system_control_state`, `set_world_dominance`
+        - `add_region`, `remove_region`, `add_region_hex`,
+          `remove_region_hex`
+        - `add_orbital_asset`, `remove_orbital_asset`
+        - `add_surface_region`, `remove_surface_region`
+        - `set_archetype`, `clear_archetype`
+        - `add_intel_record`, `remove_intel_record`
+        - `add_history_event`, `remove_history_event`, `edit_event`
+        - `set_economy_override`, `clear_economy_override`
+        - `set_relation_override`, `clear_relation_override`
+      Each method returns `Result<(), MutationError>`. Each method is the
+      single canonical entry — no panel mutates fields directly.
+
+D4.   Re-index pass (`GeneratedSector::reindex_ids`) renumbers
+      `sys-NNNN`, `sys-NNNN-wNN`, `route-sys-A-sys-B` after any structural
+      change. Optional: keep stable IDs across renames using a tombstone
+      table (configurable via builder setting `stable_ids_on_rename`).
+
+D5.   `BuilderState` (in `gui/src/builder/state.rs`):
+        - `sector: GeneratedSector`
+        - `project_path: Option<Utf8PathBuf>` (use `camino`)
+        - `config: SectorforgeConfig` (from `src/config.rs`)
+        - `data_catalogs: DataCatalogs` (world rows, names, faction rows,
+          relation tables, route rules, region defs, economy defs)
+        - `index: BuilderIndex`
+        - `command_log: Vec<BuilderCommand>` (for undo + replay)
+        - `snapshots: Vec<Snapshot>` (named save-points)
+        - `derivation_cache: DerivationCache`
+        - `dirty: bool`, `auto_save_path: Option<Utf8PathBuf>`
+        - `validation_report: Option<ValidationReport>`
+        - `invariant_report: Option<InvariantReport>`
+        - `modal: Option<ModalKind>`
+        - `pending_jobs: Vec<JobHandle>` (for off-thread work)
+
+D6.   Implement `Serialize/Deserialize` for `BuilderState` so the in-progress
+      builder session can be saved as `.sgforge` (a tar of sector.json +
+      command_log.json + config snapshot). Use `serde_json` only; no
+      bincode.
+
+================================================================================
+5. PROJECT + I/O TASKS
+================================================================================
+
+P1.   New project wizard: blank project at `<dir>/`, writes default
+      `sectorforge.toml`, empty CSVs, optional preset overlay. Reuse
+      `src/presets.rs` scaffold logic via a new
+      `presets::scaffold_to_dir(preset_id, dst, seed_override)` helper.
+
+P2.   Open project: parse `sectorforge.toml` via `src/config.rs`, load all
+      referenced files, populate `BuilderState`. Surface parse errors per
+      file with line number (use `toml` crate's `span()` API).
+
+P3.   Save project: write back every file the builder edited. Compute
+      manifest digests as in `src/export.rs::write_manifest`. Single
+      atomic write per file via `tempfile::NamedTempFile::persist`.
+
+P4.   Project tree view (new tab `PROJECT`): treeview of the project dir,
+      indicate dirty files, click-to-open in panel editor.
+
+P5.   File watcher: re-read `sectorforge.toml` and data files on external
+      change (use `notify` crate — already? if not, propose addition).
+      Conflict resolver dialog if the in-builder buffer is dirty.
+
+P6.   Recent projects list in `Preferences` (toml at
+      `~/.config/sectorforge/preferences.toml`).
+
+================================================================================
+6. GENERATION CONFIG
+================================================================================
+
+G1.   Generation panel reaches feature parity with `[generation]` and
+      `[generation.placement]` / `[generation.world_selection]` /
+      `[generation.routes]` / `[generation.relations]` tables in
+      `sectorforge.toml`. Fields:
+        seed, sector_width, sector_height, subsector_width,
+        subsector_height, system_count, min/max worlds per system,
+        allow_empty_hexes, world_feature_count, strict_world_rows,
+        placement.mode (uniform_grid|weighted_grid|clustered),
+        placement.cluster_bias, placement.minimum_system_distance,
+        world_selection.mode, world_selection.require_complete_rows,
+        world_selection.allow_partial_rows,
+        world_selection.same_star_colour_bias,
+        world_selection.strict_same_star_colour,
+        world_selection.avoid_duplicate_world_type_in_system,
+        routes.enabled, routes.max_route_distance, routes.route_density,
+        routes.ensure_connected_graph,
+        relations.min_world_presence.
+
+G2.   Seed-lock toggle. When locked, "Re-roll" preserves
+      `[generation].seed`; when unlocked, increments via
+      `blake3("sectorforge:{seed}:reroll:{n}")`.
+
+G3.   Live preview mode: every config edit triggers a debounced
+      regeneration (200 ms). Run on worker thread; partial preview into
+      a scratch `GeneratedSector` displayed under a "PREVIEW" badge.
+
+G4.   "Apply" promotes preview to active sector and overwrites
+      `BuilderState::sector`. Preserves manual edits to systems flagged
+      `pinned = true` (new field on `GeneratedSystem`, see W3).
+
+G5.   Per-subsector partial regeneration: select a rectangle / cluster of
+      hexes, regenerate only those systems. Reuse
+      `generate_system_standalone` per slot. Honour `pinned` and
+      `BuilderState::regions` so warp regions affect partial draws.
+
+G6.   "New sector from preset" inside the builder — reuse §P1 logic but
+      keep current builder open in a new tab.
+
+================================================================================
+7. SYSTEMS
+================================================================================
+
+S1.   Toolbox: ADD SYSTEM (click hex), DELETE SYSTEM (click system),
+      MOVE SYSTEM (drag), RENAME (double-click label). Reuses existing
+      `editor/map_panel.rs` infrastructure.
+
+S2.   System inspector covers every field of `GeneratedSystem`:
+      id (read-only, rename via D4 toggle), name, coord (with validity
+      check), star (presence, colour, optional secondary star),
+      worlds (managed in §8), routes (read-only edge list),
+      primary_factions (managed in §10), control (managed in §11),
+      tags (free-text + canonical-tag picker), notes (multi-line),
+      orbital_assets (§31), blockade (§31), conflict (§28),
+      intel (§29), archetype (§30).
+
+S3.   `pinned` field (D5) toggleable from the inspector. Prevents the
+      generator from touching the system during re-roll / partial regen.
+
+S4.   Bulk operations: select multiple systems (rect / shift-click) →
+      rename pattern, reseed worlds, reassign primary faction, flip
+      control state, pin/unpin.
+
+S5.   "Generate one system here" via `generate_system_standalone`. Useful
+      for filling a single hex without rerunning the full generator.
+      Honour `--coord-q/r/--index/--seed` as inline controls.
+
+S6.   Coord validity: reject coords outside `(0..sector_width,
+      0..sector_height)`. Coord collisions resolved with a swap or
+      cancel dialog.
+
+================================================================================
+8. WORLDS
+================================================================================
+
+W1.   World inspector covers every `GeneratedWorld` field:
+      id, name, orbit, star_colour, world_type, atmosphere, temperature,
+      biosphere, population, tech_level, government, notable_features,
+      tags, claims (§12), control (§11), surface_regions (§32),
+      conflict (§28), stability (§28).
+
+W2.   Enum pickers: use existing `gui/src/editor/enums.rs`. Add the
+      enum variants currently missing from any picker (audit against
+      `src/worlds.rs` canonical lists).
+
+W3.   `pinned` toggle on world (like S3).
+
+W4.   "Re-roll from candidate pool" button: redraws this world using
+      `src/world_pool.rs` against the current data catalogs. Useful for
+      fixing a single world without recomputing the system.
+
+W5.   Notable features picker: searchable multi-select, with weight
+      preview from the candidate row.
+
+W6.   Population / tech-level coupling warnings (validation §33 surfaces
+      these inline — e.g., DeathWorld + High-Tech is unusual). Non-blocking.
+
+W7.   Claims chip-row (§12) directly in world inspector.
+
+================================================================================
+9. ROUTES
+================================================================================
+
+R1.   Route inspector covers every `GeneratedRoute` field: id, from/to,
+      type (StableWarpLane | ChartedPassage | SecretPassage | Webway |
+      BlackShip | SmugglingLane), stability (Stable | Unstable | Hazardous
+      | Perilous), distance (auto vs. manual override), tags, controls
+      (per-faction route_control, §16).
+
+R2.   Add-route tool: click first system, drag to second system. Distance
+      auto-computed via `HexCoord::distance`.
+
+R3.   Manual override of distance with a warning ("invariant
+      ROUTE_DISTANCE_MISMATCH will fire unless distance == hex_distance").
+
+R4.   Bulk operations: change all routes matching predicate (e.g.,
+      "all Charted Passages crossing region X" → set stability Hazardous).
+
+R5.   Route-rules editor (`data/routes/route_rules.toml`): table editor
+      for weight modifiers (conditions: world_type, notable_feature,
+      government, route_type). Live recompute of route weights in
+      preview.
+
+R6.   Hidden routes panel (`src/hidden_routes.rs` config): set kind
+      (Webway/BlackShip/SmugglingLane), endpoints, K-nearest count,
+      blackout-region exclusion.
+
+R7.   Routes "ensure connected" toggle re-runs MST connector after edit
+      to guarantee a single component.
+
+================================================================================
+10. FACTIONS
+================================================================================
+
+F1.   Faction editor reaches `Faction` (`src/factions.rs`) parity:
+      id, name, kind (Imperial | Mechanicus | Ecclesiarchy | ...),
+      disposition (Lawful | Pragmatic | Zealous | Corrupt), weight,
+      preferred_world_types, preferred_governments,
+      preferred_notable_features, FactionStyle (fill/accent/border/glyph).
+
+F2.   FactionStyle override panel: colour pickers, glyph picker, preview
+      tile in legend.
+
+F3.   Subfaction + force editor: hierarchical list (faction > subfaction >
+      force). Each force row maps to a TOML row in `factions.toml`.
+
+F4.   "Recompute style from kind" button regenerates style via
+      `faction_style.rs` defaults.
+
+F5.   World/system presence assignment via §11.
+
+F6.   Export: write modified roster back to `data/factions/factions.toml`.
+
+F7.   Importance / visibility: per-faction toggle for legend display
+      (uses `src/importance.rs`).
+
+================================================================================
+11. CONTROL + PRESENCE
+================================================================================
+
+C1.   Per-world presence editor: table row per faction with influence
+      tier (Dominant | Significant | Minor | Hidden), 10 dimensions
+      (admin, military, orbital, economic, industrial, ideological,
+      covert, logistics, legitimacy, visibility — 0..=100 sliders),
+      intel_confidence.
+
+C2.   "Add presence" button presents a faction picker filtered by
+      already-assigned factions; "Remove" deletes the row.
+
+C3.   Dominance state picker per world (Rumored | Presence | Influence |
+      Contested | Controlled | Stronghold). Auto-derived from presence
+      rows by default; manual override possible with a "Manual" lock
+      toggle (otherwise recomputed by `src/control.rs::derive_dominance`).
+
+C4.   Per-system control_state picker (Pacified | Fragmented | Blockaded
+      | Warzone | Infiltrated | Quarantined | Uncharted).
+
+C5.   Per-system primary_factions list (top-3 by influence-weighted
+      score, auto-derived; manual override possible).
+
+C6.   PowerProfile preview: per-faction breakdown
+      (admin/military/naval/economic/industrial/ideological/covert/
+      logistics/legitimacy) refreshed on every edit (cached).
+
+C7.   Power projection visualiser overlay on the map: faction colour
+      with falloff per hex, derived by `src/power_projection.rs`.
+
+C8.   Influence field overlay (`src/influence_field.rs`).
+
+================================================================================
+12. CLAIMS
+================================================================================
+
+CL1.  Per-world claim editor: chip-row of (faction_id, claim_kind).
+      Claim kinds (from `src/control.rs`): Legal, Imperial, Religious,
+      Dynastic, Commercial, Military, Ancient, Hunting, Covert,
+      Rebellion, Treaty.
+
+CL2.  "Add claim" picker. Multiple claims per faction allowed (e.g.,
+      Legal + Military by the same dynasty).
+
+CL3.  "Contested" auto-flag computed from N>1 distinct claimants.
+
+CL4.  Bulk: convert all claims of kind X by faction Y to kind Z.
+
+================================================================================
+13. SUBSECTORS
+================================================================================
+
+SUB1. Subsector panel: list of clusters with label (A, B, ...), capital,
+      contained systems, dominant faction.
+
+SUB2. "Recluster" button runs `src/subsectors/mod.rs` k-means with
+      configurable `target_systems_per_subsector`.
+
+SUB3. Manual reassignment: drag-drop systems between subsectors in a
+      tree view. Marks subsector as `manual = true` so reclustering
+      preserves manual splits.
+
+SUB4. Capital override per subsector.
+
+SUB5. Subsector colour override (FactionStyle-derived default).
+
+================================================================================
+14. REGIONS (WARP PHENOMENA)
+================================================================================
+
+REG1. Region table editor: id, name, kind (WarpStorm | Turbulence |
+      CalmCorridor | Blackout | Anomaly), hex list, intensity, notes.
+
+REG2. Region painting tool: brush hexes onto the map (left-click paint,
+      right-click erase). Constraint: no overlap with existing regions
+      (invariant `REGION_HEX_OVERLAP`).
+
+REG3. "Grow seeded region" command: pick seed hex + mean_size + kind →
+      runs `src/regions.rs::grow_blob` deterministically.
+
+REG4. Live effect preview: route stability changes show on the map as
+      the user edits regions (e.g., WarpStorm → routes crossing the
+      footprint go red).
+
+REG5. Region config editor (`data/routes/regions.toml`): enabled flag,
+      count, mean_size, seed, per-kind weights.
+
+REG6. Validation: `REGION_HEX_OUT_OF_BOUNDS`, `REGION_HEX_OVERLAP`,
+      `REGION_ISOLATES_SECTOR` surfaced inline.
+
+REG7. Region glyph preview (`~ ^ = # *`) in markdown preview tab.
+
+================================================================================
+15. ECONOMY
+================================================================================
+
+E1.   Per-world economy override: 6-tuple (ore, promethium, foodstuffs,
+      manufactured, archeotech, recruits) signed sliders. Default = derived;
+      override = pinned.
+
+E2.   Strategic output editor: per-world flags for food, ore,
+      manufacturing, arms, ships, pilgrimage, psyker_tithe, manpower,
+      knowledge, xenos_value.
+
+E3.   Tithe / supply: per-system tithe_status, supply_risk, override
+      slider for `strategic_priority`.
+
+E4.   Stranded-world recompute on every edit. Visible flag in
+      world inspector and on the map (red ring).
+
+E5.   Economy config editor (`data/worlds/economy.toml`): production
+      matrix per world_type, tech-level multipliers, notable-feature
+      rules, `feed_stability`, `enabled` toggle.
+
+E6.   Lifeline-lane visualiser on the route layer (links into §19).
+
+E7.   Trade volume heatmap option in §35.
+
+================================================================================
+16. RELATIONS (DIPLOMACY)
+================================================================================
+
+REL1. Diplomacy matrix editor: pair grid (faction × faction).
+      Per-cell editor for public_attitude, secret_attitude,
+      treaty_status, dimensions (trust/fear/rivalry/ideological_distance/
+      economic_dependency/military_pressure/covert_activity), tension
+      (0..=100), cause text.
+
+REL2. Directional cells (a_to_b, b_to_a) editable independently.
+
+REL3. Kind-rules editor (`relations.toml` `[kind_rules]`): table of
+      (kind_a, kind_b) → base stance.
+
+REL4. Disposition-rules editor (`[disposition_rules]`): delta on top of
+      base stance.
+
+REL5. Pair-override editor (`[[pair_overrides]]`): legacy stance pin.
+
+REL6. Relation-override editor (`[[relations.overrides]]`): per-pair
+      pin of any subset (public, secret, treaty, dimensions, reason).
+
+REL7. `feed_conflict` toggle (couples relations to conflict tick, §28).
+
+REL8. `min_world_presence` slider (controls matrix size).
+
+REL9. Live "Recompute matrix" button + auto-recompute on edit.
+
+================================================================================
+17. HISTORY (CHRONICLE)
+================================================================================
+
+H1.   History config editor: enabled, epoch_start, epoch_end.
+
+H2.   Eras editor: list of `{ id, label, relative_start, relative_end,
+      weight, allowed_events }`.
+
+H3.   Event-rule editor: `{ when_system_state, prefer_event,
+      minimum_events }`.
+
+H4.   Chronicle event editor: list of typed events. Each event has
+      kind (Founding, Compliance, Treaty, War, Annexation, Reconquest,
+      ...), date (M{epoch}.{ddd} format), participating factions,
+      entity refs (system | route | subsector | region | world), prose
+      template id, consequences.
+
+H5.   "Add event" wizard: pick anchor entity → pick event kind →
+      auto-suggest participating factions → preview prose.
+
+H6.   "Regenerate chronicle" runs `src/history.rs` over the current
+      sector + config; merges with user-added events (user events
+      flagged `manual = true` survive).
+
+H7.   Timeline panel: chronological list, click-to-highlight affected
+      systems/routes on map. Already partial — extend to write-mode.
+
+H8.   Event-derived world history snippets shown in world inspector.
+
+================================================================================
+18. PERSONAE (DRAMATIS)
+================================================================================
+
+PER1. Per-faction persona pool editor: load defaults from `src/personae.rs`
+      built-ins; override per-project via `data/personae.toml` (NEW file
+      schema TBD; place in `[inputs].personae`).
+
+PER2. Per-anchor persona editor: system sovereign / orbital controller /
+      hidden master / world presence — name, title, traits, agenda.
+
+PER3. Auto-derive button runs `src/personae.rs::derive_personae`.
+
+PER4. Dominance-tier setting controls which presence anchors receive a
+      persona.
+
+PER5. Agenda text bound to competing claims on the anchor world; show
+      derivation source in tooltip.
+
+================================================================================
+19. HOOKS (PLOT)
+================================================================================
+
+HK1.  Hook list panel: ranked, filterable by kind (contested-claim,
+      hidden-master, Perilous route, blockade, quarantine, warzone,
+      Tyranid/Necron/Chaos pressure, StarvingWorld, LifelineLane).
+
+HK2.  Per-hook details: anchor entity, prose, dramatic weight, GM-only
+      flag.
+
+HK3.  Manual hook add: pick kind → pick anchor → write prose.
+
+HK4.  "Regenerate hooks" runs `src/hooks.rs`. Manual hooks survive.
+
+HK5.  Player-edition toggle (mirrors `--player`): hides GM-only hooks.
+
+HK6.  Click-to-highlight anchor on map.
+
+================================================================================
+20. SITES
+================================================================================
+
+ST1.  Per-world site editor: list of `{ kind, controller, public_status,
+      actual_status, hook }`. Kind picker covers all 21 (governor's
+      palace, cathedral spire, manufactorum, underhive sump-city, void
+      elevator, star-fort dockyard, quarantine zone, xenos ruin,
+      pilgrim necropolis, astropathic choir, Arbites precinct, data-vault,
+      disputed shrine, penal mine, black-market enclave, cult safehouse,
+      crashed voidship, agri granary, forge reactor, tomb complex, naval
+      anchorage).
+
+ST2.  Auto-derive button runs `src/sites.rs::derive_sites`. Manual sites
+      survive.
+
+ST3.  Player-edition toggle hides sites where `public_status !=
+      actual_status`.
+
+ST4.  Site config editor (if/when `data/worlds/sites.toml` exists).
+
+================================================================================
+21. MISSIONS
+================================================================================
+
+M1.   Mission list panel: kind (Investigate | Escort | Sabotage |
+      Diplomacy | Assassination | Recovery | Defense | Exploration),
+      patron, target, primary + secondary location, public objective,
+      hidden complication, reward, consequence.
+
+M2.   Manual mission add: kind picker → patron/target/location wizard.
+
+M3.   Auto-derive button runs `src/missions.rs::derive_missions`. Manual
+      missions survive.
+
+M4.   Player-edition toggle hides Hidden-tier-derived missions.
+
+M5.   Click-to-highlight locations on map.
+
+================================================================================
+22. PROSE (GAZETTEER)
+================================================================================
+
+PR1.  Per-system prose editor: derived prose displayed, "Override"
+      toggle replaces with manual text.
+
+PR2.  Per-sector overview prose editor (same pattern).
+
+PR3.  Tone preset selector: Florid | Administratum Dispatch.
+
+PR4.  "Regenerate prose" runs `src/prose.rs`. Manual overrides survive.
+
+================================================================================
+23. BRIEFING
+================================================================================
+
+BR1.  Preset picker: gm | navy | inquisition | trader | governor | public.
+
+BR2.  Observer-faction picker (optional).
+
+BR3.  `min_confidence` slider (0..=100).
+
+BR4.  "Generate briefing" writes redacted clone via `src/briefing.rs`.
+      Preview the redacted Markdown in a side panel.
+
+BR5.  Export both `.md` + `.json` to chosen folder.
+
+================================================================================
+24. INTERESTINGNESS
+================================================================================
+
+INT1. Profile picker: political_sandbox | grim_collapse | mercantile |
+      villainous | frontier.
+
+INT2. "Score sector" runs `src/interestingness.rs`. Shows 0..=100 score
+      + strengths/weaknesses lines.
+
+INT3. Per-metric bar chart with target band shaded.
+
+INT4. Threshold override per profile (custom profile editor).
+
+================================================================================
+25. ANALYTICS DASHBOARD
+================================================================================
+
+A1.   Full `src/analytics.rs` parity: faction Gini, per-faction
+      projection share, contested-world ratio, average claims per world,
+      claim-kind + dominance counts, world-type / star-colour /
+      population distributions, route-graph stats (component count,
+      diameter, articulation points, isolated systems), per-subsector
+      political variety, health-flag list.
+
+A2.   `[analyze]` config editor: warn_faction_share, warn_if_disconnected,
+      warn_if_articulation, warn_contested_ratio, tiny_sector_threshold.
+
+A3.   "Strict" toggle (treats health flags as errors for CI parity).
+
+A4.   Export `analysis.md` + `analysis.json`.
+
+================================================================================
+26. SEARCH (WISHES)
+================================================================================
+
+SR1.  Wishes editor reaches every constraint kind from `src/search.rs`:
+        faction_share_min/max
+        faction_world_count_min/max
+        faction_system_count_min/max
+        world_type_exists
+        contested_world_min (with n_way), contested_world_max
+        system_state_count_min/max
+        route_graph_connected
+        no_articulation_points
+        diameter_max
+        isolated_systems_max
+        contested_ratio_min/max
+        stance_count_min/max (per stance bucket)
+        region_count_min/max (per region kind)
+        economy_stranded_max
+        economy_resource_min
+      Each constraint kind has its own form widget.
+
+SR2.  Run-search button. Off-thread enumeration. Progress bar shows
+      n_candidates_tried, n_passed, best_near_miss_score.
+
+SR3.  Result panel: winning seed (Apply button) + top N near-miss
+      candidates (View + Apply).
+
+SR4.  `base_seed`, `budget`, `report_top` fields.
+
+SR5.  Validation: faction id existence preflight before run.
+
+================================================================================
+27. DIFF + TICKS
+================================================================================
+
+DF1.  Two-sector diff: pick before/after `sector.json` (or take a
+      snapshot of current sector as either).
+
+DF2.  Tick-mode: simulate N conflict ticks from current sector, then
+      diff. Re-uses `src/conflict.rs::advance_sector`.
+
+DF3.  Diff panel: tree of strata (systems, routes, factions, regions,
+      economy, relations), click-to-expand per-entity changes.
+
+DF4.  Filters: skip-worlds, skip-routes, min_faction_delta.
+
+DF5.  Export `diff.md` + `diff.json`.
+
+================================================================================
+28. CONFLICT + STABILITY
+================================================================================
+
+CF1.  Per-world conflict editor: momentum, intensity, mobilisation,
+      attacker, defender, visible_controller.
+
+CF2.  Per-system conflict view: aggregated from worlds; "Override
+      aggregate" toggle for manual edits.
+
+CF3.  Per-world stability editor: 7 dimensions (public_order, corruption,
+      fear, rebellion, xenos_threat, warp_instability, famine).
+
+CF4.  "Advance N ticks" button runs `src/conflict.rs::advance_sector`.
+      Hysteresis preserved.
+
+CF5.  Tick log: chronological list of momentum / state changes.
+
+CF6.  Conflict heatmap option in §35.
+
+================================================================================
+29. INTEL + VISIBILITY
+================================================================================
+
+I1.   Per-system intel editor: per-observer-faction record with
+      suspected/propaganda/classified state, confidence (0..=100).
+
+I2.   Per-world intel editor (same pattern).
+
+I3.   "Generate baseline intel" runs `src/intel.rs::derive_intel`.
+
+I4.   Observer toggle in main map: view sector as observer faction X.
+      Hidden-tier presences below confidence cutoff redacted.
+
+I5.   Player-edition cutoff slider (`player_min_confidence` config).
+
+================================================================================
+30. ARCHETYPES
+================================================================================
+
+AR1.  Per-system archetype editor: kind (Imperial | Necron | Tyranid |
+      Ork | GSC | T'au | Aeldari | Chaos), progression markers
+      (stage 0..N), flavour notes.
+
+AR2.  "Auto-assign archetypes" runs `src/archetypes.rs::derive`.
+
+AR3.  Archetype rules editor (TBD: extract from
+      `src/archetypes.rs` if a config layer exists; else GUI-only
+      defaults).
+
+================================================================================
+31. ORBITAL ASSETS + BLOCKADE
+================================================================================
+
+O1.   Per-system orbital-asset editor: list of
+      `{ kind (Station|Shipyard|DefensePlatform|BlockadeFleet),
+         faction, capacity, notes }`.
+
+O2.   Blockade report editor: aggregated `BlockadeReport` per system,
+      derive button + manual override.
+
+================================================================================
+32. SURFACE REGIONS
+================================================================================
+
+SU1.  Per-world surface-region editor: list of
+      `{ kind (Capital|Hive|Underhive|ForgeComplex|ShrineContinent|...),
+         dominant_faction, notes }`.
+
+SU2.  Auto-seed surface regions from world type via
+      `src/surface_region.rs`.
+
+================================================================================
+33. VALIDATION + INVARIANTS SURFACE
+================================================================================
+
+V1.   Validation panel (`src/validation.rs::validate_project`):
+      tree of file-anchored errors + warnings. Click-to-jump to
+      offending entity / config file row.
+
+V2.   Invariants panel (`src/invariants.rs::check_sector`):
+      tree of invariant violations. Each violation entry knows the
+      offending entity so a "Fix" suggestion can route to the inspector.
+
+V3.   Live validation on every mutation (debounced). Status bar
+      indicator (green / yellow / red).
+
+V4.   Strict-mode toggle (warnings → errors).
+
+V5.   Invariant catalogue list (read-only) so user can see what's checked:
+        SYSTEM_ID_DUPLICATE, WORLD_ID_DUPLICATE, COORD_OUT_OF_BOUNDS,
+        COORD_DUPLICATE, ROUTE_ENDPOINT_MISSING, ROUTE_DISTANCE_MISMATCH,
+        DUPLICATE_UNDIRECTED_EDGE, FACTION_SUMMARY_INCOHERENT,
+        WORLD_TAG_NAMESPACE_MISSING, MANIFEST_COUNT_MISMATCH,
+        REGION_HEX_OUT_OF_BOUNDS, REGION_HEX_OVERLAP,
+        REGION_ISOLATES_SECTOR, ECONOMY_ENABLED_NO_WORLDS, ...
+
+V6.   Pre-export refuse-on-error gate (mirrors CLI `generate`).
+
+================================================================================
+34. EXPORT BUNDLE
+================================================================================
+
+EX1.  Export dialog covers every format from `[outputs]`:
+      json, markdown, csv, bitmap, html. Per-format toggle.
+
+EX2.  Manifest writer (`src/export.rs::write_manifest`) included.
+      Input digests computed over current in-memory data catalogs.
+
+EX3.  Bitmap settings panel: `sector_scale` (1..=8), `system_scale`
+      (1..=8), `render_systems` toggle, `faction_fill` toggle,
+      `heatmap` mode picker.
+
+EX4.  HTML settings panel: theme picker (dark | parchment | hololithic),
+      `player_observer` picker, `player_min_confidence`,
+      `size_warn_bytes`, `compact_json`.
+
+EX5.  Standalone-system export (mirrors `generate-system`): pick coord
+      + seed + index → write `sys-NNNN.json` (+ optional `.md`).
+
+EX6.  "Render markdown" preview tab (live, mirrors `render-markdown`
+      output).
+
+EX7.  Per-overlay export buttons: history (`history.md/json`),
+      personae, hooks, prose, relations, regions, economy,
+      interestingness, briefing, missions, sites, analyze.
+
+EX8.  Project-wide "Export everything" runs every overlay and writes
+      to chosen folder.
+
+================================================================================
+35. THEMES + HEATMAPS
+================================================================================
+
+T1.   Theme picker covers all built-ins:
+      gm_dark | print_mono | imperial_archive | navis_tactical |
+      inquisition_redacted | subsector_political.
+
+T2.   Custom theme editor (`data/map_themes/<name>.toml`):
+      background, route_line_mode (standard | hazard_weighted),
+      label_density (all | important_only | none),
+      legend (full | compact | hidden),
+      symbol_set (standard | tactical | redacted), per-element colours.
+
+T3.   Heatmap selector covers every mode:
+      off | control | military | trade | industrial | covert | faith |
+      threat | intel | tension | trade_volume | food_output |
+      tithe_stress | supply_vulnerability | conflict_intensity |
+      stability (per-dimension).
+
+T4.   Route-style legend live-updates on theme change.
+
+T5.   Per-system bitmap preview tab.
+
+================================================================================
+36. SEGMENTUM COMPOSE
+================================================================================
+
+SG1.  Segmentum editor: grid layout (columns × rows), per-child entry
+      `{ id, project_dir, column, row, seed_override }`,
+      `faction_mode` (shared | independent), `stitch_seed`,
+      `[stitch]` block (max_links_per_pair, border_depth,
+      default_route_type, default_stability).
+
+SG2.  "Compose" runs `src/segmentum.rs::compose_segmentum` off-thread.
+      Progress shown per child (load, validate, generate, invariant,
+      export, stitch).
+
+SG3.  Super-manifest preview after compose.
+
+SG4.  Per-link editor on stitch step: add/remove/edit inter-sector
+      warp links.
+
+SG5.  Open composed segmentum in existing SEGMENTUM tab.
+
+================================================================================
+37. PROJECT + FILES (operational)
+================================================================================
+
+PF1.  Project tree panel (§P4).
+
+PF2.  TOML editor tabs for every config file with syntax highlighting +
+      validation (`sectorforge.toml`, `factions.toml`, `relations.toml`,
+      `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`,
+      `system_names.toml`, `world_names.toml`, `wishes.toml`,
+      `map_theme.toml`, `segmentum.toml`).
+
+PF3.  CSV editor parity for `key.csv` + `generator.csv` (already exists,
+      extend with delete-row, insert-row, validation surface).
+
+PF4.  Dirty-state markers per tab.
+
+PF5.  Single "Save all" + per-tab "Save".
+
+PF6.  Atomic write via `tempfile::NamedTempFile::persist`.
+
+================================================================================
+38. UNDO + SNAPSHOTS
+================================================================================
+
+U1.   Command-pattern: every mutation goes through `BuilderCommand`
+      (D5). `apply` / `revert` on each variant.
+
+U2.   Ctrl-Z / Ctrl-Y bindings for undo / redo. Bounded ring buffer
+      (default 200 commands; configurable).
+
+U3.   Named snapshots: "Snapshot" button captures current sector +
+      command-log position. Snapshots listed in history tab.
+
+U4.   "Revert to snapshot" rolls sector back. Commands after the
+      snapshot are discarded with confirmation.
+
+U5.   Snapshot diff vs. current (uses §27).
+
+U6.   Auto-snapshot on destructive batch ops (e.g., recluster
+      subsectors).
+
+================================================================================
+39. LIVE DERIVATIONS
+================================================================================
+
+LD1.  Per-derivation cache keyed by BLAKE3 over the relevant sector
+      slice + config + version. Cache entries:
+      analytics, relations, regions, economy, history, personae, hooks,
+      prose, sites, missions, briefing, interestingness, subsectors,
+      power_projection, influence_field, intel.
+
+LD2.  On mutation, invalidate caches whose key inputs changed (precise
+      invalidation, not full flush). Use a dependency table:
+        systems/worlds → all
+        factions → analytics, relations, personae, hooks, sites,
+                   missions, briefing, intel, power_projection,
+                   influence_field
+        regions → routes (stability recompute), economy (anomaly
+                   weighting), invariants
+        routes → analytics, economy, hooks
+        relations.toml → relations, briefing, conflict
+        economy.toml → economy, hooks (lifeline, starving)
+
+LD3.  Background re-derivation thread: when cache invalidated, kicks off
+      recompute; UI shows stale-tag until refresh completes.
+
+LD4.  All overlay panels (history, relations, regions, economy,
+      analytics, hooks, sites, missions, prose, personae, briefing,
+      interestingness) consume the live cache, not stored sector fields.
+
+================================================================================
+40. TESTING + DETERMINISM
+================================================================================
+
+T1.   Unit tests per `BuilderCommand` variant: apply → revert →
+      sector equal to start.
+
+T2.   Round-trip: `BuilderState` → save `.sgforge` → load → equal.
+
+T3.   Determinism golden: scripted command sequence → final sector
+      JSON → BLAKE3 stable across runs.
+
+T4.   Proptest fuzz over `BuilderCommand` sequences; every state must
+      pass `validate_project` + `check_sector`.
+
+T5.   Integration test: blank sector → 50 commands → export project →
+      run CLI `generate` over exported project → output equals
+      builder's snapshot.
+
+T6.   GUI smoke tests via `egui_kittest` (if added) or manual harness.
+
+T7.   Benchmarks (criterion) for large-sector mutations (>= 200
+      systems, >= 800 worlds): command apply < 1 ms, full re-validate
+      < 50 ms, full re-derive < 500 ms cold / < 50 ms warm.
+
+================================================================================
+41. UI ROUTING / NAV
+================================================================================
+
+N1.   Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
+      CONTROL | REGIONS | ROUTES | SUBSECTORS | ECONOMY | RELATIONS |
+      HISTORY | PERSONAE | HOOKS | SITES | MISSIONS | PROSE |
+      ANALYTICS | INTERESTINGNESS | SEARCH | DIFF | BRIEFING |
+      SEGMENTUM | EXPORT.
+
+N2.   Each tab corresponds to a panel module under
+      `gui/src/builder/panels/`.
+
+N3.   Map tab keeps the editor toolbox (ADD/DELETE/MOVE/ROUTE/REGION
+      paint).
+
+N4.   Status bar: project path, dirty flag, validation status,
+      pending-jobs spinner, derivation cache freshness.
+
+N5.   Command palette (Ctrl-K): fuzzy-search every BuilderCommand by
+      name.
+
+================================================================================
+42. PERFORMANCE TARGETS
+================================================================================
+
+PERF1. Single command apply: < 1 ms for sectors <= 500 systems.
+PERF2. Map redraw (egui shapes): 60 FPS up to 500 systems + 2000 routes.
+PERF3. Validation: < 50 ms for 500 systems.
+PERF4. Invariants: < 50 ms for 500 systems.
+PERF5. Cold derivation (all overlays): < 2 s for 500-system sector.
+PERF6. Warm derivation (cache hits): < 50 ms.
+PERF7. Search: 128 candidates evaluated in < 30 s on a 200-system project.
+
+Use: `sort_unstable*`, `Vec::with_capacity`, `Arc<str>` clones (already
+done), index pre-build, `mem::take` for vec rotations,
+`rayon` only if profiling shows benefit.
+
+================================================================================
+43. IMPLEMENTATION PHASES (suggested order)
+================================================================================
+
+Phase A — Foundation
+  D1..D6, R1..R10, P1..P3, U1..U2, V1..V3, N1..N4.
+
+Phase B — Direct entity edit
+  S1..S6, W1..W7, R1..R7, F1..F7, CL1..CL4, C1..C8.
+
+Phase C — Overlays editable
+  REG1..REG7, SUB1..SUB5, E1..E7, REL1..REL9, H1..H8, I1..I5,
+  AR1..AR3, O1..O2, SU1..SU2, CF1..CF6.
+
+Phase D — Derivations + GM tools
+  PER1..PER5, HK1..HK6, ST1..ST4, M1..M5, PR1..PR4, BR1..BR5,
+  INT1..INT4.
+
+Phase E — Tooling
+  SR1..SR5, DF1..DF5, A1..A4, SG1..SG5, PF1..PF6, EX1..EX8,
+  T1..T5, LD1..LD4.
+
+Phase F — Polish
+  U3..U6, T6..T7, PERF1..PERF7, command palette, keyboard
+  shortcuts, theme parity, accessibility.
+
+================================================================================
+44. OPEN QUESTIONS (resolve before Phase A locks)
+================================================================================
+
+Q1.  `pinned` field on systems/worlds — extend `GeneratedSector` schema
+     (breaks JSON compat) or store in a side-table inside
+     `BuilderState` (no schema break, lost on export)?
+
+Q2.  Stable IDs on rename: tombstone table (compat) vs.
+     renumber-on-save (simpler)?
+
+Q3.  Personae/site config: add `[inputs].personae` + `[inputs].sites`
+     entries to `sectorforge.toml`, or keep purely derived?
+
+Q4.  Off-thread runner: ad-hoc `thread::spawn` + channels, or single
+     `tokio` runtime? Recommend ad-hoc — no async surface elsewhere.
+
+Q5.  Live preview during generation config edits: full regenerate (slow)
+     vs. incremental (hard to make correct)? Recommend debounced full
+     regenerate into scratch sector, swap on apply.
+
+Q6.  `.sgforge` session file format: tar (portable but external lib)
+     vs. JSON envelope of base64-encoded files (no new dep)?
+     Recommend JSON envelope.
+
+================================================================================
+END OF BUILDER_REQS.txt

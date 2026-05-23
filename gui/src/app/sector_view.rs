@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 
-use sectorforge::sector_model::{GeneratedSector, GeneratedSystem};
+use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
 use sectorforge::subsectors::SubsectorConfig;
 
 use super::{
@@ -405,7 +405,14 @@ impl App {
             .unwrap_or(0)
             + 1;
         let id = sectorforge::ids::system_id(index);
-        let sys = editor::state::empty_system(id.clone(), index, format!("System {index}"), coord);
+        let sys = editor::state::empty_system(
+            id.clone(),
+            index,
+            format!("System {index}"),
+            coord,
+            SystemKind::Star,
+            None,
+        );
         sector.systems.push(sys);
         self.sector_selected = Some(id.clone());
         self.sector_selected_route = None;

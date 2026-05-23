@@ -1,6 +1,6 @@
 //! Per-system widget: star + orbit rings + planets. Click → planet/star pick.
 
-use egui::{Align2, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
+use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::sector_model::GeneratedSystem;
 
@@ -70,7 +70,7 @@ impl<'a> SystemView<'a> {
                 Pos2::new(center.x - r, center.y),
             ];
             painter.add(egui::Shape::convex_polygon(
-                pts,
+                pts.clone(),
                 Color32::TRANSPARENT,
                 Stroke::new(2.0, TEXT_DIM),
             ));

@@ -10,7 +10,7 @@ cargo test             # all tests
 cargo fmt              # format code
 cargo check            # compile check
 cargo run --bin sectorforge --help   # CLI help
-cargo run --bin sectorforge-gui --help   # GUI help
+cargo run -p sectorforge-gui -- --help   # GUI help
 ```
 
 ## Source layout

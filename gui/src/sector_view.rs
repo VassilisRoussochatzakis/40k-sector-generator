@@ -281,8 +281,13 @@ impl<'a> SectorView<'a> {
                 draw_hex_outline_only(&painter, c, g.hex_size + 4.0, PATH_WAYPOINT, 2.5);
             }
 
-            if let Some(star) = &sys.star {
-                let fill = star_color(&star.colour_code);
+            let fill = if let Some(star) = &sys.star {
+                star_color(&star.colour_code)
+            } else {
+                TEXT_DIM
+            };
+
+            if sys.star.is_some() {
                 let r = star_r;
                 painter.circle_filled(c, r, fill);
                 painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));

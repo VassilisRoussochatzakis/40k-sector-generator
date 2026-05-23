@@ -1,2 +1,2 @@
 [alias]
-sgui = "run --bin sectorforge-gui --"
+sgui = "run -p sectorforge-gui --"

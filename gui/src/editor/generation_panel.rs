@@ -217,14 +217,28 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
                 changed = true;
             }
         });
+    }
+    let mut input_seed = input.config.generation.seed.clone();
+    let mut input_ensure_connected = input.config.generation.routes.ensure_connected_graph;
+
+    ui.horizontal(|ui| {
+        ui.label("SEED");
+        if ui.text_edit_singleline(&mut input_seed).changed() {
+            changed = true;
+        }
         if ui
-            .checkbox(
-                &mut input.config.generation.routes.ensure_connected_graph,
-                "ENSURE CONNECTED",
-            )
+            .checkbox(&mut input_ensure_connected, "ENSURE CONNECTED")
             .changed()
         {
             changed = true;
+        }
+    });
+
+    // Update back to state
+    if changed {
+        if let Some(input) = state.project_input.as_mut() {
+            input.config.generation.seed = input_seed;
+            input.config.generation.routes.ensure_connected_graph = input_ensure_connected;
         }
     }
 
@@ -241,7 +255,9 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
                 .add(egui::Button::new("RE-ROLL (NEW SEED)").min_size(egui::vec2(160.0, 40.0)))
                 .clicked()
             {
-                input.config.generation.seed = f64::to_string(&rand::random::<f64>());
+                if let Some(input) = state.project_input.as_mut() {
+                    input.config.generation.seed = f64::to_string(&rand::random::<f64>());
+                }
                 changed = true;
             }
         });
@@ -269,11 +285,11 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
             });
         }
     });
-
-    if changed && state.auto_generate {
-        state.preview_timer = Some(ui.ctx().input(|i| i.time) + 0.2);
-    } else if changed {
-        // Clear any stale preview if manual mode changed something
-        state.preview_sector = None;
-    }
+if changed && state.auto_generate {
+    state.preview_timer = Some(ui.ctx().input(|i| i.time) + 0.2);
+} else if changed {
+    // Clear any stale preview if manual mode changed something
+    state.preview_sector = None;
 }
+}
+

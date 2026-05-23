@@ -237,6 +237,7 @@ pub fn empty_sector(id: &str, title: &str, seed: &str, width: u32, height: u32) 
         chronicle: Default::default(),
         influence_field: Default::default(),
         power_projection: Default::default(),
+        id_history: Default::default(),
     }
 }
 

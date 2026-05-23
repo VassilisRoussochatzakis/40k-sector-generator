@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
+use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui};
 
+use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
 use sectorforge::subsectors::SubsectorConfig;
 
@@ -133,7 +134,7 @@ impl App {
 
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| self.show_sector_with(&sector));
+            .show(ctx, |ui| self.show_sector_with(ui, &sector));
 
         self.draw_subsector_popup(ctx, &sector);
         self.draw_region_popup(ctx, &sector);
@@ -222,7 +223,7 @@ impl App {
         }
     }
 
-    pub(super) fn show_sector_with(&mut self, sector: &GeneratedSector) {
+    pub(super) fn show_sector_with(&mut self, ui: &mut Ui, sector: &GeneratedSector) {
         TopBottomPanel::bottom("sector_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
@@ -616,7 +617,6 @@ impl App {
 
     pub(super) fn refresh_live_manifest_counts(sector: &mut GeneratedSector) {
         sector.manifest.system_count = sector.systems.len();
-        sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
         sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
         sector.manifest.route_count = sector.routes.len();
     }

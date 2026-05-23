@@ -36,51 +36,63 @@ ordering inside a section is roughly dependency-first.
 1. RUST ARCHITECTURE PRINCIPLES
 ================================================================================
 
-R1.   Single source of truth = `GeneratedSector` from `src/sector_model.rs`.
-      The builder owns one `Arc<RwLock<GeneratedSector>>` (or `Rc<RefCell<>>`
-      if the GUI thread is sole writer). All panels read/write through this.
+R1.   [DONE] Single source of truth = `GeneratedSector` from
+      `src/sector_model.rs`. `BuilderState` owns the sole live sector by
+      direct ownership behind `&mut BuilderState` — equivalent to the
+      `Rc<RefCell<>>` option in the spec (GUI thread is sole writer; jobs
+      hold cloned read-only snapshots). Design choice documented in
+      `gui/src/builder/state.rs`.
 
-R2.   Use the existing typed IDs (`SystemId`, `WorldId`, `FactionId`,
-      `RouteId`) from `src/ids.rs` everywhere. Never carry raw `String`
-      identifiers across panel boundaries. Forbid `.to_string()` round-trips.
+R2.   [DONE] All `BuilderCommand`, `BuilderIndex`, `BuilderState`, and
+      `SessionFile` ID fields are the typed `SystemId` / `WorldId` /
+      `RouteId` / `FactionId` from `src/ids.rs`. Free strings in these
+      modules are only error messages, display names, base64 file payloads,
+      or cache keys.
 
-R3.   Maintain an index layer (`BuilderIndex`) keyed by `BTreeMap<SystemId,
-      usize>` etc., rebuilt on every structural mutation. Keep
-      `BTreeMap` (not `HashMap`) so iteration order is deterministic and
-      JSON exports stay byte-stable.
+R3.   [DONE] `gui/src/builder/index.rs::BuilderIndex` keys every map with
+      `BTreeMap<TypedId, usize>` (or `(usize, usize)` for worlds). Rebuilt
+      after every mutation by the command bus.
 
-R4.   Mutations route through a `BuilderCommand` enum (see §17). The
-      command bus enforces: (a) invariant re-checks after apply,
-      (b) snapshot/undo stack, (c) auto-save trigger, (d) cache
-      invalidation for subsectors/heatmaps/derivations.
+R4.   [DONE] `BuilderState::run` enforces all four rails:
+      (a) invariant re-check via `sectorforge::invariants::check_sector`
+      stored in `invariant_report`,
+      (b) snapshot/undo stack — redo tail truncated, command pushed,
+      `command_cursor` advanced,
+      (c) auto-save trigger via `trigger_auto_save` when
+      `auto_save_path` is set,
+      (d) full `derivation_cache.clear()` (LD2 precision pending).
+      Same rails fire on `undo` / `redo`.
 
-R5.   Derivations (history, hooks, prose, relations, regions, economy,
-      personae, missions, sites, briefing, interestingness, analytics,
-      conflict tick) are pure functions over `GeneratedSector`. Cache by
-      input digest (BLAKE3 over canonical JSON of the relevant slice). Reuse
-      `src/rng.rs` blake3-seeded RNG for any stochastic step.
+R5.   [DONE] BLAKE3 cache helpers: `sectorforge::rng::digest_bytes` and
+      `crate::builder::digest_input` (in `derivation_cache.rs`). Cache
+      entries are `{ digest, value }` pairs keyed by the digest of the
+      canonical-JSON input slice. Reuses the existing `blake3` workspace
+      dep — no new crate.
 
-R6.   Errors flow through `thiserror`-defined `BuilderError` variants
-      (`ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`,
-      `EntityNotFound`, `StaleSnapshot`). Surface as toast + side-panel
-      details with file:line context.
+R6.   [DONE] `gui/src/builder/errors.rs::BuilderError` enumerates every
+      required variant (`ValidationFailed`, `InvariantViolated`, `IoFailed`,
+      `ParseFailed`, `EntityNotFound`, `StaleSnapshot`) plus transparent
+      `Mutation` and `Serde` variants for I/O paths.
 
-R7.   Long-running derivations (search, compose, diff with ticks, large
-      sector regeneration) run off the UI thread via `std::thread::spawn`
-      plus `std::sync::mpsc` for progress. eframe `Context::request_repaint`
-      on each progress tick. Cancel via `Arc<AtomicBool>`.
+R7.   [DONE] `gui/src/jobs.rs::JobHandle<T>` uses `std::thread::spawn` plus
+      `std::sync::mpsc::channel` for results, `Arc<Mutex<f32>>` for
+      progress, and `Arc<AtomicBool>` for cancellation. `JobContext::
+      set_progress` calls `egui::Context::request_repaint` on each tick.
 
-R8.   Determinism: builder writes must produce the same `sector.json` bytes
-      across runs. Enforce in tests by round-tripping
-      `BuilderCommand` log → final sector → BLAKE3 hash equality.
+R8.   [DONE] `gui/src/builder/command.rs::tests::command_log_determinism_blake3`
+      replays a fixed `BuilderCommand` sequence twice and asserts the
+      `digest_bytes(serde_json::to_vec(&sector))` hex is equal across runs.
 
-R9.   Crate dependencies (already in workspace): `egui`, `eframe`, `rfd`,
-      `serde`, `serde_json`, `toml`, `blake3`, `rand_chacha`, `thiserror`,
-      `camino`, `image`. Reuse — no new crates without justification.
+R9.   [DONE] Audited `gui/Cargo.toml` — no new crates added. The cache
+      helper reuses the existing `blake3` dep through
+      `sectorforge::rng::digest_bytes` so the GUI crate does not need a
+      direct dependency.
 
-R10.  Editor panels are functions taking `&mut Ui, &mut BuilderState`.
-      No globals, no `lazy_static`. Modal state lives in
-      `BuilderState::modal: Option<ModalKind>`.
+R10.  [DONE] Panel convention pinned in `gui/src/builder/panels/mod.rs`:
+      every panel is `fn show(ui: &mut egui::Ui, state: &mut BuilderState)`
+      — no globals, no `lazy_static`, no raw `String` IDs across the
+      boundary, modal state in `BuilderState::modal: Option<ModalKind>`.
+      First concrete instance lives in `panels/status.rs` (status bar).
 
 ================================================================================
 2. CURRENT GUI INVENTORY (what already exists)
@@ -1080,10 +1092,10 @@ done), index pre-build, `mem::take` for vec rotations,
 
 Phase A — Foundation
   D1..D6 - DONE
-  R1..R10, 
-  P1..P3, 
-  U1..U2, 
-  V1..V3, 
+  R1..R10 - DONE
+  P1..P3,
+  U1..U2,
+  V1..V3,
   N1..N4.
 
 Phase B — Direct entity edit

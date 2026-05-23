@@ -21,6 +21,13 @@ pub fn hash_root_seed(root_seed: &str) -> [u8; 32] {
     *blake3::hash(root_seed.as_bytes()).as_bytes()
 }
 
+/// Hash arbitrary bytes (canonical JSON, file contents, etc.) and return the
+/// lowercase hex digest. Used by the GUI builder's derivation cache (LD1) to
+/// key cached overlays by input slice.
+pub fn digest_bytes(bytes: &[u8]) -> String {
+    hex(blake3::hash(bytes).as_bytes())
+}
+
 /// Weighted choice over `(item, weight)` slice. Returns an index or an error.
 /// Skips entries with non-finite or non-positive weights.
 pub fn weighted_index<T>(

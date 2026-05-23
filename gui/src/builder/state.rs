@@ -1,12 +1,34 @@
 //! Top-level builder state (§D5). One instance is owned by the eframe app
 //! while the builder is in focus.
+//!
+//! # R1: single source of truth
+//!
+//! `BuilderState` owns the sole live [`GeneratedSector`] for the project. Per
+//! BUILDER_REQS §R1, the spec allows `Arc<RwLock<GeneratedSector>>` or
+//! `Rc<RefCell<GeneratedSector>>` if the GUI thread is sole writer. We choose
+//! the simpler design: direct ownership behind `&mut BuilderState`, since
+//! every mutation route must hold an exclusive borrow on the state, and
+//! background jobs receive *cloned* read-only snapshots through
+//! [`crate::jobs`] (they post results back via mpsc, never mutate in place).
+//! This gives the same single-writer guarantee as `Rc<RefCell<>>` without the
+//! runtime borrow check or `Arc` overhead.
+//!
+//! # R10: panel contract
+//!
+//! Panels live in `gui/src/builder/panels/` and are functions with the
+//! signature `fn(ui: &mut egui::Ui, state: &mut BuilderState)`. They never
+//! hold module-level mutable state, never use `lazy_static`, and never carry
+//! raw string IDs across boundaries. Modal state lives in
+//! [`BuilderState::modal`].
 
 use std::collections::BTreeSet;
+use std::path::Path;
 
 use camino::Utf8PathBuf;
 
 use sectorforge::config::AppConfig;
 use sectorforge::ids::{SystemId, WorldId};
+use sectorforge::invariants::check_sector;
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::{InvariantReport, ValidationReport};
 
@@ -103,8 +125,21 @@ impl BuilderState {
         }
     }
 
-    /// Run a [`BuilderCommand`] through the command bus: apply, refresh the
-    /// index, drop any redo tail, push onto the log, and mark dirty.
+    /// Run a [`BuilderCommand`] through the command bus.
+    ///
+    /// Per R4 the bus enforces, in order:
+    ///   (a) invariant re-check after apply (stored in
+    ///       [`Self::invariant_report`] so the status bar can surface red),
+    ///   (b) snapshot/undo stack maintenance — the redo tail is dropped and
+    ///       the command is pushed onto the log,
+    ///   (c) auto-save trigger via [`Self::trigger_auto_save`] when an
+    ///       `auto_save_path` is configured,
+    ///   (d) cache invalidation for all cached overlays
+    ///       (subsectors / heatmaps / derivations).
+    ///
+    /// The command itself is never rolled back here even if invariants fail —
+    /// the report exposes the violation so the user can choose to undo. This
+    /// matches the spec's "soft" invariant policy outside of export.
     pub fn run(&mut self, mut cmd: BuilderCommand) -> Result<(), BuilderError> {
         cmd.apply(&mut self.sector)?;
         self.index = BuilderIndex::rebuild(&self.sector);
@@ -113,7 +148,25 @@ impl BuilderState {
         self.command_log.push(cmd);
         self.command_cursor = self.command_log.len();
         self.dirty = true;
+        self.invariant_report = Some(check_sector(&self.sector));
+        self.trigger_auto_save();
         Ok(())
+    }
+
+    /// Write the sector to [`Self::auto_save_path`] as pretty JSON when set.
+    /// No-op otherwise. Errors are reported by clearing `dirty = true` so the
+    /// next event can retry; they do not propagate (the command already
+    /// succeeded).
+    pub fn trigger_auto_save(&mut self) {
+        let Some(path) = self.auto_save_path.as_ref() else {
+            return;
+        };
+        let Ok(text) = serde_json::to_string_pretty(&self.sector) else {
+            return;
+        };
+        if std::fs::write(Path::new(path.as_std_path()), text).is_ok() {
+            self.dirty = false;
+        }
     }
 
     /// Undo the most recent command. No-op when the cursor is at 0.
@@ -127,6 +180,8 @@ impl BuilderState {
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         self.dirty = true;
+        self.invariant_report = Some(check_sector(&self.sector));
+        self.trigger_auto_save();
         Ok(())
     }
 
@@ -142,6 +197,8 @@ impl BuilderState {
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         self.dirty = true;
+        self.invariant_report = Some(check_sector(&self.sector));
+        self.trigger_auto_save();
         Ok(())
     }
 

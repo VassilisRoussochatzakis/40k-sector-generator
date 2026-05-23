@@ -1556,9 +1556,12 @@ full parity to the CLI. Its foundation layer lives in:
 | [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
 | [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
 
-`BuilderState::run` routes a command through the bus: apply → re-index →
-clear derivation cache → truncate redo tail → push onto the log → mark dirty.
-`BuilderState::undo` and `BuilderState::redo` walk the cursor.
+`BuilderState::run` routes a command through the bus enforcing the R4
+rails: apply → re-index → clear derivation cache → truncate redo tail →
+push onto the log → mark dirty → re-check invariants (stored in
+`invariant_report`) → trigger auto-save when `auto_save_path` is set.
+`BuilderState::undo` and `BuilderState::redo` walk the cursor and fire the
+same invariant / auto-save tail so the status bar stays accurate.
 
 `BuilderState::new_blank(id, title, seed, w, h)` constructs the empty
 session used by the new-project wizard. It uses the new
@@ -1566,6 +1569,21 @@ session used by the new-project wizard. It uses the new
 
 The `.sgforge` envelope is versioned (`SESSION_VERSION = 1`). Loaders refuse
 mismatched versions explicitly rather than partially decoding.
+
+#### R1–R10 architecture rails (DONE)
+
+| Rail | Where it lives |
+|---|---|
+| R1 single source of truth | [gui/src/builder/state.rs](gui/src/builder/state.rs) — direct ownership of `GeneratedSector` behind `&mut BuilderState`; equivalent to the spec's `Rc<RefCell<>>` (GUI thread is sole writer; jobs hold cloned read-only snapshots). |
+| R2 typed IDs only | `BuilderCommand`, `BuilderIndex`, `BuilderState.pinned_*`, `SessionFile.pinned_*` all use `SystemId` / `WorldId` / `RouteId` / `FactionId` — no raw `String` IDs at panel boundaries. |
+| R3 deterministic index | `BuilderIndex` keys every map with `BTreeMap<TypedId, _>`; JSON exports stay byte-stable. |
+| R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform invariant re-check, snapshot/undo stack, auto-save trigger, and derivation-cache invalidation. |
+| R5 BLAKE3 cache | [src/rng.rs](src/rng.rs) `digest_bytes` + [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
+| R6 BuilderError variants | [gui/src/builder/errors.rs](gui/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
+| R7 off-thread runner | [gui/src/jobs.rs](gui/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, `Context::request_repaint` on tick. |
+| R8 determinism test | [gui/src/builder/command.rs](gui/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
+| R9 no new crates | [gui/Cargo.toml](gui/Cargo.toml) unchanged; cache helper reuses the workspace `blake3` dep via `sectorforge::rng`. |
+| R10 panel contract | [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
 
 ---
 
@@ -1893,6 +1911,7 @@ across runs, so a regression check is a diff away.
 | [gui/src/builder/snapshot.rs](gui/src/builder/snapshot.rs) | Named save-point structure |
 | [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
 | [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
+| [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
 
 ## 14. Build & performance

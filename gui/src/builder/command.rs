@@ -286,4 +286,38 @@ mod tests {
         assert_eq!(s.systems.len(), 1);
         assert_eq!(s.systems[0].id, id);
     }
+
+    /// R8 determinism: a fixed command sequence applied to a blank sector
+    /// must produce the same canonical-JSON BLAKE3 digest across runs.
+    #[test]
+    fn command_log_determinism_blake3() {
+        use sectorforge::rng::digest_bytes;
+        fn replay() -> String {
+            let mut s = GeneratedSector::empty("t", "T", "seed", 8, 8);
+            let cmds = vec![
+                BuilderCommand::AddSystem {
+                    coord: HexCoord { q: 1, r: 1 },
+                    name: "Alpha".into(),
+                    result_id: None,
+                },
+                BuilderCommand::AddSystem {
+                    coord: HexCoord { q: 2, r: 3 },
+                    name: "Beta".into(),
+                    result_id: None,
+                },
+                BuilderCommand::AddSystem {
+                    coord: HexCoord { q: 4, r: 5 },
+                    name: "Gamma".into(),
+                    result_id: None,
+                },
+            ];
+            for mut c in cmds {
+                c.apply(&mut s).unwrap();
+            }
+            digest_bytes(&serde_json::to_vec(&s).unwrap())
+        }
+        let a = replay();
+        let b = replay();
+        assert_eq!(a, b, "BuilderCommand log must be byte-stable");
+    }
 }

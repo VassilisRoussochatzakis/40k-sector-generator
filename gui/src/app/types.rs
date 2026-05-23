@@ -3,6 +3,7 @@ use crate::system_view::SystemSelection;
 #[derive(Debug, Clone)]
 pub enum PendingExport {
     SectorPng,
+    SectorSvg,
     AllSystemPngs,
     SystemPng(sectorforge::ids::SystemId),
     /// §11 NEW.md: self-contained interactive HTML map.

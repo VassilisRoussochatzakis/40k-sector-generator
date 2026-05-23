@@ -1502,9 +1502,15 @@ navigation bar:
 The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
 sector overview, a single system map, or all per-system maps. The current
 HEATMAP selection in the sector view is carried into the exported sector PNG.
-Top-bar **EXPORT BUNDLE** writes a complete sector bundle to a chosen folder:
-`<sector-id>/out/sector.json`, manifest, validation placeholder, Markdown,
-and a filtered `data/` copy when the sector was loaded from a project.
+Top-bar **EXPORT SVG** writes the sector map as a self-contained scalable
+vector graphic — same layout and theme as the PNG, but rendered as
+`<polygon>` / `<circle>` / `<line>` / `<text>` primitives backed by
+[src/svg_export.rs](src/svg_export.rs). Because SVG scales without
+resampling, the dialog skips the resolution picker; theme and heatmap follow
+the active map view. Top-bar **EXPORT BUNDLE** writes a complete sector
+bundle to a chosen folder: `<sector-id>/out/sector.json`, manifest,
+validation placeholder, Markdown, and a filtered `data/` copy when the
+sector was loaded from a project.
 
 ### Launching the GUI
 
@@ -1882,6 +1888,7 @@ across runs, so a regression check is a diff away.
 | [src/map_theme.rs](src/map_theme.rs) | §13 NEW2.md bitmap map themes: built-in palettes, custom TOML theme parsing, color validation, label/legend/route/symbol style knobs |
 | [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + themed legend |
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
+| [src/svg_export.rs](src/svg_export.rs) | Vector counterpart to `bitmap`: emits a self-contained SVG sector map (hex grid + region tints + routes/patterns/control glyphs + capital markers + labels + themed legend) using real `<text>` for labels so output scales without resampling |
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` plus bitmap map themes |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
@@ -1926,7 +1933,7 @@ across runs, so a regression check is a diff away.
 | [src/sector_save.rs](src/sector_save.rs) | §13 NEXT: `SectorSave` — IDs-only runtime state split from the static catalog half; `split` and `merge` for round-tripping |
 | [src/world_ecs.rs](src/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
-| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG export dialog + sector JSON bundle export |
+| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
 | [src/gui/factions_overview.rs](src/gui/factions_overview.rs) | High-level faction overview and broad edit-mode controls |

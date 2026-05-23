@@ -17,9 +17,15 @@ impl App {
         let Some(action) = self.pending_export.clone() else {
             return;
         };
-        // HTML export skips the resolution dialog — it has no scale knob.
+        // HTML and SVG export skip the resolution dialog — vector output has
+        // no scale knob; HTML has its own self-contained renderer.
         if matches!(action, PendingExport::SectorHtml) {
             self.execute_html_export();
+            self.pending_export = None;
+            return;
+        }
+        if matches!(action, PendingExport::SectorSvg) {
+            self.execute_svg_export();
             self.pending_export = None;
             return;
         }
@@ -27,7 +33,7 @@ impl App {
             PendingExport::SectorPng => "Export Sector Map (PNG)".to_string(),
             PendingExport::AllSystemPngs => "Export All System Maps (PNG)".to_string(),
             PendingExport::SystemPng(id) => format!("Export System Map: {}", id),
-            PendingExport::SectorHtml => unreachable!(),
+            PendingExport::SectorHtml | PendingExport::SectorSvg => unreachable!(),
         };
         let mut confirm = false;
         let mut cancel = false;
@@ -178,7 +184,41 @@ impl App {
                     Err(e) => self.export_status = format!("export failed: {}", e),
                 }
             }
-            PendingExport::SectorHtml => unreachable!(),
+            PendingExport::SectorHtml | PendingExport::SectorSvg => unreachable!(),
+        }
+    }
+
+    pub(super) fn execute_svg_export(&mut self) {
+        let Some(sector) = self.sector.clone() else {
+            self.export_status = "no sector to export".into();
+            return;
+        };
+        let default_name = format!("{}-sector.svg", sector.id);
+        let Some(path) = FileDialog::new()
+            .add_filter("SVG", &["svg"])
+            .set_file_name(&default_name)
+            .save_file()
+        else {
+            return;
+        };
+        let Ok(p) = camino::Utf8PathBuf::from_path_buf(path) else {
+            self.export_status = "path is not valid utf-8".into();
+            return;
+        };
+        let subs = if self.subsectors.is_empty() {
+            None
+        } else {
+            Some(self.subsectors.as_slice())
+        };
+        let opts = sectorforge::bitmap::RenderOptions {
+            faction_fill: true,
+            heatmap: self.heatmap_mode,
+            theme: self.export_theme(),
+            route_view_mode: self.route_view_mode,
+        };
+        match sectorforge::svg_export::write_sector_svg_to_with(&sector, &p, subs, &opts) {
+            Ok(()) => self.export_status = format!("exported {}", p),
+            Err(e) => self.export_status = format!("export failed: {}", e),
         }
     }
 

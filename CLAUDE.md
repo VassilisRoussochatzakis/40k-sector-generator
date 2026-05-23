@@ -28,6 +28,7 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 | [src/render.rs](src/render.rs) | Markdown rendering (sector + standalone system) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / manifest / bitmap writers |
 | [src/html_export.rs](src/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
+| [src/svg_export.rs](src/svg_export.rs) | Vector SVG sector map mirroring `bitmap` |
 | [src/search.rs](src/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/diff.rs](src/diff.rs) | §10 sector diff: model-aware before/after report |
 | [src/history.rs](src/history.rs) | §1 chronicle: dated in-universe event derivation |
@@ -48,7 +49,7 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership, faction control, capital selection |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
-| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG/JSON export UI |
+| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG/SVG/HTML/JSON export UI |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |
 | [src/gui/data_editor.rs](src/gui/data_editor.rs) | §45 typed `worlds.toml` editor (dropdowns + DragValue) |

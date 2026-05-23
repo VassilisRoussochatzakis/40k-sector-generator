@@ -170,6 +170,12 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     app.pending_export = Some(crate::app::PendingExport::SectorPng);
                 }
                 if ui
+                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT SVG"))
+                    .clicked()
+                {
+                    app.pending_export = Some(crate::app::PendingExport::SectorSvg);
+                }
+                if ui
                     .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT HTML"))
                     .clicked()
                 {

@@ -72,6 +72,7 @@ pub mod sites;
 pub mod stability;
 pub mod subsectors;
 pub mod surface_region;
+pub mod svg_export;
 pub mod system_map;
 pub mod taxonomy;
 pub mod validation;

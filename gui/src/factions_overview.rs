@@ -27,7 +27,6 @@ use sectorforge::factions::{FactionDef, FactionsFile};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sector_model::{GeneratedFaction, GeneratedSector};
 
-use super::editor::state::empty_faction;
 use super::palette::{
     contrast_text, faction_style, FactionBorder, FactionStyle, PANEL_BG, TEXT, TEXT_DIM,
 };

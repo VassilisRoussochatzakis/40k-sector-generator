@@ -59,6 +59,27 @@ impl App {
         // Always set the sector in the editor and clear dirty flag when explicitly loading
         self.editor.set_sector(sector, input, source_path);
         self.editor.dirty = false;
+
+        self.zoom_to_fit();
+    }
+
+    pub(super) fn zoom_to_fit(&mut self) {
+        let Some(sector) = self.sector.as_ref() else {
+            return;
+        };
+
+        // Standard hex metrics used in SectorView
+        let horiz_step = 3f32.sqrt();
+        let vert_step = 1.5;
+
+        // Approximate map dimensions for unit hex size (1.0)
+        let w_units = sector.width as f32 * horiz_step;
+        let h_units = sector.height as f32 * vert_step;
+
+        // Target: fit into a reasonable area (e.g. 1000x1000) or use current ui if we had it.
+        // Since we don't have UI size here, we use a heuristic or just center it.
+        self.sector_hex_size = (800.0 / w_units.max(h_units).max(1.0)).clamp(20.0, 80.0);
+        self.sector_pan = egui::Vec2::ZERO; // Reset pan
     }
 
     pub(super) fn save_sector_to_source(&mut self) {
@@ -203,7 +224,7 @@ impl App {
                         "preview-gen",
                         "Generating preview...",
                         ctx_clone,
-                        move |job_ctx| {
+                        move |_job_ctx| {
                             // Run generation
                             match sectorforge::generation::generate(input) {
                                 Ok(sector) => sector,

@@ -255,6 +255,7 @@ impl App {
                         heatmap: None,
                         empty_hex_clicks: false,
                         route_view_mode: self.route_view_mode,
+                        origin: ui.cursor().min,
                     }
                     .show(ui);
                     match click {

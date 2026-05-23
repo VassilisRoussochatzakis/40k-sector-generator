@@ -34,6 +34,8 @@ pub struct SectorView<'a> {
     /// When true, clicks on empty cells are returned to callers for live editing.
     pub empty_hex_clicks: bool,
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
+    /// Viewport transform: added to every hex center.
+    pub origin: Pos2,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
@@ -55,10 +57,9 @@ pub enum SectorClick {
 impl<'a> SectorView<'a> {
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SectorClick>) {
         let g = Geom::new(self.hex_size);
-        let map_size = map_size(self.sector, &g);
-        let (rect, response) = ui.allocate_exact_size(map_size, Sense::click());
-        let painter = ui.painter_at(rect);
-        let origin = rect.min;
+        let (rect, response) = ui.allocate_at_least(ui.available_size(), Sense::click());
+        let painter = ui.painter_at(rect).with_clip_rect(rect);
+        let origin = self.origin;
 
         painter.rect_filled(rect, 0.0, palette::BG);
 
@@ -581,7 +582,7 @@ impl<'a> SectorView<'a> {
                     click = Some(SectorClick::Route(route.id.clone()));
                 } else if self.empty_hex_clicks {
                     if let Some(coord) =
-                        hex_pick(pos - origin, &g, self.sector.width, self.sector.height)
+                        hex_pick(pos, &g, origin, self.sector.width, self.sector.height)
                     {
                         let occupied = self.sector.systems.iter().any(|s| s.coord == coord);
                         if !occupied {
@@ -634,22 +635,6 @@ impl Geom {
     }
 }
 
-fn map_size(sector: &GeneratedSector, g: &Geom) -> Vec2 {
-    let horiz_step = g.hex_size * 3f32.sqrt();
-    let vert_step = g.hex_size * 1.5;
-    // Odd-r offset layout: odd rows shift right by half a step, so the
-    // bounding rectangle is `width * horiz_step` wide plus one extra
-    // half-step when height > 1 to cover the staggered odd rows.
-    let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
-    let w = g.margin * 2.0 + horiz_step * (sector.width as f32 + odd_shift);
-    let label_band = g.hex_size * 0.55;
-    let h = g.margin * 2.0
-        + sector.height.saturating_sub(1) as f32 * vert_step
-        + 2.0 * g.hex_size
-        + label_band;
-    Vec2::new(w, h)
-}
-
 fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
@@ -659,13 +644,12 @@ fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
     Pos2::new(x, y)
 }
 
-fn hex_pick(local_pos: Vec2, g: &Geom, width: u32, height: u32) -> Option<HexCoord> {
+fn hex_pick(screen_pos: Pos2, g: &Geom, origin: Pos2, width: u32, height: u32) -> Option<HexCoord> {
     let mut best: Option<(HexCoord, f32)> = None;
-    let p = Pos2::new(local_pos.x, local_pos.y);
     for r in 0..height as i32 {
         for q in 0..width as i32 {
-            let c = hex_center(q, r, g);
-            let d = (c - p).length();
+            let c = hex_center(q, r, g) + origin.to_vec2();
+            let d = (c - screen_pos).length();
             if d <= g.hex_size * 0.95 && best.is_none_or(|(_, bd)| d < bd) {
                 best = Some((HexCoord { q, r }, d));
             }

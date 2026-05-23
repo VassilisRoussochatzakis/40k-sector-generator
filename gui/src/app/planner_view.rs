@@ -76,6 +76,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     heatmap: None,
                     empty_hex_clicks: false,
                     route_view_mode: app.route_view_mode,
+                    origin: ui.cursor().min,
                 }
                 .show(ui);
 

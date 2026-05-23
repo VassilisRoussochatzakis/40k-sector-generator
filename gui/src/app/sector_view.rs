@@ -57,80 +57,82 @@ impl App {
         }
 
         let overview_buckets = self.sector_overview_cache.buckets_for(&sector);
-        SidePanel::right("info")
-            .resizable(true)
-            .default_width(320.0)
-            .min_width(260.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
-            )
-            .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
-                    if let Some(sel) = self.sector_selected_route.clone() {
-                        if let Some(route) =
-                            sector.routes.iter().find(|r| r.id.as_str() == sel.as_str())
-                        {
-                            let from = route.from_system_id.clone();
-                            let to = route.to_system_id.clone();
-                            info_panel::route_summary(ui, route, &sector, self.route_view_mode);
-                            ui.add_space(10.0);
-                            ui.horizontal(|ui| {
-                                if ui.button(RichText::new("OPEN FROM").monospace()).clicked() {
-                                    self.sector_selected = Some(from.clone());
-                                    self.sector_selected_route = None;
-                                    self.sector_selected_subsector = None;
-                                    self.view = View::System {
-                                        system_id: from.clone(),
-                                        selection: SystemSelection::None,
-                                    };
-                                }
-                                if ui.button(RichText::new("OPEN TO").monospace()).clicked() {
-                                    self.sector_selected = Some(to.clone());
-                                    self.sector_selected_route = None;
-                                    self.sector_selected_subsector = None;
-                                    self.view = View::System {
-                                        system_id: to.clone(),
-                                        selection: SystemSelection::None,
-                                    };
-                                }
-                            });
-                            if ui
-                                .button(RichText::new("CLEAR ROUTE").monospace())
-                                .clicked()
+        if self.info_panel_open {
+            SidePanel::right("info")
+                .resizable(true)
+                .default_width(320.0)
+                .min_width(260.0)
+                .frame(
+                    egui::Frame::none()
+                        .fill(palette::PANEL_BG)
+                        .inner_margin(14.0),
+                )
+                .show(ctx, |ui| {
+                    ScrollArea::vertical().show(ui, |ui| {
+                        if let Some(sel) = self.sector_selected_route.clone() {
+                            if let Some(route) =
+                                sector.routes.iter().find(|r| r.id.as_str() == sel.as_str())
                             {
+                                let from = route.from_system_id.clone();
+                                let to = route.to_system_id.clone();
+                                info_panel::route_summary(ui, route, &sector, self.route_view_mode);
+                                ui.add_space(10.0);
+                                ui.horizontal(|ui| {
+                                    if ui.button(RichText::new("OPEN FROM").monospace()).clicked() {
+                                        self.sector_selected = Some(from.clone());
+                                        self.sector_selected_route = None;
+                                        self.sector_selected_subsector = None;
+                                        self.view = View::System {
+                                            system_id: from.clone(),
+                                            selection: SystemSelection::None,
+                                        };
+                                    }
+                                    if ui.button(RichText::new("OPEN TO").monospace()).clicked() {
+                                        self.sector_selected = Some(to.clone());
+                                        self.sector_selected_route = None;
+                                        self.sector_selected_subsector = None;
+                                        self.view = View::System {
+                                            system_id: to.clone(),
+                                            selection: SystemSelection::None,
+                                        };
+                                    }
+                                });
+                                if ui
+                                    .button(RichText::new("CLEAR ROUTE").monospace())
+                                    .clicked()
+                                {
+                                    self.sector_selected_route = None;
+                                }
+                                ui.separator();
+                            } else {
                                 self.sector_selected_route = None;
                             }
-                            ui.separator();
-                        } else {
-                            self.sector_selected_route = None;
                         }
-                    }
-                    if let Some(sel) = self.sector_selected.as_deref() {
-                        if let Some(sys) = sector.systems.iter().find(|s| s.id == sel) {
-                            info_panel::system_summary(ui, sys, &sector);
-                            ui.add_space(10.0);
-                            if ui
-                                .button(RichText::new("OPEN SYSTEM →").monospace())
-                                .clicked()
-                            {
-                                self.view = View::System {
-                                    system_id: sys.id.clone(),
-                                    selection: SystemSelection::None,
-                                };
+                        if let Some(sel) = self.sector_selected.as_deref() {
+                            if let Some(sys) = sector.systems.iter().find(|s| s.id == sel) {
+                                info_panel::system_summary(ui, sys, &sector);
+                                ui.add_space(10.0);
+                                if ui
+                                    .button(RichText::new("OPEN SYSTEM →").monospace())
+                                    .clicked()
+                                {
+                                    self.view = View::System {
+                                        system_id: sys.id.clone(),
+                                        selection: SystemSelection::None,
+                                    };
+                                }
+                                ui.separator();
                             }
-                            ui.separator();
                         }
-                    }
-                    info_panel::sector_overview_with_buckets(
-                        ui,
-                        &sector,
-                        overview_buckets.as_slice(),
-                        self.route_view_mode,
-                    );
+                        info_panel::sector_overview_with_buckets(
+                            ui,
+                            &sector,
+                            overview_buckets.as_slice(),
+                            self.route_view_mode,
+                        );
+                    });
                 });
-            });
+        }
 
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::BG))
@@ -228,6 +230,14 @@ impl App {
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
+                    if ui.button(RichText::new(if self.info_panel_open { "◀ PANEL" } else { "PANEL ▶" }).monospace()).clicked() {
+                        self.info_panel_open = !self.info_panel_open;
+                    }
+                    ui.separator();
+                    if ui.button(RichText::new("ZOOM TO FIT").monospace()).clicked() {
+                        self.zoom_to_fit();
+                    }
+                    ui.separator();
                     ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
                     ui.add(
                         egui::Slider::new(&mut self.sector_hex_size, 20.0..=80.0).show_value(false),
@@ -332,10 +342,36 @@ impl App {
                     }
                 });
             });
+
         let heatmap = self
             .heatmap_cache
             .get_or_compute(&sector, self.heatmap_mode);
-        ScrollArea::both().show(ui, |ui| {
+
+        let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
+        
+        // Handle zooming
+        let zoom_delta = ui.input(|i| i.zoom_delta());
+        if zoom_delta != 1.0 {
+            if let Some(mouse_pos) = response.hover_pos() {
+                // Zoom relative to mouse position
+                let old_zoom = self.sector_hex_size;
+                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(10.0, 150.0);
+                let actual_delta = self.sector_hex_size / old_zoom;
+                
+                // Adjust pan to keep mouse over the same map point
+                let map_origin = rect.min + self.sector_pan;
+                self.sector_pan = (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
+            } else {
+                self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(10.0, 150.0);
+            }
+        }
+
+        // Handle panning
+        if response.dragged() {
+            self.sector_pan += response.drag_delta();
+        }
+
+        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             let (_resp, click) = SectorView {
                 sector: &sector,
                 selected_system: self.sector_selected.as_deref(),
@@ -349,6 +385,7 @@ impl App {
                 empty_hex_clicks: self.map_edit_mode
                     && self.editor.tool == SectorEditTool::AddSystem,
                 route_view_mode: self.route_view_mode,
+                origin: rect.min + self.sector_pan,
             }
             .show(ui);
             match click {
@@ -574,7 +611,7 @@ impl App {
             .map(|p| p.to_string_lossy().to_string());
         if let Some(sector) = self.sector.as_mut() {
             let sector = Arc::make_mut(sector);
-            let (sys_map, world_map) = sector.reindex_ids(self.editor.stable_ids_on_rename);
+            let (sys_map, _world_map) = sector.reindex_ids(self.editor.stable_ids_on_rename);
             
             // Update selection if IDs changed
             if let Some(sel) = self.sector_selected.as_ref() {
@@ -587,7 +624,7 @@ impl App {
                     *system_id = SystemId::new(new_id.clone());
                 }
             }
-            if let Some(sel) = self.sector_selected_route.as_ref() {
+            if let Some(_sel) = self.sector_selected_route.as_ref() {
                 // Route IDs are always derived from endpoints, so we just check if endpoints changed
                 // Actually, reindex_ids already updated route IDs in the sector.
                 // We just need to find the new route ID for the current selection.

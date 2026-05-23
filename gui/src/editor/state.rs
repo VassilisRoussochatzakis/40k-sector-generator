@@ -1,7 +1,6 @@
 //! Editor state machine. Holds the working sector + selection + pending dialogs.
 
 use std::collections::BTreeSet;
-use std::sync::Arc;
 
 use sectorforge::ids::{FactionId, SystemId};
 use sectorforge::sector_model::{

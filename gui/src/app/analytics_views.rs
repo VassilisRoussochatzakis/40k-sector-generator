@@ -186,6 +186,35 @@ impl App {
                             }
                         }
                     }
+
+                    ui.add_space(20.0);
+                    ui.separator();
+                    ui.add_space(8.0);
+                    ui.label(
+                        RichText::new("SNAPSHOTS / VERSIONING")
+                            .color(TEXT)
+                            .monospace()
+                            .strong(),
+                    );
+                    if ui.button(RichText::new("+ CREATE SNAPSHOT").monospace()).clicked() {
+                        let name = format!("Snapshot {}", self.history_snapshots.len() + 1);
+                        self.history_snapshots.push((name, sector.as_ref().clone()));
+                    }
+                    ui.add_space(8.0);
+                    let mut revert_idx: Option<usize> = None;
+                    for (i, (name, _)) in self.history_snapshots.iter().enumerate() {
+                        ui.horizontal(|ui| {
+                            ui.label(RichText::new(name).monospace());
+                            if ui.button("REVERT").clicked() {
+                                revert_idx = Some(i);
+                            }
+                        });
+                    }
+                    if let Some(i) = revert_idx {
+                        let (_, sec) = self.history_snapshots[i].clone();
+                        let source = self.sector_source_path.as_ref().map(|p| p.to_string_lossy().to_string());
+                        self.set_loaded_sector(sec, source);
+                    }
                 });
             });
 

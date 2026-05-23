@@ -1,32 +1,32 @@
 //! Editor state machine. Holds the working sector + selection + pending dialogs.
 
+use std::collections::BTreeSet;
+use std::sync::Arc;
+
 use sectorforge::ids::{FactionId, SystemId};
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
+    SystemKind, GenerationManifest, RouteType, RouteStability, WorldDto,
 };
-use std::collections::BTreeSet;
 
-/// Sort order for the factions panel (§14).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FactionSort {
-    #[default]
-    Default,
     PowerDesc,
     PowerAsc,
     NameAsc,
 }
 
-impl FactionSort {
-    pub const ALL: &'static [FactionSort] = &[
-        FactionSort::Default,
-        FactionSort::PowerDesc,
-        FactionSort::PowerAsc,
-        FactionSort::NameAsc,
-    ];
+impl Default for FactionSort {
+    fn default() -> Self {
+        Self::PowerDesc
+    }
+}
 
-    pub fn label(self) -> &'static str {
+impl FactionSort {
+    pub const ALL: [Self; 3] = [Self::PowerDesc, Self::PowerAsc, Self::NameAsc];
+
+    pub fn label(&self) -> &'static str {
         match self {
-            FactionSort::Default => "DEFAULT",
             FactionSort::PowerDesc => "POWER ↓",
             FactionSort::PowerAsc => "POWER ↑",
             FactionSort::NameAsc => "NAME ↑",
@@ -40,6 +40,8 @@ pub enum Tab {
     Routes,
     Factions,
     Settings,
+    Generation,
+    Wishes,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,18 +82,30 @@ pub enum Dialog {
     PlaceSystem {
         coord: HexCoord,
         name: String,
-        kind: sectorforge::sector_model::SystemKind,
+        kind: SystemKind,
         has_star: bool,
     },
     Message(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SectorEditTool {
+    #[default]
+    Select,
+    AddSystem,
+    AddRoute,
+    Delete,
+}
+
 pub struct EditorState {
     pub sector: Option<GeneratedSector>,
+    pub project_input: Option<sectorforge::input::ProjectInput>,
+    pub wishes: Option<sectorforge::search::WishesFile>,
     pub loaded_from: Option<String>,
     pub dirty: bool,
     pub tab: Tab,
     pub selection: Selection,
+    pub tool: SectorEditTool,
     pub dialog: Dialog,
     pub hex_size: f32,
     pub system_side: f32,
@@ -102,16 +116,24 @@ pub struct EditorState {
     pub faction_sort: FactionSort,
     pub faction_pinned: BTreeSet<FactionId>,
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
+    pub auto_generate: bool,
+    pub auto_save: bool,
+    pub drag_id: Option<SystemId>,
+    pub pending_route_start: Option<SystemId>,
+    pub search_outcome: Option<sectorforge::search::SearchOutcome>,
 }
 
 impl Default for EditorState {
     fn default() -> Self {
         Self {
             sector: None,
+            project_input: None,
+            wishes: None,
             loaded_from: None,
             dirty: false,
             tab: Tab::Map,
             selection: Selection::None,
+            tool: SectorEditTool::default(),
             dialog: Dialog::None,
             hex_size: 44.0,
             system_side: 700.0,
@@ -121,19 +143,42 @@ impl Default for EditorState {
             faction_sort: FactionSort::default(),
             faction_pinned: BTreeSet::new(),
             route_view_mode: sectorforge::sector_model::RouteViewMode::default(),
+            auto_generate: false,
+            auto_save: false,
+            drag_id: None,
+            pending_route_start: None,
+            search_outcome: None,
         }
     }
 }
 
 impl EditorState {
-    pub fn set_sector(&mut self, sector: GeneratedSector, source_path: Option<String>) {
+    pub fn set_sector(
+        &mut self,
+        sector: GeneratedSector,
+        project_input: Option<sectorforge::input::ProjectInput>,
+        source_path: Option<String>,
+    ) {
         self.sector = Some(sector);
+        self.project_input = project_input;
         self.loaded_from = source_path;
         self.dirty = false;
         self.selection = Selection::None;
         self.tab = Tab::Map;
         self.dialog = Dialog::None;
         self.route_pick = None;
+        self.pending_route_start = None;
+        
+        // Try load wishes if we have project_input
+        self.wishes = None;
+        if let Some(pi) = &self.project_input {
+            let wishes_path = pi.root_dir.join("wishes.toml");
+            if wishes_path.exists() {
+                if let Ok(w) = sectorforge::search::load_wishes(&wishes_path) {
+                    self.wishes = Some(w);
+                }
+            }
+        }
     }
 
     pub fn mark_dirty(&mut self) {
@@ -141,63 +186,54 @@ impl EditorState {
     }
 
     pub fn next_system_index(&self) -> usize {
-        self.sector.as_ref().map_or(1, |s| {
-            s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1
-        })
-    }
-
-    pub fn system_ids(&self) -> Vec<SystemId> {
         self.sector
             .as_ref()
-            .map(|s| s.systems.iter().map(|sys| sys.id.clone()).collect())
-            .unwrap_or_default()
+            .map(|s| s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1)
+            .unwrap_or(1)
     }
 }
 
 pub fn empty_sector(
-    name: &str,
+    id: &str,
     title: &str,
     seed: &str,
     width: u32,
     height: u32,
 ) -> GeneratedSector {
-    use sectorforge::sector_model::GenerationManifest;
-    use std::collections::BTreeMap;
-
     GeneratedSector {
-        id: name.into(),
+        id: id.into(),
         title: title.into(),
         seed: seed.into(),
-        generator_name: sectorforge::GENERATOR_NAME.into(),
-        generator_version: sectorforge::GENERATOR_VERSION.into(),
+        generator_name: "sectorforge".into(),
+        generator_version: "0.1.0".into(),
         width,
         height,
-        systems: Vec::new(),
-        routes: Vec::new(),
-        factions: Vec::new(),
         manifest: GenerationManifest {
-            project_id: name.into(),
-            generated_at_policy: "manual_edit".into(),
-            generator_name: sectorforge::GENERATOR_NAME.into(),
-            generator_version: sectorforge::GENERATOR_VERSION.into(),
+            project_id: id.into(),
+            generated_at_policy: "unknown".into(),
+            generator_name: "sectorforge".into(),
+            generator_version: "0.1.0".into(),
             seed: seed.into(),
-            seed_hash: String::new().into(),
+            seed_hash: "".into(),
             base_seed: None,
             candidate_index: None,
             constraints_digest: None,
             profile: None,
-            input_digests: BTreeMap::new(),
-            settings_digest: String::new().into(),
+            input_digests: Default::default(),
+            settings_digest: "".into(),
             system_count: 0,
             world_count: 0,
             route_count: 0,
         },
-        influence_field: Default::default(),
-        power_projection: Default::default(),
+        systems: Vec::new(),
+        routes: Vec::new(),
+        factions: Vec::new(),
         relations: Default::default(),
         regions: Vec::new().into(),
         economy: Default::default(),
         chronicle: Default::default(),
+        influence_field: Default::default(),
+        power_projection: Default::default(),
     }
 }
 
@@ -206,7 +242,7 @@ pub fn empty_system(
     index: usize,
     name: String,
     coord: HexCoord,
-    kind: sectorforge::sector_model::SystemKind,
+    kind: SystemKind,
     star: Option<sectorforge::sector_model::GeneratedStar>,
 ) -> GeneratedSystem {
     GeneratedSystem {
@@ -230,24 +266,28 @@ pub fn empty_system(
     }
 }
 
-pub fn empty_world(system_index: usize, world_index: usize, name: String) -> GeneratedWorld {
-    use sectorforge::sector_model::WorldDto;
+pub fn empty_world(
+    system_index: usize,
+    index: usize,
+    name: String,
+) -> GeneratedWorld {
+    let id = sectorforge::ids::world_id(system_index, index);
     GeneratedWorld {
-        id: sectorforge::ids::world_id(system_index, world_index),
-        index: world_index,
+        id,
+        index,
         name: name.into(),
-        orbit: world_index as u8,
+        orbit: 1,
         source_row_index: 0,
         world: WorldDto {
-            star_colour: "yellow".into(),
-            star_colour_code: "G".into(),
-            world_type: "FrontierWorld".into(),
-            atmosphere: "Breathable".into(),
-            temperature: "Temperate".into(),
-            biosphere: "Thriving".into(),
-            population: "LightlyPopulated".into(),
-            tech_level: "Standard".into(),
-            government: "MagistrateCouncil".into(),
+            star_colour: "white".into(),
+            star_colour_code: "W".into(),
+            world_type: "dead".into(),
+            atmosphere: "none".into(),
+            temperature: "temperate".into(),
+            biosphere: "none".into(),
+            population: "none".into(),
+            tech_level: "low".into(),
+            government: "none".into(),
             notable_features: Vec::new(),
         },
         factions: Vec::new(),
@@ -261,26 +301,27 @@ pub fn empty_world(system_index: usize, world_index: usize, name: String) -> Gen
     }
 }
 
-pub fn empty_route(from: SystemId, to: SystemId) -> GeneratedRoute {
-    use sectorforge::sector_model::{RouteStability, RouteType};
+pub fn empty_route(
+    from: SystemId,
+    to: SystemId,
+) -> GeneratedRoute {
     let id = sectorforge::ids::route_id(&from, &to);
     GeneratedRoute {
         id,
         from_system_id: from,
         to_system_id: to,
-        distance: 0,
-        route_type: RouteType::ChartedPassage,
+        route_type: RouteType::StableWarpLane,
         stability: RouteStability::Stable,
+        distance: 1,
         tags: Vec::new(),
         controls: Vec::new(),
     }
 }
 
-pub fn empty_faction(id: FactionId) -> GeneratedFaction {
-    let name = id.as_str().into();
+pub fn empty_faction(id: &FactionId) -> GeneratedFaction {
     GeneratedFaction {
-        id,
-        name,
+        id: id.clone(),
+        name: id.as_str().into(),
         kind: "imperial".into(),
         disposition: "neutral".into(),
         subfactions: Vec::new(),

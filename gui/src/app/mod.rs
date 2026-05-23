@@ -7,6 +7,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use camino::Utf8PathBuf;
 use crate::dashboard::DashboardState;
 use crate::data_editor::DataEditor;
 use crate::editor::state::EditorState;
@@ -54,7 +55,6 @@ pub struct App {
     pub(super) sector_selected_subsector: Option<std::sync::Arc<str>>,
     pub(super) sector_selected_region: Option<String>,
     pub(super) map_edit_mode: bool,
-    pub(super) sector_edit_tool: SectorEditTool,
     pub(super) pending_route_start: Option<sectorforge::ids::SystemId>,
     pub(super) sector_hex_size: f32,
     pub(super) system_side: f32,
@@ -79,6 +79,7 @@ pub struct App {
     pub(super) factions_mode: FactionsMode,
     pub(super) faction_designer: factions_overview::FactionDesignerState,
     pub(super) history_selected_event: Option<std::sync::Arc<str>>,
+    pub(super) history_snapshots: Vec<(String, GeneratedSector)>,
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
 }
 
@@ -95,7 +96,6 @@ impl Default for App {
             sector_selected_subsector: None,
             sector_selected_region: None,
             map_edit_mode: false,
-            sector_edit_tool: SectorEditTool::Select,
             pending_route_start: None,
             sector_hex_size: 40.0,
             system_side: 800.0,
@@ -120,6 +120,7 @@ impl Default for App {
             factions_mode: FactionsMode::Overview,
             faction_designer: factions_overview::FactionDesignerState::default(),
             history_selected_event: None,
+            history_snapshots: Vec::new(),
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
         }
     }
@@ -168,6 +169,30 @@ impl eframe::App for App {
 
         self.draw_preset_gallery(ctx);
         self.draw_export_dialog(ctx);
+
+        // Sync editor changes back to main sector
+        if self.editor.dirty {
+            if let Some(sec) = &self.editor.sector {
+                self.sector = Some(Arc::new(sec.clone()));
+                self.subsectors = sectorforge::subsectors::build_subsectors(sec, sectorforge::subsectors::SubsectorConfig::default()).unwrap_or_default();
+                self.dashboard.invalidate();
+                self.heatmap_cache.invalidate();
+                self.sector_overview_cache.invalidate();
+                self.live_dirty = true;
+                
+                // Auto-save if enabled
+                if self.editor.auto_save {
+                    if let Some(path_str) = &self.editor.loaded_from {
+                        let path = PathBuf::from(path_str);
+                        let text = serde_json::to_string_pretty(sec).unwrap();
+                        if fs::write(path, text).is_ok() {
+                            self.editor.dirty = false;
+                            self.live_dirty = false;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -185,17 +210,13 @@ impl App {
             dialog = dialog.set_directory(dir);
         }
         if let Some(path) = dialog.pick_file() {
-            match fs::read_to_string(&path) {
-                Ok(text) => match serde_json::from_str::<GeneratedSector>(text.as_str()) {
-                    Ok(sector) => {
-                        self.set_loaded_sector(sector, Some(path.to_string_lossy().to_string()));
-                    }
-                    Err(e) => {
-                        self.export_status = format!("load failed: parse error: {e}");
-                    }
-                },
+            let utf8_path = Utf8PathBuf::from_path_buf(path.clone()).unwrap();
+            match sectorforge::load_sector_json(&utf8_path) {
+                Ok(sector) => {
+                    self.set_loaded_sector(sector, Some(path.to_string_lossy().to_string()));
+                }
                 Err(e) => {
-                    self.export_status = format!("load failed: read error: {e}");
+                    self.export_status = format!("load failed: {e}");
                 }
             }
         }

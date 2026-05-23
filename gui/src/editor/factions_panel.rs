@@ -47,7 +47,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         egui::ComboBox::from_id_salt("fac_sort")
             .selected_text(RichText::new(state.faction_sort.label()).font(mono(12.0)))
             .show_ui(ui, |ui| {
-                for &s in FactionSort::ALL {
+                for s in FactionSort::ALL {
                     if ui
                         .selectable_label(
                             state.faction_sort == s,
@@ -61,14 +61,14 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             });
         if (state.faction_filter_kind.is_some()
             || state.faction_filter_disposition.is_some()
-            || state.faction_sort != FactionSort::Default)
+            || state.faction_sort != FactionSort::default())
             && ui
                 .small_button(RichText::new("clear").font(mono(11.0)))
                 .clicked()
         {
             state.faction_filter_kind = None;
             state.faction_filter_disposition = None;
-            state.faction_sort = FactionSort::Default;
+            state.faction_sort = FactionSort::default();
         }
     });
     if !state.faction_pinned.is_empty() {
@@ -125,7 +125,6 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             _ => {}
         }
         match sort_mode {
-            FactionSort::Default => a.cmp(&b),
             FactionSort::PowerDesc => fb
                 .power
                 .total_projection()
@@ -296,7 +295,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         .clicked()
     {
         let id = FactionId::new(format!("faction_{}", sector.factions.len() + 1));
-        sector.factions.push(empty_faction(id));
+        sector.factions.push(empty_faction(&id));
         dirty = true;
     }
 

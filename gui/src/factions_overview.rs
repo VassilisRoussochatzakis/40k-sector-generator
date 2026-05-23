@@ -356,7 +356,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
             .clicked()
         {
             let id = next_faction_id(sector);
-            sector.factions.push(empty_faction(id));
+            sector.factions.push(crate::editor::state::empty_faction(&id));
             dirty = true;
         }
         if ui

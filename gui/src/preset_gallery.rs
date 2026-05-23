@@ -42,6 +42,8 @@ pub struct PresetGalleryState {
     pub height: u32,
     pub irregular_dimensions: bool,
     pub add_to_existing: bool,
+    pub open_immediately: bool,
+    pub pending_open: Option<Utf8PathBuf>,
 }
 
 impl PresetGalleryState {
@@ -78,6 +80,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     });
 
     ui.checkbox(&mut state.add_to_existing, "Add to existing project");
+    ui.checkbox(&mut state.open_immediately, "Open immediately after creation");
     ui.add_space(4.0);
 
     if state.target == CreationTarget::Sector {
@@ -210,6 +213,9 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                         match presets::scaffold(&dir, &entry.id, &dest, seed_ref) {
                             Ok(_) => {
                                 state.status = format!("OK — scaffolded '{}' at {dest}", entry.id);
+                                if state.open_immediately {
+                                    state.pending_open = Some(dest);
+                                }
                             }
                             Err(e) => {
                                 state.status = format!("FAILED: {e}");

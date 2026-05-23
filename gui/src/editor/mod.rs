@@ -8,20 +8,24 @@ pub mod state;
 
 mod dialogs;
 mod factions_panel;
+mod generation_panel;
 mod map_panel;
 mod routes_panel;
 mod settings_panel;
 mod system_panel;
 mod toolbar;
 mod ui_helpers;
+mod wishes_panel;
 mod world_panel;
 
 pub use dialogs::draw_dialog;
 pub use factions_panel::show_factions;
+pub use generation_panel::show_generation_settings;
 pub use map_panel::show_map;
 pub use routes_panel::show_routes;
 pub use settings_panel::show_settings;
 pub use state::EditorState;
 pub use system_panel::show_system_inspector;
 pub use toolbar::editor_toolbar;
+pub use wishes_panel::show_wishes;
 pub use world_panel::show_world_inspector;

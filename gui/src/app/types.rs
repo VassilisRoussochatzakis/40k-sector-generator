@@ -29,13 +29,6 @@ pub enum View {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SectorEditTool {
-    Select,
-    AddSystem,
-    AddRoute,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FactionsMode {
     Overview,
     Designer,

@@ -42,6 +42,12 @@ impl App {
                         editor::state::Tab::Routes => editor::show_routes(ui, &mut self.editor),
                         editor::state::Tab::Factions => editor::show_factions(ui, &mut self.editor),
                         editor::state::Tab::Settings => editor::show_settings(ui, &mut self.editor),
+                        editor::state::Tab::Generation => {
+                            editor::show_generation_settings(ui, &mut self.editor)
+                        }
+                        editor::state::Tab::Wishes => {
+                            editor::show_wishes(ui, &mut self.editor)
+                        }
                     }
                 });
             });
@@ -97,6 +103,12 @@ impl App {
         .show(ctx, |ui| {
             preset_gallery::show(ui, &mut self.preset_gallery);
         });
+
+        if let Some(path) = self.preset_gallery.pending_open.take() {
+            self.load_project_path(path);
+            self.preset_gallery.open = false;
+        }
+
         if !open {
             self.preset_gallery.open = false;
         }

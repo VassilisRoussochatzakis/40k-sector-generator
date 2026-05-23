@@ -55,6 +55,8 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
             (Tab::Routes, "ROUTES"),
             (Tab::Factions, "FACTIONS"),
             (Tab::Settings, "SETTINGS"),
+            (Tab::Generation, "GENERATION"),
+            (Tab::Wishes, "WISHES"),
         ] {
             if ui
                 .selectable_label(

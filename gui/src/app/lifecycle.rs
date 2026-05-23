@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use camino::Utf8PathBuf;
 use rfd::FileDialog;
 
 use sectorforge::sector_model::GeneratedSector;
@@ -22,16 +23,37 @@ impl App {
         self.sector_selected = None;
         self.sector_selected_route = None;
         self.sector_selected_subsector = None;
-        self.sector_edit_tool = super::SectorEditTool::Select;
+        self.editor.tool = crate::editor::state::SectorEditTool::Select;
         self.pending_route_start = None;
         self.history_selected_event = None;
         self.planner.clear();
         self.dashboard.invalidate();
         self.heatmap_cache.invalidate();
         self.sector_overview_cache.invalidate();
-        if !self.editor.dirty {
-            self.editor.set_sector(sector, source_path);
+        
+        // Auto-detect project dir if we're loading a sector from an "out/" folder
+        if let Some(sp) = &self.sector_source_path {
+            if let Some(parent) = sp.parent() {
+                if parent.file_name().and_then(|n| n.to_str()).map(|n| n == "out").unwrap_or(false) {
+                    if let Some(project_root) = parent.parent() {
+                        self.project_dir = Some(project_root.to_path_buf());
+                    }
+                }
+            }
         }
+
+        let mut input = None;
+        if let Some(path) = &self.project_dir {
+            if let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.clone()) {
+                if let Ok(pi) = sectorforge::input::load_project(&utf8_path) {
+                    input = Some(pi);
+                }
+            }
+        }
+        
+        // Always set the sector in the editor and clear dirty flag when explicitly loading
+        self.editor.set_sector(sector, input, source_path);
+        self.editor.dirty = false;
     }
 
     pub(super) fn save_sector_to_source(&mut self) {
@@ -68,6 +90,52 @@ impl App {
         self.write_sector_to_path(path);
     }
 
+    pub(super) fn load_project_path(&mut self, path: Utf8PathBuf) {
+        let std_path = path.clone().into_std_path_buf();
+        self.project_dir = Some(std_path.clone());
+        
+        // Try load project input
+        match sectorforge::input::load_project(&path) {
+            Ok(input) => {
+                // Check if sector.json exists
+                let sector_path = path.join("out").join("sector.json");
+                if sector_path.exists() {
+                    match sectorforge::load_sector_json(&sector_path) {
+                        Ok(sector) => {
+                            self.set_loaded_sector(sector, Some(sector_path.to_string()));
+                        }
+                        Err(e) => {
+                            self.export_status = format!("project load failed: {e}");
+                        }
+                    }
+                } else {
+                    // Try to generate it
+                    match sectorforge::generation::generate(input.clone()) {
+                        Ok(sector) => {
+                            // Ensure out dir exists
+                            let out_dir = path.join("out");
+                            let _ = std::fs::create_dir_all(&out_dir);
+                            if let Err(e) = sectorforge::write_sector_json(&sector_path, &sector) {
+                                self.export_status = format!("failed to save generated sector: {e}");
+                            }
+                            self.set_loaded_sector(sector, Some(sector_path.to_string()));
+                        }
+                        Err(e) => {
+                            self.export_status = format!("generation failed: {e}");
+                        }
+                    }
+                }
+                
+                if let Err(e) = self.data_editor.load_from_project(&std_path) {
+                    self.data_editor.status = format!("data load failed: {e}");
+                }
+            }
+            Err(e) => {
+                self.export_status = format!("failed to load project config: {e}");
+            }
+        }
+    }
+
     pub(super) fn write_sector_to_path(&mut self, path: PathBuf) {
         let Some(sector) = self.sector.as_mut() else {
             self.export_status = "save failed: no sector to save".into();
@@ -94,8 +162,17 @@ impl App {
                 self.live_dirty = false;
                 self.export_status = format!("saved {}", path.display());
                 if let Some(sector) = self.sector.as_ref() {
+                    let mut input = None;
+                    if let Some(path) = &self.project_dir {
+                        if let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.clone()) {
+                            if let Ok(pi) = sectorforge::input::load_project(&utf8_path) {
+                                input = Some(pi);
+                            }
+                        }
+                    }
                     self.editor.set_sector(
                         sector.as_ref().clone(),
+                        input,
                         Some(path.to_string_lossy().to_string()),
                     );
                 }

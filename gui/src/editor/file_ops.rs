@@ -48,11 +48,27 @@ pub fn project_sector_path(name: &str) -> PathBuf {
 
 pub fn load_project_sector(
     name: &str,
-) -> Result<(sectorforge::sector_model::GeneratedSector, String), EditorFileError> {
+) -> Result<
+    (
+        sectorforge::sector_model::GeneratedSector,
+        Option<sectorforge::input::ProjectInput>,
+        String,
+    ),
+    EditorFileError,
+> {
     let path = project_sector_path(name);
     let text = fs::read_to_string(&path)?;
     let sector: sectorforge::sector_model::GeneratedSector = serde_json::from_str(&text)?;
-    Ok((sector, path.to_string_lossy().to_string()))
+
+    let project_root = PathBuf::from(EXAMPLES_DIR).join(name);
+    let mut input = None;
+    if let Ok(utf8_root) = camino::Utf8PathBuf::from_path_buf(project_root) {
+        if let Ok(pi) = sectorforge::input::load_project(&utf8_root) {
+            input = Some(pi);
+        }
+    }
+
+    Ok((sector, input, path.to_string_lossy().to_string()))
 }
 
 pub fn save_project_sector(

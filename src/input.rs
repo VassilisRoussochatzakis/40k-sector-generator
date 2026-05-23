@@ -12,7 +12,7 @@ use crate::names::NameTables;
 use crate::rng;
 use crate::routes::{RouteRules, RouteRulesFile};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProjectInput {
     pub root_dir: Utf8PathBuf,
     pub config: AppConfig,

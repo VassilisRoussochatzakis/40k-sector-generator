@@ -55,6 +55,13 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
         }
     });
 
+    if sector.width != sector.height {
+        ui.colored_label(
+            egui::Color32::from_rgb(235, 180, 50),
+            "⚠ IRREGULAR DIMENSIONS: Joining sectors in a Segmentum usually requires square (H=W) sectors.",
+        );
+    }
+
     ui.add_space(8.0);
     section(ui, "VIEW");
     ui.horizontal(|ui| {
@@ -78,6 +85,11 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
             state.route_view_mode = sectorforge::sector_model::RouteViewMode::Detailed;
         }
     });
+
+    ui.add_space(8.0);
+    section(ui, "EDITOR PREFERENCES");
+    ui.checkbox(&mut state.auto_save, "AUTO-SAVE TO sector.json");
+    dim(ui, "Background saving on every change.");
 
     ui.add_space(8.0);
     section(ui, "STATS (auto-updated on save)");

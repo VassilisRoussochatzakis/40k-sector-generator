@@ -7,8 +7,9 @@ use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
 use sectorforge::subsectors::SubsectorConfig;
 
 use super::{
-    editor, info_panel, palette, App, PendingExport, SectorEditTool, View, TEXT, TEXT_DIM,
+    editor, info_panel, palette, App, PendingExport, View, TEXT, TEXT_DIM,
 };
+use crate::editor::state::SectorEditTool;
 use crate::sector_view::{SectorClick, SectorView};
 
 use crate::system_view::SystemSelection;
@@ -226,29 +227,29 @@ impl App {
                         .clicked()
                     {
                         self.map_edit_mode = !self.map_edit_mode;
-                        self.sector_edit_tool = SectorEditTool::Select;
+                        self.editor.tool = SectorEditTool::Select;
                         self.pending_route_start = None;
                     }
                     if self.map_edit_mode {
                         if ui
                             .selectable_label(
-                                self.sector_edit_tool == SectorEditTool::AddSystem,
+                                self.editor.tool == SectorEditTool::AddSystem,
                                 RichText::new("ADD SYSTEM").monospace(),
                             )
                             .clicked()
                         {
-                            self.sector_edit_tool = SectorEditTool::AddSystem;
+                            self.editor.tool = SectorEditTool::AddSystem;
                             self.pending_route_start = None;
                             self.sector_pick_export = false;
                         }
                         if ui
                             .selectable_label(
-                                self.sector_edit_tool == SectorEditTool::AddRoute,
+                                self.editor.tool == SectorEditTool::AddRoute,
                                 RichText::new("ADD WARP ROUTE").monospace(),
                             )
                             .clicked()
                         {
-                            self.sector_edit_tool = SectorEditTool::AddRoute;
+                            self.editor.tool = SectorEditTool::AddRoute;
                             self.pending_route_start = None;
                             self.sector_pick_export = false;
                         }
@@ -315,7 +316,7 @@ impl App {
                 selected_subsector: self.sector_selected_subsector.as_deref(),
                 heatmap: heatmap.as_deref(),
                 empty_hex_clicks: self.map_edit_mode
-                    && self.sector_edit_tool == SectorEditTool::AddSystem,
+                    && self.editor.tool == SectorEditTool::AddSystem,
                 route_view_mode: self.route_view_mode,
             }
             .show(ui);
@@ -325,7 +326,7 @@ impl App {
                         self.sector_pick_export = false;
                         self.pending_export = Some(PendingExport::SystemPng(id));
                     } else if self.map_edit_mode
-                        && self.sector_edit_tool == SectorEditTool::AddRoute
+                        && self.editor.tool == SectorEditTool::AddRoute
                     {
                         self.pick_route_endpoint(id);
                     } else if self.sector_selected.as_deref() == Some(id.as_str()) {
@@ -378,7 +379,7 @@ impl App {
                     }
                 }
                 Some(SectorClick::EmptyHex(coord)) => {
-                    if self.map_edit_mode && self.sector_edit_tool == SectorEditTool::AddSystem {
+                    if self.map_edit_mode && self.editor.tool == SectorEditTool::AddSystem {
                         self.add_system_at(coord);
                     }
                 }
@@ -417,7 +418,7 @@ impl App {
         self.sector_selected = Some(id.clone());
         self.sector_selected_route = None;
         self.sector_selected_subsector = None;
-        self.sector_edit_tool = SectorEditTool::Select;
+        self.editor.tool = SectorEditTool::Select;
         self.pending_route_start = None;
         self.mark_live_sector_dirty(format!("added system {}", id));
     }
@@ -467,7 +468,7 @@ impl App {
             }
             self.add_route_between(from, id);
             self.pending_route_start = None;
-            self.sector_edit_tool = SectorEditTool::Select;
+            self.editor.tool = SectorEditTool::Select;
         } else {
             self.pending_route_start = Some(id.clone());
             self.sector_selected = Some(id.clone());
@@ -549,7 +550,15 @@ impl App {
                 sectorforge::subsectors::build_subsectors(sector, SubsectorConfig::default())
                     .unwrap_or_default();
             if !self.editor.dirty {
-                self.editor.set_sector(sector.clone(), source);
+                let mut input = None;
+                if let Some(path) = &self.project_dir {
+                    if let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.clone()) {
+                        if let Ok(pi) = sectorforge::input::load_project(&utf8_path) {
+                            input = Some(pi);
+                        }
+                    }
+                }
+                self.editor.set_sector(sector.clone(), input, source);
             }
         }
         self.export_status = status;

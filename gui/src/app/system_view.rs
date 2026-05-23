@@ -4,7 +4,8 @@ use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use sectorforge::ids::SystemId;
 
-use super::{editor, info_panel, palette, App, PendingExport, SectorEditTool, View, TEXT_DIM};
+use super::{editor, info_panel, palette, App, PendingExport, View, TEXT_DIM};
+use crate::editor::state::SectorEditTool;
 use crate::system_view::{SystemClick, SystemSelection, SystemView};
 
 impl App {
@@ -88,7 +89,7 @@ impl App {
                         .clicked()
                     {
                         self.map_edit_mode = !self.map_edit_mode;
-                        self.sector_edit_tool = SectorEditTool::Select;
+                        self.editor.tool = SectorEditTool::Select;
                         self.pending_route_start = None;
                     }
                     if self.map_edit_mode {

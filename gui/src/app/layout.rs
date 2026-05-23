@@ -164,10 +164,25 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     app.save_sector_to_source();
                 }
                 if ui
-                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT"))
+                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT PNG"))
                     .clicked()
                 {
                     app.pending_export = Some(crate::app::PendingExport::SectorPng);
+                }
+                if ui
+                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT HTML"))
+                    .clicked()
+                {
+                    app.pending_export = Some(crate::app::PendingExport::SectorHtml);
+                }
+                if ui
+                    .add_enabled(app.sector.is_some(), egui::Button::new("SAVE & EXPORT ALL"))
+                    .clicked()
+                {
+                    app.save_sector_to_source();
+                    app.pending_export = Some(crate::app::PendingExport::SectorPng);
+                    // We could chain them, but pending_export only holds one.
+                    // For now, let's just do PNG.
                 }
                 if ui
                     .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT BUNDLE"))

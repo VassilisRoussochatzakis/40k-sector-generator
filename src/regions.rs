@@ -413,6 +413,45 @@ pub fn region_at(regions: &[WarpRegion], coord: HexCoord) -> Option<&WarpRegion>
     regions.iter().find(|r| r.hexes.contains(&coord))
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RegionRouteEffectsSummary {
+    pub routes: usize,
+    pub affected_routes: usize,
+    pub changed_routes: usize,
+    pub bridge_checks: usize,
+    pub bridges_preserved: usize,
+    pub stable: usize,
+    pub unstable: usize,
+    pub hazardous: usize,
+    pub perilous: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RegionRouteEffectsProgress {
+    Started {
+        regions: usize,
+        systems: usize,
+        routes: usize,
+    },
+    RouteScanned {
+        current: usize,
+        total: usize,
+        affected_routes: usize,
+        changed_routes: usize,
+        bridge_checks: usize,
+        bridges_preserved: usize,
+    },
+    BridgeCheckStarted {
+        check: usize,
+        route_index: usize,
+        total_routes: usize,
+        route_id: String,
+    },
+    Completed {
+        summary: RegionRouteEffectsSummary,
+    },
+}
+
 /// §5: pick the strongest route-affecting region condition along the
 /// straight-line endpoints of a route. Returns `None` if no region condition
 /// applies.
@@ -442,39 +481,151 @@ pub fn apply_route_effects(
     systems: &[GeneratedSystem],
     routes: &mut [GeneratedRoute],
 ) {
+    let _ = apply_route_effects_with_progress(regions, systems, routes, |_| {});
+}
+
+pub fn apply_route_effects_with_progress(
+    regions: &[WarpRegion],
+    systems: &[GeneratedSystem],
+    routes: &mut [GeneratedRoute],
+    mut progress: impl FnMut(RegionRouteEffectsProgress),
+) -> RegionRouteEffectsSummary {
+    let mut summary = RegionRouteEffectsSummary {
+        routes: routes.len(),
+        ..Default::default()
+    };
+    progress(RegionRouteEffectsProgress::Started {
+        regions: regions.len(),
+        systems: systems.len(),
+        routes: routes.len(),
+    });
     if regions.is_empty() {
-        return;
+        count_route_stabilities(routes, &mut summary);
+        progress(RegionRouteEffectsProgress::Completed { summary });
+        return summary;
     }
     let by_id: BTreeMap<&str, HexCoord> =
         systems.iter().map(|s| (s.id.as_str(), s.coord)).collect();
-    for idx in 0..routes.len() {
-        let (Some(&a), Some(&b)) = (
+    let total = routes.len();
+    for idx in 0..total {
+        if let (Some(&a), Some(&b)) = (
             by_id.get(routes[idx].from_system_id.as_str()),
             by_id.get(routes[idx].to_system_id.as_str()),
-        ) else {
-            continue;
-        };
-        let Some(cond) = dominant_route_condition(regions, a, b) else {
-            continue;
-        };
-        match cond {
-            RegionConditionKind::WarpStorm => {
-                apply_route_stability(routes, idx, RouteStability::Perilous, "region:warp_storm");
-            }
-            RegionConditionKind::Turbulence => {
-                let target = degrade(routes[idx].stability);
-                apply_route_stability(routes, idx, target, "region:turbulence");
-            }
-            RegionConditionKind::CalmCorridor => {
-                // Only upgrades when not already perilous (per lattice doc).
-                if !matches!(routes[idx].stability, RouteStability::Perilous) {
-                    let target = upgrade(routes[idx].stability);
-                    apply_route_stability(routes, idx, target, "region:calm_corridor");
+        ) {
+            if let Some(cond) = dominant_route_condition(regions, a, b) {
+                summary.affected_routes += 1;
+                let outcome = match cond {
+                    RegionConditionKind::WarpStorm => apply_route_stability_with_bridge_progress(
+                        routes,
+                        idx,
+                        RouteStability::Perilous,
+                        "region:warp_storm",
+                        &mut summary,
+                        &mut progress,
+                    ),
+                    RegionConditionKind::Turbulence => {
+                        let target = degrade(routes[idx].stability);
+                        apply_route_stability_with_bridge_progress(
+                            routes,
+                            idx,
+                            target,
+                            "region:turbulence",
+                            &mut summary,
+                            &mut progress,
+                        )
+                    }
+                    RegionConditionKind::CalmCorridor => {
+                        if matches!(routes[idx].stability, RouteStability::Perilous) {
+                            RouteEffectOutcome::default()
+                        } else {
+                            let target = upgrade(routes[idx].stability);
+                            apply_route_stability_with_bridge_progress(
+                                routes,
+                                idx,
+                                target,
+                                "region:calm_corridor",
+                                &mut summary,
+                                &mut progress,
+                            )
+                        }
+                    }
+                    _ => RouteEffectOutcome::default(),
+                };
+                if outcome.changed {
+                    summary.changed_routes += 1;
+                }
+                if outcome.bridge_preserved {
+                    summary.bridges_preserved += 1;
                 }
             }
-            _ => {}
+        }
+        let current = idx + 1;
+        if should_report_region_route_progress(current, total) {
+            progress(RegionRouteEffectsProgress::RouteScanned {
+                current,
+                total,
+                affected_routes: summary.affected_routes,
+                changed_routes: summary.changed_routes,
+                bridge_checks: summary.bridge_checks,
+                bridges_preserved: summary.bridges_preserved,
+            });
         }
     }
+    count_route_stabilities(routes, &mut summary);
+    progress(RegionRouteEffectsProgress::Completed { summary });
+    summary
+}
+
+fn apply_route_stability_with_bridge_progress(
+    routes: &mut [GeneratedRoute],
+    idx: usize,
+    target: RouteStability,
+    tag: &str,
+    summary: &mut RegionRouteEffectsSummary,
+    progress: &mut impl FnMut(RegionRouteEffectsProgress),
+) -> RouteEffectOutcome {
+    let needs_bridge_check =
+        target == RouteStability::Perilous && routes[idx].stability != RouteStability::Perilous;
+    if needs_bridge_check {
+        summary.bridge_checks += 1;
+        if should_report_region_route_progress(summary.bridge_checks, summary.routes) {
+            progress(RegionRouteEffectsProgress::BridgeCheckStarted {
+                check: summary.bridge_checks,
+                route_index: idx + 1,
+                total_routes: summary.routes,
+                route_id: routes[idx].id.to_string(),
+            });
+        }
+    }
+    apply_route_stability(routes, idx, target, tag)
+}
+
+fn count_route_stabilities(routes: &[GeneratedRoute], summary: &mut RegionRouteEffectsSummary) {
+    summary.stable = 0;
+    summary.unstable = 0;
+    summary.hazardous = 0;
+    summary.perilous = 0;
+    for route in routes {
+        match route.stability {
+            RouteStability::Stable => summary.stable += 1,
+            RouteStability::Unstable => summary.unstable += 1,
+            RouteStability::Hazardous => summary.hazardous += 1,
+            RouteStability::Perilous => summary.perilous += 1,
+        }
+    }
+}
+
+fn should_report_region_route_progress(current: usize, total: usize) -> bool {
+    if total == 0 {
+        return false;
+    }
+    current == 1 || current == total || current % (total / 100).max(1) == 0
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct RouteEffectOutcome {
+    changed: bool,
+    bridge_preserved: bool,
 }
 
 fn apply_route_stability(
@@ -482,7 +633,8 @@ fn apply_route_stability(
     idx: usize,
     target: RouteStability,
     tag: &str,
-) {
+) -> RouteEffectOutcome {
+    let before = routes[idx].stability;
     let was_navigable = routes[idx].stability != RouteStability::Perilous;
     let preserve_bridge =
         target == RouteStability::Perilous && was_navigable && is_navigable_bridge(routes, idx);
@@ -499,6 +651,10 @@ fn apply_route_stability(
     if preserve_bridge {
         push_route_tag(&mut routes[idx], "region:connectivity_preserved");
     }
+    RouteEffectOutcome {
+        changed: routes[idx].stability != before,
+        bridge_preserved: preserve_bridge,
+    }
 }
 
 fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool {
@@ -510,27 +666,28 @@ fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool 
     }
     let from = candidate.from_system_id.as_str();
     let to = candidate.to_system_id.as_str();
+    let mut adjacency: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for (idx, route) in routes.iter().enumerate() {
+        if idx == candidate_idx || route.stability == RouteStability::Perilous {
+            continue;
+        }
+        let a = route.from_system_id.as_str();
+        let b = route.to_system_id.as_str();
+        adjacency.entry(a).or_default().push(b);
+        adjacency.entry(b).or_default().push(a);
+    }
     let mut seen: BTreeSet<&str> = BTreeSet::new();
     let mut queue: VecDeque<&str> = VecDeque::new();
     seen.insert(from);
     queue.push_back(from);
     while let Some(cur) = queue.pop_front() {
-        for (idx, route) in routes.iter().enumerate() {
-            if idx == candidate_idx || route.stability == RouteStability::Perilous {
-                continue;
-            }
-            let a = route.from_system_id.as_str();
-            let b = route.to_system_id.as_str();
-            let next = if a == cur {
-                Some(b)
-            } else if b == cur {
-                Some(a)
-            } else {
-                None
-            };
-            if let Some(next) = next {
+        if let Some(neighbours) = adjacency.get(cur) {
+            for next in neighbours {
                 if seen.insert(next) {
                     queue.push_back(next);
+                    if *next == to {
+                        return false;
+                    }
                 }
             }
         }

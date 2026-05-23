@@ -34,6 +34,31 @@ const ENDPOINT_THRESHOLD: f32 = 25.0;
 /// edges in larger sectors.
 const HIDDEN_K_NEAREST: usize = 3;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HiddenRoutesProgress {
+    LayerStarted {
+        layer: &'static str,
+        endpoints: usize,
+    },
+    LayerProgress {
+        layer: &'static str,
+        current: usize,
+        total: usize,
+        pairs: usize,
+    },
+    LayerEmitProgress {
+        layer: &'static str,
+        current: usize,
+        total: usize,
+        added: usize,
+    },
+    LayerCompleted {
+        layer: &'static str,
+        added: usize,
+        routes: usize,
+    },
+}
+
 /// Spec §3 NEXT: build the three hidden route layers and append them to
 /// the existing route vector. Returns the count added.
 ///
@@ -56,6 +81,16 @@ pub fn append_hidden_routes_with_regions(
     factions: &[GeneratedFaction],
     regions: &[WarpRegion],
     routes: &mut Vec<GeneratedRoute>,
+) -> usize {
+    append_hidden_routes_with_regions_and_progress(systems, factions, regions, routes, |_| {})
+}
+
+pub fn append_hidden_routes_with_regions_and_progress(
+    systems: &[GeneratedSystem],
+    factions: &[GeneratedFaction],
+    regions: &[WarpRegion],
+    routes: &mut Vec<GeneratedRoute>,
+    mut progress: impl FnMut(HiddenRoutesProgress),
 ) -> usize {
     if systems.len() < 2 || factions.is_empty() {
         return 0;
@@ -82,28 +117,34 @@ pub fn append_hidden_routes_with_regions(
         &filtered,
         &kinds,
         routes,
+        "webway",
         &["aeldari", "harlequin"],
         RouteType::Webway,
         "webway",
         |d| d.covert * 0.7 + d.military * 0.3,
+        &mut progress,
     );
     added += emit_layer(
         &filtered,
         &kinds,
         routes,
+        "blackship",
         &["inquisition", "deathwatch", "grey_knights"],
         RouteType::BlackShip,
         "blackship",
         |d| d.covert * 0.5 + d.admin * 0.5,
+        &mut progress,
     );
     added += emit_layer(
         &filtered,
         &kinds,
         routes,
+        "smuggling",
         &["criminal", "drukhari", "rebel", "genestealer_cult"],
         RouteType::SmugglingLane,
         "smuggling",
         |d| d.covert * 0.6 + d.economic * 0.4,
+        &mut progress,
     );
     added
 }
@@ -133,10 +174,12 @@ fn emit_layer(
     systems: &[&GeneratedSystem],
     kinds: &BTreeMap<&str, &str>,
     routes: &mut Vec<GeneratedRoute>,
+    layer: &'static str,
     needles: &[&str],
     rtype: RouteType,
     suffix: &str,
     score_fn: impl Fn(&crate::sector_model::PresenceDimensions) -> f32 + Copy,
+    progress: &mut impl FnMut(HiddenRoutesProgress),
 ) -> usize {
     // Find every system whose accumulated needle-kind presence clears the
     // endpoint threshold.
@@ -145,7 +188,16 @@ fn emit_layer(
         .copied()
         .filter(|s| endpoint_score(s, kinds, needles, score_fn) >= ENDPOINT_THRESHOLD)
         .collect();
+    progress(HiddenRoutesProgress::LayerStarted {
+        layer,
+        endpoints: endpoints.len(),
+    });
     if endpoints.len() < 2 {
+        progress(HiddenRoutesProgress::LayerCompleted {
+            layer,
+            added: 0,
+            routes: routes.len(),
+        });
         return 0;
     }
     endpoints.sort_by(|a, b| a.id.cmp(&b.id));
@@ -153,10 +205,14 @@ fn emit_layer(
     // Existing undirected edges (any route type) to skip — we don't double
     // up hidden routes on top of an existing public lane.
     let mut existing: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> = BTreeSet::new();
+    let mut existing_route_ids: BTreeSet<crate::ids::RouteId> = BTreeSet::new();
     for r in routes.iter() {
         let (a, b) = order_pair(&r.from_system_id, &r.to_system_id);
         existing.insert((crate::ids::SystemId::new(a), crate::ids::SystemId::new(b)));
+        existing_route_ids.insert(r.id.clone());
     }
+    let endpoint_by_id: BTreeMap<&str, &GeneratedSystem> =
+        endpoints.iter().map(|s| (s.id.as_str(), *s)).collect();
 
     // K-nearest-neighbor selection: for each endpoint, pick the
     // `HIDDEN_K_NEAREST` closest peers (hex distance; system-id breaks
@@ -165,6 +221,7 @@ fn emit_layer(
     // earlier full-clique enumeration that scaled O(N²) and produced
     // thousands of edges on dense sectors.
     let mut pairs: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> = BTreeSet::new();
+    let total = endpoints.len();
     for (i, a) in endpoints.iter().enumerate() {
         let mut peers: Vec<(u32, &str, usize)> = endpoints
             .iter()
@@ -182,21 +239,49 @@ fn emit_layer(
             };
             pairs.insert((lo, hi));
         }
+        let current = i + 1;
+        if should_report_layer_progress(current, total) {
+            progress(HiddenRoutesProgress::LayerProgress {
+                layer,
+                current,
+                total,
+                pairs: pairs.len(),
+            });
+        }
     }
 
     let mut added = 0;
-    for (from, to) in pairs {
+    let emit_total = pairs.len();
+    for (idx, (from, to)) in pairs.into_iter().enumerate() {
         if existing.contains(&(from.clone(), to.clone())) {
+            let current = idx + 1;
+            if should_report_layer_progress(current, emit_total) {
+                progress(HiddenRoutesProgress::LayerEmitProgress {
+                    layer,
+                    current,
+                    total: emit_total,
+                    added,
+                });
+            }
             continue;
         }
-        let a = endpoints.iter().find(|s| s.id == from).copied().unwrap();
-        let b = endpoints.iter().find(|s| s.id == to).copied().unwrap();
+        let a = endpoint_by_id.get(from.as_str()).copied().unwrap();
+        let b = endpoint_by_id.get(to.as_str()).copied().unwrap();
         let dist = hex_distance(a.coord, b.coord);
         let base_id = ids::route_id(&from, &to);
         let id = crate::ids::RouteId::new(format!("{base_id}-{suffix}"));
         // Avoid duplicate inserts if a hidden lane of the same kind
         // already exists for this pair (e.g. from a re-run on a save).
-        if routes.iter().any(|r| r.id == id) {
+        if !existing_route_ids.insert(id.clone()) {
+            let current = idx + 1;
+            if should_report_layer_progress(current, emit_total) {
+                progress(HiddenRoutesProgress::LayerEmitProgress {
+                    layer,
+                    current,
+                    total: emit_total,
+                    added,
+                });
+            }
             continue;
         }
         routes.push(GeneratedRoute {
@@ -210,8 +295,29 @@ fn emit_layer(
             controls: Vec::new(),
         });
         added += 1;
+        let current = idx + 1;
+        if should_report_layer_progress(current, emit_total) {
+            progress(HiddenRoutesProgress::LayerEmitProgress {
+                layer,
+                current,
+                total: emit_total,
+                added,
+            });
+        }
     }
+    progress(HiddenRoutesProgress::LayerCompleted {
+        layer,
+        added,
+        routes: routes.len(),
+    });
     added
+}
+
+fn should_report_layer_progress(current: usize, total: usize) -> bool {
+    if total == 0 {
+        return false;
+    }
+    current == 1 || current == total || current % (total / 20).max(1) == 0
 }
 
 fn order_pair<'a>(a: &'a str, b: &'a str) -> (&'a str, &'a str) {

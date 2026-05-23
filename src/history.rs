@@ -56,6 +56,11 @@ pub struct HistoryConfig {
     /// Cap on the sector-wide "Key events" digest in the Markdown output.
     #[serde(default = "default_key_events")]
     pub key_events_top_n: u32,
+    /// Maximum subsector-capital events embedded in the generated chronicle.
+    /// Huge sectors sample this many representative systems instead of running
+    /// full subsector clustering only for flavor text.
+    #[serde(default = "default_max_subsector_events")]
+    pub max_subsector_events: u32,
     /// Era bands used to label generated events. `allowed_events` may be
     /// empty, in which case the era is a catch-all fallback.
     #[serde(default = "default_eras")]
@@ -76,6 +81,7 @@ impl Default for HistoryConfig {
             max_events_per_system: default_per_system(),
             max_events_per_route: default_per_route(),
             key_events_top_n: default_key_events(),
+            max_subsector_events: default_max_subsector_events(),
             eras: default_eras(),
             event_rules: Vec::new(),
         }
@@ -128,6 +134,9 @@ fn default_per_route() -> u32 {
 }
 fn default_key_events() -> u32 {
     20
+}
+fn default_max_subsector_events() -> u32 {
+    64
 }
 fn default_true() -> bool {
     true
@@ -406,6 +415,43 @@ pub fn derive(sector: &GeneratedSector) -> HistoryReport {
     derive_with(sector, &HistoryConfig::default())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HistoryProgress {
+    Started {
+        systems: usize,
+        worlds: usize,
+        routes: usize,
+        max_subsector_events: u32,
+    },
+    SubsectorEventsStarted {
+        exact_cluster_count: usize,
+        emitted_cap: u32,
+        sampled: bool,
+    },
+    SubsectorEventsDone {
+        events: usize,
+    },
+    SystemsScanned {
+        current: usize,
+        total: usize,
+        events: usize,
+    },
+    RoutesScanned {
+        current: usize,
+        total: usize,
+        events: usize,
+    },
+    EventRulesApplied {
+        events: usize,
+    },
+    SortingStarted {
+        events: usize,
+    },
+    Complete {
+        events: usize,
+    },
+}
+
 struct EmitContext<'a> {
     cfg: &'a HistoryConfig,
     sector: &'a GeneratedSector,
@@ -415,6 +461,14 @@ struct EmitContext<'a> {
 
 #[must_use]
 pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryReport {
+    derive_with_progress(sector, cfg, |_| {})
+}
+
+pub fn derive_with_progress(
+    sector: &GeneratedSector,
+    cfg: &HistoryConfig,
+    mut progress: impl FnMut(HistoryProgress),
+) -> HistoryReport {
     if !cfg.enabled {
         return HistoryReport {
             sector_id: sector.id.to_string(),
@@ -423,6 +477,13 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
             events: Vec::new(),
         };
     }
+    let world_count: usize = sector.systems.iter().map(|s| s.worlds.len()).sum();
+    progress(HistoryProgress::Started {
+        systems: sector.systems.len(),
+        worlds: world_count,
+        routes: sector.routes.len(),
+        max_subsector_events: cfg.max_subsector_events,
+    });
 
     let faction_names: BTreeMap<&str, &str> = sector
         .factions
@@ -444,24 +505,48 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
 
     let mut events: Vec<HistoryEvent> = Vec::new();
 
-    emit_subsector_events(&ctx, &mut events);
+    emit_subsector_events(&ctx, &mut events, &mut progress);
     emit_region_events(&ctx, &mut events);
 
     // Per-system + per-world events.
-    for sys in &sector.systems {
+    let system_total = sector.systems.len();
+    for (idx, sys) in sector.systems.iter().enumerate() {
         emit_system_events(&ctx, sys, &mut events);
         for world in &sys.worlds {
             emit_world_events(&ctx, sys, world, &mut events);
         }
+        let current = idx + 1;
+        if should_report_history_progress(current, system_total) {
+            progress(HistoryProgress::SystemsScanned {
+                current,
+                total: system_total,
+                events: events.len(),
+            });
+        }
     }
-    for route in &sector.routes {
+    let route_total = sector.routes.len();
+    for (idx, route) in sector.routes.iter().enumerate() {
         emit_route_events(&ctx, route, &mut events);
+        let current = idx + 1;
+        if should_report_history_progress(current, route_total) {
+            progress(HistoryProgress::RoutesScanned {
+                current,
+                total: route_total,
+                events: events.len(),
+            });
+        }
     }
     apply_event_rules(&ctx, &mut events);
+    progress(HistoryProgress::EventRulesApplied {
+        events: events.len(),
+    });
 
     // Stable sort: epoch date then anchor then kind rank. Dates were chosen
     // so that the topo rank already orders events within an anchor; sorting
     // by date alone yields the final chronology.
+    progress(HistoryProgress::SortingStarted {
+        events: events.len(),
+    });
     events.sort_by(|a, b| {
         a.date
             .cmp(&b.date)
@@ -469,12 +554,31 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HistoryConfig) -> HistoryRepo
             .then_with(|| a.kind.topo_rank().cmp(&b.kind.topo_rank()))
             .then_with(|| a.id.cmp(&b.id))
     });
+    progress(HistoryProgress::Complete {
+        events: events.len(),
+    });
 
     HistoryReport {
         sector_id: sector.id.to_string(),
         seed: sector.seed.to_string(),
         eras: cfg.eras.clone(),
         events,
+    }
+}
+
+fn should_report_history_progress(current: usize, total: usize) -> bool {
+    if total == 0 {
+        return false;
+    }
+    current == 1 || current == total || current % history_progress_stride(total) == 0
+}
+
+fn history_progress_stride(total: usize) -> usize {
+    match total {
+        0..=25 => 1,
+        26..=100 => 10,
+        101..=500 => 25,
+        _ => 100,
     }
 }
 
@@ -989,10 +1093,47 @@ fn emit_route_events(ctx: &EmitContext, route: &GeneratedRoute, out: &mut Vec<Hi
     }
 }
 
-fn emit_subsector_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
+fn emit_subsector_events(
+    ctx: &EmitContext,
+    out: &mut Vec<HistoryEvent>,
+    progress: &mut impl FnMut(HistoryProgress),
+) {
     if ctx.sector.systems.is_empty() {
         return;
     }
+    let exact_cluster_count = ctx
+        .sector
+        .systems
+        .len()
+        .div_ceil(crate::subsectors::DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR as usize)
+        .max(1);
+    let cap = ctx.cfg.max_subsector_events;
+    if cap == 0 {
+        progress(HistoryProgress::SubsectorEventsStarted {
+            exact_cluster_count,
+            emitted_cap: cap,
+            sampled: true,
+        });
+        progress(HistoryProgress::SubsectorEventsDone { events: 0 });
+        return;
+    }
+    if exact_cluster_count > cap as usize {
+        progress(HistoryProgress::SubsectorEventsStarted {
+            exact_cluster_count,
+            emitted_cap: cap,
+            sampled: true,
+        });
+        emit_sampled_subsector_events(ctx, out, cap as usize);
+        progress(HistoryProgress::SubsectorEventsDone {
+            events: cap as usize,
+        });
+        return;
+    }
+    progress(HistoryProgress::SubsectorEventsStarted {
+        exact_cluster_count,
+        emitted_cap: cap,
+        sampled: false,
+    });
     let Ok(subsectors) = crate::subsectors::build_subsectors(
         ctx.sector,
         crate::subsectors::SubsectorConfig::default(),
@@ -1041,6 +1182,74 @@ fn emit_subsector_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
             description: format!("{} gained a capital at {sys_name}.", sub.name),
             severity: 35,
             entity_id: Some(sub.id.to_string()),
+        });
+        out.push(ev);
+    }
+    progress(HistoryProgress::SubsectorEventsDone {
+        events: subsectors.len(),
+    });
+}
+
+fn emit_sampled_subsector_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>, cap: usize) {
+    if cap == 0 || ctx.sector.systems.is_empty() {
+        return;
+    }
+    let mut systems: Vec<&GeneratedSystem> = ctx.sector.systems.iter().collect();
+    systems.sort_by(|a, b| {
+        a.coord
+            .r
+            .cmp(&b.coord.r)
+            .then_with(|| a.coord.q.cmp(&b.coord.q))
+            .then_with(|| a.id.cmp(&b.id))
+    });
+    let emit_count = cap.min(systems.len());
+    for i in 0..emit_count {
+        let idx = (i * systems.len()) / emit_count;
+        let sys = systems[idx];
+        let capital_world = sys.worlds.iter().max_by(|a, b| {
+            population_rank(a.world.population.as_ref())
+                .cmp(&population_rank(b.world.population.as_ref()))
+                .then_with(|| {
+                    tech_rank(a.world.tech_level.as_ref())
+                        .cmp(&tech_rank(b.world.tech_level.as_ref()))
+                })
+                .then_with(|| a.id.cmp(&b.id))
+        });
+        let subsector_id = format!("chronicle-subsector-{:04}", i + 1);
+        let text = match capital_world {
+            Some(world) => format!(
+                "Chronicle surveyors grouped a vast administrative march around {}; {} became the recorded capital world.",
+                sys.name, world.name
+            ),
+            None => format!(
+                "Chronicle surveyors grouped a vast administrative march around {}.",
+                sys.name
+            ),
+        };
+        let anchor = HistoryAnchor::Subsector {
+            subsector_id: subsector_id.clone(),
+        };
+        let mut ev = build_event(ctx, anchor, EventKind::Foundation, text, Vec::new(), 35, i);
+        ev.entities.push(HistoryEntityRef {
+            kind: HistoryEntityKind::System,
+            id: sys.id.to_string(),
+            role: Some("capital_system".into()),
+        });
+        if let Some(world) = capital_world {
+            ev.entities.push(HistoryEntityRef {
+                kind: HistoryEntityKind::World,
+                id: world.id.to_string(),
+                role: Some("capital_world".into()),
+            });
+        }
+        ev.consequences.push(HistoryConsequence {
+            kind: HistoryConsequenceKind::SubsectorCapitalNamed,
+            description: format!(
+                "A sampled chronicle march gained a capital at {}.",
+                sys.name
+            ),
+            severity: 35,
+            entity_id: Some(subsector_id),
         });
         out.push(ev);
     }
@@ -1114,6 +1323,32 @@ fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
             entity_id: Some(reg.id.clone()),
         });
         out.push(ev);
+    }
+}
+
+fn population_rank(value: &str) -> i32 {
+    match value {
+        "Massive" => 6,
+        "DenselyPopulated" => 5,
+        "Standard" => 4,
+        "LightlyPopulated" => 3,
+        "SoleSettlement" => 2,
+        "Minimal" => 1,
+        "Uninhabited" => 0,
+        _ => 0,
+    }
+}
+
+fn tech_rank(value: &str) -> i32 {
+    match value {
+        "Archeotech" => 6,
+        "High" => 5,
+        "Imperial" => 4,
+        "Standard" => 3,
+        "Low" => 2,
+        "Primitive" => 1,
+        "None" => 0,
+        _ => 0,
     }
 }
 

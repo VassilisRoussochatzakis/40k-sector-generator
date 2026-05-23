@@ -20,6 +20,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::ids::FactionId;
 use crate::sector_model::{hex_distance, GeneratedSector, HexCoord};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -52,18 +53,54 @@ pub struct TerritoryBand {
 
 const MAX_INFLUENCE_RADIUS: u32 = 6;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InfluenceFieldProgress {
+    Started {
+        systems: usize,
+        anchors: usize,
+        cells: usize,
+        radius: u32,
+    },
+    AnchorsProjected {
+        current: usize,
+        total: usize,
+        touched_cells: usize,
+    },
+    CellsResolved {
+        current: usize,
+        total: usize,
+        claimed_cells: usize,
+    },
+    BandsBuilt {
+        bands: usize,
+        claimed_cells: usize,
+    },
+    Complete {
+        cells: usize,
+        bands: usize,
+    },
+}
+
 /// Build a continuous influence field for the given sector. Uses each
 /// system's per-faction control sums as anchors; influence at distance
 /// `d` from the anchor decays as `1 / (1 + d²)`.
 #[must_use]
 pub fn build(sector: &GeneratedSector) -> InfluenceField {
+    build_with_progress(sector, |_| {})
+}
+
+pub fn build_with_progress<F>(sector: &GeneratedSector, mut progress: F) -> InfluenceField
+where
+    F: FnMut(InfluenceFieldProgress),
+{
     let w = sector.width;
     let h = sector.height;
-    let total = (w * h) as usize;
+    let width = w as usize;
+    let total = width.saturating_mul(h as usize);
     let mut cells: Vec<CellAssignment> = (0..total)
         .map(|i| {
-            let q = (i as u32 % w) as i32;
-            let r = (i as u32 / w) as i32;
+            let q = if width == 0 { 0 } else { (i % width) as i32 };
+            let r = if width == 0 { 0 } else { (i / width) as i32 };
             CellAssignment {
                 q,
                 r,
@@ -75,39 +112,122 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
         .collect();
 
     // Per-system per-faction aggregate presence (anchor strengths).
-    let mut anchors: Vec<(HexCoord, BTreeMap<crate::ids::FactionId, f32>)> = Vec::new();
+    let mut raw_anchors: Vec<(HexCoord, BTreeMap<FactionId, f32>)> = Vec::new();
     for sys in &sector.systems {
-        let mut m: BTreeMap<crate::ids::FactionId, f32> = BTreeMap::new();
+        let mut m: BTreeMap<FactionId, f32> = BTreeMap::new();
         for wld in &sys.worlds {
             for p in &wld.factions {
                 *m.entry(p.faction_id.clone()).or_insert(0.0) += p.dimensions.local_control_score();
             }
         }
-        anchors.push((sys.coord, m));
+        if !m.is_empty() {
+            raw_anchors.push((sys.coord, m));
+        }
+    }
+    let mut faction_ids: Vec<FactionId> = Vec::new();
+    let mut faction_index: BTreeMap<FactionId, usize> = BTreeMap::new();
+    let anchors: Vec<(HexCoord, Vec<(usize, f32)>)> = raw_anchors
+        .into_iter()
+        .map(|(coord, scores)| {
+            let indexed = scores
+                .into_iter()
+                .map(|(id, score)| {
+                    let index = if let Some(index) = faction_index.get(&id) {
+                        *index
+                    } else {
+                        let index = faction_ids.len();
+                        faction_ids.push(id.clone());
+                        faction_index.insert(id, index);
+                        index
+                    };
+                    (index, score)
+                })
+                .collect();
+            (coord, indexed)
+        })
+        .collect();
+    progress(InfluenceFieldProgress::Started {
+        systems: sector.systems.len(),
+        anchors: anchors.len(),
+        cells: total,
+        radius: MAX_INFLUENCE_RADIUS,
+    });
+
+    let faction_count = faction_ids.len();
+    let mut cell_scores: Vec<f32> = vec![0.0; total.saturating_mul(faction_count)];
+    let mut cell_touched: Vec<bool> = vec![false; total];
+    let mut touched_cells = 0usize;
+    if w > 0 && h > 0 {
+        let radius = MAX_INFLUENCE_RADIUS as i32;
+        for (anchor_index, (anchor_coord, faction_scores)) in anchors.iter().enumerate() {
+            let min_q = (anchor_coord.q - radius).max(0);
+            let max_q = (anchor_coord.q + radius).min(w as i32 - 1);
+            let min_r = (anchor_coord.r - radius).max(0);
+            let max_r = (anchor_coord.r + radius).min(h as i32 - 1);
+            if min_q <= max_q && min_r <= max_r {
+                for q in min_q..=max_q {
+                    for r in min_r..=max_r {
+                        let coord = HexCoord { q, r };
+                        let d = hex_distance(coord, *anchor_coord);
+                        if d > MAX_INFLUENCE_RADIUS {
+                            continue;
+                        }
+                        let index = (r as usize * width) + q as usize;
+                        if !cell_touched[index] {
+                            cell_touched[index] = true;
+                            touched_cells += 1;
+                        }
+                        let falloff = 1.0 / (1 + d * d) as f32;
+                        let score_base = index * faction_count;
+                        for (id, s) in faction_scores {
+                            let v = *s * falloff;
+                            cell_scores[score_base + *id] += v;
+                        }
+                    }
+                }
+            }
+            let current = anchor_index + 1;
+            if should_report_influence_progress(current, anchors.len()) {
+                progress(InfluenceFieldProgress::AnchorsProjected {
+                    current,
+                    total: anchors.len(),
+                    touched_cells,
+                });
+            }
+        }
     }
 
-    // Cell-major projection.
+    let mut claimed_cells = 0usize;
     for (i, cell) in cells.iter_mut().enumerate() {
-        let coord = HexCoord {
-            q: (i as u32 % w) as i32,
-            r: (i as u32 / w) as i32,
-        };
-        let mut scores: BTreeMap<crate::ids::FactionId, f32> = BTreeMap::new();
-        for (anchor_coord, faction_scores) in &anchors {
-            let d = hex_distance(coord, *anchor_coord);
-            if d > MAX_INFLUENCE_RADIUS {
-                continue;
+        if !cell_touched[i] {
+            let current = i + 1;
+            if should_report_influence_progress(current, total) {
+                progress(InfluenceFieldProgress::CellsResolved {
+                    current,
+                    total,
+                    claimed_cells,
+                });
             }
-            let falloff = 1.0 / (1 + d * d) as f32;
-            for (id, s) in faction_scores {
-                let v = *s * falloff;
-                *scores.entry(id.clone()).or_insert(0.0) += v;
-            }
-        }
-        if scores.is_empty() {
             continue;
         }
-        let mut top: Vec<(crate::ids::FactionId, f32)> = scores.into_iter().collect();
+        let score_base = i * faction_count;
+        let mut top: Vec<(usize, f32)> = cell_scores[score_base..score_base + faction_count]
+            .iter()
+            .copied()
+            .enumerate()
+            .filter(|(_, score)| *score > 0.0)
+            .collect();
+        if top.is_empty() {
+            let current = i + 1;
+            if should_report_influence_progress(current, total) {
+                progress(InfluenceFieldProgress::CellsResolved {
+                    current,
+                    total,
+                    claimed_cells,
+                });
+            }
+            continue;
+        }
         top.sort_by(|a, b| {
             b.1.partial_cmp(&a.1)
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -117,17 +237,26 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
         // Normalise the top score against an arbitrary ceiling of 100
         // (single Dominant-level presence + distance 0). Higher values
         // clamp so the renderer doesn't blow out.
-        cell.dominant = Some(top[0].0.clone());
+        claimed_cells += 1;
+        cell.dominant = Some(faction_ids[top[0].0].clone());
         cell.score = max.min(100.0).round() as u8;
         cell.top = top
             .into_iter()
             .take(3)
-            .map(|(id, s)| (id, s.min(100.0).round() as u8))
+            .map(|(id, s)| (faction_ids[id].clone(), s.min(100.0).round() as u8))
             .collect();
+        let current = i + 1;
+        if should_report_influence_progress(current, total) {
+            progress(InfluenceFieldProgress::CellsResolved {
+                current,
+                total,
+                claimed_cells,
+            });
+        }
     }
 
     // Build per-faction band lists.
-    let mut bands_by_id: BTreeMap<crate::ids::FactionId, Vec<usize>> = BTreeMap::new();
+    let mut bands_by_id: BTreeMap<FactionId, Vec<usize>> = BTreeMap::new();
     for (i, c) in cells.iter().enumerate() {
         if let Some(id) = &c.dominant {
             bands_by_id.entry(id.clone()).or_default().push(i);
@@ -137,12 +266,35 @@ pub fn build(sector: &GeneratedSector) -> InfluenceField {
         .into_iter()
         .map(|(faction_id, cells)| TerritoryBand { faction_id, cells })
         .collect();
+    progress(InfluenceFieldProgress::BandsBuilt {
+        bands: bands.len(),
+        claimed_cells,
+    });
+    progress(InfluenceFieldProgress::Complete {
+        cells: cells.len(),
+        bands: bands.len(),
+    });
 
     InfluenceField {
         width: w,
         height: h,
         cells,
         bands,
+    }
+}
+
+fn should_report_influence_progress(current: usize, total: usize) -> bool {
+    current == 1 || current == total || current.is_multiple_of(influence_progress_stride(total))
+}
+
+fn influence_progress_stride(total: usize) -> usize {
+    match total {
+        0..=25 => 1,
+        26..=100 => 10,
+        101..=500 => 25,
+        501..=10_000 => 100,
+        10_001..=100_000 => 1_000,
+        _ => 10_000,
     }
 }
 

@@ -876,6 +876,22 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
         .collect();
     let dependency_edges = derive_dependency_edges(sector, &systems, &routes);
 
+    // Build a map of valid routes by system to speed up the stranded check
+    let mut valid_routes_by_sys: BTreeMap<&str, Vec<&crate::sector_model::GeneratedRoute>> =
+        BTreeMap::new();
+    for r in &sector.routes {
+        if r.stability != RouteStability::Perilous {
+            valid_routes_by_sys
+                .entry(r.from_system_id.as_str())
+                .or_default()
+                .push(r);
+            valid_routes_by_sys
+                .entry(r.to_system_id.as_str())
+                .or_default()
+                .push(r);
+        }
+    }
+
     // Stranded check: a world is stranded if it has any deficit ≥ 20 and the
     // system also nets a deficit there *and* no inbound route from a surplus
     // system on that resource exists.
@@ -896,10 +912,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
             continue;
         }
         let mut fix = false;
-        for r in &sector.routes {
-            if (r.from_system_id == sys.system_id || r.to_system_id == sys.system_id)
-                && r.stability != RouteStability::Perilous
-            {
+        if let Some(sys_routes) = valid_routes_by_sys.get(sys.system_id.as_str()) {
+            for &r in sys_routes {
                 let other = if r.from_system_id == sys.system_id {
                     r.to_system_id.as_str()
                 } else {
@@ -1059,20 +1073,6 @@ fn strategic_needs_for_world(world_type: &str) -> &'static [&'static str] {
     }
 }
 
-fn system_needs<'a>(sector: &'a GeneratedSector, system_id: &str) -> BTreeSet<&'a str> {
-    let Some(sys) = sector.systems.iter().find(|s| s.id == system_id) else {
-        return BTreeSet::new();
-    };
-    sys.worlds
-        .iter()
-        .flat_map(|w| {
-            strategic_needs_for_world(&w.world.world_type)
-                .iter()
-                .copied()
-        })
-        .collect()
-}
-
 fn derive_dependency_edges(
     sector: &GeneratedSector,
     systems: &[SystemEconomy],
@@ -1082,45 +1082,76 @@ fn derive_dependency_edges(
         systems.iter().map(|s| (s.system_id.as_str(), s)).collect();
     let by_route: BTreeMap<&str, &RouteEconomy> =
         routes.iter().map(|r| (r.route_id.as_str(), r)).collect();
+
+    let system_refs: BTreeMap<&str, &crate::sector_model::GeneratedSystem> =
+        sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
+
+    let mut valid_routes_by_sys: BTreeMap<&str, Vec<&crate::sector_model::GeneratedRoute>> =
+        BTreeMap::new();
+    for r in &sector.routes {
+        if r.stability != RouteStability::Perilous {
+            valid_routes_by_sys
+                .entry(r.from_system_id.as_str())
+                .or_default()
+                .push(r);
+            valid_routes_by_sys
+                .entry(r.to_system_id.as_str())
+                .or_default()
+                .push(r);
+        }
+    }
+
     let mut out = Vec::new();
 
     for consumer in systems {
-        for resource in system_needs(sector, &consumer.system_id) {
+        let Some(consumer_sys_ref) = system_refs.get(consumer.system_id.as_str()) else {
+            continue;
+        };
+        let needs: BTreeSet<&str> = consumer_sys_ref
+            .worlds
+            .iter()
+            .flat_map(|w| {
+                strategic_needs_for_world(&w.world.world_type)
+                    .iter()
+                    .copied()
+            })
+            .collect();
+
+        for resource in needs {
             if consumer.strategic_output.get(resource) >= 30.0 {
                 continue;
             }
             let mut best: Option<DependencyEdge> = None;
-            for r in sector.routes.iter().filter(|r| {
-                (r.from_system_id == consumer.system_id || r.to_system_id == consumer.system_id)
-                    && r.stability != RouteStability::Perilous
-            }) {
-                let supplier_id = if r.from_system_id == consumer.system_id {
-                    r.to_system_id.as_str()
-                } else {
-                    r.from_system_id.as_str()
-                };
-                let Some(supplier) = by_sys.get(supplier_id).copied() else {
-                    continue;
-                };
-                let supply = supplier.strategic_output.get(resource);
-                if supply < 35.0 {
-                    continue;
-                }
-                let friction = by_route
-                    .get(r.id.as_str())
-                    .map(|e| e.friction)
-                    .unwrap_or_else(|| friction_for(r));
-                let score = supply * friction / (r.distance.max(1) as f32).sqrt();
-                let edge = DependencyEdge {
-                    from_system_id: supplier.system_id.clone(),
-                    to_system_id: consumer.system_id.clone(),
-                    resource: resource.to_string(),
-                    route_id: Some(r.id.clone()),
-                    score,
-                    risk: import_risk(r, friction, score),
-                };
-                if best.as_ref().map(|b| edge.score > b.score).unwrap_or(true) {
-                    best = Some(edge);
+            if let Some(consumer_routes) = valid_routes_by_sys.get(consumer.system_id.as_str()) {
+                for &r in consumer_routes {
+                    let supplier_id = if r.from_system_id == consumer.system_id {
+                        r.to_system_id.as_str()
+                    } else {
+                        r.from_system_id.as_str()
+                    };
+                    let Some(supplier) = by_sys.get(supplier_id).copied() else {
+                        continue;
+                    };
+                    let supply = supplier.strategic_output.get(resource);
+                    if supply < 35.0 {
+                        continue;
+                    }
+                    let friction = by_route
+                        .get(r.id.as_str())
+                        .map(|e| e.friction)
+                        .unwrap_or_else(|| friction_for(r));
+                    let score = supply * friction / (r.distance.max(1) as f32).sqrt();
+                    let edge = DependencyEdge {
+                        from_system_id: supplier.system_id.clone(),
+                        to_system_id: consumer.system_id.clone(),
+                        resource: resource.to_string(),
+                        route_id: Some(r.id.clone()),
+                        score,
+                        risk: import_risk(r, friction, score),
+                    };
+                    if best.as_ref().map(|b| edge.score > b.score).unwrap_or(true) {
+                        best = Some(edge);
+                    }
                 }
             }
             if let Some(edge) = best {

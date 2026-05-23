@@ -1293,15 +1293,90 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
         SectorProgress::FactionsAggregated { factions } => log_progress(format_args!(
             "{prefix}: aggregated {factions} top-level faction(s)"
         )),
+        SectorProgress::StageStarted { name } => {
+            log_progress(format_args!("{prefix}: starting {name}"));
+        }
         SectorProgress::RoutesGenerated { routes } => {
             log_progress(format_args!("{prefix}: generated {routes} public route(s)"));
         }
-        SectorProgress::RegionEffectsApplied { regions } => log_progress(format_args!(
-            "{prefix}: applied route effects from {regions} warp region(s)"
+        SectorProgress::RegionEffectsStarted {
+            regions,
+            systems,
+            routes,
+        } => log_progress(format_args!(
+            "{prefix}: region route effects scanning {routes} route(s), {regions} region(s), {systems} system(s)"
+        )),
+        SectorProgress::RegionEffectsProgress {
+            current,
+            total,
+            affected_routes,
+            changed_routes,
+            bridge_checks,
+            bridges_preserved,
+        } => {
+            if should_log_progress(current, total) {
+                log_progress(format_args!(
+                    "{prefix}: region route effects scanned {current}/{total} route(s), affected {affected_routes}, changed {changed_routes}, bridge checks {bridge_checks}, preserved {bridges_preserved}"
+                ));
+            }
+        }
+        SectorProgress::RegionEffectsBridgeCheckStarted {
+            check,
+            route_index,
+            total_routes,
+            route_id,
+        } => log_progress(format_args!(
+            "{prefix}: region route effects bridge check {check} at route {route_index}/{total_routes} ({route_id})"
+        )),
+        SectorProgress::RegionEffectsApplied {
+            regions,
+            affected_routes,
+            changed_routes,
+            bridge_checks,
+            bridges_preserved,
+            stable,
+            unstable,
+            hazardous,
+            perilous,
+        } => log_progress(format_args!(
+            "{prefix}: applied route effects from {regions} warp region(s): affected {affected_routes}, changed {changed_routes}, bridge checks {bridge_checks}, preserved {bridges_preserved}; stability stable={stable}, unstable={unstable}, hazardous={hazardous}, perilous={perilous}"
+        )),
+        SectorProgress::HiddenRouteLayerStarted { layer, endpoints } => log_progress(
+            format_args!("{prefix}: hidden route layer {layer}: {endpoints} endpoint(s)"),
+        ),
+        SectorProgress::HiddenRouteLayerProgress {
+            layer,
+            current,
+            total,
+            pairs,
+        } => log_progress(format_args!(
+            "{prefix}: hidden route layer {layer}: scanned {current}/{total} endpoint(s), {pairs} candidate pair(s)"
+        )),
+        SectorProgress::HiddenRouteLayerEmitProgress {
+            layer,
+            current,
+            total,
+            added,
+        } => log_progress(format_args!(
+            "{prefix}: hidden route layer {layer}: emitted {current}/{total} candidate pair(s), {added} route(s) added"
+        )),
+        SectorProgress::HiddenRouteLayerCompleted {
+            layer,
+            added,
+            routes,
+        } => log_progress(format_args!(
+            "{prefix}: hidden route layer {layer}: added {added} route(s), total {routes}"
         )),
         SectorProgress::HiddenRoutesApplied { added, routes } => log_progress(format_args!(
             "{prefix}: applied hidden routes (+{added}, total {routes})"
         )),
+        SectorProgress::RouteControlsProgress { current, total } => {
+            if should_log_progress(current, total) {
+                log_progress(format_args!(
+                    "{prefix}: derived route control {current}/{total}"
+                ));
+            }
+        }
         SectorProgress::RouteControlsDerived { routes } => {
             log_progress(format_args!("{prefix}: derived control for {routes} route(s)"));
         }
@@ -1317,9 +1392,92 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
         } => log_progress(format_args!(
             "{prefix}: manifest ready ({systems} systems, {worlds} worlds, {routes} routes)"
         )),
+        SectorProgress::InfluenceFieldStarted {
+            systems,
+            anchors,
+            cells,
+            radius,
+        } => log_progress(format_args!(
+            "{prefix}: influence field started ({systems} systems, {anchors} anchor(s), {cells} cell(s), radius {radius})"
+        )),
+        SectorProgress::InfluenceFieldAnchorsProjected {
+            current,
+            total,
+            touched_cells,
+        } => log_progress(format_args!(
+            "{prefix}: influence field projected anchors {current}/{total}, touched {touched_cells} cell(s)"
+        )),
+        SectorProgress::InfluenceFieldCellsResolved {
+            current,
+            total,
+            claimed_cells,
+        } => log_progress(format_args!(
+            "{prefix}: influence field resolved cells {current}/{total}, claimed {claimed_cells} cell(s)"
+        )),
+        SectorProgress::InfluenceFieldBandsBuilt {
+            bands,
+            claimed_cells,
+        } => log_progress(format_args!(
+            "{prefix}: influence field bands ready ({bands} band(s), {claimed_cells} claimed cell(s))"
+        )),
+        SectorProgress::InfluenceFieldComplete { cells, bands } => log_progress(format_args!(
+            "{prefix}: influence field complete ({cells} cell(s), {bands} band(s))"
+        )),
         SectorProgress::OverlayDerived { name } => {
             log_progress(format_args!("{prefix}: derived {name} overlay"));
         }
+        SectorProgress::ChronicleStarted {
+            systems,
+            worlds,
+            routes,
+            max_subsector_events,
+        } => log_progress(format_args!(
+            "{prefix}: chronicle started ({systems} systems, {worlds} worlds, {routes} routes, max {max_subsector_events} subsector event(s))"
+        )),
+        SectorProgress::ChronicleSubsectorEventsStarted {
+            exact_cluster_count,
+            emitted_cap,
+            sampled,
+        } => {
+            let mode = if sampled { "sampled" } else { "exact" };
+            log_progress(format_args!(
+                "{prefix}: chronicle subsector events {mode} (exact clusters {exact_cluster_count}, cap {emitted_cap})"
+            ));
+        }
+        SectorProgress::ChronicleSubsectorEventsDone { events } => log_progress(format_args!(
+            "{prefix}: chronicle subsector events ready ({events} event(s))"
+        )),
+        SectorProgress::ChronicleSystemsScanned {
+            current,
+            total,
+            events,
+        } => {
+            if should_log_progress(current, total) {
+                log_progress(format_args!(
+                    "{prefix}: chronicle scanned systems {current}/{total} ({events} event(s))"
+                ));
+            }
+        }
+        SectorProgress::ChronicleRoutesScanned {
+            current,
+            total,
+            events,
+        } => {
+            if should_log_progress(current, total) {
+                log_progress(format_args!(
+                    "{prefix}: chronicle scanned routes {current}/{total} ({events} event(s))"
+                ));
+            }
+        }
+        SectorProgress::ChronicleEventRulesApplied { events } => log_progress(format_args!(
+            "{prefix}: chronicle event rules applied ({events} event(s))"
+        )),
+        SectorProgress::ChronicleSortingStarted { events } => log_progress(format_args!(
+            "{prefix}: chronicle sorting {events} event(s)"
+        )),
+        SectorProgress::ChronicleComplete { events } => log_progress(format_args!(
+            "{prefix}: chronicle complete ({events} event(s))"
+        )),
         SectorProgress::Complete {
             systems,
             worlds,

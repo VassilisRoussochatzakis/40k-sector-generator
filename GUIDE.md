@@ -87,9 +87,13 @@ continue if validation reports errors. Refuses to continue with warnings
 unless `--allow-warnings` is passed.
 
 Progress is printed to stderr with `[sectorforge]` prefixes: load, validation,
-world-pool build, system generation, route/control overlays, invariant check,
-and export. Stdout keeps the final summary, so scripted callers can redirect
-stderr if they only want artifacts or JSON.
+world-pool build, system generation, public routes, region route effects (route
+scan counts, changed routes, bridge checks, and final stability totals),
+hidden-route layers (endpoint scans, candidate-pair counts, and emit progress),
+route-control derivation, influence-field projection/resolution, chronicle
+scan/sort progress, overlays, invariant check, and export. Stdout keeps the
+final summary, so scripted callers can redirect stderr if they only want
+artifacts or JSON.
 
 | Flag | Meaning |
 |---|---|
@@ -407,6 +411,7 @@ Project config may define eras and rule-forced events inline:
 enabled = true
 epoch_start = 36
 epoch_end = 42
+max_subsector_events = 64  # cap/sampling guard for huge sectors
 
 [[history.eras]]
 id = "age_of_compliance"
@@ -424,6 +429,10 @@ minimum_events = 1
 
 You can also point `[inputs].history = "history.toml"` at a file containing
 the same top-level `[history]` table; its digest is recorded in the manifest.
+For very large sectors, `max_subsector_events` caps the number of subsector
+capital events in the chronicle; when the exact cluster count exceeds the cap,
+the chronicle samples representative systems instead of running expensive
+subsector clustering only for flavor events.
 `sector.md` gains a **Sector History** chapter and local history snippets in
 system/world sections. The GUI has a **HISTORY** tab: selecting an event
 highlights affected systems/routes on the map, and selected worlds show all
@@ -859,13 +868,19 @@ to a segmentum: same seeds + same digests ⇒ same composed bytes.
 
 A project is a folder that contains a `sectorforge.toml` and data sub-directories.
 The bundled example is at [examples/m42_project/](examples/m42_project/).
-Scale fixtures live in [examples/big_test/](examples/big_test/) and
-[examples/big_sparse_test/](examples/big_sparse_test/); the sparse fixture uses
-the same data as `big_test` with `system_count = 80` and
-`route_density = 0.048`:
+Scale fixtures live in [examples/big_test/](examples/big_test/),
+[examples/big_sparse_test/](examples/big_sparse_test/), and
+[examples/huge_sparse_test/](examples/huge_sparse_test/). `big_sparse_test`
+uses the same data as `big_test` with `system_count = 80` and
+`route_density = 0.048`; `huge_sparse_test` keeps that sparse density on a
+`1000x1000` grid (`system_count = 78125`) and adds
+`planet_names.txt`-derived planet names, scaled warp regions, diplomacy rules,
+and economy derivation for bounds testing:
 
 ```bash
 cargo run --bin sectorforge -- generate --project examples/big_sparse_test
+cargo run --bin sectorforge -- validate --project examples/huge_sparse_test
+cargo run --bin sectorforge -- generate --project examples/huge_sparse_test --allow-warnings
 ```
 
 ```
@@ -1929,7 +1944,7 @@ across runs, so a regression check is a diff away.
 | [src/intel.rs](src/intel.rs) | §7 NEXT: fog-of-war `SystemIntel` keyed by observer faction (suspected presences, propaganda state, classified state, redaction helper) |
 | [src/archetypes.rs](src/archetypes.rs) | §11 NEXT: eight faction archetype rules (Imperial governance stack / Necron phase / Tyranid front / Ork Waaagh! / Genestealer staged uprising / Tau sphere / Aeldari intermittent / Chaos corruption) populated into `GeneratedSystem.archetype` |
 | [src/power_projection.rs](src/power_projection.rs) | §4 NEXT: per-faction route-graph BFS projection (`source_power × doctrine ÷ (1+hops²)`). Hidden routes are kind-gated. Exposed as `sector.power_projection` |
-| [src/influence_field.rs](src/influence_field.rs) | §9 NEXT: continuous Voronoi-style cell assignment with `1/(1+d²)` falloff. Stored on `sector.influence_field` |
+| [src/influence_field.rs](src/influence_field.rs) | §9 NEXT: continuous radius-limited influence projection from system anchors with `1/(1+d²)` falloff. Stored on `sector.influence_field` |
 | [src/sector_save.rs](src/sector_save.rs) | §13 NEXT: `SectorSave` — IDs-only runtime state split from the static catalog half; `split` and `merge` for round-tripping |
 | [src/world_ecs.rs](src/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |

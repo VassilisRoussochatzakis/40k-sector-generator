@@ -53,15 +53,70 @@ pub enum SectorProgress {
     FactionsAggregated {
         factions: usize,
     },
+    StageStarted {
+        name: &'static str,
+    },
     RoutesGenerated {
         routes: usize,
     },
     RegionEffectsApplied {
         regions: usize,
+        affected_routes: usize,
+        changed_routes: usize,
+        bridge_checks: usize,
+        bridges_preserved: usize,
+        stable: usize,
+        unstable: usize,
+        hazardous: usize,
+        perilous: usize,
+    },
+    RegionEffectsStarted {
+        regions: usize,
+        systems: usize,
+        routes: usize,
+    },
+    RegionEffectsProgress {
+        current: usize,
+        total: usize,
+        affected_routes: usize,
+        changed_routes: usize,
+        bridge_checks: usize,
+        bridges_preserved: usize,
+    },
+    RegionEffectsBridgeCheckStarted {
+        check: usize,
+        route_index: usize,
+        total_routes: usize,
+        route_id: String,
+    },
+    HiddenRouteLayerStarted {
+        layer: &'static str,
+        endpoints: usize,
+    },
+    HiddenRouteLayerProgress {
+        layer: &'static str,
+        current: usize,
+        total: usize,
+        pairs: usize,
+    },
+    HiddenRouteLayerEmitProgress {
+        layer: &'static str,
+        current: usize,
+        total: usize,
+        added: usize,
+    },
+    HiddenRouteLayerCompleted {
+        layer: &'static str,
+        added: usize,
+        routes: usize,
     },
     HiddenRoutesApplied {
         added: usize,
         routes: usize,
+    },
+    RouteControlsProgress {
+        current: usize,
+        total: usize,
     },
     RouteControlsDerived {
         routes: usize,
@@ -77,6 +132,63 @@ pub enum SectorProgress {
     },
     OverlayDerived {
         name: &'static str,
+    },
+    InfluenceFieldStarted {
+        systems: usize,
+        anchors: usize,
+        cells: usize,
+        radius: u32,
+    },
+    InfluenceFieldAnchorsProjected {
+        current: usize,
+        total: usize,
+        touched_cells: usize,
+    },
+    InfluenceFieldCellsResolved {
+        current: usize,
+        total: usize,
+        claimed_cells: usize,
+    },
+    InfluenceFieldBandsBuilt {
+        bands: usize,
+        claimed_cells: usize,
+    },
+    InfluenceFieldComplete {
+        cells: usize,
+        bands: usize,
+    },
+    ChronicleStarted {
+        systems: usize,
+        worlds: usize,
+        routes: usize,
+        max_subsector_events: u32,
+    },
+    ChronicleSubsectorEventsStarted {
+        exact_cluster_count: usize,
+        emitted_cap: u32,
+        sampled: bool,
+    },
+    ChronicleSubsectorEventsDone {
+        events: usize,
+    },
+    ChronicleSystemsScanned {
+        current: usize,
+        total: usize,
+        events: usize,
+    },
+    ChronicleRoutesScanned {
+        current: usize,
+        total: usize,
+        events: usize,
+    },
+    ChronicleEventRulesApplied {
+        events: usize,
+    },
+    ChronicleSortingStarted {
+        events: usize,
+    },
+    ChronicleComplete {
+        events: usize,
     },
     Complete {
         systems: usize,
@@ -202,6 +314,9 @@ where
 
     // ── Routes ──────────────────────────────────────────────────────────────
     let mut routes = if config.generation.routes.enabled {
+        progress(SectorProgress::StageStarted {
+            name: "public routes",
+        });
         let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
         generate_routes(&config, &route_rules, &systems, &mut route_rng)
     } else {
@@ -215,9 +330,62 @@ where
     // → one tier worse, calm corridor → one tier better up to the perilous
     // ceiling). Idempotent.
     if regions_cfg.apply_to_routes && !warp_regions.is_empty() {
-        crate::regions::apply_route_effects(&warp_regions, &systems, &mut routes);
+        progress(SectorProgress::StageStarted {
+            name: "region route effects",
+        });
+        let summary = crate::regions::apply_route_effects_with_progress(
+            &warp_regions,
+            &systems,
+            &mut routes,
+            |event| match event {
+                crate::regions::RegionRouteEffectsProgress::Started {
+                    regions,
+                    systems,
+                    routes,
+                } => progress(SectorProgress::RegionEffectsStarted {
+                    regions,
+                    systems,
+                    routes,
+                }),
+                crate::regions::RegionRouteEffectsProgress::RouteScanned {
+                    current,
+                    total,
+                    affected_routes,
+                    changed_routes,
+                    bridge_checks,
+                    bridges_preserved,
+                } => progress(SectorProgress::RegionEffectsProgress {
+                    current,
+                    total,
+                    affected_routes,
+                    changed_routes,
+                    bridge_checks,
+                    bridges_preserved,
+                }),
+                crate::regions::RegionRouteEffectsProgress::BridgeCheckStarted {
+                    check,
+                    route_index,
+                    total_routes,
+                    route_id,
+                } => progress(SectorProgress::RegionEffectsBridgeCheckStarted {
+                    check,
+                    route_index,
+                    total_routes,
+                    route_id,
+                }),
+                crate::regions::RegionRouteEffectsProgress::Completed { .. } => {}
+            },
+        );
         progress(SectorProgress::RegionEffectsApplied {
             regions: warp_regions.len(),
+            affected_routes: summary.affected_routes,
+            changed_routes: summary.changed_routes,
+            bridge_checks: summary.bridge_checks,
+            bridges_preserved: summary.bridges_preserved,
+            stable: summary.stable,
+            unstable: summary.unstable,
+            hazardous: summary.hazardous,
+            perilous: summary.perilous,
         });
     }
 
@@ -226,12 +394,51 @@ where
     // treatment as public lanes.
     let mut generated_factions = generated_factions;
     if !generated_factions.is_empty() {
+        progress(SectorProgress::StageStarted {
+            name: "hidden routes",
+        });
         let before = routes.len();
-        crate::hidden_routes::append_hidden_routes_with_regions(
+        crate::hidden_routes::append_hidden_routes_with_regions_and_progress(
             &systems,
             &generated_factions,
             &warp_regions,
             &mut routes,
+            |event| match event {
+                crate::hidden_routes::HiddenRoutesProgress::LayerStarted { layer, endpoints } => {
+                    progress(SectorProgress::HiddenRouteLayerStarted { layer, endpoints })
+                }
+                crate::hidden_routes::HiddenRoutesProgress::LayerProgress {
+                    layer,
+                    current,
+                    total,
+                    pairs,
+                } => progress(SectorProgress::HiddenRouteLayerProgress {
+                    layer,
+                    current,
+                    total,
+                    pairs,
+                }),
+                crate::hidden_routes::HiddenRoutesProgress::LayerEmitProgress {
+                    layer,
+                    current,
+                    total,
+                    added,
+                } => progress(SectorProgress::HiddenRouteLayerEmitProgress {
+                    layer,
+                    current,
+                    total,
+                    added,
+                }),
+                crate::hidden_routes::HiddenRoutesProgress::LayerCompleted {
+                    layer,
+                    added,
+                    routes,
+                } => progress(SectorProgress::HiddenRouteLayerCompleted {
+                    layer,
+                    added,
+                    routes,
+                }),
+            },
         );
         progress(SectorProgress::HiddenRoutesApplied {
             added: routes.len().saturating_sub(before),
@@ -242,11 +449,19 @@ where
     // §3 per-route per-faction control. Derived after routes are built and
     // factions assigned, so endpoint presence reflects final state.
     if !routes.is_empty() && !generated_factions.is_empty() {
+        progress(SectorProgress::StageStarted {
+            name: "route controls",
+        });
         let by_id: BTreeMap<&str, &GeneratedSystem> =
             systems.iter().map(|s| (s.id.as_str(), s)).collect();
-        for r in &mut routes {
+        let route_total = routes.len();
+        for (idx, r) in routes.iter_mut().enumerate() {
             r.controls =
                 crate::route_control::derive_route_controls(r, &by_id, &generated_factions);
+            progress(SectorProgress::RouteControlsProgress {
+                current: idx + 1,
+                total: route_total,
+            });
         }
         progress(SectorProgress::RouteControlsDerived {
             routes: routes.len(),
@@ -321,16 +536,67 @@ where
     };
 
     // §11 NEXT: archetype rules.
+    progress(SectorProgress::StageStarted {
+        name: "archetypes overlay",
+    });
     crate::archetypes::apply_all(&mut sector);
     progress(SectorProgress::OverlayDerived { name: "archetypes" });
     // §4 NEXT: power projection over routes (decays + doctrine).
+    progress(SectorProgress::StageStarted {
+        name: "power projection overlay",
+    });
     sector.power_projection = crate::power_projection::project_sector(&sector).into();
     crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
     progress(SectorProgress::OverlayDerived {
         name: "power_projection",
     });
     // §9 NEXT: continuous area layers.
-    sector.influence_field = crate::influence_field::build(&sector).into();
+    progress(SectorProgress::StageStarted {
+        name: "influence field overlay",
+    });
+    sector.influence_field =
+        crate::influence_field::build_with_progress(&sector, |event| match event {
+            crate::influence_field::InfluenceFieldProgress::Started {
+                systems,
+                anchors,
+                cells,
+                radius,
+            } => progress(SectorProgress::InfluenceFieldStarted {
+                systems,
+                anchors,
+                cells,
+                radius,
+            }),
+            crate::influence_field::InfluenceFieldProgress::AnchorsProjected {
+                current,
+                total,
+                touched_cells,
+            } => progress(SectorProgress::InfluenceFieldAnchorsProjected {
+                current,
+                total,
+                touched_cells,
+            }),
+            crate::influence_field::InfluenceFieldProgress::CellsResolved {
+                current,
+                total,
+                claimed_cells,
+            } => progress(SectorProgress::InfluenceFieldCellsResolved {
+                current,
+                total,
+                claimed_cells,
+            }),
+            crate::influence_field::InfluenceFieldProgress::BandsBuilt {
+                bands,
+                claimed_cells,
+            } => progress(SectorProgress::InfluenceFieldBandsBuilt {
+                bands,
+                claimed_cells,
+            }),
+            crate::influence_field::InfluenceFieldProgress::Complete { cells, bands } => {
+                progress(SectorProgress::InfluenceFieldComplete { cells, bands });
+            }
+        })
+        .into();
     progress(SectorProgress::OverlayDerived {
         name: "influence_field",
     });
@@ -339,6 +605,9 @@ where
     // finalised. Pure derivation, no extra RNG draws affect prior stages.
     // `[generation.relations].min_world_presence` controls how aggressively
     // the canonical faction list is filtered before the C(n,2) loop.
+    progress(SectorProgress::StageStarted {
+        name: "relations overlay",
+    });
     sector.relations = crate::relations::derive_with_threshold(
         &sector,
         &relations_cfg,
@@ -350,6 +619,9 @@ where
     // §12 NEW.md: derive the economy snapshot last so it can read final
     // route stability + control records. Optional `feed_stability` nudge
     // applies after the snapshot is built.
+    progress(SectorProgress::StageStarted {
+        name: "economy overlay",
+    });
     sector.economy = crate::economy::derive_with(&sector, &economy_cfg).into();
     if economy_cfg.feed_stability && sector.economy.enabled {
         let snap = sector.economy.clone();
@@ -360,7 +632,62 @@ where
     // §1 NEW2.md: timeline / chronicle derives after all structural and
     // overlay state is final so events can reference routes, regions,
     // subsectors, claims, control, and present conflicts.
-    sector.chronicle = crate::history::derive_with(&sector, &history_cfg);
+    progress(SectorProgress::StageStarted {
+        name: "chronicle overlay",
+    });
+    sector.chronicle =
+        crate::history::derive_with_progress(&sector, &history_cfg, |event| match event {
+            crate::history::HistoryProgress::Started {
+                systems,
+                worlds,
+                routes,
+                max_subsector_events,
+            } => progress(SectorProgress::ChronicleStarted {
+                systems,
+                worlds,
+                routes,
+                max_subsector_events,
+            }),
+            crate::history::HistoryProgress::SubsectorEventsStarted {
+                exact_cluster_count,
+                emitted_cap,
+                sampled,
+            } => progress(SectorProgress::ChronicleSubsectorEventsStarted {
+                exact_cluster_count,
+                emitted_cap,
+                sampled,
+            }),
+            crate::history::HistoryProgress::SubsectorEventsDone { events } => {
+                progress(SectorProgress::ChronicleSubsectorEventsDone { events });
+            }
+            crate::history::HistoryProgress::SystemsScanned {
+                current,
+                total,
+                events,
+            } => progress(SectorProgress::ChronicleSystemsScanned {
+                current,
+                total,
+                events,
+            }),
+            crate::history::HistoryProgress::RoutesScanned {
+                current,
+                total,
+                events,
+            } => progress(SectorProgress::ChronicleRoutesScanned {
+                current,
+                total,
+                events,
+            }),
+            crate::history::HistoryProgress::EventRulesApplied { events } => {
+                progress(SectorProgress::ChronicleEventRulesApplied { events });
+            }
+            crate::history::HistoryProgress::SortingStarted { events } => {
+                progress(SectorProgress::ChronicleSortingStarted { events });
+            }
+            crate::history::HistoryProgress::Complete { events } => {
+                progress(SectorProgress::ChronicleComplete { events });
+            }
+        });
     progress(SectorProgress::OverlayDerived { name: "chronicle" });
     progress(SectorProgress::Complete {
         systems: sector.manifest.system_count,

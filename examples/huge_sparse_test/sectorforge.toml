@@ -1,0 +1,81 @@
+[project]
+id = "huge-sparse-test-sector"
+title = "Huge Sparse Test Sector"
+description = "Extreme 1000x1000 sparse bounds fixture using big_sparse density, rich faction/world data, planet_names.txt-derived planet names, regions, diplomacy, and economy."
+version = "0.1.0"
+
+[inputs]
+world_data_dir = "data/worlds"
+system_names = "data/names/system_names.toml"
+world_names = "data/names/world_names.toml"
+factions = "data/factions/factions.toml"
+route_rules = "data/routes/route_rules.toml"
+relations = "data/factions/relations.toml"
+regions = "data/routes/regions.toml"
+economy = "data/worlds/economy.toml"
+
+[generation]
+seed = "huge-sparse-test-default-seed"
+sector_width = 1000
+sector_height = 1000
+subsector_width = 50
+subsector_height = 50
+system_count = 78125
+min_worlds_per_system = 2
+max_worlds_per_system = 6
+allow_empty_hexes = true
+world_feature_count = 5
+strict_world_rows = true
+
+[generation.placement]
+mode = "uniform_grid"
+cluster_bias = 0.0
+minimum_system_distance = 3
+
+[generation.world_selection]
+mode = "weighted_rows"
+require_complete_rows = true
+allow_partial_rows = false
+same_star_colour_bias = 1.25
+strict_same_star_colour = false
+avoid_duplicate_world_type_in_system = false
+
+[generation.routes]
+enabled = true
+max_route_distance = 4
+route_density = 0.048
+ensure_connected_graph = true
+
+[generation.relations]
+# Same threshold as big_sparse_test. At this scale this intentionally exercises
+# the diplomacy matrix across nearly every materially present faction.
+min_world_presence = 2
+
+[outputs]
+directory = "out"
+formats = ["json", "markdown"]
+pretty_json = false
+write_per_system_files = false
+write_manifest = true
+write_diagnostics = false
+
+[outputs.bitmap]
+sector_scale = 1
+system_scale = 1
+render_systems = false
+faction_fill = true
+heatmap = "trade_volume"
+
+[outputs.bitmap.theme]
+name = "subsector_political"
+
+[outputs.html]
+theme = "hololithic"
+player_min_confidence = 30
+size_warn_bytes = 67108864
+compact_json = true
+
+[history]
+# Prevent the chronicle flavor pass from deriving thousands of exact subsector
+# clusters on this bounds-test fixture.
+max_subsector_events = 64

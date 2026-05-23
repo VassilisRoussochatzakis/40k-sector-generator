@@ -3,6 +3,7 @@
 //! `info_panel` formats text, `app` wires everything together.
 
 pub mod app;
+pub mod builder;
 pub mod dashboard;
 pub mod data_editor;
 pub mod editor;

@@ -1538,6 +1538,35 @@ The GUI module is exposed as `sectorforge::gui::App`. The struct takes a
 Use `app.with_project_dir(dir)` to attach a project directory for regeneration
 and data-editor preloading.
 
+### Builder foundation (BUILDER_REQS.txt §43 Phase A)
+
+The builder is the GUI-side editor that constructs a sector from scratch with
+full parity to the CLI. Its foundation layer lives in:
+
+| Module | Purpose |
+|---|---|
+| [src/sector_model/mod.rs](src/sector_model/mod.rs) | `GeneratedSector::empty`, `GeneratedSystem::new_at`, `GeneratedWorld::new` constructors used by the builder when the user creates entities from scratch. |
+| [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, `add_faction`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
+| [gui/src/builder/state.rs](gui/src/builder/state.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + dirty flag + validation/invariant reports + pending jobs. |
+| [gui/src/builder/command.rs](gui/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The Phase A surface covers system/world/route/faction add/remove/move/rename; overlay commands land with their panels in later phases. |
+| [gui/src/builder/index.rs](gui/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
+| [gui/src/builder/data_catalogs.rs](gui/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
+| [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
+| [gui/src/builder/snapshot.rs](gui/src/builder/snapshot.rs) | Named save points tying a `GeneratedSector` clone to a command-log position. |
+| [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
+| [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
+
+`BuilderState::run` routes a command through the bus: apply → re-index →
+clear derivation cache → truncate redo tail → push onto the log → mark dirty.
+`BuilderState::undo` and `BuilderState::redo` walk the cursor.
+
+`BuilderState::new_blank(id, title, seed, w, h)` constructs the empty
+session used by the new-project wizard. It uses the new
+`GeneratedSector::empty` constructor under the hood.
+
+The `.sgforge` envelope is versioned (`SESSION_VERSION = 1`). Loaders refuse
+mismatched versions explicitly rather than partially decoding.
+
 ---
 
 ## 9. Library use
@@ -1855,6 +1884,16 @@ across runs, so a regression check is a diff away.
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI; egui wrapper around [src/faction_style.rs](src/faction_style.rs) (`faction_style`, glyph + border) |
 | [src/gui/heatmap.rs](src/gui/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |
+| [gui/src/builder/mod.rs](gui/src/builder/mod.rs) | Builder Phase A entry — re-exports `BuilderState`, `BuilderCommand`, `BuilderIndex`, `DataCatalogs`, `DerivationCache`, `Snapshot`, `BuilderError`, session save/load |
+| [gui/src/builder/state.rs](gui/src/builder/state.rs) | `BuilderState` (single working sector + log + index + caches + reports), `ModalKind` |
+| [gui/src/builder/command.rs](gui/src/builder/command.rs) | `BuilderCommand` apply/revert pattern over `GeneratedSector` mutations |
+| [gui/src/builder/index.rs](gui/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table refreshed after every command |
+| [gui/src/builder/data_catalogs.rs](gui/src/builder/data_catalogs.rs) | In-memory TOML mirrors (worlds/factions/relations/route_rules/regions/economy/history/names) |
+| [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) | BLAKE3-keyed cache for derived overlays |
+| [gui/src/builder/snapshot.rs](gui/src/builder/snapshot.rs) | Named save-point structure |
+| [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
+| [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
+| [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
 
 ## 14. Build & performance
 

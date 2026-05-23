@@ -209,6 +209,55 @@ impl From<&crate::worlds::World> for WorldDto {
 }
 
 impl GeneratedSector {
+    /// Construct an empty sector with no systems, routes, or factions.
+    ///
+    /// Used by the GUI builder to start a project from scratch. The returned
+    /// sector passes pre-validation: dimensions are set, the manifest is
+    /// populated with generator name/version, and all derived overlays are
+    /// `Default`. `generator_name`/`generator_version` are filled from the
+    /// `GENERATOR_NAME` / `GENERATOR_VERSION` constants in `lib.rs`.
+    #[must_use]
+    pub fn empty(id: &str, title: &str, seed: &str, width: u32, height: u32) -> Self {
+        Self {
+            id: id.into(),
+            title: title.into(),
+            seed: seed.into(),
+            generator_name: crate::GENERATOR_NAME.into(),
+            generator_version: crate::GENERATOR_VERSION.into(),
+            width,
+            height,
+            systems: Vec::new(),
+            routes: Vec::new(),
+            factions: Vec::new(),
+            manifest: GenerationManifest {
+                project_id: id.into(),
+                generated_at_policy: "unknown".into(),
+                generator_name: crate::GENERATOR_NAME.into(),
+                generator_version: crate::GENERATOR_VERSION.into(),
+                seed: seed.into(),
+                seed_hash: "".into(),
+                base_seed: None,
+                candidate_index: None,
+                constraints_digest: None,
+                profile: None,
+                input_digests: BTreeMap::new(),
+                settings_digest: "".into(),
+                system_count: 0,
+                world_count: 0,
+                route_count: 0,
+            },
+            influence_field: std::sync::Arc::new(crate::influence_field::InfluenceField::default()),
+            power_projection: std::sync::Arc::new(
+                crate::power_projection::PowerProjectionMap::default(),
+            ),
+            relations: std::sync::Arc::new(crate::relations::RelationsMatrix::default()),
+            regions: std::sync::Arc::new(Vec::new()),
+            economy: std::sync::Arc::new(crate::economy::EconomyReport::default()),
+            chronicle: crate::history::SectorChronicle::default(),
+            id_history: BTreeMap::new(),
+        }
+    }
+
     pub fn get_system(&self, id: &SystemId) -> Option<&GeneratedSystem> {
         self.systems.iter().find(|s| s.id == *id)
     }
@@ -234,6 +283,73 @@ impl GeneratedSector {
 
     pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
         self.systems.iter().flat_map(|s| s.worlds.iter())
+    }
+}
+
+impl GeneratedSystem {
+    /// Construct a system at `coord` with `name`. No worlds, no factions, no
+    /// star — caller wires those in via the mutation API. Default `kind` is
+    /// `SystemKind::Star`. Used by the GUI builder when the user clicks an
+    /// empty hex.
+    #[must_use]
+    pub fn new_at(id: SystemId, index: usize, coord: HexCoord, name: &str) -> Self {
+        Self {
+            id,
+            index,
+            name: name.into(),
+            coord,
+            kind: SystemKind::Star,
+            star: None,
+            worlds: Vec::new(),
+            primary_factions: Vec::new(),
+            tags: Vec::new(),
+            notes: Vec::new(),
+            control: SystemControlSummary::default(),
+            stability: crate::stability::StabilityState::default(),
+            orbital_assets: Vec::new(),
+            blockade: crate::orbital_assets::BlockadeReport::default(),
+            conflict: crate::conflict::ConflictState::default(),
+            intel: crate::intel::SystemIntel::default(),
+            archetype: crate::archetypes::ArchetypeState::default(),
+        }
+    }
+}
+
+impl GeneratedWorld {
+    /// Construct a blank world with the lowest-impact default values:
+    /// dead world / airless / temperate / no biosphere / uninhabited /
+    /// standard tech / no government / no notable features. The caller
+    /// supplies the parent system index (for ID derivation) and the world
+    /// index within that system. Default `orbit` is `1`.
+    #[must_use]
+    pub fn new(id: WorldId, index: usize, name: &str) -> Self {
+        Self {
+            id,
+            index,
+            name: name.into(),
+            orbit: 1,
+            source_row_index: 0,
+            world: WorldDto {
+                star_colour: "yellow".into(),
+                star_colour_code: "G".into(),
+                world_type: "DeadWorld".into(),
+                atmosphere: "Airless".into(),
+                temperature: "Temperate".into(),
+                biosphere: "Nonexistent".into(),
+                population: "Uninhabited".into(),
+                tech_level: "Standard".into(),
+                government: "None".into(),
+                notable_features: Vec::new(),
+            },
+            factions: Vec::new(),
+            tags: Vec::new(),
+            notes: Vec::new(),
+            claims: Vec::new(),
+            control: WorldControlSummary::default(),
+            stability: crate::stability::StabilityState::default(),
+            regions: Vec::new(),
+            conflict: crate::conflict::ConflictState::default(),
+        }
     }
 }
 

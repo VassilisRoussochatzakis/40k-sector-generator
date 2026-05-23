@@ -154,16 +154,16 @@ Legend: [G] = gap, [P] = partial, [X] = exists. Section refs map to §6+.
 4. DATA-MODEL TASKS (foundation)
 ================================================================================
 
-D1.   `GeneratedSector::empty(id, title, seed, width, height)` constructor
+D1.   [DONE] `GeneratedSector::empty(id, title, seed, width, height)` constructor
       in `src/sector_model.rs`. Returns valid empty sector that passes
       pre-validation. Required because the builder starts blank.
 
-D2.   `GeneratedSystem::new_at(id, coord, name)` and `GeneratedWorld::new(
+D2.   [DONE] `GeneratedSystem::new_at(id, coord, name)` and `GeneratedWorld::new(
       id, name)` constructors. Default enum values must be the
       lowest-impact variants (e.g. `Atmosphere::Standard`,
       `TechLevel::Industrial`). Document defaults in doc-comments.
 
-D3.   Mutation API on `GeneratedSector` (new module
+D3.   [DONE] Mutation API on `GeneratedSector` (new module
       `src/sector_model/mutation.rs`):
         - `add_system`, `remove_system`, `move_system`
         - `add_world_to_system`, `remove_world`
@@ -184,13 +184,13 @@ D3.   Mutation API on `GeneratedSector` (new module
       Each method returns `Result<(), MutationError>`. Each method is the
       single canonical entry — no panel mutates fields directly.
 
-D4.   Re-index pass (`GeneratedSector::reindex_ids`) manages `sys-NNNN`,
+D4.   [DONE] Re-index pass (`GeneratedSector::reindex_ids`) manages `sys-NNNN`,
       `sys-NNNN-wNN`, `route-sys-A-sys-B` after structural changes.
       Supports stable IDs across renames using a tombstone table
       (`id_history` in `GeneratedSector`) when `stable_ids_on_rename`
       is enabled in the builder.
 
-D5.   `BuilderState` (in `gui/src/builder/state.rs`):
+D5.   [DONE] `BuilderState` (in `gui/src/builder/state.rs`):
         - `sector: GeneratedSector`
         - `project_path: Option<Utf8PathBuf>` (use `camino`)
         - `config: SectorforgeConfig` (from `src/config.rs`)
@@ -208,7 +208,7 @@ D5.   `BuilderState` (in `gui/src/builder/state.rs`):
         - `modal: Option<ModalKind>`
         - `pending_jobs: Vec<JobHandle>` (for off-thread work)
 
-D6.   Implement `Serialize/Deserialize` for `BuilderState` so the in-progress
+D6.   [DONE] Implement `Serialize/Deserialize` for `BuilderState` so the in-progress
       builder session can be saved as `.sgforge`. Use a JSON envelope
       containing base64-encoded files by default to avoid new dependencies.
       Optionally support a `.tar` format toggle for portability if the `tar`
@@ -1079,7 +1079,7 @@ done), index pre-build, `mem::take` for vec rotations,
 ================================================================================
 
 Phase A — Foundation
-  D1..D6, 
+  D1..D6 - DONE
   R1..R10, 
   P1..P3, 
   U1..U2, 

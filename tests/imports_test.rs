@@ -38,6 +38,7 @@ fn empty_sector() -> GeneratedSector {
         regions: Default::default(),
         economy: Default::default(),
         chronicle: Default::default(),
+        ..Default::default()
     }
 }
 

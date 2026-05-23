@@ -1455,6 +1455,7 @@ mod tests {
             regions: vec![].into(),
             economy: Default::default(),
             chronicle: Default::default(),
+            ..Default::default()
         }
     }
 

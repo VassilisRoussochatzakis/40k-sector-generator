@@ -263,6 +263,7 @@ mod tests {
             regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
+            ..Default::default()
         };
         let w = build(&sector);
         assert_eq!(w.kinds.len(), 1);

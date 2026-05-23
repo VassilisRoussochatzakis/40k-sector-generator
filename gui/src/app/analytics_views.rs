@@ -235,7 +235,7 @@ impl App {
                     .find(|e| e.id.as_str() == id.as_ref())
             })
             .or_else(|| sector.chronicle.events.first());
-        let (route_ids, waypoints) = active
+        let (_route_ids, _waypoints) = active
             .map(history_highlights)
             .unwrap_or_else(|| (HashSet::new(), HashSet::new()));
 

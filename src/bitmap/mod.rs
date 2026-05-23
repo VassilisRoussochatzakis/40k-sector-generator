@@ -2155,6 +2155,7 @@ mod tests {
             regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
+            id_history: BTreeMap::new(),
         }
     }
 

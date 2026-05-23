@@ -12,7 +12,7 @@ pub struct HexCoord {
     pub r: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GeneratedSector {
     pub id: Arc<str>,
     pub title: Arc<str>,
@@ -686,7 +686,7 @@ impl FactionInfluence {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GenerationManifest {
     pub project_id: Arc<str>,
     pub generated_at_policy: Arc<str>,

@@ -305,6 +305,7 @@ mod tests {
             regions: Vec::new().into(),
             economy: Default::default(),
             chronicle: Default::default(),
+            ..Default::default()
         }
     }
 

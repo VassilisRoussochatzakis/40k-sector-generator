@@ -45,6 +45,9 @@ pub struct PersonaeConfig {
     /// pools (see [`default_kind_pools`]) are used.
     #[serde(default)]
     pub kinds: BTreeMap<String, KindPools>,
+    /// §3 NEW.md: manual personae imported from file. Appended to derived set.
+    #[serde(default)]
+    pub manual: Vec<Persona>,
 }
 
 impl Default for PersonaeConfig {
@@ -54,6 +57,7 @@ impl Default for PersonaeConfig {
             max_per_world: default_per_world(),
             max_per_system: default_per_system(),
             kinds: BTreeMap::new(),
+            manual: Vec::new(),
         }
     }
 }
@@ -244,6 +248,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
             }
         }
     }
+
+    out.extend(cfg.manual.clone());
 
     PersonaeReport {
         sector_id: sector.id.to_string(),

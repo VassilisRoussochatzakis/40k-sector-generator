@@ -34,6 +34,10 @@ pub struct ProjectInput {
     pub economy: crate::economy::EconomyConfig,
     /// §1 NEW2.md: parsed chronicle config, default eras/rules when unset.
     pub history: crate::history::HistoryConfig,
+    /// §3 NEW.md: parsed personae config, default pools/manual when unset.
+    pub personae: crate::personae::PersonaeConfig,
+    /// §7 NEW2.md: parsed sites config, default manual when unset.
+    pub sites: crate::sites::SitesConfig,
     /// Project-relative path -> "blake3:<hex>" digest of input file bytes.
     pub input_digests: BTreeMap<String, String>,
 }
@@ -156,6 +160,20 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         config.history.clone()
     };
 
+    let personae = if let Some(rel) = &config.inputs.personae {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        toml::from_str(&text).map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?
+    } else {
+        crate::personae::PersonaeConfig::default()
+    };
+
+    let sites = if let Some(rel) = &config.inputs.sites {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        toml::from_str(&text).map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?
+    } else {
+        crate::sites::SitesConfig::default()
+    };
+
     Ok(ProjectInput {
         root_dir,
         config,
@@ -169,6 +187,8 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         regions,
         economy,
         history,
+        personae,
+        sites,
         input_digests: digests,
     })
 }

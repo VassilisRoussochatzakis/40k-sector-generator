@@ -67,7 +67,7 @@ R6.   Errors flow through `thiserror`-defined `BuilderError` variants
 
 R7.   Long-running derivations (search, compose, diff with ticks, large
       sector regeneration) run off the UI thread via `std::thread::spawn`
-      plus a `crossbeam_channel` for progress. eframe `Context::request_repaint`
+      plus `std::sync::mpsc` for progress. eframe `Context::request_repaint`
       on each progress tick. Cancel via `Arc<AtomicBool>`.
 
 R8.   Determinism: builder writes must produce the same `sector.json` bytes
@@ -184,10 +184,11 @@ D3.   Mutation API on `GeneratedSector` (new module
       Each method returns `Result<(), MutationError>`. Each method is the
       single canonical entry — no panel mutates fields directly.
 
-D4.   Re-index pass (`GeneratedSector::reindex_ids`) renumbers
-      `sys-NNNN`, `sys-NNNN-wNN`, `route-sys-A-sys-B` after any structural
-      change. Optional: keep stable IDs across renames using a tombstone
-      table (configurable via builder setting `stable_ids_on_rename`).
+D4.   Re-index pass (`GeneratedSector::reindex_ids`) manages `sys-NNNN`,
+      `sys-NNNN-wNN`, `route-sys-A-sys-B` after structural changes.
+      Supports stable IDs across renames using a tombstone table
+      (`id_history` in `GeneratedSector`) when `stable_ids_on_rename`
+      is enabled in the builder.
 
 D5.   `BuilderState` (in `gui/src/builder/state.rs`):
         - `sector: GeneratedSector`
@@ -198,6 +199,8 @@ D5.   `BuilderState` (in `gui/src/builder/state.rs`):
         - `index: BuilderIndex`
         - `command_log: Vec<BuilderCommand>` (for undo + replay)
         - `snapshots: Vec<Snapshot>` (named save-points)
+        - `pinned_systems: BTreeSet<SystemId>` (side-table for Q1)
+        - `pinned_worlds: BTreeSet<WorldId>` (side-table for Q1)
         - `derivation_cache: DerivationCache`
         - `dirty: bool`, `auto_save_path: Option<Utf8PathBuf>`
         - `validation_report: Option<ValidationReport>`
@@ -206,9 +209,10 @@ D5.   `BuilderState` (in `gui/src/builder/state.rs`):
         - `pending_jobs: Vec<JobHandle>` (for off-thread work)
 
 D6.   Implement `Serialize/Deserialize` for `BuilderState` so the in-progress
-      builder session can be saved as `.sgforge` (a tar of sector.json +
-      command_log.json + config snapshot). Use `serde_json` only; no
-      bincode.
+      builder session can be saved as `.sgforge`. Use a JSON envelope
+      containing base64-encoded files by default to avoid new dependencies.
+      Optionally support a `.tar` format toggle for portability if the `tar`
+      crate is enabled. Use `serde_json` only; no bincode.
 
 ================================================================================
 5. PROJECT + I/O TASKS
@@ -298,6 +302,7 @@ S2.   System inspector covers every field of `GeneratedSystem`:
 
 S3.   `pinned` field (D5) toggleable from the inspector. Prevents the
       generator from touching the system during re-roll / partial regen.
+      Stored in `BuilderState::pinned_systems` (side-table).
 
 S4.   Bulk operations: select multiple systems (rect / shift-click) →
       rename pattern, reseed worlds, reassign primary faction, flip
@@ -325,7 +330,7 @@ W2.   Enum pickers: use existing `gui/src/editor/enums.rs`. Add the
       enum variants currently missing from any picker (audit against
       `src/worlds.rs` canonical lists).
 
-W3.   `pinned` toggle on world (like S3).
+W3.   `pinned` toggle on world (like S3). Stored in `BuilderState::pinned_worlds` (side-table).
 
 W4.   "Re-roll from candidate pool" button: redraws this world using
       `src/world_pool.rs` against the current data catalogs. Useful for
@@ -579,8 +584,8 @@ H8.   Event-derived world history snippets shown in world inspector.
 ================================================================================
 
 PER1. Per-faction persona pool editor: load defaults from `src/personae.rs`
-      built-ins; override per-project via `data/personae.toml` (NEW file
-      schema TBD; place in `[inputs].personae`).
+      built-ins; override per-project via `data/personae.toml`
+      (placed in `[inputs].personae`).
 
 PER2. Per-anchor persona editor: system sovereign / orbital controller /
       hidden master / world presence — name, title, traits, agenda.
@@ -631,7 +636,7 @@ ST2.  Auto-derive button runs `src/sites.rs::derive_sites`. Manual sites
 ST3.  Player-edition toggle hides sites where `public_status !=
       actual_status`.
 
-ST4.  Site config editor (if/when `data/worlds/sites.toml` exists).
+ST4. Site config editor: `data/sites.toml` (placed in `[inputs].sites`).
 
 ================================================================================
 21. MISSIONS
@@ -945,7 +950,7 @@ PF2.  TOML editor tabs for every config file with syntax highlighting +
       validation (`sectorforge.toml`, `factions.toml`, `relations.toml`,
       `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`,
       `system_names.toml`, `world_names.toml`, `wishes.toml`,
-      `map_theme.toml`, `segmentum.toml`).
+      `map_theme.toml`, `segmentum.toml`, `personae.toml`, `sites.toml`).
 
 PF3.  `worlds.toml` editor: typed dropdowns + DragValue weights
       (already exists; extend with delete-row, insert-row, validation surface).
@@ -1099,26 +1104,36 @@ Phase F — Polish
 44. OPEN QUESTIONS (resolve before Phase A locks)
 ================================================================================
 
-Q1.  `pinned` field on systems/worlds — extend `GeneratedSector` schema
+Q1.  [ANSWERED] `pinned` field on systems/worlds — extend `GeneratedSector` schema
      (breaks JSON compat) or store in a side-table inside
      `BuilderState` (no schema break, lost on export)?
+     -> BUILDERSTATE SIDE-TABLE. Store in `pinned_systems` and `pinned_worlds`
+     inside `BuilderState`. This avoids breaking `GeneratedSector` JSON
+     compatibility. Manual edits survive within the session but are not
+     exported to raw JSON. Update D5, S3, W3.
 
-Q2.  Stable IDs on rename: tombstone table (compat) vs.
+Q2.  [ANSWERED] Stable IDs on rename: tombstone table (compat) vs.
      renumber-on-save (simpler)?
+     -> COMPAT (Tombstone). Done in §49. Uses `id_history` in `GeneratedSector`.
 
-Q3.  Personae/site config: add `[inputs].personae` + `[inputs].sites`
+Q3.  [ANSWERED] Personae/site config: add `[inputs].personae` + `[inputs].sites`
      entries to `sectorforge.toml`, or keep purely derived?
+     -> ADD ENTRIES. Done in §46. Manual entries merged into derivations.
 
-Q4.  Off-thread runner: ad-hoc `thread::spawn` + channels, or single
+Q4.  [ANSWERED] Off-thread runner: ad-hoc `thread::spawn` + channels, or single
      `tokio` runtime? Recommend ad-hoc — no async surface elsewhere.
+     -> AD-HOC. Done in §47. Uses `std::thread::spawn` and `std::sync::mpsc`.
 
-Q5.  Live preview during generation config edits: full regenerate (slow)
+Q5.  [ANSWERED] Live preview during generation config edits: full regenerate (slow)
      vs. incremental (hard to make correct)? Recommend debounced full
      regenerate into scratch sector, swap on apply.
+     -> DEBOUNCED FULL. Done in §48. 200ms debounce, off-thread gen.
 
-Q6.  `.sgforge` session file format: tar (portable but external lib)
+Q6.  [ANSWERED] `.sgforge` session file format: tar (portable but external lib)
      vs. JSON envelope of base64-encoded files (no new dep)?
-     Recommend JSON envelope.
+     -> JSON ENVELOPE. Support JSON primarily (base64-encoded inner files),
+     but allow a tar option that can be toggled on if the dependency is
+     present. Update D6.
 
 ================================================================================
 45. WORLDS DATA NATIVE-FIRST (CSV path fully removed)
@@ -1164,4 +1179,93 @@ WD5. [DONE] CSV removal. Twin-CSV loader, `convert-csv-to-toml`
      of truth.
 
 ================================================================================
+46. PERSONAE & SITES IMPORTS (Q3 Answered)
+================================================================================
+
+Rationale: Parity with history events. Users need to inject handcrafted
+major NPCs and planetary locations that survive regeneration. The builder
+manages these via manual entries in the config files, which the derivation
+logic merges into the procedurally generated set.
+
+PSI1. [DONE] Extended InputConfig. AppConfig now supports optional
+      'personae' and 'sites' strings in the [inputs] table.
+
+PSI2. [DONE] Manual Entry Schema. 'PersonaeConfig' and 'SitesConfig'
+      now include a 'manual' Vec of the respective entity types.
+
+PSI3. [DONE] Merge Logic. 'derive_personae_with' and 'derive_sites_with'
+      append manual entries to the generated list before returning the
+      report. Verified with 'tests/imports_test.rs'.
+
+PSI4. [DONE] Project Loader Parity. 'load_project' reads personae.toml
+      and sites.toml if referenced, calculating digests for the manifest.
+
+================================================================================
+47. OFF-THREAD RUNNER (Q4 Answered)
+================================================================================
+
+Rationale: Keep the UI responsive during heavy computation (generation,
+search, complex derivations). Ad-hoc threads avoid the overhead and
+complexity of an async runtime when all library code is synchronous.
+
+OTR1. [DONE] Job Infrastructure. 'gui/src/jobs.rs' defines 'JobHandle<T>'
+      and 'JobContext'. Uses 'std::thread::spawn' for execution.
+
+OTR2. [DONE] Communication. Uses 'std::sync::mpsc' channels for returning
+      results and 'Arc<Mutex<f32>>' for shared progress tracking.
+
+OTR3. [DONE] UI Integration. 'JobContext' holds an 'egui::Context' and calls
+      'request_repaint()' when progress updates, ensuring the UI stays
+      fresh.
+
+OTR4. [DONE] Cancellation. 'JobHandle' includes an 'Arc<AtomicBool>' that
+      worker threads can poll to support clean cancellation of long jobs.
+
+================================================================================
+48. LIVE PREVIEW (Q5 Answered)
+================================================================================
+
+Rationale: Users need immediate feedback on generation config changes (seed,
+density, etc.) without losing their current working sector until they are
+ready. Debounced off-thread regeneration ensures the UI stays fluid.
+
+LPV1. [DONE] Debounce Logic. 'EditorState' includes a 'preview_timer'.
+      Edits reset the timer (200ms). The main loop spawns the job only
+      after the timer expires.
+
+LPV2. [DONE] Scratch Sector. 'EditorState' holds a 'preview_sector'.
+      Background jobs write into this scratch space, keeping the main
+      sector untouched.
+
+LPV3. [DONE] Preview UI. 'sector_view' renders 'preview_sector' if present,
+      showing a "PREVIEW MODE" banner. The generation panel shows an
+      "APPLY PREVIEW" button to commit the changes.
+
+LPV4. [DONE] Worker Integration. Uses the §47 Job infrastructure to
+      run 'sectorforge::generation::generate' without blocking the UI thread.
+
+================================================================================
+49. STABLE IDS & TOMBSTONES (Q2 Answered)
+================================================================================
+
+Rationale: External references (segmentum manifests, history, manual notes)
+break if IDs are aggressively renumbered. The "compat" mode ensures that
+renaming or moving entities preserves their identity.
+
+SID1. [DONE] Tombstone Table. 'GeneratedSector' includes an 'id_history'
+      BTreeMap mapping original IDs to current IDs.
+
+SID2. [DONE] Re-index Pass. 'GeneratedSector::reindex_ids' supports two modes:
+      'sequential' (fills holes, renumbers everything) and 'stable' (preserves
+      existing IDs, only assigns to new entities).
+
+SID3. [DONE] Mutation Integration. The core model now resides in
+      'src/sector_model/mod.rs' with structural re-indexing in
+      'src/sector_model/mutation.rs'.
+
+SID4. [DONE] Builder Setting. 'EditorState' includes 'stable_ids_on_rename'
+      (default true) to control re-indexing behavior during GUI sessions.
+
+================================================================================
 END OF BUILDER_REQS.txt
+

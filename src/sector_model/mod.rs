@@ -50,6 +50,9 @@ pub struct GeneratedSector {
         skip_serializing_if = "crate::history::SectorChronicle::is_empty"
     )]
     pub chronicle: crate::history::SectorChronicle,
+    /// §15.2: Mapping of old IDs to new IDs (tombstone table for "compat" mode).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub id_history: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -1090,3 +1093,4 @@ mod tests {
         assert!(back.star.is_none());
     }
 }
+pub mod mutation;

@@ -36,6 +36,9 @@ pub struct SitesConfig {
     /// `actual_status` (player edition).
     #[serde(default)]
     pub player_edition: bool,
+    /// §7 NEW2.md: manual sites imported from file. Appended to derived set.
+    #[serde(default)]
+    pub manual: Vec<WorldSite>,
 }
 
 impl Default for SitesConfig {
@@ -44,6 +47,7 @@ impl Default for SitesConfig {
             max_per_world: default_per_world(),
             skip_uninhabited: true,
             player_edition: false,
+            manual: Vec::new(),
         }
     }
 }
@@ -145,6 +149,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     if cfg.player_edition {
         out.retain(|s| s.public_status == s.actual_status);
     }
+    out.extend(cfg.manual.clone());
     out.sort_unstable_by(|a, b| a.world_id.cmp(&b.world_id).then_with(|| a.id.cmp(&b.id)));
     SitesReport {
         sector_id: sector.id.to_string(),

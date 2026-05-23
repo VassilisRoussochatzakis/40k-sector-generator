@@ -164,6 +164,8 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ui_helpers::apply_theme(ctx);
 
+        self.handle_preview_logic(ctx);
+
         layout::TopBar::new(self).show(ctx);
         layout::MainView::new(self).show(ctx);
 

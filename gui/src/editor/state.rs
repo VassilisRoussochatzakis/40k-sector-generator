@@ -118,9 +118,14 @@ pub struct EditorState {
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
     pub auto_generate: bool,
     pub auto_save: bool,
+    pub stable_ids_on_rename: bool,
     pub drag_id: Option<SystemId>,
     pub pending_route_start: Option<SystemId>,
     pub search_outcome: Option<sectorforge::search::SearchOutcome>,
+    /// Live preview for generation config (§6.G3).
+    pub preview_sector: Option<GeneratedSector>,
+    pub preview_job: Option<crate::jobs::JobHandle<GeneratedSector>>,
+    pub preview_timer: Option<f64>,
 }
 
 impl Default for EditorState {
@@ -145,9 +150,13 @@ impl Default for EditorState {
             route_view_mode: sectorforge::sector_model::RouteViewMode::default(),
             auto_generate: false,
             auto_save: false,
+            stable_ids_on_rename: true,
             drag_id: None,
             pending_route_start: None,
             search_outcome: None,
+            preview_sector: None,
+            preview_job: None,
+            preview_timer: None,
         }
     }
 }

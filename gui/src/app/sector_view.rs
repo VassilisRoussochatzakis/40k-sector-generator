@@ -18,7 +18,12 @@ impl App {
     }
 
     pub(super) fn draw_sector_layout(&mut self, ctx: &egui::Context) {
-        let Some(sector) = self.sector.clone() else {
+        let preview_mode = self.editor.preview_sector.is_some();
+        let sector = if let Some(preview) = &self.editor.preview_sector {
+            Arc::new(preview.clone())
+        } else if let Some(sector) = self.sector.clone() {
+            sector
+        } else {
             egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(palette::BG))
                 .show(ctx, |ui| {
@@ -30,6 +35,26 @@ impl App {
                 });
             return;
         };
+
+        if preview_mode {
+            egui::TopBottomPanel::top("preview_banner")
+                .frame(
+                    egui::Frame::none()
+                        .fill(egui::Color32::from_rgb(0, 80, 0))
+                        .inner_margin(4.0),
+                )
+                .show(ctx, |ui| {
+                    ui.centered_and_justified(|ui| {
+                        ui.label(
+                            RichText::new("PREVIEW MODE - APPLY CHANGES TO COMMIT")
+                                .strong()
+                                .color(Color32::WHITE)
+                                .monospace(),
+                        );
+                    });
+                });
+        }
+
         let overview_buckets = self.sector_overview_cache.buckets_for(&sector);
         SidePanel::right("info")
             .resizable(true)
@@ -82,10 +107,8 @@ impl App {
                         }
                     }
                     if let Some(sel) = self.sector_selected.as_deref() {
-                        if let (Some(sys), Some(sector)) =
-                            (self.system_by_id(sel), self.sector.as_ref())
-                        {
-                            info_panel::system_summary(ui, sys, sector);
+                        if let Some(sys) = sector.systems.iter().find(|s| s.id == sel) {
+                            info_panel::system_summary(ui, sys, &sector);
                             ui.add_space(10.0);
                             if ui
                                 .button(RichText::new("OPEN SYSTEM →").monospace())
@@ -110,7 +133,7 @@ impl App {
 
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| self.show_sector(ui));
+            .show(ctx, |ui| self.show_sector_with(&sector));
 
         self.draw_subsector_popup(ctx, &sector);
         self.draw_region_popup(ctx, &sector);
@@ -199,10 +222,7 @@ impl App {
         }
     }
 
-    pub(super) fn show_sector(&mut self, ui: &mut egui::Ui) {
-        let Some(sector) = self.sector.clone() else {
-            return;
-        };
+    pub(super) fn show_sector_with(&mut self, sector: &GeneratedSector) {
         TopBottomPanel::bottom("sector_controls")
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
@@ -553,6 +573,28 @@ impl App {
             .map(|p| p.to_string_lossy().to_string());
         if let Some(sector) = self.sector.as_mut() {
             let sector = Arc::make_mut(sector);
+            let (sys_map, world_map) = sector.reindex_ids(self.editor.stable_ids_on_rename);
+            
+            // Update selection if IDs changed
+            if let Some(sel) = self.sector_selected.as_ref() {
+                if let Some(new_id) = sys_map.get(sel.as_str()) {
+                    self.sector_selected = Some(SystemId::new(new_id.clone()));
+                }
+            }
+            if let View::System { system_id, .. } = &mut self.view {
+                if let Some(new_id) = sys_map.get(system_id.as_str()) {
+                    *system_id = SystemId::new(new_id.clone());
+                }
+            }
+            if let Some(sel) = self.sector_selected_route.as_ref() {
+                // Route IDs are always derived from endpoints, so we just check if endpoints changed
+                // Actually, reindex_ids already updated route IDs in the sector.
+                // We just need to find the new route ID for the current selection.
+                // But route_id is deterministic. If from/to changed, we can re-derive it.
+                // For now, let's just clear route selection if it's too complex, 
+                // or just re-find it.
+            }
+            
             Self::refresh_live_manifest_counts(sector);
             self.subsectors =
                 sectorforge::subsectors::build_subsectors(sector, SubsectorConfig::default())

@@ -317,6 +317,7 @@ where
         regions: warp_regions.into(),
         economy: Default::default(),
         chronicle: Default::default(),
+        id_history: Default::default(),
     };
 
     // §11 NEXT: archetype rules.

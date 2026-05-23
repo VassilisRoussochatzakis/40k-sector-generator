@@ -68,6 +68,12 @@ pub struct InputConfig {
     /// §1 NEW2.md: optional `history.toml` with eras and event rules.
     #[serde(default)]
     pub history: Option<String>,
+    /// §3 NEW.md: optional `personae.toml` with pools and manual entries.
+    #[serde(default)]
+    pub personae: Option<String>,
+    /// §7 NEW2.md: optional `sites.toml` with manual entries.
+    #[serde(default)]
+    pub sites: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

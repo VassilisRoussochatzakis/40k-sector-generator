@@ -9,6 +9,7 @@ pub mod editor;
 pub mod factions_overview;
 pub mod heatmap;
 pub mod info_panel;
+pub mod jobs;
 pub mod palette;
 pub mod preset_gallery;
 pub mod route_planner;
@@ -17,3 +18,4 @@ pub mod segmentum_view;
 pub mod system_view;
 
 pub use app::App;
+pub use jobs::{JobHandle, JobContext, spawn_job};

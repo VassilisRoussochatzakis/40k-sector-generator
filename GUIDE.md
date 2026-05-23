@@ -905,6 +905,8 @@ generation_profiles   = "data/generation/profiles.toml"    # optional (digest tr
 relations             = "data/factions/relations.toml"     # optional (§5 NEW2.md/DONE)
 regions               = "data/routes/regions.toml"         # optional (§5 old/DONE.md)
 economy               = "data/worlds/economy.toml"         # optional (§12 old/DONE.md)
+personae              = "data/personae.toml"               # optional (§3 old/DONE.md)
+sites                 = "data/sites.toml"                  # optional (§7 NEW2.md/DONE)
 
 [generation]
 seed                       = "my-seed-string"

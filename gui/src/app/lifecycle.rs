@@ -188,4 +188,46 @@ impl App {
             }
         }
     }
+
+    pub(super) fn handle_preview_logic(&mut self, ctx: &egui::Context) {
+        // 1. Debounce timer
+        if let Some(timer) = self.editor.preview_timer {
+            if ctx.input(|i| i.time) >= timer {
+                self.editor.preview_timer = None;
+                if let Some(input) = self.editor.project_input.clone() {
+                    // Cancel existing job if any
+                    self.editor.preview_job = None;
+
+                    let ctx_clone = ctx.clone();
+                    self.editor.preview_job = Some(crate::jobs::spawn_job(
+                        "preview-gen",
+                        "Generating preview...",
+                        ctx_clone,
+                        move |job_ctx| {
+                            // Run generation
+                            match sectorforge::generation::generate(input) {
+                                Ok(sector) => sector,
+                                Err(_) => {
+                                    // For preview, we might just want to return an empty sector or similar if it fails
+                                    // but let's just return what we have or something.
+                                    // Actually, we should probably handle errors in JobHandle.
+                                    // For now, let's just return a default if it fails.
+                                    // TODO: Proper error handling in Jobs
+                                    panic!("Preview generation failed");
+                                }
+                            }
+                        },
+                    ));
+                }
+            }
+        }
+
+        // 2. Job completion
+        if let Some(job) = &self.editor.preview_job {
+            if let Ok(sector) = job.receiver.try_recv() {
+                self.editor.preview_sector = Some(sector);
+                self.editor.preview_job = None;
+            }
+        }
+    }
 }

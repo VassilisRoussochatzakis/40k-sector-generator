@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -32,6 +33,19 @@ pub enum SectorError {
 
     #[error("invalid configuration: {0}")]
     InvalidConfig(String),
+}
+
+#[derive(Debug, Error, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MutationError {
+    #[error("entity not found: {0}")]
+    NotFound(String),
+    #[error("id collision: {0}")]
+    Collision(String),
+    #[error("invalid coordinate: {q}, {r}")]
+    InvalidCoord { q: i32, r: i32 },
+    #[error("invalid state: {0}")]
+    InvalidState(String),
 }
 
 impl SectorError {

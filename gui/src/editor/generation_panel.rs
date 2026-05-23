@@ -245,20 +245,35 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
                 changed = true;
             }
         });
+
+        if state.preview_sector.is_some() {
+            ui.add_space(10.0);
+            if ui
+                .add(
+                    egui::Button::new("APPLY PREVIEW")
+                        .min_size(egui::vec2(330.0, 40.0))
+                        .fill(egui::Color32::from_rgb(0, 100, 0)),
+                )
+                .clicked()
+            {
+                if let Some(preview) = state.preview_sector.take() {
+                    state.sector = Some(preview);
+                    state.mark_dirty();
+                }
+            }
+        } else if state.preview_job.is_some() {
+            ui.add_space(10.0);
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label("Generating preview...");
+            });
+        }
     });
 
     if changed && state.auto_generate {
-        match sectorforge::generation::generate(input.clone()) {
-            Ok(new_sector) => {
-                state.sector = Some(new_sector);
-                state.mark_dirty();
-            }
-            Err(e) => {
-                state.dialog = super::state::Dialog::Message(format!("Generation failed: {e}"));
-            }
-        }
+        state.preview_timer = Some(ui.ctx().input(|i| i.time) + 0.2);
     } else if changed {
-        // Just mark as dirty if not auto-generating?
-        // Actually, we want a manual button if not auto-generating.
+        // Clear any stale preview if manual mode changed something
+        state.preview_sector = None;
     }
 }

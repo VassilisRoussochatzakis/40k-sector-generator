@@ -942,8 +942,23 @@ fn run_personae(
     out: Option<&Utf8PathBuf>,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
-    let report = sectorforge::derive_personae(&sec);
+    let (sec, cfg) = match (project, sector) {
+        (Some(p), None) => {
+            let input = sectorforge::load_project(p)?;
+            let cfg = input.personae.clone();
+            (sectorforge::generate_sector(input)?, cfg)
+        }
+        (None, Some(s)) => (
+            sectorforge::load_sector_json(s)?,
+            sectorforge::personae::PersonaeConfig::default(),
+        ),
+        _ => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass exactly one of --project <dir> or --sector <path>".into(),
+            ));
+        }
+    };
+    let report = sectorforge::derive_personae_with(&sec, &cfg);
     if let Some(dir) = out {
         sectorforge::write_personae(dir, &report)?;
         println!("Wrote {dir}/personae.md and {dir}/personae.json");
@@ -1429,13 +1444,25 @@ fn run_sites(
     json: bool,
     player: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
-    let cfg = sectorforge::sites::SitesConfig {
-        player_edition: player,
-        ..Default::default()
+    let (sec, mut cfg) = match (project, sector) {
+        (Some(p), None) => {
+            let input = sectorforge::load_project(p)?;
+            let cfg = input.sites.clone();
+            (sectorforge::generate_sector(input)?, cfg)
+        }
+        (None, Some(s)) => (
+            sectorforge::load_sector_json(s)?,
+            sectorforge::sites::SitesConfig::default(),
+        ),
+        _ => {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "pass exactly one of --project <dir> or --sector <path>".into(),
+            ));
+        }
     };
+    cfg.player_edition = player;
     let report = sectorforge::derive_sites_with(&sec, &cfg);
-    if let Some(dir) = &out {
+    if let Some(dir) = out {
         sectorforge::write_sites(dir, &report, &cfg)?;
         println!("Wrote {dir}/sites.md and {dir}/sites.json");
     } else if json {

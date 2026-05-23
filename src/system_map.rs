@@ -139,16 +139,36 @@ fn render_system(
     }
 
     // Star: faint corona + filled disk + outline.
-    let star = star_color(&sys.star.colour_code);
-    fill_circle(
-        &mut img,
-        cx,
-        cy,
-        g.star_r + 4 * g.scale,
-        tint_against(star, 0.55, opts.theme.bg),
-    );
-    fill_circle(&mut img, cx, cy, g.star_r, star);
-    draw_circle(&mut img, cx, cy, g.star_r, darken(star, 0.55));
+    if let Some(star_data) = &sys.star {
+        let star = star_color(&star_data.colour_code);
+        fill_circle(
+            &mut img,
+            cx,
+            cy,
+            g.star_r + 4 * g.scale,
+            tint_against(star, 0.55, opts.theme.bg),
+        );
+        fill_circle(&mut img, cx, cy, g.star_r, star);
+        draw_circle(&mut img, cx, cy, g.star_r, darken(star, 0.55));
+    } else {
+        // Special location: draw a grey diamond.
+        let r = g.star_r;
+        let pts = [
+            (cx, cy - r),
+            (cx + r, cy),
+            (cx, cy + r),
+            (cx - r, cy),
+        ];
+        // fill_polygon not available? I'll use draw_line segments.
+        for i in 0..4 {
+            let (x1, y1) = pts[i];
+            let (x2, y2) = pts[(i + 1) % 4];
+            // I'll just draw the outline for now.
+            // Actually I should probably add a primitive for this if needed.
+            // But I'll use what's available.
+            crate::bitmap::draw_line(&mut img, x1, y1, x2, y2, opts.theme.text_dim);
+        }
+    }
 
     // Planets.
     for w in &sys.worlds {
@@ -254,24 +274,30 @@ fn draw_legend(
     y += g.line_h + 4 * g.scale;
 
     // Star swatch + label.
-    draw_text(img, x0, y, "STAR", theme.text, body);
-    y += g.line_h;
-    let star = star_color(&sys.star.colour_code);
-    fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, star);
-    draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(star, 0.5));
-    let star_label = format!(
-        "{} - {}",
-        sys.star.colour_code.to_uppercase(),
-        sys.star.colour_name.to_uppercase()
-    );
-    draw_text(
-        img,
-        x0 + swatch + swatch_gap,
-        y,
-        &short(&star_label, 26),
-        theme.text,
-        body,
-    );
+    if let Some(star_data) = &sys.star {
+        draw_text(img, x0, y, "STAR", theme.text, body);
+        y += g.line_h;
+        let star = star_color(&star_data.colour_code);
+        fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, star);
+        draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(star, 0.5));
+        let star_label = format!(
+            "{} - {}",
+            star_data.colour_code.to_uppercase(),
+            star_data.colour_name.to_uppercase()
+        );
+        draw_text(
+            img,
+            x0 + swatch + swatch_gap,
+            y,
+            &short(&star_label, 26),
+            theme.text,
+            body,
+        );
+    } else {
+        draw_text(img, x0, y, "KIND", theme.text, body);
+        y += g.line_h;
+        draw_text(img, x0, y, &format!("{:?}", sys.kind).to_uppercase(), theme.text, body);
+    }
     y += g.line_h + 4 * g.scale;
 
     // Worlds: orbit + name + type, with a per-type color swatch.
@@ -408,12 +434,13 @@ mod tests {
             index: 1,
             name: "Vaxanide".into(),
             coord: HexCoord { q: 0, r: 0 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "A".into(),
                 colour_name: "amber".into(),
                 spectral_type: Some("A".into()),
                 source_row_index: None,
-            },
+            }),
             worlds: vec![
                 world(1, 1, "Olbia Prime", "AgriWorld"),
                 world(2, 2, "Yperion", "DeathWorld"),

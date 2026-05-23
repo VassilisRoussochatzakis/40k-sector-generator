@@ -759,12 +759,13 @@ mod tests {
                 index: i + 1,
                 name,
                 coord: HexCoord { q, r },
-                star: GeneratedStar {
+                kind: crate::sector_model::SystemKind::Star,
+                star: Some(GeneratedStar {
                     colour_code: "G".into(),
                     colour_name: "Yellow".into(),
                     spectral_type: None,
                     source_row_index: None,
-                },
+                }),
                 worlds: vec![],
                 primary_factions: vec![],
                 tags: vec![],

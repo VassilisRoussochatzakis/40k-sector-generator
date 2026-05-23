@@ -191,7 +191,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.star_colour_distribution = sector
         .systems
         .iter()
-        .map(|s| s.star.colour_name.clone())
+        .filter_map(|s| s.star.as_ref().map(|star| star.colour_name.clone()))
         .fold(BTreeMap::<Arc<str>, u32>::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
@@ -862,12 +862,13 @@ mod tests {
             index: 1,
             name: id.into(),
             coord: HexCoord { q, r },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "G".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![],
             primary_factions: vec![],
             tags: vec![],

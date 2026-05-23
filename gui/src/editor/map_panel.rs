@@ -64,14 +64,34 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     };
     for sys in &sector.systems {
         let c = centers[sys.id.as_str()];
-        let fill = star_color(&sys.star.colour_code);
-        draw_hex(&painter, c, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
         if Some(sys.id.as_str()) == selected_id {
             draw_hex_outline_only(&painter, c, g.hex_size + 2.0, SELECTION, 2.5);
         }
-        let r = g.hex_size * 0.42;
-        painter.circle_filled(c, r, fill);
-        painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
+
+        if let Some(star) = &sys.star {
+            let fill = star_color(&star.colour_code);
+            draw_hex(&painter, c, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
+            let r = g.hex_size * 0.42;
+            painter.circle_filled(c, r, fill);
+            painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
+        } else {
+            // Special location: grey hex + diamond.
+            let fill = Color32::from_rgb(100, 100, 110);
+            draw_hex(&painter, c, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
+            let r = g.hex_size * 0.35;
+            let pts = vec![
+                Pos2::new(c.x, c.y - r),
+                Pos2::new(c.x + r, c.y),
+                Pos2::new(c.x, c.y + r),
+                Pos2::new(c.x - r, c.y),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                pts,
+                Color32::TRANSPARENT,
+                Stroke::new(1.5, TEXT_DIM),
+            ));
+        }
+
         let pip = sys.worlds.len();
         if pip > 0 {
             painter.text(
@@ -125,6 +145,8 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                         state.dialog = Dialog::PlaceSystem {
                             coord,
                             name: String::new(),
+                            kind: sectorforge::sector_model::SystemKind::Star,
+                            has_star: true,
                         };
                     }
                 }

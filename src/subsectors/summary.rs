@@ -199,10 +199,12 @@ pub(super) fn populate_summary(params: SummaryParams) {
             continue;
         };
         total_worlds += sector.get_worlds_for_system(sys).len() as u32;
-        *summary
-            .star_colour_counts
-            .entry(sys.star.colour_name.clone())
-            .or_default() += 1;
+        if let Some(star) = &sys.star {
+            *summary
+                .star_colour_counts
+                .entry(star.colour_name.clone())
+                .or_default() += 1;
+        }
         for tag in &sys.tags {
             *summary.tag_counts.entry(tag.clone()).or_default() += 1;
         }

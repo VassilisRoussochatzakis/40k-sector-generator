@@ -209,7 +209,12 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 state.dialog = Dialog::SaveAs { name, error };
             }
         }
-        Dialog::PlaceSystem { coord, mut name } => {
+        Dialog::PlaceSystem {
+            coord,
+            mut name,
+            mut kind,
+            mut has_star,
+        } => {
             let mut create = false;
             let mut cancel = false;
             egui::Window::new(RichText::new("ADD SYSTEM").font(mono(14.0)))
@@ -219,6 +224,33 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     label(ui, &format!("AT Q{:+} R{:+}", coord.q, coord.r));
                     section(ui, "NAME");
                     text_field(ui, &mut name, "system name");
+
+                    ui.add_space(6.0);
+                    ui.checkbox(&mut has_star, "HAS STAR");
+
+                    section(ui, "KIND");
+                    let mut kind_s = format!("{kind:?}");
+                    let kinds = [
+                        "Star",
+                        "SpecialLocation",
+                        "BlackHole",
+                        "WarpAnomaly",
+                        "SpaceStation",
+                    ];
+                    if combo_str(ui, "place_sys_kind", &mut kind_s, &kinds) {
+                        kind = match kind_s.as_str() {
+                            "Star" => sectorforge::sector_model::SystemKind::Star,
+                            "SpecialLocation" => sectorforge::sector_model::SystemKind::SpecialLocation,
+                            "BlackHole" => sectorforge::sector_model::SystemKind::BlackHole,
+                            "WarpAnomaly" => sectorforge::sector_model::SystemKind::WarpAnomaly,
+                            "SpaceStation" => sectorforge::sector_model::SystemKind::SpaceStation,
+                            _ => sectorforge::sector_model::SystemKind::Star,
+                        };
+                        if kind == sectorforge::sector_model::SystemKind::Star {
+                            has_star = true;
+                        }
+                    }
+
                     ui.horizontal(|ui| {
                         if ui
                             .add_enabled(
@@ -240,15 +272,36 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             if create {
                 let index = state.next_system_index();
                 let id = sectorforge::ids::system_id(index);
-                let sys =
-                    super::state::empty_system(id.clone(), index, name.trim().to_string(), coord);
+                let star = if has_star {
+                    Some(sectorforge::sector_model::GeneratedStar {
+                        colour_code: "W".into(),
+                        colour_name: "white".into(),
+                        spectral_type: Some("W".into()),
+                        source_row_index: None,
+                    })
+                } else {
+                    None
+                };
+                let sys = super::state::empty_system(
+                    id.clone(),
+                    index,
+                    name.trim().to_string(),
+                    coord,
+                    kind,
+                    star,
+                );
                 if let Some(sec) = state.sector.as_mut() {
                     sec.systems.push(sys);
                     state.mark_dirty();
                     state.selection = super::state::Selection::System(id);
                 }
             } else if !cancel {
-                state.dialog = Dialog::PlaceSystem { coord, name };
+                state.dialog = Dialog::PlaceSystem {
+                    coord,
+                    name,
+                    kind,
+                    has_star,
+                };
             }
         }
     }

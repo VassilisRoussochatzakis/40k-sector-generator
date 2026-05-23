@@ -776,12 +776,13 @@ mod tests {
             index: 1,
             name: "Test".into(),
             coord: HexCoord { q: 0, r: 0 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "G".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![hive_world("sys-0001-w1", "Karthax", false)],
             primary_factions: vec!["imp".into()],
             tags: vec![],
@@ -822,12 +823,13 @@ mod tests {
             index: 1,
             name: "Test".into(),
             coord: HexCoord { q: 0, r: 0 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "G".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![hive_world("sys-0001-w1", "Karthax", true)],
             primary_factions: vec!["imp".into()],
             tags: vec![],

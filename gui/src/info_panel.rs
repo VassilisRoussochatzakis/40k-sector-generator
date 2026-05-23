@@ -188,18 +188,23 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
     dim(ui, &format!("COORD: Q{:+} R{:+}", sys.coord.q, sys.coord.r));
     ui.add_space(8.0);
 
-    section(ui, "STAR");
-    legend_row(
-        ui,
-        star_color(&sys.star.colour_code),
-        &format!(
-            "{} - {}",
-            sys.star.colour_code.to_uppercase(),
-            sys.star.colour_name.to_uppercase()
-        ),
-    );
-    if let Some(s) = sys.star.spectral_type.as_ref() {
-        dim(ui, &format!("SPECTRAL: {}", s.to_uppercase()));
+    if let Some(star) = &sys.star {
+        section(ui, "STAR");
+        legend_row(
+            ui,
+            star_color(&star.colour_code),
+            &format!(
+                "{} - {}",
+                star.colour_code.to_uppercase(),
+                star.colour_name.to_uppercase()
+            ),
+        );
+        if let Some(s) = star.spectral_type.as_ref() {
+            dim(ui, &format!("SPECTRAL: {}", s.to_uppercase()));
+        }
+    } else {
+        section(ui, "KIND");
+        body(ui, &format!("{:?}", sys.kind).to_uppercase());
     }
     ui.add_space(8.0);
 
@@ -773,23 +778,29 @@ pub fn subsector_summary(ui: &mut Ui, sub: &Subsector, sector: &GeneratedSector)
 }
 
 pub fn star_detail(ui: &mut Ui, sys: &GeneratedSystem) {
-    title(ui, &format!("STAR OF {}", sys.id.to_uppercase()));
-    ui.add_space(4.0);
-    legend_row(
-        ui,
-        star_color(&sys.star.colour_code),
-        &format!(
-            "{} - {}",
-            sys.star.colour_code.to_uppercase(),
-            sys.star.colour_name.to_uppercase()
-        ),
-    );
-    if let Some(s) = sys.star.spectral_type.as_ref() {
-        kv(ui, "SPECTRAL", &s.to_uppercase());
-    }
-    kv(ui, "WORLDS", &sys.worlds.len().to_string());
-    if let Some(idx) = sys.star.source_row_index {
-        dim(ui, &format!("source row: {idx}"));
+    if let Some(star) = &sys.star {
+        title(ui, &format!("STAR OF {}", sys.id.to_uppercase()));
+        ui.add_space(4.0);
+        legend_row(
+            ui,
+            star_color(&star.colour_code),
+            &format!(
+                "{} - {}",
+                star.colour_code.to_uppercase(),
+                star.colour_name.to_uppercase()
+            ),
+        );
+        if let Some(s) = star.spectral_type.as_ref() {
+            kv(ui, "SPECTRAL", &s.to_uppercase());
+        }
+        kv(ui, "WORLDS", &sys.worlds.len().to_string());
+        if let Some(idx) = star.source_row_index {
+            dim(ui, &format!("source row: {idx}"));
+        }
+    } else {
+        title(ui, &format!("LOCATION: {}", sys.id.to_uppercase()));
+        ui.add_space(4.0);
+        kv(ui, "KIND", &format!("{:?}", sys.kind).to_uppercase());
     }
 }
 

@@ -280,16 +280,17 @@ mod tests {
             id: id.into(),
             index: 1,
             name: id.into(),
+            kind: crate::sector_model::SystemKind::Star,
             coord: HexCoord {
                 q: coord.0,
                 r: coord.1,
             },
-            star: GeneratedStar {
+            star: Some(GeneratedStar {
                 colour_code: "A".into(),
                 colour_name: "A".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![world],
             primary_factions: vec![],
             tags: vec![],

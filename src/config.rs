@@ -96,6 +96,15 @@ pub struct GenerationConfig {
     pub routes: RouteGenerationConfig,
     #[serde(default)]
     pub relations: RelationsGenerationConfig,
+    /// §15 NEW2.md: when using constraint-based generation, the base seed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_base_seed: Option<String>,
+    /// §15 NEW2.md: when using constraint-based generation, the selected candidate index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_candidate_index: Option<u32>,
+    /// §15 NEW2.md: hash of the constraints file used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_constraints_digest: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

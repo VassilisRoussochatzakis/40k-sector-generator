@@ -184,20 +184,29 @@ fn system_prose(
         ProseTone::Dispatch => &["count", "rated", "logged at"],
     };
     let pop_word = pop_words.choose(&mut rng).copied().unwrap_or("supporting");
-    let star = &sys.star.colour_name;
+    let star_desc = sys
+        .star
+        .as_ref()
+        .map(|star| star.colour_name.as_ref())
+        .unwrap_or("special");
     let p1 = match cfg.tone {
         ProseTone::Gazetteer => format!(
-            "{name} circles a {star_lc} star, {pop_word} {n} world{plural}.",
+            "{name} {context}, {pop_word} {n} world{plural}.",
             name = sys.name,
-            star_lc = star.to_ascii_lowercase(),
+            context = if sys.star.is_some() {
+                format!("circles a {} star", star_desc.to_ascii_lowercase())
+            } else {
+                format!("is a {:?}", sys.kind).to_ascii_lowercase()
+            },
             pop_word = pop_word,
             n = n_worlds,
             plural = if n_worlds == 1 { "" } else { "s" },
         ),
         ProseTone::Dispatch => format!(
-            "{name}: {star} primary; {n} world{plural} on registry.",
+            "{name}: {star} {kind}; {n} world{plural} on registry.",
             name = sys.name,
-            star = star,
+            star = star_desc,
+            kind = if sys.star.is_some() { "primary" } else { "type" },
             n = n_worlds,
             plural = if n_worlds == 1 { "" } else { "s" },
         ),
@@ -360,12 +369,13 @@ mod tests {
             index: 1,
             name: id.into(),
             coord: HexCoord { q: 0, r: 0 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "G".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![],
             primary_factions: vec![],
             tags: vec![],

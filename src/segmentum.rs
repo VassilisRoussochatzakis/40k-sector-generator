@@ -918,12 +918,13 @@ mod tests {
             index: 1,
             name: id.into(),
             coord: HexCoord { q, r },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "Y".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![],
             primary_factions: vec![],
             tags: vec![],

@@ -96,6 +96,45 @@ fn search_writes_markdown_and_json() {
 }
 
 #[test]
+fn search_story_beat_constraints() {
+    let project = fixture_project();
+    let input = sectorforge::load_project(project).unwrap();
+
+    use sectorforge::search::{PresenceName, SystemStateFilter, SystemStateName};
+
+    let wishes = WishesFile {
+        search: SearchConfig {
+            base_seed: Some("story".into()),
+            budget: 10,
+            report_top: 5,
+        },
+        constraints: vec![
+            Constraint::FactionPresenceCountMin {
+                faction_id: "imperial_administration".into(),
+                min: 1,
+                presence: PresenceName::Significant,
+            },
+            Constraint::MinimumSystemsMatching {
+                count: 1,
+                within_hops_of: "subsector_capital".into(),
+                max_hops: 1,
+                where_cond: SystemStateFilter {
+                    system_state: SystemStateName::Pacified,
+                },
+            },
+        ],
+    };
+
+    let outcome = sectorforge::run_seed_search(&input, &wishes).unwrap();
+    // We don't necessarily need a winner to verify evaluation logic doesn't crash,
+    // but at least one candidate should have been evaluated.
+    assert!(outcome.candidates_evaluated > 0);
+    if let Some(win) = outcome.winning {
+        assert!(win.passed);
+    }
+}
+
+#[test]
 fn candidate_seeds_are_distinct_and_stable() {
     let a0 = sectorforge::search::derive_candidate_seed("base", 0);
     let a1 = sectorforge::search::derive_candidate_seed("base", 1);

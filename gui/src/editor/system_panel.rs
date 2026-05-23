@@ -58,17 +58,42 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.add_space(6.0);
     section(ui, "STAR");
-    ui.horizontal(|ui| {
-        label(ui, "COLOUR");
-        let mut star_code = sys.star.colour_code.to_string();
-        if combo_str(ui, "sys_star_colour", &mut star_code, STAR_COLOUR_CODES) {
-            sys.star.colour_code = star_code.into();
-            sys.star.colour_name = star_colour_name(&sys.star.colour_code).into();
-            sys.star.spectral_type = Some(sys.star.colour_code.clone());
-            dirty = true;
+    let mut has_star = sys.star.is_some();
+    if ui.checkbox(&mut has_star, "HAS STAR").changed() {
+        if has_star {
+            sys.star = Some(sectorforge::sector_model::GeneratedStar {
+                colour_code: "W".into(),
+                colour_name: "white".into(),
+                spectral_type: Some("W".into()),
+                source_row_index: None,
+            });
+            sys.kind = sectorforge::sector_model::SystemKind::Star;
+        } else {
+            sys.star = None;
+            sys.kind = sectorforge::sector_model::SystemKind::SpecialLocation;
         }
-    });
-    dim(ui, &format!("({})", sys.star.colour_name));
+        dirty = true;
+    }
+
+    if let Some(star) = &mut sys.star {
+        ui.horizontal(|ui| {
+            label(ui, "COLOUR");
+            let mut star_code = star.colour_code.to_string();
+            if combo_str(ui, "sys_star_colour", &mut star_code, STAR_COLOUR_CODES) {
+                star.colour_code = star_code.into();
+                star.colour_name = star_colour_name(&star.colour_code).into();
+                star.spectral_type = Some(star.colour_code.clone());
+                dirty = true;
+            }
+        });
+        dim(ui, &format!("({})", star.colour_name));
+    } else {
+        ui.horizontal(|ui| {
+            label(ui, "KIND");
+            // I'll skip a combo for Kind for now to keep it simple, but at least show it.
+            ui.label(RichText::new(format!("{:?}", sys.kind).to_uppercase()).font(mono(12.0)));
+        });
+    }
 
     ui.add_space(6.0);
     section(ui, &format!("WORLDS ({})", sys.worlds.len()));
@@ -128,8 +153,13 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     if add_world {
         let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
         let mut w = empty_world(sys_index, next, format!("World {next}"));
-        w.world.star_colour = sys.star.colour_name.clone();
-        w.world.star_colour_code = sys.star.colour_code.clone();
+        if let Some(star) = &sys.star {
+            w.world.star_colour = star.colour_name.clone();
+            w.world.star_colour_code = star.colour_code.clone();
+        } else {
+            w.world.star_colour = "white".into();
+            w.world.star_colour_code = "W".into();
+        }
         sys.worlds.push(w);
         dirty = true;
         state.selection = Selection::World {

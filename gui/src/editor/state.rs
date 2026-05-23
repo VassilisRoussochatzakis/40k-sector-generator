@@ -79,6 +79,8 @@ pub enum Dialog {
     PlaceSystem {
         coord: HexCoord,
         name: String,
+        kind: sectorforge::sector_model::SystemKind,
+        has_star: bool,
     },
     Message(String),
 }
@@ -195,18 +197,21 @@ pub fn empty_sector(
     }
 }
 
-pub fn empty_system(id: SystemId, index: usize, name: String, coord: HexCoord) -> GeneratedSystem {
+pub fn empty_system(
+    id: SystemId,
+    index: usize,
+    name: String,
+    coord: HexCoord,
+    kind: sectorforge::sector_model::SystemKind,
+    star: Option<sectorforge::sector_model::GeneratedStar>,
+) -> GeneratedSystem {
     GeneratedSystem {
         id,
         index,
         name: name.into(),
         coord,
-        star: sectorforge::sector_model::GeneratedStar {
-            colour_code: "G".into(),
-            colour_name: "yellow".into(),
-            spectral_type: Some("G".into()),
-            source_row_index: None,
-        },
+        kind,
+        star,
         worlds: Vec::new(),
         primary_factions: Vec::new(),
         tags: Vec::new(),

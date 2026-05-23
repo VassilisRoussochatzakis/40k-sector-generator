@@ -38,14 +38,18 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s.push_str("| ID | Name | Coord | Star | Worlds |\n");
     s.push_str("|---|---|---|---|---:|\n");
     for sys in &sector.systems {
+        let star_info = sys
+            .star
+            .as_ref()
+            .map(|star| format!("{} / {}", star.colour_code, star.colour_name))
+            .unwrap_or_else(|| "—".to_string());
         s.push_str(&format!(
-            "| {} | {} | (q={}, r={}) | {} / {} | {} |\n",
+            "| {} | {} | (q={}, r={}) | {} | {} |\n",
             sys.id,
             sys.name,
             sys.coord.q,
             sys.coord.r,
-            sys.star.colour_code,
-            sys.star.colour_name,
+            star_info,
             sector.get_worlds_for_system(sys).len()
         ));
     }
@@ -115,12 +119,16 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
         "- **Coordinates:** q={}, r={}\n",
         sys.coord.q, sys.coord.r
     ));
-    s.push_str(&format!(
-        "- **Star:** {} / {} / {}\n",
-        sys.star.colour_code,
-        sys.star.colour_name,
-        sys.star.spectral_type.as_deref().unwrap_or("?")
-    ));
+    if let Some(star) = &sys.star {
+        s.push_str(&format!(
+            "- **Star:** {} / {} / {}\n",
+            star.colour_code,
+            star.colour_name,
+            star.spectral_type.as_deref().unwrap_or("?")
+        ));
+    } else {
+        s.push_str(&format!("- **Kind:** {:?}\n", sys.kind));
+    }
     if !sys.primary_factions.is_empty() {
         s.push_str(&format!(
             "- **Primary factions:** {}\n",
@@ -318,7 +326,12 @@ fn format_faction_display_buckets(sector: &GeneratedSector) -> String {
 fn format_sector_map(sector: &GeneratedSector) -> String {
     let mut at: HashMap<(i32, i32), &str> = HashMap::new();
     for s in &sector.systems {
-        at.insert((s.coord.q, s.coord.r), &s.star.colour_code);
+        let code = s
+            .star
+            .as_ref()
+            .map(|star| star.colour_code.as_ref())
+            .unwrap_or("X");
+        at.insert((s.coord.q, s.coord.r), code);
     }
     // §5 NEW.md: warp region glyphs for empty hexes inside a region footprint.
     let mut region_at: HashMap<(i32, i32), char> = HashMap::new();
@@ -534,12 +547,16 @@ fn format_system_section(sys: &GeneratedSystem, sector: &GeneratedSector) -> Str
         "- **Coordinates:** q={}, r={}\n",
         sys.coord.q, sys.coord.r
     ));
-    s.push_str(&format!(
-        "- **Star:** {} / {} / {}\n",
-        sys.star.colour_code,
-        sys.star.colour_name,
-        sys.star.spectral_type.as_deref().unwrap_or("?")
-    ));
+    if let Some(star) = &sys.star {
+        s.push_str(&format!(
+            "- **Star:** {} / {} / {}\n",
+            star.colour_code,
+            star.colour_name,
+            star.spectral_type.as_deref().unwrap_or("?")
+        ));
+    } else {
+        s.push_str(&format!("- **Kind:** {:?}\n", sys.kind));
+    }
     if !sys.primary_factions.is_empty() {
         s.push_str(&format!(
             "- **Primary factions:** {}\n",

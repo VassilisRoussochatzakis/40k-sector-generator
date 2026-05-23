@@ -269,7 +269,6 @@ impl<'a> SectorView<'a> {
         // paint over earlier system labels.
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
-            let fill = star_color(&sys.star.colour_code);
             let is_sel = self.selected_system == Some(sys.id.as_str());
             if is_sel {
                 draw_hex_outline_only(&painter, c, g.hex_size + 2.0, SELECTION, 2.5);
@@ -281,9 +280,27 @@ impl<'a> SectorView<'a> {
             {
                 draw_hex_outline_only(&painter, c, g.hex_size + 4.0, PATH_WAYPOINT, 2.5);
             }
-            let r = star_r;
-            painter.circle_filled(c, r, fill);
-            painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
+
+            if let Some(star) = &sys.star {
+                let fill = star_color(&star.colour_code);
+                let r = star_r;
+                painter.circle_filled(c, r, fill);
+                painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
+            } else {
+                // Special location marker: diamond outline.
+                let r = star_r * 0.8;
+                let pts = vec![
+                    Pos2::new(c.x, c.y - r),
+                    Pos2::new(c.x + r, c.y),
+                    Pos2::new(c.x, c.y + r),
+                    Pos2::new(c.x - r, c.y),
+                ];
+                painter.add(egui::Shape::convex_polygon(
+                    pts,
+                    Color32::TRANSPARENT,
+                    Stroke::new(1.5, TEXT_DIM),
+                ));
+            }
 
             // Subsector capital marker: small filled diamond above the star.
             if let Some(subs) = self.subsectors {

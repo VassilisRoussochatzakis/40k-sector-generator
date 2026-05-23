@@ -506,12 +506,13 @@ pub fn build_system_with_bias(
         index: system_index,
         name: name.into(),
         coord,
-        star: GeneratedStar {
+        kind: crate::sector_model::SystemKind::Star,
+        star: Some(GeneratedStar {
             colour_code: star_colour.code().to_string().into(),
             colour_name: star_colour.short_name().to_string().into(),
             spectral_type: Some(spectral_type_fallback(star_colour).to_string().into()),
             source_row_index: worlds.first().map(|w| w.source_row_index),
-        },
+        }),
         worlds,
         primary_factions: Vec::new(),
         tags: Vec::new(),
@@ -1627,6 +1628,17 @@ fn build_manifest(
         generator_version: crate::GENERATOR_VERSION.to_string().into(),
         seed: config.generation.seed.clone().into(),
         seed_hash: seed_hash.into(),
+        base_seed: config
+            .generation
+            .search_base_seed
+            .as_ref()
+            .map(|s| s.as_str().into()),
+        candidate_index: config.generation.search_candidate_index,
+        constraints_digest: config
+            .generation
+            .search_constraints_digest
+            .as_ref()
+            .map(|s| s.as_str().into()),
         profile: None,
         input_digests: input_digests.clone(),
         settings_digest: settings_digest.into(),

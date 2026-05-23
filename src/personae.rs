@@ -991,12 +991,13 @@ mod tests {
             index: 1,
             name: "Alpha".into(),
             coord: HexCoord { q: 0, r: 0 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "G".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![GeneratedWorld {
                 id: "wrld-0001-1".into(),
                 index: 1,

@@ -60,6 +60,12 @@ enum Command {
         /// subsector_political.
         #[arg(long)]
         theme: Option<String>,
+        /// §15 NEW2.md: Constraint file to satisfy during generation.
+        #[arg(long)]
+        constraints: Option<Utf8PathBuf>,
+        /// §15 NEW2.md: Maximum number of candidate seeds to evaluate.
+        #[arg(long)]
+        max_candidates: Option<u32>,
     },
     /// Generate a single standalone system from a project directory.
     GenerateSystem {
@@ -422,12 +428,67 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             heatmap,
             no_faction_fill,
             theme,
+            constraints,
+            max_candidates,
         } => {
             log_progress(format_args!("sector: loading project {project}"));
             let mut input = sectorforge::load_project(&project)?;
-            if let Some(s) = seed {
+
+            // §15 NEW2.md: run constraint search if requested.
+            if let Some(c_path) = constraints {
+                log_progress(format_args!(
+                    "sector: constraint search requested from {c_path}"
+                ));
+                let mut wishes = sectorforge::search::load_wishes(&c_path)?;
+                if let Some(budget) = max_candidates {
+                    wishes.search.budget = budget;
+                }
+                if let Some(s) = seed.clone() {
+                    wishes.search.base_seed = Some(s);
+                }
+
+                let outcome = sectorforge::run_seed_search(&input, &wishes)?;
+                if !outcome.preflight_errors.is_empty() {
+                    for e in &outcome.preflight_errors {
+                        eprintln!("preflight: {e}");
+                    }
+                    return Ok(ExitCode::from(1));
+                }
+
+                if let Some(winning) = outcome.winning {
+                    log_progress(format_args!(
+                        "sector: found seed satisfying constraints: {}",
+                        winning.seed
+                    ));
+                    input.config.generation.seed = winning.seed;
+
+                    // §15 NEW2.md: record search metadata in config for manifest.
+                    input.config.generation.search_base_seed = Some(outcome.base_seed);
+                    input.config.generation.search_candidate_index = Some(winning.n);
+                    let constraints_text = std::fs::read_to_string(&c_path).ok();
+                    if let Some(text) = constraints_text {
+                        input.config.generation.search_constraints_digest = Some(format!(
+                            "blake3:{}",
+                            sectorforge::rng::hex(blake3::hash(text.as_bytes()).as_bytes())
+                        ));
+                    }
+                } else {
+                    eprintln!(
+                        "error: no candidate seed satisfied constraints from {c_path} within budget of {}",
+                        wishes.search.budget
+                    );
+                    if let Some(best) = outcome.near_misses.first() {
+                        eprintln!(
+                            "best near-miss: {} (total miss: {:.3})",
+                            best.seed, best.total_miss
+                        );
+                    }
+                    return Ok(ExitCode::from(1));
+                }
+            } else if let Some(s) = seed {
                 input.config.generation.seed = s;
             }
+
             if let Some(h) = heatmap.as_deref() {
                 input.config.outputs.bitmap.heatmap = parse_heatmap(h)?;
             }

@@ -318,6 +318,15 @@ fn write_systems_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sec
     let mut s = String::new();
     s.push_str("id,index,name,q,r,star_colour_code,star_colour_name,spectral_type,world_count,primary_factions,tags\n");
     for sys in &sector.systems {
+        let (sc_code, sc_name, spec) = if let Some(star) = &sys.star {
+            (
+                star.colour_code.as_ref(),
+                star.colour_name.as_ref(),
+                star.spectral_type.as_deref().unwrap_or(""),
+            )
+        } else {
+            ("none", "none", "")
+        };
         s.push_str(&format!(
             "{},{},{},{},{},{},{},{},{},{},{}\n",
             csv_escape(&sys.id),
@@ -325,9 +334,9 @@ fn write_systems_csv(sector: &GeneratedSector, dir: &Utf8Path) -> Result<(), Sec
             csv_escape(&sys.name),
             sys.coord.q,
             sys.coord.r,
-            csv_escape(&sys.star.colour_code),
-            csv_escape(&sys.star.colour_name),
-            csv_escape(sys.star.spectral_type.as_deref().unwrap_or("")),
+            csv_escape(sc_code),
+            csv_escape(sc_name),
+            csv_escape(spec),
             sys.worlds.len(),
             csv_escape(&join_ids(&sys.primary_factions, ";")),
             csv_escape(&sys.tags.join(";")),

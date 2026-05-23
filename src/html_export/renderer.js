@@ -663,7 +663,11 @@ function selectSystem(id){
   let html = "";
   html += `<h2>${esc(sys.name)} <span class=badge>${esc(sys.id)}</span></h2>`;
   html += `<div class=row><span class=key>coord</span><span>${sys.coord.q},${sys.coord.r}</span></div>`;
-  html += `<div class=row><span class=key>star</span><span>${esc(sys.star.colour_name)} (${esc(sys.star.colour_code)})</span></div>`;
+  if (sys.star) {
+    html += `<div class=row><span class=key>star</span><span>${esc(sys.star.colour_name)} (${esc(sys.star.colour_code)})</span></div>`;
+  } else {
+    html += `<div class=row><span class=key>kind</span><span>${esc(sys.kind || "special")}</span></div>`;
+  }
   if (sys.control && sys.control.dominant){
     const f = factionById[sys.control.dominant];
     html += `<div class=row><span class=key>dominant</span><span>${esc(f ? f.name : sys.control.dominant)}</span></div>`;

@@ -1023,10 +1023,16 @@ fn draw_systems(
     let pip_scale = pip_text_scale(g);
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r, g);
-        let fill = star_color(&sys.star.colour_code);
-        // Star disk (no tinted hex fill; matches GUI sector view).
-        fill_circle(img, cx, cy, star_r, fill);
-        draw_circle(img, cx, cy, star_r, darken(fill, 0.55));
+        if let Some(star) = &sys.star {
+            let fill = star_color(&star.colour_code);
+            // Star disk (no tinted hex fill; matches GUI sector view).
+            fill_circle(img, cx, cy, star_r, fill);
+            draw_circle(img, cx, cy, star_r, darken(fill, 0.55));
+        } else {
+            // Special location: draw a small grey square or diamond.
+            let r = star_r * 3 / 4;
+            fill_rect(img, cx - r, cy - r, 2 * r, 2 * r, Rgba([140, 140, 150, 255]));
+        }
 
         // Subsector capital marker: gold diamond above the star.
         if subsectors
@@ -1993,10 +1999,10 @@ mod primitives;
 #[cfg(test)]
 use primitives::glyph;
 pub(crate) use primitives::{
-    draw_circle, draw_line_thick, draw_rect_outline, draw_ring, draw_text, fill_circle, fill_rect,
-    text_size, GLYPH_H,
+    draw_circle, draw_line, draw_line_thick, draw_rect_outline, draw_ring, draw_text, fill_circle,
+    fill_rect, text_size, GLYPH_H,
 };
-use primitives::{draw_line, fill_polygon};
+use primitives::fill_polygon;
 
 // ── Color helpers ───────────────────────────────────────────────────────────
 
@@ -2102,12 +2108,13 @@ mod tests {
             index: 0,
             name: "Test".into(),
             coord: HexCoord { q: 1, r: 1 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "O".into(),
                 colour_name: "orange dwarf".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![],
             primary_factions: vec![],
             tags: vec![],

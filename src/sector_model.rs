@@ -52,13 +52,26 @@ pub struct GeneratedSector {
     pub chronicle: crate::history::SectorChronicle,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum SystemKind {
+    #[default]
+    Star,
+    SpecialLocation,
+    BlackHole,
+    WarpAnomaly,
+    SpaceStation,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSystem {
     pub id: SystemId,
     pub index: usize,
     pub name: Arc<str>,
     pub coord: HexCoord,
-    pub star: GeneratedStar,
+    #[serde(default)]
+    pub kind: SystemKind,
+    pub star: Option<GeneratedStar>,
     #[serde(default)]
     pub worlds: Vec<GeneratedWorld>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -678,6 +691,15 @@ pub struct GenerationManifest {
     pub generator_version: Arc<str>,
     pub seed: Arc<str>,
     pub seed_hash: Arc<str>,
+    /// §15 NEW2.md: when using constraint-based generation, the base seed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_seed: Option<Arc<str>>,
+    /// §15 NEW2.md: when using constraint-based generation, the selected candidate index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_index: Option<u32>,
+    /// §15 NEW2.md: hash of the constraints file used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub constraints_digest: Option<Arc<str>>,
     pub profile: Option<Arc<str>>,
     pub input_digests: BTreeMap<String, String>,
     pub settings_digest: Arc<str>,
@@ -1038,5 +1060,33 @@ mod tests {
         };
         let pattern = route.pattern_with_salt("sector-a", RouteViewMode::Detailed);
         assert!(route.route_type.patterns().contains(&pattern));
+    }
+
+    #[test]
+    fn system_without_star_serializes_and_deserializes() {
+        let sys = GeneratedSystem {
+            id: "sys-0001".into(),
+            index: 1,
+            name: "The Void".into(),
+            coord: HexCoord { q: 1, r: 1 },
+            kind: SystemKind::SpecialLocation,
+            star: None,
+            worlds: Vec::new(),
+            primary_factions: Vec::new(),
+            tags: Vec::new(),
+            notes: Vec::new(),
+            control: Default::default(),
+            stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
+        };
+        let json = serde_json::to_string(&sys).unwrap();
+        let back: GeneratedSystem = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.id, sys.id);
+        assert_eq!(back.kind, SystemKind::SpecialLocation);
+        assert!(back.star.is_none());
     }
 }

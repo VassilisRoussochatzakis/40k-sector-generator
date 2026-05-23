@@ -577,12 +577,13 @@ mod tests {
             index: 1,
             name: "Aurelia".into(),
             coord: HexCoord { q: 0, r: 0 },
-            star: GeneratedStar {
+            kind: crate::sector_model::SystemKind::Star,
+            star: Some(GeneratedStar {
                 colour_code: "G".into(),
                 colour_name: "Yellow".into(),
                 spectral_type: None,
                 source_row_index: None,
-            },
+            }),
             worlds: vec![world],
             primary_factions: vec!["imp".into()],
             tags: vec![],

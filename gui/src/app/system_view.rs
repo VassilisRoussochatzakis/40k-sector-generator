@@ -165,8 +165,13 @@ impl App {
         };
         let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
         let mut world = editor::state::empty_world(sys.index, next, format!("Planet {next}"));
-        world.world.star_colour = sys.star.colour_name.clone();
-        world.world.star_colour_code = sys.star.colour_code.clone();
+        if let Some(star) = &sys.star {
+            world.world.star_colour = star.colour_name.clone();
+            world.world.star_colour_code = star.colour_code.clone();
+        } else {
+            world.world.star_colour = "white".into();
+            world.world.star_colour_code = "W".into();
+        }
         sys.worlds.push(world);
         self.mark_live_sector_dirty(format!("added planet {}:{}", system_id, next));
         Some(next)

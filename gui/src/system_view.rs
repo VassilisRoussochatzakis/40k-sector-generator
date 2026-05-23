@@ -51,13 +51,36 @@ impl<'a> SystemView<'a> {
             painter.circle_stroke(center, r, Stroke::new(1.0, ORBIT_RING));
         }
 
-        // Star.
-        let star = star_color(&self.system.star.colour_code);
-        painter.circle_filled(center, g.star_r + 4.0, tint(star, 0.55));
-        painter.circle_filled(center, g.star_r, star);
-        painter.circle_stroke(center, g.star_r, Stroke::new(1.5, darken(star, 0.55)));
-        if self.selected == SystemSelection::Star {
-            painter.circle_stroke(center, g.star_r + 8.0, Stroke::new(2.0, SELECTION));
+        // Star / Center.
+        if let Some(star_data) = &self.system.star {
+            let star = star_color(&star_data.colour_code);
+            painter.circle_filled(center, g.star_r + 4.0, tint(star, 0.55));
+            painter.circle_filled(center, g.star_r, star);
+            painter.circle_stroke(center, g.star_r, Stroke::new(1.5, darken(star, 0.55)));
+            if self.selected == SystemSelection::Star {
+                painter.circle_stroke(center, g.star_r + 8.0, Stroke::new(2.0, SELECTION));
+            }
+        } else {
+            // Special location marker.
+            let r = g.star_r * 1.5;
+            let pts = vec![
+                Pos2::new(center.x, center.y - r),
+                Pos2::new(center.x + r, center.y),
+                Pos2::new(center.x, center.y + r),
+                Pos2::new(center.x - r, center.y),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                pts,
+                Color32::TRANSPARENT,
+                Stroke::new(2.0, TEXT_DIM),
+            ));
+            if self.selected == SystemSelection::Star {
+                painter.add(egui::Shape::convex_polygon(
+                    pts.iter().map(|p| *p + (*p - center) * 0.5).collect(),
+                    Color32::TRANSPARENT,
+                    Stroke::new(2.0, SELECTION),
+                ));
+            }
         }
 
         // Planets.

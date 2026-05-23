@@ -325,7 +325,11 @@ fn super_map(
             }
             for sys in &loaded.sector.systems {
                 if let Some(&p) = centers.get(&(meta.id.clone(), sys.id.clone())) {
-                    let fill = palette::star_color(&sys.star.colour_code);
+                    let fill = if let Some(star) = &sys.star {
+                        palette::star_color(&star.colour_code)
+                    } else {
+                        Color32::from_rgb(140, 140, 150)
+                    };
                     painter.circle_filled(p, 3.2, fill);
                     painter.circle_stroke(p, 3.2, Stroke::new(0.8, Color32::BLACK));
                 }

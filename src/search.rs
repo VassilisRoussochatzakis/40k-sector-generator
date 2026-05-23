@@ -137,6 +137,20 @@ pub enum Constraint {
         state: SystemStateName,
         max: u32,
     },
+    /// §15 NEW2.md: At least `min` worlds where faction has a specific presence.
+    FactionPresenceCountMin {
+        faction_id: String,
+        min: u32,
+        presence: PresenceName,
+    },
+    /// §15 NEW2.md: At least `count` systems matching a state within `max_hops` of `within_hops_of` system tag.
+    MinimumSystemsMatching {
+        count: u32,
+        within_hops_of: String,
+        max_hops: u32,
+        #[serde(rename = "where")]
+        where_cond: SystemStateFilter,
+    },
     /// Route graph has exactly one connected component.
     RouteGraphConnected,
     /// Route graph has zero articulation points.
@@ -276,6 +290,51 @@ pub enum SystemStateName {
     Uncharted,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct SystemStateFilter {
+    pub system_state: SystemStateName,
+}
+
+impl SystemStateFilter {
+    pub fn matches(&self, s: Option<SystemState>) -> bool {
+        s == Some(SystemState::from(self.system_state))
+    }
+    pub fn debug_name(&self) -> String {
+        format!("state={}", self.system_state.debug_name())
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
+pub enum PresenceName {
+    Hidden,
+    Minor,
+    Significant,
+    Dominant,
+}
+
+impl PresenceName {
+    fn matches(self, inf: crate::sector_model::FactionInfluence) -> bool {
+        use crate::sector_model::FactionInfluence as I;
+        matches!(
+            (self, inf),
+            (PresenceName::Hidden, I::Hidden)
+                | (PresenceName::Minor, I::Minor)
+                | (PresenceName::Significant, I::Significant)
+                | (PresenceName::Dominant, I::Dominant)
+        )
+    }
+
+    pub fn debug_name(self) -> &'static str {
+        match self {
+            Self::Hidden => "Hidden",
+            Self::Minor => "Minor",
+            Self::Significant => "Significant",
+            Self::Dominant => "Dominant",
+        }
+    }
+}
+
 impl From<SystemStateName> for SystemState {
     fn from(s: SystemStateName) -> Self {
         match s {
@@ -401,7 +460,8 @@ fn referenced_faction(c: &Constraint) -> Option<String> {
         | Constraint::FactionWorldCountMin { faction_id, .. }
         | Constraint::FactionWorldCountMax { faction_id, .. }
         | Constraint::FactionSystemCountMin { faction_id, .. }
-        | Constraint::FactionSystemCountMax { faction_id, .. } => Some(faction_id.clone()),
+        | Constraint::FactionSystemCountMax { faction_id, .. }
+        | Constraint::FactionPresenceCountMin { faction_id, .. } => Some(faction_id.clone()),
         Constraint::WorldTypeExists {
             dominant_faction_id: Some(id),
             ..
@@ -481,6 +541,79 @@ fn count_system_state(sector: &GeneratedSector, target: SystemState) -> u32 {
         .iter()
         .filter(|s| s.control.state == Some(target))
         .count() as u32
+}
+
+fn count_faction_presence(sector: &GeneratedSector, faction_id: &str, presence: PresenceName) -> u32 {
+    let mut n = 0u32;
+    for sys in &sector.systems {
+        for w in &sys.worlds {
+            for p in &w.factions {
+                if p.faction_id.as_str() == faction_id && presence.matches(p.influence) {
+                    n += 1;
+                    break;
+                }
+            }
+        }
+    }
+    n
+}
+
+fn count_systems_matching_distance(
+    sector: &GeneratedSector,
+    within_hops_of: &str,
+    max_hops: u32,
+    where_cond: &SystemStateFilter,
+) -> u32 {
+    let targets: Vec<crate::ids::SystemId> = sector
+        .systems
+        .iter()
+        .filter(|s| {
+            s.tags.iter().any(|t| t.as_ref() == within_hops_of) || s.id.as_str() == within_hops_of
+        })
+        .map(|s| s.id.clone())
+        .collect();
+
+    if targets.is_empty() {
+        return 0;
+    }
+
+    let mut reachable = std::collections::BTreeSet::new();
+    let mut queue = std::collections::VecDeque::new();
+    for t in targets {
+        queue.push_back((t.clone(), 0));
+        reachable.insert(t);
+    }
+
+    while let Some((curr, dist)) = queue.pop_front() {
+        if dist >= max_hops {
+            continue;
+        }
+        for r in &sector.routes {
+            let next = if r.from_system_id == curr {
+                Some(&r.to_system_id)
+            } else if r.to_system_id == curr {
+                Some(&r.from_system_id)
+            } else {
+                None
+            };
+            if let Some(id) = next {
+                if !reachable.contains(id) {
+                    reachable.insert(id.clone());
+                    queue.push_back((id.clone(), dist + 1));
+                }
+            }
+        }
+    }
+
+    let mut n = 0u32;
+    for id in reachable {
+        if let Some(sys) = sector.get_system(&id) {
+            if where_cond.matches(sys.control.state) {
+                n += 1;
+            }
+        }
+    }
+    n
 }
 
 /// Evaluate a single constraint. Returns a per-constraint report including a
@@ -653,6 +786,50 @@ fn evaluate(
                 passed,
                 observed: n.to_string(),
                 required: format!("<= {max}"),
+                miss,
+            }
+        }
+        Constraint::FactionPresenceCountMin {
+            faction_id,
+            min,
+            presence,
+        } => {
+            let n = count_faction_presence(sector, faction_id, *presence);
+            let passed = n >= *min;
+            let miss = if passed {
+                0.0
+            } else {
+                (*min as f32) - n as f32
+            };
+            ConstraintReport {
+                label: format!("faction_presence_count_min({faction_id} presence={:?})", presence),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {min}"),
+                miss,
+            }
+        }
+        Constraint::MinimumSystemsMatching {
+            count,
+            within_hops_of,
+            max_hops,
+            where_cond,
+        } => {
+            let n = count_systems_matching_distance(sector, within_hops_of, *max_hops, where_cond);
+            let passed = n >= *count;
+            let miss = if passed {
+                0.0
+            } else {
+                (*count as f32) - n as f32
+            };
+            ConstraintReport {
+                label: format!(
+                    "minimum_systems_matching({} within {max_hops} hops of {within_hops_of})",
+                    where_cond.debug_name()
+                ),
+                passed,
+                observed: n.to_string(),
+                required: format!(">= {count}"),
                 miss,
             }
         }

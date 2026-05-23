@@ -67,7 +67,7 @@ impl RegionConditionKind {
             Self::EmpyricBleed => "Empyric Bleed",
         }
     }
-    
+
     pub fn description(self) -> &'static str {
         match self {
             Self::WarpStorm => "A raging empyric front that bleeds into realspace. Routes crossing or skirting this region are perilous. Navigation is harsh, failure carries dramatic consequences.",

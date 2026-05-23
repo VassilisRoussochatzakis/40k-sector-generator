@@ -112,11 +112,14 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 
     // ── World workbook ──────────────────────────────────────────────────────
-    let pool = world_pool::build_pool(
+    let mut pool = world_pool::build_pool(
         &input.world_rows,
         &input.world_tables,
         &input.config.generation.world_selection,
     );
+    if let Some(features) = &input.authored_features {
+        world_pool::apply_authored_features(&mut pool, features);
+    }
 
     let t = &input.world_tables;
     let key_counts: BTreeMap<String, usize> = [

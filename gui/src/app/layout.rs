@@ -1,7 +1,7 @@
 use crate::app::palette;
 use crate::app::{App, View};
-use sectorforge::sector_model::RouteViewMode;
 use egui::{Color32, RichText, TopBottomPanel};
+use sectorforge::sector_model::RouteViewMode;
 
 pub struct TopBar<'a> {
     app: &'a mut App,

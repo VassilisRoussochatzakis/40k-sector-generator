@@ -22,6 +22,7 @@
 //! ```
 
 pub mod worlds;
+pub mod worlds_toml;
 
 pub mod analytics;
 pub mod archetypes;
@@ -253,11 +254,14 @@ pub fn generate_system_standalone(
             "system index must be >= 1".to_string(),
         ));
     }
-    let pool = world_pool::build_pool(
+    let mut pool = world_pool::build_pool(
         &project.world_rows,
         &project.world_tables,
         &project.config.generation.world_selection,
     );
+    if let Some(features) = &project.authored_features {
+        world_pool::apply_authored_features(&mut pool, features);
+    }
     if pool.candidates.is_empty() {
         return Err(SectorError::NoWorldCandidates);
     }

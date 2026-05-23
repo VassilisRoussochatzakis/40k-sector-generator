@@ -1031,7 +1031,14 @@ fn draw_systems(
         } else {
             // Special location: draw a small grey square or diamond.
             let r = star_r * 3 / 4;
-            fill_rect(img, cx - r, cy - r, 2 * r, 2 * r, Rgba([140, 140, 150, 255]));
+            fill_rect(
+                img,
+                cx - r,
+                cy - r,
+                2 * r,
+                2 * r,
+                Rgba([140, 140, 150, 255]),
+            );
         }
 
         // Subsector capital marker: gold diamond above the star.
@@ -1996,13 +2003,13 @@ fn draw_hex(img: &mut RgbaImage, cx: i32, cy: i32, size: f32, fill: Rgba<u8>, ou
 }
 
 mod primitives;
+use primitives::fill_polygon;
 #[cfg(test)]
 use primitives::glyph;
 pub(crate) use primitives::{
     draw_circle, draw_line, draw_line_thick, draw_rect_outline, draw_ring, draw_text, fill_circle,
     fill_rect, text_size, GLYPH_H,
 };
-use primitives::fill_polygon;
 
 // ── Color helpers ───────────────────────────────────────────────────────────
 

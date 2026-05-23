@@ -1,10 +1,13 @@
 # sectorforge — User Guide
 
 `sectorforge` is a deterministic Warhammer 40k star sector generator. It reads
-a project directory (CSV data files plus TOML configuration files) and
-produces a reproducible sector as JSON, Markdown, CSV, and bitmap images.
+a project directory (typed TOML configuration files; CSV import/export
+adapter still supported) and produces a reproducible sector as JSON,
+Markdown, CSV, and bitmap images.
 
-The world taxonomy and CSV parsing live in [src/worlds.rs](src/worlds.rs).
+The world taxonomy lives in [src/worlds.rs](src/worlds.rs); the native
+typed config (`worlds.toml`) lives in [src/worlds_toml.rs](src/worlds_toml.rs);
+the legacy CSV parser remains in `src/worlds.rs` for spreadsheet workflows.
 Everything else in this crate builds a sector-scale layer around it: candidate
 pools, deterministic placement, systems, worlds, routes, factions,
 subsector clustering, validation, export, and an interactive GUI viewer/editor.
@@ -874,9 +877,10 @@ cargo run --bin sectorforge -- generate --project examples/big_sparse_test
 my-sector-project/
   sectorforge.toml
   data/
-    worlds/                        # CSV world data: key.csv + generator.csv
-      key.csv
-      generator.csv
+    worlds/                        # native typed config (preferred) OR legacy CSV
+      worlds.toml                  # §45: native — typed generation rows + feature pools
+      key.csv                      # legacy override (optional; enums are authoritative)
+      generator.csv                # legacy spreadsheet path
     names/system_names.toml
     names/world_names.toml
     factions/factions.toml

@@ -119,9 +119,18 @@ pub fn sector_overview_with_buckets(
     section(ui, "ROUTE STABILITY");
     for (stab, name) in [
         (sectorforge::sector_model::RouteStability::Stable, "STABLE"),
-        (sectorforge::sector_model::RouteStability::Unstable, "UNSTABLE"),
-        (sectorforge::sector_model::RouteStability::Hazardous, "HAZARDOUS"),
-        (sectorforge::sector_model::RouteStability::Perilous, "PERILOUS"),
+        (
+            sectorforge::sector_model::RouteStability::Unstable,
+            "UNSTABLE",
+        ),
+        (
+            sectorforge::sector_model::RouteStability::Hazardous,
+            "HAZARDOUS",
+        ),
+        (
+            sectorforge::sector_model::RouteStability::Perilous,
+            "PERILOUS",
+        ),
     ] {
         legend_row(ui, stability_color(stab), name);
     }
@@ -422,10 +431,9 @@ fn event_mentions_world(e: &sectorforge::history::HistoryEvent, world_id: &str) 
     (match &e.anchor {
         sectorforge::history::HistoryAnchor::World { world_id: wid, .. } => wid == world_id,
         _ => false,
-    }) || e
-        .entities
-        .iter()
-        .any(|x| matches!(x.kind, sectorforge::history::HistoryEntityKind::World) && x.id == world_id)
+    }) || e.entities.iter().any(|x| {
+        matches!(x.kind, sectorforge::history::HistoryEntityKind::World) && x.id == world_id
+    })
 }
 
 fn event_mentions_system(e: &sectorforge::history::HistoryEvent, system_id: &str) -> bool {
@@ -438,10 +446,9 @@ fn event_mentions_system(e: &sectorforge::history::HistoryEvent, system_id: &str
             ..
         } => from_system_id == system_id || to_system_id == system_id,
         _ => false,
-    }) || e
-        .entities
-        .iter()
-        .any(|x| matches!(x.kind, sectorforge::history::HistoryEntityKind::System) && x.id == system_id)
+    }) || e.entities.iter().any(|x| {
+        matches!(x.kind, sectorforge::history::HistoryEntityKind::System) && x.id == system_id
+    })
 }
 
 pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {

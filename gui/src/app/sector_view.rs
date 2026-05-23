@@ -6,9 +6,7 @@ use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
 use sectorforge::subsectors::SubsectorConfig;
 
-use super::{
-    editor, info_panel, palette, App, PendingExport, View, TEXT, TEXT_DIM,
-};
+use super::{editor, info_panel, palette, App, PendingExport, View, TEXT, TEXT_DIM};
 use crate::editor::state::SectorEditTool;
 use crate::sector_view::{SectorClick, SectorView};
 
@@ -154,12 +152,7 @@ impl App {
         let Some(region_id) = self.sector_selected_region.clone() else {
             return;
         };
-        let Some(region) = sector
-            .regions
-            .iter()
-            .find(|r| r.id == region_id)
-            .cloned()
-        else {
+        let Some(region) = sector.regions.iter().find(|r| r.id == region_id).cloned() else {
             self.sector_selected_region = None;
             return;
         };
@@ -176,12 +169,29 @@ impl App {
                 ScrollArea::vertical().show(ui, |ui| {
                     ui.label(RichText::new(&region.name).strong().monospace().size(18.0));
                     ui.add_space(4.0);
-                    ui.label(RichText::new(region.kind.label()).color(egui::Color32::from_rgb(220, 160, 60)).monospace());
+                    ui.label(
+                        RichText::new(region.kind.label())
+                            .color(egui::Color32::from_rgb(220, 160, 60))
+                            .monospace(),
+                    );
                     ui.add_space(8.0);
-                    ui.add(egui::Label::new(RichText::new(region.kind.description()).monospace().color(palette::TEXT_DIM)).wrap());
+                    ui.add(
+                        egui::Label::new(
+                            RichText::new(region.kind.description())
+                                .monospace()
+                                .color(palette::TEXT_DIM),
+                        )
+                        .wrap(),
+                    );
                     ui.add_space(12.0);
                     ui.label(RichText::new(format!("Hexes: {}", region.hexes.len())).monospace());
-                    ui.label(RichText::new(format!("Centre: ({}, {})", region.centre.q, region.centre.r)).monospace());
+                    ui.label(
+                        RichText::new(format!(
+                            "Centre: ({}, {})",
+                            region.centre.q, region.centre.r
+                        ))
+                        .monospace(),
+                    );
                 });
             });
         if !open {
@@ -325,9 +335,7 @@ impl App {
                     if self.sector_pick_export {
                         self.sector_pick_export = false;
                         self.pending_export = Some(PendingExport::SystemPng(id));
-                    } else if self.map_edit_mode
-                        && self.editor.tool == SectorEditTool::AddRoute
-                    {
+                    } else if self.map_edit_mode && self.editor.tool == SectorEditTool::AddRoute {
                         self.pick_route_endpoint(id);
                     } else if self.sector_selected.as_deref() == Some(id.as_str()) {
                         self.sector_selected_route = None;

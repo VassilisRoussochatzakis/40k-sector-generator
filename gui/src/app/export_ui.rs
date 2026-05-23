@@ -117,7 +117,8 @@ impl App {
                     theme: self.export_theme(),
                     route_view_mode: self.route_view_mode,
                 };
-                match sectorforge::bitmap::write_sector_png_to_with(&sector, &p, scale, subs, opts) {
+                match sectorforge::bitmap::write_sector_png_to_with(&sector, &p, scale, subs, opts)
+                {
                     Ok(()) => self.export_status = format!("exported {}", p),
                     Err(e) => self.export_status = format!("export failed: {}", e),
                 }

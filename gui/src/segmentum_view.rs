@@ -573,7 +573,9 @@ fn link_table(
                 ui.label(RichText::new(l.distance_units.to_string()).monospace());
                 let type_label = match mode {
                     sectorforge::sector_model::RouteViewMode::Detailed => l.route_type.label(),
-                    sectorforge::sector_model::RouteViewMode::TopLevel => l.route_type.kind().label(),
+                    sectorforge::sector_model::RouteViewMode::TopLevel => {
+                        l.route_type.kind().label()
+                    }
                 };
                 ui.label(RichText::new(type_label).monospace());
                 ui.label(

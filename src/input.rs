@@ -18,6 +18,10 @@ pub struct ProjectInput {
     pub config: AppConfig,
     pub world_tables: crate::worlds::KeyTables,
     pub world_rows: Vec<crate::worlds::GenerationRow>,
+    /// §45 WD3: structured feature pool authored in `worlds.toml`, when
+    /// present. Callers building a `WorldCandidatePool` should overlay
+    /// this via `world_pool::apply_authored_features`.
+    pub authored_features: Option<crate::worlds_toml::ResolvedFeaturePool>,
     pub names: NameTables,
     pub factions: Vec<FactionDef>,
     pub route_rules: RouteRules,
@@ -58,20 +62,39 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
 
     let data_dir_rel = config.inputs.world_data_dir.clone();
     let data_dir = root_dir.join(&data_dir_rel);
-    let key_rel = format!("{}/key.csv", data_dir_rel.trim_end_matches('/'));
-    let gen_rel = format!("{}/generator.csv", data_dir_rel.trim_end_matches('/'));
-    let key_path = data_dir.join("key.csv");
-    let gen_path = data_dir.join("generator.csv");
-    let key_bytes = fs::read(&key_path).map_err(|e| SectorError::io(key_path.as_str(), e))?;
-    let gen_bytes = fs::read(&gen_path).map_err(|e| SectorError::io(gen_path.as_str(), e))?;
-    digests.insert(key_rel, blake3_of_bytes(&key_bytes));
-    digests.insert(gen_rel, blake3_of_bytes(&gen_bytes));
+    let trimmed_rel = data_dir_rel.trim_end_matches('/');
+    let toml_rel = format!("{}/{}", trimmed_rel, crate::worlds_toml::DEFAULT_FILENAME);
+    let toml_path = data_dir.join(crate::worlds_toml::DEFAULT_FILENAME);
+    if toml_path.exists() {
+        // Native TOML path: a single digestable artifact.
+        let bytes = fs::read(&toml_path).map_err(|e| SectorError::io(toml_path.as_str(), e))?;
+        digests.insert(toml_rel, blake3_of_bytes(&bytes));
+    } else {
+        // Legacy CSV path: digest both files (key.csv optional).
+        let key_rel = format!("{}/key.csv", trimmed_rel);
+        let gen_rel = format!("{}/generator.csv", trimmed_rel);
+        let key_path = data_dir.join("key.csv");
+        let gen_path = data_dir.join("generator.csv");
+        if key_path.exists() {
+            let key_bytes =
+                fs::read(&key_path).map_err(|e| SectorError::io(key_path.as_str(), e))?;
+            digests.insert(key_rel, blake3_of_bytes(&key_bytes));
+        }
+        let gen_bytes = fs::read(&gen_path).map_err(|e| SectorError::io(gen_path.as_str(), e))?;
+        digests.insert(gen_rel, blake3_of_bytes(&gen_bytes));
+    }
 
-    let (world_tables, world_rows) = crate::worlds::load_generation_rows(data_dir.as_std_path())
-        .map_err(|e| SectorError::WorldDataLoad {
+    let worlds_load = crate::worlds::load_worlds_data(data_dir.as_std_path()).map_err(|e| {
+        SectorError::WorldDataLoad {
             path: data_dir.to_string(),
             message: e.to_string(),
-        })?;
+        }
+    })?;
+    let crate::worlds::WorldsLoad {
+        tables: world_tables,
+        rows: world_rows,
+        authored_features,
+    } = worlds_load;
 
     let mut names = NameTables::default();
     if let Some(rel) = &config.inputs.system_names {
@@ -154,6 +177,7 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         config,
         world_tables,
         world_rows,
+        authored_features,
         names,
         factions,
         route_rules,

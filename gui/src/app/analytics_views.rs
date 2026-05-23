@@ -196,7 +196,10 @@ impl App {
                             .monospace()
                             .strong(),
                     );
-                    if ui.button(RichText::new("+ CREATE SNAPSHOT").monospace()).clicked() {
+                    if ui
+                        .button(RichText::new("+ CREATE SNAPSHOT").monospace())
+                        .clicked()
+                    {
                         let name = format!("Snapshot {}", self.history_snapshots.len() + 1);
                         self.history_snapshots.push((name, sector.as_ref().clone()));
                     }
@@ -212,7 +215,10 @@ impl App {
                     }
                     if let Some(i) = revert_idx {
                         let (_, sec) = self.history_snapshots[i].clone();
-                        let source = self.sector_source_path.as_ref().map(|p| p.to_string_lossy().to_string());
+                        let source = self
+                            .sector_source_path
+                            .as_ref()
+                            .map(|p| p.to_string_lossy().to_string());
                         self.set_loaded_sector(sec, source);
                     }
                 });
@@ -286,7 +292,10 @@ impl App {
 
 fn history_highlights(
     event: &sectorforge::history::HistoryEvent,
-) -> (HashSet<sectorforge::ids::RouteId>, HashSet<sectorforge::ids::SystemId>) {
+) -> (
+    HashSet<sectorforge::ids::RouteId>,
+    HashSet<sectorforge::ids::SystemId>,
+) {
     let mut routes = HashSet::new();
     let mut systems = HashSet::new();
     match &event.anchor {
@@ -321,7 +330,9 @@ fn history_highlights(
     (routes, systems)
 }
 
-fn first_system_from_event(event: &sectorforge::history::HistoryEvent) -> Option<sectorforge::ids::SystemId> {
+fn first_system_from_event(
+    event: &sectorforge::history::HistoryEvent,
+) -> Option<sectorforge::ids::SystemId> {
     let (_, systems) = history_highlights(event);
     systems.into_iter().min()
 }

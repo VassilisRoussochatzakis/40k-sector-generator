@@ -17,8 +17,9 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 
 | File | Purpose |
 |---|---|
-| [src/worlds.rs](src/worlds.rs) | Canonical world enums + CSV parser |
-| [src/world_pool.rs](src/world_pool.rs) | GenerationRow → weighted candidate pool |
+| [src/worlds.rs](src/worlds.rs) | Canonical world enums (incl. `VARIANTS`/`display_name`) + CSV parser |
+| [src/worlds_toml.rs](src/worlds_toml.rs) | §45 native typed `worlds.toml` config (preferred over CSV) |
+| [src/world_pool.rs](src/world_pool.rs) | GenerationRow → weighted candidate pool (+ authored-feature overlay) |
 | [src/generation.rs](src/generation.rs) | Sector generation: placement, systems, worlds, factions, routes |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs with Serialize/Deserialize |
 | [src/control.rs](src/control.rs) | Multi-dim presence / claim / control / power derivation |
@@ -50,7 +51,7 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 | [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG/JSON export UI |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |
-| [src/gui/data_editor.rs](src/gui/data_editor.rs) | CSV data editor |
+| [src/gui/data_editor.rs](src/gui/data_editor.rs) | §45 typed `worlds.toml` editor (dropdowns + DragValue) + legacy CSV view |
 | [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
 | [src/gui/editor/](src/gui/editor/) | Sector/world editing UI |
 | [src/gui/palette.rs](src/gui/palette.rs) | Color palette |

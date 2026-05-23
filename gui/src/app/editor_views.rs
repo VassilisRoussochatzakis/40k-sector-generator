@@ -45,9 +45,7 @@ impl App {
                         editor::state::Tab::Generation => {
                             editor::show_generation_settings(ui, &mut self.editor)
                         }
-                        editor::state::Tab::Wishes => {
-                            editor::show_wishes(ui, &mut self.editor)
-                        }
+                        editor::state::Tab::Wishes => editor::show_wishes(ui, &mut self.editor),
                     }
                 });
             });
@@ -89,20 +87,16 @@ impl App {
             return;
         }
         let mut open = true;
-        egui::Window::new(
-            RichText::new("NEW")
-                .monospace()
-                .strong(),
-        )
-        .open(&mut open)
-        .collapsible(false)
-        .resizable(true)
-        .default_width(560.0)
-        .default_height(620.0)
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            preset_gallery::show(ui, &mut self.preset_gallery);
-        });
+        egui::Window::new(RichText::new("NEW").monospace().strong())
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(true)
+            .default_width(560.0)
+            .default_height(620.0)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                preset_gallery::show(ui, &mut self.preset_gallery);
+            });
 
         if let Some(path) = self.preset_gallery.pending_open.take() {
             self.load_project_path(path);

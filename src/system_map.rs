@@ -153,12 +153,7 @@ fn render_system(
     } else {
         // Special location: draw a grey diamond.
         let r = g.star_r;
-        let pts = [
-            (cx, cy - r),
-            (cx + r, cy),
-            (cx, cy + r),
-            (cx - r, cy),
-        ];
+        let pts = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)];
         // fill_polygon not available? I'll use draw_line segments.
         for i in 0..4 {
             let (x1, y1) = pts[i];
@@ -296,7 +291,14 @@ fn draw_legend(
     } else {
         draw_text(img, x0, y, "KIND", theme.text, body);
         y += g.line_h;
-        draw_text(img, x0, y, &format!("{:?}", sys.kind).to_uppercase(), theme.text, body);
+        draw_text(
+            img,
+            x0,
+            y,
+            &format!("{:?}", sys.kind).to_uppercase(),
+            theme.text,
+            body,
+        );
     }
     y += g.line_h + 4 * g.scale;
 

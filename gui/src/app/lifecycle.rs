@@ -30,11 +30,16 @@ impl App {
         self.dashboard.invalidate();
         self.heatmap_cache.invalidate();
         self.sector_overview_cache.invalidate();
-        
+
         // Auto-detect project dir if we're loading a sector from an "out/" folder
         if let Some(sp) = &self.sector_source_path {
             if let Some(parent) = sp.parent() {
-                if parent.file_name().and_then(|n| n.to_str()).map(|n| n == "out").unwrap_or(false) {
+                if parent
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|n| n == "out")
+                    .unwrap_or(false)
+                {
                     if let Some(project_root) = parent.parent() {
                         self.project_dir = Some(project_root.to_path_buf());
                     }
@@ -50,7 +55,7 @@ impl App {
                 }
             }
         }
-        
+
         // Always set the sector in the editor and clear dirty flag when explicitly loading
         self.editor.set_sector(sector, input, source_path);
         self.editor.dirty = false;
@@ -93,7 +98,7 @@ impl App {
     pub(super) fn load_project_path(&mut self, path: Utf8PathBuf) {
         let std_path = path.clone().into_std_path_buf();
         self.project_dir = Some(std_path.clone());
-        
+
         // Try load project input
         match sectorforge::input::load_project(&path) {
             Ok(input) => {
@@ -116,7 +121,8 @@ impl App {
                             let out_dir = path.join("out");
                             let _ = std::fs::create_dir_all(&out_dir);
                             if let Err(e) = sectorforge::write_sector_json(&sector_path, &sector) {
-                                self.export_status = format!("failed to save generated sector: {e}");
+                                self.export_status =
+                                    format!("failed to save generated sector: {e}");
                             }
                             self.set_loaded_sector(sector, Some(sector_path.to_string()));
                         }
@@ -125,7 +131,7 @@ impl App {
                         }
                     }
                 }
-                
+
                 if let Err(e) = self.data_editor.load_from_project(&std_path) {
                     self.data_editor.status = format!("data load failed: {e}");
                 }

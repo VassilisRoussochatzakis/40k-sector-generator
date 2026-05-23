@@ -223,6 +223,47 @@ pub fn build_pool(
     pool
 }
 
+/// Overlay an authored feature pool onto a built `WorldCandidatePool`.
+///
+/// Authored entries are *appended* to whichever row-derived buckets
+/// already exist; existing weights are preserved. This means the
+/// structured TOML pool (`§45 WD3`) augments the row-derived pool
+/// rather than replacing it — users can fill gaps without losing
+/// the implicit per-row contributions.
+pub fn apply_authored_features(
+    pool: &mut WorldCandidatePool,
+    authored: &crate::worlds_toml::ResolvedFeaturePool,
+) {
+    for entry in &authored.global {
+        pool.feature_pool.global.push(WeightedFeature {
+            feature: entry.feature.clone(),
+            weight: entry.weight,
+        });
+    }
+    for (wt, entries) in &authored.by_world_type {
+        let bucket = pool
+            .feature_pool
+            .by_world_type
+            .entry(wt.clone())
+            .or_default();
+        for e in entries {
+            bucket.push(WeightedFeature {
+                feature: e.feature.clone(),
+                weight: e.weight,
+            });
+        }
+    }
+    for (sc, entries) in &authored.by_star_colour {
+        let bucket = pool.feature_pool.by_star_colour.entry(*sc).or_default();
+        for e in entries {
+            bucket.push(WeightedFeature {
+                feature: e.feature.clone(),
+                weight: e.weight,
+            });
+        }
+    }
+}
+
 fn star_colour_weights(candidates: &[WorldCandidate]) -> Vec<(StarColour, f64)> {
     let mut totals: BTreeMap<StarColour, f64> = BTreeMap::new();
     for c in candidates {

@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use sectorforge::ids::{FactionId, SystemId};
 use sectorforge::sector_model::{
-    GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
-    SystemKind, GenerationManifest, RouteType, RouteStability, WorldDto,
+    GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld,
+    GenerationManifest, HexCoord, RouteStability, RouteType, SystemKind, WorldDto,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -168,7 +168,7 @@ impl EditorState {
         self.dialog = Dialog::None;
         self.route_pick = None;
         self.pending_route_start = None;
-        
+
         // Try load wishes if we have project_input
         self.wishes = None;
         if let Some(pi) = &self.project_input {
@@ -193,13 +193,7 @@ impl EditorState {
     }
 }
 
-pub fn empty_sector(
-    id: &str,
-    title: &str,
-    seed: &str,
-    width: u32,
-    height: u32,
-) -> GeneratedSector {
+pub fn empty_sector(id: &str, title: &str, seed: &str, width: u32, height: u32) -> GeneratedSector {
     GeneratedSector {
         id: id.into(),
         title: title.into(),
@@ -266,11 +260,7 @@ pub fn empty_system(
     }
 }
 
-pub fn empty_world(
-    system_index: usize,
-    index: usize,
-    name: String,
-) -> GeneratedWorld {
+pub fn empty_world(system_index: usize, index: usize, name: String) -> GeneratedWorld {
     let id = sectorforge::ids::world_id(system_index, index);
     GeneratedWorld {
         id,
@@ -301,10 +291,7 @@ pub fn empty_world(
     }
 }
 
-pub fn empty_route(
-    from: SystemId,
-    to: SystemId,
-) -> GeneratedRoute {
+pub fn empty_route(from: SystemId, to: SystemId) -> GeneratedRoute {
     let id = sectorforge::ids::route_id(&from, &to);
     GeneratedRoute {
         id,

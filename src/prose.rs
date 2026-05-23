@@ -206,7 +206,11 @@ fn system_prose(
             "{name}: {star} {kind}; {n} world{plural} on registry.",
             name = sys.name,
             star = star_desc,
-            kind = if sys.star.is_some() { "primary" } else { "type" },
+            kind = if sys.star.is_some() {
+                "primary"
+            } else {
+                "type"
+            },
             n = n_worlds,
             plural = if n_worlds == 1 { "" } else { "s" },
         ),

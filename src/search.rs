@@ -543,7 +543,11 @@ fn count_system_state(sector: &GeneratedSector, target: SystemState) -> u32 {
         .count() as u32
 }
 
-fn count_faction_presence(sector: &GeneratedSector, faction_id: &str, presence: PresenceName) -> u32 {
+fn count_faction_presence(
+    sector: &GeneratedSector,
+    faction_id: &str,
+    presence: PresenceName,
+) -> u32 {
     let mut n = 0u32;
     for sys in &sector.systems {
         for w in &sys.worlds {
@@ -802,7 +806,10 @@ fn evaluate(
                 (*min as f32) - n as f32
             };
             ConstraintReport {
-                label: format!("faction_presence_count_min({faction_id} presence={:?})", presence),
+                label: format!(
+                    "faction_presence_count_min({faction_id} presence={:?})",
+                    presence
+                ),
                 passed,
                 observed: n.to_string(),
                 required: format!(">= {min}"),
@@ -1155,6 +1162,7 @@ fn clone_project_with_seed(template: &ProjectInput, seed: &str) -> ProjectInput 
         config,
         world_tables: template.world_tables.clone(),
         world_rows: template.world_rows.clone(),
+        authored_features: template.authored_features.clone(),
         names: template.names.clone(),
         factions: template.factions.clone(),
         route_rules: template.route_rules.clone(),

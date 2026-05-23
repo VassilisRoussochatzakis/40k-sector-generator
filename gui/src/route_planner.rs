@@ -249,7 +249,11 @@ fn dijkstra<'a>(
     adj: &'a HashMap<&'a str, Vec<Edge<'a>>>,
     from: &str,
     to: &str,
-) -> Option<(Vec<sectorforge::ids::SystemId>, Vec<sectorforge::ids::RouteId>, f64)> {
+) -> Option<(
+    Vec<sectorforge::ids::SystemId>,
+    Vec<sectorforge::ids::RouteId>,
+    f64,
+)> {
     if !adj.contains_key(to) {
         return None;
     }
@@ -289,7 +293,11 @@ fn bfs<'a>(
     adj: &'a HashMap<&'a str, Vec<Edge<'a>>>,
     from: &str,
     to: &str,
-) -> Option<(Vec<sectorforge::ids::SystemId>, Vec<sectorforge::ids::RouteId>, f64)> {
+) -> Option<(
+    Vec<sectorforge::ids::SystemId>,
+    Vec<sectorforge::ids::RouteId>,
+    f64,
+)> {
     if !adj.contains_key(to) {
         return None;
     }
@@ -320,7 +328,11 @@ fn reconstruct(
     end: &str,
     prev: &HashMap<&str, (&str, &str)>,
     cost: f64,
-) -> (Vec<sectorforge::ids::SystemId>, Vec<sectorforge::ids::RouteId>, f64) {
+) -> (
+    Vec<sectorforge::ids::SystemId>,
+    Vec<sectorforge::ids::RouteId>,
+    f64,
+) {
     let mut hops_rev: Vec<sectorforge::ids::SystemId> = vec![sectorforge::ids::SystemId::new(end)];
     let mut routes_rev: Vec<sectorforge::ids::RouteId> = Vec::new();
     let mut cur = end;
@@ -334,7 +346,10 @@ fn reconstruct(
     (hops_rev, routes_rev, cost)
 }
 
-fn collect_hazards(sector: &GeneratedSector, route_ids: &[sectorforge::ids::RouteId]) -> Vec<HazardNote> {
+fn collect_hazards(
+    sector: &GeneratedSector,
+    route_ids: &[sectorforge::ids::RouteId],
+) -> Vec<HazardNote> {
     let by_id: HashMap<&str, &GeneratedRoute> =
         sector.routes.iter().map(|r| (r.id.as_str(), r)).collect();
     let lifelines = economy_lifelines(sector);

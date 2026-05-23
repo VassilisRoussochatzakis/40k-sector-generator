@@ -1121,4 +1121,47 @@ Q6.  `.sgforge` session file format: tar (portable but external lib)
      Recommend JSON envelope.
 
 ================================================================================
+45. WORLDS DATA NATIVE-FIRST (CSV demoted to import/export adapter)
+================================================================================
+
+Rationale: builder pivots to in-app construction. Twin CSV
+(`key.csv` + `generator.csv`) is a spreadsheet-import shape, not a
+native source of truth. Stringly-typed at rest, redundant with
+existing enums, no structure for feature pools, awkward to edit
+via typed GUI widgets. Native model = typed serde TOML/JSON; CSV
+stays as optional importer/exporter.
+
+WD1. [DONE] Enum-authoritative variants. Each enum in
+     `src/worlds.rs` (StarColour, WorldType, Atmosphere, Temperature,
+     Biosphere, Population, TechLevel, Government, NotableFeature)
+     exposes `pub const VARIANTS: &'static [Self]`. `KeyTables`
+     gains `KeyTables::from_enums()` that builds the full table from
+     compiled variants. `key.csv` becomes optional (override file
+     only, for users restricting the variant set).
+
+WD2. [DONE] Typed `worlds.toml` loader. New file
+     `src/worlds_toml.rs`. Defines `WorldsConfig { generation:
+     Vec<GenerationRow>, features: FeaturePoolConfig }` with serde
+     `Serialize`/`Deserialize`. Loader returns the same
+     `(KeyTables, Vec<GenerationRow>)` tuple as the CSV loader so
+     downstream code (`world_pool::build_pool`) is untouched.
+     CSV loader still works; TOML preferred when both exist.
+
+WD3. [DONE] Structured feature pools. `FeaturePoolConfig` carries
+     `global`, `by_world_type: BTreeMap<WorldType, Vec<(NotableFeature,
+     f64)>>`, `by_star_colour: BTreeMap<StarColour, Vec<...>>`. Maps
+     into existing `FeaturePool` at pool-build time. Round-trips
+     deterministically (BTreeMap ordering).
+
+WD4. [DONE] GUI typed editing. `gui::data_editor` reads/writes
+     `WorldsConfig` instead of raw CSV cells. Rows edited via enum
+     dropdowns (`ComboBox` over `Enum::VARIANTS`), weight as
+     `DragValue<f64>`. CSV import/export buttons preserved for
+     spreadsheet workflows.
+
+WD5. [PENDING] Migration: `sectorforge convert-csv-to-toml
+     <preset-dir>` one-shot for existing presets. Deprecation
+     warning on CSV-only load path after one minor release.
+
+================================================================================
 END OF BUILDER_REQS.txt

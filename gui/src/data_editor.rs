@@ -1,14 +1,23 @@
-//! WORLD DATA tab: tabular editor for `key.csv` + `generator.csv`.
+//! WORLD DATA tab: typed editor over `worlds.toml` (native) plus a
+//! legacy tabular editor for `key.csv` + `generator.csv`.
 //!
-//! Loads from a project dir (which must contain `sectorforge.toml` with an
-//! `[inputs] world_data_dir = "..."` entry). Edits raw cell strings; saves
-//! back by writing both CSVs in place.
+//! Loads from a project dir (must contain `sectorforge.toml` with an
+//! `[inputs] world_data_dir = "..."` entry). When `worlds.toml` exists
+//! in that dir, the native typed view (ComboBox + DragValue) is the
+//! default; otherwise the legacy CSV cell editor is shown and a
+//! "Convert to worlds.toml" button is offered.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use thiserror::Error;
+
+use sectorforge::worlds::{
+    Atmosphere, Biosphere, GenerationRow, Government, NotableFeature, Population, StarColour,
+    TechLevel, Temperature, WorldType,
+};
+use sectorforge::worlds_toml::{WorldsConfig, DEFAULT_FILENAME as WORLDS_TOML_FILENAME};
 
 #[derive(Debug, Error)]
 pub enum DataEditorError {
@@ -74,6 +83,10 @@ pub struct DataEditor {
     pub filter_world_type: String,
     pub filter_star_colour: String,
     pub filter_government: String,
+    /// §45 WD2/WD4: native typed config. `Some` when `worlds.toml`
+    /// was loaded (and the Native view is the default).
+    pub worlds_toml: Option<WorldsConfig>,
+    pub worlds_toml_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -95,7 +108,10 @@ impl CellStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DataView {
+    /// §45 WD4: typed editor over `worlds.toml`. Default when the
+    /// project ships a native TOML file.
     #[default]
+    Native,
     Key,
     Generator,
 }
@@ -108,29 +124,69 @@ impl DataEditor {
         let data_dir = project_dir.join(&data_rel);
         let key_path = data_dir.join("key.csv");
         let gen_path = data_dir.join("generator.csv");
+        let toml_path = data_dir.join(WORLDS_TOML_FILENAME);
 
-        let key_text = fs::read_to_string(&key_path)?;
-        let gen_text = fs::read_to_string(&gen_path)?;
-        let (_kh, key_rows) =
-            parse_csv(&key_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
-        let (_gh, gen_rows) =
-            parse_csv(&gen_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
+        // §45 WD2/WD4: prefer native TOML when present.
+        let (worlds_toml, view) = if toml_path.exists() {
+            let text = fs::read_to_string(&toml_path)?;
+            let cfg = WorldsConfig::from_str(&text)
+                .map_err(|e| DataEditorError::Config(format!("worlds.toml: {e}")))?;
+            (Some(cfg), DataView::Native)
+        } else {
+            (None, DataView::Generator)
+        };
+
+        // Load CSV cells when files exist (legacy editing always available).
+        let (key_rows, gen_rows) = if key_path.exists() && gen_path.exists() {
+            let key_text = fs::read_to_string(&key_path)?;
+            let gen_text = fs::read_to_string(&gen_path)?;
+            let (_kh, kr) =
+                parse_csv(&key_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
+            let (_gh, gr) =
+                parse_csv(&gen_text).map_err(|e| DataEditorError::Csv(e.to_string()))?;
+            (kr, gr)
+        } else {
+            (Vec::new(), Vec::new())
+        };
 
         self.project_dir = Some(project_dir.to_path_buf());
-        self.key_path = Some(key_path);
-        self.gen_path = Some(gen_path);
+        self.key_path = key_path.exists().then(|| key_path.clone());
+        self.gen_path = gen_path.exists().then(|| gen_path.clone());
+        self.worlds_toml_path = Some(toml_path);
+        self.worlds_toml = worlds_toml;
         self.key_rows = key_rows;
         self.gen_rows = gen_rows;
         self.dirty = false;
-        self.status = format!(
-            "loaded {} key rows, {} generator rows",
-            self.key_rows.len(),
-            self.gen_rows.len()
-        );
+        self.view = view;
+        self.status = match &self.worlds_toml {
+            Some(cfg) => format!(
+                "loaded worlds.toml ({} generation rows, {} feature groups)",
+                cfg.generation.len(),
+                cfg.features.global.len()
+                    + cfg.features.by_world_type.len()
+                    + cfg.features.by_star_colour.len()
+            ),
+            None => format!(
+                "loaded {} key rows, {} generator rows (no worlds.toml)",
+                self.key_rows.len(),
+                self.gen_rows.len()
+            ),
+        };
         Ok(())
     }
 
     pub fn save(&mut self) -> Result<(), DataEditorError> {
+        // §45 WD4: native TOML is the authoritative save path when in
+        // use; CSV save remains available for the legacy view.
+        if let (Some(cfg), Some(path)) = (&self.worlds_toml, &self.worlds_toml_path) {
+            let text = cfg
+                .to_toml_string()
+                .map_err(|e| DataEditorError::Config(e.to_string()))?;
+            fs::write(path, text)?;
+            self.dirty = false;
+            self.status = format!("saved worlds.toml ({} rows)", cfg.generation.len());
+            return Ok(());
+        }
         let key_path = self
             .key_path
             .as_ref()
@@ -150,6 +206,53 @@ impl DataEditor {
             self.gen_rows.len()
         );
         Ok(())
+    }
+
+    /// §45 WD5: convert the current CSV rows into a native `worlds.toml`
+    /// (in-memory only — call `save` to persist).
+    pub fn convert_csv_to_native(&mut self) -> Result<(), DataEditorError> {
+        let rows: Vec<GenerationRow> = self
+            .gen_rows
+            .iter()
+            .map(|cells| row_from_csv_cells(cells))
+            .collect();
+        let mut cfg = self.worlds_toml.take().unwrap_or_default();
+        cfg.generation = rows;
+        self.worlds_toml = Some(cfg);
+        if self.worlds_toml_path.is_none() {
+            if let Some(gen_path) = &self.gen_path {
+                if let Some(parent) = gen_path.parent() {
+                    self.worlds_toml_path = Some(parent.join(WORLDS_TOML_FILENAME));
+                }
+            }
+        }
+        self.dirty = true;
+        self.view = DataView::Native;
+        self.status = "converted CSV → worlds.toml (unsaved)".to_string();
+        Ok(())
+    }
+}
+
+fn row_from_csv_cells(cells: &[String]) -> GenerationRow {
+    fn cell<T: std::str::FromStr>(cells: &[String], idx: usize) -> Option<T> {
+        cells
+            .get(idx)
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .and_then(|s| s.parse().ok())
+    }
+    GenerationRow {
+        star_colour: cell(cells, 0),
+        world_type: cell(cells, 1),
+        atmosphere: cell(cells, 2),
+        temperature: cell(cells, 3),
+        biosphere: cell(cells, 4),
+        population: cell(cells, 5),
+        tech: cell(cells, 6),
+        government: cell(cells, 7),
+        notable_feature: cell(cells, 8),
+        counter: cell::<i64>(cells, 9).map(|n| n as usize),
+        weight: cell(cells, 10),
     }
 }
 
@@ -193,10 +296,18 @@ fn escape_cell(s: &str) -> String {
 
 pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     ui.horizontal(|ui| {
-        ui.selectable_value(&mut editor.view, DataView::Key, "KEY");
-        ui.selectable_value(&mut editor.view, DataView::Generator, "GENERATOR");
+        let has_native = editor.worlds_toml.is_some();
+        if has_native {
+            ui.selectable_value(&mut editor.view, DataView::Native, "NATIVE (TOML)");
+        }
+        ui.selectable_value(&mut editor.view, DataView::Key, "KEY (CSV)");
+        ui.selectable_value(&mut editor.view, DataView::Generator, "GENERATOR (CSV)");
         ui.separator();
         let row_count = match editor.view {
+            DataView::Native => editor
+                .worlds_toml
+                .as_ref()
+                .map_or(0, |c| c.generation.len()),
             DataView::Key => editor.key_rows.len(),
             DataView::Generator => editor.gen_rows.len(),
         };
@@ -212,13 +323,39 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
                     .monospace(),
             );
         }
+        if !has_native && !editor.gen_rows.is_empty() {
+            ui.separator();
+            if ui
+                .button("CONVERT TO worlds.toml")
+                .on_hover_text("§45 WD5: build a typed worlds.toml from current CSV rows")
+                .clicked()
+            {
+                if let Err(e) = editor.convert_csv_to_native() {
+                    editor.status = format!("convert failed: {e}");
+                }
+            }
+        }
     });
 
     ui.add_space(4.0);
 
-    if editor.key_path.is_none() {
+    if editor.project_dir.is_none() {
         ui.label(
             RichText::new("load a project from the toolbar to edit world data")
+                .color(super::palette::TEXT_DIM)
+                .monospace(),
+        );
+        return;
+    }
+
+    if matches!(editor.view, DataView::Native) {
+        show_native(ui, editor);
+        return;
+    }
+
+    if editor.key_path.is_none() && editor.gen_path.is_none() {
+        ui.label(
+            RichText::new("project has no CSV files (worlds.toml only)")
                 .color(super::palette::TEXT_DIM)
                 .monospace(),
         );
@@ -247,6 +384,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     let (header, rows) = match editor.view {
         DataView::Key => (KEY_HEADER, &mut editor.key_rows),
         DataView::Generator => (GEN_HEADER, &mut editor.gen_rows),
+        DataView::Native => unreachable!("Native view dispatched above"),
     };
 
     let mut any_change = false;
@@ -804,3 +942,190 @@ const NOTABLE_FEATURE_OPTS: &[&str] = &[
     "Xenos Infiltrators",
     "Zombies",
 ];
+
+// ── §45 WD4: native typed editor ────────────────────────────────────────────
+
+fn show_native(ui: &mut egui::Ui, editor: &mut DataEditor) {
+    let Some(cfg) = editor.worlds_toml.as_mut() else {
+        ui.label("no worlds.toml loaded");
+        return;
+    };
+
+    let mut any_change = false;
+    let mut delete_row: Option<usize> = None;
+
+    ScrollArea::both()
+        .auto_shrink([false, false])
+        .show(ui, |ui| {
+            egui::Grid::new("worlds_toml_grid")
+                .num_columns(12)
+                .striped(true)
+                .min_col_width(90.0)
+                .show(ui, |ui| {
+                    let headers = [
+                        "#",
+                        "star",
+                        "world type",
+                        "atmosphere",
+                        "temperature",
+                        "biosphere",
+                        "population",
+                        "tech",
+                        "government",
+                        "feature",
+                        "weight",
+                        "",
+                    ];
+                    for h in headers {
+                        ui.label(
+                            RichText::new(h.to_ascii_uppercase())
+                                .color(super::palette::TEXT)
+                                .strong()
+                                .monospace(),
+                        );
+                    }
+                    ui.end_row();
+
+                    for (idx, row) in cfg.generation.iter_mut().enumerate() {
+                        ui.label(
+                            RichText::new((idx + 1).to_string())
+                                .color(super::palette::TEXT_DIM)
+                                .monospace(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("sc_{idx}"),
+                            &mut row.star_colour,
+                            StarColour::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("wt_{idx}"),
+                            &mut row.world_type,
+                            WorldType::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("at_{idx}"),
+                            &mut row.atmosphere,
+                            Atmosphere::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("te_{idx}"),
+                            &mut row.temperature,
+                            Temperature::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("bi_{idx}"),
+                            &mut row.biosphere,
+                            Biosphere::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("po_{idx}"),
+                            &mut row.population,
+                            Population::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("tl_{idx}"),
+                            &mut row.tech,
+                            TechLevel::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("gv_{idx}"),
+                            &mut row.government,
+                            Government::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+                        any_change |= enum_combo(
+                            ui,
+                            format!("nf_{idx}"),
+                            &mut row.notable_feature,
+                            NotableFeature::VARIANTS,
+                            |v| v.display_name().to_string(),
+                        );
+
+                        let mut weight = row.weight.unwrap_or(0.0);
+                        let resp = ui.add(
+                            egui::DragValue::new(&mut weight)
+                                .speed(0.1)
+                                .range(0.0..=1e6),
+                        );
+                        if resp.changed() {
+                            row.weight = if weight > 0.0 { Some(weight) } else { None };
+                            any_change = true;
+                        }
+
+                        if ui.button("✕").on_hover_text("delete row").clicked() {
+                            delete_row = Some(idx);
+                        }
+                        ui.end_row();
+                    }
+                });
+
+            ui.add_space(8.0);
+            if ui.button("+ ADD ROW").clicked() {
+                cfg.generation.push(GenerationRow::default());
+                any_change = true;
+            }
+        });
+
+    if let Some(idx) = delete_row {
+        cfg.generation.remove(idx);
+        any_change = true;
+    }
+
+    if any_change {
+        editor.dirty = true;
+    }
+}
+
+/// Generic enum dropdown: shows a `ComboBox` over `variants`, binding
+/// the current `Option<T>` value (None = unset).
+fn enum_combo<T, F>(
+    ui: &mut egui::Ui,
+    id: impl std::hash::Hash,
+    value: &mut Option<T>,
+    variants: &'static [T],
+    label_of: F,
+) -> bool
+where
+    T: Clone + PartialEq,
+    F: Fn(&T) -> String,
+{
+    let current_label = value
+        .as_ref()
+        .map(&label_of)
+        .unwrap_or_else(|| "—".to_string());
+    let mut changed = false;
+    egui::ComboBox::from_id_salt(id)
+        .selected_text(current_label)
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(value.is_none(), "—").clicked() {
+                if value.is_some() {
+                    *value = None;
+                    changed = true;
+                }
+            }
+            for v in variants {
+                let label = label_of(v);
+                let selected = value.as_ref() == Some(v);
+                if ui.selectable_label(selected, label).clicked() && !selected {
+                    *value = Some(v.clone());
+                    changed = true;
+                }
+            }
+        });
+    changed
+}

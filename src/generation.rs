@@ -108,6 +108,7 @@ where
         config,
         world_tables,
         world_rows,
+        authored_features,
         names,
         factions,
         route_rules,
@@ -120,11 +121,14 @@ where
     } = project;
 
     let source_rows = world_rows.len();
-    let pool = world_pool::build_pool(
+    let mut pool = world_pool::build_pool(
         &world_rows,
         &world_tables,
         &config.generation.world_selection,
     );
+    if let Some(features) = &authored_features {
+        world_pool::apply_authored_features(&mut pool, features);
+    }
     progress(SectorProgress::WorldPoolBuilt {
         rows: source_rows,
         candidates: pool.candidates.len(),

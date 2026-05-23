@@ -49,7 +49,12 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         ui.label(RichText::new("ID").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("NAME").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("KIND").color(TEXT_DIM).monospace().strong());
-                        ui.label(RichText::new("DESCRIPTION").color(TEXT_DIM).monospace().strong());
+                        ui.label(
+                            RichText::new("DESCRIPTION")
+                                .color(TEXT_DIM)
+                                .monospace()
+                                .strong(),
+                        );
                         ui.label(RichText::new("HEXES").color(TEXT_DIM).monospace().strong());
                         ui.label(RichText::new("CENTRE").color(TEXT_DIM).monospace().strong());
                         ui.end_row();

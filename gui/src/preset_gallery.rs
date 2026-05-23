@@ -80,12 +80,19 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     });
 
     ui.checkbox(&mut state.add_to_existing, "Add to existing project");
-    ui.checkbox(&mut state.open_immediately, "Open immediately after creation");
+    ui.checkbox(
+        &mut state.open_immediately,
+        "Open immediately after creation",
+    );
     ui.add_space(4.0);
 
     if state.target == CreationTarget::Sector {
         ui.group(|ui| {
-            ui.label(RichText::new("SECTOR DIMENSIONS").color(TEXT_DIM).monospace());
+            ui.label(
+                RichText::new("SECTOR DIMENSIONS")
+                    .color(TEXT_DIM)
+                    .monospace(),
+            );
             ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
 
             if state.irregular_dimensions {
@@ -185,12 +192,18 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                         .monospace(),
                 );
                 if ui
-                    .button(RichText::new(format!("CREATE {} FROM THIS PRESET", match state.target {
-                        CreationTarget::Project => "PROJECT",
-                        CreationTarget::Segmentum => "SEGMENTUM",
-                        CreationTarget::Sector => "SECTOR",
-                        CreationTarget::System => "SYSTEM",
-                    })).monospace())
+                    .button(
+                        RichText::new(format!(
+                            "CREATE {} FROM THIS PRESET",
+                            match state.target {
+                                CreationTarget::Project => "PROJECT",
+                                CreationTarget::Segmentum => "SEGMENTUM",
+                                CreationTarget::Sector => "SECTOR",
+                                CreationTarget::System => "SYSTEM",
+                            }
+                        ))
+                        .monospace(),
+                    )
                     .clicked()
                 {
                     let dest_str = state.dest_text.trim();
@@ -205,11 +218,11 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                         };
                         let seed_ref = seed.as_deref();
 
-                        // NOTE: For now, segmentum/sector/system creation via preset 
+                        // NOTE: For now, segmentum/sector/system creation via preset
                         // might need specific backend logic. Project scaffolding works.
-                        // If add_to_existing is true, we might need to modify the 
+                        // If add_to_existing is true, we might need to modify the
                         // existing project instead of creating a new one.
-                        
+
                         match presets::scaffold(&dir, &entry.id, &dest, seed_ref) {
                             Ok(_) => {
                                 state.status = format!("OK — scaffolded '{}' at {dest}", entry.id);

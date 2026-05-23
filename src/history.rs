@@ -1088,12 +1088,18 @@ fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>) {
             ),
             crate::regions::RegionConditionKind::BeaconChain => (
                 EventKind::Discovery,
-                format!("Ancient navigation pylons were mapped aligning {}.", reg.name),
+                format!(
+                    "Ancient navigation pylons were mapped aligning {}.",
+                    reg.name
+                ),
                 60,
             ),
             crate::regions::RegionConditionKind::EmpyricBleed => (
                 EventKind::WarpStormSurge,
-                format!("Unnatural empyric phenomena began bleeding into {}.", reg.name),
+                format!(
+                    "Unnatural empyric phenomena began bleeding into {}.",
+                    reg.name
+                ),
                 65,
             ),
         };

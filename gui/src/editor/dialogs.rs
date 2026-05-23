@@ -262,7 +262,9 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     if combo_str(ui, "place_sys_kind", &mut kind_s, &kinds) {
                         kind = match kind_s.as_str() {
                             "Star" => sectorforge::sector_model::SystemKind::Star,
-                            "SpecialLocation" => sectorforge::sector_model::SystemKind::SpecialLocation,
+                            "SpecialLocation" => {
+                                sectorforge::sector_model::SystemKind::SpecialLocation
+                            }
                             "BlackHole" => sectorforge::sector_model::SystemKind::BlackHole,
                             "WarpAnomaly" => sectorforge::sector_model::SystemKind::WarpAnomaly,
                             "SpaceStation" => sectorforge::sector_model::SystemKind::SpaceStation,

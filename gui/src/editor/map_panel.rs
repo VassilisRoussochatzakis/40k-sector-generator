@@ -44,7 +44,7 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
 
     {
         let sector = state.sector.as_ref().unwrap();
-        
+
         // Routes (so they sit under system disks).
         let mut centers: std::collections::HashMap<&str, Pos2> = Default::default();
         for sys in &sector.systems {
@@ -77,7 +77,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
         if let Some(from_id) = &state.pending_route_start {
             if let Some(&from_pos) = centers.get(from_id.as_str()) {
                 if let Some(mouse_pos) = response.interact_pointer_pos() {
-                    painter.line_segment([from_pos, mouse_pos], Stroke::new(2.0, Color32::from_rgb(235, 200, 90)));
+                    painter.line_segment(
+                        [from_pos, mouse_pos],
+                        Stroke::new(2.0, Color32::from_rgb(235, 200, 90)),
+                    );
                 }
             }
         }
@@ -157,7 +160,9 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
         }
 
         if response.drag_stopped() {
-            if let (Some(drag_id), Some(pos)) = (state.drag_id.clone(), response.interact_pointer_pos()) {
+            if let (Some(drag_id), Some(pos)) =
+                (state.drag_id.clone(), response.interact_pointer_pos())
+            {
                 if let Some(coord) = hex_pick(pos - origin, &g, sector_width, sector_height) {
                     drag_drop_finalize = Some((drag_id, coord));
                 }
@@ -180,7 +185,8 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                         SectorEditTool::AddRoute => {
                             if let Some(from) = state.pending_route_start.take() {
                                 if from != sys.id {
-                                    click_action = Some(ClickAction::AddRoute(from, sys.id.clone()));
+                                    click_action =
+                                        Some(ClickAction::AddRoute(from, sys.id.clone()));
                                 }
                             } else {
                                 state.pending_route_start = Some(sys.id.clone());
@@ -188,7 +194,8 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                         }
                         _ => {
                             if let Some((idx, ep)) = route_pick {
-                                click_action = Some(ClickAction::RoutePick(idx, ep, sys.id.clone()));
+                                click_action =
+                                    Some(ClickAction::RoutePick(idx, ep, sys.id.clone()));
                             } else {
                                 click_action = Some(ClickAction::SelectSystem(sys.id.clone()));
                             }
@@ -197,7 +204,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 } else if route_pick.is_none() {
                     if let Some(coord) = hex_pick(pos - origin, &g, sector_width, sector_height) {
                         let occupied = sector.systems.iter().any(|s| s.coord == coord);
-                        if !occupied && (state.tool == SectorEditTool::AddSystem || state.tool == SectorEditTool::Select) {
+                        if !occupied
+                            && (state.tool == SectorEditTool::AddSystem
+                                || state.tool == SectorEditTool::Select)
+                        {
                             click_action = Some(ClickAction::AddSystem(coord));
                         }
                     }
@@ -209,16 +219,30 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     // Apply side-effects
     if let Some((drag_id, coord)) = drag_drop_finalize {
         if let Some(sector) = state.sector.as_mut() {
-            let occupied = sector.systems.iter().any(|s| s.coord == coord && s.id != drag_id);
+            let occupied = sector
+                .systems
+                .iter()
+                .any(|s| s.coord == coord && s.id != drag_id);
             if !occupied {
                 if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == drag_id) {
                     sys.coord = coord;
                     dirty = true;
                     for r in &mut sector.routes {
                         if r.from_system_id == drag_id || r.to_system_id == drag_id {
-                            let from_coord = sector.systems.iter().find(|s| s.id == r.from_system_id).map(|s| s.coord).unwrap_or(coord);
-                            let to_coord = sector.systems.iter().find(|s| s.id == r.to_system_id).map(|s| s.coord).unwrap_or(coord);
-                            r.distance = sectorforge::sector_model::hex_distance(from_coord, to_coord);
+                            let from_coord = sector
+                                .systems
+                                .iter()
+                                .find(|s| s.id == r.from_system_id)
+                                .map(|s| s.coord)
+                                .unwrap_or(coord);
+                            let to_coord = sector
+                                .systems
+                                .iter()
+                                .find(|s| s.id == r.to_system_id)
+                                .map(|s| s.coord)
+                                .unwrap_or(coord);
+                            r.distance =
+                                sectorforge::sector_model::hex_distance(from_coord, to_coord);
                         }
                     }
                 }
@@ -229,7 +253,9 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     if let Some(id) = delete_id {
         if let Some(sector) = state.sector.as_mut() {
             sector.systems.retain(|s| s.id != id);
-            sector.routes.retain(|r| r.from_system_id != id && r.to_system_id != id);
+            sector
+                .routes
+                .retain(|r| r.from_system_id != id && r.to_system_id != id);
             dirty = true;
             if matches!(&state.selection, Selection::System(sid) if *sid == id) {
                 state.selection = Selection::None;
@@ -255,7 +281,11 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                     let route_id = sectorforge::ids::route_id(&from, &to);
                     if !sector.routes.iter().any(|r| r.id == route_id) {
                         let mut route = super::state::empty_route(from.clone(), to.clone());
-                        let from_coord = sector.systems.iter().find(|s| s.id == from).map(|s| s.coord);
+                        let from_coord = sector
+                            .systems
+                            .iter()
+                            .find(|s| s.id == from)
+                            .map(|s| s.coord);
                         let to_coord = sector.systems.iter().find(|s| s.id == to).map(|s| s.coord);
                         if let (Some(a), Some(b)) = (from_coord, to_coord) {
                             route.distance = sectorforge::sector_model::hex_distance(a, b);
@@ -267,11 +297,12 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
             }
             ClickAction::RoutePick(idx, ep, sys_id) => {
                 if let Some(sector) = state.sector.as_mut() {
-                    let coords: std::collections::HashMap<sectorforge::ids::SystemId, HexCoord> = sector
-                        .systems
-                        .iter()
-                        .map(|s| (s.id.clone(), s.coord))
-                        .collect();
+                    let coords: std::collections::HashMap<sectorforge::ids::SystemId, HexCoord> =
+                        sector
+                            .systems
+                            .iter()
+                            .map(|s| (s.id.clone(), s.coord))
+                            .collect();
                     if let Some(route) = sector.routes.get_mut(idx) {
                         match ep {
                             RouteEndpoint::From => route.from_system_id = sys_id,
@@ -283,7 +314,8 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                         ) {
                             route.distance = sectorforge::sector_model::hex_distance(a, b);
                         }
-                        route.id = sectorforge::ids::route_id(&route.from_system_id, &route.to_system_id);
+                        route.id =
+                            sectorforge::ids::route_id(&route.from_system_id, &route.to_system_id);
                     }
                 }
                 state.route_pick = None;
@@ -321,14 +353,17 @@ fn draw_toolbox(ui: &mut Ui, state: &mut EditorState) {
             ui.add_space(5.0);
             ui.label(RichText::new("TOOLBOX").font(mono(11.0)).color(TEXT_DIM));
             ui.add_space(5.0);
-            
+
             for (tool, label) in [
                 (SectorEditTool::Select, "SELECT / DRAG"),
                 (SectorEditTool::AddSystem, "ADD SYSTEM"),
                 (SectorEditTool::AddRoute, "ADD ROUTE"),
                 (SectorEditTool::Delete, "DELETE"),
             ] {
-                if ui.selectable_label(state.tool == tool, RichText::new(label).font(mono(11.0))).clicked() {
+                if ui
+                    .selectable_label(state.tool == tool, RichText::new(label).font(mono(11.0)))
+                    .clicked()
+                {
                     state.tool = tool;
                     state.pending_route_start = None;
                 }

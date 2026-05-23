@@ -7,7 +7,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use camino::Utf8PathBuf;
 use crate::dashboard::DashboardState;
 use crate::data_editor::DataEditor;
 use crate::editor::state::EditorState;
@@ -15,6 +14,7 @@ use crate::heatmap::HeatmapCache;
 use crate::preset_gallery::PresetGalleryState;
 use crate::route_planner::RoutePlannerState;
 use crate::segmentum_view::SegmentumBundle;
+use camino::Utf8PathBuf;
 use sectorforge::heatmap::HeatmapMode;
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::Subsector;
@@ -174,12 +174,16 @@ impl eframe::App for App {
         if self.editor.dirty {
             if let Some(sec) = &self.editor.sector {
                 self.sector = Some(Arc::new(sec.clone()));
-                self.subsectors = sectorforge::subsectors::build_subsectors(sec, sectorforge::subsectors::SubsectorConfig::default()).unwrap_or_default();
+                self.subsectors = sectorforge::subsectors::build_subsectors(
+                    sec,
+                    sectorforge::subsectors::SubsectorConfig::default(),
+                )
+                .unwrap_or_default();
                 self.dashboard.invalidate();
                 self.heatmap_cache.invalidate();
                 self.sector_overview_cache.invalidate();
                 self.live_dirty = true;
-                
+
                 // Auto-save if enabled
                 if self.editor.auto_save {
                     if let Some(path_str) = &self.editor.loaded_from {

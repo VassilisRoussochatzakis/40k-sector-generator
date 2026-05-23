@@ -37,7 +37,7 @@ pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
 
     ui.add_space(8.0);
     section(ui, "CONSTRAINTS");
-    
+
     let mut remove_idx: Option<usize> = None;
     for (i, c) in wishes.constraints.iter_mut().enumerate() {
         ui.horizontal(|ui| {
@@ -52,12 +52,17 @@ pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
     }
 
     if ui.button("+ ADD CONSTRAINT").clicked() {
-        wishes.constraints.push(sectorforge::search::Constraint::RouteGraphConnected);
+        wishes
+            .constraints
+            .push(sectorforge::search::Constraint::RouteGraphConnected);
     }
 
     ui.add_space(20.0);
     ui.vertical_centered(|ui| {
-        if ui.add(egui::Button::new("RUN SEARCH").min_size(egui::vec2(200.0, 40.0))).clicked() {
+        if ui
+            .add(egui::Button::new("RUN SEARCH").min_size(egui::vec2(200.0, 40.0)))
+            .clicked()
+        {
             match sectorforge::search::run_search(input, wishes) {
                 Ok(outcome) => {
                     state.search_outcome = Some(outcome);
@@ -75,21 +80,33 @@ pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
     if let Some(outcome) = &state.search_outcome {
         ui.add_space(12.0);
         section(ui, "SEARCH OUTCOME");
-        
+
         if let Some(win) = &outcome.winning {
-            ui.colored_label(egui::Color32::GREEN, format!("WINNER: candidate #{} (seed {})", win.n, win.seed));
+            ui.colored_label(
+                egui::Color32::GREEN,
+                format!("WINNER: candidate #{} (seed {})", win.n, win.seed),
+            );
             if ui.button("APPLY WINNING SEED").clicked() {
                 apply_seed = Some(win.seed.clone());
             }
         } else {
-            ui.colored_label(egui::Color32::from_rgb(235, 180, 50), "No perfect match found.");
+            ui.colored_label(
+                egui::Color32::from_rgb(235, 180, 50),
+                "No perfect match found.",
+            );
         }
 
         ui.add_space(8.0);
         ui.label("NEAR MISSES:");
         for cand in &outcome.near_misses {
             ui.horizontal(|ui| {
-                ui.label(RichText::new(format!("#{} miss={:.3} ({})", cand.n, cand.total_miss, cand.seed)).font(mono(11.0)));
+                ui.label(
+                    RichText::new(format!(
+                        "#{} miss={:.3} ({})",
+                        cand.n, cand.total_miss, cand.seed
+                    ))
+                    .font(mono(11.0)),
+                );
                 if ui.button("PREVIEW").clicked() {
                     preview_seed = Some(cand.seed.clone());
                 }

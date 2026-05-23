@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -28,7 +29,7 @@ pub enum WorldError {
 
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum StarColour {
     BlueHypergiant, // O
     BlueWhite,      // B
@@ -65,7 +66,7 @@ impl StarColour {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum WorldType {
     AgriWorld,
     Asteroid,
@@ -93,7 +94,7 @@ pub enum WorldType {
     XenosWorld,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Atmosphere {
     Airless,
     Breathable,
@@ -104,7 +105,7 @@ pub enum Atmosphere {
     Toxic,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Temperature {
     Freezing,
     Cold,
@@ -113,7 +114,7 @@ pub enum Temperature {
     Boiling,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Biosphere {
     Nonexistent,
     Minimal,
@@ -123,7 +124,7 @@ pub enum Biosphere {
     XenoDominance,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Population {
     Uninhabited,
     Minimal,
@@ -133,7 +134,7 @@ pub enum Population {
     ExtremelyDense,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TechLevel {
     Primitive,
     Low,
@@ -143,7 +144,7 @@ pub enum TechLevel {
     Archaeotech,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Government {
     BalkanizedLocalFactions,
     ChaosCult,
@@ -177,7 +178,7 @@ pub enum Government {
     XenosOverlords,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum NotableFeature {
     Abhumans,
     AlteredHumans,
@@ -284,29 +285,44 @@ pub enum NotableFeature {
 // ── Generator-template row types ─────────────────────────────────────────────
 
 /// A single generation row from the Generator Template sheet.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GenerationRow {
     /// Star colour (A)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub star_colour: Option<StarColour>,
     /// World type (B)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub world_type: Option<WorldType>,
     /// Atmosphere (C)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub atmosphere: Option<Atmosphere>,
     /// Temperature (D)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temperature: Option<Temperature>,
     /// Biosphere (E)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub biosphere: Option<Biosphere>,
     /// Population (F)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub population: Option<Population>,
     /// Tech level (G)
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "tech_level"
+    )]
     pub tech: Option<TechLevel>,
     /// Government (H)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub government: Option<Government>,
     /// Notable feature (I)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notable_feature: Option<NotableFeature>,
     /// Counter count from COUNTIF formula (col J, stored as integer in the sheet).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub counter: Option<usize>,
     /// Weight formula result — numeric weight for random selection (col K).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub weight: Option<f64>,
 }
 
@@ -624,22 +640,81 @@ const GEN_HEADER: &[&str] = &[
     "weight",
 ];
 
-/// Load a project's world data: `key.csv` + `generator.csv` from the given dir.
+/// Load a project's world data from the given dir.
+///
+/// Preference order:
+///   1. `worlds.toml` — native typed source of truth (preferred).
+///   2. `generator.csv` (+ optional `key.csv`) — legacy spreadsheet path.
+///
+/// When `key.csv` is absent in the CSV path, the enum-derived
+/// `KeyTables::from_enums()` is used instead — enums are the
+/// authoritative variant set.
 pub fn load_generation_rows(
     data_dir: impl AsRef<Path>,
 ) -> Result<(KeyTables, Vec<GenerationRow>), WorldError> {
+    Ok(load_worlds_data(data_dir)?.into_legacy_tuple())
+}
+
+/// Full worlds-data load result. Includes the authored structured
+/// feature pool (`§45 WD3`) when the TOML path is in use.
+pub struct WorldsLoad {
+    pub tables: KeyTables,
+    pub rows: Vec<GenerationRow>,
+    pub authored_features: Option<crate::worlds_toml::ResolvedFeaturePool>,
+}
+
+impl WorldsLoad {
+    pub fn into_legacy_tuple(self) -> (KeyTables, Vec<GenerationRow>) {
+        (self.tables, self.rows)
+    }
+}
+
+/// Load both row data and (when available) the authored feature pool.
+///
+/// Callers building a `WorldCandidatePool` should pass the returned
+/// `authored_features` to `world_pool::apply_authored_features` so the
+/// structured pool overlays the row-derived one.
+pub fn load_worlds_data(data_dir: impl AsRef<Path>) -> Result<WorldsLoad, WorldError> {
     let dir = data_dir.as_ref();
+    let toml_path = dir.join(crate::worlds_toml::DEFAULT_FILENAME);
+    if toml_path.exists() {
+        let cfg = crate::worlds_toml::WorldsConfig::from_path(&toml_path)
+            .map_err(|e| WorldError::Invalid(format!("worlds.toml: {e}")))?;
+        let (tables, rows) = cfg.to_loader_inputs();
+        let features = cfg
+            .resolved_features()
+            .map_err(|e| WorldError::Invalid(format!("worlds.toml features: {e}")))?;
+        let authored = if features.is_empty() {
+            None
+        } else {
+            Some(features)
+        };
+        return Ok(WorldsLoad {
+            tables,
+            rows,
+            authored_features: authored,
+        });
+    }
+
     let key_path = dir.join("key.csv");
     let gen_path = dir.join("generator.csv");
 
-    let tables = KeyTables::from_csv_path(&key_path)?;
+    let tables = if key_path.exists() {
+        KeyTables::from_csv_path(&key_path)?
+    } else {
+        KeyTables::from_enums()
+    };
 
     let gen_text = fs::read_to_string(&gen_path)?;
     let (header, records) = parse_csv(&gen_text)?;
     validate_header(&header, GEN_HEADER)?;
     let rows: Vec<GenerationRow> = records.iter().map(|r| parse_generation_row(r)).collect();
 
-    Ok((tables, rows))
+    Ok(WorldsLoad {
+        tables,
+        rows,
+        authored_features: None,
+    })
 }
 
 // ── FromStr implementations for Key-tab enums ────────────────────────────────
@@ -1052,5 +1127,506 @@ impl AsRef<str> for NotableFeature {
 impl std::fmt::Display for NotableFeature {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
+    }
+}
+
+// ── Enum-authoritative variants + canonical display names ────────────────────
+//
+// `VARIANTS` exposes the compile-time-complete variant set for every enum, so
+// callers no longer need `key.csv` to know what choices exist. `display_name`
+// returns the canonical string form (matches `FromStr` keys, suitable for CSV
+// round-trip and GUI dropdown labels).
+
+impl StarColour {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::BlueHypergiant,
+        Self::BlueWhite,
+        Self::White,
+        Self::YellowWhite,
+        Self::Yellow,
+        Self::OrangeDwarf,
+        Self::RedDwarf,
+    ];
+    pub fn display_name(self) -> &'static str {
+        self.code()
+    }
+}
+
+impl WorldType {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::AgriWorld,
+        Self::Asteroid,
+        Self::BastionWorld,
+        Self::DeathWorld,
+        Self::DeadWorld,
+        Self::ExtractiveColony,
+        Self::FeralWorld,
+        Self::FeudalWorld,
+        Self::ForgeWorld,
+        Self::FrontierWorld,
+        Self::HiveWorld,
+        Self::ImperialWorld,
+        Self::IndustrialWorld,
+        Self::Orbital,
+        Self::PenalWorld,
+        Self::PlanetaryDump,
+        Self::PlanetaryMonument,
+        Self::PleasureWorld,
+        Self::ResearchStation,
+        Self::ShrineWorld,
+        Self::TombWorld,
+        Self::WarpLostWorld,
+        Self::Worldship,
+        Self::XenosWorld,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::AgriWorld => "Agri-World",
+            Self::Asteroid => "Asteroid",
+            Self::BastionWorld => "Bastion World",
+            Self::DeathWorld => "Death World",
+            Self::DeadWorld => "Dead World",
+            Self::ExtractiveColony => "Extractive Colony",
+            Self::FeralWorld => "Feral World",
+            Self::FeudalWorld => "Feudal World",
+            Self::ForgeWorld => "Forge World",
+            Self::FrontierWorld => "Frontier World",
+            Self::HiveWorld => "Hive World",
+            Self::ImperialWorld => "Imperial World",
+            Self::IndustrialWorld => "Industrial World",
+            Self::Orbital => "Orbital",
+            Self::PenalWorld => "Penal World",
+            Self::PlanetaryDump => "Planetary Dump",
+            Self::PlanetaryMonument => "Planetary Monument",
+            Self::PleasureWorld => "Pleasure World",
+            Self::ResearchStation => "Research Station",
+            Self::ShrineWorld => "Shrine World",
+            Self::TombWorld => "Tomb World",
+            Self::WarpLostWorld => "Warp-Lost World",
+            Self::Worldship => "Worldship",
+            Self::XenosWorld => "Xenos World",
+        }
+    }
+}
+
+impl Atmosphere {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Airless,
+        Self::Breathable,
+        Self::Corrosive,
+        Self::Exotic,
+        Self::Thin,
+        Self::Tainted,
+        Self::Toxic,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Airless => "Airless",
+            Self::Breathable => "Breathable",
+            Self::Corrosive => "Corrosive",
+            Self::Exotic => "Exotic",
+            Self::Thin => "Thin",
+            Self::Tainted => "Tainted",
+            Self::Toxic => "Toxic",
+        }
+    }
+}
+
+impl Temperature {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Freezing,
+        Self::Cold,
+        Self::Temperate,
+        Self::Hot,
+        Self::Boiling,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Freezing => "Freezing",
+            Self::Cold => "Cold",
+            Self::Temperate => "Temperate",
+            Self::Hot => "Hot",
+            Self::Boiling => "Boiling",
+        }
+    }
+}
+
+impl Biosphere {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Nonexistent,
+        Self::Minimal,
+        Self::Thriving,
+        Self::Poisoned,
+        Self::XenoHybrid,
+        Self::XenoDominance,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Nonexistent => "Nonexistent",
+            Self::Minimal => "Minimal",
+            Self::Thriving => "Thriving",
+            Self::Poisoned => "Poisoned",
+            Self::XenoHybrid => "Xeno Hybrid",
+            Self::XenoDominance => "Xeno Dominance",
+        }
+    }
+}
+
+impl Population {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Uninhabited,
+        Self::Minimal,
+        Self::LightlyPopulated,
+        Self::SoleSettlement,
+        Self::DenselyPopulated,
+        Self::ExtremelyDense,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Uninhabited => "Uninhabited",
+            Self::Minimal => "Minimal",
+            Self::LightlyPopulated => "Lightly Populated",
+            Self::SoleSettlement => "Sole Settlement",
+            Self::DenselyPopulated => "Densely Populated",
+            Self::ExtremelyDense => "Extremely Dense",
+        }
+    }
+}
+
+impl TechLevel {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Primitive,
+        Self::Low,
+        Self::Standard,
+        Self::High,
+        Self::XenoHybrid,
+        Self::Archaeotech,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Primitive => "Primitive",
+            Self::Low => "Low",
+            Self::Standard => "Standard",
+            Self::High => "High",
+            Self::XenoHybrid => "Xeno Hybrid",
+            Self::Archaeotech => "Archaeotech",
+        }
+    }
+}
+
+impl Government {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::BalkanizedLocalFactions,
+        Self::ChaosCult,
+        Self::ClansTribes,
+        Self::Communards,
+        Self::CorruptAristocrats,
+        Self::Demagogue,
+        Self::EcclesiarchicalAppointee,
+        Self::ElitistTyrant,
+        Self::ExploratorAuthority,
+        Self::GuildsCombine,
+        Self::Hereteks,
+        Self::HereticalImperialCult,
+        Self::InfractionistGang,
+        Self::LocalReligiousAuthorities,
+        Self::LoyalistMassMovement,
+        Self::MagistrateCouncil,
+        Self::MechanicusForgeLord,
+        Self::Megacorporations,
+        Self::MilitaryGovernor,
+        Self::None,
+        Self::PopulistTyrant,
+        Self::PuppetGovernment,
+        Self::RevolutionaryJunta,
+        Self::RogueTraderDynasty,
+        Self::ShadowyPsykerCabal,
+        Self::TraditionalOligarchy,
+        Self::TraditionalistAristocracy,
+        Self::Warlords,
+        Self::WarriorAristocracy,
+        Self::XenosOverlords,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::BalkanizedLocalFactions => "Balkanized Local Factions",
+            Self::ChaosCult => "Chaos Cult",
+            Self::ClansTribes => "Clans / Tribes",
+            Self::Communards => "Communards",
+            Self::CorruptAristocrats => "Corrupt Aristocrats",
+            Self::Demagogue => "Demagogue",
+            Self::EcclesiarchicalAppointee => "Ecclesiarchical Appointee",
+            Self::ElitistTyrant => "Elitist Tyrant",
+            Self::ExploratorAuthority => "Explorator Authority",
+            Self::GuildsCombine => "Guilds / Combines",
+            Self::Hereteks => "Hereteks",
+            Self::HereticalImperialCult => "Heretical Imperial Cult",
+            Self::InfractionistGang => "Infractionist Gang",
+            Self::LocalReligiousAuthorities => "Local Religious Authorities",
+            Self::LoyalistMassMovement => "Loyalist Mass Movement",
+            Self::MagistrateCouncil => "Magistrate Council",
+            Self::MechanicusForgeLord => "Mechanicus Forge-Lord",
+            Self::Megacorporations => "Megacorporations",
+            Self::MilitaryGovernor => "Military Governor",
+            Self::None => "None",
+            Self::PopulistTyrant => "Populist Tyrant",
+            Self::PuppetGovernment => "Puppet Government",
+            Self::RevolutionaryJunta => "Revolutionary Junta",
+            Self::RogueTraderDynasty => "Rogue Trader Dynasty",
+            Self::ShadowyPsykerCabal => "Shadowy Psyker Cabal",
+            Self::TraditionalOligarchy => "Traditional Oligarchy",
+            Self::TraditionalistAristocracy => "Traditionalist Aristocracy",
+            Self::Warlords => "Warlords",
+            Self::WarriorAristocracy => "Warrior Aristocracy",
+            Self::XenosOverlords => "Xenos Overlords",
+        }
+    }
+}
+
+impl NotableFeature {
+    pub const VARIANTS: &'static [Self] = &[
+        Self::Abhumans,
+        Self::AlteredHumans,
+        Self::AncientArchive,
+        Self::AncientTombs,
+        Self::ArchaeotechRuins,
+        Self::BlindingMists,
+        Self::CelestialPhenomena,
+        Self::ChaosCultists,
+        Self::CivilWar,
+        Self::ColdWar,
+        Self::CrumblingArcologies,
+        Self::DaemonicCorruption,
+        Self::DangerousWildlife,
+        Self::DesertWorld,
+        Self::DeviantReligion,
+        Self::EugenicCult,
+        Self::ExtremeEnvironment,
+        Self::FactionalFragmentation,
+        Self::FailedParadise,
+        Self::FlyingCities,
+        Self::ForbiddenTech,
+        Self::ForeignControl,
+        Self::FreakGeology,
+        Self::FreakWeather,
+        Self::Freeport,
+        Self::FriendlyXenos,
+        Self::FrozenWorld,
+        Self::GoldRush,
+        Self::GreatWork,
+        Self::HeavyIndustry,
+        Self::HeavyMining,
+        Self::Hereteks,
+        Self::HolyWar,
+        Self::HostileBiosphere,
+        Self::HostileXenos,
+        Self::ImpendingDoom,
+        Self::ImperialKnights,
+        Self::ImportantShrine,
+        Self::InquisitionOutpost,
+        Self::JungleWorld,
+        Self::Libertines,
+        Self::LocalSpecialty,
+        Self::LocalTech,
+        Self::MajorSpaceyard,
+        Self::MartialLaw,
+        Self::MassPanic,
+        Self::MinimalContact,
+        Self::Missionaries,
+        Self::MutantHordes,
+        Self::NavalBlockade,
+        Self::NavalOutpost,
+        Self::NavigatorHouse,
+        Self::NomadicCities,
+        Self::NotableLocal,
+        Self::OceanWorld,
+        Self::OutOfContact,
+        Self::Pandemic,
+        Self::PilgrimageSite,
+        Self::PocketEmpire,
+        Self::PoliceState,
+        Self::PopularUprising,
+        Self::PowerfulCriminals,
+        Self::PowerfulNobles,
+        Self::PrimitiveXenos,
+        Self::Prosperous,
+        Self::PsykerAcademy,
+        Self::PsykerCult,
+        Self::Quarantined,
+        Self::Radioactive,
+        Self::RecentlyRediscovered,
+        Self::ScholaProgenium,
+        Self::SeagoingCities,
+        Self::SealedMenace,
+        Self::SecretMasters,
+        Self::Sectarians,
+        Self::SeismicInstability,
+        Self::Separatists,
+        Self::SilicaAnimus,
+        Self::SoleSuppliers,
+        Self::SororitasConvent,
+        Self::SpaceHulks,
+        Self::StrangeCustoms,
+        Self::StrangeHatred,
+        Self::SubsectorHegemon,
+        Self::TechPriestCult,
+        Self::TestSite,
+        Self::TheSilentTrade,
+        Self::TradeHub,
+        Self::AdministrativeHub,
+        Self::UnmappedWastes,
+        Self::VastFortresses,
+        Self::VerdantEcology,
+        Self::WarZone,
+        Self::WarpPhenomena,
+        Self::WitchHunt,
+        Self::XenoRuins,
+        Self::Xenophiles,
+        Self::Xenophobes,
+        Self::XenosInfiltrators,
+        Self::Zombies,
+    ];
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Abhumans => "Abhumans",
+            Self::AlteredHumans => "Altered Humans",
+            Self::AncientArchive => "Ancient Archive",
+            Self::AncientTombs => "Ancient Tombs",
+            Self::ArchaeotechRuins => "Archaeotech Ruins",
+            Self::BlindingMists => "Blinding Mists",
+            Self::CelestialPhenomena => "Celestial Phenomena",
+            Self::ChaosCultists => "Chaos Cultists",
+            Self::CivilWar => "Civil War",
+            Self::ColdWar => "Cold War",
+            Self::CrumblingArcologies => "Crumbling Arcologies",
+            Self::DaemonicCorruption => "Daemonic Corruption",
+            Self::DangerousWildlife => "Dangerous Wildlife",
+            Self::DesertWorld => "Desert World",
+            Self::DeviantReligion => "Deviant Religion",
+            Self::EugenicCult => "Eugenic Cult",
+            Self::ExtremeEnvironment => "Extreme Environment",
+            Self::FactionalFragmentation => "Factional Fragmentation",
+            Self::FailedParadise => "Failed Paradise",
+            Self::FlyingCities => "Flying Cities",
+            Self::ForbiddenTech => "Forbidden Tech",
+            Self::ForeignControl => "Foreign Control",
+            Self::FreakGeology => "Freak Geology",
+            Self::FreakWeather => "Freak Weather",
+            Self::Freeport => "Freeport",
+            Self::FriendlyXenos => "Friendly Xenos",
+            Self::FrozenWorld => "Frozen World",
+            Self::GoldRush => "Gold Rush",
+            Self::GreatWork => "Great Work",
+            Self::HeavyIndustry => "Heavy Industry",
+            Self::HeavyMining => "Heavy Mining",
+            Self::Hereteks => "Hereteks",
+            Self::HolyWar => "Holy War",
+            Self::HostileBiosphere => "Hostile Biosphere",
+            Self::HostileXenos => "Hostile Xenos",
+            Self::ImpendingDoom => "Impending Doom",
+            Self::ImperialKnights => "Imperial Knights",
+            Self::ImportantShrine => "Important Shrine",
+            Self::InquisitionOutpost => "Inquisition Outpost",
+            Self::JungleWorld => "Jungle World",
+            Self::Libertines => "Libertines",
+            Self::LocalSpecialty => "Local Specialty",
+            Self::LocalTech => "Local Tech",
+            Self::MajorSpaceyard => "Major Spaceyard",
+            Self::MartialLaw => "Martial Law",
+            Self::MassPanic => "Mass Panic",
+            Self::MinimalContact => "Minimal Contact",
+            Self::Missionaries => "Missionaries",
+            Self::MutantHordes => "Mutant Hordes",
+            Self::NavalBlockade => "Naval Blockade",
+            Self::NavalOutpost => "Naval Outpost",
+            Self::NavigatorHouse => "Navigator House",
+            Self::NomadicCities => "Nomadic Cities",
+            Self::NotableLocal => "Notable Local",
+            Self::OceanWorld => "Ocean World",
+            Self::OutOfContact => "Out of Contact",
+            Self::Pandemic => "Pandemic",
+            Self::PilgrimageSite => "Pilgrimage Site",
+            Self::PocketEmpire => "Pocket Empire",
+            Self::PoliceState => "Police State",
+            Self::PopularUprising => "Popular Uprising",
+            Self::PowerfulCriminals => "Powerful Criminals",
+            Self::PowerfulNobles => "Powerful Nobles",
+            Self::PrimitiveXenos => "Primitive Xenos",
+            Self::Prosperous => "Prosperous",
+            Self::PsykerAcademy => "Psyker Academy",
+            Self::PsykerCult => "Psyker Cult",
+            Self::Quarantined => "Quarantined",
+            Self::Radioactive => "Radioactive",
+            Self::RecentlyRediscovered => "Recently Rediscovered",
+            Self::ScholaProgenium => "Schola Progenium",
+            Self::SeagoingCities => "Seagoing Cities",
+            Self::SealedMenace => "Sealed Menace",
+            Self::SecretMasters => "Secret Masters",
+            Self::Sectarians => "Sectarians",
+            Self::SeismicInstability => "Seismic Instability",
+            Self::Separatists => "Separatists",
+            Self::SilicaAnimus => "Silica Animus",
+            Self::SoleSuppliers => "Sole Suppliers",
+            Self::SororitasConvent => "Sororitas Convent",
+            Self::SpaceHulks => "Space Hulks",
+            Self::StrangeCustoms => "Strange Customs",
+            Self::StrangeHatred => "Strange Hatred",
+            Self::SubsectorHegemon => "Subsector Hegemon",
+            Self::TechPriestCult => "Tech-Priest Cult",
+            Self::TestSite => "Test Site",
+            Self::TheSilentTrade => "The Silent Trade",
+            Self::TradeHub => "Trade Hub",
+            Self::AdministrativeHub => "Administrative Hub",
+            Self::UnmappedWastes => "Unmapped Wastes",
+            Self::VastFortresses => "Vast Fortresses",
+            Self::VerdantEcology => "Verdant Ecology",
+            Self::WarZone => "War Zone",
+            Self::WarpPhenomena => "Warp Phenomena",
+            Self::WitchHunt => "Witch Hunt",
+            Self::XenoRuins => "Xeno Ruins",
+            Self::Xenophiles => "Xenophiles",
+            Self::Xenophobes => "Xenophobes",
+            Self::XenosInfiltrators => "Xenos Infiltrators",
+            Self::Zombies => "Zombies",
+        }
+    }
+}
+
+impl KeyTables {
+    /// Build a complete key table from the compiled enum variant set.
+    ///
+    /// Use this when `key.csv` is absent — the enums are authoritative,
+    /// so the lookup map can always be reconstructed from `VARIANTS`.
+    pub fn from_enums() -> Self {
+        let mut t = Self::default();
+        for v in StarColour::VARIANTS {
+            t.star_colours.insert(v.display_name().to_owned(), *v);
+        }
+        for v in WorldType::VARIANTS {
+            t.world_types.insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in Atmosphere::VARIANTS {
+            t.atmospheres.insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in Temperature::VARIANTS {
+            t.temperatures
+                .insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in Biosphere::VARIANTS {
+            t.biospheres.insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in Population::VARIANTS {
+            t.populations.insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in TechLevel::VARIANTS {
+            t.tech_levels.insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in Government::VARIANTS {
+            t.governments.insert(v.display_name().to_owned(), v.clone());
+        }
+        for v in NotableFeature::VARIANTS {
+            t.notable_features.push(v.display_name().to_owned());
+        }
+        t
     }
 }

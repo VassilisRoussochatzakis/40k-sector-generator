@@ -230,28 +230,66 @@ D6.   [DONE] Implement `Serialize/Deserialize` for `BuilderState` so the in-prog
 5. PROJECT + I/O TASKS
 ================================================================================
 
-P1.   New project wizard: blank project at `<dir>/`, writes default
-      `sectorforge.toml`, empty `worlds.toml`, optional preset overlay. Reuse
-      `src/presets.rs` scaffold logic via a new
-      `presets::scaffold_to_dir(preset_id, dst, seed_override)` helper.
+P1.   [DONE] New project wizard: blank project at `<dir>/`, writes default
+      `sectorforge.toml`, empty `worlds.toml`, optional preset overlay.
+      `presets::scaffold_to_dir(preset_id, dst, seed_override)` helper added
+      in `src/presets.rs`. Wizard panel in
+      `gui/src/builder/panels/new_project.rs` drives
+      `project_io::new_project` which scaffolds the directory and loads it
+      back via the §P2 path so the in-memory state is identical to a fresh
+      open.
 
-P2.   Open project: parse `sectorforge.toml` via `src/config.rs`, load all
-      referenced files, populate `BuilderState`. Surface parse errors per
-      file with line number (use `toml` crate's `span()` API).
+P2.   [DONE] Open project: parse `sectorforge.toml` via
+      `sectorforge::input::load_project`, load all referenced files (worlds,
+      names, factions, route_rules, relations, regions, economy, history)
+      into `BuilderState::data_catalogs`. Sector loaded from
+      `<outputs.directory>/sector.json` when present, else blank empty
+      sector matching dimensions. Parse errors surface as
+      `BuilderError::ParseFailed { file, message }` — `toml` crate's
+      messages already carry `line N, column M` info. Picker panel in
+      `gui/src/builder/panels/open_project.rs`.
 
-P3.   Save project: write back every file the builder edited. Compute
-      manifest digests as in `src/export.rs::write_manifest`. Single
-      atomic write per file via `tempfile::NamedTempFile::persist`.
+P3.   [DONE] Save project: writes sectorforge.toml + every present catalog
+      back under the project root, then `<outputs>/sector.json` and (when
+      `write_manifest` is true) `<outputs>/manifest.json`. Each write is
+      atomic via tmp + rename (R9 forbids new crates so we don't use
+      `tempfile::NamedTempFile::persist`; the strategy is the same).
+      Manifest input_digests are updated in-place to mirror the files we
+      just wrote. Action panel in
+      `gui/src/builder/panels/save_project.rs` exposes Save and Save-as
+      buttons.
 
-P4.   Project tree view (new tab `PROJECT`): treeview of the project dir,
-      indicate dirty files, click-to-open in panel editor.
+P4.   [DONE] Project tree view (new tab `PROJECT`).
+      `gui/src/builder/panels/project_tree.rs` renders a collapsible
+      directory tree rooted at `BuilderState::project_path`. Folders
+      sort-first then alpha; hidden (`.<name>`) entries skipped. Files
+      already marked in `BuilderState::dirty_files` render with a leading
+      "● " in yellow. Click sets `BuilderState::selected_file` —
+      the §PF2 TOML editor tabs (Phase E) will read it to decide which
+      buffer to open.
 
-P5.   File watcher: re-read `sectorforge.toml` and data files on external
-      change (use `notify` crate — already? if not, propose addition).
-      Conflict resolver dialog if the in-builder buffer is dirty.
+P5.   [DONE] File watcher.
+      `gui/src/builder/file_watcher.rs` spawns an mtime-polling thread
+      (R9 forbids new crates so we don't take the suggested `notify` dep).
+      The watcher samples every file the loader hashed at open-time,
+      ticks at 1 Hz, and posts `FileChange { rel_path, mtime }` via
+      `mpsc`. The main UI loop drains via
+      `project_io::drain_watcher_events`: when the in-memory buffer is
+      clean it silently re-parses the affected catalog via
+      `project_io::reload_catalog`; when dirty (global `state.dirty` or
+      the file is in `dirty_files`) it raises
+      `ModalKind::ConflictResolver { rel_path }` and the
+      `panels/conflict_resolver.rs` dialog offers Reload-from-disk or
+      Keep-in-memory.
 
-P6.   Recent projects list in `Preferences` (toml at
-      `~/.config/sectorforge/preferences.toml`).
+P6.   [DONE] Recent projects list in Preferences.
+      `gui/src/builder/preferences.rs::Preferences` (`recent_projects:
+      Vec<Utf8PathBuf>`) round-trips via
+      `~/.config/sectorforge/preferences.toml`. Loaders tolerate missing
+      or malformed files. `push_recent` dedupes + bumps to front,
+      truncates to 10. Wired into `open_project` and `save_project_as` so
+      every successful project hit lands at the top of the MRU. UI lives
+      in `panels/preferences.rs` — click an entry to open it.
 
 ================================================================================
 6. GENERATION CONFIG
@@ -1093,7 +1131,7 @@ done), index pre-build, `mem::take` for vec rotations,
 Phase A — Foundation
   D1..D6 - DONE
   R1..R10 - DONE
-  P1..P3,
+  P1..P3 - DONE
   U1..U2,
   V1..V3,
   N1..N4.

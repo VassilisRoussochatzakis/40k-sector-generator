@@ -230,11 +230,24 @@ impl App {
             .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
             .show_inside(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    if ui.button(RichText::new(if self.info_panel_open { "◀ PANEL" } else { "PANEL ▶" }).monospace()).clicked() {
+                    if ui
+                        .button(
+                            RichText::new(if self.info_panel_open {
+                                "◀ PANEL"
+                            } else {
+                                "PANEL ▶"
+                            })
+                            .monospace(),
+                        )
+                        .clicked()
+                    {
                         self.info_panel_open = !self.info_panel_open;
                     }
                     ui.separator();
-                    if ui.button(RichText::new("ZOOM TO FIT").monospace()).clicked() {
+                    if ui
+                        .button(RichText::new("ZOOM TO FIT").monospace())
+                        .clicked()
+                    {
                         self.zoom_to_fit();
                     }
                     ui.separator();
@@ -348,7 +361,7 @@ impl App {
             .get_or_compute(&sector, self.heatmap_mode);
 
         let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
-        
+
         // Handle zooming
         let mut zoom_delta = ui.input(|i| i.zoom_delta());
         if zoom_delta == 1.0 && response.hovered() {
@@ -364,7 +377,7 @@ impl App {
                 let old_zoom = self.sector_hex_size;
                 self.sector_hex_size = (self.sector_hex_size * zoom_delta).clamp(5.0, 250.0);
                 let actual_delta = self.sector_hex_size / old_zoom;
-                
+
                 // Adjust pan to keep mouse over the same map point
                 let map_origin = rect.min + self.sector_pan;
                 self.sector_pan = (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
@@ -620,7 +633,7 @@ impl App {
         if let Some(sector) = self.sector.as_mut() {
             let sector = Arc::make_mut(sector);
             let (sys_map, _world_map) = sector.reindex_ids(self.editor.stable_ids_on_rename);
-            
+
             // Update selection if IDs changed
             if let Some(sel) = self.sector_selected.as_ref() {
                 if let Some(new_id) = sys_map.get(sel.as_str()) {
@@ -637,10 +650,10 @@ impl App {
                 // Actually, reindex_ids already updated route IDs in the sector.
                 // We just need to find the new route ID for the current selection.
                 // But route_id is deterministic. If from/to changed, we can re-derive it.
-                // For now, let's just clear route selection if it's too complex, 
+                // For now, let's just clear route selection if it's too complex,
                 // or just re-find it.
             }
-            
+
             Self::refresh_live_manifest_counts(sector);
             self.subsectors =
                 sectorforge::subsectors::build_subsectors(sector, SubsectorConfig::default())

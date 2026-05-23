@@ -257,6 +257,45 @@ pub fn preset_path(presets_dir: &Utf8Path, preset_id: &str) -> Utf8PathBuf {
     presets_dir.join(preset_id)
 }
 
+/// Default presets directory used when callers do not supply one explicitly.
+/// Resolves first to `./presets`, falling back to a path next to the current
+/// executable. Used by [`scaffold_to_dir`] and the GUI builder wizard
+/// (BUILDER_REQS §P1).
+#[must_use]
+pub fn default_presets_dir() -> Utf8PathBuf {
+    let local = Utf8PathBuf::from("presets");
+    if local.is_dir() {
+        return local;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            if let Ok(p) = Utf8PathBuf::from_path_buf(parent.join("presets")) {
+                if p.is_dir() {
+                    return p;
+                }
+            }
+        }
+    }
+    local
+}
+
+/// Thin wrapper over [`scaffold`] that resolves the presets directory via
+/// [`default_presets_dir`]. Per BUILDER_REQS §P1 the GUI builder wizard uses
+/// this helper so callers don't have to thread the presets path through
+/// every entry point.
+///
+/// # Errors
+///
+/// Forwards every error from [`scaffold`].
+pub fn scaffold_to_dir(
+    preset_id: &str,
+    dest: &Utf8Path,
+    seed_override: Option<&str>,
+) -> Result<(), SectorError> {
+    let presets_dir = default_presets_dir();
+    scaffold(&presets_dir, preset_id, dest, seed_override)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

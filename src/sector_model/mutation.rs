@@ -61,13 +61,7 @@ impl GeneratedSector {
         if self.systems.iter().any(|s| s.coord == coord) {
             return Err(MutationError::CoordOccupied(coord));
         }
-        let index = self
-            .systems
-            .iter()
-            .map(|s| s.index)
-            .max()
-            .unwrap_or(0)
-            + 1;
+        let index = self.systems.iter().map(|s| s.index).max().unwrap_or(0) + 1;
         let id = system_id(index);
         self.systems
             .push(GeneratedSystem::new_at(id.clone(), index, coord, name));
@@ -616,9 +610,7 @@ impl GeneratedSector {
         }
     }
 
-    fn reindex_sequential(
-        &mut self,
-    ) -> (BTreeMap<String, String>, BTreeMap<String, String>) {
+    fn reindex_sequential(&mut self) -> (BTreeMap<String, String>, BTreeMap<String, String>) {
         let mut old_to_new_sys = BTreeMap::new();
         let mut old_to_new_world = BTreeMap::new();
 
@@ -651,13 +643,7 @@ impl GeneratedSector {
     }
 
     fn reindex_stable(&mut self) -> (BTreeMap<String, String>, BTreeMap<String, String>) {
-        let mut next_sys_index = self
-            .systems
-            .iter()
-            .map(|s| s.index)
-            .max()
-            .unwrap_or(0)
-            + 1;
+        let mut next_sys_index = self.systems.iter().map(|s| s.index).max().unwrap_or(0) + 1;
 
         let old_to_new_sys = BTreeMap::new();
         let old_to_new_world = BTreeMap::new();
@@ -670,13 +656,7 @@ impl GeneratedSector {
                 next_sys_index += 1;
             }
 
-            let mut next_world_index = sys
-                .worlds
-                .iter()
-                .map(|w| w.index)
-                .max()
-                .unwrap_or(0)
-                + 1;
+            let mut next_world_index = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
 
             for world in &mut sys.worlds {
                 if world.id.is_empty() || world.index == 0 {
@@ -801,6 +781,9 @@ mod tests {
         s.systems[0].id = SystemId::new("sys-0099");
         s.reindex_ids(false);
         assert!(s.id_history.contains_key("sys-0099"));
-        assert_eq!(s.id_history.get("sys-0099").map(String::as_str), Some("sys-0001"));
+        assert_eq!(
+            s.id_history.get("sys-0099").map(String::as_str),
+            Some("sys-0001")
+        );
     }
 }

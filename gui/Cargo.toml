@@ -17,6 +17,9 @@ egui = "0.29"
 rfd = "0.17"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
+[dev-dependencies]
+tempfile = "3"
+
 [[bin]]
 name = "sectorforge-gui"
 path = "src/main.rs"

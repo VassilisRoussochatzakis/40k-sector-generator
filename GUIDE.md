@@ -1585,6 +1585,40 @@ mismatched versions explicitly rather than partially decoding.
 | R9 no new crates | [gui/Cargo.toml](gui/Cargo.toml) unchanged; cache helper reuses the workspace `blake3` dep via `sectorforge::rng`. |
 | R10 panel contract | [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
 
+#### P1–P3 project I/O (DONE)
+
+The builder owns its on-disk lifecycle through one helper module plus three
+small panels. Atomic writes use a sibling `tmp + rename` so R9 holds (no
+new crate, same crash-safety guarantee `tempfile::NamedTempFile::persist`
+gives).
+
+| Step | Module |
+|---|---|
+| §P1 scaffold | [src/presets.rs](src/presets.rs) `scaffold_to_dir(preset_id, dest, seed_override)` resolves the default `presets/` directory (or the one next to the binary) and forwards to the existing `scaffold`. |
+| §P1 wizard panel | [gui/src/builder/panels/new_project.rs](gui/src/builder/panels/new_project.rs) drives `ModalKind::NewProject`. Confirm path calls `project_io::new_project`, which writes a default `sectorforge.toml` plus an empty `data/worlds/worlds.toml` (or runs the preset overlay when picked) and reloads the project via the standard §P2 path so the in-memory state is identical to a fresh open. |
+| §P2 loader | [gui/src/builder/project_io.rs](gui/src/builder/project_io.rs) `open_project(project_dir)` calls `sectorforge::input::load_project`, populates `BuilderState::data_catalogs` from every catalog the loader returned, and loads `<outputs.directory>/sector.json` when present (empty sector at config dims otherwise). `SectorError::ConfigParse { path, message }` is mapped to `BuilderError::ParseFailed { file, message }` so line numbers from the `toml` crate flow through. |
+| §P2 picker panel | [gui/src/builder/panels/open_project.rs](gui/src/builder/panels/open_project.rs) opens an `rfd::FileDialog::pick_folder` and surfaces failures via `ModalKind::Message`. |
+| §P3 saver | [gui/src/builder/project_io.rs](gui/src/builder/project_io.rs) `save_project` / `save_project_as`. Writes `sectorforge.toml` always; writes each catalog only when `state.config.inputs.<key>` actually references it (mirrors the load path). After every write, updates `state.sector.manifest.input_digests` so the manifest matches the file we just put on disk; the sector + manifest then go under `<outputs.directory>/`. Every file write is atomic via `atomic_write` (writes to `.<name>.tmp.<pid>` then `fs::rename`). |
+| §P3 action panel | [gui/src/builder/panels/save_project.rs](gui/src/builder/panels/save_project.rs) Save + Save-as buttons; "Save" is gated on a known `project_path`, "Save-as" opens the folder picker. |
+| §P4 PROJECT tree | [gui/src/builder/panels/project_tree.rs](gui/src/builder/panels/project_tree.rs) — collapsible directory tree rooted at `state.project_path`, dirty marker ("● " yellow) for files in `state.dirty_files`, click selects `state.selected_file`. |
+| §P5 watcher | [gui/src/builder/file_watcher.rs](gui/src/builder/file_watcher.rs) — mtime-polling thread (1 Hz) + `mpsc` channel + `AtomicBool` cancel (Drop joins). R9 forbids `notify`; polling matches the spec's reload + conflict-resolver behaviour. |
+| §P5 drain | `project_io::drain_watcher_events` — called from the UI loop. Clean buffers reload silently via `reload_catalog`; dirty buffers raise `ModalKind::ConflictResolver`. |
+| §P5 resolver panel | [gui/src/builder/panels/conflict_resolver.rs](gui/src/builder/panels/conflict_resolver.rs) — Reload-from-disk or Keep-in-memory. |
+| §P6 preferences store | [gui/src/builder/preferences.rs](gui/src/builder/preferences.rs) — `Preferences { recent_projects }` persisted at `~/.config/sectorforge/preferences.toml`. Tolerant loader; `push_recent` dedupes + caps to 10. |
+| §P6 preferences panel | [gui/src/builder/panels/preferences.rs](gui/src/builder/panels/preferences.rs) — click-to-open MRU + per-entry remove. |
+
+Tests in `gui/src/builder/project_io.rs`:
+
+* `new_project_blank_round_trips` — scaffolds a blank project, asserts the
+  two required files exist and the in-memory state matches the requested
+  dimensions / id.
+* `open_then_save_creates_files_and_digests` — round-trips through save,
+  asserts `out/sector.json` + `out/manifest.json` exist and that every
+  input_digest carries the `blake3:` prefix.
+* `open_project_surfaces_toml_parse_errors_with_line` — feeds invalid TOML
+  and asserts the resulting `BuilderError::ParseFailed.message` contains
+  the `toml` crate's `line` info.
+
 ---
 
 ## 9. Library use
@@ -1912,7 +1946,17 @@ across runs, so a regression check is a diff away.
 | [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
 | [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
 | [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
+| [gui/src/builder/project_io.rs](gui/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes, manifest digest refresh |
+| [gui/src/builder/panels/new_project.rs](gui/src/builder/panels/new_project.rs) | §P1 wizard panel driving `ModalKind::NewProject` |
+| [gui/src/builder/panels/open_project.rs](gui/src/builder/panels/open_project.rs) | §P2 folder-picker panel calling `project_io::open_project` |
+| [gui/src/builder/panels/save_project.rs](gui/src/builder/panels/save_project.rs) | §P3 Save + Save-as action panel |
+| [gui/src/builder/panels/project_tree.rs](gui/src/builder/panels/project_tree.rs) | §P4 PROJECT directory tree, dirty markers, selected-file router |
+| [gui/src/builder/file_watcher.rs](gui/src/builder/file_watcher.rs) | §P5 mtime-polling external-change watcher (no `notify` dep — R9) |
+| [gui/src/builder/panels/conflict_resolver.rs](gui/src/builder/panels/conflict_resolver.rs) | §P5 Reload / Keep dialog when watcher detects external change against dirty buffer |
+| [gui/src/builder/preferences.rs](gui/src/builder/preferences.rs) | §P6 `Preferences` store at `~/.config/sectorforge/preferences.toml` — recent-projects MRU |
+| [gui/src/builder/panels/preferences.rs](gui/src/builder/panels/preferences.rs) | §P6 Preferences panel with click-to-open recent-projects list |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
+| [src/presets.rs](src/presets.rs) | Adds `scaffold_to_dir(preset_id, dest, seed_override)` for §P1 — default `presets/` resolution + binary-adjacent fallback |
 
 ## 14. Build & performance
 

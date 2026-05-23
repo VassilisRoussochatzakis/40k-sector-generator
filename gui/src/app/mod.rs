@@ -187,7 +187,10 @@ impl eframe::App for App {
                     sectorforge::subsectors::SubsectorConfig::default(),
                 )
                 .unwrap_or_default();
-                self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(sec, &self.subsectors));
+                self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(
+                    sec,
+                    &self.subsectors,
+                ));
                 self.dashboard.invalidate();
                 self.heatmap_cache.invalidate();
                 self.sector_overview_cache.invalidate();

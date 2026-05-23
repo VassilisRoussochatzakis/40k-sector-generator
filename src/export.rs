@@ -299,4 +299,3 @@ fn write_markdown(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(),
     fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
     Ok(())
 }
-

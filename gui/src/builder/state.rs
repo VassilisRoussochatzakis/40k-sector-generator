@@ -21,7 +21,7 @@
 //! raw string IDs across boundaries. Modal state lives in
 //! [`BuilderState::modal`].
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use camino::Utf8PathBuf;
@@ -36,6 +36,7 @@ use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
 use super::derivation_cache::DerivationCache;
 use super::errors::BuilderError;
+use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
 use super::snapshot::Snapshot;
 
@@ -63,6 +64,14 @@ pub enum ModalKind {
         snapshot_name: String,
     },
     Message(String),
+    /// §P5: an external file change was detected and the in-memory buffer is
+    /// dirty. The user must decide whether to reload from disk (losing the
+    /// in-memory edits) or keep the in-memory buffer (potentially overwriting
+    /// the on-disk version on the next save).
+    ConflictResolver {
+        /// Project-relative path of the file that changed.
+        rel_path: String,
+    },
 }
 
 /// Generic job handle the builder tracks for off-thread work (§47).
@@ -96,6 +105,20 @@ pub struct BuilderState {
     /// §49: when true, structural renumbers prefer the stable mode that
     /// preserves existing IDs.
     pub stable_ids_on_rename: bool,
+    /// §P4: per-file dirty markers keyed by project-relative path. Populated
+    /// by panels that edit individual catalogs and cleared on save.
+    pub dirty_files: BTreeSet<String>,
+    /// §P4: file currently selected in the PROJECT tree. Optional — Phase E's
+    /// TOML editor tabs (§PF2) will read this to decide which buffer to open.
+    pub selected_file: Option<Utf8PathBuf>,
+    /// §P4 + §P5: project-relative mtime snapshot taken at load time. The
+    /// file watcher uses this baseline to spot external changes; the tree
+    /// view uses it to draw the "● dirty" marker when the catalog mirror
+    /// diverges from disk.
+    pub file_mtimes: BTreeMap<String, std::time::SystemTime>,
+    /// §P5: background watcher polling the project directory for external
+    /// changes. `None` when no project is open.
+    pub file_watcher: Option<FileWatcher>,
 }
 
 impl BuilderState {
@@ -122,6 +145,10 @@ impl BuilderState {
             modal: None,
             pending_jobs: Vec::new(),
             stable_ids_on_rename: true,
+            dirty_files: BTreeSet::new(),
+            selected_file: None,
+            file_mtimes: BTreeMap::new(),
+            file_watcher: None,
         }
     }
 

@@ -117,6 +117,10 @@ impl SessionFile {
             modal: None,
             pending_jobs: Vec::new(),
             stable_ids_on_rename: self.stable_ids_on_rename,
+            dirty_files: std::collections::BTreeSet::new(),
+            selected_file: None,
+            file_mtimes: std::collections::BTreeMap::new(),
+            file_watcher: None,
         }
     }
 }
@@ -151,8 +155,7 @@ pub fn load_session(path: &Path) -> Result<BuilderState, BuilderError> {
 // carry arbitrary bytes — including TOML, JSON, or binaries — without adding
 // a `base64` crate (R9: no new crates).
 
-const ALPHABET: &[u8; 64] =
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 pub fn encode_base64(bytes: &[u8]) -> String {
     let mut out = String::with_capacity((bytes.len() + 2) / 3 * 4);

@@ -19,7 +19,10 @@ impl App {
         self.sector_source_path = source_path.as_ref().map(PathBuf::from);
         self.live_dirty = false;
         self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
-        self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(&sector, &self.subsectors));
+        self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(
+            &sector,
+            &self.subsectors,
+        ));
         self.sector = Some(Arc::new(sector.clone()));
         self.sector_selected = None;
         self.sector_selected_route = None;

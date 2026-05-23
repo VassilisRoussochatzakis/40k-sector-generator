@@ -285,11 +285,10 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
             });
         }
     });
-if changed && state.auto_generate {
-    state.preview_timer = Some(ui.ctx().input(|i| i.time) + 0.2);
-} else if changed {
-    // Clear any stale preview if manual mode changed something
-    state.preview_sector = None;
+    if changed && state.auto_generate {
+        state.preview_timer = Some(ui.ctx().input(|i| i.time) + 0.2);
+    } else if changed {
+        // Clear any stale preview if manual mode changed something
+        state.preview_sector = None;
+    }
 }
-}
-

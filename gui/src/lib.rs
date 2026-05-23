@@ -19,4 +19,4 @@ pub mod segmentum_view;
 pub mod system_view;
 
 pub use app::App;
-pub use jobs::{JobHandle, JobContext, spawn_job};
+pub use jobs::{spawn_job, JobContext, JobHandle};

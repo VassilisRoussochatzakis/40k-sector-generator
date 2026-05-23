@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{channel, Receiver};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 /// Handle to a background job.
@@ -27,12 +27,7 @@ impl<T> JobHandle<T> {
 }
 
 /// Helper to spawn a job and return a handle.
-pub fn spawn_job<T, F>(
-    id: &str,
-    description: &str,
-    ctx: egui::Context,
-    f: F,
-) -> JobHandle<T>
+pub fn spawn_job<T, F>(id: &str, description: &str, ctx: egui::Context, f: F) -> JobHandle<T>
 where
     T: Send + 'static,
     F: FnOnce(JobContext) -> T + Send + 'static,

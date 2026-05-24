@@ -3,11 +3,17 @@
 # Target crate moved 2026-05-24 from sectorforge-gui to sectorforge-builder.
 # References to gui/src/builder/ in older revisions now point to
 # builder/src/builder/.
-# Target crate: sectorforge-builder (builder/src/)
+# Target app/crate: sectorforge-builder (builder/src/)
+# Viewer/editor app/crate: sectorforge-gui (gui/src/) -- no builder panels live here.
+# Shared egui utility crate: sectorforge-gui-core (gui-core/src/).
 # Backing crate: sectorforge (src/)
+# Handoff contract: builder writes a project directory; viewer opens the same
+# project via `sectorforge-gui --project <dir>` / `cargo sgui --project <dir>`.
+# No in-process builder embedding in sectorforge-gui, no IPC, no shared memory.
 # Goal: user constructs an arbitrary sector from scratch, system-by-system,
-#       through the GUI alone, with access to every CLI/library feature that
-#       affects sector data, derived overlays, validation, or export.
+#       through the dedicated builder GUI alone, with access to every
+#       CLI/library feature that affects sector data, derived overlays,
+#       validation, or export.
 
 ================================================================================
 0. SCOPE
@@ -24,7 +30,7 @@ The builder must let a user:
     segmentum.toml, worlds.toml).
   * Invoke every derivation pipeline (search, history, personae, hooks,
     relations, regions, economy, prose, missions, sites, briefing,
-    interestingness, analyze, diff, compose) without leaving the GUI.
+    interestingness, analyze, diff, compose) without leaving the builder app.
   * Validate (pre + post invariants) and see errors anchored to the
     offending entity in the model.
   * Export every artifact (JSON, Markdown, sector PNG, per-system PNG,
@@ -34,6 +40,36 @@ The builder must let a user:
 
 This document is a checklist. Each item is a separate, testable unit. The
 ordering inside a section is roughly dependency-first.
+
+================================================================================
+0.1. APP BOUNDARY CONTRACT
+================================================================================
+
+B0.   `sectorforge-builder` is the only target app for this checklist. All new
+      builder panels, modals, workspace state, command routing, project I/O,
+      and builder-specific tests belong under `builder/src/`.
+
+B1.   `sectorforge-gui` remains the viewer/editor for generated sectors. It may
+      keep legacy viewer/editor affordances (sector load, direct sector edit,
+      data editor, export UI), but it must not regain `BuilderState`,
+      `BuilderWorkspace`, `BuilderCommand`, or `builder/src/builder/panels/*`.
+
+B2.   `sectorforge-gui-core` is the only shared GUI crate. Put reusable,
+      app-neutral egui helpers here (jobs, palette, read-only sector/system
+      widgets, info formatting, heatmap wrappers). Do not make `gui-core`
+      depend on `sectorforge-gui` or `sectorforge-builder`.
+
+B3.   Builder -> viewer integration is file-based. `sectorforge-builder` saves
+      `sectorforge.toml`, referenced catalogs, `<outputs.directory>/sector.json`,
+      and manifest data. `sectorforge-gui --project <dir>` loads/reloads those
+      files through its normal project path. Any "open in viewer" affordance
+      should spawn `sectorforge-gui --project <dir>` as an external process.
+
+B4.   Canonical launch commands:
+        Builder: `cargo sbuild --project <dir>`
+        Builder help: `cargo run -p sectorforge-builder -- --help`
+        Viewer/editor: `cargo sgui --project <dir>`
+      Tests and smoke docs should name the app being launched.
 
 ================================================================================
 1. RUST ARCHITECTURE PRINCIPLES
@@ -86,10 +122,12 @@ R8.   [DONE] `builder/src/builder/command.rs::tests::command_log_determinism_bla
       replays a fixed `BuilderCommand` sequence twice and asserts the
       `digest_bytes(serde_json::to_vec(&sector))` hex is equal across runs.
 
-R9.   [DONE] Audited `gui/Cargo.toml` — no new crates added. The cache
-      helper reuses the existing `blake3` dep through
-      `sectorforge::rng::digest_bytes` so the GUI crate does not need a
-      direct dependency.
+R9.   [DONE] Crate-boundary audit after the split:
+      `sectorforge-gui` has no builder dependency and no builder module;
+      builder-only dependencies live in `builder/Cargo.toml`;
+      shared egui dependencies live in `gui-core/Cargo.toml`;
+      cache helpers reuse `sectorforge::rng::digest_bytes`, so neither GUI
+      app needs a direct `blake3` dependency for builder cache keys.
 
 R10.  [DONE] Panel convention pinned in `builder/src/builder/panels/mod.rs`:
       every panel is `fn show(ui: &mut egui::Ui, state: &mut BuilderState)`
@@ -98,10 +136,12 @@ R10.  [DONE] Panel convention pinned in `builder/src/builder/panels/mod.rs`:
       First concrete instance lives in `panels/status.rs` (status bar).
 
 ================================================================================
-2. CURRENT GUI INVENTORY (what already exists)
+2. CURRENT FRONTEND INVENTORY (what already exists)
 ================================================================================
 
-Working today (see gui/src/editor/* and gui/src/app/*):
+Viewer/editor app inventory, reference only (`sectorforge-gui`; see
+`gui/src/editor/*` and `gui/src/app/*`). These surfaces are not the builder
+host and should not receive new builder requirements:
 
   [x] New sector dialog (seed + dims), open project, save as
   [x] Hex map: select / drag systems, add system tool, add/delete route tool
@@ -121,11 +161,35 @@ Working today (see gui/src/editor/* and gui/src/app/*):
   [x] Heatmap overlay (control/military/trade/...)
   [x] Subsector overlay rendering
 
+Builder app inventory (`sectorforge-builder`; see `builder/src/main.rs`,
+`builder/src/app.rs`, and `builder/src/builder/*`). This is the target surface
+for all remaining checklist items:
+
+  [x] Separate binary crate with `--project <dir>` CLI and blank-workspace
+      launch when no project is supplied.
+  [x] Thin `BuilderApp` host: workspace tabs, builder tab strip, status bar,
+      modal layer, watcher drain, live-validation pump, keyboard shortcuts.
+  [x] Project lifecycle: new/open/save/save-as, atomic writes, project tree,
+      mtime watcher, conflict resolver, recent-projects preferences.
+  [x] Generation config G1..G6: full generation config form, seed lock/reroll,
+      live preview, apply-with-pinning, partial regen, new-from-preset
+      workspace push.
+  [x] Builder nav tabs N1..N4: PROJECT, MAP, SYSTEM, WORLD, FACTIONS, CONTROL,
+      REGIONS, ROUTES, SUBSECTORS, ECONOMY, RELATIONS, HISTORY, PERSONAE,
+      HOOKS, SITES, MISSIONS, PROSE, ANALYTICS, INTERESTINGNESS, SEARCH,
+      DIFF, BRIEFING, SEGMENTUM, EXPORT.
+  [x] Direct edit Phase B so far: SYSTEM and WORLD panels plus MAP tools;
+      routes/factions/control/claims still governed by the gap matrix below.
+  [x] Validation/invariant panels and health status pip.
+  [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
+
 ================================================================================
 3. GAP MATRIX (must-build for parity)
 ================================================================================
 
 Legend: [G] = gap, [P] = partial, [X] = exists. Section refs map to §6+.
+Statuses refer to `sectorforge-builder` unless a row explicitly says
+"viewer-only".
 
   Domain              Status    Section
   ------------------- --------  ----------
@@ -376,9 +440,10 @@ G6.   [DONE] "New sector from preset" inside the builder — reuses §P1
       `push`/`switch_to`/`close_active` drive the tab strip. The panel
       collects (preset id, destination, seed), calls
       `project_io::new_project` with `preset = Some(id)`, and pushes the
-      resulting state. When no host workspace is wired (legacy callers)
-      the fallback replaces the current state, matching today's
-      behaviour. Modal lifecycle uses `ModalKind::NewFromPreset`.
+      resulting state into the `BuilderApp` workspace. Library tests and
+      non-app callers may still use the fallback path that replaces the
+      current state, but the shipping `sectorforge-builder` app always
+      provides a workspace. Modal lifecycle uses `ModalKind::NewFromPreset`.
 
 ================================================================================
 7. SYSTEMS
@@ -938,8 +1003,8 @@ AR1.  Per-system archetype editor: kind (Imperial | Necron | Tyranid |
 AR2.  "Auto-assign archetypes" runs `src/archetypes.rs::derive`.
 
 AR3.  Archetype rules editor (TBD: extract from
-      `src/archetypes.rs` if a config layer exists; else GUI-only
-      defaults).
+      `src/archetypes.rs` if a config layer exists; else builder-app-only
+      defaults under `sectorforge-builder`).
 
 ================================================================================
 31. ORBITAL ASSETS + BLOCKADE
@@ -1212,7 +1277,18 @@ T5.   Integration test: blank sector → 50 commands → export project →
       run CLI `generate` over exported project → output equals
       builder's snapshot.
 
-T6.   GUI smoke tests via `egui_kittest` (if added) or manual harness.
+T6.   Builder GUI smoke tests via `egui_kittest` (if added) or manual
+      harness. Manual command:
+        `cargo run -p sectorforge-builder -- --project <dir>`
+      Confirm: builder loads, workspace tab renders, PROJECT/MAP/SYSTEM/WORLD
+      tabs paint, save succeeds without panic.
+
+T6b.  Viewer handoff smoke test:
+        a) save the project in `sectorforge-builder`
+        b) open the same directory with `cargo sgui --project <dir>`
+      Confirm: `sectorforge-gui` loads the saved `out/sector.json` through
+      its normal viewer/editor path. Do not embed builder UI in the viewer
+      to satisfy this test.
 
 T7.   Benchmarks (criterion) for large-sector mutations (>= 200
       systems, >= 800 worlds): command apply < 1 ms, full re-validate
@@ -1221,6 +1297,13 @@ T7.   Benchmarks (criterion) for large-sector mutations (>= 200
 ================================================================================
 41. UI ROUTING / NAV
 ================================================================================
+
+N0.   [DONE] Separate app shell. `builder/src/main.rs` owns the
+      `sectorforge-builder` CLI and creates `BuilderApp`; `builder/src/app.rs`
+      owns `BuilderWorkspace`, workspace chips, top tab strip, active-panel
+      dispatch, status bar, modal layer, watcher drain, shortcut handling,
+      and live-validation pumping. It does not reuse `sectorforge_gui::App`
+      and does not mount inside `sectorforge-gui`.
 
 N1.   [DONE] Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
       CONTROL | REGIONS | ROUTES | SUBSECTORS | ECONOMY | RELATIONS |
@@ -1315,7 +1398,7 @@ Phase A — Foundation
   P1..P6  - DONE  (§5)
   U1..U2  - DONE  (§38)
   V1..V3  - DONE  (§33; V4..V6 land in Phase E)
-  N1..N4  - DONE  (§41; N5 command palette lands in Phase F)
+  N0..N4  - DONE  (§41; N5 command palette lands in Phase F)
 
 Phase B — Direct entity edit
   G1..G6  - DONE  (§6 generation config — interactive panel + live
@@ -1421,8 +1504,8 @@ Q6.  [ANSWERED] `.sgforge` session file format: tar (portable but external lib)
 Rationale: builder pivots to in-app construction. The previous twin-CSV
 (`key.csv` + `generator.csv`) was a spreadsheet-import shape — stringly
 typed, redundant with the existing enums, no structure for feature
-pools, awkward to edit via typed GUI widgets. Native model =
-typed serde TOML. CSV support — loader, writer, GUI editor, conversion
+pools, awkward to edit via typed builder widgets. Native model =
+typed serde TOML. CSV support — loader, writer, old GUI editor, conversion
 command, and `OutputFormat::Csv` — has been removed entirely.
 
 WD1. [DONE] Enum-authoritative variants. Each enum in
@@ -1445,12 +1528,15 @@ WD3. [DONE] Structured feature pools. `FeaturePoolConfig` carries
      into existing `FeaturePool` at pool-build time. Round-trips
      deterministically (BTreeMap ordering).
 
-WD4. [DONE] GUI typed editing. `gui::data_editor` reads/writes
-     `WorldsConfig` exclusively. Rows edited via enum dropdowns
-     (`ComboBox` over `Enum::VARIANTS`), weight as `DragValue<f64>`.
+WD4. [DONE] Native typed editing foundation. The existing viewer/editor
+     `gui/src/data_editor.rs` reads/writes `WorldsConfig` exclusively;
+     rows are edited via enum dropdowns (`ComboBox` over `Enum::VARIANTS`)
+     and `DragValue<f64>` weights. Builder parity belongs in
+     `sectorforge-builder` via PF3 / `builder/src/builder/panels/*`; do not
+     route builder world-data editing through `sectorforge-gui`.
 
 WD5. [DONE] CSV removal. Twin-CSV loader, `convert-csv-to-toml`
-     CLI/library entry point, GUI CSV editor view, CSV writers in
+     CLI/library entry point, old GUI CSV editor view, CSV writers in
      `src/export.rs` and `src/economy.rs`, and `OutputFormat::Csv`
      have all been removed. All bundled examples
      (`examples/{big_test,big_sparse_test,llm_test,m42_project}`)
@@ -1508,17 +1594,19 @@ Rationale: Users need immediate feedback on generation config changes (seed,
 density, etc.) without losing their current working sector until they are
 ready. Debounced off-thread regeneration ensures the UI stays fluid.
 
-LPV1. [DONE] Debounce Logic. 'EditorState' includes a 'preview_timer'.
-      Edits reset the timer (200ms). The main loop spawns the job only
-      after the timer expires.
+LPV1. [DONE] Debounce Logic. `builder/src/builder/preview.rs::PreviewState`
+      includes the debounce timer. Edits reset the timer (200ms). The
+      `sectorforge-builder` UI loop spawns the job only after the timer
+      expires.
 
-LPV2. [DONE] Scratch Sector. 'EditorState' holds a 'preview_sector'.
-      Background jobs write into this scratch space, keeping the main
-      sector untouched.
+LPV2. [DONE] Scratch Sector. `PreviewState` holds the scratch
+      `GeneratedSector`. Background jobs write into this scratch space,
+      keeping `BuilderState::sector` untouched until apply.
 
-LPV3. [DONE] Preview UI. 'sector_view' renders 'preview_sector' if present,
-      showing a "PREVIEW MODE" banner. The generation panel shows an
-      "APPLY PREVIEW" button to commit the changes.
+LPV3. [DONE] Preview UI. The `sectorforge-builder` generation panel shows
+      preview readiness/counts and an "APPLY PREVIEW" button to commit the
+      scratch sector. Shared rendering helpers may come from
+      `sectorforge-gui-core`, but the preview state lives in the builder app.
 
 LPV4. [DONE] Worker Integration. Uses the §47 Job infrastructure to
       run 'sectorforge::generation::generate' without blocking the UI thread.
@@ -1542,9 +1630,9 @@ SID3. [DONE] Mutation Integration. The core model now resides in
       'src/sector_model/mod.rs' with structural re-indexing in
       'src/sector_model/mutation.rs'.
 
-SID4. [DONE] Builder Setting. 'EditorState' includes 'stable_ids_on_rename'
-      (default true) to control re-indexing behavior during GUI sessions.
+SID4. [DONE] Builder Setting. `BuilderState` includes `stable_ids_on_rename`
+      (default true) to control re-indexing behavior during
+      `sectorforge-builder` sessions.
 
 ================================================================================
 END OF BUILDER_REQS.txt
-

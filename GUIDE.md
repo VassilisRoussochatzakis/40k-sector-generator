@@ -1601,10 +1601,18 @@ It owns the builder workspace and saves projects to disk; `sectorforge-gui`
 then opens the same project directory via `--project <dir>` and reloads the
 saved `out/sector.json`.
 
+[BUILDER_REQS.txt](BUILDER_REQS.txt) tracks requirements for
+`sectorforge-builder` only. New builder panels, commands, modals, workspace
+state, project I/O, and builder-specific tests live under [builder/src/](builder/src/).
+App-neutral egui helpers belong in [gui-core/src/](gui-core/src/).
+`sectorforge-gui` remains the viewer/editor and must not mount builder panels;
+the integration boundary is the project directory on disk.
+
 Launch it with:
 
 ```bash
 cargo sbuild --project examples/m42_project
+cargo sbuild
 cargo run -p sectorforge-builder -- --help
 ```
 
@@ -1760,7 +1768,7 @@ strip stays stable.
 | G3 live preview | [builder/src/builder/preview.rs](builder/src/builder/preview.rs) `PreviewState` — scratch sector + in-flight `JobHandle` + debounce timer (`DEFAULT_DEBOUNCE_MS = 200`) + revision counter. `schedule` cancels any in-flight job, bumps the revision, and clears the scratch sector; `pump` checks the timer each frame and dispatches `sectorforge::generation::generate_with_progress_and_cancel` through `sectorforge_gui_core::jobs::spawn_job`. Stale revisions are discarded by `apply_result`. The panel shows a coloured "PREVIEW READY" badge with system / route counts when the worker completes. |
 | G4 Apply preview | [builder/src/builder/state.rs](builder/src/builder/state.rs) `BuilderState::apply_preview` — promotes the scratch sector into `state.sector`, then overlays every system whose `SystemId` is in `pinned_systems` with its pre-preview snapshot (or re-inserts it if the preview dropped the slot), then rebuilds the index, clears the derivation cache, marks dirty, and re-runs invariants. Pinning lives in the side-table per Q1; no new field on `GeneratedSystem`. |
 | G5 partial regen | [builder/src/builder/state.rs](builder/src/builder/state.rs) `PartialRegenRect::{from_corners, contains}` plus `BuilderState::{partial_regen_rect, regenerate_partial}`. The panel exposes min / max q / r DragValues; on apply, every non-pinned in-rect system is replaced by a fresh `sectorforge::generate_system_standalone` call keyed by its existing index, then the systems list is re-sorted and the index rebuilt. Errors bubble up as `BuilderError::ParseFailed`. |
-| G6 New from preset (new tab) | [builder/src/builder/workspace.rs](builder/src/builder/workspace.rs) `BuilderWorkspace` — owns `Vec<BuilderState>` plus an active index; `push` focuses the new state, `switch_to` re-points the cursor, `close_active` drops the focused state. The panel collects (preset id, destination, seed) into `ModalKind::NewFromPreset`, calls `project_io::new_project(opts)` with `preset = Some(id)`, and pushes the resulting state onto the workspace when one is wired; falls back to replacing the current state when no host workspace is present. |
+| G6 New from preset (new tab) | [builder/src/builder/workspace.rs](builder/src/builder/workspace.rs) `BuilderWorkspace` — owns `Vec<BuilderState>` plus an active index; `push` focuses the new state, `switch_to` re-points the cursor, `close_active` drops the focused state. The panel collects (preset id, destination, seed) into `ModalKind::NewFromPreset`, calls `project_io::new_project(opts)` with `preset = Some(id)`, and pushes the resulting state into the `BuilderApp` workspace. Library/test callers can still use the fallback replacement path, but the shipping `sectorforge-builder` app always wires a workspace. |
 
 Tests in `builder/src/builder/panels/generation.rs`:
 

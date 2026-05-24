@@ -122,6 +122,15 @@ impl SessionFile {
             selected_file: None,
             file_mtimes: std::collections::BTreeMap::new(),
             file_watcher: None,
+            validation_dirty_since: None,
+            validation_debounce: std::time::Duration::from_millis(
+                super::state::DEFAULT_VALIDATION_DEBOUNCE_MS,
+            ),
+            selected_system_id: None,
+            selected_world_id: None,
+            selected_route_id: None,
+            selected_faction_id: None,
+            selected_region_id: None,
         }
     }
 }

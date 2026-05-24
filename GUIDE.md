@@ -1657,6 +1657,31 @@ Tests in `gui/src/builder/state.rs`:
 * `undo_redo_basic_round_trip` — three `AddSystem`s, undo, redo round-trips the sector and cursor.
 * `undo_clamps_at_zero` — undoing past the start of the log is a no-op.
 
+#### V1–V3 validation + invariants surface (DONE)
+
+`BuilderState` exposes both reports plus a debounced live re-validation
+pass. The status bar combines them into a single tri-coloured health pip.
+
+| Piece | Where it lives |
+|---|---|
+| V1 validation panel | [gui/src/builder/panels/validation.rs](gui/src/builder/panels/validation.rs) — groups `ValidationReport.errors` / `warnings` under collapsing per-file buckets keyed by the issue `path` prefix (`factions` → `state.config.inputs.factions`, `routes` → `route_rules`, `relations`, `regions`, `economy`, `history`, `names`, otherwise `sectorforge.toml`). Each leaf is a button that sets `BuilderState::selected_file` so the §P4 project tree and the upcoming TOML editor tabs can route the user to the file. The footer renders `WorldWorkbookValidation` (row count, usable candidates, exclusion reasons, key tables). A "Re-validate now" button forces an immediate `BuilderState::revalidate_now` flush. |
+| V2 invariants panel | [gui/src/builder/panels/invariants.rs](gui/src/builder/panels/invariants.rs) — groups `InvariantReport.violations` by stratum (`systems` / `worlds` / `routes` / `factions` / `regions` / `economy` / `manifest` / `other`) using the invariant `path` prefix. Each row is a button that writes typed IDs into the selection mailbox (`BuilderState::selected_system_id`, `selected_world_id`, `selected_route_id`, `selected_faction_id`, `selected_region_id`) so the inspector tabs can focus the entity. A "Re-check now" button re-runs `sectorforge::invariants::check_sector`. The panel also surfaces the §V5 invariant catalogue as a read-only collapsing list of every code the checker may emit. |
+| V3 debounced live validation | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderState::run` / `undo` / `redo` call `mark_validation_dirty()` which stamps `Instant::now()` into `validation_dirty_since`. Per-frame the UI calls `BuilderState::pump_validation()`; once `validation_debounce` (default 200 ms, `DEFAULT_VALIDATION_DEBOUNCE_MS`) elapses, `revalidate_now()` runs `sectorforge::validation::validate` against a synthetic `ProjectInput` built by `synthesize_project_input()` (worlds catalog mandatory; other catalogs default-fall-through). The debounce timer is cleared regardless of catalog completeness so we don't re-arm every tick. |
+| V3 health pip | [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) — calls `BuilderState::health_level()` which returns `HealthLevel::Red` when any validation error or invariant violation is present, `Yellow` when warnings exist or either report has not run yet, and `Green` only when both reports are present and clean. The pip displays `validation: N err / M warn · invariants: K`. |
+
+Tests in `gui/src/builder/state.rs`:
+
+* `mutation_arms_validation_debounce` — `run(AddSystem)` sets `validation_dirty_since`.
+* `pump_validation_holds_within_debounce_window` — with a 5 s debounce the pump returns `false`.
+* `pump_validation_flushes_after_debounce` — with a 0 ms debounce the pump returns `true` and clears the timer even when `data_catalogs.worlds` is `None`.
+* `revalidate_now_populates_report_when_worlds_present` — a default `WorldsConfig` is enough to produce a `ValidationReport`.
+* `health_level_red_on_invariant_violation`, `health_level_yellow_when_reports_missing`, `health_level_green_when_both_clean` — cover the three tri-color cases.
+
+Tests in the panel modules cover the path-bucket logic without touching `egui`:
+
+* `gui/src/builder/panels/validation.rs::tests::group_buckets_by_prefix` — issue paths like `factions[1].preferred_world_types`, `routes.modifiers[0]`, and `None` are bucketed under `factions`, `routes`, and `(general)`.
+* `gui/src/builder/panels/invariants.rs::tests::stratum_split_system_vs_world`, `parse_system_world_extracts_ids`, `parse_path_picks_first_id` — verify the stratum split and the path-to-typed-ID parsers used by the click-to-focus mailbox.
+
 ---
 
 ## 9. Library use

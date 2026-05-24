@@ -891,16 +891,53 @@ SU2.  Auto-seed surface regions from world type via
 33. VALIDATION + INVARIANTS SURFACE
 ================================================================================
 
-V1.   Validation panel (`src/validation.rs::validate_project`):
-      tree of file-anchored errors + warnings. Click-to-jump to
-      offending entity / config file row.
+V1.   [DONE] Validation panel (`src/validation.rs::validate_project`):
+      `gui/src/builder/panels/validation.rs` groups
+      `ValidationReport.errors` / `warnings` under collapsing per-file
+      buckets keyed by the issue `path` prefix (`factions`, `routes`,
+      `relations`, `regions`, `economy`, `history`, names, fall back to
+      `sectorforge.toml`). Each leaf is a button that sets
+      `BuilderState::selected_file` so the §P4 project tree (and Phase
+      E TOML tabs) can jump to the offending file. The footer shows the
+      world-workbook stats. A "Re-validate now" button forces an
+      immediate `BuilderState::revalidate_now` flush.
 
-V2.   Invariants panel (`src/invariants.rs::check_sector`):
-      tree of invariant violations. Each violation entry knows the
-      offending entity so a "Fix" suggestion can route to the inspector.
+V2.   [DONE] Invariants panel (`src/invariants.rs::check_sector`):
+      `gui/src/builder/panels/invariants.rs` groups
+      `InvariantReport.violations` by stratum (systems / worlds /
+      routes / factions / regions / economy / manifest / other) using
+      the invariant `path` prefix. Each row is a button that writes
+      typed IDs into the `BuilderState::selected_*` mailboxes
+      (`selected_system_id`, `selected_world_id`, `selected_route_id`,
+      `selected_faction_id`, `selected_region_id`) so the upcoming
+      inspector tabs can focus the offending entity. The panel also
+      exposes the §V5 invariant catalogue as a read-only collapsing
+      list so users can audit what is checked on clean sectors.
 
-V3.   Live validation on every mutation (debounced). Status bar
-      indicator (green / yellow / red).
+V3.   [DONE] Live validation on every mutation, debounced.
+      - `BuilderState::run` / `undo` / `redo` call `mark_validation_dirty()`
+        (stamps `Instant::now` into `validation_dirty_since`).
+      - The UI loop calls `BuilderState::pump_validation()` per frame; once
+        `validation_debounce` (default 200 ms,
+        `DEFAULT_VALIDATION_DEBOUNCE_MS`) elapses, `revalidate_now()` fires.
+      - `revalidate_now()` builds a synthetic `ProjectInput` via
+        `synthesize_project_input()` (worlds catalog mandatory; other
+        catalogs default-fall-through) and stores the result in
+        `validation_report`. The debounce timer is cleared even when the
+        worlds catalog is absent so we don't re-arm every tick.
+      - Invariants continue to run synchronously inside the command bus.
+      - Status-bar indicator is now tri-coloured via
+        `BuilderState::health_level()`:
+          * RED — any validation error or invariant violation
+          * YELLOW — warnings, or either report not yet computed
+          * GREEN — both reports present and clean
+      - Tests in `state.rs`: `mutation_arms_validation_debounce`,
+        `pump_validation_holds_within_debounce_window`,
+        `pump_validation_flushes_after_debounce`,
+        `revalidate_now_populates_report_when_worlds_present`,
+        `health_level_red_on_invariant_violation`,
+        `health_level_yellow_when_reports_missing`,
+        `health_level_green_when_both_clean`.
 
 V4.   Strict-mode toggle (warnings → errors).
 
@@ -1159,7 +1196,7 @@ Phase A — Foundation
   R1..R10 - DONE  (§1)
   P1..P6  - PARTIAL: P1..P6 all DONE; tab/router still pending  (§5)
   U1..U2  - DONE  (§38)
-  V1..V3, (§33; V4..V6 land in Phase E)
+  V1..V3  - DONE  (§33; V4..V6 land in Phase E)
   N1..N4. (§41; N5 command palette lands in Phase F)
 
 Phase B — Direct entity edit

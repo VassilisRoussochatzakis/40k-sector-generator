@@ -18,6 +18,7 @@
 //! As Phase B / Phase C panels land they get added below.
 
 pub mod conflict_resolver;
+pub mod invariants;
 pub mod new_project;
 pub mod open_project;
 pub mod preferences;
@@ -25,3 +26,4 @@ pub mod project_tree;
 pub mod save_project;
 pub mod shortcuts;
 pub mod status;
+pub mod validation;

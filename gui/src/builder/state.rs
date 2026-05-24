@@ -23,13 +23,16 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use camino::Utf8PathBuf;
 
 use sectorforge::config::AppConfig;
-use sectorforge::ids::{SystemId, WorldId};
+use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
+use sectorforge::input::ProjectInput;
 use sectorforge::invariants::check_sector;
 use sectorforge::sector_model::GeneratedSector;
+use sectorforge::validation::validate;
 use sectorforge::{InvariantReport, ValidationReport};
 
 use super::command::BuilderCommand;
@@ -76,6 +79,22 @@ pub enum ModalKind {
 
 /// §U2: default cap for the undo/redo ring buffer.
 pub const DEFAULT_COMMAND_LOG_CAPACITY: usize = 200;
+
+/// §V3: default debounce window between a mutation and the live re-validation
+/// pass. Validation walks the full project so we don't want to repay the cost
+/// for every keystroke — 200 ms is the same window used by the §G3 live
+/// preview.
+pub const DEFAULT_VALIDATION_DEBOUNCE_MS: u64 = 200;
+
+/// §V3: combined health summary surfaced by the status bar. Green = clean
+/// validation + invariants, yellow = warnings or no report yet, red = at least
+/// one validation error or invariant violation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HealthLevel {
+    Green,
+    Yellow,
+    Red,
+}
 
 /// Generic job handle the builder tracks for off-thread work (§47).
 /// Type-erased so it can sit alongside other pending jobs in a vec.
@@ -127,6 +146,22 @@ pub struct BuilderState {
     /// §P5: background watcher polling the project directory for external
     /// changes. `None` when no project is open.
     pub file_watcher: Option<FileWatcher>,
+    /// §V3: timestamp of the most recent mutation that has not yet flushed to
+    /// a live-validation pass. The UI calls [`Self::pump_validation`] each
+    /// frame; once the timer exceeds [`Self::validation_debounce`] the
+    /// validation run fires and the timer clears.
+    pub validation_dirty_since: Option<Instant>,
+    /// §V3: debounce window between mutation and live-validation flush.
+    pub validation_debounce: Duration,
+    /// §V2: entity selection mailbox — invariant / validation panels write
+    /// here so the inspector tabs can focus the offending entity. Each field
+    /// is independent so the active inspector reads only the IDs it cares
+    /// about.
+    pub selected_system_id: Option<SystemId>,
+    pub selected_world_id: Option<WorldId>,
+    pub selected_route_id: Option<RouteId>,
+    pub selected_faction_id: Option<FactionId>,
+    pub selected_region_id: Option<String>,
 }
 
 impl BuilderState {
@@ -158,6 +193,13 @@ impl BuilderState {
             selected_file: None,
             file_mtimes: BTreeMap::new(),
             file_watcher: None,
+            validation_dirty_since: None,
+            validation_debounce: Duration::from_millis(DEFAULT_VALIDATION_DEBOUNCE_MS),
+            selected_system_id: None,
+            selected_world_id: None,
+            selected_route_id: None,
+            selected_faction_id: None,
+            selected_region_id: None,
         }
     }
 
@@ -186,6 +228,7 @@ impl BuilderState {
         self.enforce_command_log_capacity();
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
         self.trigger_auto_save();
         Ok(())
     }
@@ -235,6 +278,7 @@ impl BuilderState {
         self.derivation_cache.clear();
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
         self.trigger_auto_save();
         Ok(())
     }
@@ -252,8 +296,106 @@ impl BuilderState {
         self.derivation_cache.clear();
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
         self.trigger_auto_save();
         Ok(())
+    }
+
+    /// §V3: arm the debounced live-validation timer. Cheap — just stamps
+    /// `Instant::now`. The actual `validate(&project)` call happens in
+    /// [`Self::pump_validation`] after `validation_debounce` elapses.
+    pub fn mark_validation_dirty(&mut self) {
+        self.validation_dirty_since = Some(Instant::now());
+    }
+
+    /// §V3: per-frame poll from the UI. When the debounce window has elapsed
+    /// since the last mutation, build a synthetic [`ProjectInput`] from the
+    /// in-memory catalogs and run [`validate`] against it. Returns `true`
+    /// when a fresh report was produced this tick so the caller can request a
+    /// repaint.
+    pub fn pump_validation(&mut self) -> bool {
+        let Some(since) = self.validation_dirty_since else {
+            return false;
+        };
+        if since.elapsed() < self.validation_debounce {
+            return false;
+        }
+        self.revalidate_now();
+        true
+    }
+
+    /// §V3: synchronous re-validation. Clears the debounce timer regardless
+    /// of whether catalogs were complete enough to build a `ProjectInput` —
+    /// otherwise an incomplete catalog would re-arm every tick.
+    pub fn revalidate_now(&mut self) {
+        self.validation_dirty_since = None;
+        if let Some(input) = self.synthesize_project_input() {
+            self.validation_report = Some(validate(&input));
+        }
+    }
+
+    /// §V3: build a read-only [`ProjectInput`] from the in-memory catalogs so
+    /// [`sectorforge::validation::validate`] can run without touching disk.
+    /// Returns `None` when the worlds catalog is missing — validation needs at
+    /// minimum a workbook to walk.
+    pub fn synthesize_project_input(&self) -> Option<ProjectInput> {
+        use sectorforge::input::ProjectInput;
+        let worlds = self.data_catalogs.worlds.as_ref()?;
+        let (world_tables, world_rows) = worlds.to_loader_inputs();
+        let authored_features = worlds.resolved_features().ok();
+        let root_dir = self
+            .project_path
+            .clone()
+            .unwrap_or_else(|| Utf8PathBuf::from("."));
+        Some(ProjectInput {
+            root_dir,
+            config: self.config.clone(),
+            world_tables,
+            world_rows,
+            authored_features,
+            names: self.data_catalogs.names.clone().unwrap_or_default(),
+            factions: self
+                .data_catalogs
+                .factions
+                .as_ref()
+                .map(|f| f.factions.clone())
+                .unwrap_or_default(),
+            route_rules: self.data_catalogs.route_rules.clone().unwrap_or_default(),
+            relations: self.data_catalogs.relations.clone().unwrap_or_default(),
+            regions: self.data_catalogs.regions.clone().unwrap_or_default(),
+            economy: self.data_catalogs.economy.clone().unwrap_or_default(),
+            history: self.data_catalogs.history.clone().unwrap_or_default(),
+            personae: sectorforge::personae::PersonaeConfig::default(),
+            sites: sectorforge::sites::SitesConfig::default(),
+            input_digests: BTreeMap::new(),
+        })
+    }
+
+    /// §V3: derive the status-bar health pip from validation + invariants.
+    /// Red — any validation error or invariant violation. Yellow — warnings or
+    /// no report yet. Green — both clean.
+    pub fn health_level(&self) -> HealthLevel {
+        let v_has_err = self
+            .validation_report
+            .as_ref()
+            .is_some_and(|r| !r.errors.is_empty());
+        let inv_has_violation = self
+            .invariant_report
+            .as_ref()
+            .is_some_and(|r| !r.violations.is_empty());
+        if v_has_err || inv_has_violation {
+            return HealthLevel::Red;
+        }
+        let v_has_warn = self
+            .validation_report
+            .as_ref()
+            .is_some_and(|r| !r.warnings.is_empty());
+        let v_missing = self.validation_report.is_none();
+        let inv_missing = self.invariant_report.is_none();
+        if v_has_warn || v_missing || inv_missing {
+            return HealthLevel::Yellow;
+        }
+        HealthLevel::Green
     }
 
     /// Capture a named snapshot at the current command-log position.
@@ -409,5 +551,88 @@ mod tests {
         let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
         state.undo().unwrap();
         assert_eq!(state.command_cursor, 0);
+    }
+
+    // ── §V3 ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn mutation_arms_validation_debounce() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert!(state.validation_dirty_since.is_none());
+        add_n_systems(&mut state, 1);
+        assert!(state.validation_dirty_since.is_some());
+    }
+
+    #[test]
+    fn pump_validation_holds_within_debounce_window() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.validation_debounce = Duration::from_secs(5);
+        add_n_systems(&mut state, 1);
+        assert!(!state.pump_validation());
+        assert!(state.validation_dirty_since.is_some());
+    }
+
+    #[test]
+    fn pump_validation_flushes_after_debounce() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.validation_debounce = Duration::from_millis(0);
+        add_n_systems(&mut state, 1);
+        // No worlds catalog => synth returns None; debounce still clears so
+        // we don't burn cycles every frame.
+        assert!(state.pump_validation());
+        assert!(state.validation_dirty_since.is_none());
+    }
+
+    #[test]
+    fn revalidate_now_populates_report_when_worlds_present() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.data_catalogs.worlds = Some(sectorforge::worlds_toml::WorldsConfig::default());
+        state.revalidate_now();
+        assert!(state.validation_report.is_some(), "report should be set");
+    }
+
+    #[test]
+    fn health_level_red_on_invariant_violation() {
+        use sectorforge::invariants::{InvariantReport, InvariantViolation};
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.invariant_report = Some(InvariantReport {
+            ok: false,
+            violations: vec![InvariantViolation {
+                code: "X".into(),
+                message: "m".into(),
+                path: None,
+            }],
+        });
+        assert_eq!(state.health_level(), HealthLevel::Red);
+    }
+
+    #[test]
+    fn health_level_yellow_when_reports_missing() {
+        let state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert_eq!(state.health_level(), HealthLevel::Yellow);
+    }
+
+    #[test]
+    fn health_level_green_when_both_clean() {
+        use sectorforge::invariants::InvariantReport;
+        use sectorforge::validation::{ValidationReport, WorldWorkbookValidation};
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.invariant_report = Some(InvariantReport {
+            ok: true,
+            violations: Vec::new(),
+        });
+        state.validation_report = Some(ValidationReport {
+            ok: true,
+            errors: Vec::new(),
+            warnings: Vec::new(),
+            world_workbook: WorldWorkbookValidation {
+                row_count: 0,
+                usable_candidate_count: 0,
+                excluded_row_count: 0,
+                exclusion_reasons: Default::default(),
+                key_table_counts: Default::default(),
+            },
+        });
+        assert_eq!(state.health_level(), HealthLevel::Green);
     }
 }

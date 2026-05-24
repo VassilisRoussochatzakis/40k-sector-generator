@@ -793,8 +793,12 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             for name in names {
                 let target = out.join(&name);
                 println!("Extracting bundled example '{}' to {}...", name, target);
-                sectorforge::examples::extract_example_to_dir(&name, &target)
-                    .map_err(|e| sectorforge::SectorError::io(target.as_str(), std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+                sectorforge::examples::extract_example_to_dir(&name, &target).map_err(|e| {
+                    sectorforge::SectorError::io(
+                        target.as_str(),
+                        std::io::Error::new(std::io::ErrorKind::Other, e),
+                    )
+                })?;
             }
             println!("Done.");
             Ok(ExitCode::SUCCESS)

@@ -334,6 +334,10 @@ pub struct BuilderState {
     /// §S1: hex render size in screen pixels. Persisted per session so users
     /// can zoom the map without re-tuning each frame.
     pub hex_size: f32,
+    /// §W4: monotonic counter mixed into the per-world re-roll discriminator
+    /// so repeated clicks on "Re-roll" yield distinct draws while staying
+    /// deterministic for replay.
+    pub world_reroll_counter: u64,
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -441,6 +445,7 @@ impl BuilderState {
             pending_collision: None,
             rect_select: None,
             hex_size: 28.0,
+            world_reroll_counter: 0,
         }
     }
 
@@ -525,6 +530,72 @@ impl BuilderState {
         };
         self.run(cmd)?;
         Ok(id)
+    }
+
+    /// §W1 / §W4: locate a world by id, returning `(system_idx, world_idx)`.
+    pub fn find_world_indices(&self, id: &WorldId) -> Option<(usize, usize)> {
+        self.index.worlds.get(id).copied()
+    }
+
+    /// §W4: redraw the payload (`WorldDto`, source row, tags) for the given
+    /// world against the in-memory pool, preserving id / name / orbit /
+    /// factions / claims / control. Pinned worlds refuse the operation.
+    pub fn regenerate_world(&mut self, id: &WorldId) -> Result<(), super::errors::BuilderError> {
+        use sectorforge::worlds::StarColour;
+        if self.pinned_worlds.contains(id) {
+            return Err(super::errors::BuilderError::ParseFailed {
+                file: "regenerate-world".into(),
+                message: format!("world {id} is pinned"),
+            });
+        }
+        let (sys_idx, w_idx) = self.find_world_indices(id).ok_or_else(|| {
+            super::errors::BuilderError::ParseFailed {
+                file: "regenerate-world".into(),
+                message: format!("world {id} not found"),
+            }
+        })?;
+        let star_code = self.sector.systems[sys_idx]
+            .star
+            .as_ref()
+            .map(|s| s.colour_code.to_string())
+            .unwrap_or_else(|| "G".into());
+        let star_colour: StarColour = star_code.parse().unwrap_or(StarColour::Yellow);
+
+        let input = self.synthesize_project_input().ok_or_else(|| {
+            super::errors::BuilderError::ParseFailed {
+                file: "regenerate-world".into(),
+                message: "worlds catalog not loaded".into(),
+            }
+        })?;
+        let mut pool = sectorforge::world_pool::build_pool(
+            &input.world_rows,
+            &input.world_tables,
+            &input.config.generation.world_selection,
+        );
+        if let Some(features) = &input.authored_features {
+            sectorforge::world_pool::apply_authored_features(&mut pool, features);
+        }
+        self.world_reroll_counter = self.world_reroll_counter.wrapping_add(1);
+        let (dto, source_row, tags) = sectorforge::generation::regenerate_world_payload(
+            &input.config,
+            &pool,
+            star_colour,
+            id.as_str(),
+            self.world_reroll_counter,
+        )
+        .map_err(|e| super::errors::BuilderError::ParseFailed {
+            file: "regenerate-world".into(),
+            message: e.to_string(),
+        })?;
+        let w = &mut self.sector.systems[sys_idx].worlds[w_idx];
+        w.world = dto;
+        w.source_row_index = source_row;
+        w.tags = tags;
+        self.dirty = true;
+        self.invariant_report = Some(sectorforge::invariants::check_sector(&self.sector));
+        self.mark_validation_dirty();
+        self.trigger_auto_save();
+        Ok(())
     }
 
     /// §G2: derive the next seed. When [`Self::seed_locked`] is true, returns

@@ -425,29 +425,47 @@ S6.   [DONE] Coord validity: reject coords outside `(0..sector_width,
 8. WORLDS
 ================================================================================
 
-W1.   World inspector covers every `GeneratedWorld` field:
-      id, name, orbit, star_colour, world_type, atmosphere, temperature,
-      biosphere, population, tech_level, government, notable_features,
-      tags, claims (§12), control (§11), surface_regions (§32),
-      conflict (§28), stability (§28).
+W1.   [DONE] World inspector in `gui/src/builder/panels/world.rs` covers
+      every `GeneratedWorld` field: id, index, source_row_index, name,
+      orbit, star_colour, world_type, atmosphere, temperature, biosphere,
+      population, tech_level, government, notable_features, tags, notes,
+      faction presence, claims (§12), control (§11), surface_regions
+      (§32), conflict (§28), stability (§28).
 
-W2.   Enum pickers: use existing `gui/src/editor/enums.rs`. Add the
-      enum variants currently missing from any picker (audit against
-      `src/worlds.rs` canonical lists).
+W2.   [DONE] Enum pickers driven by `*::VARIANTS` directly from
+      `src/worlds.rs`, with `display_name()` for labels. Eliminates
+      drift from the legacy `gui/src/editor/enums.rs` string arrays —
+      every variant added to the enum appears in the picker
+      automatically. Covered by
+      `enum_picker_variants_match_worlds_authoritative_set`.
 
-W3.   `pinned` toggle on world (like S3). Stored in `BuilderState::pinned_worlds` (side-table).
+W3.   [DONE] `pinned` toggle on world. Stored in
+      `BuilderState::pinned_worlds` (side-table). Toggle lives in the
+      Identity collapsing header.
 
-W4.   "Re-roll from candidate pool" button: redraws this world using
-      `src/world_pool.rs` against the current data catalogs. Useful for
-      fixing a single world without recomputing the system.
+W4.   [DONE] "Re-roll this world" button. Calls
+      `BuilderState::regenerate_world` which builds the pool from
+      `data_catalogs.worlds`, then dispatches to the new
+      `sectorforge::generation::regenerate_world_payload` helper.
+      Pinned worlds refuse. Each click bumps
+      `BuilderState::world_reroll_counter` so the per-world stream
+      yields a distinct draw deterministically.
 
-W5.   Notable features picker: searchable multi-select, with weight
-      preview from the candidate row.
+W5.   [DONE] Notable features picker. Searchable multi-select with
+      weight preview blended from per-world-type, per-star-colour, and
+      global tiers of the in-memory pool. Already-present features are
+      hidden from the picker.
 
-W6.   Population / tech-level coupling warnings (validation §33 surfaces
-      these inline — e.g., DeathWorld + High-Tech is unusual). Non-blocking.
+W6.   [DONE] Coupling warnings rendered inline as a collapsing header
+      (yellow, non-blocking). Heuristics include DeathWorld + High-Tech,
+      DeadWorld with population, TombWorld + Thriving biosphere,
+      Uninhabited with non-None government, Airless + Thriving
+      biosphere, ForgeWorld + low tech, etc.
 
-W7.   Claims chip-row (§12) directly in world inspector.
+W7.   [DONE] Claims chip-row directly in the world inspector. Each
+      chip is colour-coded per `ClaimType`, deep-links to the FACTIONS
+      tab, and has a × button. Add-claim row picks faction + claim
+      type + strength below the chip strip.
 
 ================================================================================
 9. ROUTES
@@ -1305,7 +1323,13 @@ Phase B — Direct entity edit
                    bulk ops, single-system regen, coord-validity swap
                    dialog; backed by `BuilderCommand::SwapSystems` /
                    `ReplaceSystem`)
-  W1..W7, (§8)
+  W1..W7  - DONE  (§8 WORLD — full inspector over every `GeneratedWorld`
+                   field, `*::VARIANTS`-backed enum pickers, side-table
+                   pinning, single-world re-roll via
+                   `BuilderState::regenerate_world` →
+                   `generation::regenerate_world_payload`, searchable
+                   features picker with weight preview, inline coupling
+                   warnings, claims chip-row with deep-links)
   R1..R7, (§9 routes)
   F1..F7, (§10 factions)
   CL1..CL4, (§12 claims)

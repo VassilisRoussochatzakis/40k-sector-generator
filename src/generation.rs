@@ -901,6 +901,42 @@ pub fn build_system_with_bias(
     })
 }
 
+/// §W4: Re-roll a single world's payload (`WorldDto`, source row index, tags)
+/// against the supplied candidate pool. Pure: depends only on the seed plus the
+/// inputs. `seed_discriminator` lets the caller bump the per-world stream so
+/// repeated clicks yield distinct outcomes without disturbing the rest of the
+/// sector. Star colour is taken from the parent system.
+pub fn regenerate_world_payload(
+    config: &AppConfig,
+    pool: &WorldCandidatePool,
+    star_colour: StarColour,
+    world_id: &str,
+    seed_discriminator: u64,
+) -> Result<(WorldDto, usize, Vec<Arc<str>>), SectorError> {
+    let discriminator = format!("reroll:{world_id}:{seed_discriminator}");
+    let mut rng = rng::stage_rng(&config.generation.seed, "world", &discriminator);
+    let used_world_types: BTreeSet<crate::worlds::WorldType> = BTreeSet::new();
+    let cand = choose_world_candidate(
+        pool,
+        star_colour,
+        &config.generation.world_selection,
+        &used_world_types,
+        &mut rng,
+        false,
+    )?;
+    let features = pick_features(
+        cand,
+        pool,
+        config.generation.world_feature_count,
+        star_colour,
+        &mut rng,
+    );
+    let world = cand.to_world(features);
+    let dto = WorldDto::from(&world);
+    let tags = tags_for_world(&world);
+    Ok((dto, cand.row_index, tags))
+}
+
 /// Apply faction assignment to one or more systems. Public so the standalone
 /// system generator can reuse the same logic the sector generator does.
 pub fn assign_factions_for_systems(

@@ -144,6 +144,7 @@ impl SessionFile {
             pending_collision: None,
             rect_select: None,
             hex_size: 28.0,
+            world_reroll_counter: 0,
         }
     }
 }

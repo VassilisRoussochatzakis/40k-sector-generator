@@ -369,6 +369,22 @@ fn validate_relations(
     errors: &mut Vec<ValidationIssue>,
     warnings: &mut Vec<ValidationIssue>,
 ) {
+    // No factions → no meaningful id set to check overrides against; skip
+    // those checks rather than flagging every override id as "unknown".
+    if factions.is_empty() {
+        for (i, r) in cfg.kind_rules.iter().enumerate() {
+            if r.a.is_empty() || r.b.is_empty() {
+                warnings.push(ValidationIssue {
+                    code: "RELATIONS_KIND_RULE_EMPTY".into(),
+                    message: format!("relations.kind_rules[{i}] has empty kind id"),
+                    path: Some(format!("relations.kind_rules[{i}]")),
+                    row: None,
+                    severity: Severity::Warning,
+                });
+            }
+        }
+        return;
+    }
     let known_ids: BTreeSet<String> = factions
         .iter()
         .flat_map(|f| {

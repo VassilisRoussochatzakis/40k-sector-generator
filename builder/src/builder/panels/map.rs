@@ -123,11 +123,36 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
 
     // §C7 / §C8: optional control-derived overlay supplied to the SectorView
     // heatmap channel. Computed lazily — only paid when an overlay is on.
+    // §E7: when no control overlay is on, fall back to the economy/state
+    // heatmap mode picked from the ECONOMY tab.
     let overlay_cells = crate::builder::panels::control::build_overlay_cells(
         &state.sector,
         &state.sector.factions,
         state.control_overlay,
     );
+    let economy_cells = if overlay_cells.is_none()
+        && !matches!(
+            state.map_heatmap_mode,
+            sectorforge::heatmap::HeatmapMode::Off,
+        ) {
+        let cells = sectorforge_gui_core::heatmap::compute(&state.sector, state.map_heatmap_mode);
+        if cells.is_empty() {
+            None
+        } else {
+            Some(cells)
+        }
+    } else {
+        None
+    };
+    let heatmap_ref = overlay_cells.as_ref().or(economy_cells.as_ref());
+
+    // §E6: highlight lifeline lanes on the route layer when the toggle is on.
+    let lifeline_routes = crate::builder::panels::economy::lifeline_route_ids(state);
+    let lifeline_ref = if lifeline_routes.is_empty() {
+        None
+    } else {
+        Some(&lifeline_routes)
+    };
 
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
         SectorView {
@@ -135,12 +160,12 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             selected_system: state.selected_system_id.as_ref().map(|id| id.as_str()),
             selected_route: state.selected_route_id.as_ref().map(|id| id.as_str()),
             hex_size: state.hex_size,
-            path_route_ids: None,
+            path_route_ids: lifeline_ref,
             path_waypoints: None,
             subsectors: subsectors_slice,
             cache: lookup,
             selected_subsector: state.selected_subsector_id.as_deref(),
-            heatmap: overlay_cells.as_ref(),
+            heatmap: heatmap_ref,
             empty_hex_clicks: false,
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
             origin,
@@ -155,6 +180,24 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         }
         .show(ui);
     });
+
+    // §E4: paint a red ring around every system that contains a stranded
+    // world. Drawn after `SectorView::show` so the overlay sits on top of the
+    // base hex / route / system render.
+    let stranded = crate::builder::panels::economy::stranded_system_ids(state);
+    if !stranded.is_empty() {
+        let painter = ui.painter_at(rect).with_clip_rect(rect);
+        let red = egui::Color32::from_rgb(230, 80, 80);
+        let stroke = egui::Stroke::new(2.0, red);
+        let ring_geom = SectorGeom::new(state.hex_size, origin);
+        for sys in &state.sector.systems {
+            if !stranded.contains(&sys.id) {
+                continue;
+            }
+            let centre = ring_geom.hex_center(sys.coord.q, sys.coord.r);
+            painter.circle_stroke(centre, state.hex_size * 0.7, stroke);
+        }
+    }
 
     // ── interaction ─────────────────────────────────────────────────────────
     let pick_geom = SectorGeom::new(state.hex_size, origin);

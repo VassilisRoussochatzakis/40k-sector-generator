@@ -184,6 +184,10 @@ for all remaining checklist items:
       add/remove presence, dominance lock, system control_state +
       primary_factions, live PowerProfile preview, and POWER PROJECTION /
       INFLUENCE FIELD MAP overlays driven from the CONTROL tab.
+  [x] Direct edit Phase C §E1..§E7 (ECONOMY tab): per-world resource +
+      strategic overrides, per-system tithe/supply/priority overrides, stranded
+      recompute with red-ring MAP overlay, `economy.toml` editor with Save +
+      Apply, lifeline-lane highlight, trade/food/tithe/supply heatmap picker.
   [x] Validation/invariant panels and health status pip.
   [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
 
@@ -206,7 +210,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Claims              [G]       §12
   Subsectors          [P]       §13   (view only; need reassignment)
   Regions             [G]       §14   (view only; need place/grow/edit)
-  Economy             [G]       §15   (view only; need override editor)
+  Economy             [X]       §15   (per-world / per-system overrides, lifelines, heatmaps)
   Relations           [G]       §16   (view only; need matrix + overrides)
   History             [G]       §17   (view only; need event editor + eras)
   Personae            [G]       §18
@@ -799,27 +803,72 @@ REG7. Region glyph preview (`~ ^ = # *`) in markdown preview tab.
 15. ECONOMY
 ================================================================================
 
-E1.   Per-world economy override: 6-tuple (ore, promethium, foodstuffs,
-      manufactured, archeotech, recruits) signed sliders. Default = derived;
-      override = pinned.
+E1.   [DONE] Per-world economy override: 6-tuple (ore, promethium,
+      foodstuffs, manufactured, archeotech, recruits) signed sliders. ECONOMY
+      panel `§E1` renders an `egui::Slider` -100..=100 per axis bound to
+      `BuilderState::world_economy_overrides: BTreeMap<WorldId, ResourceVector>`.
+      `BuilderState::recompute_economy` runs `economy::derive_with` with the
+      live `data_catalogs.economy` (forced `enabled = true`), pins each
+      overridden world's `WorldEconomy.vector`, then recomputes per-system
+      surplus / shortage aggregates from the patched rows so the override
+      propagates without re-running the full graph. "Clear override" drops
+      the entry and the next recompute restores the derived value.
+      Covered by `world_override_pins_vector_through_recompute`.
 
-E2.   Strategic output editor: per-world flags for food, ore,
+E2.   [DONE] Strategic output editor: per-world `StrategicOutput` (food, ore,
       manufacturing, arms, ships, pilgrimage, psyker_tithe, manpower,
-      knowledge, xenos_value.
+      knowledge, xenos_value) with a slider per axis (0..=100) bound to
+      `BuilderState::world_strategic_overrides: BTreeMap<WorldId,
+      StrategicOutput>`. `recompute_economy` pins the override into
+      `WorldEconomy.strategic_output` and re-aggregates the system-level
+      strategic vector + sector totals from the patched worlds.
+      Covered by `strategic_override_replaces_derived_output`.
 
-E3.   Tithe / supply: per-system tithe_status, supply_risk, override
-      slider for `strategic_priority`.
+E3.   [DONE] Per-system tithe_status / supply_risk / strategic_priority
+      override row. ECONOMY panel `§E3` lists every `SystemEconomy` with
+      a ComboBox per axis bound to
+      `BuilderState::{system_tithe_overrides, system_supply_overrides,
+      system_priority_overrides}` (all `BTreeMap<SystemId, ...>` side-tables).
+      Overrides are pinned after the auto-derived pass; the "× clear" button
+      drops all three for that system. A "→ SYSTEM" deep-link focuses the
+      row in the SYSTEM tab.
+      Covered by `system_overrides_pin_after_recompute`.
 
-E4.   Stranded-world recompute on every edit. Visible flag in
-      world inspector and on the map (red ring).
+E4.   [DONE] Stranded recompute on every edit + map indicator.
+      `recompute_economy` runs after every E1..E3 mutation and the panel
+      auto-applies it. The §E4 collapsing list enumerates every stranded
+      world (`WorldEconomy.stranded`) with a deep-link to the WORLD
+      inspector. The MAP panel paints a red ring around every system whose
+      id is in `panels::economy::stranded_system_ids(state)` via a post-pass
+      `ui.painter().circle_stroke` overlay layered on top of
+      `SectorView::show`.
 
-E5.   Economy config editor (`data/worlds/economy.toml`): production
-      matrix per world_type, tech-level multipliers, notable-feature
-      rules, `feed_stability`, `enabled` toggle.
+E5.   [DONE] `economy.toml` editor on the ECONOMY tab. Renders
+      `enabled` / `feed_stability` toggles plus collapsing editors for
+      `by_world_type` (one `ResourceVector` per row), `by_tech_level`, and
+      `by_population` (f32 multipliers). Live edits arm
+      `state.dirty_files`; "Save economy.toml" round-trips through
+      `project_io::save_project` (auto-pointing `config.inputs.economy`
+      at `data/worlds/economy.toml` when unset). "Apply & recompute"
+      flushes the edits through `recompute_economy` immediately.
 
-E6.   Lifeline-lane visualiser on the route layer (links into §19).
+E6.   [DONE] Lifeline-lane visualiser. ECONOMY panel `§E6` exposes
+      `BuilderState::economy_highlight_lifelines: bool` plus
+      `economy_lifeline_min_score: f32` (default 35.0), and lists the
+      top dependency edges above the threshold (sorted by score). The MAP
+      panel feeds `panels::economy::lifeline_route_ids(state)` into
+      `SectorView::path_route_ids`, reusing the existing thick-glow route
+      highlight already used by the path planner.
 
-E7.   Trade volume heatmap option in §35.
+E7.   [DONE] Trade-volume heatmap mode picker.
+      `BuilderState::map_heatmap_mode: HeatmapMode` (default `Off`) is a
+      ComboBox over `Off | TradeVolume | FoodOutput | TitheStress |
+      SupplyVulnerability`. The MAP panel calls
+      `sectorforge_gui_core::heatmap::compute(&sector, mode)` when the
+      §C7 / §C8 control overlay is `None` and the mode is not `Off`,
+      then feeds the resulting `HashMap<SystemId, HeatCell>` into
+      `SectorView::heatmap`. Control overlays still win when active so
+      the trader heatmap and the influence overlay never compete.
 
 ================================================================================
 16. RELATIONS (DIPLOMACY)
@@ -1440,7 +1489,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Regions   -> panels/regions.rs    (Phase C §REG1..§REG7 DONE)
         Routes    -> panels/routes.rs     (Phase B §R1..§R7 DONE)
         Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5 DONE)
-        Economy   -> panels/economy.rs    (Phase C §E1..§E7)
+        Economy   -> panels/economy.rs    (Phase C §E1..§E7 DONE)
         Relations -> panels/relations.rs  (Phase C §REL1..§REL9)
         History   -> panels/history.rs    (Phase C §H1..§H8)
         Personae  -> panels/personae.rs   (Phase D §PER1..§PER5)
@@ -1586,7 +1635,15 @@ Phase C — Overlays editable
                      MAP-tab `selected_subsector` now reads
                      `BuilderState::selected_subsector_id` so panel-side
                      selection lights up the live hex map)
-  E1..E7,     (§15 economy)
+  E1..E7  - DONE  (§15 economy — ECONOMY tab: per-world ResourceVector
+                   override (§E1), per-world StrategicOutput override (§E2),
+                   per-system tithe/supply/strategic_priority override (§E3),
+                   stranded recompute + MAP red ring (§E4), `economy.toml`
+                   editor + Save + Apply (§E5), lifeline-lane MAP highlight via
+                   path_route_ids (§E6), trade/food/tithe/supply heatmap picker
+                   feeding `SectorView::heatmap` (§E7); all mutations route
+                   through `BuilderState::recompute_economy` and the MAP panel
+                   reads `state.map_heatmap_mode` whenever §C7/§C8 are off)
   REL1..REL9, (§16 relations)
   H1..H8,     (§17 history)
   I1..I5,     (§29 intel + visibility)

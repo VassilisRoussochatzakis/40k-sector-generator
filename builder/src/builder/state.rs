@@ -399,6 +399,37 @@ pub struct BuilderState {
     /// `FactionStyle` fill of its controlling faction; the override is only
     /// recorded when the user picks a custom swatch.
     pub subsector_colour_overrides: BTreeMap<String, [u8; 3]>,
+    /// §E1: per-world `ResourceVector` override. When present
+    /// [`Self::recompute_economy`] pins the world's vector to this value,
+    /// recomputes the shortage list, and lets the stranded check re-run from
+    /// the override (the routes layer is unchanged so a manual surplus can
+    /// still resolve a real deficit). Never written to JSON.
+    pub world_economy_overrides: BTreeMap<WorldId, sectorforge::economy::ResourceVector>,
+    /// §E2: per-world `StrategicOutput` override. When present
+    /// [`Self::recompute_economy`] pins the world's 10-axis strategic vector
+    /// and the system-level aggregates inherit the override before the
+    /// dependency-edge pass runs.
+    pub world_strategic_overrides: BTreeMap<WorldId, sectorforge::economy::StrategicOutput>,
+    /// §E3: per-system `TitheStatus` override applied after the auto-derived
+    /// pass so users can mark a system Delinquent/Falsified by hand.
+    pub system_tithe_overrides: BTreeMap<SystemId, sectorforge::economy::TitheStatus>,
+    /// §E3: per-system `SupplyRisk` override.
+    pub system_supply_overrides: BTreeMap<SystemId, sectorforge::economy::SupplyRisk>,
+    /// §E3: per-system `StrategicPriority` override.
+    pub system_priority_overrides: BTreeMap<SystemId, sectorforge::economy::StrategicPriority>,
+    /// §E7 / §35 — active MAP-tab heatmap mode when no §C7/§C8 control overlay
+    /// is on. Defaults to `Off`. Trade-volume / food / tithe / supply modes
+    /// read straight off `sector.economy` and require
+    /// [`Self::recompute_economy`] to have run at least once.
+    pub map_heatmap_mode: sectorforge::heatmap::HeatmapMode,
+    /// §E6: when true, the MAP panel highlights the route ids carrying the
+    /// top-N supplier→consumer dependency edges (lifeline lanes) using the
+    /// existing `SectorView::path_route_ids` channel.
+    pub economy_highlight_lifelines: bool,
+    /// §E6: minimum dependency-edge score that qualifies as a lifeline. Edges
+    /// below this score are not painted. Defaults to 35.0 — same threshold
+    /// `economy::derive_dependency_edges` uses for the supplier cutoff.
+    pub economy_lifeline_min_score: f32,
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -563,6 +594,14 @@ impl BuilderState {
             subsector_manual: BTreeSet::new(),
             subsector_capital_overrides: BTreeMap::new(),
             subsector_colour_overrides: BTreeMap::new(),
+            world_economy_overrides: BTreeMap::new(),
+            world_strategic_overrides: BTreeMap::new(),
+            system_tithe_overrides: BTreeMap::new(),
+            system_supply_overrides: BTreeMap::new(),
+            system_priority_overrides: BTreeMap::new(),
+            map_heatmap_mode: sectorforge::heatmap::HeatmapMode::Off,
+            economy_highlight_lifelines: false,
+            economy_lifeline_min_score: 35.0,
         }
     }
 
@@ -1031,6 +1070,146 @@ impl BuilderState {
     /// [`Self::pump_validation`] after `validation_debounce` elapses.
     pub fn mark_validation_dirty(&mut self) {
         self.validation_dirty_since = Some(Instant::now());
+    }
+
+    /// §E1..§E4 — run `economy::derive_with` against the live sector using the
+    /// in-memory `data_catalogs.economy` (defaulting to an enabled, empty
+    /// config when none is loaded). Per-world overrides on
+    /// [`Self::world_economy_overrides`] / [`Self::world_strategic_overrides`]
+    /// pin those fields on top of the derived report, the system rollups are
+    /// recomputed from the patched worlds, and per-system tithe / supply /
+    /// priority overrides are applied last. When `cfg.feed_stability` is on
+    /// the §E4 stranded nudge is re-applied to the sector. The fresh report is
+    /// installed at `sector.economy` (as an `Arc`) and invariant / validation
+    /// dirty markers are armed.
+    pub fn recompute_economy(&mut self) {
+        use sectorforge::economy::{
+            apply_stability_nudge, derive_with, EconomyConfig, ResourceVector, RESOURCE_KEYS,
+        };
+        let mut cfg = self
+            .data_catalogs
+            .economy
+            .clone()
+            .unwrap_or_else(EconomyConfig::default);
+        cfg.enabled = true;
+        let mut report = derive_with(&self.sector, &cfg);
+
+        let mut sys_idx: BTreeMap<sectorforge::ids::SystemId, usize> = BTreeMap::new();
+        for (i, s) in report.systems.iter().enumerate() {
+            sys_idx.insert(s.system_id.clone(), i);
+        }
+
+        // §E1 / §E2 — pin per-world overrides on top of the freshly derived
+        // report so the user's signed sliders win against the table defaults.
+        for w in report.worlds.iter_mut() {
+            if let Some(v) = self.world_economy_overrides.get(&w.world_id) {
+                w.vector = v.clone();
+                w.shortages = RESOURCE_KEYS
+                    .iter()
+                    .filter(|k| v.get(k) <= -20.0)
+                    .map(|k| (*k).to_string())
+                    .collect();
+            }
+            if let Some(s) = self.world_strategic_overrides.get(&w.world_id) {
+                w.strategic_output = *s;
+            }
+        }
+
+        // Recompute per-system aggregates from the patched per-world rows so
+        // §E1 / §E2 pins propagate into system surplus / shortage / strategic
+        // priority without re-walking the heavy derivation graph.
+        let mut by_system: BTreeMap<sectorforge::ids::SystemId, ResourceVector> = BTreeMap::new();
+        let mut strat_by_system: BTreeMap<
+            sectorforge::ids::SystemId,
+            sectorforge::economy::StrategicOutput,
+        > = BTreeMap::new();
+        for w in &report.worlds {
+            let v = by_system.entry(w.system_id.clone()).or_default();
+            v.ore += w.vector.ore;
+            v.promethium += w.vector.promethium;
+            v.foodstuffs += w.vector.foodstuffs;
+            v.manufactured += w.vector.manufactured;
+            v.archeotech += w.vector.archeotech;
+            v.recruits += w.vector.recruits;
+            let s = strat_by_system.entry(w.system_id.clone()).or_default();
+            s.food += w.strategic_output.food;
+            s.ore += w.strategic_output.ore;
+            s.manufacturing += w.strategic_output.manufacturing;
+            s.arms += w.strategic_output.arms;
+            s.ships += w.strategic_output.ships;
+            s.pilgrimage += w.strategic_output.pilgrimage;
+            s.psyker_tithe += w.strategic_output.psyker_tithe;
+            s.manpower += w.strategic_output.manpower;
+            s.knowledge += w.strategic_output.knowledge;
+            s.xenos_value += w.strategic_output.xenos_value;
+        }
+        for sy in report.systems.iter_mut() {
+            if let Some(v) = by_system.get(&sy.system_id) {
+                sy.vector = v.clone();
+                sy.surplus_resources = RESOURCE_KEYS
+                    .iter()
+                    .filter(|k| v.get(k) >= 20.0)
+                    .map(|k| (*k).to_string())
+                    .collect();
+                sy.shortage_resources = RESOURCE_KEYS
+                    .iter()
+                    .filter(|k| v.get(k) <= -20.0)
+                    .map(|k| (*k).to_string())
+                    .collect();
+            }
+            if let Some(s) = strat_by_system.get(&sy.system_id) {
+                sy.strategic_output = *s;
+            }
+        }
+
+        // §E3 — per-system overrides on tithe / supply / priority.
+        for sy in report.systems.iter_mut() {
+            if let Some(t) = self.system_tithe_overrides.get(&sy.system_id) {
+                sy.tithe_status = *t;
+            }
+            if let Some(r) = self.system_supply_overrides.get(&sy.system_id) {
+                sy.supply_risk = *r;
+            }
+            if let Some(p) = self.system_priority_overrides.get(&sy.system_id) {
+                sy.strategic_priority = *p;
+            }
+        }
+
+        // Refresh sector-level balance + strategic totals from the patched rows.
+        let mut sector_balance = ResourceVector::default();
+        let mut strategic = sectorforge::economy::StrategicOutput::default();
+        for sy in &report.systems {
+            sector_balance.ore += sy.vector.ore;
+            sector_balance.promethium += sy.vector.promethium;
+            sector_balance.foodstuffs += sy.vector.foodstuffs;
+            sector_balance.manufactured += sy.vector.manufactured;
+            sector_balance.archeotech += sy.vector.archeotech;
+            sector_balance.recruits += sy.vector.recruits;
+            strategic.food += sy.strategic_output.food;
+            strategic.ore += sy.strategic_output.ore;
+            strategic.manufacturing += sy.strategic_output.manufacturing;
+            strategic.arms += sy.strategic_output.arms;
+            strategic.ships += sy.strategic_output.ships;
+            strategic.pilgrimage += sy.strategic_output.pilgrimage;
+            strategic.psyker_tithe += sy.strategic_output.psyker_tithe;
+            strategic.manpower += sy.strategic_output.manpower;
+            strategic.knowledge += sy.strategic_output.knowledge;
+            strategic.xenos_value += sy.strategic_output.xenos_value;
+        }
+        report.sector_balance = sector_balance;
+        report.strategic_output = strategic;
+
+        let feed_stability = cfg.feed_stability;
+        self.sector.economy = std::sync::Arc::new(report);
+        if feed_stability {
+            let report = self.sector.economy.as_ref().clone();
+            apply_stability_nudge(&report, &mut self.sector);
+        }
+        let _ = sys_idx;
+        self.dirty = true;
+        self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
+        self.trigger_auto_save();
     }
 
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed

@@ -170,6 +170,14 @@ impl SessionFile {
             subsector_manual: std::collections::BTreeSet::new(),
             subsector_capital_overrides: std::collections::BTreeMap::new(),
             subsector_colour_overrides: std::collections::BTreeMap::new(),
+            world_economy_overrides: std::collections::BTreeMap::new(),
+            world_strategic_overrides: std::collections::BTreeMap::new(),
+            system_tithe_overrides: std::collections::BTreeMap::new(),
+            system_supply_overrides: std::collections::BTreeMap::new(),
+            system_priority_overrides: std::collections::BTreeMap::new(),
+            map_heatmap_mode: sectorforge::heatmap::HeatmapMode::Off,
+            economy_highlight_lifelines: false,
+            economy_lifeline_min_score: 35.0,
         }
     }
 }

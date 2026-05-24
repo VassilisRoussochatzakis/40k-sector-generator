@@ -12,9 +12,8 @@
 
 use egui::Color32;
 
-use sectorforge::regions::RegionConditionKind;
-
 use crate::palette;
+use crate::visual_tokens::MapRegionOverlay;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ScaledSize {
@@ -98,16 +97,16 @@ pub struct MapTheme {
 }
 
 impl MapTheme {
-    pub fn region_color(&self, kind: RegionConditionKind) -> Color32 {
+    pub fn region_color(&self, kind: MapRegionOverlay) -> Color32 {
         match kind {
-            RegionConditionKind::WarpStorm => self.region_warp_storm,
-            RegionConditionKind::Turbulence => self.region_turbulence,
-            RegionConditionKind::CalmCorridor => self.region_calm_corridor,
-            RegionConditionKind::Blackout => self.region_blackout,
-            RegionConditionKind::Anomaly => self.region_anomaly,
-            RegionConditionKind::NecropolisDrift => self.region_necropolis_drift,
-            RegionConditionKind::BeaconChain => self.region_beacon_chain,
-            RegionConditionKind::EmpyricBleed => self.region_empyric_bleed,
+            MapRegionOverlay::WarpStorm => self.region_warp_storm,
+            MapRegionOverlay::Turbulence => self.region_turbulence,
+            MapRegionOverlay::CalmCorridor => self.region_calm_corridor,
+            MapRegionOverlay::Blackout => self.region_blackout,
+            MapRegionOverlay::Anomaly => self.region_anomaly,
+            MapRegionOverlay::NecropolisDrift => self.region_necropolis_drift,
+            MapRegionOverlay::BeaconChain => self.region_beacon_chain,
+            MapRegionOverlay::EmpyricBleed => self.region_empyric_bleed,
         }
     }
 }

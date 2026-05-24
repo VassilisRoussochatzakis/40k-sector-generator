@@ -5,19 +5,21 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::ids::SystemId;
-use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
 
 use sectorforge::subsectors::Subsector;
 
 use super::heatmap::HeatCell;
 use super::map_theme::MapTheme;
-use super::palette::{darken, draw_route_control_glyph, draw_route_line, stability_color, star_color};
+use super::palette::{
+    darken, draw_route_control_glyph, draw_route_line, stability_color, star_color,
+};
+use super::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
 
 pub struct SectorMapCache {
     pub hex_subsector: HashMap<(i32, i32), String>,
     pub hex_system: HashMap<(i32, i32), sectorforge::ids::SystemId>,
-    pub hex_region: HashMap<(i32, i32), (String, RegionConditionKind)>,
+    pub hex_region: HashMap<(i32, i32), (String, MapRegionOverlay)>,
     pub region_centroids: HashMap<String, Pos2>,
 }
 
@@ -42,7 +44,13 @@ impl SectorMapCache {
             let mut sx = 0.0;
             let mut sy = 0.0;
             for h in &reg.hexes {
-                hex_region.insert((h.q, h.r), (reg.id.to_string(), reg.kind));
+                hex_region.insert(
+                    (h.q, h.r),
+                    (
+                        reg.id.to_string(),
+                        MapRegionOverlay::from_condition(reg.kind),
+                    ),
+                );
                 sx += h.q as f32;
                 sy += h.r as f32;
             }
@@ -182,7 +190,11 @@ impl<'a> SectorView<'a> {
                     let mut f = base;
                     for reg in self.sector.regions.iter() {
                         if reg.hexes.iter().any(|h| h.q == q && h.r == r) {
-                            f = blend_heat(base, theme.region_color(reg.kind), 0.5);
+                            f = blend_heat(
+                                base,
+                                theme.region_color(MapRegionOverlay::from_condition(reg.kind)),
+                                0.5,
+                            );
                             break;
                         }
                     }
@@ -330,7 +342,7 @@ impl<'a> SectorView<'a> {
                 b2,
                 route_thickness,
                 stability_color(route.stability),
-                route.route_type.pattern(self.route_view_mode),
+                MapRouteVisual::from_route_type(route.route_type, self.route_view_mode).pattern(),
             );
             draw_route_control_glyph(
                 &painter,
@@ -422,7 +434,8 @@ impl<'a> SectorView<'a> {
                     b2,
                     route_thickness * theme.selection_core_mul,
                     theme.selection,
-                    route.route_type.pattern(self.route_view_mode),
+                    MapRouteVisual::from_route_type(route.route_type, self.route_view_mode)
+                        .pattern(),
                 );
             }
         }
@@ -487,25 +500,14 @@ impl<'a> SectorView<'a> {
                 theme.text_dim
             };
 
-            if sys.star.is_some() {
-                let r = star_r;
-                painter.circle_filled(c, r, fill);
-                painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
-            } else {
-                // Special location marker: diamond outline.
-                let r = star_r * 0.8;
-                let pts = vec![
-                    Pos2::new(c.x, c.y - r),
-                    Pos2::new(c.x + r, c.y),
-                    Pos2::new(c.x, c.y + r),
-                    Pos2::new(c.x - r, c.y),
-                ];
-                painter.add(egui::Shape::convex_polygon(
-                    pts,
-                    Color32::TRANSPARENT,
-                    Stroke::new(1.5, theme.text_dim),
-                ));
-            }
+            draw_system_glyph(
+                &painter,
+                c,
+                star_r,
+                MapSystemGlyph::from_system(sys),
+                fill,
+                theme,
+            );
 
             // Subsector capital marker: small filled diamond above the star.
             if let Some(subs) = self.subsectors {
@@ -989,6 +991,40 @@ fn draw_hex_fill(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32) {
     }
     let pts = hex_vertices(c, size).to_vec();
     painter.add(egui::Shape::convex_polygon(pts, fill, Stroke::NONE));
+}
+
+fn draw_system_glyph(
+    painter: &egui::Painter,
+    c: Pos2,
+    radius: f32,
+    glyph: MapSystemGlyph,
+    fill: Color32,
+    theme: &MapTheme,
+) {
+    match glyph {
+        MapSystemGlyph::Star => {
+            painter.circle_filled(c, radius, fill);
+            painter.circle_stroke(c, radius, Stroke::new(1.5, darken(fill, 0.55)));
+        }
+        MapSystemGlyph::UncataloguedStar
+        | MapSystemGlyph::SpecialLocation
+        | MapSystemGlyph::BlackHole
+        | MapSystemGlyph::WarpAnomaly
+        | MapSystemGlyph::SpaceStation => {
+            let r = radius * 0.8;
+            let pts = vec![
+                Pos2::new(c.x, c.y - r),
+                Pos2::new(c.x + r, c.y),
+                Pos2::new(c.x, c.y + r),
+                Pos2::new(c.x - r, c.y),
+            ];
+            painter.add(egui::Shape::convex_polygon(
+                pts,
+                Color32::TRANSPARENT,
+                Stroke::new(1.5, theme.text_dim),
+            ));
+        }
+    }
 }
 
 fn distance_to_segment(p: Pos2, a: Pos2, b: Pos2) -> f32 {

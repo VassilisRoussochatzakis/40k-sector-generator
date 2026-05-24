@@ -1620,6 +1620,15 @@ the painter resolves with `hex_size * mul` floored at `min`. To restyle the map,
 edit one struct; the viewer, the editor MAP panel, and the builder MAP tab all
 follow.
 
+Semantic map tokens live in
+[`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph`,
+`MapRouteVisual`, and `MapRegionOverlay`. `SectorView` converts
+`SystemKind`, `RouteType`, and `RegionConditionKind` into those tokens before
+painting, then the renderer and `MapTheme` match on tokens only. When a new
+system kind, route type, or region condition is added, the compiler points at
+the one token conversion / paint match that must be updated, keeping the
+viewer, editor MAP panel, and builder MAP tab from drifting.
+
 The editor's own MAP surface in
 [gui/src/editor/map_panel.rs](gui/src/editor/map_panel.rs) now delegates every
 pixel-producing call to the shared

@@ -131,6 +131,8 @@ impl SessionFile {
             selected_route_id: None,
             selected_faction_id: None,
             selected_region_id: None,
+            active_tab: super::state::BuilderTab::Project,
+            map_tool: super::state::MapTool::Select,
         }
     }
 }

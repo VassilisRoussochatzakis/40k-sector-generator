@@ -27,3 +27,33 @@ pub mod save_project;
 pub mod shortcuts;
 pub mod status;
 pub mod validation;
+
+// §N1 / §N2 router + per-tab modules. Phase A wires the router itself plus
+// PROJECT and MAP; remaining tabs render `placeholder::show` until the matching
+// phase lands.
+pub mod analytics;
+pub mod briefing;
+pub mod control;
+pub mod diff;
+pub mod economy;
+pub mod export;
+pub mod factions;
+pub mod history;
+pub mod hooks;
+pub mod interestingness;
+pub mod map;
+pub mod missions;
+pub mod nav;
+pub mod personae;
+pub mod placeholder;
+pub mod project;
+pub mod prose;
+pub mod regions;
+pub mod relations;
+pub mod routes;
+pub mod search;
+pub mod segmentum;
+pub mod sites;
+pub mod subsectors;
+pub mod system;
+pub mod world;

@@ -1146,20 +1146,62 @@ T7.   Benchmarks (criterion) for large-sector mutations (>= 200
 41. UI ROUTING / NAV
 ================================================================================
 
-N1.   Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
+N1.   [DONE] Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
       CONTROL | REGIONS | ROUTES | SUBSECTORS | ECONOMY | RELATIONS |
       HISTORY | PERSONAE | HOOKS | SITES | MISSIONS | PROSE |
       ANALYTICS | INTERESTINGNESS | SEARCH | DIFF | BRIEFING |
       SEGMENTUM | EXPORT.
+      `gui/src/builder/state.rs::BuilderTab` enumerates all 24 tabs;
+      `BuilderTab::ALL` is the canonical ordering used by the top tab
+      strip. Active tab persists on `BuilderState::active_tab` (defaults
+      to `Project`). Tests `default_tab_is_project`,
+      `builder_tab_all_is_full_n1_set`, and
+      `builder_tab_labels_are_uppercase_words` pin the contract.
 
-N2.   Each tab corresponds to a panel module under
-      `gui/src/builder/panels/`.
+N2.   [DONE] Each tab corresponds to a panel module under
+      `gui/src/builder/panels/` and follows the R10 contract.
+      `gui/src/builder/panels/nav.rs::show_top_bar` renders the strip;
+      `show_active_panel` dispatches `BuilderTab` -> panel module:
+        Project   -> panels/project.rs    (composes §P1..§P6 surfaces)
+        Map       -> panels/map.rs        (hosts the §N3 toolbox)
+        System    -> panels/system.rs     (Phase B §S1..§S6 placeholder)
+        World     -> panels/world.rs      (Phase B §W1..§W7 placeholder)
+        Factions  -> panels/factions.rs   (Phase B §F1..§F7 placeholder)
+        Control   -> panels/control.rs    (Phase B §C1..§C8 placeholder)
+        Regions   -> panels/regions.rs    (Phase C §REG1..§REG7)
+        Routes    -> panels/routes.rs     (Phase B §R1..§R7)
+        Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5)
+        Economy   -> panels/economy.rs    (Phase C §E1..§E7)
+        Relations -> panels/relations.rs  (Phase C §REL1..§REL9)
+        History   -> panels/history.rs    (Phase C §H1..§H8)
+        Personae  -> panels/personae.rs   (Phase D §PER1..§PER5)
+        Hooks     -> panels/hooks.rs      (Phase D §HK1..§HK6)
+        Sites     -> panels/sites.rs      (Phase D §ST1..§ST4)
+        Missions  -> panels/missions.rs   (Phase D §M1..§M5)
+        Prose     -> panels/prose.rs      (Phase D §PR1..§PR4)
+        Analytics -> panels/analytics.rs  (Phase E §A1..§A4)
+        Interestingness -> panels/interestingness.rs (Phase D §INT1..§INT4)
+        Search    -> panels/search.rs     (Phase E §SR1..§SR5)
+        Diff      -> panels/diff.rs       (Phase E §DF1..§DF5)
+        Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5)
+        Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5)
+        Export    -> panels/export.rs     (Phase E §EX1..§EX8)
+      Stub panels share `panels/placeholder.rs` so each body announces
+      the phase + section that fills the tab.
 
-N3.   Map tab keeps the editor toolbox (ADD/DELETE/MOVE/ROUTE/REGION
-      paint).
+N3.   [DONE] Map tab keeps the editor toolbox
+      (ADD/DELETE/MOVE/ROUTE/REGION paint).
+      `gui/src/builder/state.rs::MapTool` enumerates Select / AddSystem
+      / DeleteSystem / MoveSystem / AddRoute / RegionPaint;
+      `BuilderState::map_tool` holds the armed tool (default `Select`).
+      `gui/src/builder/panels/map.rs::show_toolbox` renders the strip
+      and Phase B click handlers branch on `state.map_tool`.
 
-N4.   Status bar: project path, dirty flag, validation status,
+N4.   [DONE] Status bar: project path, dirty flag, validation status,
       pending-jobs spinner, derivation cache freshness.
+      `gui/src/builder/panels/status.rs::show` writes project label,
+      `dirty` flag, tri-coloured §V3 health pip, command cursor,
+      derivation-cache entry count, and pending-job spinner.
 
 N5.   Command palette (Ctrl-K): fuzzy-search every BuilderCommand by
       name.
@@ -1194,10 +1236,10 @@ split.
 Phase A — Foundation
   D1..D6  - DONE  (§4)
   R1..R10 - DONE  (§1)
-  P1..P6  - PARTIAL: P1..P6 all DONE; tab/router still pending  (§5)
+  P1..P6  - DONE  (§5)
   U1..U2  - DONE  (§38)
   V1..V3  - DONE  (§33; V4..V6 land in Phase E)
-  N1..N4. (§41; N5 command palette lands in Phase F)
+  N1..N4  - DONE  (§41; N5 command palette lands in Phase F)
 
 Phase B — Direct entity edit
   G1..G6, (§6 generation config — first interactive workflow on top of

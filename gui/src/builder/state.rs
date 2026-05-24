@@ -96,6 +96,131 @@ pub enum HealthLevel {
     Red,
 }
 
+/// §N1: top-level builder tab. Each variant maps 1:1 to a panel module under
+/// `gui/src/builder/panels/` (§N2). The router lives in
+/// [`crate::builder::panels::nav`]; the active tab is persisted on
+/// [`BuilderState::active_tab`] so panels never reach for global state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BuilderTab {
+    Project,
+    Map,
+    System,
+    World,
+    Factions,
+    Control,
+    Regions,
+    Routes,
+    Subsectors,
+    Economy,
+    Relations,
+    History,
+    Personae,
+    Hooks,
+    Sites,
+    Missions,
+    Prose,
+    Analytics,
+    Interestingness,
+    Search,
+    Diff,
+    Briefing,
+    Segmentum,
+    Export,
+}
+
+impl BuilderTab {
+    /// Stable display label rendered in the top tab strip.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Project => "PROJECT",
+            Self::Map => "MAP",
+            Self::System => "SYSTEM",
+            Self::World => "WORLD",
+            Self::Factions => "FACTIONS",
+            Self::Control => "CONTROL",
+            Self::Regions => "REGIONS",
+            Self::Routes => "ROUTES",
+            Self::Subsectors => "SUBSECTORS",
+            Self::Economy => "ECONOMY",
+            Self::Relations => "RELATIONS",
+            Self::History => "HISTORY",
+            Self::Personae => "PERSONAE",
+            Self::Hooks => "HOOKS",
+            Self::Sites => "SITES",
+            Self::Missions => "MISSIONS",
+            Self::Prose => "PROSE",
+            Self::Analytics => "ANALYTICS",
+            Self::Interestingness => "INTERESTINGNESS",
+            Self::Search => "SEARCH",
+            Self::Diff => "DIFF",
+            Self::Briefing => "BRIEFING",
+            Self::Segmentum => "SEGMENTUM",
+            Self::Export => "EXPORT",
+        }
+    }
+
+    /// Canonical ordering used by the top tab strip (§N1).
+    pub const ALL: &'static [BuilderTab] = &[
+        Self::Project,
+        Self::Map,
+        Self::System,
+        Self::World,
+        Self::Factions,
+        Self::Control,
+        Self::Regions,
+        Self::Routes,
+        Self::Subsectors,
+        Self::Economy,
+        Self::Relations,
+        Self::History,
+        Self::Personae,
+        Self::Hooks,
+        Self::Sites,
+        Self::Missions,
+        Self::Prose,
+        Self::Analytics,
+        Self::Interestingness,
+        Self::Search,
+        Self::Diff,
+        Self::Briefing,
+        Self::Segmentum,
+        Self::Export,
+    ];
+}
+
+/// §N3: armed tool on the MAP tab. Bound to [`BuilderState::map_tool`] so the
+/// router and inspector tabs can read it without reaching for global state.
+/// Phase B panels (§S1 / §R2 / §REG2) consume this when the user clicks the
+/// hex map.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MapTool {
+    /// Default — clicks select the entity under the cursor.
+    Select,
+    /// Click an empty hex → `BuilderCommand::AddSystem`.
+    AddSystem,
+    /// Click a system → `BuilderCommand::RemoveSystem`.
+    DeleteSystem,
+    /// Drag a system → `BuilderCommand::MoveSystem`.
+    MoveSystem,
+    /// Click two systems → `BuilderCommand::AddRoute`.
+    AddRoute,
+    /// Brush hexes → `GeneratedSector::add_region_hex` / `remove_region_hex`.
+    RegionPaint,
+}
+
+impl MapTool {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Select => "SELECT",
+            Self::AddSystem => "ADD SYSTEM",
+            Self::DeleteSystem => "DELETE SYSTEM",
+            Self::MoveSystem => "MOVE SYSTEM",
+            Self::AddRoute => "ADD ROUTE",
+            Self::RegionPaint => "REGION PAINT",
+        }
+    }
+}
+
 /// Generic job handle the builder tracks for off-thread work (§47).
 /// Type-erased so it can sit alongside other pending jobs in a vec.
 pub struct JobHandle {
@@ -162,6 +287,11 @@ pub struct BuilderState {
     pub selected_route_id: Option<RouteId>,
     pub selected_faction_id: Option<FactionId>,
     pub selected_region_id: Option<String>,
+    /// §N1: active top-level tab. Defaults to [`BuilderTab::Project`] so a
+    /// blank session lands on the project chrome.
+    pub active_tab: BuilderTab,
+    /// §N3: armed tool on the MAP tab. Defaults to [`MapTool::Select`].
+    pub map_tool: MapTool,
 }
 
 impl BuilderState {
@@ -200,6 +330,8 @@ impl BuilderState {
             selected_route_id: None,
             selected_faction_id: None,
             selected_region_id: None,
+            active_tab: BuilderTab::Project,
+            map_tool: MapTool::Select,
         }
     }
 
@@ -610,6 +742,38 @@ mod tests {
     fn health_level_yellow_when_reports_missing() {
         let state = BuilderState::new_blank("t", "T", "seed", 8, 8);
         assert_eq!(state.health_level(), HealthLevel::Yellow);
+    }
+
+    // ── §N1 / §N3 ────────────────────────────────────────────────────────
+
+    #[test]
+    fn default_tab_is_project() {
+        let state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert_eq!(state.active_tab, BuilderTab::Project);
+    }
+
+    #[test]
+    fn default_map_tool_is_select() {
+        let state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert_eq!(state.map_tool, MapTool::Select);
+    }
+
+    #[test]
+    fn builder_tab_all_is_full_n1_set() {
+        // §N1 lists 24 tabs (PROJECT..EXPORT).
+        assert_eq!(BuilderTab::ALL.len(), 24);
+        assert_eq!(BuilderTab::ALL[0], BuilderTab::Project);
+        assert_eq!(BuilderTab::ALL[1], BuilderTab::Map);
+        assert_eq!(*BuilderTab::ALL.last().unwrap(), BuilderTab::Export);
+    }
+
+    #[test]
+    fn builder_tab_labels_are_uppercase_words() {
+        for tab in BuilderTab::ALL {
+            let label = tab.label();
+            assert!(!label.is_empty());
+            assert_eq!(label, label.to_uppercase());
+        }
     }
 
     #[test]

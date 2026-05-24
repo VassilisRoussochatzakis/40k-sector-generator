@@ -1682,6 +1682,22 @@ Tests in the panel modules cover the path-bucket logic without touching `egui`:
 * `gui/src/builder/panels/validation.rs::tests::group_buckets_by_prefix` — issue paths like `factions[1].preferred_world_types`, `routes.modifiers[0]`, and `None` are bucketed under `factions`, `routes`, and `(general)`.
 * `gui/src/builder/panels/invariants.rs::tests::stratum_split_system_vs_world`, `parse_system_world_extracts_ids`, `parse_path_picks_first_id` — verify the stratum split and the path-to-typed-ID parsers used by the click-to-focus mailbox.
 
+#### N1–N4 UI routing / nav (DONE)
+
+The builder ships a single top-tab router plus a status bar wired to the
+shared health pip. The viewer [`crate::App`] continues to own its own
+navigation; the §N router is the entry point for the upcoming builder shell
+that adopts `BuilderState` as root state.
+
+| Piece | Where it lives |
+|---|---|
+| N1 tab enum | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
+| N2 router | [gui/src/builder/panels/nav.rs](gui/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([gui/src/builder/panels/project.rs](gui/src/builder/panels/project.rs)); MAP hosts the §N3 toolbox ([gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs)); every other tab is a stub backed by [gui/src/builder/panels/placeholder.rs](gui/src/builder/panels/placeholder.rs) that names the phase + section that will fill it (Phase B: system/world/factions/control/routes; Phase C: regions/subsectors/economy/relations/history; Phase D: personae/hooks/sites/missions/prose/interestingness/briefing; Phase E: analytics/search/diff/segmentum/export). |
+| N3 map toolbox | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; Phase B click handlers will branch on `state.map_tool`. |
+| N4 status bar | [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
+
+N5 (Ctrl-K command palette) is intentionally deferred to Phase F.
+
 ---
 
 ## 9. Library use

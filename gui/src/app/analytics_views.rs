@@ -1,9 +1,6 @@
-use std::collections::HashSet;
-
-use egui::{RichText, ScrollArea, SidePanel, TopBottomPanel};
+use egui::{RichText, ScrollArea, TopBottomPanel};
 
 use super::{dashboard, palette, App, View, TEXT, TEXT_DIM};
-use crate::sector_view::{SectorClick, SectorView};
 use crate::system_view::SystemSelection;
 
 impl App {
@@ -65,17 +62,14 @@ impl App {
             return;
         };
 
-        SidePanel::right("history_timeline")
-            .resizable(true)
-            .default_width(430.0)
-            .min_width(320.0)
+        TopBottomPanel::top("history_toolbar")
             .frame(
                 egui::Frame::none()
                     .fill(palette::PANEL_BG)
-                    .inner_margin(14.0),
+                    .inner_margin(6.0),
             )
             .show(ctx, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.label(
                         RichText::new("SECTOR HISTORY")
                             .color(TEXT)
@@ -87,7 +81,19 @@ impl App {
                             .color(TEXT_DIM)
                             .monospace(),
                     );
-                    ui.add_space(8.0);
+                    ui.separator();
+                    ui.label(
+                        RichText::new(format!("{} EVENTS", sector.chronicle.events.len()))
+                            .color(TEXT_DIM)
+                            .monospace(),
+                    );
+                });
+            });
+
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
                     if sector.chronicle.events.is_empty() {
                         ui.label(
                             RichText::new("no chronicle events embedded in this sector")
@@ -97,97 +103,109 @@ impl App {
                         return;
                     }
 
-                    let selected = self.history_selected_event.clone();
-                    for e in &sector.chronicle.events {
-                        let is_selected = selected.as_deref() == Some(e.id.as_str());
-                        let label = format!("{}  {:?}  {}", e.date, e.kind, e.summary);
-                        if ui
-                            .selectable_label(
-                                is_selected,
-                                RichText::new(short(&label, 72)).monospace(),
-                            )
-                            .clicked()
-                        {
-                            self.history_selected_event = Some(e.id.as_str().into());
-                        }
-                    }
-
-                    ui.add_space(10.0);
-                    ui.separator();
-                    ui.add_space(8.0);
-
-                    let active = self
-                        .history_selected_event
-                        .as_ref()
-                        .and_then(|id| {
-                            sector
-                                .chronicle
-                                .events
-                                .iter()
-                                .find(|e| e.id.as_str() == id.as_ref())
-                        })
-                        .or_else(|| sector.chronicle.events.first());
-                    if let Some(e) = active {
-                        ui.label(
-                            RichText::new("EVENT DETAIL")
-                                .color(TEXT)
-                                .monospace()
-                                .strong(),
-                        );
-                        ui.label(RichText::new(&e.id).color(TEXT_DIM).monospace());
-                        ui.add_space(4.0);
-                        ui.label(
-                            RichText::new(format!("{} · {} · {:?}", e.date, e.era_label, e.kind))
-                                .color(TEXT)
-                                .monospace(),
-                        );
-                        ui.label(RichText::new(&e.narrative).color(TEXT).monospace());
-                        if !e.entities.is_empty() {
+                    ui.columns(2, |columns| {
+                        columns[0].vertical(|ui| {
+                            ui.label(RichText::new("TIMELINE").color(TEXT).monospace().strong());
                             ui.add_space(6.0);
-                            ui.label(RichText::new("REFS").color(TEXT_DIM).monospace().strong());
-                            for ent in &e.entities {
-                                let role = ent.role.as_deref().unwrap_or("");
-                                ui.label(
-                                    RichText::new(format!("{:?}  {}  {}", ent.kind, ent.id, role))
-                                        .color(TEXT_DIM)
-                                        .monospace(),
-                                );
+                            let selected = self.history_selected_event.clone();
+                            for e in &sector.chronicle.events {
+                                let is_selected = selected.as_deref() == Some(e.id.as_str());
+                                let label = format!("{}  {:?}  {}", e.date, e.kind, e.summary);
+                                if ui
+                                    .selectable_label(
+                                        is_selected,
+                                        RichText::new(short(&label, 96)).monospace(),
+                                    )
+                                    .clicked()
+                                {
+                                    self.history_selected_event = Some(e.id.as_str().into());
+                                }
                             }
-                        }
-                        if !e.consequences.is_empty() {
-                            ui.add_space(6.0);
-                            ui.label(
-                                RichText::new("CONSEQUENCES")
-                                    .color(TEXT_DIM)
-                                    .monospace()
-                                    .strong(),
-                            );
-                            for c in &e.consequences {
+                        });
+
+                        columns[1].vertical(|ui| {
+                            let active = self
+                                .history_selected_event
+                                .as_ref()
+                                .and_then(|id| {
+                                    sector
+                                        .chronicle
+                                        .events
+                                        .iter()
+                                        .find(|e| e.id.as_str() == id.as_ref())
+                                })
+                                .or_else(|| sector.chronicle.events.first());
+                            if let Some(e) = active {
+                                ui.label(
+                                    RichText::new("EVENT DETAIL")
+                                        .color(TEXT)
+                                        .monospace()
+                                        .strong(),
+                                );
+                                ui.label(RichText::new(&e.id).color(TEXT_DIM).monospace());
+                                ui.add_space(4.0);
                                 ui.label(
                                     RichText::new(format!(
-                                        "{:?}  sev{}  {}",
-                                        c.kind, c.severity, c.description
+                                        "{} · {} · {:?}",
+                                        e.date, e.era_label, e.kind
                                     ))
-                                    .color(TEXT_DIM)
+                                    .color(TEXT)
                                     .monospace(),
                                 );
+                                ui.label(RichText::new(&e.narrative).color(TEXT).monospace());
+                                if !e.entities.is_empty() {
+                                    ui.add_space(6.0);
+                                    ui.label(
+                                        RichText::new("REFS").color(TEXT_DIM).monospace().strong(),
+                                    );
+                                    for ent in &e.entities {
+                                        let role = ent.role.as_deref().unwrap_or("");
+                                        ui.label(
+                                            RichText::new(format!(
+                                                "{:?}  {}  {}",
+                                                ent.kind, ent.id, role
+                                            ))
+                                            .color(TEXT_DIM)
+                                            .monospace(),
+                                        );
+                                    }
+                                }
+                                if !e.consequences.is_empty() {
+                                    ui.add_space(6.0);
+                                    ui.label(
+                                        RichText::new("CONSEQUENCES")
+                                            .color(TEXT_DIM)
+                                            .monospace()
+                                            .strong(),
+                                    );
+                                    for c in &e.consequences {
+                                        ui.label(
+                                            RichText::new(format!(
+                                                "{:?}  sev{}  {}",
+                                                c.kind, c.severity, c.description
+                                            ))
+                                            .color(TEXT_DIM)
+                                            .monospace(),
+                                        );
+                                    }
+                                }
+                                if let Some(sys_id) = first_system_from_event(e) {
+                                    ui.add_space(8.0);
+                                    if ui
+                                        .button(RichText::new("OPEN FIRST SYSTEM").monospace())
+                                        .clicked()
+                                    {
+                                        self.view = View::System {
+                                            system_id: sys_id,
+                                            selection: SystemSelection::None,
+                                        };
+                                    }
+                                }
                             }
-                        }
-                        if let Some(sys_id) = first_system_from_event(e) {
-                            ui.add_space(8.0);
-                            if ui
-                                .button(RichText::new("OPEN FIRST SYSTEM").monospace())
-                                .clicked()
-                            {
-                                self.view = View::System {
-                                    system_id: sys_id,
-                                    selection: SystemSelection::None,
-                                };
-                            }
-                        }
-                    }
+                        });
+                    });
 
-                    ui.add_space(20.0);
+                    ui.add_space(18.0);
                     ui.separator();
                     ui.add_space(8.0);
                     ui.label(
@@ -223,119 +241,35 @@ impl App {
                     }
                 });
             });
-
-        let active = self
-            .history_selected_event
-            .as_ref()
-            .and_then(|id| {
-                sector
-                    .chronicle
-                    .events
-                    .iter()
-                    .find(|e| e.id.as_str() == id.as_ref())
-            })
-            .or_else(|| sector.chronicle.events.first());
-        let (_route_ids, _waypoints) = active
-            .map(history_highlights)
-            .unwrap_or_else(|| (HashSet::new(), HashSet::new()));
-
-        egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
-            .show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| {
-                    let (_resp, click) = SectorView {
-                        sector: &sector,
-                        selected_system: self.sector_selected.as_deref(),
-                        selected_route: self.sector_selected_route.as_deref(),
-                        hex_size: self.sector_hex_size,
-                        path_route_ids: None,
-                        path_waypoints: None,
-                        subsectors: Some(self.subsectors.as_slice()),
-                        cache: None,
-                        selected_subsector: self.sector_selected_subsector.as_deref(),
-                        heatmap: None,
-                        empty_hex_clicks: false,
-                        route_view_mode: self.route_view_mode,
-                        origin: ui.cursor().min,
-                    }
-                    .show(ui);
-                    match click {
-                        Some(SectorClick::System(id)) => {
-                            self.sector_selected = Some(id);
-                            self.sector_selected_route = None;
-                            self.sector_selected_subsector = None;
-                            self.sector_selected_region = None;
-                        }
-                        Some(SectorClick::Route(id)) => {
-                            self.sector_selected_route = Some(id);
-                            self.sector_selected = None;
-                            self.sector_selected_subsector = None;
-                            self.sector_selected_region = None;
-                        }
-                        Some(SectorClick::Subsector(id)) => {
-                            self.sector_selected_subsector = Some(id.into());
-                            self.sector_selected = None;
-                            self.sector_selected_route = None;
-                            self.sector_selected_region = None;
-                        }
-                        Some(SectorClick::Region(id)) => {
-                            self.sector_selected_region = Some(id);
-                            self.sector_selected = None;
-                            self.sector_selected_route = None;
-                            self.sector_selected_subsector = None;
-                        }
-                        Some(SectorClick::EmptyHex(_)) => {}
-                        None => {}
-                    }
-                });
-            });
     }
-}
-
-fn history_highlights(
-    event: &sectorforge::history::HistoryEvent,
-) -> (
-    HashSet<sectorforge::ids::RouteId>,
-    HashSet<sectorforge::ids::SystemId>,
-) {
-    let mut routes = HashSet::new();
-    let mut systems = HashSet::new();
-    match &event.anchor {
-        sectorforge::history::HistoryAnchor::System { system_id } => {
-            systems.insert(system_id.clone());
-        }
-        sectorforge::history::HistoryAnchor::World { system_id, .. } => {
-            systems.insert(system_id.clone());
-        }
-        sectorforge::history::HistoryAnchor::Route {
-            route_id,
-            from_system_id,
-            to_system_id,
-        } => {
-            routes.insert(route_id.clone());
-            systems.insert(from_system_id.clone());
-            systems.insert(to_system_id.clone());
-        }
-        _ => {}
-    }
-    for ent in &event.entities {
-        match ent.kind {
-            sectorforge::history::HistoryEntityKind::System => {
-                systems.insert(sectorforge::ids::SystemId::new(ent.id.clone()));
-            }
-            sectorforge::history::HistoryEntityKind::Route => {
-                routes.insert(sectorforge::ids::RouteId::new(ent.id.clone()));
-            }
-            _ => {}
-        }
-    }
-    (routes, systems)
 }
 
 fn first_system_from_event(
     event: &sectorforge::history::HistoryEvent,
 ) -> Option<sectorforge::ids::SystemId> {
-    let (_, systems) = history_highlights(event);
+    let mut systems = Vec::new();
+    match &event.anchor {
+        sectorforge::history::HistoryAnchor::System { system_id } => {
+            systems.push(system_id.clone());
+        }
+        sectorforge::history::HistoryAnchor::World { system_id, .. } => {
+            systems.push(system_id.clone());
+        }
+        sectorforge::history::HistoryAnchor::Route {
+            from_system_id,
+            to_system_id,
+            ..
+        } => {
+            systems.push(from_system_id.clone());
+            systems.push(to_system_id.clone());
+        }
+        _ => {}
+    }
+    for ent in &event.entities {
+        if ent.kind == sectorforge::history::HistoryEntityKind::System {
+            systems.push(sectorforge::ids::SystemId::new(ent.id.clone()));
+        }
+    }
     systems.into_iter().min()
 }
 

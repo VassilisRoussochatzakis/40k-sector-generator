@@ -434,9 +434,9 @@ capital events in the chronicle; when the exact cluster count exceeds the cap,
 the chronicle samples representative systems instead of running expensive
 subsector clustering only for flavor events.
 `sector.md` gains a **Sector History** chapter and local history snippets in
-system/world sections. The GUI has a **HISTORY** tab: selecting an event
-highlights affected systems/routes on the map, and selected worlds show all
-chronicle events that reference them.
+system/world sections. The GUI has a full-page **HISTORY** tab with a
+timeline, event detail panel, first-system jump button, and snapshot/revert
+controls.
 
 ### `sectorforge personae` (§3 old/DONE.md)
 
@@ -1495,7 +1495,9 @@ navigation bar:
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
   weights — avoid `Unstable` / `Hazardous`; `Perilous` routes are impassable)
-  or `Shortest` (BFS over hop count).
+  or `Shortest` (BFS over hop count). The planner map uses the same viewport
+  model as the sector map: mouse wheel zooms around the cursor, drag pans, and
+  **RESET VIEW** restores the default zoom.
 - **Diplomacy** (§5 NEW2.md/DONE) — table view of
   `sector.relations.pairs`: every faction pair with public/secret
   attitudes, treaty status, tension scalar, and cause text. Backed by
@@ -1513,6 +1515,10 @@ navigation bar:
   world / star / population / route distributions, per-subsector political
   variety, and a list of health flags. Backed by
   [src/analytics.rs](src/analytics.rs) and [src/gui/dashboard.rs](src/gui/dashboard.rs).
+- **History** (§1 NEW2.md/DONE) — full-page sector chronicle view. The left
+  column lists dated events, the right column shows event refs/consequences and
+  can jump to the first referenced system; snapshot/revert controls live below
+  the timeline instead of in a sidebar.
 - **NEW…** (§9 old/DONE.md) — modal preset gallery. Lists every preset under
   `presets/`, lets you type a destination path + optional seed override and
   scaffold a fresh project tree from one. The new project is **not**

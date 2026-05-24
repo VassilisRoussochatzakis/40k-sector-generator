@@ -52,7 +52,12 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
-                ui.add(egui::Slider::new(&mut app.planner_hex_size, 20.0..=80.0).show_value(false));
+                ui.add(egui::Slider::new(&mut app.planner_hex_size, 5.0..=250.0).show_value(false));
+                ui.separator();
+                if ui.button(RichText::new("RESET VIEW").monospace()).clicked() {
+                    app.planner_hex_size = 40.0;
+                    app.planner_pan = egui::Vec2::ZERO;
+                }
                 ui.separator();
                 if ui.button(RichText::new("CLEAR PLAN").monospace()).clicked() {
                     app.planner.clear();
@@ -63,7 +68,33 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
             let path_routes = app.planner.highlighted_route_ids();
             let path_waypoints = app.planner.waypoint_set();
 
-            ScrollArea::both().show(ui, |ui| {
+            let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
+            let mut zoom_delta = ui.input(|i| i.zoom_delta());
+            if zoom_delta == 1.0 && response.hovered() {
+                let scroll = ui.input(|i| i.smooth_scroll_delta.y);
+                if scroll != 0.0 {
+                    zoom_delta = (scroll / 400.0).exp();
+                }
+            }
+
+            if zoom_delta != 1.0 {
+                if let Some(mouse_pos) = response.hover_pos() {
+                    let old_zoom = app.planner_hex_size;
+                    app.planner_hex_size = (app.planner_hex_size * zoom_delta).clamp(5.0, 250.0);
+                    let actual_delta = app.planner_hex_size / old_zoom;
+                    let map_origin = rect.min + app.planner_pan;
+                    app.planner_pan =
+                        (map_origin - mouse_pos) * actual_delta + (mouse_pos - rect.min);
+                } else {
+                    app.planner_hex_size = (app.planner_hex_size * zoom_delta).clamp(5.0, 250.0);
+                }
+            }
+
+            if response.dragged() {
+                app.planner_pan += response.drag_delta();
+            }
+
+            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
                 let (_resp, click) = crate::sector_view::SectorView {
                     sector: &sector,
                     selected_system: app.planner.from.as_ref().map(|id| id.as_str()),
@@ -77,7 +108,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     heatmap: None,
                     empty_hex_clicks: false,
                     route_view_mode: app.route_view_mode,
-                    origin: ui.cursor().min,
+                    origin: rect.min + app.planner_pan,
                 }
                 .show(ui);
 

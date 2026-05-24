@@ -157,6 +157,9 @@ impl SessionFile {
             hidden_route_k_nearest: sectorforge::hidden_routes::DEFAULT_HIDDEN_K_NEAREST,
             hidden_route_exclude_blackout: true,
             hidden_route_endpoints: std::collections::BTreeSet::new(),
+            dominance_locked: std::collections::BTreeSet::new(),
+            primary_factions_locked: std::collections::BTreeSet::new(),
+            control_overlay: super::state::ControlOverlay::None,
         }
     }
 }

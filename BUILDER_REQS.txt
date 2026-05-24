@@ -180,6 +180,10 @@ for all remaining checklist items:
       DIFF, BRIEFING, SEGMENTUM, EXPORT.
   [x] Direct edit Phase B so far: SYSTEM, WORLD, and ROUTES panels plus
       MAP tools; factions/control/claims still governed by the gap matrix below.
+  [x] Direct edit Phase C §C1..§C8 + §CL1..§CL4: per-world presence editor,
+      add/remove presence, dominance lock, system control_state +
+      primary_factions, live PowerProfile preview, and POWER PROJECTION /
+      INFLUENCE FIELD MAP overlays driven from the CONTROL tab.
   [x] Validation/invariant panels and health status pip.
   [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
 
@@ -198,7 +202,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   World edit          [P]       §8
   Route edit          [X]       §9
   Faction edit        [P]       §10
-  Control / presence  [G]       §11
+  Control / presence  [X]       §11
   Claims              [G]       §12
   Subsectors          [P]       §13   (view only; need reassignment)
   Regions             [G]       §14   (view only; need place/grow/edit)
@@ -628,34 +632,75 @@ F7.   [DONE] Importance / visibility: per-faction toggle for legend display
 11. CONTROL + PRESENCE
 ================================================================================
 
-C1.   Per-world presence editor: table row per faction with influence
-      tier (Dominant | Significant | Minor | Hidden), 10 dimensions
-      (admin, military, orbital, economic, industrial, ideological,
-      covert, logistics, legitimacy, visibility — 0..=100 sliders),
-      intel_confidence.
+C1.   [DONE] Per-world presence editor in
+      `builder/src/builder/panels/control.rs::show_world_presence_editor`. The
+      panel reads `BuilderState::selected_world_id` and renders an
+      `egui::Frame::group` per `WorldFactionPresence` with: influence-tier
+      ComboBox (Dominant | Significant | Minor | Hidden), `intel_confidence`
+      DragValue 0..=100, and a 10-row dimension grid (admin / military /
+      orbital / economic / industrial / ideological / covert / logistics /
+      legitimacy / visibility) of `egui::Slider` 0..=100 with
+      `SliderClamping::Always`. Edits are diffed via the local
+      `presence_changed` helper so only real moves arm validation.
 
-C2.   "Add presence" button presents a faction picker filtered by
-      already-assigned factions; "Remove" deletes the row.
+C2.   [DONE] `show_add_presence_row` filters the sector roster against the
+      world's existing presence rows so the same faction cannot be
+      double-added. The "+ presence" button pushes a fresh
+      `WorldFactionPresence` with default dimensions, the chosen tier
+      (Dominant..Hidden ComboBox), `intel_confidence = 100`, and
+      `relationship_to_government = "neutral"`. Every §C1 row carries an
+      inline "× remove" button that also clears any
+      `BuilderState::dominance_locked` marker scoped to that pair.
 
-C3.   Dominance state picker per world (Rumored | Presence | Influence |
-      Contested | Controlled | Stronghold). Auto-derived from presence
-      rows by default; manual override possible with a "Manual" lock
-      toggle (otherwise recomputed by `src/control.rs::derive_dominance`).
+C3.   [DONE] Dominance ComboBox per (world, faction) over the six
+      `DominanceState` variants. Side-table `BuilderState::dominance_locked:
+      BTreeSet<(WorldId, FactionId)>` records the manual-lock decision;
+      unlocked rows are continuously refreshed from
+      `DominanceState::from_score(local_control_score)` (the §C3 derivation —
+      `src/control.rs::derive_world_control` is also invoked below for a
+      per-world echo). Picking a state auto-arms the lock; the "manual lock"
+      checkbox releases it.
 
-C4.   Per-system control_state picker (Pacified | Fragmented | Blockaded
-      | Warzone | Infiltrated | Quarantined | Uncharted).
+C4.   [DONE] `show_system_control_editor` renders a `control_state` ComboBox
+      keyed by `BuilderState::selected_system_id`. Options cover every
+      `SystemState` variant (Pacified | Fragmented | Blockaded | Warzone |
+      Infiltrated | Quarantined | Uncharted) plus an explicit `(none)` entry
+      that clears the override. Edits write through
+      `state.sector.systems[i].control.state` and arm validation.
 
-C5.   Per-system primary_factions list (top-3 by influence-weighted
-      score, auto-derived; manual override possible).
+C5.   [DONE] Same panel section drives `primary_factions`. The top-3 entries
+      are recomputed every frame from
+      `sectorforge::control::derive_system_control(...).top_factions`. A
+      "manual override" toggle records the system id in
+      `BuilderState::primary_factions_locked` so subsequent renders leave the
+      list alone; a "Recompute" button restores the auto-derived top-3 and
+      clears the lock in one click.
 
-C6.   PowerProfile preview: per-faction breakdown
-      (admin/military/naval/economic/industrial/ideological/covert/
-      logistics/legitimacy) refreshed on every edit (cached).
+C6.   [DONE] `show_power_profile_preview` calls
+      `sectorforge::control::aggregate_faction_power` per frame and renders a
+      10-column egui Grid (faction, admin, mil, naval, econ, ind, ideo,
+      covert, logi, legit, total). Values are colour-coded by magnitude via
+      `power_color`. An "Apply to sector rollups" button forwards the same
+      aggregate through `control::apply_faction_power` so the
+      `GeneratedFaction.power` field used by exports stays in sync.
 
-C7.   Power projection visualiser overlay on the map: faction colour
-      with falloff per hex, derived by `src/power_projection.rs`.
+C7.   [DONE] CONTROL panel exposes a three-way overlay toggle
+      (OFF / POWER PROJECTION / INFLUENCE FIELD) backed by
+      `BuilderState::control_overlay: ControlOverlay`. POWER PROJECTION calls
+      `panels::control::build_overlay_cells`, which runs
+      `sectorforge::power_projection::project_sector`, normalises the
+      per-system reach against the sector max, and emits
+      `HashMap<SystemId, HeatCell>` keyed by system id (colour from
+      `faction_style_by_id`). The MAP panel forwards the map through
+      `SectorView::heatmap` so the falloff renders without extra plumbing.
+      Covered by `build_overlay_power_projection_keys_systems_with_power`.
 
-C8.   Influence field overlay (`src/influence_field.rs`).
+C8.   [DONE] Same overlay toggle selects INFLUENCE FIELD; the helper runs
+      `sectorforge::influence_field::build` and samples the `dominant` cell
+      at every system coord, scaling cell `score` into `HeatCell::intensity`.
+      Empty sectors yield an empty map (verified by
+      `build_overlay_influence_field_handles_empty_sector`). Both overlays
+      clear when the toggle is set back to OFF.
 
 ================================================================================
 12. CLAIMS

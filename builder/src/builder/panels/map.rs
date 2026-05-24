@@ -121,6 +121,14 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         None => (None, None),
     };
 
+    // §C7 / §C8: optional control-derived overlay supplied to the SectorView
+    // heatmap channel. Computed lazily — only paid when an overlay is on.
+    let overlay_cells = crate::builder::panels::control::build_overlay_cells(
+        &state.sector,
+        &state.sector.factions,
+        state.control_overlay,
+    );
+
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
         SectorView {
             sector: &state.sector,
@@ -132,7 +140,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             subsectors: subsectors_slice,
             cache: lookup,
             selected_subsector: None,
-            heatmap: None,
+            heatmap: overlay_cells.as_ref(),
             empty_hex_clicks: false,
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
             origin,

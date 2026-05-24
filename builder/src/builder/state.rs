@@ -358,6 +358,18 @@ pub struct BuilderState {
     pub hidden_route_k_nearest: usize,
     pub hidden_route_exclude_blackout: bool,
     pub hidden_route_endpoints: BTreeSet<SystemId>,
+    /// §C3: per-(world, faction) dominance lock. When the pair is present the
+    /// CONTROL panel leaves `WorldFactionPresence::dominance` alone; otherwise
+    /// it is recomputed from the presence's local-control score every time the
+    /// panel is rendered.
+    pub dominance_locked: BTreeSet<(WorldId, FactionId)>,
+    /// §C5: per-system `primary_factions` override lock. When the system is in
+    /// the set the CONTROL panel preserves whatever is in
+    /// `GeneratedSystem::primary_factions`; otherwise it auto-derives the
+    /// top-3 from `derive_system_control`.
+    pub primary_factions_locked: BTreeSet<SystemId>,
+    /// §C7 / §C8: active map overlay driven from the CONTROL tab.
+    pub control_overlay: ControlOverlay,
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -390,6 +402,27 @@ pub struct MapViewCache {
     pub digest: String,
     pub subsectors: Vec<sectorforge::subsectors::Subsector>,
     pub lookup: sectorforge_gui_core::sector_view::SectorMapCache,
+}
+
+/// §C7 / §C8: live map overlay driven from the CONTROL tab. Off by default;
+/// the MAP panel reads this to override its `SectorView::heatmap` input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ControlOverlay {
+    None,
+    /// Per-system tint from `power_projection::project_sector`.
+    PowerProjection,
+    /// Per-system tint from `influence_field::build` sampled at the system coord.
+    InfluenceField,
+}
+
+impl ControlOverlay {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::None => "OFF",
+            Self::PowerProjection => "POWER PROJECTION",
+            Self::InfluenceField => "INFLUENCE FIELD",
+        }
+    }
 }
 
 /// §G5: inclusive rectangle of hex coordinates that
@@ -488,6 +521,9 @@ impl BuilderState {
             hidden_route_k_nearest: sectorforge::hidden_routes::DEFAULT_HIDDEN_K_NEAREST,
             hidden_route_exclude_blackout: true,
             hidden_route_endpoints: BTreeSet::new(),
+            dominance_locked: BTreeSet::new(),
+            primary_factions_locked: BTreeSet::new(),
+            control_overlay: ControlOverlay::None,
         }
     }
 

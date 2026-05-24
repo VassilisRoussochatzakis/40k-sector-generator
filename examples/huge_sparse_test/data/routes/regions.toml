@@ -5,8 +5,8 @@
 
 [regions]
 enabled = true
-count = 96
-mean_size = 365
+count = 10
+mean_size = 16
 apply_to_routes = true
 
 # ── Custom condition pool ─────────────────────────────────────────────────────

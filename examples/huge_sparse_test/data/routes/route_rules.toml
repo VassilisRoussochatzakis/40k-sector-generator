@@ -7,15 +7,15 @@ avoid_warp_phenomena = true
 
 [[routes.modifiers]]
 when = { notable_feature = "TradeHub" }
-multiplier = 2.0
+multiplier = 1.0
 
 [[routes.modifiers]]
 when = { notable_feature = "AdministrativeHub" }
-multiplier = 1.75
+multiplier = 1.0
 
 [[routes.modifiers]]
 when = { notable_feature = "Freeport" }
-multiplier = 1.5
+multiplier = 1.0
 
 [[routes.modifiers]]
 when = { notable_feature = "WarpPhenomena" }

@@ -16,6 +16,10 @@ use super::palette::{
 };
 use super::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
 
+const SYSTEM_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
+const SYSTEM_PIP_MIN_VISIBLE_PX: f32 = 3.0;
+const SUBSECTOR_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
+
 pub struct SectorMapCache {
     pub hex_subsector: HashMap<(i32, i32), String>,
     pub hex_system: HashMap<(i32, i32), sectorforge::ids::SystemId>,
@@ -520,15 +524,17 @@ impl<'a> SectorView<'a> {
             }
 
             let pip = sys.worlds.len();
-            if pip > 0 {
+            if let (true, Some((pip_font_size, disc_r))) =
+                (pip > 0, system_pip_metrics(theme, g.hex_size))
+            {
                 // Top-right corner of the hex. Name label sits below the
                 // star and the capital marker sits at top-center, so this
                 // corner stays clear.
-                let pip_font = FontId::monospace(theme.pip_font.px(g.hex_size));
+                let pip_font = FontId::monospace(pip_font_size);
                 let pip_center = Pos2::new(c.x + g.hex_size * 0.55, c.y - g.hex_size * 0.55);
-                let disc_r = theme.pip_disc_radius.px(g.hex_size);
                 painter.circle_filled(pip_center, disc_r, theme.bg);
-                painter.circle_stroke(pip_center, disc_r, Stroke::new(1.2, darken(fill, 0.4)));
+                let stroke_w = (disc_r * 0.25).clamp(0.5, 1.2);
+                painter.circle_stroke(pip_center, disc_r, Stroke::new(stroke_w, darken(fill, 0.4)));
                 painter.text(
                     pip_center,
                     Align2::CENTER_CENTER,
@@ -546,11 +552,9 @@ impl<'a> SectorView<'a> {
         // clusters with no member systems so empty frontier regions stay
         // uncluttered. Hide if zoomed in too far.
         if let Some(subs) = self.subsectors {
-            if g.hex_size < 40.0 {
-                let sub_label_size = theme.subsector_label_font.px(g.hex_size);
+            if let Some(sub_label_size) = subsector_label_font_px(theme, g.hex_size) {
                 let font = FontId::monospace(sub_label_size);
-                let sys_label_size = theme.system_label_font.px(g.hex_size);
-                let sys_font = FontId::monospace(sys_label_size);
+                let sys_font = system_label_font_px(theme, g.hex_size).map(FontId::monospace);
                 let pad = Vec2::new(4.0, 1.5);
                 let sys_pad = Vec2::new(2.0, 0.5);
                 let line_gap = 2.0;
@@ -566,13 +570,15 @@ impl<'a> SectorView<'a> {
                         Pos2::new(c.x - hex_half_w, c.y - g.hex_size),
                         Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
                     ));
-                    let name = sys.name.to_ascii_uppercase();
-                    let galley = painter.layout_no_wrap(name, sys_font.clone(), theme.text_dim);
-                    let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
-                    obstacles.push(egui::Rect::from_min_size(
-                        pos - sys_pad,
-                        galley.size() + sys_pad * 2.0,
-                    ));
+                    if let Some(sys_font) = &sys_font {
+                        let name = sys.name.to_ascii_uppercase();
+                        let galley = painter.layout_no_wrap(name, sys_font.clone(), theme.text_dim);
+                        let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
+                        obstacles.push(egui::Rect::from_min_size(
+                            pos - sys_pad,
+                            galley.size() + sys_pad * 2.0,
+                        ));
+                    }
                 }
 
                 // Already-placed subsector labels.
@@ -737,23 +743,24 @@ impl<'a> SectorView<'a> {
         }
 
         // Pass 2: labels last, always on top of every hex.
-        let label_size = theme.system_label_font.px(g.hex_size);
-        let font = FontId::monospace(label_size);
-        let pad = Vec2::new(3.0, 1.0);
-        for sys in &self.sector.systems {
-            let c = centers[sys.id.as_str()];
-            if !label_intersects_rect(sys.name.as_ref(), c, star_r, label_size, pad, rect) {
-                continue;
-            }
+        if let Some(label_size) = system_label_font_px(theme, g.hex_size) {
+            let font = FontId::monospace(label_size);
+            let pad = Vec2::new(3.0, 1.0);
+            for sys in &self.sector.systems {
+                let c = centers[sys.id.as_str()];
+                if !label_intersects_rect(sys.name.as_ref(), c, star_r, label_size, pad, rect) {
+                    continue;
+                }
 
-            // Pill background behind label so it stays readable when an
-            // adjacent row's hex tip pokes through.
-            let label = sys.name.to_ascii_uppercase();
-            let galley = painter.layout_no_wrap(label, font.clone(), theme.text_dim);
-            let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
-            let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
-            painter.rect_filled(bg_rect, 2.0, theme.bg);
-            painter.galley(pos, galley, theme.text_dim);
+                // Pill background behind label so it stays readable when an
+                // adjacent row's hex tip pokes through.
+                let label = sys.name.to_ascii_uppercase();
+                let galley = painter.layout_no_wrap(label, font.clone(), theme.text_dim);
+                let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
+                let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
+                painter.rect_filled(bg_rect, 2.0, theme.bg);
+                painter.galley(pos, galley, theme.text_dim);
+            }
         }
 
         let mut click = None;
@@ -1061,6 +1068,27 @@ fn label_intersects_rect(
         Pos2::new(center.x + half_w, top + height),
     )
     .intersects(rect)
+}
+
+fn system_label_font_px(theme: &MapTheme, hex_size: f32) -> Option<f32> {
+    // Names must shrink with zoom; a fixed UI-text floor overwhelms huge maps.
+    let label_size = hex_size * theme.system_label_font.mul;
+    (label_size >= SYSTEM_LABEL_MIN_VISIBLE_PX).then_some(label_size)
+}
+
+fn system_pip_metrics(theme: &MapTheme, hex_size: f32) -> Option<(f32, f32)> {
+    // Pips follow labels: shrink with zoom, then vanish when unreadable.
+    let font_size = hex_size * theme.pip_font.mul;
+    let disc_r = hex_size * theme.pip_disc_radius.mul;
+    (font_size >= SYSTEM_PIP_MIN_VISIBLE_PX).then_some((font_size, disc_r))
+}
+
+fn subsector_label_font_px(theme: &MapTheme, hex_size: f32) -> Option<f32> {
+    if hex_size >= 40.0 {
+        return None;
+    }
+    let label_size = hex_size * theme.subsector_label_font.mul;
+    (label_size >= SUBSECTOR_LABEL_MIN_VISIBLE_PX).then_some(label_size)
 }
 
 fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32, theme: &MapTheme) {

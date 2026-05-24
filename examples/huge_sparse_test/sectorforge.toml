@@ -16,12 +16,12 @@ economy = "data/worlds/economy.toml"
 
 [generation]
 seed = "huge-sparse-test-default-seed"
-sector_width = 1000
-sector_height = 1000
-subsector_width = 50
-subsector_height = 50
-system_count = 78125
-min_worlds_per_system = 2
+sector_width = 80
+sector_height = 80
+subsector_width = 20
+subsector_height = 20
+system_count = 1000
+min_worlds_per_system = 1
 max_worlds_per_system = 6
 allow_empty_hexes = true
 world_feature_count = 5

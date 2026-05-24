@@ -1479,8 +1479,10 @@ navigation bar:
   hostile/zealous), `INTEL` (low-visibility hexes glow), `TENSION`
   (§4 — sum of hostile/at-war pair tensions per system), or `TRADE VOL`
   (§12 — sum of incident route trade volumes). Offscreen route segments and
-  system-name labels are culled before route-pattern drawing or text layout,
-  keeping high **HEX SIZE** zooming responsive. See
+  system-name labels, world-count pips, and subsector label chips are culled
+  before route-pattern drawing or text layout, and at far zoom-out they shrink
+  with the hex scale and drop out below a readable size instead of staying
+  pinned to normal UI text. See
   [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs).
   Heatmap cells are cached per loaded sector and mode, so toggling a
   non-`OFF` heatmap does not rescore every frame; the cache is invalidated

@@ -1177,7 +1177,11 @@ is enforced by:
 
 The integration test
 [tests/golden_generation.rs](tests/golden_generation.rs)
-asserts byte equality across two runs with identical seed.
+asserts byte equality across two runs with identical seed. The suite caches the
+default m42 fixture sector once per test process, validates post-generation
+invariants on that cached sector, and reloads exported JSON/manifest files so
+determinism checks stay accurate without repeatedly paying the full generation
+cost.
 
 To get different output, change the seed:
 
@@ -1884,7 +1888,7 @@ Notable suites:
 - [src/rng.rs::tests](src/rng.rs) — stage seeds and weighted selection
 - [src/sector_model.rs::tests](src/sector_model.rs) — axial hex distance
 - [src/subsectors/mod.rs::tests](src/subsectors/mod.rs) — clustering coverage, capital naming, route classification, determinism
-- [tests/golden_generation.rs](tests/golden_generation.rs) — full end-to-end + determinism
+- [tests/golden_generation.rs](tests/golden_generation.rs) — cached full end-to-end + determinism + export reload checks
 - [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
 - [tests/invariants_proptest.rs](tests/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
@@ -2081,6 +2085,7 @@ These hold across the crate and are enforced by review, not lints:
 - **`unwrap_or_else(|| ...)` when the fallback is not a trivial copy.** `unwrap_or(expr)` evaluates `expr` eagerly even on the happy path. For `&str` borrows of fields owned by surrounding scope, `unwrap_or_else` avoids the spurious borrow.
 - **`x.to_string()` over `format!("{}", x)`** for single-argument display — skips the format machinery and a temporary `Arguments` struct.
 - **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/generation.rs:422](src/generation.rs#L422) for the recent fill-relax loop.
+- **Keep golden tests cached and format-scoped.** Reuse the cached fixture in [tests/golden_generation.rs](tests/golden_generation.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
 
 ### Math-accuracy lints (intentionally NOT applied)
 

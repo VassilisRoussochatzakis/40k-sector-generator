@@ -20,7 +20,7 @@ old
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 *.DS_Store*
-
+*.png
 # Example sector outputs — regenerable, large
 examples/*/out/
 dist

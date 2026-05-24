@@ -55,6 +55,18 @@ pub enum RegionConditionKind {
 }
 
 impl RegionConditionKind {
+    /// All variants in stable order. Used by builder pickers (§REG1, §REG5).
+    pub const ALL: &'static [RegionConditionKind] = &[
+        Self::WarpStorm,
+        Self::Turbulence,
+        Self::CalmCorridor,
+        Self::Blackout,
+        Self::Anomaly,
+        Self::NecropolisDrift,
+        Self::BeaconChain,
+        Self::EmpyricBleed,
+    ];
+
     pub fn label(self) -> &'static str {
         match self {
             Self::WarpStorm => "Warp Storm",
@@ -65,6 +77,21 @@ impl RegionConditionKind {
             Self::NecropolisDrift => "Necropolis Drift",
             Self::BeaconChain => "Beacon Chain",
             Self::EmpyricBleed => "Empyric Bleed",
+        }
+    }
+
+    /// §REG7: single-char glyph used by the Markdown sector map overlay and
+    /// the builder REGIONS-tab ASCII preview.
+    pub fn glyph(self) -> char {
+        match self {
+            Self::WarpStorm => '~',
+            Self::Turbulence => '^',
+            Self::CalmCorridor => '=',
+            Self::Blackout => '#',
+            Self::Anomaly => '*',
+            Self::NecropolisDrift => '%',
+            Self::BeaconChain => '+',
+            Self::EmpyricBleed => '?',
         }
     }
 
@@ -340,6 +367,39 @@ fn sample_condition(
         .find(|c| c.weight.is_finite() && c.weight > 0.0)
         .map(|c| c.kind)
         .unwrap_or(RegionConditionKind::Turbulence)
+}
+
+/// §REG3: deterministically grow a blob of `target` hexes outward from
+/// `centre`, BFS over hex neighbours, skipping any coord already in
+/// `occupied`. Returns the grown footprint sorted by `(r, q)`.
+///
+/// Exposed so the builder can grow a single user-seeded region without going
+/// through the full `build_regions` stage.
+pub fn seed_region(
+    seed: &str,
+    discriminator: &str,
+    centre: HexCoord,
+    target_size: usize,
+    width: u32,
+    height: u32,
+    existing: &[WarpRegion],
+) -> Vec<HexCoord> {
+    if width == 0 || height == 0 || target_size == 0 {
+        return Vec::new();
+    }
+    let mut occupied: BTreeSet<(i32, i32)> = existing
+        .iter()
+        .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
+        .collect();
+    let mut rng = stage_rng(seed, "regions", discriminator);
+    grow_blob(
+        centre,
+        target_size.max(1),
+        width as i32,
+        height as i32,
+        &mut occupied,
+        &mut rng,
+    )
 }
 
 fn grow_blob(

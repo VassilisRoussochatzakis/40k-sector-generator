@@ -1418,7 +1418,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         World     -> panels/world.rs      (Phase B §W1..§W7 DONE)
         Factions  -> panels/factions.rs   (Phase B §F1..§F7 placeholder)
         Control   -> panels/control.rs    (Phase B §C1..§C8 placeholder)
-        Regions   -> panels/regions.rs    (Phase C §REG1..§REG7)
+        Regions   -> panels/regions.rs    (Phase C §REG1..§REG7 DONE)
         Routes    -> panels/routes.rs     (Phase B §R1..§R7 DONE)
         Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5)
         Economy   -> panels/economy.rs    (Phase C §E1..§E7)
@@ -1526,12 +1526,30 @@ Phase B — Direct entity edit
                    per-world chip-row, add-claim picker, Contested
                    auto-flag with aggregate header + filter, bulk
                    convert across the whole sector)
-  C1..C8 - IN PROGRESS (§11 control + presence — Phase C; CONTROL tab
-                   currently ships CL1..CL4 only, presence/dominance/
-                   control-state editor lands with §11)
+  C1..C8 - DONE  (§11 control + presence — CONTROL tab ships per-world
+                   presence editor with influence-tier + intel_confidence +
+                   10-dimension sliders, add/remove presence with roster
+                   filter, dominance ComboBox with manual-lock side-table,
+                   system control_state + primary_factions editor with
+                   manual-override + recompute, live PowerProfile preview
+                   with apply-to-rollups, and POWER PROJECTION /
+                   INFLUENCE FIELD overlay toggle routed through the MAP
+                   heatmap)
 
 Phase C — Overlays editable
-  REG1..REG7, (§14 regions)
+  REG1..REG7 - DONE (§14 regions — REGIONS panel ships per-region inspector
+                     (id/name/kind/centre/hex list/remove), MAP-tab
+                     RegionPaint brush (left=paint, right=erase) bound to
+                     `BuilderState::selected_region_id`, "Grow seeded region"
+                     command wrapping new `regions::seed_region`, live route
+                     effect preview (perilous/degrade/upgrade counts + Apply
+                     button calling `regions::apply_route_effects`),
+                     `regions.toml` editor with enabled/count/mean_size/
+                     apply_to_routes + ConditionEntry rows + Save passthrough,
+                     §REG6 inline chips for REGION_HEX_OUT_OF_BOUNDS /
+                     REGION_HEX_OVERLAP / REGION_ISOLATES_SECTOR, and an
+                     ASCII §REG7 glyph preview (~ ^ = # * % + ?) sourced
+                     from `RegionConditionKind::glyph`)
   SUB1..SUB5, (§13 subsectors)
   E1..E7,     (§15 economy)
   REL1..REL9, (§16 relations)

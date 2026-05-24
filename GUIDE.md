@@ -1967,6 +1967,24 @@ Tests:
 * `optional_style_fields_skip_serialize_when_none`, `optional_style_fields_round_trip` in [src/factions.rs](src/factions.rs).
 * `hex_round_trip`, `hex_rejects_bad_input`, `border_parser_covers_all_variants`, `overrides_replace_derived_fields`, `overrides_none_leaves_derived_intact` in [src/faction_style.rs](src/faction_style.rs).
 
+#### REG1–REG7 regions panel (DONE)
+
+Phase C §14. The REGIONS tab in [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs) edits the live `GeneratedSector::regions` overlay, the in-memory mirror of `data/routes/regions.toml`, and routes the MAP-tab `REGION PAINT` brush. Overlay mutations bypass the command bus per §D3 — direct mutators on `GeneratedSector` (`add_region`/`remove_region`/`add_region_hex`/`remove_region_hex`) flush invariants and arm validation through new helpers on [builder/src/builder/state.rs](builder/src/builder/state.rs) (`add_region`, `remove_region`, `paint_region_hex`, `erase_region_hex`, `update_region`, `next_region_id`).
+
+| Piece | Where it lives |
+|---|---|
+| REG1 region table | [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs) `show_region_inspector` — id (RO), name (text edit), kind (ComboBox over `RegionConditionKind::ALL`), centre `q`/`r` DragValues clamped to sector bounds, first-20 hex inline summary, `clear hexes` / `paint mode →` / `× remove` row. Picker dropdown adds `+ new region` which calls `BuilderState::add_region` with a centre defaulted to the sector midpoint. |
+| REG2 paint tool | [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `paint_region_at` — `MapTool::RegionPaint` dispatches primary-click and primary-drag → `BuilderState::paint_region_hex(selected_region_id, hex)`, secondary-click and secondary-drag → `BuilderState::erase_region_hex`. Without a selected region the panel pops a "pick a region" modal. The REGIONS panel `show_paint_hint` exposes a one-click "MAP tool: REGION PAINT" toggle that flips both `map_tool` and `active_tab`. |
+| REG3 grow seeded region | [src/regions.rs](src/regions.rs) `seed_region(seed, discriminator, centre, target_size, width, height, existing)` is a public wrapper around the deterministic blob-growth that previously lived behind the `regions` stage. The REGIONS panel `show_grow_seeded` runs it against the current `BuilderState::region_grow_{q,r,size,kind}` form state — replacing the hex list of the selected region when one is active, otherwise spawning a new region via `add_region`. |
+| REG4 live route effects | [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs) `show_route_effects` — recomputes `regions::dominant_route_condition` for every route every frame, surfacing `affected / →perilous / ↓degrade / ↑upgrade` counts. The "Apply effects to routes" button runs `regions::apply_route_effects` in place so the live sector picks up the `region:warp_storm` / `region:turbulence` / `region:calm_corridor` tags and the post-effect invariant pass. |
+| REG5 regions.toml editor | [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs) `show_regions_config_editor` — edits `DataCatalogs::regions` (`enabled`, `count`, `mean_size`, `apply_to_routes`, and a `conditions: Vec<ConditionEntry>` editor with per-row kind ComboBox + weight DragValue + label entry + `×`). Edits mark `config.inputs.regions` dirty; "Save regions.toml" calls `project_io::save_project`. Missing catalogs get a one-click "create defaults" that also fills `config.inputs.regions` with `data/routes/regions.toml`. |
+| REG6 invariants surface | [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs) `show_invariants` — filters `invariant_report` to `REGION_HEX_OUT_OF_BOUNDS`, `REGION_HEX_OVERLAP`, `REGION_ISOLATES_SECTOR` from [src/invariants.rs](src/invariants.rs) and renders each as a red pill. Every region helper on `BuilderState` re-runs `invariants::check_sector` so an overlapping paint stroke flips the chip on the very next frame. |
+| REG7 glyph preview | [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs) `show_glyph_preview` paints a `width × height` ASCII grid using `RegionConditionKind::glyph` (`~` storm, `^` turbulence, `=` calm, `#` blackout, `*` anomaly, `%` necropolis, `+` beacon, `?` bleed) with `@` for system coords and `.` for empty hexes. The same `glyph()` mapping feeds the Markdown sector map per §14 (`~ ^ = # *`). |
+
+Tests live in [builder/src/builder/panels/regions.rs](builder/src/builder/panels/regions.rs):
+
+* `next_region_id_increments_past_existing`, `paint_then_erase_round_trips_hex_list`, `overlap_paint_surfaces_region_hex_overlap_invariant`, `seed_region_grows_in_bounds_and_avoids_existing`, `region_condition_glyphs_unique`.
+
 ---
 
 ## 9. Library use

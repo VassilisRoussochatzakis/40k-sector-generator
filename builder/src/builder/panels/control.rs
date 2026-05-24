@@ -21,9 +21,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use egui::{Color32, RichText, Ui};
 
-use sectorforge::control::{
-    aggregate_faction_power, derive_system_control, derive_world_control,
-};
+use sectorforge::control::{aggregate_faction_power, derive_system_control, derive_world_control};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sector_model::{
     ClaimType, DominanceState, FactionClaim, FactionInfluence, PowerProfile, PresenceDimensions,
@@ -157,9 +155,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
             ui.label(RichText::new(header).strong());
 
             // Snapshot for stable iteration; edits applied back below.
-            let presences = state.sector.systems[sys_idx].worlds[w_idx]
-                .factions
-                .clone();
+            let presences = state.sector.systems[sys_idx].worlds[w_idx].factions.clone();
             let factions: Vec<(FactionId, String)> = state
                 .sector
                 .factions
@@ -219,7 +215,9 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 );
                             });
 
-                            ui.label(RichText::new("dimensions (0..=100)").color(Color32::DARK_GRAY));
+                            ui.label(
+                                RichText::new("dimensions (0..=100)").color(Color32::DARK_GRAY),
+                            );
                             egui::Grid::new(("c1_dim", p.faction_id.as_str()))
                                 .num_columns(2)
                                 .spacing([8.0, 2.0])
@@ -277,10 +275,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 }
                                 ui.colored_label(
                                     Color32::DARK_GRAY,
-                                    format!(
-                                        "auto = {:?} (score {:.1})",
-                                        derived, score
-                                    ),
+                                    format!("auto = {:?} (score {:.1})", derived, score),
                                 );
                             });
                         });
@@ -632,17 +627,8 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
                         .striped(true)
                         .show(ui, |ui| {
                             for h in [
-                                "faction",
-                                "admin",
-                                "mil",
-                                "naval",
-                                "econ",
-                                "ind",
-                                "ideo",
-                                "covert",
-                                "logi",
-                                "legit",
-                                "total",
+                                "faction", "admin", "mil", "naval", "econ", "ind", "ideo",
+                                "covert", "logi", "legit", "total",
                             ] {
                                 ui.label(RichText::new(h).strong().monospace());
                             }
@@ -954,8 +940,7 @@ fn show_world_row(
 ) {
     let (name, wid, claims_snapshot, contested) = {
         let w = &state.sector.systems[sys_idx].worlds[w_idx];
-        let distinct: BTreeSet<FactionId> =
-            w.claims.iter().map(|c| c.faction_id.clone()).collect();
+        let distinct: BTreeSet<FactionId> = w.claims.iter().map(|c| c.faction_id.clone()).collect();
         (
             w.name.to_string(),
             w.id.clone(),
@@ -1131,10 +1116,8 @@ pub fn build_overlay_cells(
             for sys in &sector.systems {
                 let best = sectorforge::power_projection::system_top_reach(&map, sys.id.as_str());
                 if let Some((fid, v)) = best {
-                    let style = sectorforge_gui_core::palette::faction_style_by_id(
-                        factions,
-                        fid.as_str(),
-                    );
+                    let style =
+                        sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str());
                     out.insert(
                         sys.id.clone(),
                         HeatCell {
@@ -1164,10 +1147,8 @@ pub fn build_overlay_cells(
                 let Some(fid) = cell.dominant.as_ref() else {
                     continue;
                 };
-                let style = sectorforge_gui_core::palette::faction_style_by_id(
-                    factions,
-                    fid.as_str(),
-                );
+                let style =
+                    sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str());
                 out.insert(
                     sys.id.clone(),
                     HeatCell {

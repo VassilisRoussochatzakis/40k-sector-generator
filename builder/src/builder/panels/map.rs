@@ -238,6 +238,30 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             handle_click(state, hit, coord, modifiers.shift);
         }
     }
+
+    // §REG2: secondary-click + drag erase / paint on the region brush.
+    if state.map_tool == MapTool::RegionPaint {
+        if response.secondary_clicked() {
+            if let Some(pos) = pointer {
+                if let Some(c) = pick_geom.pick_hex(pos, sector_w, sector_h) {
+                    paint_region_at(state, c, true);
+                }
+            }
+        }
+        if response.dragged() {
+            let secondary = ui.ctx().input(|i| i.pointer.secondary_down());
+            let primary = ui.ctx().input(|i| i.pointer.primary_down());
+            if let Some(pos) = pointer {
+                if let Some(c) = pick_geom.pick_hex(pos, sector_w, sector_h) {
+                    if secondary {
+                        paint_region_at(state, c, true);
+                    } else if primary {
+                        paint_region_at(state, c, false);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Rebuilds [`MapViewCache`] when the underlying sector slice digest changes.
@@ -355,8 +379,30 @@ fn handle_click(
             }
         }
         MapTool::RegionPaint => {
-            // §REG panel territory; no-op on the §S surface.
+            if let Some(c) = coord {
+                paint_region_at(state, c, false);
+            }
         }
+    }
+}
+
+/// §REG2 left/right click brush — `erase=true` removes the hex, otherwise
+/// it is painted into `state.selected_region_id`. No-op when no region is
+/// selected (panel surfaces a hint in that case).
+pub(super) fn paint_region_at(state: &mut BuilderState, hex: HexCoord, erase: bool) {
+    let Some(id) = state.selected_region_id.clone() else {
+        state.modal = Some(ModalKind::Message(
+            "Pick a region in the REGIONS tab before painting.".into(),
+        ));
+        return;
+    };
+    let result = if erase {
+        state.erase_region_hex(&id, hex)
+    } else {
+        state.paint_region_hex(&id, hex)
+    };
+    if let Err(e) = result {
+        state.modal = Some(ModalKind::Message(format!("Region paint failed: {e}")));
     }
 }
 

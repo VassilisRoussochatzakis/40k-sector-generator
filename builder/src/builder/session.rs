@@ -160,6 +160,10 @@ impl SessionFile {
             dominance_locked: std::collections::BTreeSet::new(),
             primary_factions_locked: std::collections::BTreeSet::new(),
             control_overlay: super::state::ControlOverlay::None,
+            region_grow_q: 0,
+            region_grow_r: 0,
+            region_grow_size: 6,
+            region_grow_kind: sectorforge::regions::RegionConditionKind::Turbulence,
         }
     }
 }

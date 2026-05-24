@@ -1,25 +1,29 @@
 //! MAP tab (§N3) — hex render + editor toolbox + transient dialogs.
 //!
-//! Phase B §S1 lives here: ADD SYSTEM / DELETE SYSTEM / MOVE SYSTEM (drag) /
+//! Renders the sector via [`sectorforge_gui_core::sector_view::SectorView`]
+//! so the visual surface matches the main viewer (§N3 / §S2). Builder-only
+//! interactions — tool dispatch, drag-move, rect-select, double-click rename,
+//! pinned/multi-select overlays, the §S6 collision dialog — are layered on
+//! top of the shared widget rather than reimplemented here.
+//!
+//! Phase B §S1: ADD SYSTEM / DELETE SYSTEM / MOVE SYSTEM (drag) /
 //! RENAME (double-click). Multi-select (shift-click + rect-drag) feeds §S4
 //! over in the SYSTEM panel. Coord validity + the collision swap dialog land
 //! the §S6 surface.
-//!
-//! The hex geometry helpers are intentionally inlined rather than shared with
-//! the legacy `gui::editor::map_panel` — that surface still talks to
-//! `EditorState`, not `BuilderState`.
 
-use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
+use egui::{Pos2, RichText, Sense, Ui};
 
 use sectorforge::ids::{self, SystemId};
 use sectorforge::sector_model::HexCoord;
+use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
+
+use sectorforge_gui_core::sector_view::{SectorGeom, SectorMapCache, SectorView};
 
 use crate::builder::command::BuilderCommand;
-use crate::builder::state::{MapTool, PendingCollision, PendingPlace, PendingRename};
+use crate::builder::derivation_cache::digest_input;
+use crate::builder::state::{MapTool, MapViewCache, PendingCollision, PendingPlace, PendingRename};
 use crate::builder::{BuilderState, ModalKind};
-use sectorforge_gui_core::palette::{
-    self, darken, star_color, tint, HEX_EMPTY, HEX_OUTLINE, SELECTION, TEXT, TEXT_DIM,
-};
+use sectorforge_gui_core::palette::TEXT_DIM;
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Map");
@@ -74,95 +78,9 @@ pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
     });
 }
 
-// ── Hex render + click dispatcher ───────────────────────────────────────────
-
-#[derive(Clone, Copy)]
-struct Geom {
-    hex_size: f32,
-    margin: f32,
-}
-
-impl Geom {
-    fn new(hex_size: f32) -> Self {
-        Self {
-            hex_size,
-            margin: hex_size * 1.1,
-        }
-    }
-}
-
-fn map_size(width: u32, height: u32, g: &Geom) -> Vec2 {
-    let horiz_step = g.hex_size * 3f32.sqrt();
-    let vert_step = g.hex_size * 1.5;
-    let odd_shift = if height > 1 { 0.5 } else { 0.0 };
-    let w = g.margin * 2.0 + horiz_step * (width as f32 + odd_shift);
-    let label_band = g.hex_size * 0.55;
-    let h = g.margin * 2.0
-        + height.saturating_sub(1) as f32 * vert_step
-        + 2.0 * g.hex_size
-        + label_band;
-    Vec2::new(w, h)
-}
-
-fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
-    let horiz_step = g.hex_size * 3f32.sqrt();
-    let vert_step = g.hex_size * 1.5;
-    let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
-    let x = g.margin + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
-    let y = g.margin + vert_step * r as f32 + g.hex_size;
-    Pos2::new(x, y)
-}
-
-fn hex_pick(local_pos: Pos2, g: &Geom, width: u32, height: u32) -> Option<HexCoord> {
-    let mut best: Option<(HexCoord, f32)> = None;
-    for r in 0..height as i32 {
-        for q in 0..width as i32 {
-            let c = hex_center(q, r, g);
-            let d = (c - local_pos).length();
-            if d <= g.hex_size * 0.95 {
-                let entry = (HexCoord { q, r }, d);
-                if best.as_ref().is_none_or(|prev| d < prev.1) {
-                    best = Some(entry);
-                }
-            }
-        }
-    }
-    best.map(|(c, _)| c)
-}
-
-fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
-    let mut out = [Pos2::ZERO; 6];
-    for (i, slot) in out.iter_mut().enumerate() {
-        let angle = std::f32::consts::PI / 180.0 * (60.0 * i as f32 - 30.0);
-        *slot = Pos2::new(c.x + size * angle.cos(), c.y + size * angle.sin());
-    }
-    out
-}
-
-fn draw_hex(painter: &egui::Painter, c: Pos2, size: f32, fill: Color32, outline: Color32) {
-    let pts = hex_vertices(c, size).to_vec();
-    painter.add(egui::Shape::convex_polygon(
-        pts,
-        fill,
-        Stroke::new(1.0, outline),
-    ));
-}
-
-fn draw_hex_outline_only(
-    painter: &egui::Painter,
-    c: Pos2,
-    size: f32,
-    color: Color32,
-    thickness: f32,
-) {
-    let pts = hex_vertices(c, size);
-    for i in 0..6 {
-        painter.line_segment([pts[i], pts[(i + 1) % 6]], Stroke::new(thickness, color));
-    }
-}
+// ── Map renderer + interaction dispatcher ───────────────────────────────────
 
 fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
-    let g = Geom::new(state.hex_size);
     let (sector_w, sector_h) = (state.sector.width, state.sector.height);
     if sector_w == 0 || sector_h == 0 {
         ui.label(
@@ -172,163 +90,78 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         return;
     }
 
-    let size = map_size(sector_w, sector_h, &g);
-    let (rect, response) = ui.allocate_exact_size(size, Sense::click_and_drag());
-    let painter = ui.painter_at(rect);
+    // Refresh the subsector + lookup cache when the sector slice changes.
+    refresh_map_cache(state);
+
+    let geom = SectorGeom::new(state.hex_size, Pos2::ZERO);
+    let canvas_size = geom.map_size_px(sector_w, sector_h);
+    let (rect, response) = ui.allocate_exact_size(canvas_size, Sense::click_and_drag());
     let origin = rect.min;
     let pointer = response.interact_pointer_pos();
-    painter.rect_filled(rect, 0.0, palette::BG);
 
-    // Empty hexes.
-    for r in 0..sector_h as i32 {
-        for q in 0..sector_w as i32 {
-            let c = hex_center(q, r, &g) + origin.to_vec2();
-            draw_hex(&painter, c, g.hex_size, HEX_EMPTY, HEX_OUTLINE);
-        }
-    }
+    // Live drag override: when a system is being dragged, follow the cursor.
+    let drag_override = state
+        .drag_system
+        .clone()
+        .zip(pointer)
+        .map(|(id, pos)| (id, pos));
 
-    // §S4 rect-select highlight.
-    if let Some((a, b)) = state.rect_select {
-        for r in a.r.min(b.r)..=a.r.max(b.r) {
-            for q in a.q.min(b.q)..=a.q.max(b.q) {
-                if r < 0 || q < 0 || (r as u32) >= sector_h || (q as u32) >= sector_w {
-                    continue;
-                }
-                let c = hex_center(q, r, &g) + origin.to_vec2();
-                draw_hex(
-                    &painter,
-                    c,
-                    g.hex_size,
-                    Color32::from_rgba_unmultiplied(255, 240, 120, 30),
-                    HEX_OUTLINE,
-                );
-            }
-        }
-    }
+    // ADD-ROUTE preview line: pending start → cursor.
+    let pending_route_preview = if state.map_tool == MapTool::AddRoute {
+        state
+            .pending_route_start
+            .clone()
+            .zip(pointer)
+            .map(|(id, pos)| (id, pos))
+    } else {
+        None
+    };
 
-    // Pre-compute system centres (drag override).
-    let mut centers: std::collections::HashMap<String, Pos2> = Default::default();
-    for sys in &state.sector.systems {
-        let mut c = hex_center(sys.coord.q, sys.coord.r, &g) + origin.to_vec2();
-        if Some(&sys.id) == state.drag_system.as_ref() {
-            if let Some(pos) = response.interact_pointer_pos() {
-                c = pos;
-            }
-        }
-        centers.insert(sys.id.to_string(), c);
-    }
+    let rect_select = state.rect_select;
 
-    // Routes (under disks).
-    let route_thickness = (g.hex_size * 0.08).max(2.0);
-    for route in &state.sector.routes {
-        if let (Some(&a), Some(&b)) = (
-            centers.get(route.from_system_id.as_str()),
-            centers.get(route.to_system_id.as_str()),
-        ) {
-            palette::draw_route_line(
-                &painter,
-                a,
-                b,
-                route_thickness,
-                palette::stability_color(route.stability),
-                route
-                    .route_type
-                    .pattern(sectorforge::sector_model::RouteViewMode::Detailed),
-            );
-        }
-    }
-    if state.map_tool == MapTool::AddRoute {
-        if let (Some(start), Some(pos)) = (&state.pending_route_start, pointer) {
-            if let Some(&a) = centers.get(start.as_str()) {
-                palette::draw_route_line(
-                    &painter,
-                    a,
-                    pos,
-                    route_thickness * 1.4,
-                    Color32::from_rgb(255, 220, 120),
-                    sectorforge::sector_model::RoutePattern::Dashed,
-                );
-            }
-        }
-    }
+    // Build the view. The internal click dispatch is disabled — builder owns
+    // the tool routing below.
+    let (subsectors_slice, lookup) = match state.map_view_cache.as_ref() {
+        Some(cache) => (
+            Some(cache.subsectors.as_slice()),
+            Some(&cache.lookup as &SectorMapCache),
+        ),
+        None => (None, None),
+    };
 
-    // System disks + selection + pinned ring.
-    for sys in &state.sector.systems {
-        let c = centers[sys.id.as_str()];
-        let is_focus = state.selected_system_id.as_ref() == Some(&sys.id);
-        let is_multi = state.selected_systems.contains(&sys.id);
-        if is_focus || is_multi {
-            let colour = if is_focus {
-                SELECTION
-            } else {
-                Color32::from_rgb(180, 200, 255)
-            };
-            draw_hex_outline_only(&painter, c, g.hex_size + 2.0, colour, 2.5);
+    ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+        SectorView {
+            sector: &state.sector,
+            selected_system: state.selected_system_id.as_ref().map(|id| id.as_str()),
+            selected_route: state.selected_route_id.as_ref().map(|id| id.as_str()),
+            hex_size: state.hex_size,
+            path_route_ids: None,
+            path_waypoints: None,
+            subsectors: subsectors_slice,
+            cache: lookup,
+            selected_subsector: None,
+            heatmap: None,
+            empty_hex_clicks: false,
+            route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
+            origin,
+            multi_selected: Some(&state.selected_systems),
+            pinned: Some(&state.pinned_systems),
+            drag_override,
+            pending_route_preview,
+            rect_select,
+            sense: Sense::hover(),
+            disable_internal_click_dispatch: true,
         }
-        if state.pinned_systems.contains(&sys.id) {
-            draw_hex_outline_only(
-                &painter,
-                c,
-                g.hex_size + 5.0,
-                Color32::from_rgb(255, 120, 90),
-                1.5,
-            );
-        }
-
-        if let Some(star) = &sys.star {
-            let fill = star_color(&star.colour_code);
-            draw_hex(&painter, c, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
-            let r = g.hex_size * 0.42;
-            painter.circle_filled(c, r, fill);
-            painter.circle_stroke(c, r, Stroke::new(1.5, darken(fill, 0.55)));
-        } else {
-            let fill = Color32::from_rgb(100, 100, 110);
-            draw_hex(&painter, c, g.hex_size, tint(fill, 0.18), HEX_OUTLINE);
-        }
-
-        let pip = sys.worlds.len();
-        if pip > 0 {
-            painter.text(
-                Pos2::new(c.x + g.hex_size * 0.55, c.y + g.hex_size * 0.55),
-                Align2::RIGHT_BOTTOM,
-                pip.to_string(),
-                FontId::monospace((g.hex_size * 0.34).max(10.0)),
-                TEXT,
-            );
-        }
-    }
-
-    // Labels.
-    let label_size = (g.hex_size * 0.28).max(9.0);
-    for sys in &state.sector.systems {
-        let c = centers[sys.id.as_str()];
-        let label = sys.name.to_ascii_uppercase();
-        let font = FontId::monospace(label_size);
-        let galley = painter.layout_no_wrap(label, font, TEXT_DIM);
-        let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + g.hex_size + 3.0);
-        let pad = Vec2::new(3.0, 1.0);
-        let bg_rect = Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
-        painter.rect_filled(bg_rect, 2.0, palette::BG);
-        painter.galley(pos, galley, TEXT_DIM);
-    }
+        .show(ui);
+    });
 
     // ── interaction ─────────────────────────────────────────────────────────
-    let hit_system = |state: &BuilderState, pos: Pos2| -> Option<SystemId> {
-        state
-            .sector
-            .systems
-            .iter()
-            .find(|s| {
-                let c = hex_center(s.coord.q, s.coord.r, &g) + origin.to_vec2();
-                (c - pos).length() <= g.hex_size * 0.95
-            })
-            .map(|s| s.id.clone())
-    };
+    let pick_geom = SectorGeom::new(state.hex_size, origin);
 
     // double-click → rename
     if response.double_clicked() && state.map_tool != MapTool::AddRoute {
         if let Some(pos) = pointer {
-            if let Some(id) = hit_system(state, pos) {
+            if let Some(id) = pick_geom.hit_system(&state.sector, pos) {
                 let name = state
                     .sector
                     .systems
@@ -347,16 +180,16 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         if let Some(pos) = pointer {
             match state.map_tool {
                 MapTool::Select | MapTool::MoveSystem => {
-                    if let Some(id) = hit_system(state, pos) {
+                    if let Some(id) = pick_geom.hit_system(&state.sector, pos) {
                         state.drag_system = Some(id);
                     } else if state.map_tool == MapTool::Select {
-                        if let Some(c) = hex_pick(pos - origin.to_vec2(), &g, sector_w, sector_h) {
+                        if let Some(c) = pick_geom.pick_hex(pos, sector_w, sector_h) {
                             state.rect_select = Some((c, c));
                         }
                     }
                 }
                 MapTool::AddRoute => {
-                    if let Some(id) = hit_system(state, pos) {
+                    if let Some(id) = pick_geom.hit_system(&state.sector, pos) {
                         state.pending_route_start = Some(id);
                     }
                 }
@@ -369,7 +202,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     if response.dragged() {
         if let Some(pos) = pointer {
             if let Some((start, _)) = state.rect_select {
-                if let Some(c) = hex_pick(pos - origin.to_vec2(), &g, sector_w, sector_h) {
+                if let Some(c) = pick_geom.pick_hex(pos, sector_w, sector_h) {
                     state.rect_select = Some((start, c));
                 }
             }
@@ -380,13 +213,13 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     if response.drag_stopped() {
         if state.map_tool == MapTool::AddRoute {
             if let (Some(from), Some(pos)) = (state.pending_route_start.clone(), pointer) {
-                if let Some(to) = hit_system(state, pos) {
+                if let Some(to) = pick_geom.hit_system(&state.sector, pos) {
                     add_route_between(state, from, to);
                 }
             }
             state.pending_route_start = None;
         } else if let (Some(drag_id), Some(pos)) = (state.drag_system.clone(), pointer) {
-            if let Some(coord) = hex_pick(pos - origin.to_vec2(), &g, sector_w, sector_h) {
+            if let Some(coord) = pick_geom.pick_hex(pos, sector_w, sector_h) {
                 handle_drag_drop(state, drag_id, coord);
             }
             state.drag_system = None;
@@ -399,11 +232,73 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     if response.clicked() {
         if let Some(pos) = pointer {
             let modifiers = ui.ctx().input(|i| i.modifiers);
-            let hit = hit_system(state, pos);
-            let coord = hex_pick(pos - origin.to_vec2(), &g, sector_w, sector_h);
+            let hit = pick_geom.hit_system(&state.sector, pos);
+            let coord = pick_geom.pick_hex(pos, sector_w, sector_h);
             handle_click(state, hit, coord, modifiers.shift);
         }
     }
+}
+
+/// Rebuilds [`MapViewCache`] when the underlying sector slice digest changes.
+/// Pure — no UI side effects. Cheap when the cache is hot.
+fn refresh_map_cache(state: &mut BuilderState) {
+    let digest = sector_view_digest(&state.sector);
+    let stale = state
+        .map_view_cache
+        .as_ref()
+        .map(|c| c.digest != digest)
+        .unwrap_or(true);
+    if !stale {
+        return;
+    }
+    let subsectors =
+        build_subsectors(&state.sector, SubsectorConfig::default()).unwrap_or_default();
+    let lookup = SectorMapCache::new(&state.sector, &subsectors);
+    state.map_view_cache = Some(MapViewCache {
+        digest,
+        subsectors,
+        lookup,
+    });
+}
+
+fn sector_view_digest(sector: &sectorforge::sector_model::GeneratedSector) -> String {
+    // Hash the minimal slice that drives subsector clustering + region tints.
+    // Keeping the slice narrow avoids invalidating the cache on unrelated
+    // edits (e.g. faction prose).
+    #[derive(serde::Serialize)]
+    struct Slice<'a> {
+        w: u32,
+        h: u32,
+        systems: Vec<(&'a str, i32, i32)>,
+        routes: Vec<(&'a str, &'a str, &'a str)>,
+        regions: Vec<(&'a str, Vec<(i32, i32)>)>,
+    }
+    let slice = Slice {
+        w: sector.width,
+        h: sector.height,
+        systems: sector
+            .systems
+            .iter()
+            .map(|s| (s.id.as_str(), s.coord.q, s.coord.r))
+            .collect(),
+        routes: sector
+            .routes
+            .iter()
+            .map(|r| {
+                (
+                    r.id.as_str(),
+                    r.from_system_id.as_str(),
+                    r.to_system_id.as_str(),
+                )
+            })
+            .collect(),
+        regions: sector
+            .regions
+            .iter()
+            .map(|r| (r.id.as_str(), r.hexes.iter().map(|h| (h.q, h.r)).collect()))
+            .collect(),
+    };
+    digest_input(&slice)
 }
 
 fn handle_click(
@@ -824,5 +719,47 @@ mod tests {
         assert!(state.selected_systems.contains(&a));
         assert!(state.selected_systems.contains(&b));
         assert_eq!(state.selected_systems.len(), 2);
+    }
+
+    #[test]
+    fn map_cache_refresh_populates_subsectors() {
+        let mut state = blank(8, 8);
+        state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "A")
+            .unwrap();
+        state
+            .sector
+            .add_system(HexCoord { q: 3, r: 3 }, "B")
+            .unwrap();
+        refresh_map_cache(&mut state);
+        let cache = state.map_view_cache.as_ref().expect("cache populated");
+        assert!(!cache.subsectors.is_empty());
+        assert_eq!(
+            cache.lookup.hex_system.len(),
+            state.sector.systems.len(),
+            "lookup table contains every system"
+        );
+    }
+
+    #[test]
+    fn map_cache_stable_across_idempotent_calls() {
+        let mut state = blank(8, 8);
+        state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "A")
+            .unwrap();
+        refresh_map_cache(&mut state);
+        let digest = state
+            .map_view_cache
+            .as_ref()
+            .map(|c| c.digest.clone())
+            .unwrap();
+        refresh_map_cache(&mut state);
+        assert_eq!(
+            digest,
+            state.map_view_cache.as_ref().unwrap().digest,
+            "digest unchanged when sector slice unchanged"
+        );
     }
 }

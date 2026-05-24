@@ -336,6 +336,12 @@ pub struct BuilderState {
     /// §S1: hex render size in screen pixels. Persisted per session so users
     /// can zoom the map without re-tuning each frame.
     pub hex_size: f32,
+    /// §S2: lazy subsector + lookup cache used by the MAP panel so the modern
+    /// [`sectorforge_gui_core::sector_view::SectorView`] renderer can draw
+    /// subsector borders / capital markers / region tints without rebuilding
+    /// every frame. Keyed by a digest over the sector slice it depends on;
+    /// refreshed in the panel when the digest changes.
+    pub map_view_cache: Option<MapViewCache>,
     /// §W4: monotonic counter mixed into the per-world re-roll discriminator
     /// so repeated clicks on "Re-roll" yield distinct draws while staying
     /// deterministic for replay.
@@ -374,6 +380,16 @@ pub struct PendingCollision {
     pub dragging: SystemId,
     pub target: sectorforge::sector_model::HexCoord,
     pub occupant: SystemId,
+}
+
+/// §S2 cache backing the MAP panel renderer. `digest` is a BLAKE3 hex string
+/// over the slice of `GeneratedSector` (systems, routes, regions) that drives
+/// the subsector clustering + per-hex lookup tables. The panel rebuilds the
+/// cache when the live digest no longer matches.
+pub struct MapViewCache {
+    pub digest: String,
+    pub subsectors: Vec<sectorforge::subsectors::Subsector>,
+    pub lookup: sectorforge_gui_core::sector_view::SectorMapCache,
 }
 
 /// §G5: inclusive rectangle of hex coordinates that
@@ -460,6 +476,7 @@ impl BuilderState {
             pending_collision: None,
             rect_select: None,
             hex_size: 28.0,
+            map_view_cache: None,
             world_reroll_counter: 0,
             route_bulk_filter_type: None,
             route_bulk_filter_stability: None,

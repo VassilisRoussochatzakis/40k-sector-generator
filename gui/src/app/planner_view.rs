@@ -109,6 +109,13 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     empty_hex_clicks: false,
                     route_view_mode: app.route_view_mode,
                     origin: rect.min + app.planner_pan,
+                    multi_selected: None,
+                    pinned: None,
+                    drag_override: None,
+                    pending_route_preview: None,
+                    rect_select: None,
+                    sense: egui::Sense::click(),
+                    disable_internal_click_dispatch: false,
                 }
                 .show(ui);
 

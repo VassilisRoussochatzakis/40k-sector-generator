@@ -145,6 +145,7 @@ impl SessionFile {
             pending_collision: None,
             rect_select: None,
             hex_size: 28.0,
+            map_view_cache: None,
             world_reroll_counter: 0,
             route_bulk_filter_type: None,
             route_bulk_filter_stability: None,

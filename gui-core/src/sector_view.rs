@@ -1,9 +1,10 @@
 //! Sector hex-grid widget: pointy-top hexes, routes, system disks. Clickable.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
+use sectorforge::ids::SystemId;
 use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
 
@@ -91,6 +92,25 @@ pub struct SectorView<'a> {
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
     /// Viewport transform: added to every hex center.
     pub origin: Pos2,
+    /// Secondary selection set (rendered as a softer ring than `selected_system`).
+    /// Used by the builder for multi-select with shift-click + rect-drag.
+    pub multi_selected: Option<&'a BTreeSet<SystemId>>,
+    /// Pinned-system overlay (orange outer ring). Builder §Q1.
+    pub pinned: Option<&'a BTreeSet<SystemId>>,
+    /// When `Some`, the named system is rendered at `pos` instead of its
+    /// stored hex coordinate. Used while dragging to follow the cursor.
+    pub drag_override: Option<(SystemId, Pos2)>,
+    /// While the user is hovering ADD-ROUTE, draws a dashed amber line from
+    /// the start system to the cursor.
+    pub pending_route_preview: Option<(SystemId, Pos2)>,
+    /// In-progress rect-select on the map. Tints every hex in the AABB amber.
+    pub rect_select: Option<(HexCoord, HexCoord)>,
+    /// Sense passed to the canvas allocation. Builders that want drag-drop
+    /// flip this to `Sense::click_and_drag()`.
+    pub sense: Sense,
+    /// When true, `show()` skips its own click→`SectorClick` dispatch and lets
+    /// the caller pick hits manually via [`SectorGeom`]. Builder uses this.
+    pub disable_internal_click_dispatch: bool,
 }
 
 const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
@@ -111,8 +131,8 @@ pub enum SectorClick {
 
 impl<'a> SectorView<'a> {
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SectorClick>) {
-        let g = Geom::new(self.hex_size);
-        let (rect, response) = ui.allocate_at_least(ui.available_size(), Sense::click());
+        let g = SectorGeom::new(self.hex_size, self.origin);
+        let (rect, response) = ui.allocate_at_least(ui.available_size(), self.sense);
         let painter = ui.painter_at(rect).with_clip_rect(rect);
         let origin = self.origin;
 
@@ -174,6 +194,24 @@ impl<'a> SectorView<'a> {
                 };
 
                 draw_hex(&painter, c, g.hex_size, fill, HEX_OUTLINE);
+            }
+        }
+
+        // Rect-select tint (builder §S4). Painted before subsector overlays so
+        // it stays visually quiet underneath the route + system layers.
+        if let Some((a, b)) = self.rect_select {
+            let (sq, eq) = (a.q.min(b.q), a.q.max(b.q));
+            let (sr, er) = (a.r.min(b.r), a.r.max(b.r));
+            for r in sr.max(min_r.max(0))..=er.min(max_r.min(self.sector.height as i32 - 1)) {
+                for q in sq.max(min_q.max(0))..=eq.min(max_q.min(self.sector.width as i32 - 1)) {
+                    let c = hex_center(q, r, &g) + origin.to_vec2();
+                    draw_hex_fill(
+                        &painter,
+                        c,
+                        g.hex_size,
+                        Color32::from_rgba_unmultiplied(255, 240, 120, 30),
+                    );
+                }
             }
         }
 
@@ -260,7 +298,12 @@ impl<'a> SectorView<'a> {
         let mut centers: std::collections::HashMap<&str, Pos2> =
             HashMap::with_capacity(self.sector.systems.len());
         for sys in &self.sector.systems {
-            let c = hex_center(sys.coord.q, sys.coord.r, &g) + origin.to_vec2();
+            let mut c = hex_center(sys.coord.q, sys.coord.r, &g) + origin.to_vec2();
+            if let Some((drag_id, drag_pos)) = self.drag_override.as_ref() {
+                if drag_id.as_str() == sys.id.as_str() {
+                    c = *drag_pos;
+                }
+            }
             centers.insert(sys.id.as_str(), c);
         }
 
@@ -306,6 +349,22 @@ impl<'a> SectorView<'a> {
                 b2,
                 route_thickness,
             );
+        }
+
+        // Builder ADD-ROUTE preview: dashed amber line from the picked start
+        // system to the cursor (or to nothing if the start is off-screen).
+        if let Some((start_id, cursor)) = self.pending_route_preview.as_ref() {
+            if let Some(&a) = centers.get(start_id.as_str()) {
+                let preview_thickness = (route_thickness * 1.4).max(2.5);
+                draw_route_line(
+                    &painter,
+                    a,
+                    *cursor,
+                    preview_thickness,
+                    Color32::from_rgb(255, 220, 120),
+                    sectorforge::sector_model::RoutePattern::Dashed,
+                );
+            }
         }
 
         if let Some(ids) = self.path_route_ids {
@@ -382,8 +441,30 @@ impl<'a> SectorView<'a> {
                 continue;
             }
             let is_sel = self.selected_system == Some(sys.id.as_str());
+            let is_multi = self
+                .multi_selected
+                .map(|s| s.contains(&sys.id))
+                .unwrap_or(false);
+            let is_pinned = self.pinned.map(|s| s.contains(&sys.id)).unwrap_or(false);
+            if is_pinned {
+                draw_hex_outline_only(
+                    &painter,
+                    c,
+                    g.hex_size + 5.0,
+                    Color32::from_rgb(255, 120, 90),
+                    1.5,
+                );
+            }
             if is_sel {
                 draw_hex_outline_only(&painter, c, g.hex_size + 2.0, SELECTION, 2.5);
+            } else if is_multi {
+                draw_hex_outline_only(
+                    &painter,
+                    c,
+                    g.hex_size + 2.0,
+                    Color32::from_rgb(180, 200, 255),
+                    2.0,
+                );
             }
             if self
                 .path_waypoints
@@ -672,7 +753,7 @@ impl<'a> SectorView<'a> {
         }
 
         let mut click = None;
-        if response.clicked() {
+        if response.clicked() && !self.disable_internal_click_dispatch {
             if let Some(pos) = response.interact_pointer_pos() {
                 let hit = self
                     .sector
@@ -771,21 +852,83 @@ impl<'a> SectorView<'a> {
     }
 }
 
-struct Geom {
-    hex_size: f32,
-    margin: f32,
+/// Pointy-top hex geometry shared by the renderer and external pickers.
+///
+/// Constructed once per frame from the active hex size and the viewport
+/// origin (top-left + any pan offset). Exposed publicly so editor surfaces
+/// (the builder map panel) can drive their own hit detection without
+/// duplicating the math.
+#[derive(Clone, Copy)]
+pub struct SectorGeom {
+    pub hex_size: f32,
+    pub margin: f32,
+    pub origin: Pos2,
 }
 
-impl Geom {
-    fn new(hex_size: f32) -> Self {
+impl SectorGeom {
+    #[must_use]
+    pub fn new(hex_size: f32, origin: Pos2) -> Self {
         Self {
             hex_size,
             margin: hex_size * 1.1,
+            origin,
         }
+    }
+
+    /// Screen-space center of axial cell `(q, r)`.
+    #[must_use]
+    pub fn hex_center(&self, q: i32, r: i32) -> Pos2 {
+        hex_center_xy(q, r, self) + self.origin.to_vec2()
+    }
+
+    /// Total pixel size of the hex grid (used for `Sense::drag` allocation in
+    /// fixed-canvas hosts like the builder's map panel).
+    #[must_use]
+    pub fn map_size_px(&self, width: u32, height: u32) -> Vec2 {
+        let horiz_step = self.hex_size * 3f32.sqrt();
+        let vert_step = self.hex_size * 1.5;
+        let odd_shift = if height > 1 { 0.5 } else { 0.0 };
+        let w = self.margin * 2.0 + horiz_step * (width as f32 + odd_shift);
+        let label_band = self.hex_size * 0.55;
+        let h = self.margin * 2.0
+            + height.saturating_sub(1) as f32 * vert_step
+            + 2.0 * self.hex_size
+            + label_band;
+        Vec2::new(w, h)
+    }
+
+    /// Nearest hex within the inscribed radius of `screen_pos`. Returns
+    /// `None` outside any hex.
+    #[must_use]
+    pub fn pick_hex(&self, screen_pos: Pos2, width: u32, height: u32) -> Option<HexCoord> {
+        let mut best: Option<(HexCoord, f32)> = None;
+        for r in 0..height as i32 {
+            for q in 0..width as i32 {
+                let c = self.hex_center(q, r);
+                let d = (c - screen_pos).length();
+                if d <= self.hex_size * 0.95 && best.is_none_or(|(_, bd)| d < bd) {
+                    best = Some((HexCoord { q, r }, d));
+                }
+            }
+        }
+        best.map(|(coord, _)| coord)
+    }
+
+    /// First system whose hex center is within picking radius of `screen_pos`.
+    #[must_use]
+    pub fn hit_system(&self, sector: &GeneratedSector, screen_pos: Pos2) -> Option<SystemId> {
+        sector
+            .systems
+            .iter()
+            .find(|s| {
+                (self.hex_center(s.coord.q, s.coord.r) - screen_pos).length()
+                    <= self.hex_size * 0.95
+            })
+            .map(|s| s.id.clone())
     }
 }
 
-fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
+fn hex_center_xy(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
     let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
@@ -794,18 +937,25 @@ fn hex_center(q: i32, r: i32, g: &Geom) -> Pos2 {
     Pos2::new(x, y)
 }
 
-fn hex_pick(screen_pos: Pos2, g: &Geom, origin: Pos2, width: u32, height: u32) -> Option<HexCoord> {
-    let mut best: Option<(HexCoord, f32)> = None;
-    for r in 0..height as i32 {
-        for q in 0..width as i32 {
-            let c = hex_center(q, r, g) + origin.to_vec2();
-            let d = (c - screen_pos).length();
-            if d <= g.hex_size * 0.95 && best.is_none_or(|(_, bd)| d < bd) {
-                best = Some((HexCoord { q, r }, d));
-            }
-        }
-    }
-    best.map(|(coord, _)| coord)
+fn hex_center(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
+    hex_center_xy(q, r, g)
+}
+
+fn hex_pick(
+    screen_pos: Pos2,
+    g: &SectorGeom,
+    origin: Pos2,
+    width: u32,
+    height: u32,
+) -> Option<HexCoord> {
+    // Kept for callers that still pass a separate `origin`; internal uses go
+    // through `SectorGeom::pick_hex`.
+    let g = SectorGeom {
+        hex_size: g.hex_size,
+        margin: g.margin,
+        origin,
+    };
+    g.pick_hex(screen_pos, width, height)
 }
 
 fn hex_vertices(c: Pos2, size: f32) -> [Pos2; 6] {
@@ -928,7 +1078,7 @@ fn draw_region_labels(
     painter: &egui::Painter,
     sector: &GeneratedSector,
     origin: Pos2,
-    g: &Geom,
+    g: &SectorGeom,
     bounds: egui::Rect,
     cache: Option<&SectorMapCache>,
 ) {
@@ -975,7 +1125,7 @@ fn draw_region_labels(
 fn region_label_anchor(
     region: &sectorforge::regions::WarpRegion,
     origin: Pos2,
-    g: &Geom,
+    g: &SectorGeom,
 ) -> Option<Pos2> {
     if region.hexes.is_empty() {
         return None;

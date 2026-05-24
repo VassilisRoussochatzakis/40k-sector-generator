@@ -407,6 +407,13 @@ impl App {
                     && self.editor.tool == SectorEditTool::AddSystem,
                 route_view_mode: self.route_view_mode,
                 origin: rect.min + self.sector_pan,
+                multi_selected: None,
+                pinned: None,
+                drag_override: None,
+                pending_route_preview: None,
+                rect_select: None,
+                sense: egui::Sense::click(),
+                disable_internal_click_dispatch: false,
             }
             .show(ui);
             match click {

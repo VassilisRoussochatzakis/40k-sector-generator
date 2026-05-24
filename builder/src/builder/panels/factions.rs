@@ -1,8 +1,957 @@
-//! FACTIONS tab (§N1 / §N2). Phase B §F1..§F7 fills the faction editor.
+//! FACTIONS tab — §F1..§F7 faction roster editor.
+//!
+//! Edits the in-memory `data_catalogs.factions` mirror of `factions.toml`. F6
+//! writes the modified roster back via [`super::super::project_io::save_project`].
+//! Style overrides and legend-visibility flags persist as optional fields on
+//! [`FactionDef`] so existing factions.toml files round-trip cleanly.
 
+use std::collections::BTreeSet;
+
+use egui::{Color32, RichText, Ui};
+
+use sectorforge::faction_style::{
+    faction_style_rgb_with_overrides, parse_border, parse_hex_rgb, rgb_to_hex, FactionBorder,
+};
+use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
+use sectorforge::ids::FactionId;
+use sectorforge::worlds::{Government, NotableFeature, WorldType};
+
+use crate::builder::state::{BuilderTab, ModalKind};
 use crate::builder::BuilderState;
+
+const KNOWN_KINDS: &[&str] = &[
+    "imperial",
+    "imperial_guard",
+    "imperial_knight",
+    "adepta_sororitas",
+    "adeptus_astartes",
+    "deathwatch",
+    "grey_knights",
+    "talons_of_the_emperor",
+    "inquisition",
+    "collegia_titanica",
+    "mechanicus",
+    "dark_mechanicum",
+    "chaos_space_marine",
+    "chaos_knight",
+    "traitor_guard",
+    "traitor_titan_legion",
+    "daemon",
+    "cult",
+    "genestealer_cult",
+    "tau",
+    "aeldari",
+    "drukhari",
+    "harlequin",
+    "leagues_of_votann",
+    "ork",
+    "tyranid",
+    "necron",
+    "minor_xenos",
+    "xenos",
+    "merchant",
+    "criminal",
+    "rebel",
+];
+
+const KNOWN_DISPOSITIONS: &[&str] = &[
+    "lawful",
+    "insular",
+    "secretive",
+    "opportunistic",
+    "hostile",
+    "zealous",
+];
+
+const KNOWN_BORDERS: &[(&str, FactionBorder)] = &[
+    ("clean", FactionBorder::Clean),
+    ("jagged", FactionBorder::Jagged),
+    ("dotted", FactionBorder::Dotted),
+    ("thin", FactionBorder::Thin),
+];
+
+const DEFAULT_FACTIONS_REL: &str = "data/factions/factions.toml";
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Factions");
-    super::placeholder::show(ui, state, "Phase B", "§F1..§F7");
+    ui.add_space(4.0);
+
+    if state.data_catalogs.factions.is_none() {
+        show_empty_catalog(ui, state);
+        return;
+    }
+
+    show_summary(ui, state);
+    ui.separator();
+    show_filter_bar(ui, state);
+    ui.separator();
+
+    egui::SidePanel::left("factions_roster_panel")
+        .resizable(true)
+        .default_width(280.0)
+        .show_inside(ui, |ui| show_roster_list(ui, state));
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        if let Some(idx) = selected_index(state) {
+            show_inspector(ui, state, idx);
+        } else {
+            ui.colored_label(
+                Color32::GRAY,
+                "Select a faction from the roster on the left.",
+            );
+        }
+    });
+}
+
+// ── empty / scaffold ────────────────────────────────────────────────────────
+
+fn show_empty_catalog(ui: &mut Ui, state: &mut BuilderState) {
+    ui.colored_label(
+        Color32::GRAY,
+        "No factions catalog loaded. Scaffold one to begin editing.",
+    );
+    if ui.button("Create empty factions roster").clicked() {
+        state.data_catalogs.factions = Some(FactionsFile {
+            factions: Vec::new(),
+        });
+        if state.config.inputs.factions.is_none() {
+            state.config.inputs.factions = Some(DEFAULT_FACTIONS_REL.to_string());
+        }
+        state.dirty = true;
+        state.dirty_files.insert(DEFAULT_FACTIONS_REL.to_string());
+    }
+}
+
+// ── summary + filter bar ────────────────────────────────────────────────────
+
+fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
+    let file = state.data_catalogs.factions.as_ref().expect("checked");
+    let count = file.factions.len();
+    let groups = count_groups(file);
+    let path = state
+        .config
+        .inputs
+        .factions
+        .clone()
+        .unwrap_or_else(|| "(unset)".into());
+    let path_dirty = state.dirty_files.contains(path.as_str())
+        || state.dirty_files.contains(DEFAULT_FACTIONS_REL);
+
+    ui.horizontal_wrapped(|ui| {
+        ui.label(format!("rows: {count}"));
+        ui.label(format!("top-factions: {}", groups.top));
+        ui.label(format!("subfactions: {}", groups.sub));
+        ui.label(format!("path: {path}"));
+        if path_dirty {
+            ui.colored_label(Color32::from_rgb(240, 200, 90), "● unsaved");
+        }
+    });
+
+    ui.horizontal_wrapped(|ui| {
+        if ui.button("Save factions.toml").clicked() {
+            save_factions_only(state);
+        }
+        if ui.button("Add row").clicked() {
+            add_new_row(state);
+        }
+        if let Some(id) = state.selected_faction_id.clone() {
+            if ui
+                .button("Duplicate selected")
+                .on_hover_text("Copy selected row with a new id suffix")
+                .clicked()
+            {
+                duplicate_row(state, &id);
+            }
+            if ui
+                .button("Delete selected")
+                .on_hover_text("Remove the selected row from the roster")
+                .clicked()
+            {
+                delete_row(state, &id);
+            }
+        }
+    });
+}
+
+fn show_filter_bar(ui: &mut Ui, _state: &mut BuilderState) {
+    let filter_id = egui::Id::new("factions_filter");
+    let kind_id = egui::Id::new("factions_kind_filter");
+    let mut filter: String = ui.data_mut(|d| {
+        d.get_temp_mut_or::<String>(filter_id, String::new())
+            .clone()
+    });
+    let mut kind_filter: String =
+        ui.data_mut(|d| d.get_temp_mut_or::<String>(kind_id, String::new()).clone());
+    ui.horizontal_wrapped(|ui| {
+        ui.label("search:");
+        if ui.text_edit_singleline(&mut filter).changed() {
+            ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
+        }
+        ui.label("kind:");
+        egui::ComboBox::from_id_salt("factions_kind_filter_combo")
+            .selected_text(if kind_filter.is_empty() {
+                "(any)"
+            } else {
+                kind_filter.as_str()
+            })
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_label(kind_filter.is_empty(), "(any)")
+                    .clicked()
+                {
+                    kind_filter.clear();
+                    ui.data_mut(|d| d.insert_temp(kind_id, kind_filter.clone()));
+                }
+                for k in KNOWN_KINDS {
+                    if ui.selectable_label(kind_filter == *k, *k).clicked() {
+                        kind_filter = (*k).into();
+                        ui.data_mut(|d| d.insert_temp(kind_id, kind_filter.clone()));
+                    }
+                }
+            });
+    });
+}
+
+// ── roster list (left pane) ─────────────────────────────────────────────────
+
+fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
+    let filter: String = ui
+        .data_mut(|d| d.get_temp::<String>(egui::Id::new("factions_filter")))
+        .unwrap_or_default();
+    let kind_filter: String = ui
+        .data_mut(|d| d.get_temp::<String>(egui::Id::new("factions_kind_filter")))
+        .unwrap_or_default();
+    let needle = filter.to_lowercase();
+
+    let Some(file) = state.data_catalogs.factions.as_ref() else {
+        return;
+    };
+    // Group the flat list by top_faction_id() > subfaction_id().
+    let mut groups: std::collections::BTreeMap<
+        String,
+        std::collections::BTreeMap<String, Vec<usize>>,
+    > = std::collections::BTreeMap::new();
+    for (i, f) in file.factions.iter().enumerate() {
+        if !kind_filter.is_empty() && f.kind != kind_filter {
+            continue;
+        }
+        if !needle.is_empty()
+            && !f.id.as_str().to_lowercase().contains(&needle)
+            && !f.name.to_lowercase().contains(&needle)
+            && !f.kind.to_lowercase().contains(&needle)
+        {
+            continue;
+        }
+        let top = f.top_faction_id().to_string();
+        let sub = f.subfaction_id().to_string();
+        groups
+            .entry(top)
+            .or_default()
+            .entry(sub)
+            .or_default()
+            .push(i);
+    }
+
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        let selected = state.selected_faction_id.clone();
+        for (top_id, subs) in &groups {
+            let top_name = display_name_from_id(top_id);
+            egui::CollapsingHeader::new(
+                RichText::new(format!("{top_name} ({top_id})"))
+                    .strong()
+                    .color(Color32::from_rgb(220, 220, 240)),
+            )
+            .id_salt(format!("fac_top_{top_id}"))
+            .default_open(true)
+            .show(ui, |ui| {
+                for (sub_id, rows) in subs {
+                    let sub_name = display_name_from_id(sub_id);
+                    egui::CollapsingHeader::new(format!("{sub_name} — {sub_id} ({})", rows.len()))
+                        .id_salt(format!("fac_sub_{top_id}_{sub_id}"))
+                        .default_open(true)
+                        .show(ui, |ui| {
+                            for &i in rows {
+                                let f = &file.factions[i];
+                                let is_selected = selected.as_ref() == Some(&f.id);
+                                let mut label = RichText::new(format!("{}  ({})", f.name, f.id));
+                                if f.legend_visible == Some(false) {
+                                    label = label.color(Color32::DARK_GRAY);
+                                }
+                                if ui.selectable_label(is_selected, label).clicked() {
+                                    state.selected_faction_id = Some(f.id.clone());
+                                }
+                            }
+                        });
+                }
+            });
+        }
+        if groups.is_empty() {
+            ui.colored_label(Color32::GRAY, "No matches.");
+        }
+    });
+}
+
+// ── inspector (right pane) ──────────────────────────────────────────────────
+
+fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
+    let original = {
+        let file = state.data_catalogs.factions.as_ref().expect("checked");
+        file.factions[idx].clone()
+    };
+    let mut draft = original.clone();
+
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        ui.group(|ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.heading(draft.name.clone());
+                ui.label(RichText::new(format!("id: {}", draft.id)).color(Color32::DARK_GRAY));
+            });
+
+            // Style preview chip
+            show_style_preview(ui, &draft);
+
+            egui::CollapsingHeader::new("§F1 Identity")
+                .default_open(true)
+                .show(ui, |ui| identity_grid(ui, &mut draft));
+
+            egui::CollapsingHeader::new("§F3 Hierarchy (faction > subfaction > force)")
+                .default_open(true)
+                .show(ui, |ui| hierarchy_grid(ui, &mut draft));
+
+            egui::CollapsingHeader::new("§F1 Preferences")
+                .default_open(false)
+                .show(ui, |ui| {
+                    preferred_picker_world_types(ui, &mut draft);
+                    preferred_picker_governments(ui, &mut draft);
+                    preferred_picker_features(ui, &mut draft);
+                });
+
+            egui::CollapsingHeader::new("§F2 Style override")
+                .default_open(true)
+                .show(ui, |ui| style_overrides(ui, &mut draft));
+
+            egui::CollapsingHeader::new("§F5 Presence (deep-link)")
+                .default_open(false)
+                .show(ui, |ui| presence_link(ui, state, &draft));
+
+            egui::CollapsingHeader::new("§F7 Legend visibility")
+                .default_open(false)
+                .show(ui, |ui| legend_visibility(ui, &mut draft));
+        });
+    });
+
+    if draft != original {
+        let id = draft.id.clone();
+        let file = state.data_catalogs.factions.as_mut().expect("checked");
+        file.factions[idx] = draft;
+        state.dirty = true;
+        let rel = state
+            .config
+            .inputs
+            .factions
+            .clone()
+            .unwrap_or_else(|| DEFAULT_FACTIONS_REL.to_string());
+        state.dirty_files.insert(rel);
+        state.selected_faction_id = Some(id);
+    }
+}
+
+fn identity_grid(ui: &mut Ui, draft: &mut FactionDef) {
+    egui::Grid::new("faction_identity_grid")
+        .num_columns(2)
+        .striped(true)
+        .show(ui, |ui| {
+            ui.label("id");
+            let mut id_buf = draft.id.to_string();
+            if ui.text_edit_singleline(&mut id_buf).changed() {
+                draft.id = FactionId::new(id_buf.trim());
+            }
+            ui.end_row();
+
+            ui.label("name");
+            ui.text_edit_singleline(&mut draft.name);
+            ui.end_row();
+
+            ui.label("kind");
+            kind_combo(ui, "faction_kind_combo", &mut draft.kind);
+            ui.end_row();
+
+            ui.label("default_disposition");
+            disposition_combo(
+                ui,
+                "faction_disposition_combo",
+                &mut draft.default_disposition,
+            );
+            ui.end_row();
+
+            ui.label("weight");
+            ui.add(
+                egui::DragValue::new(&mut draft.weight)
+                    .speed(0.1)
+                    .range(0.0..=100.0)
+                    .max_decimals(2),
+            );
+            ui.end_row();
+        });
+}
+
+fn hierarchy_grid(ui: &mut Ui, draft: &mut FactionDef) {
+    egui::Grid::new("faction_hierarchy_grid")
+        .num_columns(2)
+        .striped(true)
+        .show(ui, |ui| {
+            ui.label("faction (top id)");
+            optional_text(ui, "fac_top_id", &mut draft.faction, |s| FactionId::new(s));
+            ui.end_row();
+
+            ui.label("faction_name (top display)");
+            optional_text(ui, "fac_top_name", &mut draft.faction_name, |s| {
+                s.to_string()
+            });
+            ui.end_row();
+
+            ui.label("subfaction (mid id)");
+            optional_text(ui, "fac_sub_id", &mut draft.subfaction, |s| {
+                FactionId::new(s)
+            });
+            ui.end_row();
+
+            ui.label("subfaction_name (mid display)");
+            optional_text(ui, "fac_sub_name", &mut draft.subfaction_name, |s| {
+                s.to_string()
+            });
+            ui.end_row();
+        });
+    ui.colored_label(
+        Color32::DARK_GRAY,
+        format!(
+            "Resolved hierarchy: {} > {} > {}",
+            draft.top_faction_id(),
+            draft.subfaction_id(),
+            draft.id
+        ),
+    );
+}
+
+fn optional_text<T, F>(ui: &mut Ui, salt: &str, slot: &mut Option<T>, ctor: F)
+where
+    T: ToString + Clone,
+    F: Fn(&str) -> T,
+{
+    let mut buf = slot.as_ref().map(|v| v.to_string()).unwrap_or_default();
+    let id = egui::Id::new(salt);
+    ui.horizontal(|ui| {
+        let resp = ui.add(egui::TextEdit::singleline(&mut buf).id(id));
+        if resp.changed() {
+            let trimmed = buf.trim();
+            *slot = if trimmed.is_empty() {
+                None
+            } else {
+                Some(ctor(trimmed))
+            };
+        }
+        if slot.is_some() && ui.small_button("×").clicked() {
+            *slot = None;
+        }
+    });
+}
+
+fn kind_combo(ui: &mut Ui, salt: &str, value: &mut String) {
+    egui::ComboBox::from_id_salt(salt)
+        .selected_text(value.as_str())
+        .show_ui(ui, |ui| {
+            for k in KNOWN_KINDS {
+                if ui.selectable_label(value == *k, *k).clicked() {
+                    *value = (*k).into();
+                }
+            }
+        });
+    ui.add(egui::TextEdit::singleline(value).desired_width(140.0));
+}
+
+fn disposition_combo(ui: &mut Ui, salt: &str, value: &mut String) {
+    egui::ComboBox::from_id_salt(salt)
+        .selected_text(value.as_str())
+        .show_ui(ui, |ui| {
+            for d in KNOWN_DISPOSITIONS {
+                if ui.selectable_label(value == *d, *d).clicked() {
+                    *value = (*d).into();
+                }
+            }
+        });
+    ui.add(egui::TextEdit::singleline(value).desired_width(140.0));
+}
+
+// ── preferences (multi-pickers) ─────────────────────────────────────────────
+
+fn preferred_picker_world_types(ui: &mut Ui, draft: &mut FactionDef) {
+    pick_multi(
+        ui,
+        "preferred_world_types",
+        "preferred_world_types",
+        &mut draft.preferred_world_types,
+        WorldType::VARIANTS
+            .iter()
+            .map(|v| (format!("{v:?}"), v.display_name().to_string()))
+            .collect(),
+    );
+}
+
+fn preferred_picker_governments(ui: &mut Ui, draft: &mut FactionDef) {
+    pick_multi(
+        ui,
+        "preferred_governments",
+        "preferred_governments",
+        &mut draft.preferred_governments,
+        Government::VARIANTS
+            .iter()
+            .map(|v| (format!("{v:?}"), v.display_name().to_string()))
+            .collect(),
+    );
+}
+
+fn preferred_picker_features(ui: &mut Ui, draft: &mut FactionDef) {
+    pick_multi(
+        ui,
+        "preferred_notable_features",
+        "preferred_notable_features",
+        &mut draft.preferred_notable_features,
+        NotableFeature::VARIANTS
+            .iter()
+            .map(|v| (format!("{v:?}"), v.display_name().to_string()))
+            .collect(),
+    );
+}
+
+fn pick_multi(
+    ui: &mut Ui,
+    salt: &str,
+    label: &str,
+    bucket: &mut Vec<String>,
+    options: Vec<(String, String)>,
+) {
+    ui.label(label);
+    ui.indent(format!("{salt}_indent"), |ui| {
+        let mut remove: Option<usize> = None;
+        for (i, current) in bucket.iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.monospace(current.as_str());
+                if ui.small_button("×").clicked() {
+                    remove = Some(i);
+                }
+            });
+        }
+        if let Some(i) = remove {
+            bucket.remove(i);
+        }
+
+        let filter_id = egui::Id::new(format!("{salt}_filter"));
+        let mut filter: String = ui.data_mut(|d| {
+            d.get_temp_mut_or::<String>(filter_id, String::new())
+                .clone()
+        });
+        if ui.text_edit_singleline(&mut filter).changed() {
+            ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
+        }
+        let needle = filter.to_lowercase();
+        let already: BTreeSet<String> = bucket.iter().cloned().collect();
+        egui::ScrollArea::vertical()
+            .id_salt(format!("{salt}_scroll"))
+            .max_height(140.0)
+            .show(ui, |ui| {
+                for (key, display) in &options {
+                    if !needle.is_empty()
+                        && !display.to_lowercase().contains(&needle)
+                        && !key.to_lowercase().contains(&needle)
+                    {
+                        continue;
+                    }
+                    if already.contains(key) {
+                        continue;
+                    }
+                    if ui.button(format!("{display}  ({key})")).clicked() {
+                        bucket.push(key.clone());
+                    }
+                }
+            });
+    });
+    ui.separator();
+}
+
+// ── style override + recompute ──────────────────────────────────────────────
+
+fn show_style_preview(ui: &mut Ui, draft: &FactionDef) {
+    let style = resolve_style(draft);
+    let (rect, _resp) = ui.allocate_exact_size(egui::vec2(96.0, 32.0), egui::Sense::hover());
+    let painter = ui.painter_at(rect);
+    let fill = Color32::from_rgb(style.fill.0, style.fill.1, style.fill.2);
+    let accent = Color32::from_rgb(style.accent.0, style.accent.1, style.accent.2);
+    painter.rect_filled(rect, 4.0, fill);
+    painter.rect_stroke(rect, 4.0, egui::Stroke::new(2.0, accent));
+    painter.text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        style.glyph.to_string(),
+        egui::FontId::monospace(16.0),
+        Color32::BLACK,
+    );
+    ui.label(format!(
+        "fill={} accent={} glyph={} border={:?}",
+        rgb_to_hex(style.fill),
+        rgb_to_hex(style.accent),
+        style.glyph,
+        style.border
+    ));
+}
+
+fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
+    let derived = faction_style_rgb_with_overrides(
+        &draft.kind,
+        draft.id.as_str(),
+        &draft.default_disposition,
+        None,
+        None,
+        None,
+        None,
+    );
+
+    egui::Grid::new("faction_style_grid")
+        .num_columns(3)
+        .striped(true)
+        .show(ui, |ui| {
+            ui.label("fill");
+            color_override(ui, "fac_fill_color", &mut draft.style_fill, derived.fill);
+            ui.end_row();
+
+            ui.label("accent");
+            color_override(
+                ui,
+                "fac_accent_color",
+                &mut draft.style_accent,
+                derived.accent,
+            );
+            ui.end_row();
+
+            ui.label("glyph");
+            glyph_override(ui, "fac_glyph_text", &mut draft.style_glyph, derived.glyph);
+            ui.end_row();
+
+            ui.label("border");
+            border_override(
+                ui,
+                "fac_border_combo",
+                &mut draft.style_border,
+                derived.border,
+            );
+            ui.end_row();
+        });
+
+    ui.horizontal(|ui| {
+        if ui
+            .button("§F4 Recompute style from kind")
+            .on_hover_text("Clears all style overrides and reverts to faction_style_rgb defaults")
+            .clicked()
+        {
+            draft.style_fill = None;
+            draft.style_accent = None;
+            draft.style_glyph = None;
+            draft.style_border = None;
+        }
+        ui.colored_label(Color32::DARK_GRAY, format!("default kind={}", draft.kind));
+    });
+}
+
+fn color_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: (u8, u8, u8)) {
+    let mut rgb = slot.as_deref().and_then(parse_hex_rgb).unwrap_or(derived);
+    let mut color = [rgb.0, rgb.1, rgb.2];
+    ui.horizontal(|ui| {
+        let resp = egui::color_picker::color_edit_button_srgb(ui, &mut color);
+        if resp.changed() {
+            rgb = (color[0], color[1], color[2]);
+            *slot = Some(rgb_to_hex(rgb));
+        }
+        let mut buf = slot.clone().unwrap_or_else(|| rgb_to_hex(derived));
+        let _ = ui.add(
+            egui::TextEdit::singleline(&mut buf)
+                .id_source(salt)
+                .desired_width(80.0),
+        );
+        if !buf.trim().is_empty() && parse_hex_rgb(buf.trim()).is_some() {
+            *slot = Some(buf.trim().to_string());
+        }
+        if slot.is_some() && ui.small_button("×").clicked() {
+            *slot = None;
+        }
+    });
+}
+
+fn glyph_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: char) {
+    ui.horizontal(|ui| {
+        let mut buf = slot.clone().unwrap_or_else(|| derived.to_string());
+        let resp = ui.add(
+            egui::TextEdit::singleline(&mut buf)
+                .id_source(salt)
+                .desired_width(40.0)
+                .char_limit(1),
+        );
+        if resp.changed() {
+            let trimmed = buf.trim();
+            *slot = if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            };
+        }
+        if slot.is_some() && ui.small_button("×").clicked() {
+            *slot = None;
+        }
+    });
+}
+
+fn border_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: FactionBorder) {
+    let current = slot.as_deref().and_then(parse_border).unwrap_or(derived);
+    let mut next = current;
+    ui.horizontal(|ui| {
+        egui::ComboBox::from_id_salt(salt)
+            .selected_text(format!("{current:?}"))
+            .show_ui(ui, |ui| {
+                for (label, value) in KNOWN_BORDERS {
+                    if ui.selectable_label(current == *value, *label).clicked() {
+                        next = *value;
+                    }
+                }
+            });
+        if slot.is_some() && ui.small_button("×").clicked() {
+            *slot = None;
+        }
+    });
+    if next != current {
+        let label = KNOWN_BORDERS
+            .iter()
+            .find(|(_, v)| *v == next)
+            .map(|(l, _)| (*l).to_string())
+            .unwrap_or_else(|| "thin".into());
+        *slot = Some(label);
+    }
+}
+
+// ── presence link (F5) ──────────────────────────────────────────────────────
+
+fn presence_link(ui: &mut Ui, state: &mut BuilderState, draft: &FactionDef) {
+    let assigned_worlds = sector_world_count(state, &draft.id);
+    let assigned_systems = sector_system_count(state, &draft.id);
+    ui.label(format!(
+        "Sector presence: {assigned_systems} system(s), {assigned_worlds} world(s)."
+    ));
+    if ui
+        .button("Open in CONTROL tab")
+        .on_hover_text("Phase C §11 wires the per-world/system presence editor")
+        .clicked()
+    {
+        state.selected_faction_id = Some(draft.id.clone());
+        state.active_tab = BuilderTab::Control;
+    }
+}
+
+fn sector_world_count(state: &BuilderState, id: &FactionId) -> usize {
+    state
+        .sector
+        .factions
+        .iter()
+        .find(|f| f.id == *id)
+        .map(|f| f.world_presence.len())
+        .unwrap_or(0)
+}
+
+fn sector_system_count(state: &BuilderState, id: &FactionId) -> usize {
+    state
+        .sector
+        .factions
+        .iter()
+        .find(|f| f.id == *id)
+        .map(|f| f.system_presence.len())
+        .unwrap_or(0)
+}
+
+// ── legend visibility (F7) ──────────────────────────────────────────────────
+
+fn legend_visibility(ui: &mut Ui, draft: &mut FactionDef) {
+    let mut current = match draft.legend_visible {
+        None => 0u8,
+        Some(true) => 1,
+        Some(false) => 2,
+    };
+    ui.horizontal_wrapped(|ui| {
+        ui.label("legend_visible:");
+        ui.radio_value(&mut current, 0, "default (auto)");
+        ui.radio_value(&mut current, 1, "force visible");
+        ui.radio_value(&mut current, 2, "force hidden");
+    });
+    draft.legend_visible = match current {
+        1 => Some(true),
+        2 => Some(false),
+        _ => None,
+    };
+    ui.colored_label(
+        Color32::DARK_GRAY,
+        "Default uses src/importance.rs::compute_display_buckets to roll minor factions into kind-group aggregates.",
+    );
+}
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+struct GroupCounts {
+    top: usize,
+    sub: usize,
+}
+
+fn count_groups(file: &FactionsFile) -> GroupCounts {
+    let mut tops: BTreeSet<String> = BTreeSet::new();
+    let mut subs: BTreeSet<(String, String)> = BTreeSet::new();
+    for f in &file.factions {
+        let top = f.top_faction_id().to_string();
+        let sub = f.subfaction_id().to_string();
+        subs.insert((top.clone(), sub));
+        tops.insert(top);
+    }
+    GroupCounts {
+        top: tops.len(),
+        sub: subs.len(),
+    }
+}
+
+fn selected_index(state: &mut BuilderState) -> Option<usize> {
+    let file = state.data_catalogs.factions.as_ref()?;
+    if let Some(id) = &state.selected_faction_id {
+        if let Some((i, _)) = file.factions.iter().enumerate().find(|(_, f)| f.id == *id) {
+            return Some(i);
+        }
+    }
+    if let Some(f) = file.factions.first() {
+        state.selected_faction_id = Some(f.id.clone());
+        return Some(0);
+    }
+    None
+}
+
+fn add_new_row(state: &mut BuilderState) {
+    let Some(file) = state.data_catalogs.factions.as_mut() else {
+        return;
+    };
+    let mut suffix = 1u32;
+    let mut id = format!("new_faction_{suffix}");
+    while file.factions.iter().any(|f| f.id.as_str() == id) {
+        suffix += 1;
+        id = format!("new_faction_{suffix}");
+    }
+    let new = FactionDef {
+        faction: None,
+        faction_name: None,
+        subfaction: None,
+        subfaction_name: None,
+        id: FactionId::new(id.as_str()),
+        name: "New faction".into(),
+        kind: "imperial".into(),
+        weight: 1.0,
+        default_disposition: "lawful".into(),
+        preferred_world_types: Vec::new(),
+        preferred_governments: Vec::new(),
+        preferred_notable_features: Vec::new(),
+        style_fill: None,
+        style_accent: None,
+        style_glyph: None,
+        style_border: None,
+        legend_visible: None,
+    };
+    file.factions.push(new);
+    state.selected_faction_id = Some(FactionId::new(id.as_str()));
+    state.dirty = true;
+    let rel = state
+        .config
+        .inputs
+        .factions
+        .clone()
+        .unwrap_or_else(|| DEFAULT_FACTIONS_REL.to_string());
+    state.dirty_files.insert(rel);
+}
+
+fn duplicate_row(state: &mut BuilderState, id: &FactionId) {
+    let Some(file) = state.data_catalogs.factions.as_mut() else {
+        return;
+    };
+    let Some(idx) = file.factions.iter().position(|f| f.id == *id) else {
+        return;
+    };
+    let mut copy = file.factions[idx].clone();
+    let mut n = 2u32;
+    let base = copy.id.to_string();
+    loop {
+        let candidate = format!("{base}_copy{n}");
+        if !file.factions.iter().any(|f| f.id.as_str() == candidate) {
+            copy.id = FactionId::new(candidate);
+            break;
+        }
+        n += 1;
+    }
+    let new_id = copy.id.clone();
+    file.factions.insert(idx + 1, copy);
+    state.selected_faction_id = Some(new_id);
+    state.dirty = true;
+    let rel = state
+        .config
+        .inputs
+        .factions
+        .clone()
+        .unwrap_or_else(|| DEFAULT_FACTIONS_REL.to_string());
+    state.dirty_files.insert(rel);
+}
+
+fn delete_row(state: &mut BuilderState, id: &FactionId) {
+    let Some(file) = state.data_catalogs.factions.as_mut() else {
+        return;
+    };
+    let Some(idx) = file.factions.iter().position(|f| f.id == *id) else {
+        return;
+    };
+    file.factions.remove(idx);
+    state.selected_faction_id = file.factions.first().map(|f| f.id.clone());
+    state.dirty = true;
+    let rel = state
+        .config
+        .inputs
+        .factions
+        .clone()
+        .unwrap_or_else(|| DEFAULT_FACTIONS_REL.to_string());
+    state.dirty_files.insert(rel);
+}
+
+fn save_factions_only(state: &mut BuilderState) {
+    if state.config.inputs.factions.is_none() {
+        state.config.inputs.factions = Some(DEFAULT_FACTIONS_REL.to_string());
+    }
+    match super::super::project_io::save_project(state) {
+        Ok(()) => {
+            state.dirty_files.retain(|f| {
+                f != "data/factions/factions.toml"
+                    && Some(f.as_str()) != state.config.inputs.factions.as_deref()
+            });
+        }
+        Err(e) => {
+            state.modal = Some(ModalKind::Message(format!(
+                "Save factions.toml failed: {e}"
+            )));
+        }
+    }
+}
+
+fn resolve_style(draft: &FactionDef) -> sectorforge::faction_style::FactionStyleRgb {
+    faction_style_rgb_with_overrides(
+        &draft.kind,
+        draft.id.as_str(),
+        &draft.default_disposition,
+        draft.style_fill.as_deref(),
+        draft.style_accent.as_deref(),
+        draft.style_glyph.as_deref(),
+        draft.style_border.as_deref(),
+    )
 }

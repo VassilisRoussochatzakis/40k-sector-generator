@@ -1182,6 +1182,11 @@ fn designer_rows_to_factions_file(
             preferred_world_types: parse_list(&row.world_types),
             preferred_governments: parse_list(&row.governments),
             preferred_notable_features: parse_list(&row.features),
+            style_fill: None,
+            style_accent: None,
+            style_glyph: None,
+            style_border: None,
+            legend_visible: None,
         });
     }
     Ok(FactionsFile { factions })

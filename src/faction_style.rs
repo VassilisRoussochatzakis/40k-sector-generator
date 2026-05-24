@@ -153,6 +153,65 @@ pub fn faction_style_rgb(kind: &str, id: &str, disposition: &str) -> FactionStyl
     }
 }
 
+/// Parse a `#RRGGBB` (or `RRGGBB`) hex literal into an `(u8, u8, u8)` triple.
+#[must_use]
+pub fn parse_hex_rgb(s: &str) -> Option<(u8, u8, u8)> {
+    let t = s.trim().trim_start_matches('#');
+    if t.len() != 6 {
+        return None;
+    }
+    let r = u8::from_str_radix(&t[0..2], 16).ok()?;
+    let g = u8::from_str_radix(&t[2..4], 16).ok()?;
+    let b = u8::from_str_radix(&t[4..6], 16).ok()?;
+    Some((r, g, b))
+}
+
+/// Render an `(u8, u8, u8)` triple as `#RRGGBB`.
+#[must_use]
+pub fn rgb_to_hex(rgb: (u8, u8, u8)) -> String {
+    format!("#{:02X}{:02X}{:02X}", rgb.0, rgb.1, rgb.2)
+}
+
+/// Parse a border-style spelling. `"clean"`, `"jagged"`, `"dotted"`, `"thin"`.
+#[must_use]
+pub fn parse_border(s: &str) -> Option<FactionBorder> {
+    match s.trim().to_ascii_lowercase().as_str() {
+        "clean" => Some(FactionBorder::Clean),
+        "jagged" => Some(FactionBorder::Jagged),
+        "dotted" => Some(FactionBorder::Dotted),
+        "thin" => Some(FactionBorder::Thin),
+        _ => None,
+    }
+}
+
+/// §F2: derive a style honoring per-faction `FactionDef` overrides before
+/// falling back to the kind/id deterministic palette.
+#[must_use]
+pub fn faction_style_rgb_with_overrides(
+    kind: &str,
+    id: &str,
+    disposition: &str,
+    fill_override: Option<&str>,
+    accent_override: Option<&str>,
+    glyph_override: Option<&str>,
+    border_override: Option<&str>,
+) -> FactionStyleRgb {
+    let mut base = faction_style_rgb(kind, id, disposition);
+    if let Some(rgb) = fill_override.and_then(parse_hex_rgb) {
+        base.fill = rgb;
+    }
+    if let Some(rgb) = accent_override.and_then(parse_hex_rgb) {
+        base.accent = rgb;
+    }
+    if let Some(g) = glyph_override.and_then(|s| s.chars().next()) {
+        base.glyph = g;
+    }
+    if let Some(b) = border_override.and_then(parse_border) {
+        base.border = b;
+    }
+    base
+}
+
 /// Resolve a style from a sector's faction list by id; falls back to a neutral
 /// grey when the id is unknown.
 #[must_use]
@@ -165,5 +224,76 @@ pub fn faction_style_rgb_by_id(factions: &[GeneratedFaction], id: &str) -> Facti
         accent: (70, 70, 80),
         glyph: '?',
         border: FactionBorder::Thin,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hex_round_trip() {
+        let rgb = (0x12, 0xAB, 0xFF);
+        let s = rgb_to_hex(rgb);
+        assert_eq!(s, "#12ABFF");
+        assert_eq!(parse_hex_rgb(&s), Some(rgb));
+        assert_eq!(parse_hex_rgb("12abff"), Some(rgb));
+    }
+
+    #[test]
+    fn hex_rejects_bad_input() {
+        assert!(parse_hex_rgb("").is_none());
+        assert!(parse_hex_rgb("#12").is_none());
+        assert!(parse_hex_rgb("#XYZAAA").is_none());
+    }
+
+    #[test]
+    fn border_parser_covers_all_variants() {
+        assert!(matches!(parse_border("clean"), Some(FactionBorder::Clean)));
+        assert!(matches!(
+            parse_border("JAGGED"),
+            Some(FactionBorder::Jagged)
+        ));
+        assert!(matches!(
+            parse_border("dotted"),
+            Some(FactionBorder::Dotted)
+        ));
+        assert!(matches!(parse_border("thin"), Some(FactionBorder::Thin)));
+        assert!(parse_border("nope").is_none());
+    }
+
+    #[test]
+    fn overrides_replace_derived_fields() {
+        let derived = faction_style_rgb("imperial", "f1", "lawful");
+        let custom = faction_style_rgb_with_overrides(
+            "imperial",
+            "f1",
+            "lawful",
+            Some("#112233"),
+            Some("#445566"),
+            Some("X"),
+            Some("jagged"),
+        );
+        assert_eq!(custom.fill, (0x11, 0x22, 0x33));
+        assert_eq!(custom.accent, (0x44, 0x55, 0x66));
+        assert_eq!(custom.glyph, 'X');
+        assert!(matches!(custom.border, FactionBorder::Jagged));
+        assert_ne!(custom.fill, derived.fill);
+    }
+
+    #[test]
+    fn overrides_none_leaves_derived_intact() {
+        let derived = faction_style_rgb("ork", "ork_warband_alpha", "hostile");
+        let same = faction_style_rgb_with_overrides(
+            "ork",
+            "ork_warband_alpha",
+            "hostile",
+            None,
+            None,
+            None,
+            None,
+        );
+        assert_eq!(derived.fill, same.fill);
+        assert_eq!(derived.glyph, same.glyph);
     }
 }

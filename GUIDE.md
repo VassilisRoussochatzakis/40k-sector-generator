@@ -1121,6 +1121,15 @@ default_disposition = "lawful"
 preferred_world_types        = ["HiveWorld", "BastionWorld"]
 preferred_governments        = ["MilitaryGovernor", "MagistrateCouncil"]
 preferred_notable_features   = ["AdministrativeHub", "PoliceState"]
+
+# Optional builder overrides (§F2 / §F7). All five fields are skipped on
+# serialise when None, so legacy files round-trip unchanged.
+# style_fill     = "#112233"  # overrides the kind/id-derived fill colour
+# style_accent   = "#445566"  # overrides the derived accent colour
+# style_glyph    = "X"        # single-character legend glyph
+# style_border   = "jagged"   # one of clean | jagged | dotted | thin
+# legend_visible = false      # tri-state: omit = auto via importance, true = force
+                              # visible, false = force hidden
 ```
 
 Assignment algorithm: base weight × 1.5 for matching world type, × 1.4 for
@@ -1849,6 +1858,25 @@ Tests:
 * `ensure_connected_adds_bridge_between_components`, `route_region_predicate_uses_hex_line` in [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs).
 * `replace_routes_round_trip` in [builder/src/builder/command.rs](builder/src/builder/command.rs).
 * `configured_hidden_routes_use_explicit_endpoints_and_k`, `configured_hidden_routes_exclude_blackout_endpoints` in [src/hidden_routes.rs](src/hidden_routes.rs).
+
+#### F1–F7 factions panel (DONE)
+
+Phase B §10. The FACTIONS tab in [builder/src/builder/panels/factions.rs](builder/src/builder/panels/factions.rs) edits the in-memory mirror of `data/factions/factions.toml` (`BuilderState::data_catalogs.factions`). Rows are grouped in the left pane by `FactionDef::top_faction_id()` > `subfaction_id()`; the right pane runs the inspector for the selected row.
+
+| Piece | Where it lives |
+|---|---|
+| F1 identity inspector | [builder/src/builder/panels/factions.rs](builder/src/builder/panels/factions.rs) — `id`, `name`, `kind`, `default_disposition`, and `weight` editors. Kind/disposition combos seed from the vocabulary used by the bundled rosters; preferred-* fields use searchable pickers driven by `WorldType::VARIANTS`, `Government::VARIANTS`, and `NotableFeature::VARIANTS`. |
+| F2 style override | New optional fields on `FactionDef` (`style_fill`, `style_accent`, `style_glyph`, `style_border`) plus `faction_style::faction_style_rgb_with_overrides` in [src/faction_style.rs](src/faction_style.rs). The panel renders a colour picker / glyph cell / border combo + a live preview tile. |
+| F3 hierarchy editor | Optional `faction`/`faction_name`/`subfaction`/`subfaction_name` fields are surfaced in the inspector so a force can move between top-faction and subfaction buckets without re-keying `kind`. The roster's `CollapsingHeader` tree mirrors the resolved hierarchy. |
+| F4 recompute style | "§F4 Recompute style from kind" clears all four `style_*` overrides on the current row, reverting to `faction_style_rgb`'s kind-keyed palette. |
+| F5 presence deep-link | Inspector reports current `sector.factions[i].system_presence` / `world_presence` counts and links to the CONTROL tab with the row pre-selected. The presence editor itself lands with §11 in Phase C. |
+| F6 save factions.toml | "Save factions.toml" calls `project_io::save_project`. When `config.inputs.factions` is unset the panel points it at the default `data/factions/factions.toml` rel path so the catalog actually persists. |
+| F7 legend visibility | `FactionDef.legend_visible` is a tri-state (`None` = auto via `importance::compute_display_buckets`, `Some(true)` = force visible, `Some(false)` = force hidden). The roster dims rows currently forced hidden. |
+
+Tests:
+
+* `optional_style_fields_skip_serialize_when_none`, `optional_style_fields_round_trip` in [src/factions.rs](src/factions.rs).
+* `hex_round_trip`, `hex_rejects_bad_input`, `border_parser_covers_all_variants`, `overrides_replace_derived_fields`, `overrides_none_leaves_derived_intact` in [src/faction_style.rs](src/faction_style.rs).
 
 ---
 

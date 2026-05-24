@@ -8,7 +8,7 @@ pub struct FactionsFile {
     pub factions: Vec<FactionDef>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct FactionDef {
     /// Highest-level faction id. When omitted, legacy catalogs derive it from
     /// `kind` (for example, `imperial_guard` -> `imperial`).
@@ -46,6 +46,25 @@ pub struct FactionDef {
     pub preferred_governments: Vec<String>,
     #[serde(default)]
     pub preferred_notable_features: Vec<String>,
+    /// §F2 builder override: explicit fill colour as `#RRGGBB`. When `None` the
+    /// renderer falls back to [`crate::faction_style::faction_style_rgb`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style_fill: Option<String>,
+    /// §F2 builder override: accent colour as `#RRGGBB`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style_accent: Option<String>,
+    /// §F2 builder override: single-character legend glyph.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style_glyph: Option<String>,
+    /// §F2 builder override: border style. One of `"clean"`, `"jagged"`,
+    /// `"dotted"`, `"thin"`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style_border: Option<String>,
+    /// §F7 builder override: when `Some(false)` the legend renderer should hide
+    /// this faction (or aggregate it into the kind-group bucket). `None` means
+    /// "use default importance logic".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legend_visible: Option<bool>,
 }
 
 impl FactionDef {
@@ -138,6 +157,63 @@ pub fn legacy_top_faction_name(kind: &str) -> Cow<'static, str> {
 }
 
 use std::borrow::Cow;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn optional_style_fields_skip_serialize_when_none() {
+        let def = FactionDef {
+            faction: None,
+            faction_name: None,
+            subfaction: None,
+            subfaction_name: None,
+            id: crate::ids::FactionId::new("f1"),
+            name: "F".into(),
+            kind: "imperial".into(),
+            weight: 1.0,
+            default_disposition: "lawful".into(),
+            preferred_world_types: Vec::new(),
+            preferred_governments: Vec::new(),
+            preferred_notable_features: Vec::new(),
+            style_fill: None,
+            style_accent: None,
+            style_glyph: None,
+            style_border: None,
+            legend_visible: None,
+        };
+        let s = toml::to_string(&def).unwrap();
+        assert!(!s.contains("style_fill"));
+        assert!(!s.contains("legend_visible"));
+    }
+
+    #[test]
+    fn optional_style_fields_round_trip() {
+        let def = FactionDef {
+            faction: None,
+            faction_name: None,
+            subfaction: None,
+            subfaction_name: None,
+            id: crate::ids::FactionId::new("f1"),
+            name: "F".into(),
+            kind: "imperial".into(),
+            weight: 1.0,
+            default_disposition: "lawful".into(),
+            preferred_world_types: Vec::new(),
+            preferred_governments: Vec::new(),
+            preferred_notable_features: Vec::new(),
+            style_fill: Some("#112233".into()),
+            style_accent: Some("#445566".into()),
+            style_glyph: Some("X".into()),
+            style_border: Some("jagged".into()),
+            legend_visible: Some(false),
+        };
+        let s = toml::to_string(&def).unwrap();
+        let parsed: FactionDef = toml::from_str(&s).unwrap();
+        assert_eq!(parsed, def);
+    }
+}
 
 #[must_use]
 pub fn display_name_from_id(id: &str) -> Cow<'static, str> {

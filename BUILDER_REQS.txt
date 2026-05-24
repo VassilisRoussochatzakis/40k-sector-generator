@@ -580,27 +580,49 @@ R7.   [DONE] Routes "ensure connected" toggle re-runs the MST-style bridge
 10. FACTIONS
 ================================================================================
 
-F1.   Faction editor reaches `Faction` (`src/factions.rs`) parity:
+F1.   [DONE] Faction editor reaches `Faction` (`src/factions.rs`) parity:
       id, name, kind (Imperial | Mechanicus | Ecclesiarchy | ...),
       disposition (Lawful | Pragmatic | Zealous | Corrupt), weight,
       preferred_world_types, preferred_governments,
       preferred_notable_features, FactionStyle (fill/accent/border/glyph).
+      Implemented in `builder/src/builder/panels/factions.rs`: identity grid,
+      kind/disposition combos seeded from the known data/factions/factions.toml
+      vocabulary, weight `DragValue`, and searchable multi-pickers backed by
+      `WorldType::VARIANTS`, `Government::VARIANTS`, and
+      `NotableFeature::VARIANTS`.
 
-F2.   FactionStyle override panel: colour pickers, glyph picker, preview
-      tile in legend.
+F2.   [DONE] FactionStyle override panel: colour pickers, glyph picker, preview
+      tile in legend. `FactionDef` gains optional `style_fill`,
+      `style_accent`, `style_glyph`, `style_border`; new
+      `faction_style::faction_style_rgb_with_overrides` applies them on top
+      of the kind/id derivation so the bitmap/SVG/HTML renderers can opt in.
 
-F3.   Subfaction + force editor: hierarchical list (faction > subfaction >
-      force). Each force row maps to a TOML row in `factions.toml`.
+F3.   [DONE] Subfaction + force editor: hierarchical list (faction > subfaction >
+      force). Each force row maps to a TOML row in `factions.toml`. The
+      roster pane groups rows by `FactionDef::top_faction_id()` and
+      `subfaction_id()`; the inspector exposes the optional
+      `faction`/`faction_name`/`subfaction`/`subfaction_name` fields so a row
+      can move between hierarchy buckets.
 
-F4.   "Recompute style from kind" button regenerates style via
-      `faction_style.rs` defaults.
+F4.   [DONE] "Recompute style from kind" button regenerates style via
+      `faction_style.rs` defaults by clearing every per-row style override.
 
-F5.   World/system presence assignment via §11.
+F5.   [DONE] World/system presence assignment via §11. Inspector renders the
+      current `sector.factions[i]` presence counts and a deep-link button
+      that focuses the row and switches to `BuilderTab::Control` so the
+      Phase C §11 presence editor picks it up.
 
-F6.   Export: write modified roster back to `data/factions/factions.toml`.
+F6.   [DONE] Export: write modified roster back to
+      `data/factions/factions.toml`. "Save factions.toml" calls
+      `project_io::save_project` after auto-pointing
+      `config.inputs.factions` at the default relative path when it is
+      unset.
 
-F7.   Importance / visibility: per-faction toggle for legend display
-      (uses `src/importance.rs`).
+F7.   [DONE] Importance / visibility: per-faction toggle for legend display
+      (uses `src/importance.rs`). `FactionDef.legend_visible` is a
+      tri-state (`None` = auto via `compute_display_buckets`,
+      `Some(true)` = force visible, `Some(false)` = force hidden) and the
+      roster pane dims hidden rows.
 
 ================================================================================
 11. CONTROL + PRESENCE
@@ -1430,7 +1452,17 @@ Phase B — Direct entity edit
                    override, bulk operations, route-rules editor with live
                    preview scheduling, hidden-route builder, ensure-connected
                    bridge connector)
-  F1..F7, (§10 factions)
+  F1..F7  - DONE  (§10 factions — FACTIONS panel: identity/kind/disposition/
+                   weight inspector, preferred_* multi-pickers, hierarchical
+                   roster grouped by top_faction > subfaction, style override
+                   panel with colour pickers + glyph + border combo + live
+                   preview tile, "Recompute style from kind" reset, presence
+                   deep-link to CONTROL tab, F6 save via project_io::save_project,
+                   legend-visibility tri-state stored on FactionDef as
+                   optional `legend_visible`; new style override fields
+                   `style_fill`/`style_accent`/`style_glyph`/`style_border`
+                   round-trip cleanly to factions.toml; F5 presence editor
+                   itself lands with §11 in Phase C)
   CL1..CL4, (§12 claims)
   C1..C8. (§11 control + presence)
 

@@ -28,7 +28,6 @@ mod analytics_views;
 mod editor_views;
 mod layout;
 mod lifecycle;
-mod other_views;
 mod planner_view;
 mod sector_view;
 mod segmentum;
@@ -79,8 +78,6 @@ pub struct App {
     pub(super) sector_overview_cache: info_panel::SectorOverviewCache,
     pub(super) dashboard: DashboardState,
     pub(super) preset_gallery: PresetGalleryState,
-    pub(super) show_examples: bool,
-    pub(super) example_temp_dir: Option<tempfile::TempDir>,
     pub(super) segmentum: Option<Arc<SegmentumBundle>>,
     pub(super) segmentum_active_child: Option<std::sync::Arc<str>>,
     pub(super) segmentum_selected_link: Option<std::sync::Arc<str>>,
@@ -128,8 +125,6 @@ impl Default for App {
             sector_overview_cache: info_panel::SectorOverviewCache::default(),
             dashboard: DashboardState::default(),
             preset_gallery: PresetGalleryState::default(),
-            show_examples: false,
-            example_temp_dir: None,
             segmentum: None,
             segmentum_active_child: None,
             segmentum_selected_link: None,
@@ -187,7 +182,6 @@ impl eframe::App for App {
         layout::MainView::new(self).show(ctx);
 
         self.draw_preset_gallery(ctx);
-        self.draw_example_gallery(ctx);
         self.draw_export_dialog(ctx);
 
         // Sync editor changes back to main sector

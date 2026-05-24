@@ -344,16 +344,6 @@ clear message. When no candidate satisfies the constraints, the report
 includes the top `report_top` near-misses ranked by total miss distance,
 so you know which constraint to relax.
 
-### `sectorforge extract-examples --out <DIR>`
-
-Extract the bundled example projects (`big_test`, `big_sparse_test`, and
-`m42_project`) to a local directory. These projects are embedded directly
-into the binary for portability.
-
-| Flag | Meaning |
-|---|---|
-| `--out <DIR>` | Required — destination directory for extraction |
-
 ### `sectorforge diff` (§10 old/DONE.md)
 
 Deterministic model-aware diff between two sectors. Two modes:
@@ -883,7 +873,7 @@ to a segmentum: same seeds + same digests ⇒ same composed bytes.
 ## 3. Project directory layout
 
 A project is a folder that contains a `sectorforge.toml` and data sub-directories.
-The bundled example is at [examples/m42_project/](examples/m42_project/).
+The reference example is at [examples/m42_project/](examples/m42_project/).
 Scale fixtures live in [examples/big_test/](examples/big_test/),
 [examples/big_sparse_test/](examples/big_sparse_test/), and
 [examples/huge_sparse_test/](examples/huge_sparse_test/). `big_sparse_test`

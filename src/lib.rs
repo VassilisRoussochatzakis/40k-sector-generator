@@ -34,7 +34,6 @@ pub mod control;
 pub mod diff;
 pub mod economy;
 pub mod errors;
-pub mod examples;
 pub mod export;
 pub mod faction_style;
 pub mod factions;

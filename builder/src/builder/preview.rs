@@ -16,7 +16,7 @@ use std::sync::mpsc::TryRecvError;
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::{SectorError, SectorProgress};
 
-use crate::jobs::{spawn_job, JobHandle};
+use sectorforge_gui_core::jobs::{spawn_job, JobHandle};
 
 /// Outcome the worker posts back. Mirrors the legacy editor's variant.
 pub enum PreviewJobResult {
@@ -153,7 +153,7 @@ impl PreviewState {
 
 fn run_preview_worker(
     input: sectorforge::input::ProjectInput,
-    job_ctx: crate::jobs::JobContext,
+    job_ctx: sectorforge_gui_core::jobs::JobContext,
 ) -> PreviewJobResult {
     let result = sectorforge::generation::generate_with_progress_and_cancel(
         input,

@@ -17,7 +17,7 @@ use sectorforge::sector_model::HexCoord;
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{MapTool, PendingCollision, PendingPlace, PendingRename};
 use crate::builder::{BuilderState, ModalKind};
-use crate::palette::{
+use sectorforge_gui_core::palette::{
     self, darken, star_color, tint, HEX_EMPTY, HEX_OUTLINE, SELECTION, TEXT, TEXT_DIM,
 };
 

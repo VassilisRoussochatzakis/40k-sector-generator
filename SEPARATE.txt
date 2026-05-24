@@ -11,7 +11,11 @@
 #   - Section 1 pre-flight: DONE
 #   - Step 3.1 shared crate skeleton: DONE
 #   - Step 3.2 move shared widgets: DONE
-#   - Step 3.3 builder crate skeleton: IN-PROGRESS
+#   - Step 3.3 builder crate skeleton: DONE
+#   - Step 3.4 move builder module tree: DONE
+#   - Step 3.5 builder bin/app host: DONE
+#   - Step 3.6 slim viewer crate: DONE
+#   - Step 3.7 cargo aliases/workspace polish: IN-PROGRESS
 
 ================================================================================
 0. WHY (so you can make judgment calls)

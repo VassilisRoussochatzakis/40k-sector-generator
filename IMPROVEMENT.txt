@@ -1,0 +1,729 @@
+IMPROVEMENT.txt — sectorforge codebase improvement plan
+========================================================
+
+Methodology:
+  - Whole-repo audit against REFACTOR.txt (sections 1–12).
+  - Cross-checked every still-open OPTIMIZE.txt item against current code.
+  - Read every entry point (src/main.rs, builder/src/main.rs, gui/src/main.rs),
+    lib.rs, the largest 12 modules, the full builder state/preview/command/
+    derivation_cache layer, and the GUI export/jobs path.
+  - Ran cargo clippy --workspace --all-targets and pedantic clippy.
+  - Ran cargo fmt --all --check and cargo tree -d.
+
+================================================================================
+STATUS LEGEND  (added 2026-05-24)
+================================================================================
+
+Tag appended to each finding header below:
+
+  [DONE]        — work landed in the codebase; reconcile or close out.
+  [IN PROGRESS] — recognized, planned, not yet executed in main.
+  [NO ACTION]   — explicitly deferred or "leave as-is" per the report's own
+                  recommendation; tracked here so it does not resurface.
+
+Roll-up:
+
+  P0-1 [IN PROGRESS]   P1-1 [IN PROGRESS]   P2-1 [IN PROGRESS]   P3-1 [IN PROGRESS]
+  P0-2 [IN PROGRESS]   P1-2 [IN PROGRESS]   P2-2 [IN PROGRESS]   P3-2 [IN PROGRESS]
+  P0-3 [IN PROGRESS]   P1-3 [IN PROGRESS]   P2-3 [IN PROGRESS]   P3-3 [IN PROGRESS]
+  P0-4 [IN PROGRESS]                        P2-4 [IN PROGRESS]   P3-4 [IN PROGRESS]
+                                            P2-5 [IN PROGRESS]   P3-5 [IN PROGRESS]
+                                            P2-6 [DONE]          P3-6 [NO ACTION]
+                                                                 P3-7 [NO ACTION]
+
+PR-roadmap status (see "REFACTORING ROADMAP" below):
+
+  PR 1  — IN PROGRESS    PR 6  — IN PROGRESS
+  PR 2  — IN PROGRESS    PR 7  — IN PROGRESS
+  PR 3  — IN PROGRESS    PR 8  — IN PROGRESS
+  PR 4  — IN PROGRESS    PR 9  — IN PROGRESS
+  PR 5  — IN PROGRESS    PR 10 — IN PROGRESS
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+Overall health: GOOD. The codebase already follows the REFACTOR.txt spirit in
+many places (Arc<str> interning of identifiers in `sector_model`, BTreeMap for
+deterministic iteration in generation paths, thiserror SectorError, cooperative
+cancellation through `generate_with_progress_and_cancel`, `Drop` impl on
+`FileWatcher`, revision-tagged GUI preview, per-bin clap CLI). No `unsafe`, no
+`Box<dyn>` plumbing, no `todo!()`/`unimplemented!()` anywhere.
+
+What needs work, in priority order:
+
+  P0  Correctness:  derivation_cache digest swallows serialization errors;
+                    settings_digest covers only 7 fields out of dozens that
+                    actually change generated output.
+
+  P1  Test gap:     PNG / SVG renderer has byte-stable golden tests for the
+                    egui UI map (gui-core/tests/map_snapshots.rs) but no
+                    pixel-hash test for the public `bitmap::write_sector_png_*`
+                    / `system_map::write_one_system_png` writers. Renderer
+                    refactors can silently shift output.
+
+  P1  Bench gap:    benches/generation.rs only covers generate / validate.
+                    Hash/overlay/raster/encode/JSON phases are not benched, so
+                    regressions are invisible per phase.
+
+  P2  Cleanup:      cargo fmt --check fails on several files; clippy reports
+                    10 default warnings and ~430 pedantic warnings concentrated
+                    in ~6 categories that are safe to autofix.
+
+  P2  GUI:          gui-core::jobs::JobHandle<T> is the real abstraction; the
+                    builder::state::JobHandle (id/description only) is a stub
+                    nobody uses for real work — drop or unify.
+
+  P3  Ergonomics:   src/main.rs is 1809 LOC in one file; SectorError and
+                    SectorProgress lack #[non_exhaustive]; CLI progress logging
+                    is a 300-line match.
+
+Things NOT to change yet:
+  - Public re-export shape in lib.rs (135 pub items): downstream consumers
+    likely pin these by path. Trim only with a deprecation cycle.
+  - Big enum `SectorProgress` (~27 variants): boxing inside the enum doesn't
+    win anything since it travels through a `FnMut` callback by reference;
+    only large_enum_variant on PreviewJobResult is worth a Box.
+  - `worlds::KeyTables`'s HashMap fields are read-only lookups and are never
+    iterated for output; leave as-is unless we later add iteration there.
+
+================================================================================
+DETAILED FINDINGS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+P0-1  derivation_cache::digest_input swallows serialization errors  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    builder/src/builder/derivation_cache.rs:59-62
+Current:
+    pub fn digest_input<T: Serialize>(input: &T) -> String {
+        let bytes = serde_json::to_vec(input).unwrap_or_default();
+        digest_bytes(&bytes)
+    }
+
+Problem:
+  Any input whose `Serialize` impl fails hashes the empty byte string. Distinct
+  failed inputs collide on a single digest and can read back another input's
+  cache entry. (OPTIMIZE.txt #3.)
+
+Recommendation:
+  Return `Result<String, serde_json::Error>` (or wrap it in a new
+  `BuilderError::DigestFailed` variant). At call sites, skip caching on error
+  and surface to the status panel — never silently key on `""`.
+
+  Optional belt-and-braces: in `CacheEntry`, store the digest as a strong
+  type (e.g. `[u8; 32]`) to forbid the empty-string-as-digest case at the
+  type level.
+
+Validation:
+  Unit test with a `Serialize` impl that returns an error: assert
+  `digest_input` returns `Err`, assert no cache write occurs.
+
+────────────────────────────────────────────────────────────────────────────────
+P0-2  settings_digest is narrower than its name implies  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    src/generation.rs:2027-2040
+Current:
+    let settings_repr = format!(
+        "{}-{}-{}-{}-{}-{}-{}",
+        config.generation.seed,
+        config.generation.sector_width,
+        config.generation.sector_height,
+        config.generation.system_count,
+        config.generation.min_worlds_per_system,
+        config.generation.max_worlds_per_system,
+        config.generation.world_feature_count,
+    );
+
+Problem:
+  Generated output depends on `route_rules`, `regions`, `economy`, `history`,
+  `world_selection`, authored features, and several OutputConfig knobs (per
+  REFACTOR.txt Section 3.J/L on canonical config). All of those can change
+  while `settings_digest` stays constant, so manifest identity is weaker than
+  callers assume. (OPTIMIZE.txt #4.)
+
+Recommendation:
+  Hash a canonical Serializable struct that includes every config slice that
+  influences sector output:
+    - generation
+    - route_rules (RouteRules)
+    - regions config
+    - economy config
+    - history config
+    - relations config
+    - world_selection (overlay tags)
+    - any output toggles that change written bytes
+  Version the digest payload as `settings_digest_v2` (keep the old field
+  empty/optional or kept under `settings_digest_legacy` for one release).
+  Use `serde_json::to_vec` over a `&CanonicalSettings` newtype with BTreeMap
+  fields only — never HashMap — to guarantee byte stability.
+
+Validation:
+  - Snapshot: assert the digest of a known fixture matches a checked-in hex.
+  - Regression tests: changing any one of route relations threshold, region
+    enablement, economy enablement, world_selection.tag_overlay weights flips
+    the digest; changing a pure formatting/output knob that does NOT affect
+    output does not.
+
+────────────────────────────────────────────────────────────────────────────────
+P0-3  Production unwrap in GUI auto-save  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    gui/src/app/mod.rs:209
+Current:
+    let text = serde_json::to_string_pretty(sec).unwrap();
+
+Problem:
+  Reachable from a normal in-app code path (auto-save after edits). A
+  serializer panic crashes the editor rather than surfacing as a status.
+
+Recommendation:
+  Match the Result; on Err set `self.export_status =
+  format!("auto-save failed: {e}")` and return without writing. Mirror the
+  pattern already used in `export_ui::execute_*` writers.
+
+────────────────────────────────────────────────────────────────────────────────
+P0-4  Production unwraps in subsectors clustering rely on invariant  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    src/subsectors/mod.rs:518, 519, 537, 544, 574, 597-602, 618
+Current:
+    let score_a = scores.get(&sys_a.id).unwrap();
+    ...
+    let seed_sys = sector.get_system(seed_id).unwrap();
+    ...
+    out_assignment.push(*assignment.get(&sys.id).unwrap());
+
+Problem:
+  Each unwrap is justified ("scores was built from every system above"), but
+  the invariant is not documented at the call site. A future refactor that
+  filters `scores` partway through will produce a panic with no message and
+  no test coverage of the bad branch.
+
+Recommendation:
+  Replace each `.unwrap()` with `.expect("subsectors: <invariant>")` where the
+  message names the invariant (e.g. `"scores contains every system id"`).
+  Add a debug_assert at the top of the loop body to catch the bad case earlier
+  in tests/dev builds.
+
+  Same treatment for the test-only invariant unwraps in src/economy.rs:904
+  (already guarded by `is_none()` check above — rewrite with `if let Some(sys)
+  = by_sys.get(...).copied()` to drop the redundant unwrap entirely).
+
+────────────────────────────────────────────────────────────────────────────────
+P1-1  No PNG/SVG pixel-hash golden tests for the public writers  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+Files involved:
+    src/bitmap/mod.rs::write_sector_png_to_with        (1×)
+    src/system_map.rs::write_one_system_png            (1×)
+    src/svg_export.rs::write_sector_svg_to_with        (1× already smoke-tested
+                                                        in tests/svg_export_tests.rs
+                                                        but only as "writes
+                                                        something non-empty")
+
+Problem:
+  gui-core/tests/map_snapshots.rs hashes egui-rendered output, NOT the public
+  raster pipeline. Renderer refactors to `bitmap::draw_routes`,
+  `bitmap::compute_system_tints`, `system_map::*` glyphs, route control
+  glyphs, theme tinting, or label fonts can silently shift exported bytes
+  without any test failing. (OPTIMIZE.txt #6.)
+
+Recommendation:
+  1. New tests/png_golden.rs with cases:
+       - sector_map_small_fixture     (8×10, 24 systems, scale=1)
+       - system_map_small_fixture     (single 7-world system, scale=1)
+     Both render via the public writer to an in-memory PathBuf using
+     tempfile, decode back via `image::open`, hash raw RGBA8 bytes with
+     blake3, compare against a hex constant checked into the test.
+  2. Reject byte-hashing the PNG file directly — compression/metadata noise.
+     Pixel hash only.
+  3. When a renderer intentionally changes, update the hex in the same
+     commit as the renderer change so the diff is auditable.
+
+  Same treatment for SVG output — hash the canonical SVG text after stripping
+  any timestamp/uuid the writer might embed (currently appears to embed none,
+  but assert that explicitly).
+
+────────────────────────────────────────────────────────────────────────────────
+P1-2  Bench coverage is too coarse  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    benches/generation.rs:17-62
+Current: 3 groups — full generate, validate_project, validate_sector_invariants
+
+Problem:
+  Performance regressions in any of:
+    - PNG rasterization
+    - PNG encode
+    - SVG render
+    - JSON serialize_pretty
+    - regions/economy/history/relations overlay derivation
+    - influence_field / power_projection
+    - blake3 digest pass
+  cannot be attributed; total `generate` time hides shifts between phases.
+  (OPTIMIZE.txt #5.)
+
+Recommendation:
+  Add Criterion groups (each tiny/normal/large with fixed seed):
+    - bench_load_project        (TOML parse + worlds_toml load)
+    - bench_validate_project
+    - bench_place_systems
+    - bench_build_worlds        (per-system build_system loop in isolation)
+    - bench_routes              (generate_routes only)
+    - bench_region_effects
+    - bench_influence_field
+    - bench_relations
+    - bench_economy
+    - bench_history
+    - bench_manifest_hash       (settings_digest + input_digests hashing)
+    - bench_render_sector_png   (bitmap::render @ scale 1, 2, 5)
+    - bench_encode_sector_png   (PngEncoder only, raster pre-built)
+    - bench_render_sector_svg
+    - bench_export_json_pretty
+    - bench_export_all_system_pngs
+  Reuse a single pre-generated sector via OnceLock to amortize setup.
+  Cancel the existing `BatchSize::SmallInput` clones where the input is
+  immutable across iterations and use `iter` instead.
+
+────────────────────────────────────────────────────────────────────────────────
+P1-3  GUI job-model split is real (gui-core typed vs builder stub)  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+Files:
+    gui-core/src/jobs.rs                — real JobHandle<T> with cancel, progress,
+                                          receiver, revision (used by both bins)
+    builder/src/builder/state.rs:233-238 — pub struct JobHandle { id, description }
+                                          with no progress, no cancel, no result
+
+Problem:
+  builder::state::JobHandle is a UI-bookkeeping stub. `pending_jobs:
+  Vec<JobHandle>` is populated by nobody-yet, but the type sitting next to the
+  real one in gui-core invites future divergence in cancel/error semantics.
+  (OPTIMIZE.txt #8.)
+
+Recommendation:
+  Rename builder::state::JobHandle to `JobSummary` (or `JobStatus`) and make
+  it the read-only view that the status panel renders. The real handles
+  belong in gui-core::jobs. Drop the field if no panel actually reads it
+  today.
+
+  When background tasks are added later in the builder, they spawn a
+  `gui_core::jobs::JobHandle<T>` and push a derived JobSummary into
+  `pending_jobs` for display.
+
+  Add one unit test per terminal state — cancelled / completed / error /
+  stale-revision discarded — at the JobHandle layer. The preview path
+  already has the stale-revision case (builder/src/builder/preview.rs:223);
+  promote that pattern up.
+
+────────────────────────────────────────────────────────────────────────────────
+P2-1  cargo fmt --check fails  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+Files (representative — `cargo fmt --all` to fix all):
+    builder/src/builder/panels/control.rs   (multiple hunks)
+    builder/src/builder/panels/factions.rs
+    builder/src/builder/panels/routes.rs
+
+Recommendation:
+  Single landing commit: `cargo fmt --all`. Mix of import-list and
+  multi-line-arg formatting; no logic touched. Add a `cargo fmt --check`
+  step in CI to keep it from drifting.
+
+────────────────────────────────────────────────────────────────────────────────
+P2-2  Clippy: 10 default warnings + ~430 pedantic, ~6 mechanical buckets  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+Default-level (visible without --pedantic):
+  - items_after_test_module     src/factions.rs:162, gui/src/editor/state.rs:246
+  - needless_borrow             tests/golden_generation.rs:69,85,106
+  - too_many_arguments          gui-core/tests/map_snapshots.rs:647 (test helper)
+
+Pedantic, sorted by count:
+  78  format!(..) appended to existing String      → use write!
+  67  redundant closure                            → autofix
+  63  Option::map(..).unwrap_or(..)                → Option::map_or
+  60  bindings can be used directly in format!     → autofix (inline args)
+  33  map(..).unwrap_or_else(..)                   → map_or_else / or_else
+  31  match arms have identical bodies             → merge or fall-through
+
+Recommendation:
+  Single PR: `cargo clippy --fix --workspace --allow-dirty --allow-staged`
+  for the autofixable categories above. Then a separate PR for the
+  format!-append → write! conversion which is fix-able but touches many
+  files. Avoid mixing in -D warnings until the cleanup lands.
+
+  Workspace lints config (recommended):
+      [workspace.lints.rust]
+      unsafe_code = "forbid"
+
+      [workspace.lints.clippy]
+      unwrap_used = "warn"           # NOT deny; tests still need it
+      expect_used = "warn"
+      panic = "warn"
+      large_enum_variant = "warn"
+      needless_pass_by_value = "warn"
+
+────────────────────────────────────────────────────────────────────────────────
+P2-3  file_watcher clones the baseline map every tick  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    builder/src/builder/file_watcher.rs:97, 122
+Current:
+    for (rel, last) in baseline.clone().iter() {
+        ...
+        baseline.insert(rel.clone(), now);    // borrow conflict with above
+    }
+    ...
+    shutdown_check += tick / 10;              // dead — read nowhere
+
+Problems:
+  - Clone-per-tick allocates the entire BTreeMap each second. Cheap for
+    O(dozens) of files but pointless.
+  - `shutdown_check` is written but never read; dead code.
+
+Recommendation:
+  Collect updates first, then apply:
+      let mut updates: Vec<(String, SystemTime)> = Vec::new();
+      for (rel, last) in baseline.iter() {
+          // detect change, push (rel.clone(), now) into updates
+      }
+      for (rel, now) in updates {
+          baseline.insert(rel, now);
+          tx.send(FileChange { rel_path: rel.clone(), mtime: now })?;
+      }
+  Drop `shutdown_check`. Make the sleep cadence (`tick`) a const in the
+  module so the test doesn't need to know it.
+
+────────────────────────────────────────────────────────────────────────────────
+P2-4  Lock-on-progress JobHandle is heavier than needed  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    gui-core/src/jobs.rs:11, 27, 47, 75
+Current: `progress: Arc<Mutex<f32>>` and `cancelled: Arc<AtomicBool>`.
+
+Problem:
+  Every `set_progress` call locks a Mutex and triggers a repaint. Hot inner
+  loops in generation (e.g. `RouteControlsProgress`) may call set_progress
+  per-route — the lock is uncontended but not free, and the repaint
+  request to egui is throttled on the egui side but still costs.
+
+Recommendation:
+  - Store progress as `Arc<AtomicU32>` holding `f32::to_bits` / `from_bits`.
+    Reads and writes become a single atomic op; no Mutex; no poisoning.
+  - For cancellation, downgrade `Ordering::SeqCst` to `Ordering::Acquire`
+    on the reader (`is_cancelled`) and `Ordering::Release` on the writer
+    (`cancel`). The progress-flag and cancel-flag are independent so SeqCst
+    serialization is overkill.
+  - Optional: have `set_progress` rate-limit `ctx.request_repaint()` to,
+    say, 30 Hz so a tight loop of 10k progress ticks doesn't queue 10k
+    repaints. (egui collapses duplicate repaint requests but the cost of
+    the call itself adds up.)
+
+────────────────────────────────────────────────────────────────────────────────
+P2-5  Builder snapshot deep-clones the full sector  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    builder/src/builder/snapshot.rs:7-12, builder/src/builder/state.rs:992
+Current:
+    pub struct Snapshot { pub sector: GeneratedSector, ... }
+    self.snapshots.push(Snapshot::new(name, self.sector.clone(), ...));
+
+Problem:
+  Each named snapshot is a full deep-clone of `GeneratedSector` including all
+  `Vec<GeneratedSystem>` content (Arc<str> fields are cheap, the system/world
+  vecs are not). With a capped command_log of 200 + multiple snapshots, a
+  large sector quickly becomes the largest memory consumer.
+
+Recommendation:
+  - Store snapshots as `Arc<GeneratedSector>`. The active state continues to
+    own a value `GeneratedSector`; on snapshot, wrap the current value in
+    an Arc and share. When the user mutates after a snapshot,
+    `Arc::make_mut` deep-clones only on actual write (copy-on-write).
+  - Then `Vec<Snapshot>` is effectively `Vec<{ name, Arc<GeneratedSector>,
+    command_log_position }>` — duplicated snapshots cost one Arc bump.
+
+  Defer until a profile shows this matters; documented here as the obvious
+  next step if memory becomes a concern on large sectors.
+
+────────────────────────────────────────────────────────────────────────────────
+P2-6  OPTIMIZE.txt #7 is already addressed — close out  [DONE]
+────────────────────────────────────────────────────────────────────────────────
+File:    gui/src/app/mod.rs:47    `sector: Option<Arc<GeneratedSector>>`
+         gui/src/app/export_ui.rs:154, 309, 359, 399 all do `self.sector.clone()`
+Current: cheap — clones an Arc, not the sector.
+
+Recommendation:
+  Close OPTIMIZE.txt #7 in the next pass through that file. No code change
+  needed in the GUI export path. The same model could be propagated into the
+  builder (which still owns `GeneratedSector` by value in BuilderState) if
+  the snapshot/session paths become a hotspot per P2-5.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-1  Public enums lack #[non_exhaustive]  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+Files:
+    src/errors.rs           SectorError, MutationError
+    src/generation.rs       SectorProgress
+    src/sector_model/mod.rs RouteType, RouteKind, RouteStability,
+                            FactionInfluence, DominanceState, SystemKind
+    src/svg_export.rs / src/bitmap/mod.rs  (route view modes etc.)
+
+Problem:
+  Adding a variant to any of these today is a breaking change for downstream
+  callers (any `match` without a wildcard in their crate fails to compile).
+  REFACTOR.txt §6 calls this out as backward-compatibility-friendly hygiene.
+
+Recommendation:
+  Add `#[non_exhaustive]` to all public enums whose variant list is expected
+  to grow (SectorError, MutationError, SectorProgress for sure; the others
+  case-by-case). This is itself a breaking change for `match` callers but is
+  cheap to land while the public-API consumer set is small.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-2  src/main.rs is 1809 LOC in one file  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    src/main.rs
+
+Recommendation:
+  Split into:
+      src/main.rs                              # parse Cli, dispatch
+      src/cli/mod.rs                           # shared helpers (print_json,
+                                                 print_validation_report, etc.)
+      src/cli/commands/{generate, validate,
+                       inspect, history, prose,
+                       hooks, missions, sites,
+                       interestingness, briefing,
+                       relations, regions,
+                       economy, segmentum,
+                       diff, analyze, search}.rs
+
+  Keep the binary at `src/main.rs` (path stays the same) but move each
+  `fn run_X(...)` plus its arg struct into its own module. Mechanical, can
+  be done in one PR with no behaviour change.
+
+  Same treatment is reasonable for the 27-variant SectorProgress and its
+  300-line `log_sector_progress` match — extract to `src/cli/progress.rs`.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-3  No MSRV pinned  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    Cargo.toml (workspace + member manifests)
+
+Recommendation:
+  Add `rust-version = "1.78"` (or the actual minimum that builds today) to
+  all four manifests. Add a CI job that builds with that toolchain. Documents
+  the contract for anyone depending on `sectorforge` as a library.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-4  No cargo-deny / cargo-audit, no CI workflow file visible  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    .github/ — no workflows checked in (the repo has .git but no
+                    .github/ directory).
+
+Recommendation:
+  Once the autofix passes above land, add a single workflow:
+      - rustfmt --check
+      - clippy --workspace --all-targets -D warnings
+      - test --workspace --all-features
+      - cargo deny check (with a checked-in deny.toml allowing current
+        rand_core / getrandom duplicates introduced by proptest as
+        dev-only)
+  cargo tree -d reports four legitimate dev-time duplicates (rand_core
+  0.6/0.9, rand 0.8/0.9, rand_chacha 0.3/0.9, getrandom 0.2/0.3/0.4) — all
+  pulled by proptest. None affect release artifacts.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-5  PreviewJobResult large_enum_variant allow can be replaced with Box  [IN PROGRESS]
+────────────────────────────────────────────────────────────────────────────────
+File:    builder/src/builder/preview.rs:22-27
+
+Current: `#[allow(clippy::large_enum_variant)] pub enum PreviewJobResult {
+            Ready(GeneratedSector), Cancelled, Failed(String) }`
+
+Recommendation:
+  Either accept the allow (current state — fine; the value travels through
+  an mpsc::Receiver as one message and is consumed once), OR change to
+  `Ready(Box<GeneratedSector>)` and drop the allow. The PR-cost is one
+  line at the construction site. Mostly cosmetic.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-6  worlds::KeyTables uses HashMap — safe today, watch tomorrow  [NO ACTION]
+────────────────────────────────────────────────────────────────────────────────
+File:    src/worlds.rs:362-381
+
+  KeyTables is consumed via `.get(key)` only — iteration order does not
+  affect output. Leave as-is. If anything iterates these (e.g. a future
+  manifest digest covering catalog content), switch to `BTreeMap` to keep
+  determinism.
+
+  Same comment for the two HashMaps in src/render.rs — they're string-keyed
+  lookups and their iteration is over the original ordered slice, not the
+  map. Safe.
+
+────────────────────────────────────────────────────────────────────────────────
+P3-7  CLI: subcommands print directly with println!/eprintln!  [NO ACTION]
+────────────────────────────────────────────────────────────────────────────────
+Files:   src/main.rs throughout, builder/src/main.rs
+
+  For a binary, this is fine. For library callers, the lib never prints —
+  good. If we later want structured progress output (JSON-lines for tooling),
+  the existing `SectorProgress` enum already gives us the events; we only
+  need an alternate formatter. Defer until requested.
+
+================================================================================
+OPTIMIZE.txt RECONCILIATION
+================================================================================
+
+OPTIMIZE.txt #3 (derivation_cache digest)           → IN PROGRESS → P0-1
+OPTIMIZE.txt #4 (settings_digest narrow)            → IN PROGRESS → P0-2
+OPTIMIZE.txt #5 (bench phases)                      → IN PROGRESS → P1-2
+OPTIMIZE.txt #6 (PNG golden / pixel hash)           → IN PROGRESS → P1-1
+OPTIMIZE.txt #7 (whole-sector clones in GUI export) → DONE: gui/src/app/mod.rs
+                                                       already holds the sector
+                                                       as Option<Arc<GeneratedSector>>;
+                                                       all `self.sector.clone()`
+                                                       in export_ui.rs are
+                                                       Arc-clones. Remove the
+                                                       item from OPTIMIZE.txt.
+OPTIMIZE.txt #8 (one job model)                     → IN PROGRESS → P1-3
+OPTIMIZE.txt #9 (GUI responsiveness regression)     → IN PROGRESS (partial):
+                                                       preview.rs already has
+                                                       schedule/revision/stale
+                                                       tests. Promote pattern
+                                                       to export jobs and add
+                                                       a debounce timing test.
+OPTIMIZE.txt #10 (measure before optimize)          → NO ACTION (standing rule; respected
+                                                       in this report (no
+                                                       speculative perf change
+                                                       proposed without a
+                                                       bench gap closed first).)
+
+Open questions from OPTIMIZE.txt:
+  - "settings_digest = generation settings only, or all semantic output
+    inputs?" — Recommend: all semantic output inputs (see P0-2). Bump to
+    `settings_digest_v2`.
+  - "Byte-identical PNG output required?" — Recommend: pixel-identical, not
+    byte-identical. PNG byte stability depends on the encoder library and
+    is not under our control.
+  - "Which GUI path is primary: gui/src/editor or builder?" — Both are
+    shipping; builder is the newer surface, editor remains the simpler
+    quick-export tool. Keep both; the shared widgets already live in
+    gui-core. Decision should be recorded in GUIDE.md.
+
+================================================================================
+REFACTORING ROADMAP (PRs in order)
+================================================================================
+
+PR 1 — Mechanical cleanup, no behaviour change  [IN PROGRESS]
+  - cargo fmt --all                                                P2-1
+  - cargo clippy --fix for autofixable categories                  P2-2
+  - drop dead `shutdown_check` accumulator in file_watcher         P2-3
+  - move items-after-test-module in src/factions.rs and
+    gui/src/editor/state.rs                                        (clippy)
+  - drop needless borrows in tests/golden_generation.rs            (clippy)
+  Risk: none. Verify with `cargo test --workspace`.
+
+PR 2 — Error handling + correctness  [IN PROGRESS]
+  - digest_input returns Result; callers skip caching on Err      P0-1
+  - gui auto-save match instead of unwrap                          P0-3
+  - subsectors unwraps → expect("invariant: …") + debug_assert     P0-4
+  - economy::derive `if let Some(sys)` simplification              P0-4
+  Risk: low (well-isolated). Add the new digest_input test.
+
+PR 3 — settings_digest_v2  [IN PROGRESS]
+  - introduce CanonicalSettings struct + bump payload version      P0-2
+  - keep settings_digest for one release, add settings_digest_v2
+  - add regression tests covering each input slice
+  - update GUIDE.md / OVERVIEW.md
+  Risk: medium — changes manifest contents. Document the version bump.
+
+PR 4 — PNG/SVG golden tests  [IN PROGRESS]
+  - tests/png_golden.rs with two small fixtures                    P1-1
+  - tests/svg_golden.rs deterministic-text hash
+  Risk: low; tests only. Provides the safety net for PR 5.
+
+PR 5 — Bench phases  [IN PROGRESS]
+  - rewrite benches/generation.rs around shared OnceLock fixture   P1-2
+  - one group per phase listed in P1-2
+  Risk: none (bench-only).
+
+PR 6 — Job model consolidation  [IN PROGRESS]
+  - rename builder::state::JobHandle → JobSummary                   P1-3
+  - drop pending_jobs field if unused, or wire to gui-core handles
+  - add cancel/complete/error/stale tests at the JobHandle layer
+  Risk: low; touches one struct + UI status read.
+
+PR 7 — Lock-free progress + ordering  [IN PROGRESS]
+  - Arc<AtomicU32> bit-cast for progress                           P2-4
+  - downgrade Ordering::SeqCst on cancel to Acquire/Release        P2-4
+  - rate-limit request_repaint in set_progress
+  Risk: low; the existing tests in gui-core/src/jobs.rs cover the
+  observable behaviour.
+
+PR 8 — Public API hygiene  [IN PROGRESS]
+  - #[non_exhaustive] on SectorError, MutationError, SectorProgress,
+    growable model enums                                           P3-1
+  - add rust-version to all Cargo.toml manifests                   P3-3
+  Risk: minor SemVer impact for downstream `match` callers — call out
+  in CHANGELOG.
+
+PR 9 — CLI split  [IN PROGRESS]
+  - src/cli/commands/*.rs per subcommand                           P3-2
+  - extract log_sector_progress
+  Risk: none (pure move).
+
+PR 10 — Snapshot CoW + cargo-deny (optional, profile first)  [IN PROGRESS]
+  - Snapshot.sector → Arc<GeneratedSector> with Arc::make_mut       P2-5
+  - .github/workflows/ci.yml with fmt/clippy/test/deny             P3-4
+  - deny.toml allowing known dev-only duplicates
+  Risk: low.
+
+================================================================================
+VALIDATION COMMANDS PER PR
+================================================================================
+
+Every PR:
+    cargo fmt --all -- --check
+    cargo check --workspace --all-targets
+    cargo clippy --workspace --all-targets --no-deps -- -D warnings
+    cargo test --workspace --all-features
+
+PR-specific:
+    PR 3: cargo test golden_generation::manifest_records_seed
+          cargo test settings_digest
+    PR 4: cargo test --test png_golden
+          cargo test --test svg_golden
+    PR 5: cargo bench --bench generation -- --quick
+    PR 7: cargo test --package sectorforge-gui-core --lib jobs
+
+================================================================================
+WHAT NOT TO TOUCH IN THIS ROUND
+================================================================================
+
+  - Public re-export shape of sectorforge::lib (135 pub items). Trim only
+    once a curated `prelude` module is introduced and consumers migrated.
+  - `Arc<str>` interning in sector_model — already correct.
+  - Generation determinism: BTreeMap usage in src/generation.rs is correct;
+    do NOT swap to HashMap for "perf" without a profile.
+  - sector_model field order — `Default::default()`, `#[serde(default)]`,
+    and `skip_serializing_if` are tuned for JSON stability. Reordering
+    fields will break golden_generation tests.
+  - presets/ and old/ directories — out of scope per CLAUDE.md.
+
+================================================================================
+APPENDIX A — files surveyed (selected)
+================================================================================
+
+src/lib.rs                              860 LOC, 135 pub items, doc-tests OK
+src/generation.rs                      2072 LOC, settings_digest at :2027
+src/bitmap/mod.rs                      2202 LOC, render pipeline
+src/svg_export.rs                      2049 LOC, render pipeline
+src/sector_model/mod.rs                1212 LOC, all key types
+src/errors.rs                            76 LOC, two error enums
+src/subsectors/mod.rs                   986 LOC, production unwraps at :518+
+src/economy.rs                         1723 LOC, unwrap at :904
+gui/src/app/mod.rs                            sector field is Arc, ok
+gui/src/app/export_ui.rs                482 LOC, Arc-clones (cheap)
+gui-core/src/jobs.rs                    131 LOC, real JobHandle<T>
+builder/src/builder/state.rs           1257 LOC, has stub JobHandle
+builder/src/builder/preview.rs          266 LOC, revision-tagged preview ✓
+builder/src/builder/derivation_cache.rs  87 LOC, unwrap_or_default at :60
+builder/src/builder/file_watcher.rs     171 LOC, baseline.clone() per tick
+benches/generation.rs                    62 LOC, 3 phases only
+tests/golden_generation.rs              219 LOC, no PNG/settings_digest
+gui-core/tests/map_snapshots.rs         600+ LOC, golden tests for UI map
+                                                  (but not the public writer)
+
+END OF REPORT.

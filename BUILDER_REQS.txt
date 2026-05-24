@@ -1695,6 +1695,14 @@ OTR3. [DONE] UI Integration. 'JobContext' holds an 'egui::Context' and calls
 OTR4. [DONE] Cancellation. 'JobHandle' includes an 'Arc<AtomicBool>' that
       worker threads can poll to support clean cancellation of long jobs.
 
+OTR5. [IN PROGRESS] Lock-free progress + handle-stub unification. Tracked in
+      IMPROVEMENT.txt §P1-3 (rename `builder::state::JobHandle` ->
+      `JobSummary`, drop unused `pending_jobs` or wire to real handles) and
+      §P2-4 (swap `Arc<Mutex<f32>>` -> `Arc<AtomicU32>` bit-cast, downgrade
+      cancel `Ordering::SeqCst` to Acquire/Release, rate-limit
+      `ctx.request_repaint()` from `set_progress`). Does not change OTR1..OTR4
+      external contract.
+
 ================================================================================
 48. LIVE PREVIEW (Q5 Answered)
 ================================================================================

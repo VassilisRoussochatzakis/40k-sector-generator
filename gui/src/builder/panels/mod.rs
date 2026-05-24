@@ -23,4 +23,5 @@ pub mod open_project;
 pub mod preferences;
 pub mod project_tree;
 pub mod save_project;
+pub mod shortcuts;
 pub mod status;

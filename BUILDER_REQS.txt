@@ -1015,11 +1015,30 @@ PF6.  Atomic write via `tempfile::NamedTempFile::persist`.
 38. UNDO + SNAPSHOTS
 ================================================================================
 
-U1.   Command-pattern: every mutation goes through `BuilderCommand`
-      (D5). `apply` / `revert` on each variant.
+U1.   [DONE] Command-pattern: every mutation goes through `BuilderCommand`
+      (D5). `apply` / `revert` implemented per variant in
+      `gui/src/builder/command.rs`. Round-trip tests
+      (`add_system_round_trip`, `remove_system_round_trip`) plus
+      `command_log_determinism_blake3` (R8) cover the contract.
 
-U2.   Ctrl-Z / Ctrl-Y bindings for undo / redo. Bounded ring buffer
+U2.   [DONE] Ctrl-Z / Ctrl-Y bindings for undo / redo. Bounded ring buffer
       (default 200 commands; configurable).
+      - `BuilderState::command_log_capacity` (default
+        `DEFAULT_COMMAND_LOG_CAPACITY = 200`, `0 = unbounded`).
+      - `BuilderState::run` calls `enforce_command_log_capacity`, which
+        drains the oldest commands and shifts `command_cursor` plus every
+        `Snapshot::command_log_position` by the drop-count so undo / redo
+        / snapshot references stay coherent.
+      - `gui/src/builder/panels/shortcuts.rs::handle(ctx, state)` consumes
+        `Ctrl-Z` (undo), `Ctrl-Y` and `Ctrl-Shift-Z` (redo) via
+        `egui::Context::input_mut(|i| i.consume_shortcut(...))` so other
+        widgets do not also see the chord. Errors surface as
+        `ModalKind::Message`.
+      - Tests in `state.rs`: `ring_buffer_caps_command_log`,
+        `ring_buffer_shifts_snapshot_positions`,
+        `unbounded_capacity_zero_keeps_all_commands`,
+        `default_capacity_is_200`, `undo_redo_basic_round_trip`,
+        `undo_clamps_at_zero`.
 
 U3.   Named snapshots: "Snapshot" button captures current sector +
       command-log position. Snapshots listed in history tab.
@@ -1128,60 +1147,70 @@ done), index pre-build, `mem::take` for vec rotations,
 43. IMPLEMENTATION PHASES (suggested order)
 ================================================================================
 
+Item-range audit: every list below now spans the full ID range declared in
+the matching section header (e.g. §3 Validation surface has V1..V6 in §33,
+so Phase E carries V4..V6 — the items Phase A's V1..V3 omitted). U1..U2 stay
+in Phase A and U3..U6 stay in Phase F by design (basic undo first, named
+snapshots later). T1..T5 stay in Phase E and T6..T7 in Phase F by the same
+split.
+
 Phase A — Foundation
-  D1..D6 - DONE
-  R1..R10 - DONE
-  P1..P3 - DONE
-  U1..U2,
-  V1..V3,
-  N1..N4.
+  D1..D6  - DONE  (§4)
+  R1..R10 - DONE  (§1)
+  P1..P6  - PARTIAL: P1..P6 all DONE; tab/router still pending  (§5)
+  U1..U2  - DONE  (§38)
+  V1..V3, (§33; V4..V6 land in Phase E)
+  N1..N4. (§41; N5 command palette lands in Phase F)
 
 Phase B — Direct entity edit
-  S1..S6, 
-  W1..W7, 
-  R1..R7, 
-  F1..F7, 
-  CL1..CL4, 
-  C1..C8.
+  G1..G6, (§6 generation config — first interactive workflow on top of
+           the Phase A foundation)
+  S1..S6, (§7)
+  W1..W7, (§8)
+  R1..R7, (§9 routes)
+  F1..F7, (§10 factions)
+  CL1..CL4, (§12 claims)
+  C1..C8. (§11 control + presence)
 
 Phase C — Overlays editable
-  REG1..REG7, 
-  SUB1..SUB5, 
-  E1..E7, 
-  REL1..REL9, 
-  H1..H8, 
-  I1..I5,
-  AR1..AR3, 
-  O1..O2, 
-  SU1..SU2, 
-  CF1..CF6.
+  REG1..REG7, (§14 regions)
+  SUB1..SUB5, (§13 subsectors)
+  E1..E7,     (§15 economy)
+  REL1..REL9, (§16 relations)
+  H1..H8,     (§17 history)
+  I1..I5,     (§29 intel + visibility)
+  AR1..AR3,   (§30 archetypes)
+  O1..O2,     (§31 orbital assets)
+  SU1..SU2,   (§32 surface regions)
+  CF1..CF6.   (§28 conflict + stability)
 
 Phase D — Derivations + GM tools
-  PER1..PER5, 
-  HK1..HK6, 
-  ST1..ST4, 
-  M1..M5, 
-  PR1..PR4, 
-  BR1..BR5,
-  INT1..INT4.
+  PER1..PER5, (§18 personae)
+  HK1..HK6,   (§19 hooks)
+  ST1..ST4,   (§20 sites)
+  M1..M5,     (§21 missions)
+  PR1..PR4,   (§22 prose)
+  BR1..BR5,   (§23 briefing)
+  INT1..INT4. (§24 interestingness)
 
 Phase E — Tooling
-  SR1..SR5, 
-  DF1..DF5, 
-  1..A4, 
-  SG1..SG5, 
-  PF1..PF6, 
-  EX1..EX8,
-  T1..T5, 
-  LD1..LD4.
+  SR1..SR5,   (§26 search)
+  DF1..DF5,   (§27 diff)
+  A1..A4,     (§25 analytics — was "1..A4" typo)
+  SG1..SG5,   (§36 segmentum)
+  PF1..PF6,   (§37 project + files)
+  EX1..EX8,   (§34 export bundle)
+  T1..T5,     (§40 testing — T6..T7 land in Phase F)
+  V4..V6,     (§33 strict mode, invariant catalogue, refuse-on-error gate)
+  LD1..LD4.   (§39 live derivations)
 
 Phase F — Polish
-  U3..U6, 
-  T6..T7, 
-  PERF1..PERF7, 
-  command palette, 
-  keyboard shortcuts, 
-  theme parity, 
+  U3..U6,        (§38 snapshots)
+  T6..T7,        (§40 smoke + bench)
+  PERF1..PERF7,  (§42)
+  N5,            (§41 command palette — Ctrl-K)
+  keyboard shortcuts (beyond the §U2 Ctrl-Z/Y already wired),
+  T1..T5 of §35 theme parity,
   accessibility.
 
 ================================================================================

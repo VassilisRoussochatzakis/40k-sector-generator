@@ -1640,6 +1640,23 @@ Tests in `gui/src/builder/project_io.rs`:
   and asserts the resulting `BuilderError::ParseFailed.message` contains
   the `toml` crate's `line` info.
 
+#### U1–U2 undo / redo (DONE)
+
+| Piece | Where it lives |
+|---|---|
+| U1 command pattern | [gui/src/builder/command.rs](gui/src/builder/command.rs) — every structural mutation is a `BuilderCommand` variant with `apply` (records inverse data such as `before`, `removed_routes`, `result_id`) and `revert`. Round-trip tests: `add_system_round_trip`, `remove_system_round_trip`. |
+| U2 ring buffer | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderState::command_log_capacity` (default `DEFAULT_COMMAND_LOG_CAPACITY = 200`, `0` disables the cap). `BuilderState::run` calls `enforce_command_log_capacity`, which drains the oldest commands and shifts `command_cursor` plus every `Snapshot::command_log_position` by the drop-count so undo/redo and snapshot references stay coherent. |
+| U2 keyboard shortcuts | [gui/src/builder/panels/shortcuts.rs](gui/src/builder/panels/shortcuts.rs) — `handle(ctx, state)` consumes `Ctrl-Z` (undo), `Ctrl-Y` and `Ctrl-Shift-Z` (redo) via `ctx.input_mut(\|i\| i.consume_shortcut(...))`. Failures surface as `ModalKind::Message`. |
+
+Tests in `gui/src/builder/state.rs`:
+
+* `ring_buffer_caps_command_log` — 12 commands into a cap of 5 leaves a 5-entry log with the cursor pinned at 5.
+* `ring_buffer_shifts_snapshot_positions` — a snapshot taken at log-position 2 falls to position 0 once the buffer rolls past it.
+* `unbounded_capacity_zero_keeps_all_commands` — `command_log_capacity = 0` disables the cap.
+* `default_capacity_is_200` — `new_blank` sessions get `DEFAULT_COMMAND_LOG_CAPACITY = 200`.
+* `undo_redo_basic_round_trip` — three `AddSystem`s, undo, redo round-trips the sector and cursor.
+* `undo_clamps_at_zero` — undoing past the start of the log is a no-op.
+
 ---
 
 ## 9. Library use
@@ -1977,6 +1994,7 @@ across runs, so a regression check is a diff away.
 | [gui/src/builder/panels/conflict_resolver.rs](gui/src/builder/panels/conflict_resolver.rs) | §P5 Reload / Keep dialog when watcher detects external change against dirty buffer |
 | [gui/src/builder/preferences.rs](gui/src/builder/preferences.rs) | §P6 `Preferences` store at `~/.config/sectorforge/preferences.toml` — recent-projects MRU |
 | [gui/src/builder/panels/preferences.rs](gui/src/builder/panels/preferences.rs) | §P6 Preferences panel with click-to-open recent-projects list |
+| [gui/src/builder/panels/shortcuts.rs](gui/src/builder/panels/shortcuts.rs) | §U2 keyboard-shortcut handler — `Ctrl-Z` undo, `Ctrl-Y` / `Ctrl-Shift-Z` redo, consumed via `Context::input_mut` |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
 | [src/presets.rs](src/presets.rs) | Adds `scaffold_to_dir(preset_id, dest, seed_override)` for §P1 — default `presets/` resolution + binary-adjacent fallback |
 

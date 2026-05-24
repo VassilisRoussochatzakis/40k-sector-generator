@@ -74,6 +74,9 @@ pub enum ModalKind {
     },
 }
 
+/// §U2: default cap for the undo/redo ring buffer.
+pub const DEFAULT_COMMAND_LOG_CAPACITY: usize = 200;
+
 /// Generic job handle the builder tracks for off-thread work (§47).
 /// Type-erased so it can sit alongside other pending jobs in a vec.
 pub struct JobHandle {
@@ -92,6 +95,11 @@ pub struct BuilderState {
     /// past `cursor` are redo candidates; commands before are undoable.
     pub command_cursor: usize,
     pub snapshots: Vec<Snapshot>,
+    /// §U2: bounded ring-buffer cap for `command_log`. When the log exceeds
+    /// this size after a new mutation, the oldest commands are dropped and
+    /// `command_cursor` plus snapshot positions are shifted accordingly.
+    /// Default 200 — see [`DEFAULT_COMMAND_LOG_CAPACITY`].
+    pub command_log_capacity: usize,
     /// §Q1: pinned systems live in this side-table — never written to JSON.
     pub pinned_systems: BTreeSet<SystemId>,
     pub pinned_worlds: BTreeSet<WorldId>,
@@ -135,6 +143,7 @@ impl BuilderState {
             command_log: Vec::new(),
             command_cursor: 0,
             snapshots: Vec::new(),
+            command_log_capacity: DEFAULT_COMMAND_LOG_CAPACITY,
             pinned_systems: BTreeSet::new(),
             pinned_worlds: BTreeSet::new(),
             derivation_cache: DerivationCache::new(),
@@ -174,10 +183,28 @@ impl BuilderState {
         self.command_log.truncate(self.command_cursor);
         self.command_log.push(cmd);
         self.command_cursor = self.command_log.len();
+        self.enforce_command_log_capacity();
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.trigger_auto_save();
         Ok(())
+    }
+
+    /// §U2: drop the oldest commands when the log exceeds the configured
+    /// ring-buffer capacity. The cursor and snapshot positions are shifted
+    /// by the same drop-count so undo/redo references stay coherent.
+    /// `command_log_capacity == 0` disables the cap (unbounded log).
+    fn enforce_command_log_capacity(&mut self) {
+        let cap = self.command_log_capacity;
+        if cap == 0 || self.command_log.len() <= cap {
+            return;
+        }
+        let drop = self.command_log.len() - cap;
+        self.command_log.drain(0..drop);
+        self.command_cursor = self.command_cursor.saturating_sub(drop);
+        for snap in &mut self.snapshots {
+            snap.command_log_position = snap.command_log_position.saturating_sub(drop);
+        }
     }
 
     /// Write the sector to [`Self::auto_save_path`] as pretty JSON when set.
@@ -300,5 +327,87 @@ fn default_config(id: &str, title: &str, seed: &str, width: u32, height: u32) ->
         search: Default::default(),
         diff: Default::default(),
         history: Default::default(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builder::command::BuilderCommand;
+    use sectorforge::sector_model::HexCoord;
+
+    fn add_n_systems(state: &mut BuilderState, n: u32) {
+        let base = state.sector.systems.len() as u32;
+        for k in 0..n {
+            let i = base + k;
+            state
+                .run(BuilderCommand::AddSystem {
+                    coord: HexCoord {
+                        q: (i % 8) as i32,
+                        r: (i / 8) as i32,
+                    },
+                    name: format!("sys-{i}"),
+                    result_id: None,
+                })
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn ring_buffer_caps_command_log() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 64, 64);
+        state.command_log_capacity = 5;
+        add_n_systems(&mut state, 12);
+        assert_eq!(state.command_log.len(), 5);
+        assert_eq!(state.command_cursor, 5);
+        assert_eq!(state.sector.systems.len(), 12);
+    }
+
+    #[test]
+    fn ring_buffer_shifts_snapshot_positions() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 64, 64);
+        state.command_log_capacity = 4;
+        add_n_systems(&mut state, 2);
+        state.snapshot("after-2");
+        let snap_pos_before = state.snapshots[0].command_log_position;
+        assert_eq!(snap_pos_before, 2);
+        add_n_systems(&mut state, 6);
+        assert_eq!(state.command_log.len(), 4);
+        assert_eq!(state.snapshots[0].command_log_position, 0);
+    }
+
+    #[test]
+    fn unbounded_capacity_zero_keeps_all_commands() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 64, 64);
+        state.command_log_capacity = 0;
+        add_n_systems(&mut state, 50);
+        assert_eq!(state.command_log.len(), 50);
+    }
+
+    #[test]
+    fn default_capacity_is_200() {
+        let state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        assert_eq!(state.command_log_capacity, DEFAULT_COMMAND_LOG_CAPACITY);
+        assert_eq!(DEFAULT_COMMAND_LOG_CAPACITY, 200);
+    }
+
+    #[test]
+    fn undo_redo_basic_round_trip() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        add_n_systems(&mut state, 3);
+        assert_eq!(state.sector.systems.len(), 3);
+        state.undo().unwrap();
+        assert_eq!(state.sector.systems.len(), 2);
+        assert_eq!(state.command_cursor, 2);
+        state.redo().unwrap();
+        assert_eq!(state.sector.systems.len(), 3);
+        assert_eq!(state.command_cursor, 3);
+    }
+
+    #[test]
+    fn undo_clamps_at_zero() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        state.undo().unwrap();
+        assert_eq!(state.command_cursor, 0);
     }
 }

@@ -107,6 +107,7 @@ impl SessionFile {
             command_log: self.command_log,
             command_cursor: self.command_cursor,
             snapshots: self.snapshots.into_iter().map(Into::into).collect(),
+            command_log_capacity: super::state::DEFAULT_COMMAND_LOG_CAPACITY,
             pinned_systems: self.pinned_systems,
             pinned_worlds: self.pinned_worlds,
             derivation_cache: DerivationCache::new(),

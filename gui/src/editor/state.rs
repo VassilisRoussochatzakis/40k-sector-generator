@@ -96,6 +96,12 @@ pub enum SectorEditTool {
     Delete,
 }
 
+pub enum PreviewJobResult {
+    Ready(GeneratedSector),
+    Cancelled,
+    Failed(String),
+}
+
 pub struct EditorState {
     pub sector: Option<GeneratedSector>,
     pub project_input: Option<sectorforge::input::ProjectInput>,
@@ -123,8 +129,10 @@ pub struct EditorState {
     pub search_outcome: Option<sectorforge::search::SearchOutcome>,
     /// Live preview for generation config (§6.G3).
     pub preview_sector: Option<GeneratedSector>,
-    pub preview_job: Option<crate::jobs::JobHandle<GeneratedSector>>,
+    pub preview_job: Option<crate::jobs::JobHandle<PreviewJobResult>>,
     pub preview_timer: Option<f64>,
+    pub preview_revision: u64,
+    pub preview_error: Option<String>,
 }
 
 impl Default for EditorState {
@@ -156,6 +164,8 @@ impl Default for EditorState {
             preview_sector: None,
             preview_job: None,
             preview_timer: None,
+            preview_revision: 0,
+            preview_error: None,
         }
     }
 }
@@ -176,6 +186,9 @@ impl EditorState {
         self.dialog = Dialog::None;
         self.route_pick = None;
         self.pending_route_start = None;
+        self.invalidate_preview();
+        self.preview_timer = None;
+        self.preview_job = None;
 
         // Try load wishes if we have project_input
         self.wishes = None;
@@ -193,11 +206,91 @@ impl EditorState {
         self.dirty = true;
     }
 
+    pub fn schedule_preview(&mut self, due_time: f64) {
+        self.invalidate_preview();
+        self.preview_timer = Some(due_time);
+    }
+
+    pub fn invalidate_preview(&mut self) {
+        self.preview_revision = self.preview_revision.wrapping_add(1);
+        self.preview_sector = None;
+        self.preview_error = None;
+        if let Some(job) = &self.preview_job {
+            job.cancel();
+        }
+    }
+
+    pub fn apply_preview_result(&mut self, revision: u64, result: PreviewJobResult) -> bool {
+        if revision != self.preview_revision {
+            return false;
+        }
+        match result {
+            PreviewJobResult::Ready(sector) => {
+                self.preview_sector = Some(sector);
+                self.preview_error = None;
+            }
+            PreviewJobResult::Cancelled => {}
+            PreviewJobResult::Failed(message) => {
+                self.preview_sector = None;
+                self.preview_error = Some(message);
+            }
+        }
+        true
+    }
+
     pub fn next_system_index(&self) -> usize {
         self.sector
             .as_ref()
             .map(|s| s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1)
             .unwrap_or(1)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+    use std::sync::{mpsc, Arc, Mutex};
+
+    fn preview_job(revision: u64) -> crate::jobs::JobHandle<PreviewJobResult> {
+        let (_tx, rx) = mpsc::channel();
+        crate::jobs::JobHandle {
+            id: "preview-gen".to_string(),
+            revision,
+            description: "preview".to_string(),
+            progress: Arc::new(Mutex::new(0.0)),
+            cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            receiver: rx,
+        }
+    }
+
+    #[test]
+    fn stale_preview_revision_is_discarded_after_new_request() {
+        let mut state = EditorState {
+            preview_revision: 1,
+            preview_job: Some(preview_job(1)),
+            ..EditorState::default()
+        };
+        let cancel_flag = state.preview_job.as_ref().unwrap().cancelled.clone();
+
+        state.schedule_preview(2.0);
+
+        assert!(cancel_flag.load(Ordering::SeqCst));
+        assert_eq!(state.preview_revision, 2);
+        assert!(!state.apply_preview_result(
+            1,
+            PreviewJobResult::Ready(empty_sector("old", "Old", "old", 1, 1))
+        ));
+        assert!(state.preview_sector.is_none());
+
+        assert!(state.apply_preview_result(
+            2,
+            PreviewJobResult::Ready(empty_sector("new", "New", "new", 1, 1))
+        ));
+        assert_eq!(
+            state.preview_sector.as_ref().map(|s| s.seed.to_string()),
+            Some("new".to_string())
+        );
     }
 }
 

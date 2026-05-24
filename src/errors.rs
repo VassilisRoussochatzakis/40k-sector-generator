@@ -25,6 +25,9 @@ pub enum SectorError {
     #[error("no usable world candidates were found in the workbook")]
     NoWorldCandidates,
 
+    #[error("generation cancelled")]
+    GenerationCancelled,
+
     #[error("weighted selection failed for {context}")]
     WeightedSelectionFailed { context: String },
 

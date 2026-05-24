@@ -5,6 +5,8 @@ use std::sync::Arc;
 use camino::Utf8PathBuf;
 use rfd::FileDialog;
 
+use crate::editor::PreviewJobResult;
+
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 
@@ -220,25 +222,30 @@ impl App {
             if ctx.input(|i| i.time) >= timer {
                 self.editor.preview_timer = None;
                 if let Some(input) = self.editor.project_input.clone() {
-                    // Cancel existing job if any
-                    self.editor.preview_job = None;
+                    if let Some(job) = &self.editor.preview_job {
+                        job.cancel();
+                    }
 
                     let ctx_clone = ctx.clone();
+                    let revision = self.editor.preview_revision;
                     self.editor.preview_job = Some(crate::jobs::spawn_job(
                         "preview-gen",
+                        revision,
                         "Generating preview...",
                         ctx_clone,
-                        move |_job_ctx| {
-                            // Run generation
-                            match sectorforge::generation::generate(input) {
-                                Ok(sector) => sector,
-                                Err(_) => {
-                                    // For preview, we might just want to return an empty sector or similar if it fails
-                                    // but let's just return what we have or something.
-                                    // Actually, we should probably handle errors in JobHandle.
-                                    // For now, let's just return a default if it fails.
-                                    // TODO: Proper error handling in Jobs
-                                    panic!("Preview generation failed");
+                        move |job_ctx| {
+                            let result = sectorforge::generation::generate_with_progress_and_cancel(
+                                input,
+                                |event| job_ctx.set_progress(preview_progress(&event)),
+                                || job_ctx.is_cancelled(),
+                            );
+                            match result {
+                                Ok(sector) => PreviewJobResult::Ready(sector),
+                                Err(sectorforge::SectorError::GenerationCancelled) => {
+                                    PreviewJobResult::Cancelled
+                                }
+                                Err(err) => {
+                                    PreviewJobResult::Failed(format!("preview failed: {err}"))
                                 }
                             }
                         },
@@ -248,11 +255,63 @@ impl App {
         }
 
         // 2. Job completion
-        if let Some(job) = &self.editor.preview_job {
-            if let Ok(sector) = job.receiver.try_recv() {
-                self.editor.preview_sector = Some(sector);
-                self.editor.preview_job = None;
-            }
+        let completed =
+            self.editor
+                .preview_job
+                .as_ref()
+                .and_then(|job| match job.receiver.try_recv() {
+                    Ok(result) => Some((job.revision, result)),
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => Some((
+                        job.revision,
+                        PreviewJobResult::Failed("preview worker disconnected".to_string()),
+                    )),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => None,
+                });
+        if let Some((revision, result)) = completed {
+            self.editor.apply_preview_result(revision, result);
+            self.editor.preview_job = None;
         }
+    }
+}
+
+fn preview_progress(event: &sectorforge::SectorProgress) -> f32 {
+    match event {
+        sectorforge::SectorProgress::WorldPoolBuilt { .. } => 0.05,
+        sectorforge::SectorProgress::SystemsPlaced { .. } => 0.1,
+        sectorforge::SectorProgress::RegionsBuilt { .. } => 0.12,
+        sectorforge::SectorProgress::SystemBuilt { current, total, .. } => {
+            0.12 + fraction(*current, *total) * 0.28
+        }
+        sectorforge::SectorProgress::FactionsAssigned { .. }
+        | sectorforge::SectorProgress::FactionsAggregated { .. } => 0.42,
+        sectorforge::SectorProgress::RoutesGenerated { .. }
+        | sectorforge::SectorProgress::RegionEffectsApplied { .. }
+        | sectorforge::SectorProgress::HiddenRoutesApplied { .. }
+        | sectorforge::SectorProgress::RouteControlsDerived { .. } => 0.55,
+        sectorforge::SectorProgress::RouteControlsProgress { current, total } => {
+            0.45 + fraction(*current, *total) * 0.08
+        }
+        sectorforge::SectorProgress::SystemStateDerived { current, total } => {
+            0.55 + fraction(*current, *total) * 0.1
+        }
+        sectorforge::SectorProgress::ManifestBuilt { .. } => 0.66,
+        sectorforge::SectorProgress::InfluenceFieldAnchorsProjected { current, total, .. }
+        | sectorforge::SectorProgress::InfluenceFieldCellsResolved { current, total, .. } => {
+            0.7 + fraction(*current, *total) * 0.1
+        }
+        sectorforge::SectorProgress::ChronicleSystemsScanned { current, total, .. }
+        | sectorforge::SectorProgress::ChronicleRoutesScanned { current, total, .. } => {
+            0.86 + fraction(*current, *total) * 0.08
+        }
+        sectorforge::SectorProgress::Complete { .. } => 1.0,
+        _ => 0.7,
+    }
+}
+
+fn fraction(current: usize, total: usize) -> f32 {
+    if total == 0 {
+        0.0
+    } else {
+        current as f32 / total as f32
     }
 }

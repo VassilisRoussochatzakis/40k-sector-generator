@@ -1,23 +1,5 @@
 Suggested changes
 
-1. Fix GUI preview job lifecycle
-Severity: High
-Evidence: `gui/src/app/lifecycle.rs` drops `preview_job` by assigning `None` instead of
-calling `cancel()`, accepts whatever job finishes next, and panics on preview generation
-errors. `gui/src/jobs.rs` has a cancel flag, but preview generation ignores it.
-Risk: stale preview can overwrite newer settings; failed preview can panic a worker; finished
-jobs may not wake egui because `spawn_job` sends the result without `request_repaint()`.
-Fix:
-- Change `JobHandle<T>` to carry a revision id and `Receiver<Result<T, E>>` or a typed
-  preview result enum.
-- On new preview request, call `cancel()` on the old job before replacing the handle.
-- Pass `JobContext` into generation progress and stop early when cancelled.
-- On receive, apply result only if revision matches current editor revision.
-- Request repaint after `tx.send(...)` in `spawn_job`.
-Validation:
-- Add a GUI-unit test or state-level test: start preview A, change config, start preview B,
-  complete A after B, assert A is discarded.
-
 2. Move GUI export work off the UI thread
 Severity: High
 Evidence: `gui/src/app/export_ui.rs` calls `write_sector_png_to_with`,

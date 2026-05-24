@@ -24,7 +24,7 @@ pub use generation_panel::show_generation_settings;
 pub use map_panel::show_map;
 pub use routes_panel::show_routes;
 pub use settings_panel::show_settings;
-pub use state::EditorState;
+pub use state::{EditorState, PreviewJobResult};
 pub use system_panel::show_system_inspector;
 pub use toolbar::editor_toolbar;
 pub use wishes_panel::show_wishes;

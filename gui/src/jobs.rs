@@ -6,6 +6,7 @@ use std::thread;
 /// Handle to a background job.
 pub struct JobHandle<T> {
     pub id: String,
+    pub revision: u64,
     pub description: String,
     pub progress: Arc<Mutex<f32>>, // 0.0 to 1.0
     pub cancelled: Arc<AtomicBool>,
@@ -27,7 +28,13 @@ impl<T> JobHandle<T> {
 }
 
 /// Helper to spawn a job and return a handle.
-pub fn spawn_job<T, F>(id: &str, description: &str, ctx: egui::Context, f: F) -> JobHandle<T>
+pub fn spawn_job<T, F>(
+    id: &str,
+    revision: u64,
+    description: &str,
+    ctx: egui::Context,
+    f: F,
+) -> JobHandle<T>
 where
     T: Send + 'static,
     F: FnOnce(JobContext) -> T + Send + 'static,
@@ -39,16 +46,18 @@ where
     let job_ctx = JobContext {
         progress: progress.clone(),
         cancelled: cancelled.clone(),
-        ui_ctx: ctx,
+        ui_ctx: ctx.clone(),
     };
 
     thread::spawn(move || {
         let result = f(job_ctx);
         let _ = tx.send(result);
+        ctx.request_repaint();
     });
 
     JobHandle {
         id: id.to_string(),
+        revision,
         description: description.to_string(),
         progress,
         cancelled,
@@ -70,5 +79,26 @@ impl JobContext {
 
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn job_handle_carries_revision_and_cancel_flag() {
+        let ctx = egui::Context::default();
+        let handle = spawn_job("preview-gen", 42, "preview", ctx, |_| "done");
+
+        assert_eq!(handle.revision, 42);
+        assert!(!handle.is_cancelled());
+        handle.cancel();
+        assert!(handle.is_cancelled());
+        assert_eq!(
+            handle.receiver.recv_timeout(Duration::from_secs(1)),
+            Ok("done")
+        );
     }
 }

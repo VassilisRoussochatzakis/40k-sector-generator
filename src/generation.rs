@@ -198,7 +198,7 @@ pub enum SectorProgress {
 }
 
 pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
-    generate_with_progress(project, |_| {})
+    generate_with_progress_and_cancel(project, |_| {}, || false)
 }
 
 /// Deterministic top-level sector generation with progress callbacks.
@@ -211,11 +211,50 @@ pub fn generate(project: ProjectInput) -> Result<GeneratedSector, SectorError> {
 /// Same as [`generate`].
 pub fn generate_with_progress<F>(
     project: ProjectInput,
-    mut progress: F,
+    progress: F,
 ) -> Result<GeneratedSector, SectorError>
 where
     F: FnMut(SectorProgress),
 {
+    generate_with_progress_and_cancel(project, progress, || false)
+}
+
+/// Deterministic top-level sector generation with progress callbacks and
+/// cooperative cancellation.
+///
+/// `should_cancel` is checked before and after major progress events plus
+/// inside the main per-system loops. A cancellation returns
+/// [`SectorError::GenerationCancelled`] without producing a partial sector.
+///
+/// # Errors
+///
+/// Same as [`generate`], plus [`SectorError::GenerationCancelled`] when
+/// `should_cancel` returns `true`.
+pub fn generate_with_progress_and_cancel<F, C>(
+    project: ProjectInput,
+    mut progress: F,
+    mut should_cancel: C,
+) -> Result<GeneratedSector, SectorError>
+where
+    F: FnMut(SectorProgress),
+    C: FnMut() -> bool,
+{
+    macro_rules! check_cancelled {
+        () => {
+            if should_cancel() {
+                return Err(SectorError::GenerationCancelled);
+            }
+        };
+    }
+
+    macro_rules! emit {
+        ($event:expr) => {{
+            check_cancelled!();
+            progress($event);
+            check_cancelled!();
+        }};
+    }
+
     let ProjectInput {
         config,
         world_tables,
@@ -241,7 +280,7 @@ where
     if let Some(features) = &authored_features {
         world_pool::apply_authored_features(&mut pool, features);
     }
-    progress(SectorProgress::WorldPoolBuilt {
+    emit!(SectorProgress::WorldPoolBuilt {
         rows: source_rows,
         candidates: pool.candidates.len(),
         excluded: pool.excluded_rows.len(),
@@ -251,7 +290,7 @@ where
     }
 
     let placements = place_systems(&config)?;
-    progress(SectorProgress::SystemsPlaced {
+    emit!(SectorProgress::SystemsPlaced {
         total: placements.len(),
         width: config.generation.sector_width,
         height: config.generation.sector_height,
@@ -273,11 +312,12 @@ where
         .filter(|r| matches!(r.kind, crate::regions::RegionConditionKind::Anomaly))
         .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
         .collect();
-    progress(SectorProgress::RegionsBuilt {
+    emit!(SectorProgress::RegionsBuilt {
         count: warp_regions.len(),
     });
 
     for (idx, coord) in placements.iter().enumerate() {
+        check_cancelled!();
         let system_index = idx + 1;
         let anomaly_bias = anomaly_hexes.contains(&(coord.q, coord.r));
         let system = build_system_with_bias(
@@ -291,7 +331,7 @@ where
         )?;
         let worlds = system.worlds.len();
         systems.push(system);
-        progress(SectorProgress::SystemBuilt {
+        emit!(SectorProgress::SystemBuilt {
             current: system_index,
             total: placements.len(),
             worlds,
@@ -302,19 +342,19 @@ where
     if !factions.is_empty() {
         let mut faction_rng = rng::stage_rng(&config.generation.seed, "factions", "sector");
         assign_factions(&mut systems, &factions, &mut faction_rng);
-        progress(SectorProgress::FactionsAssigned {
+        emit!(SectorProgress::FactionsAssigned {
             catalog_rows: factions.len(),
         });
     }
 
     let generated_factions = aggregate_factions(&systems, &factions);
-    progress(SectorProgress::FactionsAggregated {
+    emit!(SectorProgress::FactionsAggregated {
         factions: generated_factions.len(),
     });
 
     // ── Routes ──────────────────────────────────────────────────────────────
     let mut routes = if config.generation.routes.enabled {
-        progress(SectorProgress::StageStarted {
+        emit!(SectorProgress::StageStarted {
             name: "public routes",
         });
         let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
@@ -322,7 +362,7 @@ where
     } else {
         Vec::new()
     };
-    progress(SectorProgress::RoutesGenerated {
+    emit!(SectorProgress::RoutesGenerated {
         routes: routes.len(),
     });
 
@@ -330,7 +370,7 @@ where
     // → one tier worse, calm corridor → one tier better up to the perilous
     // ceiling). Idempotent.
     if regions_cfg.apply_to_routes && !warp_regions.is_empty() {
-        progress(SectorProgress::StageStarted {
+        emit!(SectorProgress::StageStarted {
             name: "region route effects",
         });
         let summary = crate::regions::apply_route_effects_with_progress(
@@ -376,7 +416,7 @@ where
                 crate::regions::RegionRouteEffectsProgress::Completed { .. } => {}
             },
         );
-        progress(SectorProgress::RegionEffectsApplied {
+        emit!(SectorProgress::RegionEffectsApplied {
             regions: warp_regions.len(),
             affected_routes: summary.affected_routes,
             changed_routes: summary.changed_routes,
@@ -394,7 +434,7 @@ where
     // treatment as public lanes.
     let mut generated_factions = generated_factions;
     if !generated_factions.is_empty() {
-        progress(SectorProgress::StageStarted {
+        emit!(SectorProgress::StageStarted {
             name: "hidden routes",
         });
         let before = routes.len();
@@ -440,7 +480,7 @@ where
                 }),
             },
         );
-        progress(SectorProgress::HiddenRoutesApplied {
+        emit!(SectorProgress::HiddenRoutesApplied {
             added: routes.len().saturating_sub(before),
             routes: routes.len(),
         });
@@ -449,21 +489,22 @@ where
     // §3 per-route per-faction control. Derived after routes are built and
     // factions assigned, so endpoint presence reflects final state.
     if !routes.is_empty() && !generated_factions.is_empty() {
-        progress(SectorProgress::StageStarted {
+        emit!(SectorProgress::StageStarted {
             name: "route controls",
         });
         let by_id: BTreeMap<&str, &GeneratedSystem> =
             systems.iter().map(|s| (s.id.as_str(), s)).collect();
         let route_total = routes.len();
         for (idx, r) in routes.iter_mut().enumerate() {
+            check_cancelled!();
             r.controls =
                 crate::route_control::derive_route_controls(r, &by_id, &generated_factions);
-            progress(SectorProgress::RouteControlsProgress {
+            emit!(SectorProgress::RouteControlsProgress {
                 current: idx + 1,
                 total: route_total,
             });
         }
-        progress(SectorProgress::RouteControlsDerived {
+        emit!(SectorProgress::RouteControlsDerived {
             routes: routes.len(),
         });
     }
@@ -478,6 +519,7 @@ where
     // sector.json by tens of MB on large sectors with many factions.
     let system_total = systems.len();
     for (idx, sys) in systems.iter_mut().enumerate() {
+        check_cancelled!();
         for w in sys.worlds.iter_mut() {
             w.regions = crate::surface_region::derive_regions(w);
             w.conflict = crate::conflict::derive_world_conflict(w);
@@ -494,7 +536,7 @@ where
         }
         let obs_refs: Vec<&str> = per_sys.into_iter().collect();
         sys.intel = crate::intel::derive_system_intel(sys, &obs_refs);
-        progress(SectorProgress::SystemStateDerived {
+        emit!(SectorProgress::SystemStateDerived {
             current: idx + 1,
             total: system_total,
         });
@@ -508,7 +550,7 @@ where
     generated_factions.sort_by(|a, b| a.id.cmp(&b.id));
 
     let manifest = build_manifest(&config, &input_digests, &sorted_systems, &sorted_routes);
-    progress(SectorProgress::ManifestBuilt {
+    emit!(SectorProgress::ManifestBuilt {
         systems: sorted_systems.len(),
         worlds: manifest.world_count,
         routes: sorted_routes.len(),
@@ -536,22 +578,22 @@ where
     };
 
     // §11 NEXT: archetype rules.
-    progress(SectorProgress::StageStarted {
+    emit!(SectorProgress::StageStarted {
         name: "archetypes overlay",
     });
     crate::archetypes::apply_all(&mut sector);
-    progress(SectorProgress::OverlayDerived { name: "archetypes" });
+    emit!(SectorProgress::OverlayDerived { name: "archetypes" });
     // §4 NEXT: power projection over routes (decays + doctrine).
-    progress(SectorProgress::StageStarted {
+    emit!(SectorProgress::StageStarted {
         name: "power projection overlay",
     });
     sector.power_projection = crate::power_projection::project_sector(&sector).into();
     crate::power_projection::apply_to_factions(&sector.power_projection, &mut sector.factions);
-    progress(SectorProgress::OverlayDerived {
+    emit!(SectorProgress::OverlayDerived {
         name: "power_projection",
     });
     // §9 NEXT: continuous area layers.
-    progress(SectorProgress::StageStarted {
+    emit!(SectorProgress::StageStarted {
         name: "influence field overlay",
     });
     sector.influence_field =
@@ -597,7 +639,7 @@ where
             }
         })
         .into();
-    progress(SectorProgress::OverlayDerived {
+    emit!(SectorProgress::OverlayDerived {
         name: "influence_field",
     });
 
@@ -605,7 +647,7 @@ where
     // finalised. Pure derivation, no extra RNG draws affect prior stages.
     // `[generation.relations].min_world_presence` controls how aggressively
     // the canonical faction list is filtered before the C(n,2) loop.
-    progress(SectorProgress::StageStarted {
+    emit!(SectorProgress::StageStarted {
         name: "relations overlay",
     });
     sector.relations = crate::relations::derive_with_threshold(
@@ -614,12 +656,12 @@ where
         config.generation.relations.min_world_presence,
     )
     .into();
-    progress(SectorProgress::OverlayDerived { name: "relations" });
+    emit!(SectorProgress::OverlayDerived { name: "relations" });
 
     // §12 NEW.md: derive the economy snapshot last so it can read final
     // route stability + control records. Optional `feed_stability` nudge
     // applies after the snapshot is built.
-    progress(SectorProgress::StageStarted {
+    emit!(SectorProgress::StageStarted {
         name: "economy overlay",
     });
     sector.economy = crate::economy::derive_with(&sector, &economy_cfg).into();
@@ -627,12 +669,12 @@ where
         let snap = sector.economy.clone();
         crate::economy::apply_stability_nudge(&snap, &mut sector);
     }
-    progress(SectorProgress::OverlayDerived { name: "economy" });
+    emit!(SectorProgress::OverlayDerived { name: "economy" });
 
     // §1 NEW2.md: timeline / chronicle derives after all structural and
     // overlay state is final so events can reference routes, regions,
     // subsectors, claims, control, and present conflicts.
-    progress(SectorProgress::StageStarted {
+    emit!(SectorProgress::StageStarted {
         name: "chronicle overlay",
     });
     sector.chronicle =
@@ -688,8 +730,8 @@ where
                 progress(SectorProgress::ChronicleComplete { events });
             }
         });
-    progress(SectorProgress::OverlayDerived { name: "chronicle" });
-    progress(SectorProgress::Complete {
+    emit!(SectorProgress::OverlayDerived { name: "chronicle" });
+    emit!(SectorProgress::Complete {
         systems: sector.manifest.system_count,
         worlds: sector.manifest.world_count,
         routes: sector.manifest.route_count,

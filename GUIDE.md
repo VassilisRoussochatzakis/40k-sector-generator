@@ -1605,7 +1605,7 @@ mismatched versions explicitly rather than partially decoding.
 | R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform invariant re-check, snapshot/undo stack, auto-save trigger, and derivation-cache invalidation. |
 | R5 BLAKE3 cache | [src/rng.rs](src/rng.rs) `digest_bytes` + [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
 | R6 BuilderError variants | [gui/src/builder/errors.rs](gui/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
-| R7 off-thread runner | [gui/src/jobs.rs](gui/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, `Context::request_repaint` on tick. |
+| R7 off-thread runner | [gui/src/jobs.rs](gui/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. GUI previews cancel superseded work and discard stale revisions before applying results. |
 | R8 determinism test | [gui/src/builder/command.rs](gui/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
 | R9 no new crates | [gui/Cargo.toml](gui/Cargo.toml) unchanged; cache helper reuses the workspace `blake3` dep via `sectorforge::rng`. |
 | R10 panel contract | [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
@@ -1961,7 +1961,7 @@ across runs, so a regression check is a diff away.
 | [src/gui/main.rs](src/gui/main.rs) | GUI binary entry point (`sectorforge-gui`) |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
-| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events. `build_system` is the unit reused by sector + standalone APIs |
+| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
 | [src/control.rs](src/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validation.rs](src/validation.rs) | All pre-generation checks |
@@ -2099,4 +2099,4 @@ Maps and sets across the crate use the std default `RandomState` (SipHash). For 
 
 ### Optimization review backlog
 
-See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. The highest-priority items are GUI preview job revision/cancellation handling, off-thread GUI exports, derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.
+See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. GUI preview job revision/cancellation handling is now implemented; the next highest-priority items are off-thread GUI exports, derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.

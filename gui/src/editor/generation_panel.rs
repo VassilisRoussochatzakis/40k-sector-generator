@@ -283,12 +283,16 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
                 ui.spinner();
                 ui.label("Generating preview...");
             });
+        } else if let Some(error) = &state.preview_error {
+            ui.add_space(10.0);
+            ui.colored_label(egui::Color32::from_rgb(180, 80, 80), error);
         }
     });
     if changed && state.auto_generate {
-        state.preview_timer = Some(ui.ctx().input(|i| i.time) + 0.2);
+        state.schedule_preview(ui.ctx().input(|i| i.time) + 0.2);
     } else if changed {
-        // Clear any stale preview if manual mode changed something
-        state.preview_sector = None;
+        state.preview_timer = None;
+        state.invalidate_preview();
+        state.preview_job = None;
     }
 }

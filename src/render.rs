@@ -63,7 +63,10 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
             crate::history::HistoryAnchor::System { system_id } => {
                 events_by_system.entry(system_id).or_default().push(e);
             }
-            crate::history::HistoryAnchor::World { system_id, world_id } => {
+            crate::history::HistoryAnchor::World {
+                system_id,
+                world_id,
+            } => {
                 events_by_system.entry(system_id).or_default().push(e);
                 events_by_world.entry(world_id).or_default().push(e);
             }
@@ -100,7 +103,12 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     }
 
     for sys in &sector.systems {
-        s.push_str(&format_system_section(sys, sector, &events_by_system, &events_by_world));
+        s.push_str(&format_system_section(
+            sys,
+            sector,
+            &events_by_system,
+            &events_by_world,
+        ));
     }
 
     s.push_str("## Routes\n\n");
@@ -187,7 +195,9 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     s.push('\n');
     s.push_str(&format_world_table(sys));
     let empty_map = HashMap::new();
-    s.push_str(&format_world_control_blocks(sys, None, &empty_map, &empty_map));
+    s.push_str(&format_world_control_blocks(
+        sys, None, &empty_map, &empty_map,
+    ));
     s
 }
 
@@ -588,9 +598,19 @@ fn format_system_section(
     }
     s.push_str(&format_system_control(sys));
     s.push('\n');
-    s.push_str(&format_local_history(sys.id.as_str(), None, events_by_system, events_by_world));
+    s.push_str(&format_local_history(
+        sys.id.as_str(),
+        None,
+        events_by_system,
+        events_by_world,
+    ));
     s.push_str(&format_world_table(sys));
-    s.push_str(&format_world_control_blocks(sys, Some(sector), events_by_system, events_by_world));
+    s.push_str(&format_world_control_blocks(
+        sys,
+        Some(sector),
+        events_by_system,
+        events_by_world,
+    ));
     s
 }
 
@@ -722,7 +742,12 @@ fn format_world_control_blocks(
 ) -> String {
     let mut s = String::new();
     for w in &sys.worlds {
-        let history = format_local_history(sys.id.as_str(), Some(w.id.as_str()), events_by_system, events_by_world);
+        let history = format_local_history(
+            sys.id.as_str(),
+            Some(w.id.as_str()),
+            events_by_system,
+            events_by_world,
+        );
         if w.factions.is_empty() && w.claims.is_empty() && history.is_empty() {
             continue;
         }

@@ -164,10 +164,7 @@ fn group_by_file(issues: &[ValidationIssue]) -> BTreeMap<String, Vec<ValidationI
 }
 
 fn bucket_for(path: &str) -> String {
-    path.split(['[', '.'])
-        .next()
-        .unwrap_or(path)
-        .to_string()
+    path.split(['[', '.']).next().unwrap_or(path).to_string()
 }
 
 fn render_workbook(ui: &mut egui::Ui, report: &ValidationReport) {
@@ -194,7 +191,9 @@ fn render_workbook(ui: &mut egui::Ui, report: &ValidationReport) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sectorforge::validation::{Severity, ValidationIssue, ValidationReport, WorldWorkbookValidation};
+    use sectorforge::validation::{
+        Severity, ValidationIssue, ValidationReport, WorldWorkbookValidation,
+    };
 
     fn issue(code: &str, path: Option<&str>, severity: Severity) -> ValidationIssue {
         ValidationIssue {
@@ -211,7 +210,11 @@ mod tests {
         let report = ValidationReport {
             ok: false,
             errors: vec![
-                issue("A", Some("factions[1].preferred_world_types"), Severity::Error),
+                issue(
+                    "A",
+                    Some("factions[1].preferred_world_types"),
+                    Severity::Error,
+                ),
                 issue("B", Some("factions[2]"), Severity::Error),
                 issue("C", Some("routes.modifiers[0]"), Severity::Error),
                 issue("D", None, Severity::Error),

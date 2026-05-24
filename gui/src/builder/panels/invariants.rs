@@ -19,14 +19,7 @@ use crate::builder::BuilderState;
 /// Stratum groupings used for the panel tree. Order matters — it controls the
 /// display order in the panel.
 const STRATA: &[&str] = &[
-    "systems",
-    "worlds",
-    "routes",
-    "factions",
-    "regions",
-    "economy",
-    "manifest",
-    "other",
+    "systems", "worlds", "routes", "factions", "regions", "economy", "manifest", "other",
 ];
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
@@ -137,7 +130,9 @@ fn parse_path(path: &str, prefix: &str) -> Option<String> {
         .map(|rest| rest.split('.').next().unwrap_or(rest).to_string())
 }
 
-fn group_by_stratum(violations: &[InvariantViolation]) -> BTreeMap<String, Vec<InvariantViolation>> {
+fn group_by_stratum(
+    violations: &[InvariantViolation],
+) -> BTreeMap<String, Vec<InvariantViolation>> {
     let mut out: BTreeMap<String, Vec<InvariantViolation>> = BTreeMap::new();
     for v in violations {
         let key = stratum_of(v).to_string();
@@ -241,8 +236,7 @@ mod tests {
 
     #[test]
     fn parse_system_world_extracts_ids() {
-        let (sys, world) =
-            parse_system_world("systems.sys-0001.worlds.sys-0001-w02.tags").unwrap();
+        let (sys, world) = parse_system_world("systems.sys-0001.worlds.sys-0001-w02.tags").unwrap();
         assert_eq!(sys, "sys-0001");
         assert_eq!(world, "sys-0001-w02");
     }
@@ -253,6 +247,9 @@ mod tests {
             parse_path("routes.route-sys-0001-sys-0002.distance", "routes."),
             Some("route-sys-0001-sys-0002".to_string())
         );
-        assert_eq!(parse_path("factions.imperial", "factions."), Some("imperial".into()));
+        assert_eq!(
+            parse_path("factions.imperial", "factions."),
+            Some("imperial".into())
+        );
     }
 }

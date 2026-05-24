@@ -18,9 +18,9 @@ use crate::builder::state::BuilderTab;
 use crate::builder::BuilderState;
 
 use super::{
-    analytics, briefing, control, diff, economy, export, factions, history, hooks,
-    interestingness, invariants as invariants_panel, map, missions, personae, project, prose,
-    regions, relations, routes, search, segmentum, sites, subsectors, system, validation, world,
+    analytics, briefing, control, diff, economy, export, factions, history, hooks, interestingness,
+    invariants as invariants_panel, map, missions, personae, project, prose, regions, relations,
+    routes, search, segmentum, sites, subsectors, system, validation, world,
 };
 
 /// Render the top tab strip. Mutates [`BuilderState::active_tab`] when the

@@ -1722,8 +1722,8 @@ that adopts `BuilderState` as root state.
 | Piece | Where it lives |
 |---|---|
 | N1 tab enum | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [gui/src/builder/panels/nav.rs](gui/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([gui/src/builder/panels/project.rs](gui/src/builder/panels/project.rs)); MAP hosts the §N3 toolbox ([gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs)); every other tab is a stub backed by [gui/src/builder/panels/placeholder.rs](gui/src/builder/panels/placeholder.rs) that names the phase + section that will fill it (Phase B: system/world/factions/control/routes; Phase C: regions/subsectors/economy/relations/history; Phase D: personae/hooks/sites/missions/prose/interestingness/briefing; Phase E: analytics/search/diff/segmentum/export). |
-| N3 map toolbox | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; Phase B click handlers will branch on `state.map_tool`. |
+| N2 router | [gui/src/builder/panels/nav.rs](gui/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([gui/src/builder/panels/project.rs](gui/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs), §S1); SYSTEM hosts the §S2..§S6 inspector ([gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs)); remaining tabs are stubs backed by [gui/src/builder/panels/placeholder.rs](gui/src/builder/panels/placeholder.rs) (Phase B: world/factions/control/routes; Phase C: regions/subsectors/economy/relations/history; Phase D: personae/hooks/sites/missions/prose/interestingness/briefing; Phase E: analytics/search/diff/segmentum/export). |
+| N3 map toolbox | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the §S1 click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems}`. |
 | N4 status bar | [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
 N5 (Ctrl-K command palette) is intentionally deferred to Phase F.
@@ -1759,6 +1759,27 @@ Tests in `gui/src/builder/preview.rs`:
 Tests in `gui/src/builder/workspace.rs`:
 
 * `push_focuses_new_slot`, `switch_to_changes_active_within_bounds`, `close_active_collapses_to_previous_slot`, `close_first_keeps_focus_on_next`, `iter_emits_all_states_in_insertion_order`.
+
+#### S1–S6 system panel (DONE)
+
+Phase B §7. The MAP tab now renders the live hex grid and dispatches edits
+through the command bus; the SYSTEM tab owns the inspector + bulk-ops surface.
+
+| Piece | Where it lives |
+|---|---|
+| S1 toolbox + click handlers | [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) — `show_hex_map` + `handle_click` + `handle_drag_drop`. ADD SYSTEM opens an inline placement dialog (`BuilderState::pending_place`); DELETE / MOVE run `BuilderCommand::{RemoveSystem, MoveSystem}`; double-click on a system opens the rename dialog (`pending_rename`) which commits `BuilderCommand::RenameSystem`. Hex geometry helpers (`Geom`, `hex_center`, `hex_pick`) inline the math from `gui::editor::map_panel`. |
+| S2 inspector | [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs) — collapsing sections for Identity / Star / Tags + Notes / Worlds (deep-link) / Routes (deep-link) / Primary factions / Control / Overlays. Every `GeneratedSystem` field is reachable; sibling panels manage the structured fields (§8 worlds, §10 factions, §11 control, §28..§32 overlays) and the SYSTEM tab provides "→" jumps via `BuilderState::active_tab`. |
+| S3 pinned toggle | [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs) Identity section + [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) coral outline. Backed by `BuilderState::pinned_systems` per Q1; honoured by §G5 partial regen, §S5 regen, and §S4 reseed. |
+| S4 bulk ops | [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs) `show_bulk_ops` — drives `BuilderState::selected_systems` (shift-click + rect-drag from the MAP panel). Operations: rename pattern (`{n}` / `{id}` / `{name}` substitution), reassign primary faction, clear primary factions, flip control state (`SystemState` palette), pin/unpin, reseed worlds (re-runs §S5 per slot). |
+| S5 generate-one-here | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::generate_system_here(coord, index, seed_override)` — synthesises a `ProjectInput` from in-memory catalogs, optionally swaps the seed, calls `sectorforge::generate_system_standalone`, and runs the result through the bus as `BuilderCommand::ReplaceSystem`. Pinned occupants refuse the op. Inspector form lives under the `§S5 — Generate one system here` collapse. |
+| S6 coord validity | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) `swap_systems` plus [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) `show_collision_dialog`. Out-of-bounds coords land a `ModalKind::Message` reject; collisions arm `BuilderState::pending_collision`, the modal offers Swap (runs `BuilderCommand::SwapSystems`) or Cancel. The inspector "Apply coord" button shares the same path. |
+
+Tests:
+
+* `swap_systems_exchanges_coords_and_refreshes_distance`, `swap_systems_unknown_id_errors` in [src/sector_model/mutation.rs](src/sector_model/mutation.rs).
+* `swap_systems_round_trip`, `replace_system_round_trip` in [gui/src/builder/command.rs](gui/src/builder/command.rs).
+* `handle_click_select_focuses_system`, `handle_click_shift_adds_to_selection`, `handle_drag_drop_move_succeeds`, `handle_drag_drop_collision_arms_dialog`, `handle_drag_drop_out_of_bounds_rejected`, `apply_rect_select_picks_systems_in_box` in [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs).
+* `bulk_rename_applies_pattern`, `bulk_control_state_flips_selection`, `bulk_pin_unpin_round_trip`, `apply_coord_move_rejects_out_of_bounds` in [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs).
 
 ---
 

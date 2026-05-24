@@ -145,6 +145,57 @@ impl GeneratedSector {
         Ok(())
     }
 
+    /// Swap the coords of two systems. Used by §S6 collision-swap dialog so a
+    /// drag onto an occupied hex can exchange the two without violating the
+    /// `CoordOccupied` rule. Both systems must exist; otherwise nothing is
+    /// mutated and `SystemNotFound` is returned. Distances of routes anchored
+    /// on either endpoint are refreshed.
+    pub fn swap_systems(&mut self, a: &SystemId, b: &SystemId) -> Result<(), MutationError> {
+        if a == b {
+            return Ok(());
+        }
+        let coord_a = self
+            .systems
+            .iter()
+            .find(|s| s.id == *a)
+            .ok_or_else(|| MutationError::SystemNotFound(a.to_string()))?
+            .coord;
+        let coord_b = self
+            .systems
+            .iter()
+            .find(|s| s.id == *b)
+            .ok_or_else(|| MutationError::SystemNotFound(b.to_string()))?
+            .coord;
+        for sys in &mut self.systems {
+            if sys.id == *a {
+                sys.coord = coord_b;
+            } else if sys.id == *b {
+                sys.coord = coord_a;
+            }
+        }
+        let touched: Vec<(RouteId, u32)> = self
+            .routes
+            .iter()
+            .filter(|r| {
+                r.from_system_id == *a
+                    || r.to_system_id == *a
+                    || r.from_system_id == *b
+                    || r.to_system_id == *b
+            })
+            .filter_map(|r| {
+                let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
+                let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
+                Some((r.id.clone(), super::hex_distance(from.coord, to.coord)))
+            })
+            .collect();
+        for (rid, dist) in touched {
+            if let Some(r) = self.routes.iter_mut().find(|r| r.id == rid) {
+                r.distance = dist;
+            }
+        }
+        Ok(())
+    }
+
     // ── World mutations ─────────────────────────────────────────────────────
 
     pub fn add_world_to_system(
@@ -763,6 +814,32 @@ mod tests {
         assert_eq!(s.routes[0].distance, 1);
         s.move_system(&b, HexCoord { q: 5, r: 0 }).unwrap();
         assert_eq!(s.routes[0].distance, 5);
+    }
+
+    #[test]
+    fn swap_systems_exchanges_coords_and_refreshes_distance() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 4, r: 0 }, "B").unwrap();
+        s.add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        s.swap_systems(&a, &b).unwrap();
+        let sa = s.systems.iter().find(|x| x.id == a).unwrap();
+        let sb = s.systems.iter().find(|x| x.id == b).unwrap();
+        assert_eq!(sa.coord, HexCoord { q: 4, r: 0 });
+        assert_eq!(sb.coord, HexCoord { q: 0, r: 0 });
+        assert_eq!(s.routes[0].distance, 4);
+    }
+
+    #[test]
+    fn swap_systems_unknown_id_errors() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let phantom = SystemId::new("sys-9999");
+        assert!(matches!(
+            s.swap_systems(&a, &phantom),
+            Err(MutationError::SystemNotFound(_))
+        ));
     }
 
     #[test]

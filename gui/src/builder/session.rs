@@ -137,6 +137,13 @@ impl SessionFile {
             seed_reroll_counter: 0,
             preview: super::preview::PreviewState::new(),
             partial_regen_rect: None,
+            selected_systems: std::collections::BTreeSet::new(),
+            drag_system: None,
+            pending_place: None,
+            pending_rename: None,
+            pending_collision: None,
+            rect_select: None,
+            hex_size: 28.0,
         }
     }
 }

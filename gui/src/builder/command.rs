@@ -40,6 +40,19 @@ pub enum BuilderCommand {
         from: String,
         to: String,
     },
+    /// §S6: collision-swap. Used when a drag targets an occupied hex and the
+    /// user picks "Swap" in the resolver dialog. Reverts by swapping again.
+    SwapSystems { a: SystemId, b: SystemId },
+    /// §S5: drop in a freshly generated system at `coord`. The caller
+    /// (typically [`crate::builder::state::BuilderState::generate_system_here`])
+    /// builds `new_system` via `sectorforge::generate_system_standalone` and
+    /// hands the payload to the command bus. `before` records any system that
+    /// was replaced at the same coord so revert can restore it.
+    ReplaceSystem {
+        coord: HexCoord,
+        new_system: Box<GeneratedSystem>,
+        before: Option<Box<GeneratedSystem>>,
+    },
     AddWorld {
         system: SystemId,
         name: String,
@@ -108,6 +121,20 @@ impl BuilderCommand {
             }
             Self::MoveSystem { id, from: _, to } => sector.move_system(id, *to),
             Self::RenameSystem { id, from: _, to } => sector.rename_system(id, to),
+            Self::SwapSystems { a, b } => sector.swap_systems(a, b),
+            Self::ReplaceSystem {
+                coord,
+                new_system,
+                before,
+            } => {
+                if let Some(pos) = sector.systems.iter().position(|s| s.coord == *coord) {
+                    *before = Some(Box::new(sector.systems.remove(pos)));
+                }
+                sector.systems.push((**new_system).clone());
+                sector.manifest.system_count = sector.systems.len();
+                sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
+                Ok(())
+            }
             Self::AddWorld {
                 system,
                 name,
@@ -201,6 +228,20 @@ impl BuilderCommand {
             }
             Self::MoveSystem { id, from, .. } => sector.move_system(id, *from),
             Self::RenameSystem { id, from, .. } => sector.rename_system(id, from),
+            Self::SwapSystems { a, b } => sector.swap_systems(a, b),
+            Self::ReplaceSystem {
+                new_system, before, ..
+            } => {
+                if let Some(pos) = sector.systems.iter().position(|s| s.id == new_system.id) {
+                    sector.systems.remove(pos);
+                }
+                if let Some(prev) = before {
+                    sector.systems.push((**prev).clone());
+                }
+                sector.manifest.system_count = sector.systems.len();
+                sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
+                Ok(())
+            }
             Self::AddWorld { result_id, .. } => {
                 if let Some(id) = result_id {
                     sector.remove_world(id)?;
@@ -285,6 +326,50 @@ mod tests {
         cmd.revert(&mut s).unwrap();
         assert_eq!(s.systems.len(), 1);
         assert_eq!(s.systems[0].id, id);
+    }
+
+    #[test]
+    fn swap_systems_round_trip() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 4, r: 0 }, "B").unwrap();
+        let mut cmd = BuilderCommand::SwapSystems {
+            a: a.clone(),
+            b: b.clone(),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            s.systems.iter().find(|x| x.id == a).unwrap().coord,
+            HexCoord { q: 4, r: 0 }
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            s.systems.iter().find(|x| x.id == a).unwrap().coord,
+            HexCoord { q: 0, r: 0 }
+        );
+    }
+
+    #[test]
+    fn replace_system_round_trip() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 1, r: 1 }, "A").unwrap();
+        let new_sys = GeneratedSystem::new_at(
+            sectorforge::ids::system_id(99),
+            99,
+            HexCoord { q: 1, r: 1 },
+            "Replacement",
+        );
+        let mut cmd = BuilderCommand::ReplaceSystem {
+            coord: HexCoord { q: 1, r: 1 },
+            new_system: Box::new(new_sys),
+            before: None,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert!(s.systems.iter().any(|x| x.id != a));
+        assert!(s.systems.iter().any(|x| &*x.name == "Replacement"));
+        cmd.revert(&mut s).unwrap();
+        assert!(s.systems.iter().any(|x| x.id == a));
+        assert!(!s.systems.iter().any(|x| &*x.name == "Replacement"));
     }
 
     /// R8 determinism: a fixed command sequence applied to a blank sector

@@ -312,6 +312,50 @@ pub struct BuilderState {
     /// §G5: half-open axial-hex rectangle selected for partial regeneration.
     /// `None` means "full sector"; the regen action then refuses to run.
     pub partial_regen_rect: Option<PartialRegenRect>,
+    /// §S4: shift-click / rect-drag multi-selection. Always contains
+    /// `selected_system_id` when both are populated. Bulk operations in the
+    /// SYSTEM tab operate on this set.
+    pub selected_systems: BTreeSet<SystemId>,
+    /// §S1: id of the system currently being dragged across the hex grid.
+    /// Transient — cleared on drag-stop.
+    pub drag_system: Option<SystemId>,
+    /// §S1: ADD SYSTEM tool target coord awaiting a name entry. The map
+    /// panel pops a small naming dialog while this is `Some`.
+    pub pending_place: Option<PendingPlace>,
+    /// §S1: double-clicked system awaiting a rename in the floating dialog.
+    pub pending_rename: Option<PendingRename>,
+    /// §S6: drag-drop collision waiting on user choice (Swap / Cancel).
+    pub pending_collision: Option<PendingCollision>,
+    /// §S4: in-progress rect-select on the map (`(start, current)` corners).
+    pub rect_select: Option<(
+        sectorforge::sector_model::HexCoord,
+        sectorforge::sector_model::HexCoord,
+    )>,
+    /// §S1: hex render size in screen pixels. Persisted per session so users
+    /// can zoom the map without re-tuning each frame.
+    pub hex_size: f32,
+}
+
+/// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
+#[derive(Debug, Clone)]
+pub struct PendingPlace {
+    pub coord: sectorforge::sector_model::HexCoord,
+    pub name: String,
+}
+
+/// §S1: pending RENAME input — target id and the editable buffer.
+#[derive(Debug, Clone)]
+pub struct PendingRename {
+    pub id: SystemId,
+    pub text: String,
+}
+
+/// §S6: drag-drop collision payload surfaced to the swap / cancel dialog.
+#[derive(Debug, Clone)]
+pub struct PendingCollision {
+    pub dragging: SystemId,
+    pub target: sectorforge::sector_model::HexCoord,
+    pub occupant: SystemId,
 }
 
 /// §G5: inclusive rectangle of hex coordinates that
@@ -390,7 +434,97 @@ impl BuilderState {
             seed_reroll_counter: 0,
             preview: PreviewState::new(),
             partial_regen_rect: None,
+            selected_systems: BTreeSet::new(),
+            drag_system: None,
+            pending_place: None,
+            pending_rename: None,
+            pending_collision: None,
+            rect_select: None,
+            hex_size: 28.0,
         }
+    }
+
+    /// §S1: focus a single system. Replaces any multi-selection with `{id}`.
+    pub fn focus_system(&mut self, id: SystemId) {
+        self.selected_systems.clear();
+        self.selected_systems.insert(id.clone());
+        self.selected_system_id = Some(id);
+    }
+
+    /// §S4: shift-click toggle — add/remove the system from `selected_systems`
+    /// while leaving `selected_system_id` pointing at the most recent pick.
+    pub fn toggle_system_selection(&mut self, id: SystemId) {
+        if self.selected_systems.contains(&id) {
+            self.selected_systems.remove(&id);
+            if self.selected_system_id.as_ref() == Some(&id) {
+                self.selected_system_id = self.selected_systems.iter().next().cloned();
+            }
+        } else {
+            self.selected_systems.insert(id.clone());
+            self.selected_system_id = Some(id);
+        }
+    }
+
+    /// §S5: drop a freshly generated system at `coord`. The new system is built
+    /// via [`sectorforge::generate_system_standalone`] using the in-memory
+    /// catalogs, then committed through the command bus as
+    /// [`super::command::BuilderCommand::ReplaceSystem`]. Any existing system
+    /// at `coord` is replaced (the prior payload survives in the command log
+    /// so undo restores it). Pinned systems at `coord` refuse the operation.
+    pub fn generate_system_here(
+        &mut self,
+        coord: sectorforge::sector_model::HexCoord,
+        index: usize,
+        seed_override: Option<&str>,
+    ) -> Result<SystemId, super::errors::BuilderError> {
+        if coord.q < 0
+            || coord.r < 0
+            || (coord.q as u32) >= self.sector.width
+            || (coord.r as u32) >= self.sector.height
+        {
+            return Err(super::errors::BuilderError::ParseFailed {
+                file: "generate-system-here".into(),
+                message: format!(
+                    "coord ({},{}) outside sector {}x{}",
+                    coord.q, coord.r, self.sector.width, self.sector.height
+                ),
+            });
+        }
+        if let Some(existing) = self.sector.systems.iter().find(|s| s.coord == coord) {
+            if self.pinned_systems.contains(&existing.id) {
+                return Err(super::errors::BuilderError::ParseFailed {
+                    file: "generate-system-here".into(),
+                    message: format!(
+                        "system {} at ({},{}) is pinned",
+                        existing.id, coord.q, coord.r
+                    ),
+                });
+            }
+        }
+        let mut input = self.synthesize_project_input().ok_or_else(|| {
+            super::errors::BuilderError::ParseFailed {
+                file: "generate-system-here".into(),
+                message: "worlds catalog not loaded".into(),
+            }
+        })?;
+        if let Some(seed) = seed_override {
+            input.config.generation.seed = seed.to_string();
+        }
+        let new_sys =
+            sectorforge::generate_system_standalone(input, index, coord).map_err(|e| {
+                super::errors::BuilderError::ParseFailed {
+                    file: "generate-system-here".into(),
+                    message: e.to_string(),
+                }
+            })?;
+        let id = new_sys.id.clone();
+        let cmd = super::command::BuilderCommand::ReplaceSystem {
+            coord,
+            new_system: Box::new(new_sys),
+            before: None,
+        };
+        self.run(cmd)?;
+        Ok(id)
     }
 
     /// §G2: derive the next seed. When [`Self::seed_locked`] is true, returns

@@ -381,34 +381,45 @@ G6.   [DONE] "New sector from preset" inside the builder — reuses §P1
 7. SYSTEMS
 ================================================================================
 
-S1.   Toolbox: ADD SYSTEM (click hex), DELETE SYSTEM (click system),
-      MOVE SYSTEM (drag), RENAME (double-click label). Reuses existing
-      `editor/map_panel.rs` infrastructure.
+S1.   [DONE] Toolbox: ADD SYSTEM (click hex), DELETE SYSTEM (click system),
+      MOVE SYSTEM (drag), RENAME (double-click label). Implemented in
+      `gui/src/builder/panels/map.rs` over the §N3 `MapTool` arming +
+      `BuilderState::pending_place` / `pending_rename`. Geometry helpers
+      mirror `editor/map_panel.rs` but talk to `BuilderState`.
 
-S2.   System inspector covers every field of `GeneratedSystem`:
+S2.   [DONE] System inspector covers every field of `GeneratedSystem`:
       id (read-only, rename via D4 toggle), name, coord (with validity
       check), star (presence, colour, optional secondary star),
       worlds (managed in §8), routes (read-only edge list),
       primary_factions (managed in §10), control (managed in §11),
       tags (free-text + canonical-tag picker), notes (multi-line),
       orbital_assets (§31), blockade (§31), conflict (§28),
-      intel (§29), archetype (§30).
+      intel (§29), archetype (§30). See `gui/src/builder/panels/system.rs`.
 
-S3.   `pinned` field (D5) toggleable from the inspector. Prevents the
+S3.   [DONE] `pinned` field (D5) toggleable from the inspector. Prevents the
       generator from touching the system during re-roll / partial regen.
-      Stored in `BuilderState::pinned_systems` (side-table).
+      Stored in `BuilderState::pinned_systems` (side-table). The MAP
+      panel paints a coral ring around pinned systems; the §S5 regen and
+      the §S4 reseed both skip pinned entries.
 
-S4.   Bulk operations: select multiple systems (rect / shift-click) →
+S4.   [DONE] Bulk operations: select multiple systems (rect / shift-click) →
       rename pattern, reseed worlds, reassign primary faction, flip
-      control state, pin/unpin.
+      control state, pin/unpin. Selection lives in
+      `BuilderState::selected_systems`; ops live under the §S4 collapse
+      in the SYSTEM panel.
 
-S5.   "Generate one system here" via `generate_system_standalone`. Useful
+S5.   [DONE] "Generate one system here" via `generate_system_standalone`. Useful
       for filling a single hex without rerunning the full generator.
-      Honour `--coord-q/r/--index/--seed` as inline controls.
+      Honour `--coord-q/r/--index/--seed` as inline controls. The
+      command bus carries `BuilderCommand::ReplaceSystem` so undo
+      restores the prior occupant.
 
-S6.   Coord validity: reject coords outside `(0..sector_width,
+S6.   [DONE] Coord validity: reject coords outside `(0..sector_width,
       0..sector_height)`. Coord collisions resolved with a swap or
-      cancel dialog.
+      cancel dialog. The dialog (`PendingCollision`) fires from drag-drop
+      and from the inspector "Apply coord" button; the Swap path runs
+      `BuilderCommand::SwapSystems`, backed by
+      `GeneratedSector::swap_systems` in `src/sector_model/mutation.rs`.
 
 ================================================================================
 8. WORLDS
@@ -1290,7 +1301,10 @@ Phase B — Direct entity edit
                    preview + apply-with-pinning + partial regen + preset
                    workspace; first Phase B workflow on top of the
                    Phase A foundation)
-  S1..S6, (§7)
+  S1..S6  - DONE  (§7 SYSTEM — hex map tools, full inspector, pinning,
+                   bulk ops, single-system regen, coord-validity swap
+                   dialog; backed by `BuilderCommand::SwapSystems` /
+                   `ReplaceSystem`)
   W1..W7, (§8)
   R1..R7, (§9 routes)
   F1..F7, (§10 factions)

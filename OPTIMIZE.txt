@@ -1,21 +1,5 @@
 Suggested changes
 
-2. Move GUI export work off the UI thread
-Severity: High
-Evidence: `gui/src/app/export_ui.rs` calls `write_sector_png_to_with`,
-`write_all_system_pngs`, SVG export, HTML export, and bundle export directly from button
-handlers.
-Risk: 4K PNG render/encode, all-system PNG export, HTML JSON inline, and bundle copy can
-freeze the eframe event loop.
-Fix:
-- Reuse `spawn_job` for export jobs.
-- Send immutable sector snapshots plus export options to worker.
-- Return progress/status through channel; keep file dialog on UI thread.
-- Add cancellation for all-system PNG export.
-Validation:
-- Add timing smoke test for job dispatch.
-- Manual GUI check: export large sector while panning/hovering stays responsive.
-
 3. Do not panic or hide serialization failure in derivation cache digest
 Severity: Medium
 Evidence: `gui/src/builder/derivation_cache.rs` uses
@@ -118,7 +102,6 @@ Priority roadmap
 Immediate:
 - Fix preview job cancellation, result typing, stale revision rejection, and repaint on
   completion.
-- Move PNG/SVG/HTML/bundle export to worker jobs.
 - Change derivation cache digest to return errors.
 
 Short term:

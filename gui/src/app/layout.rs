@@ -163,26 +163,33 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                 {
                     app.save_sector_to_source();
                 }
+                let export_ready = app.sector.is_some() && app.export_job.is_none();
                 if ui
-                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT PNG"))
+                    .add_enabled(export_ready, egui::Button::new("EXPORT PNG"))
                     .clicked()
                 {
                     app.pending_export = Some(crate::app::PendingExport::SectorPng);
                 }
                 if ui
-                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT SVG"))
+                    .add_enabled(export_ready, egui::Button::new("EXPORT SVG"))
                     .clicked()
                 {
                     app.pending_export = Some(crate::app::PendingExport::SectorSvg);
                 }
                 if ui
-                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT HTML"))
+                    .add_enabled(export_ready, egui::Button::new("EXPORT HTML"))
                     .clicked()
                 {
                     app.pending_export = Some(crate::app::PendingExport::SectorHtml);
                 }
                 if ui
-                    .add_enabled(app.sector.is_some(), egui::Button::new("SAVE & EXPORT ALL"))
+                    .add_enabled(export_ready, egui::Button::new("EXPORT SYSTEMS"))
+                    .clicked()
+                {
+                    app.pending_export = Some(crate::app::PendingExport::AllSystemPngs);
+                }
+                if ui
+                    .add_enabled(export_ready, egui::Button::new("SAVE & EXPORT ALL"))
                     .clicked()
                 {
                     app.save_sector_to_source();
@@ -191,10 +198,15 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     // For now, let's just do PNG.
                 }
                 if ui
-                    .add_enabled(app.sector.is_some(), egui::Button::new("EXPORT BUNDLE"))
+                    .add_enabled(export_ready, egui::Button::new("EXPORT BUNDLE"))
                     .clicked()
                 {
                     app.export_sector_json(ctx);
+                }
+                if app.cancellable_export_running()
+                    && ui.add(egui::Button::new("CANCEL EXPORT")).clicked()
+                {
+                    app.cancel_export_job();
                 }
 
                 if !app.export_status.is_empty() {

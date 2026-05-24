@@ -66,6 +66,8 @@ pub struct App {
     pub(super) planner: RoutePlannerState,
     pub(super) planner_hex_size: f32,
     pub(super) export_status: String,
+    pub(super) export_job: Option<crate::jobs::JobHandle<ExportJobResult>>,
+    pub(super) export_job_revision: u64,
     pub(super) pending_export: Option<PendingExport>,
     pub(super) sector_pick_export: bool,
     pub(super) export_scale: u32,
@@ -110,6 +112,8 @@ impl Default for App {
             planner: RoutePlannerState::default(),
             planner_hex_size: 40.0,
             export_status: String::new(),
+            export_job: None,
+            export_job_revision: 0,
             pending_export: None,
             sector_pick_export: false,
             export_scale: 2,
@@ -171,6 +175,7 @@ impl eframe::App for App {
         ui_helpers::apply_theme(ctx);
 
         self.handle_preview_logic(ctx);
+        self.handle_export_job();
 
         layout::TopBar::new(self).show(ctx);
         layout::MainView::new(self).show(ctx);

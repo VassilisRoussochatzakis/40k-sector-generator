@@ -1519,8 +1519,10 @@ navigation bar:
   [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs).
 
 The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
-sector overview, a single system map, or all per-system maps. The current
-HEATMAP selection in the sector view is carried into the exported sector PNG.
+sector overview, a single system map, or all per-system maps. File pickers stay
+on the UI thread, then PNG/SVG/HTML/bundle writes run as background jobs with
+top-bar progress. All-system PNG export can be stopped with **CANCEL EXPORT**;
+the current HEATMAP selection in the sector view is carried into the exported sector PNG.
 Top-bar **EXPORT SVG** writes the sector map as a self-contained scalable
 vector graphic — same layout and theme as the PNG, but rendered as
 `<polygon>` / `<circle>` / `<line>` / `<text>` primitives backed by
@@ -2017,7 +2019,7 @@ across runs, so a regression check is a diff away.
 | [src/sector_save.rs](src/sector_save.rs) | §13 NEXT: `SectorSave` — IDs-only runtime state split from the static catalog half; `split` and `merge` for round-tripping |
 | [src/world_ecs.rs](src/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
 | [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
-| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export |
+| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export, dispatched through background export jobs with all-system PNG cancellation |
 | [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
 | [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
 | [src/gui/factions_overview.rs](src/gui/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
@@ -2099,4 +2101,4 @@ Maps and sets across the crate use the std default `RandomState` (SipHash). For 
 
 ### Optimization review backlog
 
-See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. GUI preview job revision/cancellation handling is now implemented; the next highest-priority items are off-thread GUI exports, derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.
+See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. GUI preview job revision/cancellation handling and off-thread GUI exports are now implemented; the next highest-priority items are derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.

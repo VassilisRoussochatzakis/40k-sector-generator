@@ -10,6 +10,21 @@ pub enum PendingExport {
     SectorHtml,
 }
 
+#[derive(Debug)]
+pub enum ExportJobResult {
+    Completed(String),
+    Failed(String),
+    Cancelled(String),
+}
+
+impl ExportJobResult {
+    pub fn into_status(self) -> String {
+        match self {
+            Self::Completed(status) | Self::Failed(status) | Self::Cancelled(status) => status,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum View {
     Sector,

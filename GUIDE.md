@@ -1629,6 +1629,24 @@ system kind, route type, or region condition is added, the compiler points at
 the one token conversion / paint match that must be updated, keeping the
 viewer, editor MAP panel, and builder MAP tab from drifting.
 
+Map visual snapshots live in
+[`map_snapshots.rs`](gui-core/tests/map_snapshots.rs) with committed PNG/hash
+goldens under [`gui-core/tests/goldens/map`](gui-core/tests/goldens/map). The
+test renders the real shared `SectorView` through a headless `egui::Context`,
+tessellates painter output, rasterizes it with `image`, and compares raw RGBA
+BLAKE3 hashes. Run the drift gate with:
+
+```bash
+cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet
+```
+
+On failure, inspect current images in `target/map_snapshots/current/`. Bless an
+intentional visual change with:
+
+```bash
+UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet
+```
+
 The editor's own MAP surface in
 [gui/src/editor/map_panel.rs](gui/src/editor/map_panel.rs) now delegates every
 pixel-producing call to the shared

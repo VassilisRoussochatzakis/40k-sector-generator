@@ -366,7 +366,7 @@ fn recompute_plan(app: &mut App) {
         Some(p) => app.planner.plan = Some(p),
         None => {
             app.planner.status =
-                "no passable route — try the other metric or check for Perilous lanes".to_string();
+                "no route — origin and destination are in disconnected components".to_string();
         }
     }
 }

@@ -1494,7 +1494,8 @@ navigation bar:
 - **Data** — typed `worlds.toml` editor from inside the app.
 - **Planner** — route planner: pick `from` / `to` systems and pathfind over
   the existing route graph. Two metrics: `Safest` (Dijkstra with hazard
-  weights — avoid `Unstable` / `Hazardous`; `Perilous` routes are impassable)
+  weights — avoid `Unstable` / `Hazardous`; `Perilous` lanes are traversable
+  but heavily penalized so they're only chosen when no safer path exists)
   or `Shortest` (BFS over hop count). The planner map uses the same viewport
   model as the sector map: mouse wheel zooms around the cursor, drag pans, and
   **RESET VIEW** restores the default zoom.

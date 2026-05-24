@@ -6,7 +6,9 @@
 //!   * `Strategic` — Dijkstra; prefers high-volume / dependency lanes but
 //!     still penalizes hazards, piracy, and hidden-route restrictions.
 //!
-//! `Perilous` routes are always treated as impassable.
+//! `Perilous` routes are traversable but heavily penalized — they appear on
+//! the sector map as real lanes, so the planner must be able to route over
+//! them when no safer alternative exists.
 
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
@@ -167,9 +169,6 @@ struct Edge<'a> {
 fn build_adjacency(sector: &GeneratedSector, metric: Metric) -> HashMap<&str, Vec<Edge<'_>>> {
     let mut adj: HashMap<&str, Vec<Edge<'_>>> = HashMap::new();
     for r in &sector.routes {
-        if matches!(r.stability, RouteStability::Perilous) {
-            continue;
-        }
         let w = edge_weight(sector, r, metric);
         adj.entry(&r.from_system_id).or_default().push(Edge {
             other: &r.to_system_id,
@@ -190,7 +189,7 @@ fn edge_weight(sector: &GeneratedSector, r: &GeneratedRoute, metric: Metric) -> 
         RouteStability::Stable => 1.0,
         RouteStability::Unstable => 3.0,
         RouteStability::Hazardous => 8.0,
-        RouteStability::Perilous => f64::INFINITY,
+        RouteStability::Perilous => 30.0,
     };
     if matches!(r.route_type, RouteType::SecretPassage) {
         w += 1.0;

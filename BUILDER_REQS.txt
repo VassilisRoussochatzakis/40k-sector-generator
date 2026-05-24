@@ -1,6 +1,9 @@
 # BUILDER_REQS.txt
 # Requirements: Full GUI Sector Builder (1:1 parity with sectorforge CLI/generator)
-# Target crate: sectorforge-gui (gui/src/)
+# Target crate moved 2026-05-24 from sectorforge-gui to sectorforge-builder.
+# References to gui/src/builder/ in older revisions now point to
+# builder/src/builder/.
+# Target crate: sectorforge-builder (builder/src/)
 # Backing crate: sectorforge (src/)
 # Goal: user constructs an arbitrary sector from scratch, system-by-system,
 #       through the GUI alone, with access to every CLI/library feature that
@@ -41,7 +44,7 @@ R1.   [DONE] Single source of truth = `GeneratedSector` from
       direct ownership behind `&mut BuilderState` — equivalent to the
       `Rc<RefCell<>>` option in the spec (GUI thread is sole writer; jobs
       hold cloned read-only snapshots). Design choice documented in
-      `gui/src/builder/state.rs`.
+      `builder/src/builder/state.rs`.
 
 R2.   [DONE] All `BuilderCommand`, `BuilderIndex`, `BuilderState`, and
       `SessionFile` ID fields are the typed `SystemId` / `WorldId` /
@@ -49,7 +52,7 @@ R2.   [DONE] All `BuilderCommand`, `BuilderIndex`, `BuilderState`, and
       modules are only error messages, display names, base64 file payloads,
       or cache keys.
 
-R3.   [DONE] `gui/src/builder/index.rs::BuilderIndex` keys every map with
+R3.   [DONE] `builder/src/builder/index.rs::BuilderIndex` keys every map with
       `BTreeMap<TypedId, usize>` (or `(usize, usize)` for worlds). Rebuilt
       after every mutation by the command bus.
 
@@ -69,17 +72,17 @@ R5.   [DONE] BLAKE3 cache helpers: `sectorforge::rng::digest_bytes` and
       canonical-JSON input slice. Reuses the existing `blake3` workspace
       dep — no new crate.
 
-R6.   [DONE] `gui/src/builder/errors.rs::BuilderError` enumerates every
+R6.   [DONE] `builder/src/builder/errors.rs::BuilderError` enumerates every
       required variant (`ValidationFailed`, `InvariantViolated`, `IoFailed`,
       `ParseFailed`, `EntityNotFound`, `StaleSnapshot`) plus transparent
       `Mutation` and `Serde` variants for I/O paths.
 
-R7.   [DONE] `gui/src/jobs.rs::JobHandle<T>` uses `std::thread::spawn` plus
+R7.   [DONE] `gui-core/src/jobs.rs::JobHandle<T>` uses `std::thread::spawn` plus
       `std::sync::mpsc::channel` for results, `Arc<Mutex<f32>>` for
       progress, and `Arc<AtomicBool>` for cancellation. `JobContext::
       set_progress` calls `egui::Context::request_repaint` on each tick.
 
-R8.   [DONE] `gui/src/builder/command.rs::tests::command_log_determinism_blake3`
+R8.   [DONE] `builder/src/builder/command.rs::tests::command_log_determinism_blake3`
       replays a fixed `BuilderCommand` sequence twice and asserts the
       `digest_bytes(serde_json::to_vec(&sector))` hex is equal across runs.
 
@@ -88,7 +91,7 @@ R9.   [DONE] Audited `gui/Cargo.toml` — no new crates added. The cache
       `sectorforge::rng::digest_bytes` so the GUI crate does not need a
       direct dependency.
 
-R10.  [DONE] Panel convention pinned in `gui/src/builder/panels/mod.rs`:
+R10.  [DONE] Panel convention pinned in `builder/src/builder/panels/mod.rs`:
       every panel is `fn show(ui: &mut egui::Ui, state: &mut BuilderState)`
       — no globals, no `lazy_static`, no raw `String` IDs across the
       boundary, modal state in `BuilderState::modal: Option<ModalKind>`.
@@ -202,7 +205,7 @@ D4.   [DONE] Re-index pass (`GeneratedSector::reindex_ids`) manages `sys-NNNN`,
       (`id_history` in `GeneratedSector`) when `stable_ids_on_rename`
       is enabled in the builder.
 
-D5.   [DONE] `BuilderState` (in `gui/src/builder/state.rs`):
+D5.   [DONE] `BuilderState` (in `builder/src/builder/state.rs`):
         - `sector: GeneratedSector`
         - `project_path: Option<Utf8PathBuf>` (use `camino`)
         - `config: SectorforgeConfig` (from `src/config.rs`)
@@ -234,7 +237,7 @@ P1.   [DONE] New project wizard: blank project at `<dir>/`, writes default
       `sectorforge.toml`, empty `worlds.toml`, optional preset overlay.
       `presets::scaffold_to_dir(preset_id, dst, seed_override)` helper added
       in `src/presets.rs`. Wizard panel in
-      `gui/src/builder/panels/new_project.rs` drives
+      `builder/src/builder/panels/new_project.rs` drives
       `project_io::new_project` which scaffolds the directory and loads it
       back via the §P2 path so the in-memory state is identical to a fresh
       open.
@@ -247,7 +250,7 @@ P2.   [DONE] Open project: parse `sectorforge.toml` via
       sector matching dimensions. Parse errors surface as
       `BuilderError::ParseFailed { file, message }` — `toml` crate's
       messages already carry `line N, column M` info. Picker panel in
-      `gui/src/builder/panels/open_project.rs`.
+      `builder/src/builder/panels/open_project.rs`.
 
 P3.   [DONE] Save project: writes sectorforge.toml + every present catalog
       back under the project root, then `<outputs>/sector.json` and (when
@@ -256,11 +259,11 @@ P3.   [DONE] Save project: writes sectorforge.toml + every present catalog
       `tempfile::NamedTempFile::persist`; the strategy is the same).
       Manifest input_digests are updated in-place to mirror the files we
       just wrote. Action panel in
-      `gui/src/builder/panels/save_project.rs` exposes Save and Save-as
+      `builder/src/builder/panels/save_project.rs` exposes Save and Save-as
       buttons.
 
 P4.   [DONE] Project tree view (new tab `PROJECT`).
-      `gui/src/builder/panels/project_tree.rs` renders a collapsible
+      `builder/src/builder/panels/project_tree.rs` renders a collapsible
       directory tree rooted at `BuilderState::project_path`. Folders
       sort-first then alpha; hidden (`.<name>`) entries skipped. Files
       already marked in `BuilderState::dirty_files` render with a leading
@@ -269,7 +272,7 @@ P4.   [DONE] Project tree view (new tab `PROJECT`).
       buffer to open.
 
 P5.   [DONE] File watcher.
-      `gui/src/builder/file_watcher.rs` spawns an mtime-polling thread
+      `builder/src/builder/file_watcher.rs` spawns an mtime-polling thread
       (R9 forbids new crates so we don't take the suggested `notify` dep).
       The watcher samples every file the loader hashed at open-time,
       ticks at 1 Hz, and posts `FileChange { rel_path, mtime }` via
@@ -283,7 +286,7 @@ P5.   [DONE] File watcher.
       Keep-in-memory.
 
 P6.   [DONE] Recent projects list in Preferences.
-      `gui/src/builder/preferences.rs::Preferences` (`recent_projects:
+      `builder/src/builder/preferences.rs::Preferences` (`recent_projects:
       Vec<Utf8PathBuf>`) round-trips via
       `~/.config/sectorforge/preferences.toml`. Loaders tolerate missing
       or malformed files. `push_recent` dedupes + bumps to front,
@@ -312,7 +315,7 @@ G1.   [DONE] Generation panel reaches feature parity with `[generation]` and
         routes.enabled, routes.max_route_distance, routes.route_density,
         routes.ensure_connected_graph,
         relations.min_world_presence.
-      Implementation: `gui/src/builder/panels/generation.rs::show_g1_parameters`
+      Implementation: `builder/src/builder/panels/generation.rs::show_g1_parameters`
       binds every listed field to a typed widget (ComboBox over enums,
       DragValue for ints, Slider for fractions) and mutates
       `state.config.generation` directly. The panel is hosted from the
@@ -326,7 +329,7 @@ G2.   [DONE] Seed-lock toggle. When locked, "Re-roll" preserves
       plus `BuilderState::reroll_seed` (returns the new seed and rewrites
       `config.generation.seed`). Counter monotonically advances on every
       unlocked re-roll; the digest helper lives at
-      `gui/src/builder/preview.rs::derive_reroll_seed`. Tests
+      `builder/src/builder/preview.rs::derive_reroll_seed`. Tests
       `reroll_locked_keeps_seed`,
       `reroll_unlocked_advances_seed_and_counter`, and
       `derive_reroll_seed_is_deterministic_and_counter_sensitive` pin the
@@ -335,12 +338,12 @@ G2.   [DONE] Seed-lock toggle. When locked, "Re-roll" preserves
 G3.   [DONE] Live preview mode: every config edit triggers a debounced
       regeneration (200 ms). Run on worker thread; partial preview into
       a scratch `GeneratedSector` displayed under a "PREVIEW" badge.
-      Implementation: `gui/src/builder/preview.rs::PreviewState` owns the
+      Implementation: `builder/src/builder/preview.rs::PreviewState` owns the
       debounce timer, scratch sector, in-flight `JobHandle`, and a
       revision counter that discards stale results. `PreviewState::pump`
       is called per-frame from the panel; the worker runs
       `sectorforge::generation::generate_with_progress_and_cancel`
-      through `crate::jobs::spawn_job`. Default debounce =
+      through `sectorforge_gui_core::jobs::spawn_job`. Default debounce =
       `DEFAULT_DEBOUNCE_MS` = 200 ms. The panel surfaces the scratch
       sector counts under a coloured "PREVIEW READY" line.
 
@@ -368,7 +371,7 @@ G5.   [DONE] Per-subsector partial regeneration: select a rectangle / cluster of
 
 G6.   [DONE] "New sector from preset" inside the builder — reuses §P1
       logic but keeps the current builder open in a new tab via a new
-      `BuilderWorkspace` (`gui/src/builder/workspace.rs`). The
+      `BuilderWorkspace` (`builder/src/builder/workspace.rs`). The
       workspace owns `Vec<BuilderState>` plus an active index;
       `push`/`switch_to`/`close_active` drive the tab strip. The panel
       collects (preset id, destination, seed), calls
@@ -383,7 +386,7 @@ G6.   [DONE] "New sector from preset" inside the builder — reuses §P1
 
 S1.   [DONE] Toolbox: ADD SYSTEM (click hex), DELETE SYSTEM (click system),
       MOVE SYSTEM (drag), RENAME (double-click label). Implemented in
-      `gui/src/builder/panels/map.rs` over the §N3 `MapTool` arming +
+      `builder/src/builder/panels/map.rs` over the §N3 `MapTool` arming +
       `BuilderState::pending_place` / `pending_rename`. Geometry helpers
       mirror `editor/map_panel.rs` but talk to `BuilderState`.
 
@@ -394,7 +397,7 @@ S2.   [DONE] System inspector covers every field of `GeneratedSystem`:
       primary_factions (managed in §10), control (managed in §11),
       tags (free-text + canonical-tag picker), notes (multi-line),
       orbital_assets (§31), blockade (§31), conflict (§28),
-      intel (§29), archetype (§30). See `gui/src/builder/panels/system.rs`.
+      intel (§29), archetype (§30). See `builder/src/builder/panels/system.rs`.
 
 S3.   [DONE] `pinned` field (D5) toggleable from the inspector. Prevents the
       generator from touching the system during re-roll / partial regen.
@@ -425,7 +428,7 @@ S6.   [DONE] Coord validity: reject coords outside `(0..sector_width,
 8. WORLDS
 ================================================================================
 
-W1.   [DONE] World inspector in `gui/src/builder/panels/world.rs` covers
+W1.   [DONE] World inspector in `builder/src/builder/panels/world.rs` covers
       every `GeneratedWorld` field: id, index, source_row_index, name,
       orbit, star_colour, world_type, atmosphere, temperature, biosphere,
       population, tech_level, government, notable_features, tags, notes,
@@ -965,7 +968,7 @@ SU2.  Auto-seed surface regions from world type via
 ================================================================================
 
 V1.   [DONE] Validation panel (`src/validation.rs::validate_project`):
-      `gui/src/builder/panels/validation.rs` groups
+      `builder/src/builder/panels/validation.rs` groups
       `ValidationReport.errors` / `warnings` under collapsing per-file
       buckets keyed by the issue `path` prefix (`factions`, `routes`,
       `relations`, `regions`, `economy`, `history`, names, fall back to
@@ -976,7 +979,7 @@ V1.   [DONE] Validation panel (`src/validation.rs::validate_project`):
       immediate `BuilderState::revalidate_now` flush.
 
 V2.   [DONE] Invariants panel (`src/invariants.rs::check_sector`):
-      `gui/src/builder/panels/invariants.rs` groups
+      `builder/src/builder/panels/invariants.rs` groups
       `InvariantReport.violations` by stratum (systems / worlds /
       routes / factions / regions / economy / manifest / other) using
       the invariant `path` prefix. Each row is a button that writes
@@ -1127,7 +1130,7 @@ PF6.  Atomic write via `tempfile::NamedTempFile::persist`.
 
 U1.   [DONE] Command-pattern: every mutation goes through `BuilderCommand`
       (D5). `apply` / `revert` implemented per variant in
-      `gui/src/builder/command.rs`. Round-trip tests
+      `builder/src/builder/command.rs`. Round-trip tests
       (`add_system_round_trip`, `remove_system_round_trip`) plus
       `command_log_determinism_blake3` (R8) cover the contract.
 
@@ -1139,7 +1142,7 @@ U2.   [DONE] Ctrl-Z / Ctrl-Y bindings for undo / redo. Bounded ring buffer
         drains the oldest commands and shifts `command_cursor` plus every
         `Snapshot::command_log_position` by the drop-count so undo / redo
         / snapshot references stay coherent.
-      - `gui/src/builder/panels/shortcuts.rs::handle(ctx, state)` consumes
+      - `builder/src/builder/panels/shortcuts.rs::handle(ctx, state)` consumes
         `Ctrl-Z` (undo), `Ctrl-Y` and `Ctrl-Shift-Z` (redo) via
         `egui::Context::input_mut(|i| i.consume_shortcut(...))` so other
         widgets do not also see the chord. Errors surface as
@@ -1224,7 +1227,7 @@ N1.   [DONE] Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
       HISTORY | PERSONAE | HOOKS | SITES | MISSIONS | PROSE |
       ANALYTICS | INTERESTINGNESS | SEARCH | DIFF | BRIEFING |
       SEGMENTUM | EXPORT.
-      `gui/src/builder/state.rs::BuilderTab` enumerates all 24 tabs;
+      `builder/src/builder/state.rs::BuilderTab` enumerates all 24 tabs;
       `BuilderTab::ALL` is the canonical ordering used by the top tab
       strip. Active tab persists on `BuilderState::active_tab` (defaults
       to `Project`). Tests `default_tab_is_project`,
@@ -1232,8 +1235,8 @@ N1.   [DONE] Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
       `builder_tab_labels_are_uppercase_words` pin the contract.
 
 N2.   [DONE] Each tab corresponds to a panel module under
-      `gui/src/builder/panels/` and follows the R10 contract.
-      `gui/src/builder/panels/nav.rs::show_top_bar` renders the strip;
+      `builder/src/builder/panels/` and follows the R10 contract.
+      `builder/src/builder/panels/nav.rs::show_top_bar` renders the strip;
       `show_active_panel` dispatches `BuilderTab` -> panel module:
         Project   -> panels/project.rs    (composes §P1..§P6 surfaces)
         Map       -> panels/map.rs        (hosts the §N3 toolbox)
@@ -1264,15 +1267,15 @@ N2.   [DONE] Each tab corresponds to a panel module under
 
 N3.   [DONE] Map tab keeps the editor toolbox
       (ADD/DELETE/MOVE/ROUTE/REGION paint).
-      `gui/src/builder/state.rs::MapTool` enumerates Select / AddSystem
+      `builder/src/builder/state.rs::MapTool` enumerates Select / AddSystem
       / DeleteSystem / MoveSystem / AddRoute / RegionPaint;
       `BuilderState::map_tool` holds the armed tool (default `Select`).
-      `gui/src/builder/panels/map.rs::show_toolbox` renders the strip
+      `builder/src/builder/panels/map.rs::show_toolbox` renders the strip
       and Phase B click handlers branch on `state.map_tool`.
 
 N4.   [DONE] Status bar: project path, dirty flag, validation status,
       pending-jobs spinner, derivation cache freshness.
-      `gui/src/builder/panels/status.rs::show` writes project label,
+      `builder/src/builder/panels/status.rs::show` writes project label,
       `dirty` flag, tri-coloured §V3 health pip, command cursor,
       derivation-cache entry count, and pending-job spinner.
 
@@ -1484,7 +1487,7 @@ Rationale: Keep the UI responsive during heavy computation (generation,
 search, complex derivations). Ad-hoc threads avoid the overhead and
 complexity of an async runtime when all library code is synchronous.
 
-OTR1. [DONE] Job Infrastructure. 'gui/src/jobs.rs' defines 'JobHandle<T>'
+OTR1. [DONE] Job Infrastructure. 'gui-core/src/jobs.rs' defines 'JobHandle<T>'
       and 'JobContext'. Uses 'std::thread::spawn' for execution.
 
 OTR2. [DONE] Communication. Uses 'std::sync::mpsc' channels for returning

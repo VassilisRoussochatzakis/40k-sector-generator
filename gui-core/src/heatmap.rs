@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn cache_reuses_cells_until_key_or_mode_changes() {
-        let mut sector = crate::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let mut sector = GeneratedSector::empty("cache", "Cache", "seed", 4, 4);
         let mut cache = HeatmapCache::default();
 
         let first = cache
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn cache_returns_none_for_off_mode() {
-        let sector = crate::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let sector = GeneratedSector::empty("cache", "Cache", "seed", 4, 4);
         let mut cache = HeatmapCache::default();
 
         assert!(cache.get_or_compute(&sector, HeatmapMode::Off).is_none());

@@ -84,7 +84,11 @@ impl BuilderApp {
                 }
             }
             ui.separator();
-            if ui.button("+").on_hover_text("New blank workspace").clicked() {
+            if ui
+                .button("+")
+                .on_hover_text("New blank workspace")
+                .clicked()
+            {
                 let n = self.workspace.len() + 1;
                 self.workspace.push(BuilderState::new_blank(
                     &format!("new-sector-{n}"),
@@ -95,7 +99,10 @@ impl BuilderApp {
                 ));
             }
             if self.workspace.len() > 1
-                && ui.button("x").on_hover_text("Close active workspace").clicked()
+                && ui
+                    .button("x")
+                    .on_hover_text("Close active workspace")
+                    .clicked()
             {
                 close_active = true;
             }

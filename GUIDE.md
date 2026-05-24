@@ -34,7 +34,7 @@ cargo --version
 From the repository root:
 
 ```bash
-# Build both binaries (sectorforge CLI + sectorforge-gui)
+# Build all binaries (sectorforge CLI + sectorforge-gui + sectorforge-builder)
 cargo build --release
 
 # Note: Example projects (big_test, big_sparse_test, m42_project) are 
@@ -51,6 +51,9 @@ cargo run --bin sectorforge -- inspect-worlds --data-dir examples/m42_project/da
 
 # Launch the GUI viewer/editor (cargo alias is `sgui`)
 cargo sgui --project examples/m42_project
+
+# Launch the interactive sector builder (cargo alias is `sbuild`)
+cargo sbuild --project examples/m42_project
 ```
 
 `generate` runs pre-generation validation, then sector generation, then
@@ -1447,7 +1450,9 @@ are accepted by the config parser but the current clustering ignores them.
 
 ---
 
-## 8. GUI viewer
+## 8. Desktop front ends
+
+### 8.1 Viewer/editor (`sectorforge-gui`)
 
 `sectorforge-gui` is an interactive viewer/editor for generated sectors,
 built with egui + eframe. It exposes the following views via the top
@@ -1472,7 +1477,7 @@ navigation bar:
   (§12 — sum of incident route trade volumes). Offscreen route segments and
   system-name labels are culled before route-pattern drawing or text layout,
   keeping high **HEX SIZE** zooming responsive. See
-  [src/gui/heatmap.rs](src/gui/heatmap.rs).
+  [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs).
   Heatmap cells are cached per loaded sector and mode, so toggling a
   non-`OFF` heatmap does not rescore every frame; the cache is invalidated
   when a new sector loads or live map/faction edits change map data. Toggle
@@ -1493,7 +1498,7 @@ navigation bar:
 - **Edit** — sector editor (rename systems, add/remove worlds, adjust tags
   and per-world factions). The **Factions** tab shows a deterministic colour
   + glyph chip per faction (derived from `kind`, `id`, `disposition` — see
-  [src/gui/palette.rs](src/gui/palette.rs) `faction_style`) and lets you
+  [gui-core/src/palette.rs](gui-core/src/palette.rs) `faction_style`) and lets you
   filter by kind/disposition, sort by total power, and pin favourites to
   the top.
 - **Factions** — high-level sector faction view. It lists top-level factions,
@@ -1517,7 +1522,7 @@ navigation bar:
 - **Diplomacy** (§5 NEW2.md/DONE) — table view of
   `sector.relations.pairs`: every faction pair with public/secret
   attitudes, treaty status, tension scalar, and cause text. Backed by
-  [src/gui/app/mod.rs](src/gui/app/mod.rs)
+  [gui/src/app/mod.rs](gui/src/app/mod.rs)
   `draw_relations_layout`.
 - **Regions** (§5 old/DONE.md) — table view of `sector.regions`: id, name,
   kind, hex count, centre coord. Pairs with the in-map region tint.
@@ -1530,7 +1535,7 @@ navigation bar:
   callout (component count, diameter, articulation points, isolated systems),
   world / star / population / route distributions, per-subsector political
   variety, and a list of health flags. Backed by
-  [src/analytics.rs](src/analytics.rs) and [src/gui/dashboard.rs](src/gui/dashboard.rs).
+  [src/analytics.rs](src/analytics.rs) and [gui/src/dashboard.rs](gui/src/dashboard.rs).
 - **History** (§1 NEW2.md/DONE) — full-page sector chronicle view. The left
   column lists dated events, the right column shows event refs/consequences and
   can jump to the first referenced system; snapshot/revert controls live below
@@ -1540,7 +1545,7 @@ navigation bar:
   scaffold a fresh project tree from one. The new project is **not**
   auto-loaded; the gallery prints the next-step command. Backed by
   [src/presets.rs](src/presets.rs) and
-  [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs).
+  [gui/src/preset_gallery.rs](gui/src/preset_gallery.rs).
 
 The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
 sector overview, a single system map, or all per-system maps. File pickers stay
@@ -1557,7 +1562,7 @@ bundle to a chosen folder: `<sector-id>/out/sector.json`, manifest,
 validation placeholder, Markdown, and a filtered `data/` copy when the
 sector was loaded from a project.
 
-### Launching the GUI
+#### Launching the viewer/editor
 
 A `cargo sgui` alias is registered in [.cargo/config.toml](.cargo/config.toml):
 
@@ -1582,30 +1587,44 @@ use: `cargo sgui --project examples/m42_project`.
 It will not run on headless servers. For CLI-only workflows, use `sectorforge generate`
 and inspect the output files.
 
-### Library-level GUI usage
+#### Library-level viewer usage
 
-The GUI module is exposed as `sectorforge::gui::App`. The struct takes a
+The viewer crate exposes `sectorforge_gui::App`. The struct takes a
 `GeneratedSector` in `App::new(sector)` or launches empty via `App::new_empty()`.
 Use `app.with_project_dir(dir)` to attach a project directory for regeneration
 and data-editor preloading.
 
-### Builder foundation (BUILDER_REQS.txt §43 Phase A)
+### 8.2 Builder (`sectorforge-builder`)
 
-The builder is the GUI-side editor that constructs a sector from scratch with
-full parity to the CLI. Its foundation layer lives in:
+`sectorforge-builder` is the separate interactive sector-construction binary.
+It owns the builder workspace and saves projects to disk; `sectorforge-gui`
+then opens the same project directory via `--project <dir>` and reloads the
+saved `out/sector.json`.
+
+Launch it with:
+
+```bash
+cargo sbuild --project examples/m42_project
+cargo run -p sectorforge-builder -- --help
+```
+
+#### Builder foundation (BUILDER_REQS.txt §43 Phase A)
+
+The builder constructs a sector from scratch with full parity to the CLI. Its
+foundation layer lives in:
 
 | Module | Purpose |
 |---|---|
 | [src/sector_model/mod.rs](src/sector_model/mod.rs) | `GeneratedSector::empty`, `GeneratedSystem::new_at`, `GeneratedWorld::new` constructors used by the builder when the user creates entities from scratch. |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, `add_faction`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
-| [gui/src/builder/state.rs](gui/src/builder/state.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + dirty flag + validation/invariant reports + pending jobs. |
-| [gui/src/builder/command.rs](gui/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The Phase A surface covers system/world/route/faction add/remove/move/rename; overlay commands land with their panels in later phases. |
-| [gui/src/builder/index.rs](gui/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
-| [gui/src/builder/data_catalogs.rs](gui/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
-| [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
-| [gui/src/builder/snapshot.rs](gui/src/builder/snapshot.rs) | Named save points tying a `GeneratedSector` clone to a command-log position. |
-| [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
-| [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
+| [builder/src/builder/state.rs](builder/src/builder/state.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + dirty flag + validation/invariant reports + pending jobs. |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The Phase A surface covers system/world/route/faction add/remove/move/rename; overlay commands land with their panels in later phases. |
+| [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
+| [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
+| [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
+| [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save points tying a `GeneratedSector` clone to a command-log position. |
+| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
+| [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
 
 `BuilderState::run` routes a command through the bus enforcing the R4
 rails: apply → re-index → clear derivation cache → truncate redo tail →
@@ -1625,16 +1644,16 @@ mismatched versions explicitly rather than partially decoding.
 
 | Rail | Where it lives |
 |---|---|
-| R1 single source of truth | [gui/src/builder/state.rs](gui/src/builder/state.rs) — direct ownership of `GeneratedSector` behind `&mut BuilderState`; equivalent to the spec's `Rc<RefCell<>>` (GUI thread is sole writer; jobs hold cloned read-only snapshots). |
+| R1 single source of truth | [builder/src/builder/state.rs](builder/src/builder/state.rs) — direct ownership of `GeneratedSector` behind `&mut BuilderState`; equivalent to the spec's `Rc<RefCell<>>` (GUI thread is sole writer; jobs hold cloned read-only snapshots). |
 | R2 typed IDs only | `BuilderCommand`, `BuilderIndex`, `BuilderState.pinned_*`, `SessionFile.pinned_*` all use `SystemId` / `WorldId` / `RouteId` / `FactionId` — no raw `String` IDs at panel boundaries. |
 | R3 deterministic index | `BuilderIndex` keys every map with `BTreeMap<TypedId, _>`; JSON exports stay byte-stable. |
 | R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform invariant re-check, snapshot/undo stack, auto-save trigger, and derivation-cache invalidation. |
-| R5 BLAKE3 cache | [src/rng.rs](src/rng.rs) `digest_bytes` + [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
-| R6 BuilderError variants | [gui/src/builder/errors.rs](gui/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
-| R7 off-thread runner | [gui/src/jobs.rs](gui/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. GUI previews cancel superseded work and discard stale revisions before applying results. |
-| R8 determinism test | [gui/src/builder/command.rs](gui/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
-| R9 no new crates | [gui/Cargo.toml](gui/Cargo.toml) unchanged; cache helper reuses the workspace `blake3` dep via `sectorforge::rng`. |
-| R10 panel contract | [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
+| R5 BLAKE3 cache | [src/rng.rs](src/rng.rs) `digest_bytes` + [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
+| R6 BuilderError variants | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
+| R7 off-thread runner | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. Builder previews cancel superseded work and discard stale revisions before applying results. |
+| R8 determinism test | [builder/src/builder/command.rs](builder/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
+| R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
+| R10 panel contract | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
 
 #### P1–P3 project I/O (DONE)
 
@@ -1646,19 +1665,19 @@ gives).
 | Step | Module |
 |---|---|
 | §P1 scaffold | [src/presets.rs](src/presets.rs) `scaffold_to_dir(preset_id, dest, seed_override)` resolves the default `presets/` directory (or the one next to the binary) and forwards to the existing `scaffold`. |
-| §P1 wizard panel | [gui/src/builder/panels/new_project.rs](gui/src/builder/panels/new_project.rs) drives `ModalKind::NewProject`. Confirm path calls `project_io::new_project`, which writes a default `sectorforge.toml` plus an empty `data/worlds/worlds.toml` (or runs the preset overlay when picked) and reloads the project via the standard §P2 path so the in-memory state is identical to a fresh open. |
-| §P2 loader | [gui/src/builder/project_io.rs](gui/src/builder/project_io.rs) `open_project(project_dir)` calls `sectorforge::input::load_project`, populates `BuilderState::data_catalogs` from every catalog the loader returned, and loads `<outputs.directory>/sector.json` when present (empty sector at config dims otherwise). `SectorError::ConfigParse { path, message }` is mapped to `BuilderError::ParseFailed { file, message }` so line numbers from the `toml` crate flow through. |
-| §P2 picker panel | [gui/src/builder/panels/open_project.rs](gui/src/builder/panels/open_project.rs) opens an `rfd::FileDialog::pick_folder` and surfaces failures via `ModalKind::Message`. |
-| §P3 saver | [gui/src/builder/project_io.rs](gui/src/builder/project_io.rs) `save_project` / `save_project_as`. Writes `sectorforge.toml` always; writes each catalog only when `state.config.inputs.<key>` actually references it (mirrors the load path). After every write, updates `state.sector.manifest.input_digests` so the manifest matches the file we just put on disk; the sector + manifest then go under `<outputs.directory>/`. Every file write is atomic via `atomic_write` (writes to `.<name>.tmp.<pid>` then `fs::rename`). |
-| §P3 action panel | [gui/src/builder/panels/save_project.rs](gui/src/builder/panels/save_project.rs) Save + Save-as buttons; "Save" is gated on a known `project_path`, "Save-as" opens the folder picker. |
-| §P4 PROJECT tree | [gui/src/builder/panels/project_tree.rs](gui/src/builder/panels/project_tree.rs) — collapsible directory tree rooted at `state.project_path`, dirty marker ("● " yellow) for files in `state.dirty_files`, click selects `state.selected_file`. |
-| §P5 watcher | [gui/src/builder/file_watcher.rs](gui/src/builder/file_watcher.rs) — mtime-polling thread (1 Hz) + `mpsc` channel + `AtomicBool` cancel (Drop joins). R9 forbids `notify`; polling matches the spec's reload + conflict-resolver behaviour. |
+| §P1 wizard panel | [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) drives `ModalKind::NewProject`. Confirm path calls `project_io::new_project`, which writes a default `sectorforge.toml` plus an empty `data/worlds/worlds.toml` (or runs the preset overlay when picked) and reloads the project via the standard §P2 path so the in-memory state is identical to a fresh open. |
+| §P2 loader | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `open_project(project_dir)` calls `sectorforge::input::load_project`, populates `BuilderState::data_catalogs` from every catalog the loader returned, and loads `<outputs.directory>/sector.json` when present (empty sector at config dims otherwise). `SectorError::ConfigParse { path, message }` is mapped to `BuilderError::ParseFailed { file, message }` so line numbers from the `toml` crate flow through. |
+| §P2 picker panel | [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) opens an `rfd::FileDialog::pick_folder` and surfaces failures via `ModalKind::Message`. |
+| §P3 saver | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `save_project` / `save_project_as`. Writes `sectorforge.toml` always; writes each catalog only when `state.config.inputs.<key>` actually references it (mirrors the load path). After every write, updates `state.sector.manifest.input_digests` so the manifest matches the file we just put on disk; the sector + manifest then go under `<outputs.directory>/`. Every file write is atomic via `atomic_write` (writes to `.<name>.tmp.<pid>` then `fs::rename`). |
+| §P3 action panel | [builder/src/builder/panels/save_project.rs](builder/src/builder/panels/save_project.rs) Save + Save-as buttons; "Save" is gated on a known `project_path`, "Save-as" opens the folder picker. |
+| §P4 PROJECT tree | [builder/src/builder/panels/project_tree.rs](builder/src/builder/panels/project_tree.rs) — collapsible directory tree rooted at `state.project_path`, dirty marker ("● " yellow) for files in `state.dirty_files`, click selects `state.selected_file`. |
+| §P5 watcher | [builder/src/builder/file_watcher.rs](builder/src/builder/file_watcher.rs) — mtime-polling thread (1 Hz) + `mpsc` channel + `AtomicBool` cancel (Drop joins). R9 forbids `notify`; polling matches the spec's reload + conflict-resolver behaviour. |
 | §P5 drain | `project_io::drain_watcher_events` — called from the UI loop. Clean buffers reload silently via `reload_catalog`; dirty buffers raise `ModalKind::ConflictResolver`. |
-| §P5 resolver panel | [gui/src/builder/panels/conflict_resolver.rs](gui/src/builder/panels/conflict_resolver.rs) — Reload-from-disk or Keep-in-memory. |
-| §P6 preferences store | [gui/src/builder/preferences.rs](gui/src/builder/preferences.rs) — `Preferences { recent_projects }` persisted at `~/.config/sectorforge/preferences.toml`. Tolerant loader; `push_recent` dedupes + caps to 10. |
-| §P6 preferences panel | [gui/src/builder/panels/preferences.rs](gui/src/builder/panels/preferences.rs) — click-to-open MRU + per-entry remove. |
+| §P5 resolver panel | [builder/src/builder/panels/conflict_resolver.rs](builder/src/builder/panels/conflict_resolver.rs) — Reload-from-disk or Keep-in-memory. |
+| §P6 preferences store | [builder/src/builder/preferences.rs](builder/src/builder/preferences.rs) — `Preferences { recent_projects }` persisted at `~/.config/sectorforge/preferences.toml`. Tolerant loader; `push_recent` dedupes + caps to 10. |
+| §P6 preferences panel | [builder/src/builder/panels/preferences.rs](builder/src/builder/panels/preferences.rs) — click-to-open MRU + per-entry remove. |
 
-Tests in `gui/src/builder/project_io.rs`:
+Tests in `builder/src/builder/project_io.rs`:
 
 * `new_project_blank_round_trips` — scaffolds a blank project, asserts the
   two required files exist and the in-memory state matches the requested
@@ -1674,11 +1693,11 @@ Tests in `gui/src/builder/project_io.rs`:
 
 | Piece | Where it lives |
 |---|---|
-| U1 command pattern | [gui/src/builder/command.rs](gui/src/builder/command.rs) — every structural mutation is a `BuilderCommand` variant with `apply` (records inverse data such as `before`, `removed_routes`, `result_id`) and `revert`. Round-trip tests: `add_system_round_trip`, `remove_system_round_trip`. |
-| U2 ring buffer | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderState::command_log_capacity` (default `DEFAULT_COMMAND_LOG_CAPACITY = 200`, `0` disables the cap). `BuilderState::run` calls `enforce_command_log_capacity`, which drains the oldest commands and shifts `command_cursor` plus every `Snapshot::command_log_position` by the drop-count so undo/redo and snapshot references stay coherent. |
-| U2 keyboard shortcuts | [gui/src/builder/panels/shortcuts.rs](gui/src/builder/panels/shortcuts.rs) — `handle(ctx, state)` consumes `Ctrl-Z` (undo), `Ctrl-Y` and `Ctrl-Shift-Z` (redo) via `ctx.input_mut(\|i\| i.consume_shortcut(...))`. Failures surface as `ModalKind::Message`. |
+| U1 command pattern | [builder/src/builder/command.rs](builder/src/builder/command.rs) — every structural mutation is a `BuilderCommand` variant with `apply` (records inverse data such as `before`, `removed_routes`, `result_id`) and `revert`. Round-trip tests: `add_system_round_trip`, `remove_system_round_trip`. |
+| U2 ring buffer | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `BuilderState::command_log_capacity` (default `DEFAULT_COMMAND_LOG_CAPACITY = 200`, `0` disables the cap). `BuilderState::run` calls `enforce_command_log_capacity`, which drains the oldest commands and shifts `command_cursor` plus every `Snapshot::command_log_position` by the drop-count so undo/redo and snapshot references stay coherent. |
+| U2 keyboard shortcuts | [builder/src/builder/panels/shortcuts.rs](builder/src/builder/panels/shortcuts.rs) — `handle(ctx, state)` consumes `Ctrl-Z` (undo), `Ctrl-Y` and `Ctrl-Shift-Z` (redo) via `ctx.input_mut(\|i\| i.consume_shortcut(...))`. Failures surface as `ModalKind::Message`. |
 
-Tests in `gui/src/builder/state.rs`:
+Tests in `builder/src/builder/state.rs`:
 
 * `ring_buffer_caps_command_log` — 12 commands into a cap of 5 leaves a 5-entry log with the cursor pinned at 5.
 * `ring_buffer_shifts_snapshot_positions` — a snapshot taken at log-position 2 falls to position 0 once the buffer rolls past it.
@@ -1694,12 +1713,12 @@ pass. The status bar combines them into a single tri-coloured health pip.
 
 | Piece | Where it lives |
 |---|---|
-| V1 validation panel | [gui/src/builder/panels/validation.rs](gui/src/builder/panels/validation.rs) — groups `ValidationReport.errors` / `warnings` under collapsing per-file buckets keyed by the issue `path` prefix (`factions` → `state.config.inputs.factions`, `routes` → `route_rules`, `relations`, `regions`, `economy`, `history`, `names`, otherwise `sectorforge.toml`). Each leaf is a button that sets `BuilderState::selected_file` so the §P4 project tree and the upcoming TOML editor tabs can route the user to the file. The footer renders `WorldWorkbookValidation` (row count, usable candidates, exclusion reasons, key tables). A "Re-validate now" button forces an immediate `BuilderState::revalidate_now` flush. |
-| V2 invariants panel | [gui/src/builder/panels/invariants.rs](gui/src/builder/panels/invariants.rs) — groups `InvariantReport.violations` by stratum (`systems` / `worlds` / `routes` / `factions` / `regions` / `economy` / `manifest` / `other`) using the invariant `path` prefix. Each row is a button that writes typed IDs into the selection mailbox (`BuilderState::selected_system_id`, `selected_world_id`, `selected_route_id`, `selected_faction_id`, `selected_region_id`) so the inspector tabs can focus the entity. A "Re-check now" button re-runs `sectorforge::invariants::check_sector`. The panel also surfaces the §V5 invariant catalogue as a read-only collapsing list of every code the checker may emit. |
-| V3 debounced live validation | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderState::run` / `undo` / `redo` call `mark_validation_dirty()` which stamps `Instant::now()` into `validation_dirty_since`. Per-frame the UI calls `BuilderState::pump_validation()`; once `validation_debounce` (default 200 ms, `DEFAULT_VALIDATION_DEBOUNCE_MS`) elapses, `revalidate_now()` runs `sectorforge::validation::validate` against a synthetic `ProjectInput` built by `synthesize_project_input()` (worlds catalog mandatory; other catalogs default-fall-through). The debounce timer is cleared regardless of catalog completeness so we don't re-arm every tick. |
-| V3 health pip | [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) — calls `BuilderState::health_level()` which returns `HealthLevel::Red` when any validation error or invariant violation is present, `Yellow` when warnings exist or either report has not run yet, and `Green` only when both reports are present and clean. The pip displays `validation: N err / M warn · invariants: K`. |
+| V1 validation panel | [builder/src/builder/panels/validation.rs](builder/src/builder/panels/validation.rs) — groups `ValidationReport.errors` / `warnings` under collapsing per-file buckets keyed by the issue `path` prefix (`factions` → `state.config.inputs.factions`, `routes` → `route_rules`, `relations`, `regions`, `economy`, `history`, `names`, otherwise `sectorforge.toml`). Each leaf is a button that sets `BuilderState::selected_file` so the §P4 project tree and the upcoming TOML editor tabs can route the user to the file. The footer renders `WorldWorkbookValidation` (row count, usable candidates, exclusion reasons, key tables). A "Re-validate now" button forces an immediate `BuilderState::revalidate_now` flush. |
+| V2 invariants panel | [builder/src/builder/panels/invariants.rs](builder/src/builder/panels/invariants.rs) — groups `InvariantReport.violations` by stratum (`systems` / `worlds` / `routes` / `factions` / `regions` / `economy` / `manifest` / `other`) using the invariant `path` prefix. Each row is a button that writes typed IDs into the selection mailbox (`BuilderState::selected_system_id`, `selected_world_id`, `selected_route_id`, `selected_faction_id`, `selected_region_id`) so the inspector tabs can focus the entity. A "Re-check now" button re-runs `sectorforge::invariants::check_sector`. The panel also surfaces the §V5 invariant catalogue as a read-only collapsing list of every code the checker may emit. |
+| V3 debounced live validation | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `BuilderState::run` / `undo` / `redo` call `mark_validation_dirty()` which stamps `Instant::now()` into `validation_dirty_since`. Per-frame the UI calls `BuilderState::pump_validation()`; once `validation_debounce` (default 200 ms, `DEFAULT_VALIDATION_DEBOUNCE_MS`) elapses, `revalidate_now()` runs `sectorforge::validation::validate` against a synthetic `ProjectInput` built by `synthesize_project_input()` (worlds catalog mandatory; other catalogs default-fall-through). The debounce timer is cleared regardless of catalog completeness so we don't re-arm every tick. |
+| V3 health pip | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — calls `BuilderState::health_level()` which returns `HealthLevel::Red` when any validation error or invariant violation is present, `Yellow` when warnings exist or either report has not run yet, and `Green` only when both reports are present and clean. The pip displays `validation: N err / M warn · invariants: K`. |
 
-Tests in `gui/src/builder/state.rs`:
+Tests in `builder/src/builder/state.rs`:
 
 * `mutation_arms_validation_debounce` — `run(AddSystem)` sets `validation_dirty_since`.
 * `pump_validation_holds_within_debounce_window` — with a 5 s debounce the pump returns `false`.
@@ -1709,22 +1728,22 @@ Tests in `gui/src/builder/state.rs`:
 
 Tests in the panel modules cover the path-bucket logic without touching `egui`:
 
-* `gui/src/builder/panels/validation.rs::tests::group_buckets_by_prefix` — issue paths like `factions[1].preferred_world_types`, `routes.modifiers[0]`, and `None` are bucketed under `factions`, `routes`, and `(general)`.
-* `gui/src/builder/panels/invariants.rs::tests::stratum_split_system_vs_world`, `parse_system_world_extracts_ids`, `parse_path_picks_first_id` — verify the stratum split and the path-to-typed-ID parsers used by the click-to-focus mailbox.
+* `builder/src/builder/panels/validation.rs::tests::group_buckets_by_prefix` — issue paths like `factions[1].preferred_world_types`, `routes.modifiers[0]`, and `None` are bucketed under `factions`, `routes`, and `(general)`.
+* `builder/src/builder/panels/invariants.rs::tests::stratum_split_system_vs_world`, `parse_system_world_extracts_ids`, `parse_path_picks_first_id` — verify the stratum split and the path-to-typed-ID parsers used by the click-to-focus mailbox.
 
 #### N1–N4 UI routing / nav (DONE)
 
 The builder ships a single top-tab router plus a status bar wired to the
-shared health pip. The viewer [`crate::App`] continues to own its own
+shared health pip. The viewer `sectorforge_gui::App` continues to own its own
 navigation; the §N router is the entry point for the upcoming builder shell
 that adopts `BuilderState` as root state.
 
 | Piece | Where it lives |
 |---|---|
-| N1 tab enum | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [gui/src/builder/panels/nav.rs](gui/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([gui/src/builder/panels/project.rs](gui/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs), §S1); SYSTEM hosts the §S2..§S6 inspector ([gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs)); remaining tabs are stubs backed by [gui/src/builder/panels/placeholder.rs](gui/src/builder/panels/placeholder.rs) (Phase B: world/factions/control/routes; Phase C: regions/subsectors/economy/relations/history; Phase D: personae/hooks/sites/missions/prose/interestingness/briefing; Phase E: analytics/search/diff/segmentum/export). |
-| N3 map toolbox | [gui/src/builder/state.rs](gui/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the §S1 click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems}`. |
-| N4 status bar | [gui/src/builder/panels/status.rs](gui/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
+| N1 tab enum | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
+| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1); SYSTEM hosts the §S2..§S6 inspector ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)); remaining tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs) (Phase B: world/factions/control/routes; Phase C: regions/subsectors/economy/relations/history; Phase D: personae/hooks/sites/missions/prose/interestingness/briefing; Phase E: analytics/search/diff/segmentum/export). |
+| N3 map toolbox | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the §S1 click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems}`. |
+| N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
 N5 (Ctrl-K command palette) is intentionally deferred to Phase F.
 
@@ -1736,14 +1755,14 @@ strip stays stable.
 
 | Piece | Where it lives |
 |---|---|
-| G1 `[generation]` parity | [gui/src/builder/panels/generation.rs](gui/src/builder/panels/generation.rs) `show_g1_parameters` — typed widgets over every field of `GenerationConfig` / `PlacementConfig` / `WorldSelectionConfig` / `RouteGenerationConfig` / `RelationsGenerationConfig`. Enum ComboBoxes over `PlacementMode` (uniform / weighted / clustered) and `WorldSelectionMode`; DragValue for integers; Slider for fractions (`cluster_bias`, `route_density`, `same_star_colour_bias`). Any change schedules a §G3 preview. |
-| G2 seed lock + Re-roll | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::{seed_locked, seed_reroll_counter, reroll_seed}`. When unlocked, `reroll_seed` advances the counter and replaces `config.generation.seed` with `blake3("sectorforge:{seed}:reroll:{n}")` (computed by [gui/src/builder/preview.rs](gui/src/builder/preview.rs) `derive_reroll_seed`). When locked, the call is a no-op. Tests `reroll_locked_keeps_seed`, `reroll_unlocked_advances_seed_and_counter`, and `derive_reroll_seed_is_deterministic_and_counter_sensitive` pin the contract. |
-| G3 live preview | [gui/src/builder/preview.rs](gui/src/builder/preview.rs) `PreviewState` — scratch sector + in-flight `JobHandle` + debounce timer (`DEFAULT_DEBOUNCE_MS = 200`) + revision counter. `schedule` cancels any in-flight job, bumps the revision, and clears the scratch sector; `pump` checks the timer each frame and dispatches `sectorforge::generation::generate_with_progress_and_cancel` through `crate::jobs::spawn_job`. Stale revisions are discarded by `apply_result`. The panel shows a coloured "PREVIEW READY" badge with system / route counts when the worker completes. |
-| G4 Apply preview | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::apply_preview` — promotes the scratch sector into `state.sector`, then overlays every system whose `SystemId` is in `pinned_systems` with its pre-preview snapshot (or re-inserts it if the preview dropped the slot), then rebuilds the index, clears the derivation cache, marks dirty, and re-runs invariants. Pinning lives in the side-table per Q1; no new field on `GeneratedSystem`. |
-| G5 partial regen | [gui/src/builder/state.rs](gui/src/builder/state.rs) `PartialRegenRect::{from_corners, contains}` plus `BuilderState::{partial_regen_rect, regenerate_partial}`. The panel exposes min / max q / r DragValues; on apply, every non-pinned in-rect system is replaced by a fresh `sectorforge::generate_system_standalone` call keyed by its existing index, then the systems list is re-sorted and the index rebuilt. Errors bubble up as `BuilderError::ParseFailed`. |
-| G6 New from preset (new tab) | [gui/src/builder/workspace.rs](gui/src/builder/workspace.rs) `BuilderWorkspace` — owns `Vec<BuilderState>` plus an active index; `push` focuses the new state, `switch_to` re-points the cursor, `close_active` drops the focused state. The panel collects (preset id, destination, seed) into `ModalKind::NewFromPreset`, calls `project_io::new_project(opts)` with `preset = Some(id)`, and pushes the resulting state onto the workspace when one is wired; falls back to replacing the current state when no host workspace is present. |
+| G1 `[generation]` parity | [builder/src/builder/panels/generation.rs](builder/src/builder/panels/generation.rs) `show_g1_parameters` — typed widgets over every field of `GenerationConfig` / `PlacementConfig` / `WorldSelectionConfig` / `RouteGenerationConfig` / `RelationsGenerationConfig`. Enum ComboBoxes over `PlacementMode` (uniform / weighted / clustered) and `WorldSelectionMode`; DragValue for integers; Slider for fractions (`cluster_bias`, `route_density`, `same_star_colour_bias`). Any change schedules a §G3 preview. |
+| G2 seed lock + Re-roll | [builder/src/builder/state.rs](builder/src/builder/state.rs) `BuilderState::{seed_locked, seed_reroll_counter, reroll_seed}`. When unlocked, `reroll_seed` advances the counter and replaces `config.generation.seed` with `blake3("sectorforge:{seed}:reroll:{n}")` (computed by [builder/src/builder/preview.rs](builder/src/builder/preview.rs) `derive_reroll_seed`). When locked, the call is a no-op. Tests `reroll_locked_keeps_seed`, `reroll_unlocked_advances_seed_and_counter`, and `derive_reroll_seed_is_deterministic_and_counter_sensitive` pin the contract. |
+| G3 live preview | [builder/src/builder/preview.rs](builder/src/builder/preview.rs) `PreviewState` — scratch sector + in-flight `JobHandle` + debounce timer (`DEFAULT_DEBOUNCE_MS = 200`) + revision counter. `schedule` cancels any in-flight job, bumps the revision, and clears the scratch sector; `pump` checks the timer each frame and dispatches `sectorforge::generation::generate_with_progress_and_cancel` through `sectorforge_gui_core::jobs::spawn_job`. Stale revisions are discarded by `apply_result`. The panel shows a coloured "PREVIEW READY" badge with system / route counts when the worker completes. |
+| G4 Apply preview | [builder/src/builder/state.rs](builder/src/builder/state.rs) `BuilderState::apply_preview` — promotes the scratch sector into `state.sector`, then overlays every system whose `SystemId` is in `pinned_systems` with its pre-preview snapshot (or re-inserts it if the preview dropped the slot), then rebuilds the index, clears the derivation cache, marks dirty, and re-runs invariants. Pinning lives in the side-table per Q1; no new field on `GeneratedSystem`. |
+| G5 partial regen | [builder/src/builder/state.rs](builder/src/builder/state.rs) `PartialRegenRect::{from_corners, contains}` plus `BuilderState::{partial_regen_rect, regenerate_partial}`. The panel exposes min / max q / r DragValues; on apply, every non-pinned in-rect system is replaced by a fresh `sectorforge::generate_system_standalone` call keyed by its existing index, then the systems list is re-sorted and the index rebuilt. Errors bubble up as `BuilderError::ParseFailed`. |
+| G6 New from preset (new tab) | [builder/src/builder/workspace.rs](builder/src/builder/workspace.rs) `BuilderWorkspace` — owns `Vec<BuilderState>` plus an active index; `push` focuses the new state, `switch_to` re-points the cursor, `close_active` drops the focused state. The panel collects (preset id, destination, seed) into `ModalKind::NewFromPreset`, calls `project_io::new_project(opts)` with `preset = Some(id)`, and pushes the resulting state onto the workspace when one is wired; falls back to replacing the current state when no host workspace is present. |
 
-Tests in `gui/src/builder/panels/generation.rs`:
+Tests in `builder/src/builder/panels/generation.rs`:
 
 * `partial_regen_rect_contains_normalises_corners` — `from_corners` swaps inverted ranges.
 * `reroll_locked_keeps_seed` — locked re-roll is a no-op.
@@ -1752,11 +1771,11 @@ Tests in `gui/src/builder/panels/generation.rs`:
 * `partial_regen_without_input_errors` — synthesising a `ProjectInput` requires a worlds catalog.
 * `partial_regen_skips_when_no_rect` — missing rect yields `ParseFailed`.
 
-Tests in `gui/src/builder/preview.rs`:
+Tests in `builder/src/builder/preview.rs`:
 
 * `schedule_bumps_revision_and_clears_sector`, `apply_result_drops_stale_revision`, `apply_result_keeps_current_revision`, `clear_cancels_in_flight_job`, `derive_reroll_seed_is_deterministic_and_counter_sensitive`.
 
-Tests in `gui/src/builder/workspace.rs`:
+Tests in `builder/src/builder/workspace.rs`:
 
 * `push_focuses_new_slot`, `switch_to_changes_active_within_bounds`, `close_active_collapses_to_previous_slot`, `close_first_keeps_focus_on_next`, `iter_emits_all_states_in_insertion_order`.
 
@@ -1767,37 +1786,37 @@ through the command bus; the SYSTEM tab owns the inspector + bulk-ops surface.
 
 | Piece | Where it lives |
 |---|---|
-| S1 toolbox + click handlers | [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) — `show_hex_map` + `handle_click` + `handle_drag_drop`. ADD SYSTEM opens an inline placement dialog (`BuilderState::pending_place`); DELETE / MOVE run `BuilderCommand::{RemoveSystem, MoveSystem}`; double-click on a system opens the rename dialog (`pending_rename`) which commits `BuilderCommand::RenameSystem`. Hex geometry helpers (`Geom`, `hex_center`, `hex_pick`) inline the math from `gui::editor::map_panel`. |
-| S2 inspector | [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs) — collapsing sections for Identity / Star / Tags + Notes / Worlds (deep-link) / Routes (deep-link) / Primary factions / Control / Overlays. Every `GeneratedSystem` field is reachable; sibling panels manage the structured fields (§8 worlds, §10 factions, §11 control, §28..§32 overlays) and the SYSTEM tab provides "→" jumps via `BuilderState::active_tab`. |
-| S3 pinned toggle | [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs) Identity section + [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) coral outline. Backed by `BuilderState::pinned_systems` per Q1; honoured by §G5 partial regen, §S5 regen, and §S4 reseed. |
-| S4 bulk ops | [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs) `show_bulk_ops` — drives `BuilderState::selected_systems` (shift-click + rect-drag from the MAP panel). Operations: rename pattern (`{n}` / `{id}` / `{name}` substitution), reassign primary faction, clear primary factions, flip control state (`SystemState` palette), pin/unpin, reseed worlds (re-runs §S5 per slot). |
-| S5 generate-one-here | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::generate_system_here(coord, index, seed_override)` — synthesises a `ProjectInput` from in-memory catalogs, optionally swaps the seed, calls `sectorforge::generate_system_standalone`, and runs the result through the bus as `BuilderCommand::ReplaceSystem`. Pinned occupants refuse the op. Inspector form lives under the `§S5 — Generate one system here` collapse. |
-| S6 coord validity | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) `swap_systems` plus [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs) `show_collision_dialog`. Out-of-bounds coords land a `ModalKind::Message` reject; collisions arm `BuilderState::pending_collision`, the modal offers Swap (runs `BuilderCommand::SwapSystems`) or Cancel. The inspector "Apply coord" button shares the same path. |
+| S1 toolbox + click handlers | [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) — `show_hex_map` + `handle_click` + `handle_drag_drop`. ADD SYSTEM opens an inline placement dialog (`BuilderState::pending_place`); DELETE / MOVE run `BuilderCommand::{RemoveSystem, MoveSystem}`; double-click on a system opens the rename dialog (`pending_rename`) which commits `BuilderCommand::RenameSystem`. Hex geometry helpers (`Geom`, `hex_center`, `hex_pick`) inline the math from `gui::editor::map_panel`. |
+| S2 inspector | [builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs) — collapsing sections for Identity / Star / Tags + Notes / Worlds (deep-link) / Routes (deep-link) / Primary factions / Control / Overlays. Every `GeneratedSystem` field is reachable; sibling panels manage the structured fields (§8 worlds, §10 factions, §11 control, §28..§32 overlays) and the SYSTEM tab provides "→" jumps via `BuilderState::active_tab`. |
+| S3 pinned toggle | [builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs) Identity section + [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) coral outline. Backed by `BuilderState::pinned_systems` per Q1; honoured by §G5 partial regen, §S5 regen, and §S4 reseed. |
+| S4 bulk ops | [builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs) `show_bulk_ops` — drives `BuilderState::selected_systems` (shift-click + rect-drag from the MAP panel). Operations: rename pattern (`{n}` / `{id}` / `{name}` substitution), reassign primary faction, clear primary factions, flip control state (`SystemState` palette), pin/unpin, reseed worlds (re-runs §S5 per slot). |
+| S5 generate-one-here | [builder/src/builder/state.rs](builder/src/builder/state.rs) `BuilderState::generate_system_here(coord, index, seed_override)` — synthesises a `ProjectInput` from in-memory catalogs, optionally swaps the seed, calls `sectorforge::generate_system_standalone`, and runs the result through the bus as `BuilderCommand::ReplaceSystem`. Pinned occupants refuse the op. Inspector form lives under the `§S5 — Generate one system here` collapse. |
+| S6 coord validity | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) `swap_systems` plus [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `show_collision_dialog`. Out-of-bounds coords land a `ModalKind::Message` reject; collisions arm `BuilderState::pending_collision`, the modal offers Swap (runs `BuilderCommand::SwapSystems`) or Cancel. The inspector "Apply coord" button shares the same path. |
 
 Tests:
 
 * `swap_systems_exchanges_coords_and_refreshes_distance`, `swap_systems_unknown_id_errors` in [src/sector_model/mutation.rs](src/sector_model/mutation.rs).
-* `swap_systems_round_trip`, `replace_system_round_trip` in [gui/src/builder/command.rs](gui/src/builder/command.rs).
-* `handle_click_select_focuses_system`, `handle_click_shift_adds_to_selection`, `handle_drag_drop_move_succeeds`, `handle_drag_drop_collision_arms_dialog`, `handle_drag_drop_out_of_bounds_rejected`, `apply_rect_select_picks_systems_in_box` in [gui/src/builder/panels/map.rs](gui/src/builder/panels/map.rs).
-* `bulk_rename_applies_pattern`, `bulk_control_state_flips_selection`, `bulk_pin_unpin_round_trip`, `apply_coord_move_rejects_out_of_bounds` in [gui/src/builder/panels/system.rs](gui/src/builder/panels/system.rs).
+* `swap_systems_round_trip`, `replace_system_round_trip` in [builder/src/builder/command.rs](builder/src/builder/command.rs).
+* `handle_click_select_focuses_system`, `handle_click_shift_adds_to_selection`, `handle_drag_drop_move_succeeds`, `handle_drag_drop_collision_arms_dialog`, `handle_drag_drop_out_of_bounds_rejected`, `apply_rect_select_picks_systems_in_box` in [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs).
+* `bulk_rename_applies_pattern`, `bulk_control_state_flips_selection`, `bulk_pin_unpin_round_trip`, `apply_coord_move_rejects_out_of_bounds` in [builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs).
 
 #### W1–W7 world panel (DONE)
 
-Phase B §8. The WORLD tab in [gui/src/builder/panels/world.rs](gui/src/builder/panels/world.rs) is the per-world inspector — every `GeneratedWorld` field reachable, enum pickers driven by the canonical `*::VARIANTS` lists in [src/worlds.rs](src/worlds.rs), pinning side-table (Q1), single-world re-roll, weighted features picker, inline coupling warnings, and a claims chip-row.
+Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) is the per-world inspector — every `GeneratedWorld` field reachable, enum pickers driven by the canonical `*::VARIANTS` lists in [src/worlds.rs](src/worlds.rs), pinning side-table (Q1), single-world re-roll, weighted features picker, inline coupling warnings, and a claims chip-row.
 
 | Piece | Where it lives |
 |---|---|
-| W1 inspector | [gui/src/builder/panels/world.rs](gui/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays (§28 / §32 read-only), and the §W4 re-roll collapse. |
-| W2 enum pickers | `combo_enum::<E>` in [gui/src/builder/panels/world.rs](gui/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `gui/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
+| W1 inspector | [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays (§28 / §32 read-only), and the §W4 re-roll collapse. |
+| W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `gui/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
-| W4 re-roll | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/generation.rs](src/generation.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
+| W4 re-roll | [builder/src/builder/state.rs](builder/src/builder/state.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/generation.rs](src/generation.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
 | W5 features picker | `show_features_section` searchable multi-select. Weight previews are computed by `feature_weights_for_world` which sums per-world-type, per-star-colour, and global tiers of the pool's `FeaturePool` — empty when no worlds catalog is loaded. Already-present features are hidden from the add list. |
 | W6 coupling warnings | `coupling_warnings(&WorldDto)` returns inline non-blocking yellow-pill messages for DeathWorld + High-Tech, DeadWorld with population, TombWorld + Thriving biosphere, Asteroid + dense population, Warp-Lost world + High tech, ForgeWorld + low tech, Uninhabited + non-None government, Airless + Thriving biosphere, Toxic + Thriving biosphere. Surface only when at least one fires. |
 | W7 claims chip-row | `show_claims_section` renders one chip per `FactionClaim`, colour-coded by `ClaimType` (legal / mandate / treaty / religious / dynastic / commercial / military / ancient / hunting / covert / rebellion), with click-to-jump to the FACTIONS tab and × to remove. Add-claim row below picks faction + claim_type + strength (0..=100). |
 
 Tests:
 
-* `coupling_flags_dead_world_with_population`, `coupling_flags_uninhabited_with_government`, `coupling_silent_on_normal_world`, `pinned_world_refuses_regen`, `enum_picker_variants_match_worlds_authoritative_set` in [gui/src/builder/panels/world.rs](gui/src/builder/panels/world.rs).
+* `coupling_flags_dead_world_with_population`, `coupling_flags_uninhabited_with_government`, `coupling_silent_on_normal_world`, `pinned_world_refuses_regen`, `enum_picker_variants_match_worlds_authoritative_set` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs).
 
 ---
 
@@ -1908,7 +1927,7 @@ The newtypes also implement `Deref<Target = str>`, `AsRef<str>`, `Display`,
 `HashSet<RouteId>`, `format!("{}", id)`, and `map.get(id.as_str())` without
 ceremony.
 
-For GUI text-edit fields, [src/gui/editor/ui_helpers.rs](src/gui/editor/ui_helpers.rs)
+For GUI text-edit fields, [gui/src/editor/ui_helpers.rs](gui/src/editor/ui_helpers.rs)
 exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — generic wrappers
 over the `&mut String` versions that round-trip the typed id through a
 temporary `String` buffer so `egui::TextEdit` keeps working unchanged.
@@ -2055,7 +2074,9 @@ across runs, so a regression check is a diff away.
 |---|---|
 | [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
 | [src/main.rs](src/main.rs) | Clap-based CLI (`sectorforge` binary) |
-| [src/gui/main.rs](src/gui/main.rs) | GUI binary entry point (`sectorforge-gui`) |
+| [gui/src/main.rs](gui/src/main.rs) | GUI binary entry point (`sectorforge-gui`) |
+| [builder/src/main.rs](builder/src/main.rs) | Builder binary entry point (`sectorforge-builder`) |
+| [builder/src/app.rs](builder/src/app.rs) | Thin eframe app host for builder workspaces |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
 | [src/world_pool.rs](src/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
 | [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
@@ -2087,8 +2108,8 @@ across runs, so a regression check is a diff away.
 | [src/briefing.rs](src/briefing.rs) | §9 NEW2.md briefing profiles: six audience presets (gm / navy / inquisition / trader / governor / public) that combine the existing intel redaction primitives with hidden-route, relations, claim, archetype, and orbital-asset stripping. |
 | [src/missions.rs](src/missions.rs) | §3 NEW2.md mission seed generator: typed Investigate / Escort / Sabotage / Diplomacy / Assassination / Recovery / Defense / Exploration seeds keyed off contested worlds, hidden masters, mismatched claims, perilous routes, and uncharted systems. |
 | [src/sites.rs](src/sites.rs) | §7 NEW2.md planetary points-of-interest: 21 site kinds (governor's palace, cathedral spire, manufactorum, underhive, cult safehouse, …) derived from world type / features / surface regions, with `public_status` vs. `actual_status` masking and one-line hooks. |
-| [src/gui/dashboard.rs](src/gui/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
-| [src/gui/preset_gallery.rs](src/gui/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
+| [gui/src/dashboard.rs](gui/src/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
+| [gui/src/preset_gallery.rs](gui/src/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
 | [src/names.rs](src/names.rs) | Name table types |
@@ -2113,40 +2134,42 @@ across runs, so a regression check is a diff away.
 | [src/influence_field.rs](src/influence_field.rs) | §9 NEXT: continuous radius-limited influence projection from system anchors with `1/(1+d²)` falloff. Stored on `sector.influence_field` |
 | [src/sector_save.rs](src/sector_save.rs) | §13 NEXT: `SectorSave` — IDs-only runtime state split from the static catalog half; `split` and `merge` for round-tripping |
 | [src/world_ecs.rs](src/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
-| [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
-| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export, dispatched through background export jobs with all-system PNG cancellation |
-| [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render widget |
-| [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel widget |
-| [src/gui/factions_overview.rs](src/gui/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
-| [src/gui/data_editor.rs](src/gui/data_editor.rs) | `worlds.toml` data editor UI |
-| [src/gui/route_planner.rs](src/gui/route_planner.rs) | Route planner (Safest / Shortest) |
-| [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
-| [src/gui/editor/](src/gui/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
-| [src/gui/palette.rs](src/gui/palette.rs) | Color palette for GUI; egui wrapper around [src/faction_style.rs](src/faction_style.rs) (`faction_style`, glyph + border) |
-| [src/gui/heatmap.rs](src/gui/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |
-| [gui/src/builder/mod.rs](gui/src/builder/mod.rs) | Builder Phase A entry — re-exports `BuilderState`, `BuilderCommand`, `BuilderIndex`, `DataCatalogs`, `DerivationCache`, `Snapshot`, `BuilderError`, session save/load |
-| [gui/src/builder/state.rs](gui/src/builder/state.rs) | `BuilderState` (single working sector + log + index + caches + reports), `ModalKind` |
-| [gui/src/builder/command.rs](gui/src/builder/command.rs) | `BuilderCommand` apply/revert pattern over `GeneratedSector` mutations |
-| [gui/src/builder/index.rs](gui/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table refreshed after every command |
-| [gui/src/builder/data_catalogs.rs](gui/src/builder/data_catalogs.rs) | In-memory TOML mirrors (worlds/factions/relations/route_rules/regions/economy/history/names) |
-| [gui/src/builder/derivation_cache.rs](gui/src/builder/derivation_cache.rs) | BLAKE3-keyed cache for derived overlays |
-| [gui/src/builder/snapshot.rs](gui/src/builder/snapshot.rs) | Named save-point structure |
-| [gui/src/builder/session.rs](gui/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
-| [gui/src/builder/errors.rs](gui/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
-| [gui/src/builder/panels/mod.rs](gui/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
-| [gui/src/builder/project_io.rs](gui/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes, manifest digest refresh |
-| [gui/src/builder/panels/new_project.rs](gui/src/builder/panels/new_project.rs) | §P1 wizard panel driving `ModalKind::NewProject` |
-| [gui/src/builder/panels/open_project.rs](gui/src/builder/panels/open_project.rs) | §P2 folder-picker panel calling `project_io::open_project` |
-| [gui/src/builder/panels/save_project.rs](gui/src/builder/panels/save_project.rs) | §P3 Save + Save-as action panel |
-| [gui/src/builder/panels/project_tree.rs](gui/src/builder/panels/project_tree.rs) | §P4 PROJECT directory tree, dirty markers, selected-file router |
-| [gui/src/builder/file_watcher.rs](gui/src/builder/file_watcher.rs) | §P5 mtime-polling external-change watcher (no `notify` dep — R9) |
-| [gui/src/builder/panels/conflict_resolver.rs](gui/src/builder/panels/conflict_resolver.rs) | §P5 Reload / Keep dialog when watcher detects external change against dirty buffer |
-| [gui/src/builder/preferences.rs](gui/src/builder/preferences.rs) | §P6 `Preferences` store at `~/.config/sectorforge/preferences.toml` — recent-projects MRU |
-| [gui/src/builder/panels/preferences.rs](gui/src/builder/panels/preferences.rs) | §P6 Preferences panel with click-to-open recent-projects list |
-| [gui/src/builder/panels/shortcuts.rs](gui/src/builder/panels/shortcuts.rs) | §U2 keyboard-shortcut handler — `Ctrl-Z` undo, `Ctrl-Y` / `Ctrl-Shift-Z` redo, consumed via `Context::input_mut` |
-| [gui/src/builder/preview.rs](gui/src/builder/preview.rs) | §G3 live-preview pipeline — `PreviewState` (debounce + scratch sector + revision-stamped job) + `derive_reroll_seed` helper for §G2 |
-| [gui/src/builder/workspace.rs](gui/src/builder/workspace.rs) | §G6 `BuilderWorkspace` — ring of open `BuilderState` sessions with `push` / `switch_to` / `close_active` |
-| [gui/src/builder/panels/generation.rs](gui/src/builder/panels/generation.rs) | §6 G1..G6 Generation panel (parameters parity / seed lock + re-roll / live preview / Apply / partial regen / New from preset) hosted under PROJECT tab |
+| [gui-core/src/lib.rs](gui-core/src/lib.rs) | Shared GUI widget/util crate re-exporting palette, jobs, map/detail widgets, info panel, heatmap |
+| [gui-core/src/jobs.rs](gui-core/src/jobs.rs) | Background job helper shared by viewer/editor and builder |
+| [gui/src/app/mod.rs](gui/src/app/mod.rs) | Top-level eframe app + navigation |
+| [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export, dispatched through background export jobs with all-system PNG cancellation |
+| [gui-core/src/sector_view.rs](gui-core/src/sector_view.rs) | Hex map render widget |
+| [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
+| [gui/src/factions_overview.rs](gui/src/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
+| [gui/src/data_editor.rs](gui/src/data_editor.rs) | `worlds.toml` data editor UI |
+| [gui/src/route_planner.rs](gui/src/route_planner.rs) | Route planner (Safest / Shortest) |
+| [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
+| [gui/src/editor/](gui/src/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
+| [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette for GUI; egui wrapper around [src/faction_style.rs](src/faction_style.rs) (`faction_style`, glyph + border) |
+| [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |
+| [builder/src/builder/mod.rs](builder/src/builder/mod.rs) | Builder Phase A entry — re-exports `BuilderState`, `BuilderCommand`, `BuilderIndex`, `DataCatalogs`, `DerivationCache`, `Snapshot`, `BuilderError`, session save/load |
+| [builder/src/builder/state.rs](builder/src/builder/state.rs) | `BuilderState` (single working sector + log + index + caches + reports), `ModalKind` |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` apply/revert pattern over `GeneratedSector` mutations |
+| [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table refreshed after every command |
+| [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory TOML mirrors (worlds/factions/relations/route_rules/regions/economy/history/names) |
+| [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache for derived overlays |
+| [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save-point structure |
+| [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
+| [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
+| [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
+| [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes, manifest digest refresh |
+| [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) | §P1 wizard panel driving `ModalKind::NewProject` |
+| [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) | §P2 folder-picker panel calling `project_io::open_project` |
+| [builder/src/builder/panels/save_project.rs](builder/src/builder/panels/save_project.rs) | §P3 Save + Save-as action panel |
+| [builder/src/builder/panels/project_tree.rs](builder/src/builder/panels/project_tree.rs) | §P4 PROJECT directory tree, dirty markers, selected-file router |
+| [builder/src/builder/file_watcher.rs](builder/src/builder/file_watcher.rs) | §P5 mtime-polling external-change watcher (no `notify` dep — R9) |
+| [builder/src/builder/panels/conflict_resolver.rs](builder/src/builder/panels/conflict_resolver.rs) | §P5 Reload / Keep dialog when watcher detects external change against dirty buffer |
+| [builder/src/builder/preferences.rs](builder/src/builder/preferences.rs) | §P6 `Preferences` store at `~/.config/sectorforge/preferences.toml` — recent-projects MRU |
+| [builder/src/builder/panels/preferences.rs](builder/src/builder/panels/preferences.rs) | §P6 Preferences panel with click-to-open recent-projects list |
+| [builder/src/builder/panels/shortcuts.rs](builder/src/builder/panels/shortcuts.rs) | §U2 keyboard-shortcut handler — `Ctrl-Z` undo, `Ctrl-Y` / `Ctrl-Shift-Z` redo, consumed via `Context::input_mut` |
+| [builder/src/builder/preview.rs](builder/src/builder/preview.rs) | §G3 live-preview pipeline — `PreviewState` (debounce + scratch sector + revision-stamped job) + `derive_reroll_seed` helper for §G2 |
+| [builder/src/builder/workspace.rs](builder/src/builder/workspace.rs) | §G6 `BuilderWorkspace` — ring of open `BuilderState` sessions with `push` / `switch_to` / `close_active` |
+| [builder/src/builder/panels/generation.rs](builder/src/builder/panels/generation.rs) | §6 G1..G6 Generation panel (parameters parity / seed lock + re-roll / live preview / Apply / partial regen / New from preset) hosted under PROJECT tab |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
 | [src/presets.rs](src/presets.rs) | Adds `scaffold_to_dir(preset_id, dest, seed_override)` for §P1 — default `presets/` resolution + binary-adjacent fallback |
 
@@ -2189,7 +2212,7 @@ These hold across the crate and are enforced by review, not lints:
 
 ### Math-accuracy lints (intentionally NOT applied)
 
-`cargo clippy -- -W clippy::nursery` flags `mul_add` and `hypot` opportunities across [src/bitmap/mod.rs](src/bitmap/mod.rs) and [src/gui/palette.rs](src/gui/palette.rs). They are **not** applied because the crate's golden outputs (PNGs, JSON snapshots) are byte-deterministic and `a.mul_add(b, c)` / `dx.hypot(dy)` produce different last-bit results from `a*b + c` / `(dx*dx+dy*dy).sqrt()`. If you ever benchmark a hot per-pixel loop and want the FMA win, regenerate the golden fixtures in the same commit.
+`cargo clippy -- -W clippy::nursery` flags `mul_add` and `hypot` opportunities across [src/bitmap/mod.rs](src/bitmap/mod.rs) and [gui-core/src/palette.rs](gui-core/src/palette.rs). They are **not** applied because the crate's golden outputs (PNGs, JSON snapshots) are byte-deterministic and `a.mul_add(b, c)` / `dx.hypot(dy)` produce different last-bit results from `a*b + c` / `(dx*dx+dy*dy).sqrt()`. If you ever benchmark a hot per-pixel loop and want the FMA win, regenerate the golden fixtures in the same commit.
 
 Same caveat for the `while condition comparing floats` warnings in the bitmap/palette renderers — converting them to integer-step loops changes the last iteration's `f` value and the rendered output.
 

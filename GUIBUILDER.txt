@@ -1,5 +1,9 @@
 # SPECIFICATION: INTERACTIVE SECTOR BUILDER GUI (GUIBUILDER.txt)
 
+> Target crate moved 2026-05-24 from `sectorforge-gui` to
+> `sectorforge-builder`. References to `gui/src/builder/` in older revisions
+> now point to `builder/src/builder/`.
+
 ## GOAL
 Transition from a "scaffold-then-cli-generate" workflow to a fully interactive, real-time sector design environment within the Sectorforge GUI.
 

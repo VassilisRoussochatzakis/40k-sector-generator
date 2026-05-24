@@ -17,6 +17,8 @@
 #   - Step 3.6 slim viewer crate: DONE
 #   - Step 3.7 cargo aliases/workspace polish: DONE
 #   - Section 4 verification: IN-PROGRESS
+#     (tests/help/build DONE; clippy/window smoke remain)
+#   - Section 5 doc updates: DONE
 
 ================================================================================
 0. WHY (so you can make judgment calls)

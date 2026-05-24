@@ -5,12 +5,13 @@ When making changes, update GUIDE.md accordingly.
 ## Commands
 
 ```bash
-cargo build            # build all targets (sectorforge binary + sectorforge-gui)
+cargo build            # build all targets (sectorforge + sectorforge-gui + sectorforge-builder)
 cargo test             # all tests
 cargo fmt              # format code
 cargo check            # compile check
 cargo run --bin sectorforge --help   # CLI help
 cargo run -p sectorforge-gui -- --help   # GUI help
+cargo run -p sectorforge-builder -- --help   # Builder help
 ```
 
 ## Source layout
@@ -46,11 +47,18 @@ cargo run -p sectorforge-gui -- --help   # GUI help
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership, faction control, capital selection |
-| [src/gui/app/mod.rs](src/gui/app/mod.rs) | Top-level eframe app + navigation |
-| [src/gui/app/export_ui.rs](src/gui/app/export_ui.rs) | PNG/JSON export UI |
-| [src/gui/sector_view.rs](src/gui/sector_view.rs) | Hex map render |
-| [src/gui/system_view.rs](src/gui/system_view.rs) | System detail panel |
-| [src/gui/data_editor.rs](src/gui/data_editor.rs) | `worlds.toml` data editor |
-| [src/gui/info_panel.rs](src/gui/info_panel.rs) | Text formatting widgets |
-| [src/gui/editor/](src/gui/editor/) | Sector/world editing UI |
-| [src/gui/palette.rs](src/gui/palette.rs) | Color palette |
+| [gui-core/src/lib.rs](gui-core/src/lib.rs) | Shared egui widgets/utilities used by GUI + builder |
+| [gui-core/src/jobs.rs](gui-core/src/jobs.rs) | Background job helper |
+| [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette / faction glyph rendering |
+| [gui-core/src/sector_view.rs](gui-core/src/sector_view.rs) | Read-only hex map render |
+| [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
+| [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
+| [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | GUI heatmap color/cache wrapper |
+| [gui/src/main.rs](gui/src/main.rs) | Viewer/editor binary entry (`sectorforge-gui`) |
+| [gui/src/app/mod.rs](gui/src/app/mod.rs) | Top-level viewer/editor eframe app + navigation |
+| [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs) | PNG/JSON export UI |
+| [gui/src/data_editor.rs](gui/src/data_editor.rs) | `worlds.toml` data editor |
+| [gui/src/editor/](gui/src/editor/) | Sector/world editing UI |
+| [builder/src/main.rs](builder/src/main.rs) | Builder binary entry (`sectorforge-builder`) |
+| [builder/src/app.rs](builder/src/app.rs) | Thin builder eframe app host |
+| [builder/src/builder/](builder/src/builder/) | Builder state, command bus, project I/O, panels |

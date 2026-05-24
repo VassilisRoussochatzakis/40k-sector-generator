@@ -1117,7 +1117,7 @@ mod tests {
 
     #[test]
     fn overview_cache_reuses_buckets_until_sector_key_changes() {
-        let mut sector = crate::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let mut sector = GeneratedSector::empty("cache", "Cache", "seed", 4, 4);
         let mut cache = SectorOverviewCache::default();
 
         let first = cache.buckets_for(&sector);
@@ -1131,7 +1131,7 @@ mod tests {
 
     #[test]
     fn overview_cache_invalidate_drops_buckets() {
-        let sector = crate::editor::state::empty_sector("cache", "Cache", "seed", 4, 4);
+        let sector = GeneratedSector::empty("cache", "Cache", "seed", 4, 4);
         let mut cache = SectorOverviewCache::default();
 
         let first = cache.buckets_for(&sector);

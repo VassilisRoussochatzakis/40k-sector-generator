@@ -1456,7 +1456,9 @@ navigation bar:
   `COVERT`, `FAITH`, `THREAT` (military × covert restricted to
   hostile/zealous), `INTEL` (low-visibility hexes glow), `TENSION`
   (§4 — sum of hostile/at-war pair tensions per system), or `TRADE VOL`
-  (§12 — sum of incident route trade volumes). See
+  (§12 — sum of incident route trade volumes). Offscreen route segments and
+  system-name labels are culled before route-pattern drawing or text layout,
+  keeping high **HEX SIZE** zooming responsive. See
   [src/gui/heatmap.rs](src/gui/heatmap.rs).
   Heatmap cells are cached per loaded sector and mode, so toggling a
   non-`OFF` heatmap does not rescore every frame; the cache is invalidated

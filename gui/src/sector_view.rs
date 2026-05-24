@@ -266,6 +266,7 @@ impl<'a> SectorView<'a> {
 
         let route_thickness = (g.hex_size * 0.08).max(2.0);
         let star_r = g.hex_size * 0.2016;
+        let route_cull_margin = (route_thickness * 6.0).max(12.0);
         let shorten = |a: Pos2, b: Pos2| -> Option<(Pos2, Pos2)> {
             let delta = b - a;
             let len = delta.length();
@@ -283,16 +284,12 @@ impl<'a> SectorView<'a> {
                 continue;
             };
 
-            // Culling for routes: if both endpoints are way outside the screen, skip.
-            if !rect.expand(g.hex_size * 5.0).contains(a)
-                && !rect.expand(g.hex_size * 5.0).contains(b)
-            {
-                continue;
-            }
-
             let Some((a2, b2)) = shorten(a, b) else {
                 continue;
             };
+            if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
+                continue;
+            }
             draw_route_line(
                 &painter,
                 a2,
@@ -327,6 +324,9 @@ impl<'a> SectorView<'a> {
                 let Some((a2, b2)) = shorten(a, b) else {
                     continue;
                 };
+                if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
+                    continue;
+                }
                 let glow = Color32::from_rgba_unmultiplied(
                     PATH_HIGHLIGHT.r(),
                     PATH_HIGHLIGHT.g(),
@@ -352,6 +352,9 @@ impl<'a> SectorView<'a> {
                 let Some((a2, b2)) = shorten(a, b) else {
                     continue;
                 };
+                if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
+                    continue;
+                }
                 let glow = Color32::from_rgba_unmultiplied(
                     SELECTION.r(),
                     SELECTION.g(),
@@ -649,16 +652,20 @@ impl<'a> SectorView<'a> {
 
         // Pass 2: labels last, always on top of every hex.
         let label_size = (g.hex_size * 0.28).max(9.0);
+        let font = FontId::monospace(label_size);
+        let pad = Vec2::new(3.0, 1.0);
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
-            let label = sys.name.to_ascii_uppercase();
+            if !label_intersects_rect(sys.name.as_ref(), c, star_r, label_size, pad, rect) {
+                continue;
+            }
+
             // Pill background behind label so it stays readable when an
             // adjacent row's hex tip pokes through.
-            let font = FontId::monospace(label_size);
-            let galley = painter.layout_no_wrap(label.clone(), font.clone(), TEXT_DIM);
+            let label = sys.name.to_ascii_uppercase();
+            let galley = painter.layout_no_wrap(label, font.clone(), TEXT_DIM);
             let star_r = g.hex_size * 0.2016;
             let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
-            let pad = Vec2::new(3.0, 1.0);
             let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
             painter.rect_filled(bg_rect, 2.0, palette::BG);
             painter.galley(pos, galley, TEXT_DIM);
@@ -842,6 +849,30 @@ fn distance_to_segment(p: Pos2, a: Pos2, b: Pos2) -> f32 {
     let dot = ap.x * ab.x + ap.y * ab.y;
     let t = (dot / len_sq).clamp(0.0, 1.0);
     p.distance(a + ab * t)
+}
+
+fn segment_intersects_rect(a: Pos2, b: Pos2, rect: egui::Rect, margin: f32) -> bool {
+    egui::Rect::from_two_pos(a, b)
+        .expand(margin)
+        .intersects(rect)
+}
+
+fn label_intersects_rect(
+    name: &str,
+    center: Pos2,
+    star_r: f32,
+    label_size: f32,
+    pad: Vec2,
+    rect: egui::Rect,
+) -> bool {
+    let half_w = name.chars().count().max(1) as f32 * label_size * 0.34 + pad.x;
+    let top = center.y + star_r + 3.0 - pad.y;
+    let height = label_size * 1.35 + pad.y * 2.0;
+    egui::Rect::from_min_max(
+        Pos2::new(center.x - half_w, top),
+        Pos2::new(center.x + half_w, top + height),
+    )
+    .intersects(rect)
 }
 
 fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {

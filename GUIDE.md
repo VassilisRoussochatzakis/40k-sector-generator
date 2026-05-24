@@ -1611,6 +1611,11 @@ App-neutral egui helpers belong in [gui-core/src/](gui-core/src/).
 `sectorforge-gui` remains the viewer/editor and must not mount builder panels;
 the integration boundary is the project directory on disk.
 
+The current sync contract is file-based: builder saves project config,
+catalogs, `out/sector.json`, and manifest data; viewer reloads that same
+project directory. Keep new synchronization work on that boundary rather than
+adding `sectorforge_gui::builder` imports or in-process shared state.
+
 Every map element — hex tile, route, system glyph, label, region tint, overlay
 ring — reads its colour and sizing from
 [`MapTheme`](gui-core/src/map_theme.rs). Apps either pass a customised theme via

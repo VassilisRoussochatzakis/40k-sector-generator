@@ -19,6 +19,7 @@
 #   - Section 4 verification: IN-PROGRESS
 #     (tests/help/build DONE; clippy/window smoke remain)
 #   - Section 5 doc updates: DONE
+#   - Section 6 gotcha/risk audit: DONE
 
 ================================================================================
 0. WHY (so you can make judgment calls)
@@ -510,59 +511,50 @@ After Step 3.7:
        separate bin?"
 
 ================================================================================
-6. GOTCHAS / RISKS
+6. GOTCHAS / RISKS — DONE 2026-05-24
 ================================================================================
 
-  G1. Hidden cyclic dep: if `gui/src/sector_view.rs` (read widget) imports
-      anything from the viewer's editor module, the move to gui-core will
-      fail. Triage per Step 3.2 fix-ups. The fallback is to leave
-      sector_view in `gui/` and have the builder write its own minimal
-      preview widget OR depend on gui (creating a cycle — forbidden).
-      Prefer factoring sector_view into a `Read` half (gui-core) and an
-      `Edit` overlay (gui).
+  G1. [DONE] Hidden cyclic dep: checked `gui-core/src/sector_view.rs`.
+      No `crate::editor`, `crate::dashboard`, or `sectorforge_gui` imports.
+      `SectorView` is the read/shared widget; builder overlays stay in
+      `builder/src/builder/panels/map.rs`.
 
-  G2. `info_panel.rs` is 1,142 lines — the largest moved file. It likely
-      hosts a mix of read-only formatters (safe to move) and editor-only
-      widgets (must stay in gui or be split). Read it before moving;
-      consider splitting into `info_panel/read.rs` (gui-core) +
-      `info_panel/edit.rs` (gui).
+  G2. [DONE] `info_panel.rs` moved to `gui-core/src/info_panel.rs`.
+      Current file has no viewer-only imports; no split into read/edit halves
+      was needed.
 
-  G3. `eframe::App` cannot be implemented twice for the same type, but
-      each crate has its own `App`/`BuilderApp` types — no conflict. Just
-      keep type names distinct to avoid confusion in logs / panics.
+  G3. [DONE] App host names remain distinct:
+      `gui/src/app/mod.rs::App` and `builder/src/app.rs::BuilderApp`.
 
-  G4. The builder's preview job system (`gui/src/builder/preview.rs`) uses
-      `crate::jobs`. Moving jobs to gui-core is required (Step 3.2). If
-      `jobs.rs` ever pulls anything from gui internals later, it must be
-      pushed back down to gui-core.
+  G4. [DONE] Builder preview imports jobs from gui-core:
+      `builder/src/builder/preview.rs` uses
+      `sectorforge_gui_core::jobs::{spawn_job, JobHandle}`. `jobs.rs` stays
+      app-neutral.
 
-  G5. Cargo features: none of these crates currently use feature flags.
-      Don't add any during the split — pure structural change, zero
-      semantic change, easier review.
+  G5. [DONE] No Cargo feature flags were added. Checked workspace, gui,
+      gui-core, and builder manifests for `[features]`.
 
-  G6. Build time: post-split, `cargo build --workspace` may be marginally
-      slower because the workspace has three bins to link. Incremental
-      builds of either bin alone will be FASTER. This is the win.
+  G6. [DONE] Workspace shape accepted: `cargo build` now builds
+      `sectorforge`, `sectorforge-gui`, and `sectorforge-builder`; per-bin
+      incremental builds remain available.
 
-  G7. Release packaging: if there's any CI / installer / release script
-      (check `.github/`, `scripts/`, `tools/`), update it to ship both
-      `sectorforge-gui` and `sectorforge-builder` binaries. The user has
-      not flagged any such script — but check.
+  G7. [DONE] Release packaging check: no `.github/`, `scripts/`, or `tools/`
+      files are present in the current tree, so no installer/CI update was
+      needed.
 
-  G8. Test that previously lived under `gui/tests/` referencing
-      `sectorforge_gui::builder::...` (if any) must move to
-      `builder/tests/` and re-path imports. Check:
-        grep -rn "sectorforge_gui::builder\|crate::builder" gui/tests builder/tests 2>/dev/null
+  G8. [DONE] Test migration check: no `gui/tests/` or `builder/tests/` files
+      reference `sectorforge_gui::builder` or viewer-local `crate::builder`.
+      Builder tests live inline under `builder/src/builder/`.
 
-  G9. The §G6 "open in a new tab" workspace tab strip is already present
-      (`gui/src/builder/workspace.rs`). After the split, this lives inside
-      the builder bin and works without change. Do NOT try to expose the
-      workspace across the bin boundary — single-window per bin is fine.
+  G9. [DONE] §G6 workspace tab strip lives at
+      `builder/src/builder/workspace.rs` and is owned by `BuilderApp`.
+      Viewer/builder sync remains project-directory file handoff; do not
+      expose workspace state across the bin boundary.
 
-  G10. If state 1.4 / 1.5 drift checks failed and you proceeded anyway,
-       expect more import rewrites in Step 3.4 and possibly the need to
-       move additional symbols into gui-core. Budget extra time, don't
-       attempt to land the split in one commit.
+  G10. [DONE] Pre-split drift checks are superseded by current layout checks:
+       gui-core has no viewer-internal imports, builder imports only its own
+       `crate::builder` modules plus `sectorforge_gui_core`, and
+       `sectorforge-gui` has no builder module.
 
 ================================================================================
 7. ROLLBACK

@@ -661,17 +661,31 @@ C8.   Influence field overlay (`src/influence_field.rs`).
 12. CLAIMS
 ================================================================================
 
-CL1.  Per-world claim editor: chip-row of (faction_id, claim_kind).
+CL1.  [DONE] Per-world claim editor: chip-row of (faction_id, claim_kind).
       Claim kinds (from `src/control.rs`): Legal, Imperial, Religious,
       Dynastic, Commercial, Military, Ancient, Hunting, Covert,
-      Rebellion, Treaty.
+      Rebellion, Treaty. Implemented in `builder/src/builder/panels/control.rs`
+      as a scrollable per-world list with strength badge and per-chip remove
+      button; deep-links to the WORLD inspector via `→ WORLD`. The same
+      chip-row is also rendered on the WORLD tab (§W7).
 
-CL2.  "Add claim" picker. Multiple claims per faction allowed (e.g.,
-      Legal + Military by the same dynasty).
+CL2.  [DONE] "Add claim" picker. Multiple claims per faction allowed (e.g.,
+      Legal + Military by the same dynasty). Picker mirrors §W7: faction
+      ComboBox + ClaimType ComboBox + strength DragValue<u8> 0..=100,
+      append-only — duplicate (faction, kind) pairs are permitted by design.
 
-CL3.  "Contested" auto-flag computed from N>1 distinct claimants.
+CL3.  [DONE] "Contested" auto-flag computed from N>1 distinct claimants.
+      Surfaced as a per-world badge on the CONTROL panel and as an
+      aggregate collapsing header (`§CL3 — Contested (n)`) at the top of
+      the tab, with deep-link buttons to jump to the WORLD inspector. A
+      "contested only" checkbox filters the per-world list.
 
-CL4.  Bulk: convert all claims of kind X by faction Y to kind Z.
+CL4.  [DONE] Bulk: convert all claims of kind X by faction Y to kind Z.
+      Implemented in the `§CL4 — Bulk convert claims` section of the
+      CONTROL panel: faction Y + claim X + target Z dropdowns with a live
+      "matches: N" counter; the apply button is disabled when X = Z or
+      the match count is zero. Walks every world in the sector in one
+      pass and arms `state.dirty` + validation debounce on apply.
 
 ================================================================================
 13. SUBSECTORS
@@ -1463,8 +1477,13 @@ Phase B — Direct entity edit
                    `style_fill`/`style_accent`/`style_glyph`/`style_border`
                    round-trip cleanly to factions.toml; F5 presence editor
                    itself lands with §11 in Phase C)
-  CL1..CL4, (§12 claims)
-  C1..C8. (§11 control + presence)
+  CL1..CL4 - DONE  (§12 claims — CONTROL tab `§CL1..§CL4` editor:
+                   per-world chip-row, add-claim picker, Contested
+                   auto-flag with aggregate header + filter, bulk
+                   convert across the whole sector)
+  C1..C8 - IN PROGRESS (§11 control + presence — Phase C; CONTROL tab
+                   currently ships CL1..CL4 only, presence/dominance/
+                   control-state editor lands with §11)
 
 Phase C — Overlays editable
   REG1..REG7, (§14 regions)

@@ -1827,7 +1827,7 @@ that adopts `BuilderState` as root state.
 | Piece | Where it lives |
 |---|---|
 | N1 tab enum | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
+| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §CL1..§CL4 (with §C1..§C8 deferred to Phase C); unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
 | N3 map toolbox | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems, AddRoute}`. |
 | N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
@@ -1923,6 +1923,21 @@ Tests:
 * `ensure_connected_adds_bridge_between_components`, `route_region_predicate_uses_hex_line` in [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs).
 * `replace_routes_round_trip` in [builder/src/builder/command.rs](builder/src/builder/command.rs).
 * `configured_hidden_routes_use_explicit_endpoints_and_k`, `configured_hidden_routes_exclude_blackout_endpoints` in [src/hidden_routes.rs](src/hidden_routes.rs).
+
+#### CL1–CL4 claims panel (DONE)
+
+Phase B §12. The CONTROL tab in [builder/src/builder/panels/control.rs](builder/src/builder/panels/control.rs) ships the §CL1..§CL4 claims editor. The remaining §C1..§C8 presence / dominance / control-state surface lands with Phase C (§11).
+
+| Piece | Where it lives |
+|---|---|
+| CL1 chip-row | [builder/src/builder/panels/control.rs](builder/src/builder/panels/control.rs) `show_world_row` renders one chip per `FactionClaim`, colour-coded by `ClaimType` (legal / mandate / treaty / religious / dynastic / commercial / military / ancient / hunting / covert / rebellion), with `×` to remove and `→ WORLD` to deep-link the inspector. The same chip-row is also rendered on the WORLD tab (§W7). |
+| CL2 add-claim picker | `show_add_claim_row` — faction `ComboBox` + `ClaimType` `ComboBox` + `DragValue<u8>` strength (0..=100). Append-only — duplicate (faction, kind) pairs are permitted, mirroring the spec "multiple claims per faction allowed". |
+| CL3 Contested flag | `contested_worlds` aggregates `BTreeSet<FactionId>` per world; the `§CL3 — Contested (n)` collapsing header lists every contested world with a deep-link, and the per-world row paints a `CONTESTED` badge when `distinct.len() > 1`. The world list also exposes a `contested only` checkbox. |
+| CL4 bulk convert | `show_bulk_convert` — faction Y + claim X + target Z dropdowns with a live `matches: N` counter. `apply_bulk_convert` walks every world in the sector and rewrites `claim_type` in place; the apply button is disabled when X = Z or the count is zero. |
+
+Tests:
+
+* `cl3_contested_when_distinct_claimants_gt_1`, `cl4_bulk_match_count_predicate` in [builder/src/builder/panels/control.rs](builder/src/builder/panels/control.rs).
 
 #### F1–F7 factions panel (DONE)
 

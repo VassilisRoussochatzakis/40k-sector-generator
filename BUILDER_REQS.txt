@@ -295,7 +295,7 @@ P6.   [DONE] Recent projects list in Preferences.
 6. GENERATION CONFIG
 ================================================================================
 
-G1.   Generation panel reaches feature parity with `[generation]` and
+G1.   [DONE] Generation panel reaches feature parity with `[generation]` and
       `[generation.placement]` / `[generation.world_selection]` /
       `[generation.routes]` / `[generation.relations]` tables in
       `sectorforge.toml`. Fields:
@@ -312,26 +312,70 @@ G1.   Generation panel reaches feature parity with `[generation]` and
         routes.enabled, routes.max_route_distance, routes.route_density,
         routes.ensure_connected_graph,
         relations.min_world_presence.
+      Implementation: `gui/src/builder/panels/generation.rs::show_g1_parameters`
+      binds every listed field to a typed widget (ComboBox over enums,
+      DragValue for ints, Slider for fractions) and mutates
+      `state.config.generation` directly. The panel is hosted from the
+      PROJECT tab as a `Generation (§6)` collapsing header so the §N1
+      24-tab strip stays stable.
 
-G2.   Seed-lock toggle. When locked, "Re-roll" preserves
+G2.   [DONE] Seed-lock toggle. When locked, "Re-roll" preserves
       `[generation].seed`; when unlocked, increments via
       `blake3("sectorforge:{seed}:reroll:{n}")`.
+      Implementation: `BuilderState::{seed_locked, seed_reroll_counter}`
+      plus `BuilderState::reroll_seed` (returns the new seed and rewrites
+      `config.generation.seed`). Counter monotonically advances on every
+      unlocked re-roll; the digest helper lives at
+      `gui/src/builder/preview.rs::derive_reroll_seed`. Tests
+      `reroll_locked_keeps_seed`,
+      `reroll_unlocked_advances_seed_and_counter`, and
+      `derive_reroll_seed_is_deterministic_and_counter_sensitive` pin the
+      contract.
 
-G3.   Live preview mode: every config edit triggers a debounced
+G3.   [DONE] Live preview mode: every config edit triggers a debounced
       regeneration (200 ms). Run on worker thread; partial preview into
       a scratch `GeneratedSector` displayed under a "PREVIEW" badge.
+      Implementation: `gui/src/builder/preview.rs::PreviewState` owns the
+      debounce timer, scratch sector, in-flight `JobHandle`, and a
+      revision counter that discards stale results. `PreviewState::pump`
+      is called per-frame from the panel; the worker runs
+      `sectorforge::generation::generate_with_progress_and_cancel`
+      through `crate::jobs::spawn_job`. Default debounce =
+      `DEFAULT_DEBOUNCE_MS` = 200 ms. The panel surfaces the scratch
+      sector counts under a coloured "PREVIEW READY" line.
 
-G4.   "Apply" promotes preview to active sector and overwrites
+G4.   [DONE] "Apply" promotes preview to active sector and overwrites
       `BuilderState::sector`. Preserves manual edits to systems flagged
-      `pinned = true` (new field on `GeneratedSystem`, see W3).
+      pinned (resolved per Q1 to a `BuilderState::pinned_systems`
+      side-table, not a `GeneratedSystem` field — see Q1 / D5 / S3).
+      Implementation: `BuilderState::apply_preview` swaps the scratch
+      sector in, then for each `SystemId` in `pinned_systems` restores
+      the pre-preview entry at the same id (or re-inserts it if the
+      preview dropped the slot). It then rebuilds the index, clears the
+      derivation cache, marks the project dirty, and re-runs invariants.
 
-G5.   Per-subsector partial regeneration: select a rectangle / cluster of
-      hexes, regenerate only those systems. Reuse
-      `generate_system_standalone` per slot. Honour `pinned` and
-      `BuilderState::regions` so warp regions affect partial draws.
+G5.   [DONE] Per-subsector partial regeneration: select a rectangle / cluster of
+      hexes, regenerate only those systems. Reuses
+      `sectorforge::generate_system_standalone` per slot. Pinned systems
+      are skipped. `BuilderState::regions` are exposed via the in-memory
+      catalogs the partial regen synthesises into a `ProjectInput`, so
+      warp regions affect downstream draws.
+      Implementation: `BuilderState::{partial_regen_rect,
+      regenerate_partial}` plus `PartialRegenRect::{from_corners,
+      contains}`. The panel exposes min/max q/r DragValues; on apply,
+      every non-pinned in-rect system is replaced by a fresh
+      `generate_system_standalone` call keyed by its existing index.
 
-G6.   "New sector from preset" inside the builder — reuse §P1 logic but
-      keep current builder open in a new tab.
+G6.   [DONE] "New sector from preset" inside the builder — reuses §P1
+      logic but keeps the current builder open in a new tab via a new
+      `BuilderWorkspace` (`gui/src/builder/workspace.rs`). The
+      workspace owns `Vec<BuilderState>` plus an active index;
+      `push`/`switch_to`/`close_active` drive the tab strip. The panel
+      collects (preset id, destination, seed), calls
+      `project_io::new_project` with `preset = Some(id)`, and pushes the
+      resulting state. When no host workspace is wired (legacy callers)
+      the fallback replaces the current state, matching today's
+      behaviour. Modal lifecycle uses `ModalKind::NewFromPreset`.
 
 ================================================================================
 7. SYSTEMS
@@ -1242,8 +1286,10 @@ Phase A — Foundation
   N1..N4  - DONE  (§41; N5 command palette lands in Phase F)
 
 Phase B — Direct entity edit
-  G1..G6, (§6 generation config — first interactive workflow on top of
-           the Phase A foundation)
+  G1..G6  - DONE  (§6 generation config — interactive panel + live
+                   preview + apply-with-pinning + partial regen + preset
+                   workspace; first Phase B workflow on top of the
+                   Phase A foundation)
   S1..S6, (§7)
   W1..W7, (§8)
   R1..R7, (§9 routes)

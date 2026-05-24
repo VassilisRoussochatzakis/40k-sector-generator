@@ -41,6 +41,7 @@ use super::derivation_cache::DerivationCache;
 use super::errors::BuilderError;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
+use super::preview::PreviewState;
 use super::snapshot::Snapshot;
 
 /// Modal dialogs the builder can have open. Only one at a time.
@@ -65,6 +66,14 @@ pub enum ModalKind {
     },
     ConfirmRevertSnapshot {
         snapshot_name: String,
+    },
+    /// §G6: "New sector from preset" modal opened from the generation panel.
+    /// On confirm the host scaffolds the project and pushes the resulting
+    /// state onto a [`super::workspace::BuilderWorkspace`].
+    NewFromPreset {
+        preset_id: String,
+        dest: Utf8PathBuf,
+        seed: String,
     },
     Message(String),
     /// §P5: an external file change was detected and the in-memory buffer is
@@ -292,6 +301,51 @@ pub struct BuilderState {
     pub active_tab: BuilderTab,
     /// §N3: armed tool on the MAP tab. Defaults to [`MapTool::Select`].
     pub map_tool: MapTool,
+    /// §G2: when true, "Re-roll" preserves `generation.seed`; when false it
+    /// derives a fresh seed via blake3("sectorforge:{seed}:reroll:{n}").
+    pub seed_locked: bool,
+    /// §G2: monotonic counter mixed into the re-roll derivation. Incremented
+    /// each time the user clicks "Re-roll" while the seed lock is off.
+    pub seed_reroll_counter: u64,
+    /// §G3 / §G4: scratch live preview owned by the generation panel.
+    pub preview: PreviewState,
+    /// §G5: half-open axial-hex rectangle selected for partial regeneration.
+    /// `None` means "full sector"; the regen action then refuses to run.
+    pub partial_regen_rect: Option<PartialRegenRect>,
+}
+
+/// §G5: inclusive rectangle of hex coordinates that
+/// [`BuilderState::regenerate_partial`] operates over.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PartialRegenRect {
+    pub min_q: i32,
+    pub min_r: i32,
+    pub max_q: i32,
+    pub max_r: i32,
+}
+
+impl PartialRegenRect {
+    /// Build a rect from any two corners. Always normalises so `min <= max`.
+    #[must_use]
+    pub fn from_corners(
+        a: sectorforge::sector_model::HexCoord,
+        b: sectorforge::sector_model::HexCoord,
+    ) -> Self {
+        Self {
+            min_q: a.q.min(b.q),
+            min_r: a.r.min(b.r),
+            max_q: a.q.max(b.q),
+            max_r: a.r.max(b.r),
+        }
+    }
+
+    #[must_use]
+    pub fn contains(&self, coord: sectorforge::sector_model::HexCoord) -> bool {
+        coord.q >= self.min_q
+            && coord.q <= self.max_q
+            && coord.r >= self.min_r
+            && coord.r <= self.max_r
+    }
 }
 
 impl BuilderState {
@@ -332,7 +386,125 @@ impl BuilderState {
             selected_region_id: None,
             active_tab: BuilderTab::Project,
             map_tool: MapTool::Select,
+            seed_locked: false,
+            seed_reroll_counter: 0,
+            preview: PreviewState::new(),
+            partial_regen_rect: None,
         }
+    }
+
+    /// §G2: derive the next seed. When [`Self::seed_locked`] is true, returns
+    /// the current seed unchanged. Otherwise increments
+    /// [`Self::seed_reroll_counter`] and returns the
+    /// `blake3("sectorforge:{seed}:reroll:{n}")` digest.
+    pub fn reroll_seed(&mut self) -> String {
+        if self.seed_locked {
+            return self.config.generation.seed.clone();
+        }
+        self.seed_reroll_counter = self.seed_reroll_counter.wrapping_add(1);
+        let new_seed = super::preview::derive_reroll_seed(
+            &self.config.generation.seed,
+            self.seed_reroll_counter,
+        );
+        self.config.generation.seed = new_seed.clone();
+        new_seed
+    }
+
+    /// §G4: promote the live preview to the active sector. Manual edits to
+    /// systems flagged in [`Self::pinned_systems`] survive — their
+    /// pre-preview snapshot replaces the regenerated entry at the same id.
+    /// Returns `true` on success; `false` when no preview is ready.
+    pub fn apply_preview(&mut self) -> bool {
+        let Some(mut preview_sector) = self.preview.sector.take() else {
+            return false;
+        };
+        if !self.pinned_systems.is_empty() {
+            let pinned: BTreeMap<_, _> = self
+                .sector
+                .systems
+                .iter()
+                .filter(|s| self.pinned_systems.contains(&s.id))
+                .map(|s| (s.id.clone(), s.clone()))
+                .collect();
+            if !pinned.is_empty() {
+                let mut seen: BTreeSet<_> = BTreeSet::new();
+                for sys in preview_sector.systems.iter_mut() {
+                    if let Some(orig) = pinned.get(&sys.id) {
+                        *sys = orig.clone();
+                        seen.insert(sys.id.clone());
+                    }
+                }
+                for (id, orig) in pinned.into_iter() {
+                    if !seen.contains(&id) {
+                        preview_sector.systems.push(orig);
+                    }
+                }
+                preview_sector.systems.sort_by(|a, b| a.id.cmp(&b.id));
+            }
+        }
+        self.sector = preview_sector;
+        self.index = BuilderIndex::rebuild(&self.sector);
+        self.derivation_cache.clear();
+        self.dirty = true;
+        self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
+        self.preview.clear();
+        true
+    }
+
+    /// §G5: regenerate only the systems whose coord falls inside
+    /// [`Self::partial_regen_rect`]. Pinned systems are skipped. Each
+    /// regenerated slot is rebuilt via
+    /// [`sectorforge::generate_system_standalone`] so the rest of the sector
+    /// stays untouched. Returns the number of systems regenerated, or an
+    /// error when no rect is selected / no project input can be synthesised.
+    pub fn regenerate_partial(&mut self) -> Result<usize, BuilderError> {
+        let rect = self
+            .partial_regen_rect
+            .ok_or_else(|| BuilderError::ParseFailed {
+                file: "partial-regen".into(),
+                message: "no rectangle selected".into(),
+            })?;
+        let input = self
+            .synthesize_project_input()
+            .ok_or_else(|| BuilderError::ParseFailed {
+                file: "partial-regen".into(),
+                message: "project worlds catalog is not loaded".into(),
+            })?;
+
+        let mut regenerated = 0usize;
+        let mut replacements: Vec<sectorforge::sector_model::GeneratedSystem> = Vec::new();
+        for sys in &self.sector.systems {
+            if !rect.contains(sys.coord) {
+                continue;
+            }
+            if self.pinned_systems.contains(&sys.id) {
+                continue;
+            }
+            let new_sys =
+                sectorforge::generate_system_standalone(input.clone(), sys.index, sys.coord)
+                    .map_err(|e| BuilderError::ParseFailed {
+                        file: format!("partial-regen:{}", sys.id),
+                        message: e.to_string(),
+                    })?;
+            replacements.push(new_sys);
+            regenerated += 1;
+        }
+        for new_sys in replacements {
+            if let Some(slot) = self.sector.systems.iter_mut().find(|s| s.id == new_sys.id) {
+                *slot = new_sys;
+            }
+        }
+        self.sector.systems.sort_by(|a, b| a.id.cmp(&b.id));
+        self.index = BuilderIndex::rebuild(&self.sector);
+        self.derivation_cache.clear();
+        if regenerated > 0 {
+            self.dirty = true;
+            self.invariant_report = Some(check_sector(&self.sector));
+            self.mark_validation_dirty();
+            self.trigger_auto_save();
+        }
+        Ok(regenerated)
     }
 
     /// Run a [`BuilderCommand`] through the command bus.

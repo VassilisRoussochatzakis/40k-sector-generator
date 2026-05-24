@@ -5,7 +5,7 @@
 
 use crate::builder::BuilderState;
 
-use super::{open_project, preferences, project_tree, save_project};
+use super::{generation, open_project, preferences, project_tree, save_project};
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Project");
@@ -20,6 +20,9 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     egui::CollapsingHeader::new("Tree")
         .default_open(true)
         .show(ui, |ui| project_tree::show(ui, state));
+    egui::CollapsingHeader::new("Generation (§6)")
+        .default_open(false)
+        .show(ui, |ui| generation::show(ui, state, None));
     egui::CollapsingHeader::new("Recent projects")
         .default_open(false)
         .show(ui, |ui| preferences::show(ui, state));

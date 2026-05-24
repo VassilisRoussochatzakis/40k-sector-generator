@@ -1728,6 +1728,38 @@ that adopts `BuilderState` as root state.
 
 N5 (Ctrl-K command palette) is intentionally deferred to Phase F.
 
+#### G1–G6 generation panel (DONE)
+
+First Phase B workflow on top of the Phase A foundation. The Generation
+panel hosts five sub-headers inside the PROJECT tab so the §N1 24-tab
+strip stays stable.
+
+| Piece | Where it lives |
+|---|---|
+| G1 `[generation]` parity | [gui/src/builder/panels/generation.rs](gui/src/builder/panels/generation.rs) `show_g1_parameters` — typed widgets over every field of `GenerationConfig` / `PlacementConfig` / `WorldSelectionConfig` / `RouteGenerationConfig` / `RelationsGenerationConfig`. Enum ComboBoxes over `PlacementMode` (uniform / weighted / clustered) and `WorldSelectionMode`; DragValue for integers; Slider for fractions (`cluster_bias`, `route_density`, `same_star_colour_bias`). Any change schedules a §G3 preview. |
+| G2 seed lock + Re-roll | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::{seed_locked, seed_reroll_counter, reroll_seed}`. When unlocked, `reroll_seed` advances the counter and replaces `config.generation.seed` with `blake3("sectorforge:{seed}:reroll:{n}")` (computed by [gui/src/builder/preview.rs](gui/src/builder/preview.rs) `derive_reroll_seed`). When locked, the call is a no-op. Tests `reroll_locked_keeps_seed`, `reroll_unlocked_advances_seed_and_counter`, and `derive_reroll_seed_is_deterministic_and_counter_sensitive` pin the contract. |
+| G3 live preview | [gui/src/builder/preview.rs](gui/src/builder/preview.rs) `PreviewState` — scratch sector + in-flight `JobHandle` + debounce timer (`DEFAULT_DEBOUNCE_MS = 200`) + revision counter. `schedule` cancels any in-flight job, bumps the revision, and clears the scratch sector; `pump` checks the timer each frame and dispatches `sectorforge::generation::generate_with_progress_and_cancel` through `crate::jobs::spawn_job`. Stale revisions are discarded by `apply_result`. The panel shows a coloured "PREVIEW READY" badge with system / route counts when the worker completes. |
+| G4 Apply preview | [gui/src/builder/state.rs](gui/src/builder/state.rs) `BuilderState::apply_preview` — promotes the scratch sector into `state.sector`, then overlays every system whose `SystemId` is in `pinned_systems` with its pre-preview snapshot (or re-inserts it if the preview dropped the slot), then rebuilds the index, clears the derivation cache, marks dirty, and re-runs invariants. Pinning lives in the side-table per Q1; no new field on `GeneratedSystem`. |
+| G5 partial regen | [gui/src/builder/state.rs](gui/src/builder/state.rs) `PartialRegenRect::{from_corners, contains}` plus `BuilderState::{partial_regen_rect, regenerate_partial}`. The panel exposes min / max q / r DragValues; on apply, every non-pinned in-rect system is replaced by a fresh `sectorforge::generate_system_standalone` call keyed by its existing index, then the systems list is re-sorted and the index rebuilt. Errors bubble up as `BuilderError::ParseFailed`. |
+| G6 New from preset (new tab) | [gui/src/builder/workspace.rs](gui/src/builder/workspace.rs) `BuilderWorkspace` — owns `Vec<BuilderState>` plus an active index; `push` focuses the new state, `switch_to` re-points the cursor, `close_active` drops the focused state. The panel collects (preset id, destination, seed) into `ModalKind::NewFromPreset`, calls `project_io::new_project(opts)` with `preset = Some(id)`, and pushes the resulting state onto the workspace when one is wired; falls back to replacing the current state when no host workspace is present. |
+
+Tests in `gui/src/builder/panels/generation.rs`:
+
+* `partial_regen_rect_contains_normalises_corners` — `from_corners` swaps inverted ranges.
+* `reroll_locked_keeps_seed` — locked re-roll is a no-op.
+* `reroll_unlocked_advances_seed_and_counter` — two re-rolls produce distinct seeds and counter `= 2`.
+* `apply_preview_with_no_scratch_returns_false` — Apply is a no-op when no preview is queued.
+* `partial_regen_without_input_errors` — synthesising a `ProjectInput` requires a worlds catalog.
+* `partial_regen_skips_when_no_rect` — missing rect yields `ParseFailed`.
+
+Tests in `gui/src/builder/preview.rs`:
+
+* `schedule_bumps_revision_and_clears_sector`, `apply_result_drops_stale_revision`, `apply_result_keeps_current_revision`, `clear_cancels_in_flight_job`, `derive_reroll_seed_is_deterministic_and_counter_sensitive`.
+
+Tests in `gui/src/builder/workspace.rs`:
+
+* `push_focuses_new_slot`, `switch_to_changes_active_within_bounds`, `close_active_collapses_to_previous_slot`, `close_first_keeps_focus_on_next`, `iter_emits_all_states_in_insertion_order`.
+
 ---
 
 ## 9. Library use
@@ -2073,6 +2105,9 @@ across runs, so a regression check is a diff away.
 | [gui/src/builder/preferences.rs](gui/src/builder/preferences.rs) | §P6 `Preferences` store at `~/.config/sectorforge/preferences.toml` — recent-projects MRU |
 | [gui/src/builder/panels/preferences.rs](gui/src/builder/panels/preferences.rs) | §P6 Preferences panel with click-to-open recent-projects list |
 | [gui/src/builder/panels/shortcuts.rs](gui/src/builder/panels/shortcuts.rs) | §U2 keyboard-shortcut handler — `Ctrl-Z` undo, `Ctrl-Y` / `Ctrl-Shift-Z` redo, consumed via `Context::input_mut` |
+| [gui/src/builder/preview.rs](gui/src/builder/preview.rs) | §G3 live-preview pipeline — `PreviewState` (debounce + scratch sector + revision-stamped job) + `derive_reroll_seed` helper for §G2 |
+| [gui/src/builder/workspace.rs](gui/src/builder/workspace.rs) | §G6 `BuilderWorkspace` — ring of open `BuilderState` sessions with `push` / `switch_to` / `close_active` |
+| [gui/src/builder/panels/generation.rs](gui/src/builder/panels/generation.rs) | §6 G1..G6 Generation panel (parameters parity / seed lock + re-roll / live preview / Apply / partial regen / New from preset) hosted under PROJECT tab |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
 | [src/presets.rs](src/presets.rs) | Adds `scaffold_to_dir(preset_id, dest, seed_override)` for §P1 — default `presets/` resolution + binary-adjacent fallback |
 

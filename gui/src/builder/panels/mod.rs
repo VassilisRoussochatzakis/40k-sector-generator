@@ -38,6 +38,7 @@ pub mod diff;
 pub mod economy;
 pub mod export;
 pub mod factions;
+pub mod generation;
 pub mod history;
 pub mod hooks;
 pub mod interestingness;

@@ -133,6 +133,10 @@ impl SessionFile {
             selected_region_id: None,
             active_tab: super::state::BuilderTab::Project,
             map_tool: super::state::MapTool::Select,
+            seed_locked: false,
+            seed_reroll_counter: 0,
+            preview: super::preview::PreviewState::new(),
+            partial_regen_rect: None,
         }
     }
 }

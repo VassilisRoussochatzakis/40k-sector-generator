@@ -66,7 +66,7 @@ fn export_writes_all_expected_files() {
     let sector = fixture_sector();
     let tmp = tempfile::tempdir().unwrap();
     let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-    sectorforge::export_sector(&sector, &output_cfg, &tmp_path).unwrap();
+    sectorforge::export_sector(sector, &output_cfg, &tmp_path).unwrap();
     assert!(tmp_path.join("sector.json").exists());
     assert!(tmp_path.join("sector.md").exists());
     assert!(tmp_path.join("manifest.json").exists());
@@ -82,7 +82,7 @@ fn export_can_opt_in_to_per_system_json() {
     let tmp = tempfile::tempdir().unwrap();
     let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
 
-    sectorforge::export_sector(&sector, &output_cfg, &tmp_path).unwrap();
+    sectorforge::export_sector(sector, &output_cfg, &tmp_path).unwrap();
 
     assert!(tmp_path.join("sector.json").exists());
     assert!(tmp_path.join("systems").join("sys-0001.json").exists());
@@ -103,7 +103,7 @@ fn export_removes_stale_per_system_json_when_disabled() {
     fs::write(&stale_json, "{}").unwrap();
     fs::write(&keep_png, "not a real png").unwrap();
 
-    sectorforge::export_sector(&sector, &output_cfg, &tmp_path).unwrap();
+    sectorforge::export_sector(sector, &output_cfg, &tmp_path).unwrap();
 
     assert!(tmp_path.join("sector.json").exists());
     assert!(!stale_json.exists());

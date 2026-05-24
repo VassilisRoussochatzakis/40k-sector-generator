@@ -17,15 +17,15 @@
 //! §CL3 Contested auto-flag — N>1 distinct claimants on a world.
 //! §CL4 Bulk convert: every claim of kind X by faction Y becomes kind Z.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::control::{aggregate_faction_power, derive_system_control, derive_world_control};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sector_model::{
-    ClaimType, DominanceState, FactionClaim, FactionInfluence, PowerProfile, PresenceDimensions,
-    SystemState, WorldFactionPresence,
+    ClaimType, DominanceState, FactionClaim, FactionInfluence, PresenceDimensions, SystemState,
+    WorldFactionPresence,
 };
 
 use crate::builder::state::{BuilderTab, ControlOverlay};
@@ -1161,12 +1161,6 @@ pub fn build_overlay_cells(
         }
     }
 }
-
-// silence unused-import lint when only the helpers above are reached
-#[allow(dead_code)]
-fn _power_profile_marker(_p: PowerProfile) {}
-#[allow(dead_code)]
-fn _btreemap_marker(_p: BTreeMap<FactionId, PowerProfile>) {}
 
 #[cfg(test)]
 mod tests {

@@ -1890,11 +1890,6 @@ pub fn write_report(
     crate::export::write_md_and_json(output_dir, "history", &render_markdown(report, cfg), report)
 }
 
-#[allow(dead_code)]
-fn cmp_date(a: &str, b: &str) -> Ordering {
-    a.cmp(b)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

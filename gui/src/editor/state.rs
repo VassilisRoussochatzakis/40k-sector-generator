@@ -242,54 +242,6 @@ impl EditorState {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::atomic::Ordering;
-    use std::sync::{mpsc, Arc, Mutex};
-
-    fn preview_job(revision: u64) -> crate::jobs::JobHandle<PreviewJobResult> {
-        let (_tx, rx) = mpsc::channel();
-        crate::jobs::JobHandle {
-            id: "preview-gen".to_string(),
-            revision,
-            description: "preview".to_string(),
-            progress: Arc::new(Mutex::new(0.0)),
-            cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            receiver: rx,
-        }
-    }
-
-    #[test]
-    fn stale_preview_revision_is_discarded_after_new_request() {
-        let mut state = EditorState {
-            preview_revision: 1,
-            preview_job: Some(preview_job(1)),
-            ..EditorState::default()
-        };
-        let cancel_flag = state.preview_job.as_ref().unwrap().cancelled.clone();
-
-        state.schedule_preview(2.0);
-
-        assert!(cancel_flag.load(Ordering::SeqCst));
-        assert_eq!(state.preview_revision, 2);
-        assert!(!state.apply_preview_result(
-            1,
-            PreviewJobResult::Ready(empty_sector("old", "Old", "old", 1, 1))
-        ));
-        assert!(state.preview_sector.is_none());
-
-        assert!(state.apply_preview_result(
-            2,
-            PreviewJobResult::Ready(empty_sector("new", "New", "new", 1, 1))
-        ));
-        assert_eq!(
-            state.preview_sector.as_ref().map(|s| s.seed.to_string()),
-            Some("new".to_string())
-        );
-    }
-}
-
 pub fn empty_sector(id: &str, title: &str, seed: &str, width: u32, height: u32) -> GeneratedSector {
     GeneratedSector {
         id: id.into(),
@@ -413,5 +365,53 @@ pub fn empty_faction(id: &FactionId) -> GeneratedFaction {
         system_presence: Vec::new(),
         world_presence: Vec::new(),
         power: Default::default(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+    use std::sync::{mpsc, Arc, Mutex};
+
+    fn preview_job(revision: u64) -> crate::jobs::JobHandle<PreviewJobResult> {
+        let (_tx, rx) = mpsc::channel();
+        crate::jobs::JobHandle {
+            id: "preview-gen".to_string(),
+            revision,
+            description: "preview".to_string(),
+            progress: Arc::new(Mutex::new(0.0)),
+            cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            receiver: rx,
+        }
+    }
+
+    #[test]
+    fn stale_preview_revision_is_discarded_after_new_request() {
+        let mut state = EditorState {
+            preview_revision: 1,
+            preview_job: Some(preview_job(1)),
+            ..EditorState::default()
+        };
+        let cancel_flag = state.preview_job.as_ref().unwrap().cancelled.clone();
+
+        state.schedule_preview(2.0);
+
+        assert!(cancel_flag.load(Ordering::SeqCst));
+        assert_eq!(state.preview_revision, 2);
+        assert!(!state.apply_preview_result(
+            1,
+            PreviewJobResult::Ready(empty_sector("old", "Old", "old", 1, 1))
+        ));
+        assert!(state.preview_sector.is_none());
+
+        assert!(state.apply_preview_result(
+            2,
+            PreviewJobResult::Ready(empty_sector("new", "New", "new", 1, 1))
+        ));
+        assert_eq!(
+            state.preview_sector.as_ref().map(|s| s.seed.to_string()),
+            Some("new".to_string())
+        );
     }
 }

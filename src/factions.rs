@@ -158,6 +158,40 @@ pub fn legacy_top_faction_name(kind: &str) -> Cow<'static, str> {
 
 use std::borrow::Cow;
 
+#[must_use]
+pub fn display_name_from_id(id: &str) -> Cow<'static, str> {
+    match id {
+        "imperial" => Cow::Borrowed("Imperial Institutions"),
+        "tau" => Cow::Borrowed("T'au"),
+        "ork" => Cow::Borrowed("Orks"),
+        "tyranid" => Cow::Borrowed("Tyranids"),
+        "necron" => Cow::Borrowed("Necrons"),
+        "aeldari" => Cow::Borrowed("Aeldari"),
+        "drukhari" => Cow::Borrowed("Drukhari"),
+        "harlequin" => Cow::Borrowed("Harlequins"),
+        "xenos" => Cow::Borrowed("Xenos"),
+        "minor_xenos" => Cow::Borrowed("Minor Xenos"),
+        "leagues_of_votann" => Cow::Borrowed("Leagues of Votann"),
+        _ => Cow::Owned(
+            id.split('_')
+                .filter(|s| !s.is_empty())
+                .map(|s| {
+                    let mut chars = s.chars();
+                    match chars.next() {
+                        Some(first) => {
+                            let mut out = first.to_uppercase().collect::<String>();
+                            out.push_str(chars.as_str());
+                            out
+                        }
+                        None => String::new(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,39 +246,5 @@ mod tests {
         let s = toml::to_string(&def).unwrap();
         let parsed: FactionDef = toml::from_str(&s).unwrap();
         assert_eq!(parsed, def);
-    }
-}
-
-#[must_use]
-pub fn display_name_from_id(id: &str) -> Cow<'static, str> {
-    match id {
-        "imperial" => Cow::Borrowed("Imperial Institutions"),
-        "tau" => Cow::Borrowed("T'au"),
-        "ork" => Cow::Borrowed("Orks"),
-        "tyranid" => Cow::Borrowed("Tyranids"),
-        "necron" => Cow::Borrowed("Necrons"),
-        "aeldari" => Cow::Borrowed("Aeldari"),
-        "drukhari" => Cow::Borrowed("Drukhari"),
-        "harlequin" => Cow::Borrowed("Harlequins"),
-        "xenos" => Cow::Borrowed("Xenos"),
-        "minor_xenos" => Cow::Borrowed("Minor Xenos"),
-        "leagues_of_votann" => Cow::Borrowed("Leagues of Votann"),
-        _ => Cow::Owned(
-            id.split('_')
-                .filter(|s| !s.is_empty())
-                .map(|s| {
-                    let mut chars = s.chars();
-                    match chars.next() {
-                        Some(first) => {
-                            let mut out = first.to_uppercase().collect::<String>();
-                            out.push_str(chars.as_str());
-                            out
-                        }
-                        None => String::new(),
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(" "),
-        ),
     }
 }

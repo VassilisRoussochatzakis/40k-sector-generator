@@ -644,6 +644,7 @@ fn region(id: &str, name: &str, kind: RegionConditionKind, q: i32, r: i32) -> Wa
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn subsector(
     id: &str,
     name: &str,

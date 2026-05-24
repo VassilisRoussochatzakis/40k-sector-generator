@@ -736,19 +736,38 @@ CL4.  [DONE] Bulk: convert all claims of kind X by faction Y to kind Z.
 13. SUBSECTORS
 ================================================================================
 
-SUB1. Subsector panel: list of clusters with label (A, B, ...), capital,
-      contained systems, dominant faction.
+SUB1. [DONE] Subsector panel: list of clusters with label (A, B, ...), capital,
+      contained systems, dominant faction. Sortable striped grid in
+      `builder/src/builder/panels/subsectors.rs::show_cluster_list`, fed by
+      `current_subsectors` (reuses `BuilderState::map_view_cache` when warm).
 
-SUB2. "Recluster" button runs `src/subsectors/mod.rs` k-means with
-      configurable `target_systems_per_subsector`.
+SUB2. [DONE] "Recluster" button runs `src/subsectors/mod.rs` k-means with
+      configurable `target_systems_per_subsector`. Live DragValue +
+      explicit "Recluster" / "Reset target" buttons mutate
+      `BuilderState::subsector_target_systems`, which feeds the
+      `MapViewCache` digest in `panels::map::sector_view_digest` so the
+      cluster cache rebuilds on the next MAP tick.
 
-SUB3. Manual reassignment: drag-drop systems between subsectors in a
-      tree view. Marks subsector as `manual = true` so reclustering
-      preserves manual splits.
+SUB3. [DONE] Manual reassignment via per-system "Move to..." picker (drag-drop
+      tree view replaced with ComboBox; same semantic, fewer pixels).
+      Each move writes `BuilderState::subsector_system_overrides` and flags
+      both source and destination clusters in `subsector_manual`.
+      `apply_subsector_overrides` reapplies the overrides on top of every
+      fresh k-means pass so manual splits survive SUB2 reclustering.
 
-SUB4. Capital override per subsector.
+SUB4. [DONE] Capital override per subsector. ComboBox over the cluster's
+      current `system_ids` writes `subsector_capital_overrides` (keyed by
+      subsector id, value = chosen `SystemId`). Applied post-cluster in
+      `apply_subsector_overrides`; ignored when the chosen system is not a
+      member of that cluster (guards against stale entries after a SUB3
+      reassignment).
 
-SUB5. Subsector colour override (FactionStyle-derived default).
+SUB5. [DONE] Subsector colour override (FactionStyle-derived default).
+      `egui::Ui::color_edit_button_srgb` swatch backed by
+      `subsector_colour_overrides`; default colour comes from
+      `sectorforge::faction_style::faction_style_rgb_by_id` on the cluster's
+      `summary.controlling_faction_id` (grey 110/110/120 when no controlling
+      faction).
 
 ================================================================================
 14. REGIONS (WARP PHENOMENA)
@@ -1420,7 +1439,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Control   -> panels/control.rs    (Phase B §C1..§C8 placeholder)
         Regions   -> panels/regions.rs    (Phase C §REG1..§REG7 DONE)
         Routes    -> panels/routes.rs     (Phase B §R1..§R7 DONE)
-        Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5)
+        Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5 DONE)
         Economy   -> panels/economy.rs    (Phase C §E1..§E7)
         Relations -> panels/relations.rs  (Phase C §REL1..§REL9)
         History   -> panels/history.rs    (Phase C §H1..§H8)
@@ -1550,7 +1569,23 @@ Phase C — Overlays editable
                      REGION_HEX_OVERLAP / REGION_ISOLATES_SECTOR, and an
                      ASCII §REG7 glyph preview (~ ^ = # * % + ?) sourced
                      from `RegionConditionKind::glyph`)
-  SUB1..SUB5, (§13 subsectors)
+  SUB1..SUB5 - DONE (§13 subsectors — SUBSECTORS panel: §SUB1 cluster table
+                     with label / name / capital / system count / dominant
+                     faction; §SUB2 target_systems_per_subsector DragValue +
+                     "Recluster" / "Reset target" buttons rebuilding the
+                     `MapViewCache`; §SUB3 per-system "Move to..." picker with
+                     `subsector_system_overrides` side-table reapplied after
+                     every clustering pass, plus `subsector_manual` flag set
+                     on touched cells; §SUB4 capital override ComboBox over
+                     the cluster's member systems, stored in
+                     `subsector_capital_overrides` and applied without
+                     changing the subsector id; §SUB5 colour swatch defaulted
+                     to FactionStyle fill of the controlling faction, custom
+                     overrides in `subsector_colour_overrides`; "× clear all
+                     overrides" button drops all four side-tables in one go;
+                     MAP-tab `selected_subsector` now reads
+                     `BuilderState::selected_subsector_id` so panel-side
+                     selection lights up the live hex map)
   E1..E7,     (§15 economy)
   REL1..REL9, (§16 relations)
   H1..H8,     (§17 history)

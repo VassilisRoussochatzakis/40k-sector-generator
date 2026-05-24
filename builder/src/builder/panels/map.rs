@@ -139,7 +139,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             path_waypoints: None,
             subsectors: subsectors_slice,
             cache: lookup,
-            selected_subsector: None,
+            selected_subsector: state.selected_subsector_id.as_deref(),
             heatmap: overlay_cells.as_ref(),
             empty_hex_clicks: false,
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
@@ -267,7 +267,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
 /// Rebuilds [`MapViewCache`] when the underlying sector slice digest changes.
 /// Pure — no UI side effects. Cheap when the cache is hot.
 fn refresh_map_cache(state: &mut BuilderState) {
-    let digest = sector_view_digest(&state.sector);
+    let digest = sector_view_digest(state);
     let stale = state
         .map_view_cache
         .as_ref()
@@ -276,8 +276,15 @@ fn refresh_map_cache(state: &mut BuilderState) {
     if !stale {
         return;
     }
-    let subsectors =
-        build_subsectors(&state.sector, SubsectorConfig::default()).unwrap_or_default();
+    let mut subsectors = build_subsectors(
+        &state.sector,
+        SubsectorConfig {
+            target_systems_per_subsector: state.subsector_target_systems.max(1),
+            ..SubsectorConfig::default()
+        },
+    )
+    .unwrap_or_default();
+    crate::builder::panels::subsectors::apply_subsector_overrides(&mut subsectors, state);
     let lookup = SectorMapCache::new(&state.sector, &subsectors);
     state.map_view_cache = Some(MapViewCache {
         digest,
@@ -286,10 +293,13 @@ fn refresh_map_cache(state: &mut BuilderState) {
     });
 }
 
-fn sector_view_digest(sector: &sectorforge::sector_model::GeneratedSector) -> String {
+fn sector_view_digest(state: &BuilderState) -> String {
     // Hash the minimal slice that drives subsector clustering + region tints.
     // Keeping the slice narrow avoids invalidating the cache on unrelated
-    // edits (e.g. faction prose).
+    // edits (e.g. faction prose). §SUB2..§SUB4 overrides also feed in so the
+    // cache rebuilds when the user reclusters, moves systems between cells,
+    // or overrides a capital.
+    let sector = &state.sector;
     #[derive(serde::Serialize)]
     struct Slice<'a> {
         w: u32,
@@ -297,6 +307,9 @@ fn sector_view_digest(sector: &sectorforge::sector_model::GeneratedSector) -> St
         systems: Vec<(&'a str, i32, i32)>,
         routes: Vec<(&'a str, &'a str, &'a str)>,
         regions: Vec<(&'a str, Vec<(i32, i32)>)>,
+        sub_target: u32,
+        sub_sys: Vec<(&'a str, &'a str)>,
+        sub_cap: Vec<(&'a str, &'a str)>,
     }
     let slice = Slice {
         w: sector.width,
@@ -321,6 +334,17 @@ fn sector_view_digest(sector: &sectorforge::sector_model::GeneratedSector) -> St
             .regions
             .iter()
             .map(|r| (r.id.as_str(), r.hexes.iter().map(|h| (h.q, h.r)).collect()))
+            .collect(),
+        sub_target: state.subsector_target_systems,
+        sub_sys: state
+            .subsector_system_overrides
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect(),
+        sub_cap: state
+            .subsector_capital_overrides
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
             .collect(),
     };
     digest_input(&slice)

@@ -2000,6 +2000,22 @@ Tests live in [builder/src/builder/panels/regions.rs](builder/src/builder/panels
 
 * `next_region_id_increments_past_existing`, `paint_then_erase_round_trips_hex_list`, `overlap_paint_surfaces_region_hex_overlap_invariant`, `seed_region_grows_in_bounds_and_avoids_existing`, `region_condition_glyphs_unique`.
 
+#### SUB1–SUB5 subsectors panel (DONE)
+
+Phase C §13. The SUBSECTORS tab in [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) edits the live clustering derived from `sectorforge::subsectors::build_subsectors`. The library result is derivation-only — the panel layers four `BuilderState` side-tables on top so manual edits survive a reclustering pass without mutating `GeneratedSector`. `apply_subsector_overrides` (exposed by the panel and called by [builder/src/builder/panels/map.rs::refresh_map_cache](builder/src/builder/panels/map.rs)) re-runs after every cluster rebuild so the MAP-tab renderer sees the same overridden roster as the panel.
+
+| Piece | Where it lives |
+|---|---|
+| SUB1 cluster list | [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) `show_cluster_list` — striped six-column grid (label / name / capital / system count / dominant faction / flags). Selectable rows write `BuilderState::selected_subsector_id`, which is now forwarded to `SectorView::selected_subsector` from [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) so the MAP tab tints the chosen cluster grey. |
+| SUB2 recluster | [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) `show_recluster_bar` — DragValue + "Recluster" / "Reset target" buttons mutate `BuilderState::subsector_target_systems`. The value feeds `sector_view_digest` in [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) so the [`MapViewCache`](builder/src/builder/state.rs) rebuilds on the next refresh through `build_subsectors` with the new target. "× clear all overrides" drops all four side-tables in one click. |
+| SUB3 manual reassign | [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) `show_manual_reassign` — per-system "Move to..." ComboBox writes `BuilderState::subsector_system_overrides` (`SystemId` → destination subsector id). Both source and destination subsectors land in `subsector_manual` so SUB2 reclustering does not silently undo the move. The overrides are reapplied by `apply_subsector_overrides` after every fresh k-means pass, so manual splits ride through any target change. A per-row `clear` button drops the override and rejoins the algorithmic cluster. |
+| SUB4 capital override | [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) `show_capital_override` — ComboBox over the cluster's `system_ids` writes `BuilderState::subsector_capital_overrides` (subsector id → chosen `SystemId`). `apply_subsector_overrides` rewrites `summary.subsector_capital_system_id` and the cluster `name` ("Subsector {capital.name}") without touching the cluster id, so all four side-tables remain keyed correctly across reclustering. Overrides whose chosen system has moved out of the cluster are ignored. |
+| SUB5 colour override | [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) `show_colour_override` — `egui::Ui::color_edit_button_srgb` backed by `BuilderState::subsector_colour_overrides`. The default swatch comes from `sectorforge::faction_style::faction_style_rgb_by_id` on `summary.controlling_faction_id` (grey 110/110/120 when no controlling faction), matching the F4 palette used by the FACTIONS tab and `gui-core::palette::FactionStyle`. The override survives reclustering because it is stored on the side-table, not on the derived `Subsector` struct. |
+
+Tests live in [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs):
+
+* `apply_overrides_moves_system_between_cells`, `capital_override_pins_capital_to_chosen_system`, `capital_override_ignored_when_target_system_not_in_cell`, `recluster_target_invalidates_cache_via_digest_shift`, `default_colour_falls_back_to_grey_when_no_controlling_faction`, `clearing_overrides_drops_all_side_tables`.
+
 ---
 
 ## 9. Library use

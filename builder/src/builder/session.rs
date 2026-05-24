@@ -164,6 +164,12 @@ impl SessionFile {
             region_grow_r: 0,
             region_grow_size: 6,
             region_grow_kind: sectorforge::regions::RegionConditionKind::Turbulence,
+            selected_subsector_id: None,
+            subsector_target_systems: sectorforge::subsectors::DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
+            subsector_system_overrides: std::collections::BTreeMap::new(),
+            subsector_manual: std::collections::BTreeSet::new(),
+            subsector_capital_overrides: std::collections::BTreeMap::new(),
+            subsector_colour_overrides: std::collections::BTreeMap::new(),
         }
     }
 }

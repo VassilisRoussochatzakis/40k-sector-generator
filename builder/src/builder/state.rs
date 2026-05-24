@@ -376,6 +376,29 @@ pub struct BuilderState {
     pub region_grow_r: i32,
     pub region_grow_size: u32,
     pub region_grow_kind: sectorforge::regions::RegionConditionKind,
+    /// §SUB1: currently focused subsector in the SUBSECTORS panel. Drives the
+    /// per-cluster inspector and the MAP-tab faint-grey highlight overlay.
+    pub selected_subsector_id: Option<String>,
+    /// §SUB2: live `target_systems_per_subsector` for the recluster button.
+    /// Defaults to [`sectorforge::subsectors::DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR`].
+    /// Folded into the [`MapViewCache`] digest so changes invalidate the cache
+    /// and the renderer rebuilds with the new clustering.
+    pub subsector_target_systems: u32,
+    /// §SUB3: per-system manual reassignment table. After the lib runs
+    /// `build_subsectors`, the panel reapplies these overrides so manual moves
+    /// survive reclustering. Key = `SystemId`, value = destination subsector id.
+    pub subsector_system_overrides: BTreeMap<SystemId, String>,
+    /// §SUB3: subsectors the user has touched manually. Stored separately from
+    /// the system overrides so the panel can flag a cluster as "manual" even
+    /// when its current member list happens to match the algorithmic output.
+    pub subsector_manual: BTreeSet<String>,
+    /// §SUB4: capital override per subsector. Overrides the algorithmic
+    /// `summary.subsector_capital_system_id` after the lib clusters.
+    pub subsector_capital_overrides: BTreeMap<String, SystemId>,
+    /// §SUB5: per-subsector colour override. Default for each subsector is the
+    /// `FactionStyle` fill of its controlling faction; the override is only
+    /// recorded when the user picks a custom swatch.
+    pub subsector_colour_overrides: BTreeMap<String, [u8; 3]>,
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -534,6 +557,12 @@ impl BuilderState {
             region_grow_r: 0,
             region_grow_size: 6,
             region_grow_kind: sectorforge::regions::RegionConditionKind::Turbulence,
+            selected_subsector_id: None,
+            subsector_target_systems: sectorforge::subsectors::DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
+            subsector_system_overrides: BTreeMap::new(),
+            subsector_manual: BTreeSet::new(),
+            subsector_capital_overrides: BTreeMap::new(),
+            subsector_colour_overrides: BTreeMap::new(),
         }
     }
 

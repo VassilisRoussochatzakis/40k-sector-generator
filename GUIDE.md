@@ -2096,3 +2096,7 @@ Same caveat for the `while condition comparing floats` warnings in the bitmap/pa
 ### Hashing
 
 Maps and sets across the crate use the std default `RandomState` (SipHash). For determinism we **never** iterate a `HashMap` for output — JSON / Markdown writers sort keys via a `BTreeMap` or an explicit `sort_unstable_by` before emission. If you switch to a faster hasher (`rustc_hash::FxHashMap`, `ahash`), the same rule applies: sort before emit, never iterate in output order.
+
+### Optimization review backlog
+
+See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. The highest-priority items are GUI preview job revision/cancellation handling, off-thread GUI exports, derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.

@@ -1,0 +1,157 @@
+Suggested changes
+
+1. Fix GUI preview job lifecycle
+Severity: High
+Evidence: `gui/src/app/lifecycle.rs` drops `preview_job` by assigning `None` instead of
+calling `cancel()`, accepts whatever job finishes next, and panics on preview generation
+errors. `gui/src/jobs.rs` has a cancel flag, but preview generation ignores it.
+Risk: stale preview can overwrite newer settings; failed preview can panic a worker; finished
+jobs may not wake egui because `spawn_job` sends the result without `request_repaint()`.
+Fix:
+- Change `JobHandle<T>` to carry a revision id and `Receiver<Result<T, E>>` or a typed
+  preview result enum.
+- On new preview request, call `cancel()` on the old job before replacing the handle.
+- Pass `JobContext` into generation progress and stop early when cancelled.
+- On receive, apply result only if revision matches current editor revision.
+- Request repaint after `tx.send(...)` in `spawn_job`.
+Validation:
+- Add a GUI-unit test or state-level test: start preview A, change config, start preview B,
+  complete A after B, assert A is discarded.
+
+2. Move GUI export work off the UI thread
+Severity: High
+Evidence: `gui/src/app/export_ui.rs` calls `write_sector_png_to_with`,
+`write_all_system_pngs`, SVG export, HTML export, and bundle export directly from button
+handlers.
+Risk: 4K PNG render/encode, all-system PNG export, HTML JSON inline, and bundle copy can
+freeze the eframe event loop.
+Fix:
+- Reuse `spawn_job` for export jobs.
+- Send immutable sector snapshots plus export options to worker.
+- Return progress/status through channel; keep file dialog on UI thread.
+- Add cancellation for all-system PNG export.
+Validation:
+- Add timing smoke test for job dispatch.
+- Manual GUI check: export large sector while panning/hovering stays responsive.
+
+3. Do not panic or hide serialization failure in derivation cache digest
+Severity: Medium
+Evidence: `gui/src/builder/derivation_cache.rs` uses
+`serde_json::to_vec(input).unwrap_or_default()`.
+Risk: serialization failure hashes empty bytes, causing unrelated failed inputs to share one
+cache digest.
+Fix:
+- Return `Result<String, BuilderError>` or `Result<String, serde_json::Error>` from
+  `digest_input`.
+- Bubble error to panel/status instead of caching.
+Validation:
+- Add test with custom serializer failure and assert error is returned.
+
+4. Expand settings digest coverage
+Severity: Medium
+Evidence: `src/generation.rs` builds `settings_digest` from a hand-formatted string of seven
+generation fields only.
+Risk: meaningful config changes outside those fields can leave the same settings digest,
+weakening manifest/cache identity.
+Fix:
+- Hash a canonical serializable settings struct containing all generation-affecting config:
+  generation, route rules knobs, optional overlay config that changes output, and selected
+  output-affecting feature toggles.
+- Version the digest payload, e.g. `settings_digest_v2`.
+- Preserve old field if backward compatibility matters.
+Validation:
+- Unit tests: changing relations threshold, route settings, history/economy enablement, or
+  bitmap-relevant output config changes expected digest when it changes generated output.
+
+5. Split benchmark phases beyond full generation
+Severity: Medium
+Evidence: `benches/generation.rs` benchmarks full `generate_sector`, pre-validation, and
+post-validation for three sizes, but not hashing, overlays, route effects, PNG raster,
+PNG encode, serialization, or GUI-preview-like workflows.
+Risk: optimization work can chase total time without knowing which phase regressed.
+Fix:
+- Add Criterion groups for load/config parse, validation, placement/core generation, route
+  generation/effects, influence field, relations, economy, chronicle, JSON serialization,
+  sector PNG raster, PNG encode, and all-system PNG export.
+- Keep tiny/normal/large/stress cases with fixed seeds.
+Validation:
+- `cargo bench --bench generation` prints separate phase groups.
+
+6. Add PNG golden or pixel-hash tests
+Severity: Medium
+Evidence: tests cover sector JSON byte stability and SVG smoke output, but current grep found
+no sector/system PNG golden hash test.
+Risk: renderer refactors can silently shift map geometry, labels, colours, or route glyphs.
+Fix:
+- Render a small fixture sector and one system at scale 1.
+- Hash raw RGBA pixels, not PNG bytes, unless byte-identical PNGs are a product requirement.
+- Keep separate tests for sector map and system map.
+Validation:
+- Pixel digest tests fail on intentional visual changes; update fixtures in same commit as
+  approved renderer changes.
+
+7. Avoid whole-sector clones in GUI export paths where avoidable
+Severity: Low
+Evidence: `gui/src/app/export_ui.rs` clones `self.sector` before each export.
+Risk: large generated sectors pay extra memory/time before export starts.
+Fix:
+- For synchronous paths, borrow `&GeneratedSector`.
+- For worker paths, use `Arc<GeneratedSector>` snapshots or clone once when queueing a job.
+Validation:
+- Profile large-sector export memory before/after.
+
+8. Clarify GUI job model: legacy editor vs builder
+Severity: Low
+Evidence: `gui/src/jobs.rs` has real `JobHandle<T>`, while
+`gui/src/builder/state.rs` has a type-erased `JobHandle` with only id/description and
+`pending_jobs` status UI.
+Risk: future background tasks may split across two job abstractions with different
+cancellation/error semantics.
+Fix:
+- Consolidate on one typed job runner plus lightweight UI-facing job summary.
+- Keep builder status panel as a view over real handles/results.
+Validation:
+- One test for cancel, completion, error, stale revision discard.
+
+9. Add GUI responsiveness regression checks
+Severity: Low
+Evidence: GUI uses eframe and some worker infrastructure, but no test currently proves long
+generation/export cannot block UI or publish stale results.
+Risk: responsiveness can regress without a failing test.
+Fix:
+- Add state-level tests for preview debounce/revision.
+- Add manual checklist in GUIDE for large-sector generate/export responsiveness.
+- If feasible, add a small headless egui update test around preview state transitions.
+
+10. Keep optimizing only after measurement
+Severity: Low
+Evidence: release/bench profiles are already aggressive and code already uses many
+deterministic structures. No current measured bottleneck was supplied.
+Risk: speculative micro-optimizations may alter byte-stable output or renderer pixels.
+Fix:
+- Before changing hot loops, record Criterion baseline and any PNG pixel digests.
+- Prefer `sort_unstable*`, preallocation, and index reuse only where profile data points.
+
+Priority roadmap
+Immediate:
+- Fix preview job cancellation, result typing, stale revision rejection, and repaint on
+  completion.
+- Move PNG/SVG/HTML/bundle export to worker jobs.
+- Change derivation cache digest to return errors.
+
+Short term:
+- Expand Criterion phase benches.
+- Add PNG raw-pixel golden tests.
+- Widen `settings_digest` or introduce `settings_digest_v2`.
+
+Medium term:
+- Consolidate GUI job abstractions.
+- Add GUI responsiveness regression tests/checklist.
+- Profile large sectors before data-structure changes.
+
+Open questions
+- Should manifest `settings_digest` mean "generation settings only" or "all semantic output
+  inputs"? Current name implies the latter, current implementation is narrower.
+- Is byte-identical PNG output required, or only pixel-identical output?
+- Which GUI path is primary now: legacy editor under `gui/src/editor` or builder under
+  `gui/src/builder`?

@@ -570,7 +570,7 @@ fn should_report_history_progress(current: usize, total: usize) -> bool {
     if total == 0 {
         return false;
     }
-    current == 1 || current == total || current % history_progress_stride(total) == 0
+    current == 1 || current == total || current.is_multiple_of(history_progress_stride(total))
 }
 
 fn history_progress_stride(total: usize) -> usize {
@@ -797,7 +797,7 @@ fn emit_world_events(
     }
 
     // Resort by topological rank so the chronicle reads forward.
-    buf.sort_by(|a, b| a.0.topo_rank().cmp(&b.0.topo_rank()));
+    buf.sort_by_key(|a| a.0.topo_rank());
 
     for (i, (kind, text, factions, weight)) in buf.into_iter().enumerate() {
         let anchor = HistoryAnchor::World {
@@ -980,7 +980,7 @@ fn emit_system_events(ctx: &EmitContext, sys: &GeneratedSystem, out: &mut Vec<Hi
         });
         buf.truncate(ctx.cfg.max_events_per_system as usize);
     }
-    buf.sort_by(|a, b| a.0.topo_rank().cmp(&b.0.topo_rank()));
+    buf.sort_by_key(|a| a.0.topo_rank());
 
     for (i, (kind, text, factions, weight)) in buf.into_iter().enumerate() {
         let anchor = HistoryAnchor::System {
@@ -1078,10 +1078,10 @@ fn emit_route_events(ctx: &EmitContext, route: &GeneratedRoute, out: &mut Vec<Hi
     }
 
     if buf.len() as u32 > ctx.cfg.max_events_per_route {
-        buf.sort_by(|a, b| b.3.cmp(&a.3));
+        buf.sort_by_key(|b| std::cmp::Reverse(b.3));
         buf.truncate(ctx.cfg.max_events_per_route as usize);
     }
-    buf.sort_by(|a, b| a.0.topo_rank().cmp(&b.0.topo_rank()));
+    buf.sort_by_key(|a| a.0.topo_rank());
 
     for (i, (kind, text, factions, weight)) in buf.into_iter().enumerate() {
         let anchor = HistoryAnchor::Route {

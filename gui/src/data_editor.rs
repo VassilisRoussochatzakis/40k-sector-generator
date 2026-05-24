@@ -313,11 +313,9 @@ where
     egui::ComboBox::from_id_salt(id)
         .selected_text(current_label)
         .show_ui(ui, |ui| {
-            if ui.selectable_label(value.is_none(), "—").clicked() {
-                if value.is_some() {
-                    *value = None;
-                    changed = true;
-                }
+            if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
+                *value = None;
+                changed = true;
             }
             for v in variants {
                 let label = label_of(v);

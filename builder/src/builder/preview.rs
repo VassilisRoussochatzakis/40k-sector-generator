@@ -19,6 +19,7 @@ use sectorforge::{SectorError, SectorProgress};
 use sectorforge_gui_core::jobs::{spawn_job, JobHandle};
 
 /// Outcome the worker posts back. Mirrors the legacy editor's variant.
+#[allow(clippy::large_enum_variant)]
 pub enum PreviewJobResult {
     Ready(GeneratedSector),
     Cancelled,

@@ -38,10 +38,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
             close = true;
         }
     });
-    if close {
-        if !matches!(state.modal, Some(ModalKind::Message(_))) {
-            state.modal = None;
-        }
+    if close && !matches!(state.modal, Some(ModalKind::Message(_))) {
+        state.modal = None;
     }
     close
 }

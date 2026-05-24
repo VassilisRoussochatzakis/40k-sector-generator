@@ -36,18 +36,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
         Selection::None => None,
     };
 
-    let drag_override = state
-        .drag_id
-        .clone()
-        .zip(pointer)
-        .map(|(id, pos)| (id, pos));
+    let drag_override = state.drag_id.clone().zip(pointer);
 
     let pending_route_preview = if state.tool == SectorEditTool::AddRoute {
-        state
-            .pending_route_start
-            .clone()
-            .zip(pointer)
-            .map(|(id, pos)| (id, pos))
+        state.pending_route_start.clone().zip(pointer)
     } else {
         None
     };

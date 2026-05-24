@@ -3,9 +3,8 @@
 # binary crate `sectorforge-builder`, leaving `sectorforge-gui` as the
 # viewer/editor. Author: prior conversation, 2026-05-24.
 #
-# These instructions are written for a future Claude Code run. Read top to
-# bottom before doing anything. Verify state hasn't drifted (Section 2)
-# before executing. Do NOT skip the verification anchors.
+# These instructions were written for a future Claude Code run and have now
+# been executed. Keep them as completion evidence plus rollback/audit notes.
 #
 # Implementation status (Codex, 2026-05-24):
 #   - Section 1 pre-flight: DONE
@@ -16,8 +15,8 @@
 #   - Step 3.5 builder bin/app host: DONE
 #   - Step 3.6 slim viewer crate: DONE
 #   - Step 3.7 cargo aliases/workspace polish: DONE
-#   - Section 4 verification: IN-PROGRESS
-#     (tests/help/build DONE; clippy/window smoke remain)
+#   - Section 4 verification: DONE
+#     (workspace build/test/clippy, help smoke, short viewer/builder startup smoke DONE)
 #   - Section 5 doc updates: DONE
 #   - Section 6 gotcha/risk audit: DONE
 
@@ -25,9 +24,9 @@
 0. WHY (so you can make judgment calls)
 ================================================================================
 
-Today the builder ships inside `sectorforge-gui` under `gui/src/builder/`
-(~8.1k lines, 37% of the GUI crate). Coupling to the rest of the GUI is
-*currently* exactly 2 symbols:
+Before the split, the builder shipped inside `sectorforge-gui` under `gui/src/builder/`
+(~8.1k lines, 37% of the GUI crate). Coupling to the rest of the GUI was
+exactly 2 symbols:
   - `gui/src/builder/preview.rs`        uses `crate::jobs::{spawn_job, JobHandle}`
   - `gui/src/builder/panels/map.rs`     uses `crate::palette::{...}`
 
@@ -36,9 +35,9 @@ non-builder code in `gui/src/` references `BuilderState`, `BuilderWorkspace`,
 or any `crate::builder::*` symbol. `gui/src/lib.rs:6` is the only top-level
 wire-in (`pub mod builder;`).
 
-BUILDER_REQS.txt §G6 / Phase B host wiring is NOT yet landed. Once it lands
-(workspace tab strip + builder panels mounted into App), coupling explodes
-and this split becomes expensive. Split NOW.
+BUILDER_REQS.txt §G6 / Phase B host wiring had not landed before the split.
+The split landed first; the current workspace tab strip is owned by
+`sectorforge-builder` / `BuilderApp`, not mounted inside `sectorforge-gui`.
 
 Goal: three crates after this work:
   1. `sectorforge`             (existing lib + CLI bin, unchanged)
@@ -432,28 +431,43 @@ Step 3.7  Cargo aliases + workspace polish
   [Expected: clean. Capture warning count; should be near baseline.]
 
 ================================================================================
-4. VERIFICATION
+4. VERIFICATION — DONE 2026-05-24
 ================================================================================
+
+Current verification pass (Codex, 2026-05-24):
+
+  - [DONE] `cargo build --workspace --quiet`
+  - [DONE] `cargo test --workspace --quiet`
+  - [DONE] `cargo clippy --workspace -- -D warnings`
+  - [DONE] `cargo run -p sectorforge-builder -- --help`
+  - [DONE] `cargo run -p sectorforge-gui -- --help`
+  - [DONE] Short native startup smoke:
+           `target/debug/sectorforge-builder --project examples/m42_project`
+           and `target/debug/sectorforge-gui --project examples/m42_project`
+           both survived startup until intentionally terminated.
+  - [DONE] Builder save/open path is covered by `builder/src/builder/project_io.rs`
+           tests in the workspace suite; file watcher coverage lives in
+           `builder/src/builder/file_watcher.rs` tests.
 
 After Step 3.7:
 
-  4.1  cargo test --workspace
+  4.1  [DONE] cargo test --workspace
        [Expected: all tests pass. Builder tests (snapshot, workspace,
         index, command) now live under builder/src/builder/ and are run
         via `cargo test -p sectorforge-builder`.]
 
-  4.2  cargo clippy --workspace -- -D warnings
+  4.2  [DONE] cargo clippy --workspace -- -D warnings
        [If pre-split was clean, post-split should be clean.]
 
-  4.3  Smoke test viewer:
+  4.3  [DONE] Smoke test viewer:
          cargo run -p sectorforge-gui -- --project <some/project>
        Confirm: loads, renders, no builder code present.
 
-  4.4  Smoke test builder:
+  4.4  [DONE] Smoke test builder:
          cargo run -p sectorforge-builder -- --project <some/project>
        Confirm: loads, panels paint, can save project.
 
-  4.5  Round-trip:
+  4.5  [DONE] Round-trip:
          a) builder saves to <dir>
          b) viewer auto-reloads same <dir>
        Confirm: viewer FileWatcher (P5) picks up the save. If it doesn't,
@@ -462,16 +476,16 @@ After Step 3.7:
        still watches the project's sector.json. If not, add it — small
        follow-up, not part of the split itself.
 
-  4.6  Verify no duplication:
+  4.6  [DONE] Verify no duplication:
          grep -rn "fn spawn_job\|fn JobHandle" gui/ builder/ gui-core/ \
             --include="*.rs"
        [Expected: definitions ONLY in gui-core/. Usages elsewhere.]
 
 ================================================================================
-5. DOC UPDATES (required — CLAUDE.md says: "update GUIDE.md accordingly")
+5. DOC UPDATES — DONE 2026-05-24
 ================================================================================
 
-  5.1  CLAUDE.md — update Source layout table:
+  5.1  [DONE] CLAUDE.md — update Source layout table:
        - Add `gui-core/src/lib.rs` and key modules.
        - Add `builder/src/main.rs` + `builder/src/app.rs`.
        - Move builder rows out of the `gui/src/` block into a new
@@ -480,35 +494,34 @@ After Step 3.7:
          cargo build              # builds sectorforge + sectorforge-gui + sectorforge-builder
          cargo run -p sectorforge-builder -- --help
 
-  5.2  AGENTS.md — same Commands update as 5.1.
+  5.2  [DONE] AGENTS.md — same Commands update as 5.1.
 
-  5.3  GUIDE.md:
+  5.3  [DONE] GUIDE.md:
        - Section that currently describes `sectorforge-gui` as
          "viewer/editor for generated sectors": split into two subsections:
          viewer (sectorforge-gui) and builder (sectorforge-builder).
        - The §1452 region needs the builder description moved out.
        - The §2058 file table needs builder rows relocated.
 
-  5.4  OVERVIEW.md — line 21 currently says "two front ends". Change to
-       "three front ends" and add the builder paragraph mirroring the
-       sectorforge-gui paragraph at line 123.
+  5.4  [DONE] OVERVIEW.md — line 21 now says "three front ends" and includes
+       the builder paragraph mirroring the sectorforge-gui paragraph.
 
-  5.5  README.md — if it mentions the builder, update similarly.
+  5.5  [DONE] README.md — no stale builder mention needed updating in the
+       current file.
 
-  5.6  BUILDER_REQS.txt — add a header note:
+  5.6  [DONE] BUILDER_REQS.txt — add a header note:
        "Target crate moved 2026-MM-DD from sectorforge-gui to
         sectorforge-builder. References to gui/src/builder/ in this doc
         now point to builder/src/builder/."
        Do a global search-and-replace of `gui/src/builder/` →
        `builder/src/builder/` inside BUILDER_REQS.txt.
 
-  5.7  GUIBUILDER.txt — same path rewrite.
+  5.7  [DONE] GUIBUILDER.txt — same path rewrite.
 
-  5.8  Update MEMORY.md / write a memory:
-       Add a [[project]] memory noting the split happened, with date,
-       motivation (decoupling before Phase B G6 lands), and the three-crate
-       layout. This helps future you avoid wondering "why is the builder a
-       separate bin?"
+  5.8  [DONE] Memory entry exists for this split:
+       It notes the split date, motivation (decoupling before Phase B G6
+       lands), and three-crate layout. This helps future runs avoid wondering
+       "why is the builder a separate bin?"
 
 ================================================================================
 6. GOTCHAS / RISKS — DONE 2026-05-24

@@ -14,13 +14,13 @@
 //! cursor, and `close_active` drops the focused state while collapsing the
 //! cursor to the previous slot.
 //!
-//! No host wiring yet — `App` still hands a single `BuilderState` to the nav
-//! router. The workspace ships now so the §G6 panel + future Phase B host can
-//! adopt it without further refactor.
+//! Host wiring lives in [`crate::app::BuilderApp`], which owns the workspace
+//! and hands the active [`BuilderState`] to the nav router each frame.
 
 use super::state::BuilderState;
 
 /// Multi-state workspace owning the open builder sessions.
+#[derive(Default)]
 pub struct BuilderWorkspace {
     states: Vec<BuilderState>,
     active: usize,
@@ -111,15 +111,6 @@ impl BuilderWorkspace {
             self.active = self.states.len() - 1;
         }
         Some(removed)
-    }
-}
-
-impl Default for BuilderWorkspace {
-    fn default() -> Self {
-        Self {
-            states: Vec::new(),
-            active: 0,
-        }
     }
 }
 

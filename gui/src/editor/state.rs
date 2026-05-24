@@ -8,17 +8,12 @@ use sectorforge::sector_model::{
     GenerationManifest, HexCoord, RouteStability, RouteType, SystemKind, WorldDto,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FactionSort {
+    #[default]
     PowerDesc,
     PowerAsc,
     NameAsc,
-}
-
-impl Default for FactionSort {
-    fn default() -> Self {
-        Self::PowerDesc
-    }
 }
 
 impl FactionSort {
@@ -96,6 +91,7 @@ pub enum SectorEditTool {
     Delete,
 }
 
+#[allow(clippy::large_enum_variant)]
 pub enum PreviewJobResult {
     Ready(GeneratedSector),
     Cancelled,

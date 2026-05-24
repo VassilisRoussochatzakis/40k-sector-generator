@@ -356,9 +356,7 @@ impl App {
                 });
             });
 
-        let heatmap = self
-            .heatmap_cache
-            .get_or_compute(&sector, self.heatmap_mode);
+        let heatmap = self.heatmap_cache.get_or_compute(sector, self.heatmap_mode);
 
         let (rect, response) = ui.allocate_at_least(ui.available_size(), egui::Sense::drag());
 
@@ -393,7 +391,7 @@ impl App {
 
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             let (_resp, click) = SectorView {
-                sector: &sector,
+                sector,
                 selected_system: self.sector_selected.as_deref(),
                 selected_route: self.sector_selected_route.as_deref(),
                 hex_size: self.sector_hex_size,
@@ -473,11 +471,12 @@ impl App {
                         self.sector_selected_subsector = None;
                     }
                 }
-                Some(SectorClick::EmptyHex(coord)) => {
-                    if self.map_edit_mode && self.editor.tool == SectorEditTool::AddSystem {
-                        self.add_system_at(coord);
-                    }
+                Some(SectorClick::EmptyHex(coord))
+                    if self.map_edit_mode && self.editor.tool == SectorEditTool::AddSystem =>
+                {
+                    self.add_system_at(coord);
                 }
+                Some(SectorClick::EmptyHex(_)) => {}
                 None => {}
             }
         });

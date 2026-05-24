@@ -19,7 +19,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, SystemTime};
@@ -66,10 +66,7 @@ impl FileWatcher {
     /// Drain the latest pending change, if any. Non-blocking — safe to call
     /// every frame from the UI loop.
     pub fn try_recv(&self) -> Option<FileChange> {
-        match self.rx.try_recv() {
-            Ok(ev) => Some(ev),
-            Err(TryRecvError::Empty | TryRecvError::Disconnected) => None,
-        }
+        self.rx.try_recv().ok()
     }
 
     pub fn root(&self) -> &Utf8Path {

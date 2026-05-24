@@ -194,7 +194,7 @@ pub fn load_session(path: &Path) -> Result<BuilderState, BuilderError> {
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 pub fn encode_base64(bytes: &[u8]) -> String {
-    let mut out = String::with_capacity((bytes.len() + 2) / 3 * 4);
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     let mut chunks = bytes.chunks_exact(3);
     for c in &mut chunks {
         let n = (u32::from(c[0]) << 16) | (u32::from(c[1]) << 8) | u32::from(c[2]);

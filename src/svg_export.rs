@@ -402,6 +402,7 @@ impl RouteGeom {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_route_pattern(
     s: &mut String,
     x0: f32,
@@ -1915,6 +1916,7 @@ fn polygon(
     s.push_str("/>");
 }
 
+#[allow(clippy::too_many_arguments)]
 fn line(
     s: &mut String,
     x0: f32,

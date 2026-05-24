@@ -440,7 +440,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
 fn show_g6_new_from_preset(
     ui: &mut Ui,
     state: &mut BuilderState,
-    workspace: Option<&mut BuilderWorkspace>,
+    mut workspace: Option<&mut BuilderWorkspace>,
 ) {
     egui::CollapsingHeader::new("New sector from preset (§G6)")
         .default_open(false)
@@ -484,6 +484,7 @@ fn show_g6_new_from_preset(
                         ui.text_edit_singleline(&mut modal.2);
                         ui.end_row();
                     });
+                let mut persist_modal = true;
                 ui.horizontal(|ui| {
                     if ui.button("Create + open in new tab").clicked() {
                         let opts = NewProjectOptions {
@@ -498,28 +499,30 @@ fn show_g6_new_from_preset(
                         match new_project(opts) {
                             Ok(new_state) => {
                                 state.modal = None;
-                                if let Some(ws) = workspace {
+                                persist_modal = false;
+                                if let Some(ws) = workspace.as_mut() {
                                     ws.push(new_state);
                                 } else {
                                     *state = new_state;
                                 }
-                                return;
                             }
                             Err(e) => {
                                 state.modal = Some(ModalKind::Message(format!(
                                     "preset scaffold failed: {e}"
                                 )));
-                                return;
+                                persist_modal = false;
                             }
                         }
                     }
                     if ui.button("Cancel").clicked() {
                         state.modal = None;
-                        return;
+                        persist_modal = false;
                     }
                 });
                 // Persist edits back to the modal state for the next frame.
-                if matches!(state.modal, Some(ModalKind::NewFromPreset { .. })) || modal.3 {
+                if persist_modal
+                    && (matches!(state.modal, Some(ModalKind::NewFromPreset { .. })) || modal.3)
+                {
                     state.modal = Some(ModalKind::NewFromPreset {
                         preset_id: modal.0,
                         dest: modal.1,

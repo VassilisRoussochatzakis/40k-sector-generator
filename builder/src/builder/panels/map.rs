@@ -100,19 +100,11 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     let pointer = response.interact_pointer_pos();
 
     // Live drag override: when a system is being dragged, follow the cursor.
-    let drag_override = state
-        .drag_system
-        .clone()
-        .zip(pointer)
-        .map(|(id, pos)| (id, pos));
+    let drag_override = state.drag_system.clone().zip(pointer);
 
     // ADD-ROUTE preview line: pending start → cursor.
     let pending_route_preview = if state.map_tool == MapTool::AddRoute {
-        state
-            .pending_route_start
-            .clone()
-            .zip(pointer)
-            .map(|(id, pos)| (id, pos))
+        state.pending_route_start.clone().zip(pointer)
     } else {
         None
     };

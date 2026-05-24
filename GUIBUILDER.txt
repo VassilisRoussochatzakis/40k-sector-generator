@@ -5,12 +5,12 @@
 > now point to `builder/src/builder/`.
 
 ## GOAL
-Transition from a "scaffold-then-cli-generate" workflow to a fully interactive, real-time sector design environment within the Sectorforge GUI.
+Transition from a "scaffold-then-cli-generate" workflow to a fully interactive, real-time sector design environment within the dedicated Sectorforge builder GUI (`sectorforge-builder`).
 
 ## 1. REAL-TIME GENERATION & FEEDBACK
 - [x] LIVE PREVIEW: Updating generation settings (density, cluster bias, world types) should re-render the hex map immediately (or via a "Re-roll" button with the same seed).
 - [x] SEED LOCKING: Ability to lock the seed while changing dimensions or distribution parameters.
-- [ ] PARTIAL GENERATION: Generate specific subsectors or systems without wiping manual changes in others.
+- [x] PARTIAL GENERATION: Generate specific subsectors or systems without wiping manual changes in others.
 
 ## 2. INTERACTIVE PLACEMENT & EDITING
 - [x] DRAG-AND-DROP SYSTEMS: Move existing systems between hexes with automatic route recalculation.
@@ -34,6 +34,6 @@ Transition from a "scaffold-then-cli-generate" workflow to a fully interactive, 
 - [x] VERSIONING: Integration with the `History` tab to "Snapshot" a state and revert if a re-roll goes poorly.
 - [x] EXPORT SYNC: One-click refresh for PNG/HTML exports after manual edits.
 
-## 6. SEGMENTUM JOINING
-- [ ] STITCHING PREVIEW (in-progress): Visual tool to align two sectors and see how routes/influence cross the boundary.
-- [ ] GAP FILLING: Automatically generate "bridge" systems for irregular-dimension joins.
+## 6. SEGMENTUM JOINING (Phase E; not part of the SEPARATE split)
+- [ ] STITCHING PREVIEW: Visual builder tool to align two sectors and see how routes/influence cross the boundary. CLI segmentum composition already exists in `sectorforge`; the builder tab is still a placeholder.
+- [ ] GAP FILLING: Automatically generate "bridge" systems for irregular-dimension joins. Sector-level route bridge connection exists; segmentum gap filling remains future builder work.

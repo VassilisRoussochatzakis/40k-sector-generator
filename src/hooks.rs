@@ -483,32 +483,29 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
                 weight: 70,
                 gm_only: false,
             }),
-            SystemState::Blockaded => {
-                if sys.blockade.under_blockade {
-                    out.push(Hook {
-                        id: format!("hook-{}-blockade_run", sys.id),
-                        kind: HookKind::BlockadeRun,
-                        anchor: anchor.clone(),
-                        title: format!("Run the Blockade of {}", sys.name),
-                        situation: format!(
-                            "{} is closed by {}; supplies are running thin within.",
-                            sys.name,
-                            sys.blockade
-                                .blockader
-                                .as_deref()
-                                .unwrap_or("unknown forces"),
-                        ),
-                        stakes: "Get the cargo through — or starve the system.".into(),
-                        factions: sys.blockade.blockader.iter().cloned().collect(),
-                        complications: vec![
-                            "Inside contacts may have already turned.".into(),
-                            "The blockade fleet is hunting for a pattern of break-runs.".into(),
-                        ],
-                        weight: 75,
-                        gm_only: false,
-                    });
-                }
-            }
+            SystemState::Blockaded if sys.blockade.under_blockade => out.push(Hook {
+                id: format!("hook-{}-blockade_run", sys.id),
+                kind: HookKind::BlockadeRun,
+                anchor: anchor.clone(),
+                title: format!("Run the Blockade of {}", sys.name),
+                situation: format!(
+                    "{} is closed by {}; supplies are running thin within.",
+                    sys.name,
+                    sys.blockade
+                        .blockader
+                        .as_deref()
+                        .unwrap_or("unknown forces"),
+                ),
+                stakes: "Get the cargo through — or starve the system.".into(),
+                factions: sys.blockade.blockader.iter().cloned().collect(),
+                complications: vec![
+                    "Inside contacts may have already turned.".into(),
+                    "The blockade fleet is hunting for a pattern of break-runs.".into(),
+                ],
+                weight: 75,
+                gm_only: false,
+            }),
+            SystemState::Blockaded => {}
             SystemState::Warzone => out.push(Hook {
                 id: format!("hook-{}-warzone", sys.id),
                 kind: HookKind::Reconquest,

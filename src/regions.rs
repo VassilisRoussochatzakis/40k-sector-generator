@@ -290,7 +290,7 @@ pub fn build_regions(seed: &str, width: u32, height: u32, cfg: &RegionsConfig) -
     let mut out: Vec<WarpRegion> = Vec::with_capacity(centres.len());
     for (idx, centre) in centres.into_iter().enumerate() {
         // BFS growth up to mean_size ± 2 hexes (deterministic noise).
-        let jitter = (rng.gen_range(0..=4) as i32) - 2;
+        let jitter = rng.gen_range(0..=4) - 2;
         let target_size = ((mean_size as i32) + jitter).max(1) as usize;
         let hexes = grow_blob(
             centre,
@@ -401,7 +401,7 @@ fn grow_blob(
             queue.push_back(n);
         }
     }
-    hexes.sort_by(|a, b| (a.r, a.q).cmp(&(b.r, b.q)));
+    hexes.sort_by_key(|a| (a.r, a.q));
     hexes
 }
 
@@ -619,7 +619,7 @@ fn should_report_region_route_progress(current: usize, total: usize) -> bool {
     if total == 0 {
         return false;
     }
-    current == 1 || current == total || current % (total / 100).max(1) == 0
+    current == 1 || current == total || current.is_multiple_of((total / 100).max(1))
 }
 
 #[derive(Debug, Clone, Copy, Default)]

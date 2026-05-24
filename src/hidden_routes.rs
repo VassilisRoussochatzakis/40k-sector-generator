@@ -317,6 +317,7 @@ fn endpoint_score(
     s
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit_layer(
     systems: &[&GeneratedSystem],
     kinds: &BTreeMap<&str, &str>,
@@ -464,7 +465,7 @@ fn should_report_layer_progress(current: usize, total: usize) -> bool {
     if total == 0 {
         return false;
     }
-    current == 1 || current == total || current % (total / 20).max(1) == 0
+    current == 1 || current == total || current.is_multiple_of((total / 20).max(1))
 }
 
 fn order_pair<'a>(a: &'a str, b: &'a str) -> (&'a str, &'a str) {

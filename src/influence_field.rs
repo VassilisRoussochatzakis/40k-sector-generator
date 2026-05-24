@@ -100,7 +100,7 @@ where
     let mut cells: Vec<CellAssignment> = (0..total)
         .map(|i| {
             let q = if width == 0 { 0 } else { (i % width) as i32 };
-            let r = if width == 0 { 0 } else { (i / width) as i32 };
+            let r = i.checked_div(width).unwrap_or(0) as i32;
             CellAssignment {
                 q,
                 r,

@@ -188,17 +188,17 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                 });
 
             ui.horizontal(|ui| {
-                if ui.button("Apply name").clicked() || name_changed {
-                    if name_buf != *state.sector.systems[sys_idx].name {
-                        let from = state.sector.systems[sys_idx].name.to_string();
-                        let cmd = BuilderCommand::RenameSystem {
-                            id: id.clone(),
-                            from,
-                            to: name_buf.clone(),
-                        };
-                        if let Err(e) = state.run(cmd) {
-                            state.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
-                        }
+                if (ui.button("Apply name").clicked() || name_changed)
+                    && name_buf != *state.sector.systems[sys_idx].name
+                {
+                    let from = state.sector.systems[sys_idx].name.to_string();
+                    let cmd = BuilderCommand::RenameSystem {
+                        id: id.clone(),
+                        from,
+                        to: name_buf.clone(),
+                    };
+                    if let Err(e) = state.run(cmd) {
+                        state.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
                     }
                 }
                 if ui.button("Apply coord").clicked() {
@@ -207,12 +207,10 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                         apply_coord_move(state, id.clone(), coord, new_coord);
                     }
                 }
-                if kind_choice != kind {
-                    if ui.button("Apply kind").clicked() {
-                        state.sector.systems[sys_idx].kind = kind_choice;
-                        state.dirty = true;
-                        state.mark_validation_dirty();
-                    }
+                if kind_choice != kind && ui.button("Apply kind").clicked() {
+                    state.sector.systems[sys_idx].kind = kind_choice;
+                    state.dirty = true;
+                    state.mark_validation_dirty();
                 }
             });
         });
@@ -418,11 +416,7 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
     egui::CollapsingHeader::new("Primary factions (§10)")
         .default_open(false)
         .show(ui, |ui| {
-            let primary: Vec<_> = state.sector.systems[sys_idx]
-                .primary_factions
-                .iter()
-                .cloned()
-                .collect();
+            let primary: Vec<_> = state.sector.systems[sys_idx].primary_factions.to_vec();
             for fid in &primary {
                 if ui.link(format!("→ {fid}")).clicked() {
                     state.selected_faction_id = Some(fid.clone());
@@ -693,7 +687,7 @@ fn apply_bulk_rename(state: &mut BuilderState, pattern: &str) {
         };
         let to = pattern
             .replace("{n}", &(n + 1).to_string())
-            .replace("{id}", &id.to_string())
+            .replace("{id}", id.as_ref())
             .replace("{name}", &from);
         if to == from {
             continue;

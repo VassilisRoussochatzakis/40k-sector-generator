@@ -8,7 +8,8 @@ The world taxonomy lives in [src/worlds.rs](src/worlds.rs); the typed
 config (`worlds.toml`) lives in [src/worlds_toml.rs](src/worlds_toml.rs).
 Everything else in this crate builds a sector-scale layer around it: candidate
 pools, deterministic placement, systems, worlds, routes, factions,
-subsector clustering, validation, export, and an interactive GUI viewer/editor.
+subsector clustering, validation, export, an interactive GUI viewer/editor, and
+a dedicated builder app.
 
 ---
 
@@ -1615,6 +1616,13 @@ The current sync contract is file-based: builder saves project config,
 catalogs, `out/sector.json`, and manifest data; viewer reloads that same
 project directory. Keep new synchronization work on that boundary rather than
 adding `sectorforge_gui::builder` imports or in-process shared state.
+
+Split completion checkpoint (2026-05-24): [SEPARATE.txt](SEPARATE.txt) is
+complete. The three-crate layout was re-verified with
+`cargo build --workspace --quiet`, `cargo test --workspace --quiet`,
+`cargo clippy --workspace -- -D warnings`, both `--help` commands, and short
+startup smoke runs for `sectorforge-builder --project examples/m42_project`
+and `sectorforge-gui --project examples/m42_project`.
 
 Every map element — hex tile, route, system glyph, label, region tint, overlay
 ring — reads its colour and sizing from

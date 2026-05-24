@@ -103,6 +103,7 @@ impl WorldsConfig {
     }
 
     /// Parse from a TOML string.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(text: &str) -> Result<Self, WorldsTomlError> {
         toml::from_str(text).map_err(|e| WorldsTomlError::Parse(e.to_string()))
     }

@@ -10,7 +10,8 @@
 # Implementation status (Codex, 2026-05-24):
 #   - Section 1 pre-flight: DONE
 #   - Step 3.1 shared crate skeleton: DONE
-#   - Step 3.2 move shared widgets: IN-PROGRESS
+#   - Step 3.2 move shared widgets: DONE
+#   - Step 3.3 builder crate skeleton: IN-PROGRESS
 
 ================================================================================
 0. WHY (so you can make judgment calls)

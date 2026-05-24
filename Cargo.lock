@@ -2625,6 +2625,7 @@ dependencies = [
  "rand 0.8.6",
  "rfd",
  "sector-generator",
+ "sectorforge-gui-core",
  "serde",
  "serde_json",
  "tempfile",

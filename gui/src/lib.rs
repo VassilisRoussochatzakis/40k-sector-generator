@@ -8,15 +8,12 @@ pub mod dashboard;
 pub mod data_editor;
 pub mod editor;
 pub mod factions_overview;
-pub mod heatmap;
-pub mod info_panel;
-pub mod jobs;
-pub mod palette;
 pub mod preset_gallery;
 pub mod route_planner;
-pub mod sector_view;
 pub mod segmentum_view;
-pub mod system_view;
 
 pub use app::App;
-pub use jobs::{spawn_job, JobContext, JobHandle};
+pub use sectorforge_gui_core::{
+    heatmap, info_panel, jobs, palette, sector_view, system_view,
+};
+pub use sectorforge_gui_core::jobs::{spawn_job, JobContext, JobHandle};

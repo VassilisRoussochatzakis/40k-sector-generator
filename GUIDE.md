@@ -1868,9 +1868,15 @@ Post-generation invariants ([src/invariants.rs](src/invariants.rs)):
 ## 11. Tests
 
 ```bash
-cargo test           # all tests
-cargo test --lib     # unit tests only
+cargo test                                              # all tests EXCEPT slow segmentum suite
+cargo test --lib                                        # unit tests only
+cargo test --test segmentum_tests -- --ignored          # explicit opt-in for the slow §14 composition suite
 ```
+
+The [tests/segmentum_tests.rs](tests/segmentum_tests.rs) suite full-composes the
+m42 fixture five times and runs ~2-5 minutes (debug). Every test is marked
+`#[ignore]` so it never runs as part of `cargo test`; invoke it explicitly when
+touching `src/segmentum.rs` or the m42 fixture.
 
 Notable suites:
 
@@ -1883,6 +1889,7 @@ Notable suites:
 - [tests/invariants_proptest.rs](tests/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
 - [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
 - [tests/analytics_and_presets.rs](tests/analytics_and_presets.rs) — §8/§9 old/DONE.md: analytics determinism + writers, preset scaffolding round-trip
+- [tests/segmentum_tests.rs](tests/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
 
 Benchmarks (criterion):
 

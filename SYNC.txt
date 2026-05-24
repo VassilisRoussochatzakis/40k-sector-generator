@@ -1,0 +1,84 @@
+# GUI Sync Plan — keep `sectorforge-gui` and `sectorforge-builder` visually identical
+
+## Problem
+Two binaries (`gui` viewer/editor, `builder`) both render the sector map. Today:
+- `gui-core/src/sector_view.rs` (1166 lines) is the shared widget.
+- `gui/src/app/sector_view.rs` (688 lines) wraps and re-implements some paint logic.
+- `builder/src/builder/panels/map.rs` (765 lines) does the same in the builder.
+
+Any new map element (route style, glyph, faction color, region overlay) risks landing in only one of the three. The goal is structural — make it *impossible* for the two apps to diverge, not just "remember to update both."
+
+## Strategy — layered shared-render pattern
+
+### 1. Single `MapRenderer` in `gui-core`, pure function over `&Painter` + data
+Move every pixel-producing line into one entrypoint:
+```rust
+pub fn paint_sector(painter: &Painter, view: &MapView, model: &SectorModel, theme: &MapTheme);
+```
+- No widget state, no interaction logic inside.
+- Both apps call this exact function.
+- Builder paints *on top* (selection, ghosts, hover) via separate `paint_overlay_*` functions in `gui-core` — never re-draws what `paint_sector` owns.
+
+### 2. `MapTheme` struct = one source of truth for visuals
+- Colors, hex radius, stroke widths, font size, glyph table, z-order constants.
+- No magic numbers in `gui/` or `builder/` crates.
+- `MapTheme` is deserializable (TOML via existing `toml` dep) so designers can tweak without recompile.
+
+### 3. Split render from interaction
+- `gui-core` owns: geometry (`hex_to_screen`, `screen_to_hex`), painting, hit-testing.
+- Apps own: input handling, selection model, tool state.
+- Hit-test logic stays in core so click→hex math cannot disagree between apps.
+
+### 4. Embed as a `Widget`, not via copy-paste
+Target API:
+```rust
+gui_core::MapView::new(&model, &theme)
+    .with_selection(&sel)
+    .with_overlay(|p, ctx| builder_ghosts(p, ctx))
+    .show(ui)
+```
+Builder and viewer differ only in callbacks + surrounding chrome. The hex/route/glyph/label paint code is identical because it is literally the same function call.
+
+### 5. Snapshot tests in `gui-core` — the "at all times" guarantee
+This is the enforcement layer; without it the shared code will still rot.
+- Use `egui_kittest` (official egui snapshot harness) — preferred.
+- Fallback: render `Painter` shapes to an image buffer via the `image` crate, hash with `blake3`, compare against a committed golden.
+- Golden images per element: hex tile, route segment, system glyph variants, region overlay, label.
+- Plus one full small fixture sector covering all element types.
+- CI fails on drift. Golden updates are explicit and reviewable.
+
+### 6. Visual token enums, not strings or ad-hoc constants
+```rust
+pub enum FactionGlyph { Imperium, Chaos, Xenos(XenosKind), /* ... */ }
+impl FactionGlyph {
+    pub fn paint(self, p: &Painter, at: Pos2, theme: &MapTheme);
+}
+```
+- Add a variant in one place → both apps render it.
+- Compiler enforces exhaustiveness via `match`.
+
+### 7. Forbid `egui::Painter` use outside `gui-core`
+Architectural wall:
+- Add a clippy `disallowed_types` lint in `gui/` and `builder/` Cargo configs / `clippy.toml` entries.
+- `egui::Painter` is disallowed in those crates.
+- Map paint code *cannot compile* outside `gui-core`. Hard guarantee, not a convention.
+
+## Action plan / step order
+
+1. **Audit + extract.** Walk every `painter.*` / `Shape::*` call in `gui/src/app/sector_view.rs` and `builder/src/builder/panels/map.rs`. Each one moves into `gui-core`. Result: app files only contain interaction + chrome.
+   - **DONE (2026-05-24).** Audit finding: `gui/src/app/sector_view.rs` and `builder/src/builder/panels/map.rs` were already delegating map render to `gui_core::SectorView`. The actual drift source was a third file — `gui/src/editor/map_panel.rs` — a complete duplicate sector renderer with its own `Geom` / `hex_center` / `hex_pick` / `hex_vertices` / `draw_hex` / `draw_hex_outline_only` helpers, and already-diverged visuals: star radius `0.42 · hex` vs gui-core's `0.2016 · hex`, tinted hex-fill behind systems, custom label positioning, no subsector/region/capital/path overlays. Rewrote `show_map` to allocate the canvas, build `drag_override` + `pending_route_preview`, then delegate rendering to `SectorView` (`disable_internal_click_dispatch=true`, `Sense::hover` for the inner allocation). Editor-only interactions (drag-move, ADD ROUTE picking, DELETE, `route_pick` endpoint reassignment) now run against `SectorGeom::{hit_system, pick_hex}`. `cargo check` and `cargo test -p sectorforge-gui` are green. `GUIDE.md` updated. Out-of-scope painter calls remain in non-map widgets (`dashboard.rs` bar chart, `factions_overview.rs` / `factions_panel.rs` / builder `factions.rs` faction swatches, `segmentum_view.rs` multi-sector overview, editor toolbox chrome). Those are not sector-map elements and are deferred to step 7 (lint wall) once a `MapTheme` boundary exists.
+2. **Introduce `MapTheme`.** Collect every color/size constant currently scattered. Centralize. Both apps load the same theme instance.
+3. **Define visual-token enums** for glyphs, route kinds, region overlays. Compiler exhaustiveness covers new variants.
+4. **Add snapshot tests** in `gui-core` (start with `egui_kittest`; fallback path documented above). Commit goldens. Wire into `cargo test`.
+5. **Lock with lint.** Add `disallowed_types` clippy entry forbidding `egui::Painter` (and any other render primitive) outside `gui-core`.
+6. **Update `GUIDE.md`** per project rule: document the boundary and the snapshot-test workflow.
+
+## Why this beats "just remember to update both"
+- Steps 1–4 give a *substrate* — shared widget, shared theme, shared tokens.
+- Steps 5–6 give a *ratchet* — lint wall + snapshot tests catch drift in CI, not at review time.
+- Templates alone (e.g., a written checklist) decay. The compiler + golden tests do not.
+
+## Open questions to decide before step 1
+- `egui_kittest` vs. handrolled image+blake3 for snapshots? (kittest is the egui-native answer; handrolled is dependency-light.)
+- Should `MapTheme` ship as a hardcoded default + optional TOML override, or always load from a file?
+- Builder selection/ghost overlays: keep as closures passed into `MapView`, or expose as a dedicated `OverlayLayer` trait?

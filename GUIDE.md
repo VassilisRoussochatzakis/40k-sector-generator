@@ -1611,6 +1611,19 @@ App-neutral egui helpers belong in [gui-core/src/](gui-core/src/).
 `sectorforge-gui` remains the viewer/editor and must not mount builder panels;
 the integration boundary is the project directory on disk.
 
+The editor's own MAP surface in
+[gui/src/editor/map_panel.rs](gui/src/editor/map_panel.rs) now delegates every
+pixel-producing call to the shared
+`sectorforge_gui_core::sector_view::SectorView` widget (same pattern the builder
+uses in [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs)).
+Editor-only interactions (tool dispatch, drag-to-move, ADD ROUTE picking,
+DELETE, route-endpoint repointing via `route_pick`) live in `show_map` and run
+against `SectorGeom::{hit_system, pick_hex}` for picking. The drag preview is
+fed through `SectorView::drag_override`; the ADD ROUTE preview line through
+`pending_route_preview`. No hex / route / star / label drawing happens outside
+`gui-core` for the map surface, so the viewer, the editor's map panel, and the
+builder's MAP tab share one source of truth for every map element.
+
 Launch it with:
 
 ```bash

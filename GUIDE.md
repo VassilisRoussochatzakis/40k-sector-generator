@@ -1611,6 +1611,15 @@ App-neutral egui helpers belong in [gui-core/src/](gui-core/src/).
 `sectorforge-gui` remains the viewer/editor and must not mount builder panels;
 the integration boundary is the project directory on disk.
 
+Every map element — hex tile, route, system glyph, label, region tint, overlay
+ring — reads its colour and sizing from
+[`MapTheme`](gui-core/src/map_theme.rs). Apps either pass a customised theme via
+`SectorView { theme: Some(&...), .. }` or leave it `None` to fall back to
+[`MapTheme::default`]. Sizing is expressed as `ScaledSize { mul, min }`, which
+the painter resolves with `hex_size * mul` floored at `min`. To restyle the map,
+edit one struct; the viewer, the editor MAP panel, and the builder MAP tab all
+follow.
+
 The editor's own MAP surface in
 [gui/src/editor/map_panel.rs](gui/src/editor/map_panel.rs) now delegates every
 pixel-producing call to the shared

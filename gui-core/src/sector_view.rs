@@ -11,10 +11,8 @@ use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
 use sectorforge::subsectors::Subsector;
 
 use super::heatmap::HeatCell;
-use super::palette::{
-    self, darken, draw_route_control_glyph, draw_route_line, stability_color, star_color,
-    HEX_EMPTY, HEX_OUTLINE, PATH_HIGHLIGHT, PATH_WAYPOINT, SELECTION, TEXT, TEXT_DIM,
-};
+use super::map_theme::MapTheme;
+use super::palette::{darken, draw_route_control_glyph, draw_route_line, stability_color, star_color};
 
 pub struct SectorMapCache {
     pub hex_subsector: HashMap<(i32, i32), String>,
@@ -111,15 +109,10 @@ pub struct SectorView<'a> {
     /// When true, `show()` skips its own click→`SectorClick` dispatch and lets
     /// the caller pick hits manually via [`SectorGeom`]. Builder uses this.
     pub disable_internal_click_dispatch: bool,
+    /// Visual theme — colours + sizing tokens. `None` falls back to
+    /// [`MapTheme::default`] so existing call-sites compile unchanged.
+    pub theme: Option<&'a MapTheme>,
 }
-
-const SUBSECTOR_BORDER: Color32 = Color32::from_rgb(160, 160, 160);
-const SUBSECTOR_LABEL: Color32 = Color32::from_rgb(230, 195, 120);
-const SUBSECTOR_HIGHLIGHT: Color32 = Color32::from_rgba_premultiplied(40, 40, 44, 70);
-const CAPITAL_MARKER: Color32 = Color32::from_rgb(255, 220, 100);
-const REGION_LABEL: Color32 = Color32::from_rgb(178, 174, 196);
-const REGION_LABEL_BG: Color32 = Color32::from_rgba_premultiplied(16, 14, 22, 190);
-const REGION_LABEL_OUTLINE: Color32 = Color32::from_rgba_premultiplied(42, 40, 53, 90);
 
 pub enum SectorClick {
     System(sectorforge::ids::SystemId),
@@ -136,7 +129,10 @@ impl<'a> SectorView<'a> {
         let painter = ui.painter_at(rect).with_clip_rect(rect);
         let origin = self.origin;
 
-        painter.rect_filled(rect, 0.0, palette::BG);
+        let default_theme = MapTheme::default();
+        let theme: &MapTheme = self.theme.unwrap_or(&default_theme);
+
+        painter.rect_filled(rect, 0.0, theme.bg);
 
         // System-id keyed hex coords for heatmap lookup (still needed if cache not present)
         let mut hex_system_fallback: HashMap<(i32, i32), &str> = HashMap::new();
@@ -171,14 +167,14 @@ impl<'a> SectorView<'a> {
                 let base = match (self.heatmap, sid_opt) {
                     (Some(map), Some(sid)) => map
                         .get(sid)
-                        .map(|cell| blend_heat(HEX_EMPTY, cell.color, cell.intensity))
-                        .unwrap_or(HEX_EMPTY),
-                    _ => HEX_EMPTY,
+                        .map(|cell| blend_heat(theme.hex_empty, cell.color, cell.intensity))
+                        .unwrap_or(theme.hex_empty),
+                    _ => theme.hex_empty,
                 };
 
                 let fill = if let Some(cache) = self.cache {
                     match cache.hex_region.get(&(q, r)) {
-                        Some((_, kind)) => blend_heat(base, region_color(*kind), 0.5),
+                        Some((_, kind)) => blend_heat(base, theme.region_color(*kind), 0.5),
                         None => base,
                     }
                 } else {
@@ -186,14 +182,14 @@ impl<'a> SectorView<'a> {
                     let mut f = base;
                     for reg in self.sector.regions.iter() {
                         if reg.hexes.iter().any(|h| h.q == q && h.r == r) {
-                            f = blend_heat(base, region_color(reg.kind), 0.5);
+                            f = blend_heat(base, theme.region_color(reg.kind), 0.5);
                             break;
                         }
                     }
                     f
                 };
 
-                draw_hex(&painter, c, g.hex_size, fill, HEX_OUTLINE);
+                draw_hex(&painter, c, g.hex_size, fill, theme.hex_outline);
             }
         }
 
@@ -205,12 +201,7 @@ impl<'a> SectorView<'a> {
             for r in sr.max(min_r.max(0))..=er.min(max_r.min(self.sector.height as i32 - 1)) {
                 for q in sq.max(min_q.max(0))..=eq.min(max_q.min(self.sector.width as i32 - 1)) {
                     let c = hex_center(q, r, &g) + origin.to_vec2();
-                    draw_hex_fill(
-                        &painter,
-                        c,
-                        g.hex_size,
-                        Color32::from_rgba_unmultiplied(255, 240, 120, 30),
-                    );
+                    draw_hex_fill(&painter, c, g.hex_size, theme.rect_select_tint);
                 }
             }
         }
@@ -222,7 +213,7 @@ impl<'a> SectorView<'a> {
                     if sid == sel {
                         let c = hex_center(q, r, &g) + origin.to_vec2();
                         if rect.expand(g.hex_size).contains(c) {
-                            draw_hex_fill(&painter, c, g.hex_size, SUBSECTOR_HIGHLIGHT);
+                            draw_hex_fill(&painter, c, g.hex_size, theme.subsector_highlight);
                         }
                     }
                 }
@@ -233,7 +224,7 @@ impl<'a> SectorView<'a> {
                         for &(q, r) in &s.hex_cells {
                             let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
                             if rect.expand(g.hex_size).contains(c) {
-                                draw_hex_fill(&painter, c, g.hex_size, SUBSECTOR_HIGHLIGHT);
+                                draw_hex_fill(&painter, c, g.hex_size, theme.subsector_highlight);
                             }
                         }
                     }
@@ -244,7 +235,7 @@ impl<'a> SectorView<'a> {
         // Subsector tile borders: always visible, solid lines
         if let Some(subs) = self.subsectors {
             if !subs.is_empty() {
-                let border_thick = (g.hex_size * 0.10).max(2.5);
+                let border_thick = theme.subsector_border_thickness.px(g.hex_size);
                 for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
                     let neighbor_deltas = sectorforge::sector_model::offset_r_neighbors(r);
                     for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
@@ -286,7 +277,7 @@ impl<'a> SectorView<'a> {
                                 let b = v[(i + 1) % 6];
                                 painter.line_segment(
                                     [a, b],
-                                    Stroke::new(border_thick, SUBSECTOR_BORDER),
+                                    Stroke::new(border_thick, theme.subsector_border_color),
                                 );
                             }
                         }
@@ -307,8 +298,8 @@ impl<'a> SectorView<'a> {
             centers.insert(sys.id.as_str(), c);
         }
 
-        let route_thickness = (g.hex_size * 0.08).max(2.0);
-        let star_r = g.hex_size * 0.2016;
+        let route_thickness = theme.route_thickness.px(g.hex_size);
+        let star_r = g.hex_size * theme.star_radius_mul;
         let route_cull_margin = (route_thickness * 6.0).max(12.0);
         let shorten = |a: Pos2, b: Pos2| -> Option<(Pos2, Pos2)> {
             let delta = b - a;
@@ -355,21 +346,28 @@ impl<'a> SectorView<'a> {
         // system to the cursor (or to nothing if the start is off-screen).
         if let Some((start_id, cursor)) = self.pending_route_preview.as_ref() {
             if let Some(&a) = centers.get(start_id.as_str()) {
-                let preview_thickness = (route_thickness * 1.4).max(2.5);
+                let preview_thickness = (route_thickness * theme.pending_route_preview_mul)
+                    .max(theme.pending_route_preview_min);
                 draw_route_line(
                     &painter,
                     a,
                     *cursor,
                     preview_thickness,
-                    Color32::from_rgb(255, 220, 120),
+                    theme.pending_route_preview,
                     sectorforge::sector_model::RoutePattern::Dashed,
                 );
             }
         }
 
         if let Some(ids) = self.path_route_ids {
-            let glow_thick = route_thickness * 3.2;
-            let core_thick = route_thickness * 1.8;
+            let glow_thick = route_thickness * theme.path_glow_mul;
+            let core_thick = route_thickness * theme.path_core_mul;
+            let glow = Color32::from_rgba_unmultiplied(
+                theme.path_highlight.r(),
+                theme.path_highlight.g(),
+                theme.path_highlight.b(),
+                theme.path_glow_alpha,
+            );
             for route in &self.sector.routes {
                 if !ids.contains(&route.id) {
                     continue;
@@ -386,14 +384,8 @@ impl<'a> SectorView<'a> {
                 if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
                     continue;
                 }
-                let glow = Color32::from_rgba_unmultiplied(
-                    PATH_HIGHLIGHT.r(),
-                    PATH_HIGHLIGHT.g(),
-                    PATH_HIGHLIGHT.b(),
-                    70,
-                );
                 painter.line_segment([a2, b2], Stroke::new(glow_thick, glow));
-                painter.line_segment([a2, b2], Stroke::new(core_thick, PATH_HIGHLIGHT));
+                painter.line_segment([a2, b2], Stroke::new(core_thick, theme.path_highlight));
             }
         }
 
@@ -415,24 +407,27 @@ impl<'a> SectorView<'a> {
                     continue;
                 }
                 let glow = Color32::from_rgba_unmultiplied(
-                    SELECTION.r(),
-                    SELECTION.g(),
-                    SELECTION.b(),
-                    75,
+                    theme.selection.r(),
+                    theme.selection.g(),
+                    theme.selection.b(),
+                    theme.selection_glow_alpha,
                 );
-                painter.line_segment([a2, b2], Stroke::new(route_thickness * 3.6, glow));
+                painter.line_segment(
+                    [a2, b2],
+                    Stroke::new(route_thickness * theme.selection_glow_mul, glow),
+                );
                 draw_route_line(
                     &painter,
                     a2,
                     b2,
-                    route_thickness * 1.9,
-                    SELECTION,
+                    route_thickness * theme.selection_core_mul,
+                    theme.selection,
                     route.route_type.pattern(self.route_view_mode),
                 );
             }
         }
 
-        draw_region_labels(&painter, self.sector, origin, &g, rect, self.cache);
+        draw_region_labels(&painter, self.sector, origin, &g, rect, self.cache, theme);
 
         // Pass 1: all system hex fills + stars + pips.
         for sys in &self.sector.systems {
@@ -450,20 +445,26 @@ impl<'a> SectorView<'a> {
                 draw_hex_outline_only(
                     &painter,
                     c,
-                    g.hex_size + 5.0,
-                    Color32::from_rgb(255, 120, 90),
-                    1.5,
+                    g.hex_size + theme.pinned_ring_bump,
+                    theme.pinned_outline,
+                    theme.pinned_ring_thickness,
                 );
             }
             if is_sel {
-                draw_hex_outline_only(&painter, c, g.hex_size + 2.0, SELECTION, 2.5);
+                draw_hex_outline_only(
+                    &painter,
+                    c,
+                    g.hex_size + theme.selection_ring_bump,
+                    theme.selection,
+                    theme.selection_ring_thickness,
+                );
             } else if is_multi {
                 draw_hex_outline_only(
                     &painter,
                     c,
-                    g.hex_size + 2.0,
-                    Color32::from_rgb(180, 200, 255),
-                    2.0,
+                    g.hex_size + theme.selection_ring_bump,
+                    theme.multi_select_outline,
+                    theme.multi_select_ring_thickness,
                 );
             }
             if self
@@ -471,13 +472,19 @@ impl<'a> SectorView<'a> {
                 .map(|s| s.contains(&sys.id))
                 .unwrap_or(false)
             {
-                draw_hex_outline_only(&painter, c, g.hex_size + 4.0, PATH_WAYPOINT, 2.5);
+                draw_hex_outline_only(
+                    &painter,
+                    c,
+                    g.hex_size + theme.waypoint_ring_bump,
+                    theme.path_waypoint,
+                    theme.waypoint_ring_thickness,
+                );
             }
 
             let fill = if let Some(star) = &sys.star {
                 star_color(&star.colour_code)
             } else {
-                TEXT_DIM
+                theme.text_dim
             };
 
             if sys.star.is_some() {
@@ -496,7 +503,7 @@ impl<'a> SectorView<'a> {
                 painter.add(egui::Shape::convex_polygon(
                     pts,
                     Color32::TRANSPARENT,
-                    Stroke::new(1.5, TEXT_DIM),
+                    Stroke::new(1.5, theme.text_dim),
                 ));
             }
 
@@ -506,7 +513,7 @@ impl<'a> SectorView<'a> {
                     s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
                 });
                 if is_capital {
-                    draw_capital_marker(&painter, c, g.hex_size);
+                    draw_capital_marker(&painter, c, g.hex_size, theme);
                 }
             }
 
@@ -515,17 +522,17 @@ impl<'a> SectorView<'a> {
                 // Top-right corner of the hex. Name label sits below the
                 // star and the capital marker sits at top-center, so this
                 // corner stays clear.
-                let pip_font = FontId::monospace((g.hex_size * 0.36).max(11.0));
+                let pip_font = FontId::monospace(theme.pip_font.px(g.hex_size));
                 let pip_center = Pos2::new(c.x + g.hex_size * 0.55, c.y - g.hex_size * 0.55);
-                let disc_r = (g.hex_size * 0.22).max(8.0);
-                painter.circle_filled(pip_center, disc_r, palette::BG);
+                let disc_r = theme.pip_disc_radius.px(g.hex_size);
+                painter.circle_filled(pip_center, disc_r, theme.bg);
                 painter.circle_stroke(pip_center, disc_r, Stroke::new(1.2, darken(fill, 0.4)));
                 painter.text(
                     pip_center,
                     Align2::CENTER_CENTER,
                     pip.to_string(),
                     pip_font,
-                    TEXT,
+                    theme.text,
                 );
             }
         }
@@ -538,9 +545,9 @@ impl<'a> SectorView<'a> {
         // uncluttered. Hide if zoomed in too far.
         if let Some(subs) = self.subsectors {
             if g.hex_size < 40.0 {
-                let sub_label_size = (g.hex_size * 0.36).max(11.0);
+                let sub_label_size = theme.subsector_label_font.px(g.hex_size);
                 let font = FontId::monospace(sub_label_size);
-                let sys_label_size = (g.hex_size * 0.28).max(9.0);
+                let sys_label_size = theme.system_label_font.px(g.hex_size);
                 let sys_font = FontId::monospace(sys_label_size);
                 let pad = Vec2::new(4.0, 1.5);
                 let sys_pad = Vec2::new(2.0, 0.5);
@@ -558,7 +565,7 @@ impl<'a> SectorView<'a> {
                         Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
                     ));
                     let name = sys.name.to_ascii_uppercase();
-                    let galley = painter.layout_no_wrap(name, sys_font.clone(), TEXT_DIM);
+                    let galley = painter.layout_no_wrap(name, sys_font.clone(), theme.text_dim);
                     let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
                     obstacles.push(egui::Rect::from_min_size(
                         pos - sys_pad,
@@ -595,10 +602,10 @@ impl<'a> SectorView<'a> {
                     let top_galley = painter.layout_no_wrap(
                         "SUBSECTOR".to_string(),
                         font.clone(),
-                        SUBSECTOR_LABEL,
+                        theme.subsector_label,
                     );
                     let bot_galley =
-                        painter.layout_no_wrap(name_part, font.clone(), SUBSECTOR_LABEL);
+                        painter.layout_no_wrap(name_part, font.clone(), theme.subsector_label);
                     let block_w = top_galley.size().x.max(bot_galley.size().x);
                     let block_h = top_galley.size().y + line_gap + bot_galley.size().y;
 
@@ -705,18 +712,14 @@ impl<'a> SectorView<'a> {
                         block_min - pad,
                         Vec2::new(block_w, block_h) + pad * 2.0,
                     );
-                    painter.rect_filled(
-                        bg_rect,
-                        3.0,
-                        Color32::from_rgba_unmultiplied(20, 16, 28, 210),
-                    );
+                    painter.rect_filled(bg_rect, 3.0, theme.subsector_label_bg);
                     painter.galley(
                         Pos2::new(
                             block_min_x + (block_w - top_galley.size().x) / 2.0,
                             block_top_y,
                         ),
                         top_galley.clone(),
-                        SUBSECTOR_LABEL,
+                        theme.subsector_label,
                     );
                     painter.galley(
                         Pos2::new(
@@ -724,7 +727,7 @@ impl<'a> SectorView<'a> {
                             block_top_y + top_galley.size().y + line_gap,
                         ),
                         bot_galley,
-                        SUBSECTOR_LABEL,
+                        theme.subsector_label,
                     );
                     placed.push(bg_rect);
                 }
@@ -732,7 +735,7 @@ impl<'a> SectorView<'a> {
         }
 
         // Pass 2: labels last, always on top of every hex.
-        let label_size = (g.hex_size * 0.28).max(9.0);
+        let label_size = theme.system_label_font.px(g.hex_size);
         let font = FontId::monospace(label_size);
         let pad = Vec2::new(3.0, 1.0);
         for sys in &self.sector.systems {
@@ -744,12 +747,11 @@ impl<'a> SectorView<'a> {
             // Pill background behind label so it stays readable when an
             // adjacent row's hex tip pokes through.
             let label = sys.name.to_ascii_uppercase();
-            let galley = painter.layout_no_wrap(label, font.clone(), TEXT_DIM);
-            let star_r = g.hex_size * 0.2016;
+            let galley = painter.layout_no_wrap(label, font.clone(), theme.text_dim);
             let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
             let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
-            painter.rect_filled(bg_rect, 2.0, palette::BG);
-            painter.galley(pos, galley, TEXT_DIM);
+            painter.rect_filled(bg_rect, 2.0, theme.bg);
+            painter.galley(pos, galley, theme.text_dim);
         }
 
         let mut click = None;
@@ -1025,8 +1027,8 @@ fn label_intersects_rect(
     .intersects(rect)
 }
 
-fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {
-    let r = (hex_size * 0.15).max(3.5);
+fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32, theme: &MapTheme) {
+    let r = theme.capital_marker_radius.px(hex_size);
     let cy = c.y - hex_size * 0.55;
     let pts = vec![
         Pos2::new(c.x, cy - r),
@@ -1036,8 +1038,8 @@ fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32) {
     ];
     painter.add(egui::Shape::convex_polygon(
         pts,
-        CAPITAL_MARKER,
-        Stroke::new(1.2, Color32::from_rgb(60, 40, 10)),
+        theme.capital_marker_fill,
+        Stroke::new(1.2, theme.capital_marker_outline),
     ));
 }
 
@@ -1061,19 +1063,6 @@ fn blend_heat(from: Color32, to: Color32, t: f32) -> Color32 {
     )
 }
 
-fn region_color(kind: RegionConditionKind) -> Color32 {
-    match kind {
-        RegionConditionKind::WarpStorm => Color32::from_rgb(170, 60, 180),
-        RegionConditionKind::Turbulence => Color32::from_rgb(140, 100, 200),
-        RegionConditionKind::CalmCorridor => Color32::from_rgb(90, 200, 180),
-        RegionConditionKind::Blackout => Color32::from_rgb(60, 60, 80),
-        RegionConditionKind::Anomaly => Color32::from_rgb(220, 160, 60),
-        RegionConditionKind::NecropolisDrift => Color32::from_rgb(100, 130, 140),
-        RegionConditionKind::BeaconChain => Color32::from_rgb(230, 210, 100),
-        RegionConditionKind::EmpyricBleed => Color32::from_rgb(190, 70, 160),
-    }
-}
-
 fn draw_region_labels(
     painter: &egui::Painter,
     sector: &GeneratedSector,
@@ -1081,11 +1070,12 @@ fn draw_region_labels(
     g: &SectorGeom,
     bounds: egui::Rect,
     cache: Option<&SectorMapCache>,
+    theme: &MapTheme,
 ) {
     if sector.regions.is_empty() {
         return;
     }
-    let font = FontId::monospace((g.hex_size * 0.31).max(10.0));
+    let font = FontId::monospace(theme.region_label_font.px(g.hex_size));
     let pad = Vec2::new(6.0, 3.0);
     for region in sector.regions.iter() {
         let anchor = if let Some(cache) = cache {
@@ -1106,7 +1096,7 @@ fn draw_region_labels(
         }
 
         let label = region_label_text(&region.name);
-        let galley = painter.layout_no_wrap(label, font.clone(), REGION_LABEL);
+        let galley = painter.layout_no_wrap(label, font.clone(), theme.region_label);
         let size = galley.size();
         let min_x = bounds.left() + pad.x;
         let max_x = bounds.right() - size.x - pad.x;
@@ -1116,9 +1106,9 @@ fn draw_region_labels(
         let y = (anchor.y - size.y / 2.0).clamp(min_y, max_y.max(min_y));
         let pos = Pos2::new(x, y);
         let bg = egui::Rect::from_min_size(pos - pad, size + pad * 2.0);
-        painter.rect_filled(bg, 3.0, REGION_LABEL_BG);
-        painter.rect_stroke(bg, 3.0, Stroke::new(1.0, REGION_LABEL_OUTLINE));
-        painter.galley(pos, galley, REGION_LABEL);
+        painter.rect_filled(bg, 3.0, theme.region_label_bg);
+        painter.rect_stroke(bg, 3.0, Stroke::new(1.0, theme.region_label_outline));
+        painter.galley(pos, galley, theme.region_label);
     }
 }
 

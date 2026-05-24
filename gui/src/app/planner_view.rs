@@ -116,6 +116,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     rect_select: None,
                     sense: egui::Sense::click(),
                     disable_internal_click_dispatch: false,
+                    theme: None,
                 }
                 .show(ui);
 

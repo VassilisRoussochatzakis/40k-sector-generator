@@ -151,6 +151,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             rect_select,
             sense: Sense::hover(),
             disable_internal_click_dispatch: true,
+            theme: None,
         }
         .show(ui);
     });

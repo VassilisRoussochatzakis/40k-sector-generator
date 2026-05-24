@@ -37,42 +37,46 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     show_world_picker(ui, state);
     ui.separator();
 
-    let selected = state.selected_world_id.clone();
-    let Some(wid) = selected else {
-        ui.colored_label(Color32::GRAY, "Select a world from the picker.");
-        return;
-    };
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            let selected = state.selected_world_id.clone();
+            let Some(wid) = selected else {
+                ui.colored_label(Color32::GRAY, "Select a world from the picker.");
+                return;
+            };
 
-    let Some((sys_idx, w_idx)) = state.find_world_indices(&wid) else {
-        state.selected_world_id = None;
-        return;
-    };
+            let Some((sys_idx, w_idx)) = state.find_world_indices(&wid) else {
+                state.selected_world_id = None;
+                return;
+            };
 
-    show_header(ui, state, sys_idx, w_idx);
-    ui.separator();
-    show_identity_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_classification_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_environment_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_society_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_features_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_coupling_warnings(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_tags_notes_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_factions_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_claims_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_control_section(ui, state, sys_idx, w_idx);
-    ui.add_space(4.0);
-    show_overlays_section(ui, state, sys_idx, w_idx);
-    ui.add_space(8.0);
-    show_regen_section(ui, state, sys_idx, w_idx);
+            show_header(ui, state, sys_idx, w_idx);
+            ui.separator();
+            show_identity_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_classification_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_environment_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_society_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_features_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_coupling_warnings(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_tags_notes_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_factions_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_claims_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_control_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_overlays_section(ui, state, sys_idx, w_idx);
+            ui.add_space(8.0);
+            show_regen_section(ui, state, sys_idx, w_idx);
+        });
 }
 
 // ── picker / header ─────────────────────────────────────────────────────────
@@ -711,7 +715,10 @@ fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
                 }
             });
         egui::ComboBox::from_id_salt(("w_add_claim_kind", sys_idx, w_idx))
-            .selected_text(format!("{:?}", buf.claim_type.unwrap()))
+            .selected_text(format!(
+                "{:?}",
+                buf.claim_type.unwrap_or(ClaimType::LegalSovereignty)
+            ))
             .show_ui(ui, |ui| {
                 for c in CLAIM_TYPES {
                     ui.selectable_value(&mut buf.claim_type, Some(*c), format!("{c:?}"));

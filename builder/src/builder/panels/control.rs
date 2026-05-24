@@ -82,20 +82,24 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
-    show_overlay_toggles(ui, state);
-    ui.separator();
-    show_world_presence_editor(ui, state);
-    ui.separator();
-    show_system_control_editor(ui, state);
-    ui.separator();
-    show_power_profile_preview(ui, state);
-    ui.separator();
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            show_overlay_toggles(ui, state);
+            ui.separator();
+            show_world_presence_editor(ui, state);
+            ui.separator();
+            show_system_control_editor(ui, state);
+            ui.separator();
+            show_power_profile_preview(ui, state);
+            ui.separator();
 
-    show_contested_summary(ui, state);
-    ui.separator();
-    show_bulk_convert(ui, state);
-    ui.separator();
-    show_world_list(ui, state);
+            show_contested_summary(ui, state);
+            ui.separator();
+            show_bulk_convert(ui, state);
+            ui.separator();
+            show_world_list(ui, state);
+        });
 }
 
 // ── C7 + C8 overlay toggles ──────────────────────────────────────────────

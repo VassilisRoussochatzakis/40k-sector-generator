@@ -120,7 +120,17 @@ impl BuilderApp {
         let Some(modal) = modal else {
             return;
         };
-        egui::Window::new(modal_title(&modal))
+        // SaveAs / PlaceSystem / ConfirmRevertSnapshot / NewFromPreset are
+        // panel-managed transient state — they render inside their owning
+        // panel (map.rs, generation.rs, etc.) and do not need an outer window.
+        let title = match &modal {
+            ModalKind::NewProject { .. } => "New project",
+            ModalKind::OpenProject { .. } => "Open project",
+            ModalKind::Message(_) => "Message",
+            ModalKind::ConflictResolver { .. } => "External change",
+            _ => return,
+        };
+        egui::Window::new(title)
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| match modal {
@@ -142,29 +152,8 @@ impl BuilderApp {
                         self.workspace.active_mut().modal = None;
                     }
                 }
-                ModalKind::SaveAs { .. }
-                | ModalKind::PlaceSystem { .. }
-                | ModalKind::ConfirmRevertSnapshot { .. }
-                | ModalKind::NewFromPreset { .. } => {
-                    ui.label("This dialog is rendered by its owning panel.");
-                    if ui.button("Close").clicked() {
-                        self.workspace.active_mut().modal = None;
-                    }
-                }
+                _ => {}
             });
-    }
-}
-
-fn modal_title(modal: &ModalKind) -> &'static str {
-    match modal {
-        ModalKind::NewProject { .. } => "New project",
-        ModalKind::OpenProject { .. } => "Open project",
-        ModalKind::SaveAs { .. } => "Save as",
-        ModalKind::PlaceSystem { .. } => "Place system",
-        ModalKind::ConfirmRevertSnapshot { .. } => "Revert snapshot",
-        ModalKind::NewFromPreset { .. } => "New from preset",
-        ModalKind::Message(_) => "Message",
-        ModalKind::ConflictResolver { .. } => "External change",
     }
 }
 

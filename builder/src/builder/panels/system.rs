@@ -37,42 +37,46 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     show_system_picker(ui, state);
     ui.separator();
 
-    let selected = state.selected_system_id.clone();
-    let Some(sys_id) = selected else {
-        ui.colored_label(
-            Color32::GRAY,
-            "Select a system from the picker or the MAP tab.",
-        );
-        show_bulk_ops(ui, state);
-        return;
-    };
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            let selected = state.selected_system_id.clone();
+            let Some(sys_id) = selected else {
+                ui.colored_label(
+                    Color32::GRAY,
+                    "Select a system from the picker or the MAP tab.",
+                );
+                show_bulk_ops(ui, state);
+                return;
+            };
 
-    let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == sys_id) else {
-        state.selected_system_id = None;
-        return;
-    };
+            let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == sys_id) else {
+                state.selected_system_id = None;
+                return;
+            };
 
-    show_header(ui, state, sys_idx);
-    ui.separator();
-    show_identity_section(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_star_section(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_tags_notes_section(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_worlds_link(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_routes_section(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_factions_section(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_control_section(ui, state, sys_idx);
-    ui.add_space(4.0);
-    show_overlays_section(ui, state, sys_idx);
-    ui.add_space(8.0);
-    show_regen_section(ui, state, sys_idx);
-    ui.add_space(8.0);
-    show_bulk_ops(ui, state);
+            show_header(ui, state, sys_idx);
+            ui.separator();
+            show_identity_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_star_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_tags_notes_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_worlds_link(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_routes_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_factions_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_control_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_overlays_section(ui, state, sys_idx);
+            ui.add_space(8.0);
+            show_regen_section(ui, state, sys_idx);
+            ui.add_space(8.0);
+            show_bulk_ops(ui, state);
+        });
 }
 
 // ── picker / header ─────────────────────────────────────────────────────────
@@ -499,9 +503,6 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                 sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype)
             ));
             ui.horizontal(|ui| {
-                if ui.button("Open CONFLICT").clicked() {
-                    state.active_tab = BuilderTab::Project; // CF panel lives under Phase C; placeholder hop.
-                }
                 if ui.button("Open REGIONS").clicked() {
                     state.active_tab = BuilderTab::Regions;
                 }

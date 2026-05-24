@@ -39,27 +39,31 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     render_summary(ui, &report);
     ui.separator();
 
-    if report.violations.is_empty() {
-        ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
-    } else {
-        let grouped = group_by_stratum(&report.violations);
-        for stratum in STRATA {
-            let Some(group) = grouped.get(*stratum) else {
-                continue;
-            };
-            egui::CollapsingHeader::new(format!("{stratum} ({})", group.len()))
-                .default_open(true)
-                .id_salt(format!("invariants-{stratum}"))
-                .show(ui, |ui| {
-                    for vio in group {
-                        violation_row(ui, state, vio);
-                    }
-                });
-        }
-    }
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            if report.violations.is_empty() {
+                ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
+            } else {
+                let grouped = group_by_stratum(&report.violations);
+                for stratum in STRATA {
+                    let Some(group) = grouped.get(*stratum) else {
+                        continue;
+                    };
+                    egui::CollapsingHeader::new(format!("{stratum} ({})", group.len()))
+                        .default_open(true)
+                        .id_salt(format!("invariants-{stratum}"))
+                        .show(ui, |ui| {
+                            for vio in group {
+                                violation_row(ui, state, vio);
+                            }
+                        });
+                }
+            }
 
-    ui.separator();
-    render_catalogue(ui);
+            ui.separator();
+            render_catalogue(ui);
+        });
 }
 
 fn render_summary(ui: &mut egui::Ui, report: &InvariantReport) {

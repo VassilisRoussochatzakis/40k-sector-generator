@@ -35,29 +35,33 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     render_summary(ui, &report);
     ui.separator();
 
-    if report.errors.is_empty() && report.warnings.is_empty() {
-        ui.colored_label(egui::Color32::GREEN, "✓ no validation issues");
-    } else {
-        render_group(
-            ui,
-            state,
-            "Errors",
-            &report.errors,
-            Severity::Error,
-            egui::Color32::from_rgb(220, 80, 80),
-        );
-        render_group(
-            ui,
-            state,
-            "Warnings",
-            &report.warnings,
-            Severity::Warning,
-            egui::Color32::from_rgb(220, 180, 60),
-        );
-    }
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            if report.errors.is_empty() && report.warnings.is_empty() {
+                ui.colored_label(egui::Color32::GREEN, "✓ no validation issues");
+            } else {
+                render_group(
+                    ui,
+                    state,
+                    "Errors",
+                    &report.errors,
+                    Severity::Error,
+                    egui::Color32::from_rgb(220, 80, 80),
+                );
+                render_group(
+                    ui,
+                    state,
+                    "Warnings",
+                    &report.warnings,
+                    Severity::Warning,
+                    egui::Color32::from_rgb(220, 180, 60),
+                );
+            }
 
-    ui.separator();
-    render_workbook(ui, &report);
+            ui.separator();
+            render_workbook(ui, &report);
+        });
 }
 
 fn render_summary(ui: &mut egui::Ui, report: &ValidationReport) {

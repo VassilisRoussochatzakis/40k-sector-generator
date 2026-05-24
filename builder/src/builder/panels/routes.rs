@@ -30,22 +30,26 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     show_summary(ui, state);
     ui.separator();
 
-    show_route_picker(ui, state);
-    ui.add_space(4.0);
-    if let Some(idx) = selected_route_index(state) {
-        show_route_inspector(ui, state, idx);
-    } else {
-        ui.colored_label(Color32::GRAY, "No route selected.");
-    }
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            show_route_picker(ui, state);
+            ui.add_space(4.0);
+            if let Some(idx) = selected_route_index(state) {
+                show_route_inspector(ui, state, idx);
+            } else {
+                ui.colored_label(Color32::GRAY, "No route selected.");
+            }
 
-    ui.separator();
-    show_bulk_ops(ui, state);
-    ui.separator();
-    show_route_rules_editor(ui, state);
-    ui.separator();
-    show_hidden_routes_panel(ui, state);
-    ui.separator();
-    show_ensure_connected(ui, state);
+            ui.separator();
+            show_bulk_ops(ui, state);
+            ui.separator();
+            show_route_rules_editor(ui, state);
+            ui.separator();
+            show_hidden_routes_panel(ui, state);
+            ui.separator();
+            show_ensure_connected(ui, state);
+        });
 }
 
 fn show_summary(ui: &mut Ui, state: &BuilderState) {

@@ -211,6 +211,9 @@ pub fn build_subsectors(
 
     // ── Cluster systems. ────────────────────────────────────────────────────────
     let (assignment, seed_indices) = cluster_systems(sector, &route_degree, &config);
+    if seed_indices.is_empty() {
+        return Ok(Vec::new());
+    }
     let seed_ids: Vec<SystemId> = seed_indices
         .iter()
         .map(|&i| sector.systems[i].id.clone())
@@ -869,6 +872,13 @@ mod tests {
         };
         let subs = build_subsectors(&sector, cfg).unwrap();
         assert_eq!(subs.len(), 1);
+    }
+
+    #[test]
+    fn sector_with_no_systems_returns_empty_subsectors() {
+        let sector = mini_sector(8, 10, vec![]);
+        let subs = build_subsectors(&sector, SubsectorConfig::default()).unwrap();
+        assert!(subs.is_empty());
     }
 
     #[test]

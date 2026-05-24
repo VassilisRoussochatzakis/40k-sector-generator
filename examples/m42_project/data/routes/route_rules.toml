@@ -1,9 +1,20 @@
+# Route generation rules.
+#
+# Exercises every condition key supported by RouteModifier:
+#   • notable_feature
+#   • world_type
+#   • government
+#   • route_type
+# Multipliers stack multiplicatively when more than one matches.
+
 [routes]
 default_weight = 1.0
 max_distance = 4
 prefer_populated_worlds = true
 prefer_trade_hubs = true
 avoid_warp_phenomena = true
+
+# ── Notable-feature modifiers ─────────────────────────────────────────────────
 
 [[routes.modifiers]]
 when = { notable_feature = "TradeHub" }
@@ -15,7 +26,23 @@ multiplier = 1.75
 
 [[routes.modifiers]]
 when = { notable_feature = "Freeport" }
-multiplier = 1.5
+multiplier = 1.50
+
+[[routes.modifiers]]
+when = { notable_feature = "MajorSpaceyard" }
+multiplier = 1.60
+
+[[routes.modifiers]]
+when = { notable_feature = "PilgrimageSite" }
+multiplier = 1.35
+
+[[routes.modifiers]]
+when = { notable_feature = "ImportantShrine" }
+multiplier = 1.25
+
+[[routes.modifiers]]
+when = { notable_feature = "NavalOutpost" }
+multiplier = 1.30
 
 [[routes.modifiers]]
 when = { notable_feature = "WarpPhenomena" }
@@ -23,8 +50,110 @@ multiplier = 0.25
 
 [[routes.modifiers]]
 when = { notable_feature = "DaemonicCorruption" }
-multiplier = 0.1
+multiplier = 0.10
+
+[[routes.modifiers]]
+when = { notable_feature = "Quarantined" }
+multiplier = 0.20
+
+[[routes.modifiers]]
+when = { notable_feature = "WarZone" }
+multiplier = 0.35
+
+[[routes.modifiers]]
+when = { notable_feature = "NavalBlockade" }
+multiplier = 0.30
+
+# ── World-type modifiers ──────────────────────────────────────────────────────
 
 [[routes.modifiers]]
 when = { world_type = "ForgeWorld" }
-multiplier = 1.5
+multiplier = 1.50
+
+[[routes.modifiers]]
+when = { world_type = "HiveWorld" }
+multiplier = 1.35
+
+[[routes.modifiers]]
+when = { world_type = "ShrineWorld" }
+multiplier = 1.20
+
+[[routes.modifiers]]
+when = { world_type = "BastionWorld" }
+multiplier = 1.15
+
+[[routes.modifiers]]
+when = { world_type = "DeathWorld" }
+multiplier = 0.55
+
+[[routes.modifiers]]
+when = { world_type = "PenalWorld" }
+multiplier = 0.65
+
+[[routes.modifiers]]
+when = { world_type = "XenosWorld" }
+multiplier = 0.20
+
+[[routes.modifiers]]
+when = { world_type = "WarpLostWorld" }
+multiplier = 0.15
+
+# ── Government modifiers ──────────────────────────────────────────────────────
+
+[[routes.modifiers]]
+when = { government = "MilitaryGovernor" }
+multiplier = 1.20
+
+[[routes.modifiers]]
+when = { government = "MechanicusForgeLord" }
+multiplier = 1.25
+
+[[routes.modifiers]]
+when = { government = "RogueTraderDynasty" }
+multiplier = 1.30
+
+[[routes.modifiers]]
+when = { government = "Megacorporations" }
+multiplier = 1.15
+
+[[routes.modifiers]]
+when = { government = "ChaosCult" }
+multiplier = 0.20
+
+[[routes.modifiers]]
+when = { government = "Warlords" }
+multiplier = 0.45
+
+[[routes.modifiers]]
+when = { government = "RevolutionaryJunta" }
+multiplier = 0.50
+
+[[routes.modifiers]]
+when = { government = "XenosOverlords" }
+multiplier = 0.20
+
+# ── Composite modifiers (combine condition keys) ──────────────────────────────
+
+[[routes.modifiers]]
+when = { route_type = "charted_passage", government = "MilitaryGovernor" }
+multiplier = 1.40
+
+[[routes.modifiers]]
+when = { route_type = "smuggling_lane", notable_feature = "Freeport" }
+multiplier = 1.30
+
+[[routes.modifiers]]
+when = { route_type = "stable_warp_lane", notable_feature = "ImportantShrine" }
+multiplier = 1.45
+
+[[routes.modifiers]]
+when = { route_type = "secret_passage", notable_feature = "WarpPhenomena" }
+multiplier = 0.40
+
+[[routes.modifiers]]
+when = { route_type = "webway" }
+multiplier = 1.10
+
+[[routes.modifiers]]
+when = { route_type = "black_ship", government = "MilitaryGovernor" }
+multiplier = 1.20

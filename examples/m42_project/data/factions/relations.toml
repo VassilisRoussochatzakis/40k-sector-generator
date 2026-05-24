@@ -1,52 +1,212 @@
 # §5 NEW2.md — Inter-faction diplomacy / attitude matrix rules.
 #
-# All fields optional. Missing kind pairs fall through to the built-in
-# defaults (Imperial↔Chaos = AtWar, etc.) shipped in `src/relations.rs`.
-# Legacy per-pair overrides (by faction id) bypass the kind/disposition
-# pipeline. Rich overrides can additionally pin public/secret attitudes,
-# treaty status, and relation dimensions.
+# Exercises every authorable knob:
+#   • feed_conflict                 — stance biases the conflict tick
+#   • [[relations.kind_rules]]      — symmetric kind-pair base stance
+#   • [[relations.disposition_rules]] — disposition pair delta on top of kind
+#   • [[relations.pair_overrides]]  — pin per-(faction_id, faction_id) stance
+#   • [[relations.overrides]]       — rich override: public/secret attitudes,
+#                                     treaty status, numeric dimensions
+#
+# Stance enum:    allied | aligned | neutral | rival | hostile | at_war
+# Attitude enum:  allied | friendly | transactional | suspicious | hostile
+#                 | existential_enemy
+# Treaty enum:    none | pact | truce | vassalage | charter | nonaggression
+#                 | vendetta
 
 [relations]
-# Whether the derived matrix biases the conflict tick (advisory). The
-# matrix itself is always derived when this file is referenced.
-feed_conflict = false
+feed_conflict = true
 
-# ── Custom kind rules ─────────────────────────────────────────────────────────
-# Each rule is symmetric (`a ↔ b`). The first user rule that matches a pair
-# wins; otherwise the built-in defaults apply.
-#
-# Example: override the default Imperial↔Mechanicus "Aligned" to "Allied".
+# ── Kind rules ────────────────────────────────────────────────────────────────
+# First user rule that matches a pair wins; built-ins fill the gaps.
+
 [[relations.kind_rules]]
 a = "imperial"
 b = "mechanicus"
 stance = "allied"
-cause = "Treaty of Mars — sworn co-rulership"
+cause = "Treaty of Mars — sworn co-rulership of Mankind"
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "merchant"
+stance = "aligned"
+cause = "Warrant of Trade obliges loyal service"
+
+[[relations.kind_rules]]
+a = "mechanicus"
+b = "merchant"
+stance = "neutral"
+cause = "Trade is tolerated where holy patterns are not at stake"
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "rebel"
+stance = "at_war"
+cause = "Sedition; Lex Imperialis answers in fire"
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "xenos"
+stance = "at_war"
+cause = "Imperial Creed: Suffer Not the Alien to Live"
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "chaos"
+stance = "at_war"
+cause = "The Long War; no quarter, no peace"
+
+[[relations.kind_rules]]
+a = "mechanicus"
+b = "chaos"
+stance = "at_war"
+cause = "Heretek doctrine; binary purity demands purge"
+
+[[relations.kind_rules]]
+a = "chaos"
+b = "xenos"
+stance = "hostile"
+cause = "Both seek the death of Mankind, but neither suffers a rival"
+
+[[relations.kind_rules]]
+a = "rebel"
+b = "chaos"
+stance = "aligned"
+cause = "Common cause of opportunity against the Throne"
+
+[[relations.kind_rules]]
+a = "merchant"
+b = "xenos"
+stance = "rival"
+cause = "Profit overrides creed where the auditor cannot see"
 
 # ── Disposition deltas ────────────────────────────────────────────────────────
 # Stance level delta applied on top of the kind base. Positive = more hostile.
+
 [[relations.disposition_rules]]
 a = "zealous"
 b = "hostile"
 delta = 1
 cause = "Mutual escalation of zeal and hostility"
 
-# ── Pair overrides ────────────────────────────────────────────────────────────
-# Pinned per-pair stances by faction id. These bypass kind/disposition.
-# [[relations.pair_overrides]]
-# a = "imperial_administration"
-# b = "free_traders"
-# stance = "aligned"
-# cause = "Charter granted under Lex Imperialis"
+[[relations.disposition_rules]]
+a = "zealous"
+b = "secretive"
+delta = 1
+cause = "Zealotry sniffs heresy in concealment"
 
-# Rich NEW2 override. `public_attitude` / `secret_attitude` apply
-# symmetrically; `a_public_attitude`, `b_secret_attitude`, etc. can make the
-# relation asymmetric.
-# [[relations.overrides]]
-# a = "fac-house-vorn"
-# b = "fac-rogue-trader-cassian"
-# public_attitude = "friendly"
-# secret_attitude = "hostile"
-# treaty_status = "charter"
-# trust = 35
-# rivalry = 70
-# reason = "Succession debt and a disputed charter"
+[[relations.disposition_rules]]
+a = "lawful"
+b = "opportunistic"
+delta = 1
+cause = "Lex Imperialis chafes against unfettered profit"
+
+[[relations.disposition_rules]]
+a = "insular"
+b = "opportunistic"
+delta = 1
+cause = "The Cult of Mars guards what merchants would sell"
+
+[[relations.disposition_rules]]
+a = "lawful"
+b = "lawful"
+delta = -1
+cause = "Order recognises order"
+
+[[relations.disposition_rules]]
+a = "opportunistic"
+b = "opportunistic"
+delta = -1
+cause = "Honest greed finds common cause"
+
+[[relations.disposition_rules]]
+a = "hostile"
+b = "hostile"
+delta = 1
+cause = "Two scorpions in a bottle"
+
+# ── Pair overrides (legacy / hard pins) ───────────────────────────────────────
+# Bypass the kind/disposition pipeline entirely.
+
+[[relations.pair_overrides]]
+a = "imperial_administration"
+b = "free_traders"
+stance = "aligned"
+cause = "Charter granted under Lex Imperialis"
+
+[[relations.pair_overrides]]
+a = "inquisition"
+b = "free_traders"
+stance = "rival"
+cause = "Free Traders are watched, not trusted"
+
+[[relations.pair_overrides]]
+a = "ecclesiarchy"
+b = "mechanicus"
+stance = "neutral"
+cause = "Wary co-existence — separate liturgies, shared masters"
+
+# ── Rich NEW2 overrides ───────────────────────────────────────────────────────
+# May pin public/secret attitudes asymmetrically and set treaty status / metrics.
+
+[[relations.overrides]]
+a = "imperial_administration"
+b = "mechanicus"
+public_attitude = "allied"
+secret_attitude = "suspicious"
+treaty_status = "pact"
+trust = 55
+fear = 25
+rivalry = 35
+ideological_distance = 60
+economic_dependency = 80
+military_pressure = 5
+covert_activity = 15
+reason = "Treaty of Mars is sworn in public; in private, each guards its dominion"
+
+[[relations.overrides]]
+a = "inquisition"
+b = "rebels"
+public_attitude = "hostile"
+secret_attitude = "existential_enemy"
+treaty_status = "vendetta"
+trust = 0
+fear = 70
+rivalry = 50
+ideological_distance = 95
+covert_activity = 90
+reason = "Active witch-hunt against the Separatist Movement"
+
+[[relations.overrides]]
+a = "free_traders"
+b = "xenos_threat"
+a_public_attitude = "hostile"
+b_public_attitude = "hostile"
+a_secret_attitude = "transactional"
+b_secret_attitude = "suspicious"
+treaty_status = "nonaggression"
+trust = 15
+rivalry = 60
+economic_dependency = 35
+covert_activity = 60
+reason = "Public denouncements, private cargo manifests"
+
+[[relations.overrides]]
+a = "ecclesiarchy"
+b = "inquisition"
+public_attitude = "allied"
+secret_attitude = "suspicious"
+treaty_status = "pact"
+trust = 60
+rivalry = 40
+ideological_distance = 30
+reason = "Shared faith, divided authority"
+
+[[relations.overrides]]
+a = "mechanicus"
+b = "xenos_threat"
+public_attitude = "existential_enemy"
+secret_attitude = "transactional"
+treaty_status = "vendetta"
+covert_activity = 75
+reason = "Officially purge; quietly, certain explorators bargain for STC fragments"

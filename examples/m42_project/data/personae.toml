@@ -1,0 +1,150 @@
+# §3 NEW.md — Dramatis personae pools.
+#
+# Drives the named-character overlay. Each significant faction presence
+# (≥ min_world_dominance) and each system slot (sovereign / orbital_controller
+# / economic_hegemon / hidden_master) anchors a persona built from the matching
+# faction-kind pool. Missing pools fall through to the built-in catalogue.
+#
+# Loader expects `PersonaeConfig` at the file root (no `[personae]` wrapper).
+
+min_world_dominance = "influence"
+max_per_world = 3
+max_per_system = 4
+
+# ── Per-faction-kind pools ────────────────────────────────────────────────────
+# Keys are the `kind` string used in factions.toml. Built-in pools are merged
+# with the entries below.
+
+[kinds.imperial]
+name_prefixes = ["Lord", "Lady", "Cardinal", "Marshal", "Magistrate", "Castellan"]
+name_roots = [
+    "Argentius", "Belisar", "Cassia", "Drusilla", "Eustace", "Faustinus",
+    "Galenius", "Hadria", "Iocanthe", "Julien", "Klemens", "Lucia",
+    "Marcellus", "Nyssa", "Octavian", "Pallas", "Quintus", "Roderick",
+    "Sabina", "Tarsus", "Ulrick", "Valerian", "Xerxes", "Yseult", "Zephyr",
+]
+name_suffixes = ["the Iron", "Vox", "the Stern", "the Untiring", "Aquilon", "the Just"]
+single_names = ["Drusus Erasmus", "Saint Caelia", "Lord-General Vorne"]
+titles = [
+    "Sector Lord", "Lord-Governor", "Cardinal-Astral", "Lord Marshal",
+    "Prefect of Munitorum", "Magistrate-Penitent",
+]
+traits = [
+    "iron-jawed", "tireless", "incorruptible", "ruthless", "calculating",
+    "devout", "burdened by duty", "vain", "ascetic",
+]
+
+[kinds.mechanicus]
+name_prefixes = ["Magos", "Genetor", "Dominus", "Artisan", "Lexmechanic", "Tech-priest"]
+name_roots = [
+    "0x1A", "Khedive", "Kelvar", "Nivelle", "Sothrax", "Vellexor",
+    "Glaucon", "Iotomon", "Korbinus", "Niveus", "Rhennikon", "Tertius",
+]
+name_suffixes = ["7", "Theta-12", "the Augur", "of the Coil", "Hexagrammaton"]
+titles = [
+    "Magos Dominus", "Genetor Biologis", "Artisan-Empyrean",
+    "Logis-Conservator", "Explorator-Primus",
+]
+traits = [
+    "flensed flesh", "binharic voice", "patient over centuries", "hyper-rational",
+    "data-hoarder", "ritualistic", "weaponised limbs",
+]
+
+[kinds.merchant]
+name_prefixes = ["Captain", "Lord-Captain", "Magnate", "Factor"]
+name_roots = [
+    "Cassian", "Lyra", "Voss", "Drahm", "Tibalt", "Mireya", "Halvar",
+    "Quint", "Selene", "Tannhauser", "Veska",
+]
+name_suffixes = [
+    "Vandire", "von Schroeder", "Tarn", "Argent", "the Bold", "Trade-Mark",
+]
+single_names = ["Hadric of Quaddis", "Marguerite-le-Faye", "Tibalt the Profitable"]
+titles = [
+    "Rogue Trader", "Free Charter Captain", "Guildmaster of Coin",
+    "Voidlord", "Commercial Vice-Lord",
+]
+traits = [
+    "silver-tongued", "fastidiously dressed", "indebted", "ostentatious",
+    "patrons of artists", "armed retinue", "discreetly armed",
+]
+
+[kinds.rebel]
+name_prefixes = ["Commissar-Renegade", "Captain", "Comrade", "Demagogue"]
+name_roots = [
+    "Brace", "Kresh", "Lasko", "Mara", "Nikolai", "Otto", "Petra",
+    "Reyn", "Sasha", "Talvi", "Ursin",
+]
+name_suffixes = ["the Voice", "Red-Hand", "Free-Born", "the Banner"]
+titles = [
+    "Revolutionary Councillor", "Insurgent Captain", "Commissar of the People",
+    "Warlord of the Border",
+]
+traits = [
+    "soldier's scars", "fiery orator", "hunted", "bitter", "uncompromising",
+    "secretly idealistic",
+]
+
+[kinds.xenos]
+name_roots = [
+    "Yvr'aine", "Aurik'shai", "K'tan-Vor", "Snikk", "Gor'kaz", "Thrak",
+]
+name_suffixes = ["the Bone-Crowned", "of the Long Howl", "the Pale"]
+titles = [
+    "Farseer", "Autarch", "Warboss", "Hive Tyrant Architect",
+    "Necron Lord", "Tau Commander",
+]
+traits = [
+    "alien anatomy", "speaks in clicks", "thousand-year patience",
+    "predator's stillness", "spiritually present elsewhere",
+]
+
+[kinds.chaos]
+name_prefixes = ["Apostle", "Lord", "Prince", "Magister", "Whisperer"]
+name_roots = [
+    "Karvex", "Maelar", "Nyloss", "Phaedrus", "Sygron", "Vexalor",
+    "Yth'caesh", "Zarakhel",
+]
+name_suffixes = ["the Thrice-Cursed", "of the Pact", "Unrepentant", "the Marked"]
+titles = [
+    "Daemon Prince", "Dark Apostle", "Warband Sorcerer",
+    "Master of the Cult", "Champion of the Long War",
+]
+traits = [
+    "mutant", "warp-tainted", "smells of iron and lavender",
+    "promises everything", "betrayed many",
+]
+
+# ── Manual personae ───────────────────────────────────────────────────────────
+# Appended verbatim to the derived set. Useful for sector-anchored NPCs
+# the GM wants to fix in place.
+
+[[manual]]
+id = "persona-vorne-erasmus"
+faction_id = "imperial_administration"
+faction_kind = "imperial"
+name = "Lord-General Erasmus Vorne"
+title = "Lord Castellan of the Sector"
+traits = ["iron-jawed", "tireless", "burdened by duty"]
+agenda = "Hold the Aurelian Maelstrom front while the Munitorum re-supplies."
+anchor = { scope = "system", system_id = "sys-001", slot = "sovereign" }
+
+[[manual]]
+id = "persona-hadric-quaddis"
+faction_id = "free_traders"
+faction_kind = "merchant"
+name = "Hadric of Quaddis"
+title = "Lord-Captain, Charter of Iocanthos"
+traits = ["silver-tongued", "ostentatious", "indebted"]
+agenda = "Quietly buy out the Mechanicus orbital lien before the next audit."
+anchor = { scope = "system", system_id = "sys-002", slot = "economic_hegemon" }
+
+[[manual]]
+id = "persona-magos-kelvar-7"
+faction_id = "mechanicus"
+faction_kind = "mechanicus"
+name = "Magos Kelvar-Theta-7"
+title = "Magos Dominus of the Forge-Spire"
+traits = ["flensed flesh", "hyper-rational", "data-hoarder"]
+agenda = "Acquire the STC fragment rumoured in the Quaddis Bleed."
+anchor = { scope = "system", system_id = "sys-003", slot = "orbital_controller" }

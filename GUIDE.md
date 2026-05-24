@@ -894,17 +894,31 @@ cargo run --bin sectorforge -- generate --project examples/huge_sparse_test --al
 my-sector-project/
   sectorforge.toml
   data/
-    worlds/                        # native typed config
-      worlds.toml                  # §45: typed generation rows + feature pools
+    worlds/
+      worlds.toml                  # §45: typed generation rows + [features] pools
+      economy.toml                 # §12 / §4 NEW2 (optional)
     names/system_names.toml
     names/world_names.toml
     factions/factions.toml
-    factions/relations.toml        # §5 NEW2.md/DONE (optional)
+    factions/relations.toml        # §5 NEW2 (optional)
     routes/route_rules.toml
-    routes/regions.toml            # §5 old/DONE.md (optional)
-    worlds/economy.toml            # §12 old/DONE.md (optional)
+    routes/regions.toml            # §5 (optional)
+    history.toml                   # §1 NEW2 (optional)
+    personae.toml                  # §3 (optional)
+    sites.toml                     # §7 NEW2 (optional)
   out/                             # created by generate
 ```
+
+The bundled [examples/m42_project/](examples/m42_project/) is the reference
+project that exercises every authorable knob — all `[features]` overlays, the
+full economy stack (`by_world_type` / `by_tech_level` / `by_population` and
+the §4 NEW2 `[resources]` block), every relation override form, all eight
+region condition kinds, every route-modifier condition key (`notable_feature`
+/ `world_type` / `government` / `route_type`), a populated history config
+with custom eras + event rules, persona pools per faction kind with manual
+entries, and a manual sites catalogue. The `sectorforge.toml` there also
+sets `[analyze]`, `[search]`, `[diff]`, `[outputs.html]`, and `[map_theme]`
+so every downstream derivation runs on a single project.
 
 ### `sectorforge.toml`
 
@@ -927,6 +941,7 @@ generation_profiles   = "data/generation/profiles.toml"    # optional (digest tr
 relations             = "data/factions/relations.toml"     # optional (§5 NEW2.md/DONE)
 regions               = "data/routes/regions.toml"         # optional (§5 old/DONE.md)
 economy               = "data/worlds/economy.toml"         # optional (§12 old/DONE.md)
+history               = "data/history.toml"                # optional (§1 NEW2.md/DONE)
 personae              = "data/personae.toml"               # optional (§3 old/DONE.md)
 sites                 = "data/sites.toml"                  # optional (§7 NEW2.md/DONE)
 

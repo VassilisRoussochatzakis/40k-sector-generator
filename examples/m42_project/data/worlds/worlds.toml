@@ -1008,4 +1008,137 @@ weight = 22.0
 [[generation]]
 weight = 32.0
 
+# ── §45 WD3 authored feature pool ─────────────────────────────────────────────
+# Global pool is appended to every world. The per-world-type / per-star-colour
+# overlays add bias on top, so e.g. a HiveWorld around a Yellow star draws from
+# global + HiveWorld + Yellow with the configured weights.
+
 [features]
+global = [
+    { feature = "WarpPhenomena", weight = 1.0 },
+    { feature = "AncientArchive", weight = 0.5 },
+    { feature = "RecentlyRediscovered", weight = 0.75 },
+    { feature = "TradeHub", weight = 1.25 },
+]
+
+[features.by_world_type]
+HiveWorld = [
+    { feature = "PowerfulNobles", weight = 2.5 },
+    { feature = "MartialLaw", weight = 1.75 },
+    { feature = "CrumblingArcologies", weight = 1.5 },
+    { feature = "PowerfulCriminals", weight = 1.25 },
+    { feature = "AdministrativeHub", weight = 1.0 },
+]
+ForgeWorld = [
+    { feature = "MajorSpaceyard", weight = 2.5 },
+    { feature = "HeavyIndustry", weight = 2.0 },
+    { feature = "TechPriestCult", weight = 1.75 },
+    { feature = "Hereteks", weight = 0.75 },
+    { feature = "ArchaeotechRuins", weight = 1.25 },
+]
+AgriWorld = [
+    { feature = "VerdantEcology", weight = 2.0 },
+    { feature = "Prosperous", weight = 1.5 },
+    { feature = "Abhumans", weight = 1.0 },
+]
+ShrineWorld = [
+    { feature = "ImportantShrine", weight = 3.0 },
+    { feature = "PilgrimageSite", weight = 2.0 },
+    { feature = "ScholaProgenium", weight = 1.5 },
+    { feature = "Missionaries", weight = 1.0 },
+    { feature = "SororitasConvent", weight = 0.75 },
+]
+DeathWorld = [
+    { feature = "HostileBiosphere", weight = 2.5 },
+    { feature = "DangerousWildlife", weight = 2.0 },
+    { feature = "ExtremeEnvironment", weight = 1.5 },
+    { feature = "HostileXenos", weight = 1.0 },
+]
+TombWorld = [
+    { feature = "AncientTombs", weight = 3.0 },
+    { feature = "SealedMenace", weight = 2.0 },
+    { feature = "ArchaeotechRuins", weight = 1.5 },
+]
+PenalWorld = [
+    { feature = "PoliceState", weight = 2.0 },
+    { feature = "PopularUprising", weight = 1.0 },
+    { feature = "Separatists", weight = 0.75 },
+]
+FrontierWorld = [
+    { feature = "Freeport", weight = 2.0 },
+    { feature = "TheSilentTrade", weight = 1.25 },
+    { feature = "PocketEmpire", weight = 0.75 },
+]
+XenosWorld = [
+    { feature = "HostileXenos", weight = 2.5 },
+    { feature = "XenoRuins", weight = 1.75 },
+    { feature = "XenosInfiltrators", weight = 1.25 },
+    { feature = "PrimitiveXenos", weight = 1.0 },
+]
+FeralWorld = [
+    { feature = "Abhumans", weight = 2.0 },
+    { feature = "StrangeCustoms", weight = 1.5 },
+    { feature = "NomadicCities", weight = 1.0 },
+]
+FeudalWorld = [
+    { feature = "VastFortresses", weight = 1.75 },
+    { feature = "StrangeCustoms", weight = 1.25 },
+    { feature = "PowerfulNobles", weight = 1.5 },
+]
+BastionWorld = [
+    { feature = "VastFortresses", weight = 3.0 },
+    { feature = "NavalOutpost", weight = 2.0 },
+    { feature = "MartialLaw", weight = 1.5 },
+]
+ResearchStation = [
+    { feature = "ForbiddenTech", weight = 2.0 },
+    { feature = "AncientArchive", weight = 1.5 },
+    { feature = "TestSite", weight = 1.25 },
+]
+PleasureWorld = [
+    { feature = "Libertines", weight = 2.0 },
+    { feature = "DeviantReligion", weight = 1.0 },
+]
+WarpLostWorld = [
+    { feature = "WarpPhenomena", weight = 3.0 },
+    { feature = "DaemonicCorruption", weight = 2.0 },
+    { feature = "OutOfContact", weight = 1.5 },
+]
+IndustrialWorld = [
+    { feature = "HeavyMining", weight = 2.0 },
+    { feature = "HeavyIndustry", weight = 1.5 },
+]
+DeadWorld = [
+    { feature = "ArchaeotechRuins", weight = 1.5 },
+    { feature = "AncientTombs", weight = 1.0 },
+]
+
+[features.by_star_colour]
+BlueHypergiant = [
+    { feature = "CelestialPhenomena", weight = 3.0 },
+    { feature = "Radioactive", weight = 1.5 },
+]
+BlueWhite = [
+    { feature = "FreakWeather", weight = 1.5 },
+    { feature = "CelestialPhenomena", weight = 1.25 },
+]
+White = [
+    { feature = "Prosperous", weight = 1.25 },
+]
+YellowWhite = [
+    { feature = "VerdantEcology", weight = 1.0 },
+]
+Yellow = [
+    { feature = "Prosperous", weight = 2.0 },
+    { feature = "VerdantEcology", weight = 1.5 },
+    { feature = "AdministrativeHub", weight = 1.25 },
+]
+OrangeDwarf = [
+    { feature = "FreakGeology", weight = 1.0 },
+    { feature = "StrangeCustoms", weight = 0.75 },
+]
+RedDwarf = [
+    { feature = "FrozenWorld", weight = 2.0 },
+    { feature = "ImpendingDoom", weight = 1.0 },
+    { feature = "FailedParadise", weight = 0.75 },
+]

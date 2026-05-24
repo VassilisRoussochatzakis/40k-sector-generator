@@ -6,6 +6,11 @@
 # These instructions are written for a future Claude Code run. Read top to
 # bottom before doing anything. Verify state hasn't drifted (Section 2)
 # before executing. Do NOT skip the verification anchors.
+#
+# Implementation status (Codex, 2026-05-24):
+#   - Section 1 pre-flight: DONE
+#   - Step 3.1 shared crate skeleton: DONE
+#   - Step 3.2 move shared widgets: IN-PROGRESS
 
 ================================================================================
 0. WHY (so you can make judgment calls)

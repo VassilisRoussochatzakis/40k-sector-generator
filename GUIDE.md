@@ -37,6 +37,9 @@ From the repository root:
 # Build both binaries (sectorforge CLI + sectorforge-gui)
 cargo build --release
 
+# Note: Example projects (big_test, big_sparse_test, m42_project) are 
+# bundled into the binaries for portability.
+
 # Validate the bundled example project (M42 world data + sample TOML files)
 cargo run --bin sectorforge -- validate --project examples/m42_project
 
@@ -337,6 +340,16 @@ runs, so an over-constrained or typo'd wish set fails immediately with a
 clear message. When no candidate satisfies the constraints, the report
 includes the top `report_top` near-misses ranked by total miss distance,
 so you know which constraint to relax.
+
+### `sectorforge extract-examples --out <DIR>`
+
+Extract the bundled example projects (`big_test`, `big_sparse_test`, and
+`m42_project`) to a local directory. These projects are embedded directly
+into the binary for portability.
+
+| Flag | Meaning |
+|---|---|
+| `--out <DIR>` | Required — destination directory for extraction |
 
 ### `sectorforge diff` (§10 old/DONE.md)
 
@@ -1475,6 +1488,8 @@ navigation bar:
   factions, neighboring systems. With **EDIT MAP** enabled, **ADD PLANET**
   appends a default world/planet to the current system and **REMOVE PLANET**
   deletes the selected planet from the system map.
+- **EXAMPLES** — modal gallery of bundled example projects. Click a project
+  to auto-extract it to a temporary directory and load it into the viewer.
 - **Edit** — sector editor (rename systems, add/remove worlds, adjust tags
   and per-world factions). The **Factions** tab shows a deterministic colour
   + glyph chip per faction (derived from `kind`, `id`, `disposition` — see

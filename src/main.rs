@@ -359,6 +359,12 @@ enum Command {
         #[arg(long)]
         player: bool,
     },
+    /// Extract bundled example projects to a directory.
+    ExtractExamples {
+        /// Destination directory to extract into.
+        #[arg(long)]
+        out: Utf8PathBuf,
+    },
     /// §10 NEW.md: deterministic sector diff. Two modes:
     ///
     /// * `--before <a.json> --after <b.json>`: compare two saved sectors.
@@ -782,6 +788,17 @@ fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             json,
             player,
         ),
+        Command::ExtractExamples { out } => {
+            let names = sectorforge::examples::list_bundled_examples();
+            for name in names {
+                let target = out.join(&name);
+                println!("Extracting bundled example '{}' to {}...", name, target);
+                sectorforge::examples::extract_example_to_dir(&name, &target)
+                    .map_err(|e| sectorforge::SectorError::io(target.as_str(), std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            }
+            println!("Done.");
+            Ok(ExitCode::SUCCESS)
+        }
         Command::Diff {
             before,
             after,

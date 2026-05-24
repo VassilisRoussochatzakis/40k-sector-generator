@@ -154,6 +154,9 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                 if ui.button("NEW").clicked() {
                     app.preset_gallery.open = true;
                 }
+                if ui.button("EXAMPLES").clicked() {
+                    app.show_examples = true;
+                }
                 if ui.button("OPEN").clicked() {
                     app.open_sector_dialog();
                 }

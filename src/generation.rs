@@ -1840,6 +1840,8 @@ fn generate_routes(
                 w *= 0.25;
             }
 
+            let (rt, _) = classify_route(&systems[i], &systems[j], dist, max_distance);
+
             // Apply config modifiers.
             for m in &rules.modifiers {
                 if let Some(s) = &m.when.notable_feature {
@@ -1851,6 +1853,17 @@ fn generate_routes(
                 if let Some(s) = &m.when.world_type {
                     let tag = format!("world_type:{}", taxonomy::to_snake_case(s));
                     if combined_tags.iter().any(|t| t.as_ref() == tag) {
+                        w *= m.multiplier;
+                    }
+                }
+                if let Some(s) = &m.when.government {
+                    let tag = format!("gov:{}", taxonomy::to_snake_case(s));
+                    if combined_tags.iter().any(|t| t.as_ref() == tag) {
+                        w *= m.multiplier;
+                    }
+                }
+                if let Some(s) = &m.when.route_type {
+                    if RouteType::from_key(&taxonomy::to_snake_case(s)).is_some_and(|v| v == rt) {
                         w *= m.multiplier;
                     }
                 }

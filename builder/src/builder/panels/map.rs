@@ -11,7 +11,7 @@
 
 use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
 
-use sectorforge::ids::SystemId;
+use sectorforge::ids::{self, SystemId};
 use sectorforge::sector_model::HexCoord;
 
 use crate::builder::command::BuilderCommand;
@@ -33,6 +33,9 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         }
         if let Some(id) = &state.selected_system_id {
             ui.label(format!("focus: {id}"));
+        }
+        if let Some(id) = &state.pending_route_start {
+            ui.label(format!("route from: {id}"));
         }
     });
     ui.separator();
@@ -63,6 +66,9 @@ pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
             let selected = state.map_tool == tool;
             if ui.selectable_label(selected, tool.label()).clicked() {
                 state.map_tool = tool;
+                if tool != MapTool::AddRoute {
+                    state.pending_route_start = None;
+                }
             }
         }
     });
@@ -170,6 +176,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     let (rect, response) = ui.allocate_exact_size(size, Sense::click_and_drag());
     let painter = ui.painter_at(rect);
     let origin = rect.min;
+    let pointer = response.interact_pointer_pos();
     painter.rect_filled(rect, 0.0, palette::BG);
 
     // Empty hexes.
@@ -228,6 +235,20 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
                     .route_type
                     .pattern(sectorforge::sector_model::RouteViewMode::Detailed),
             );
+        }
+    }
+    if state.map_tool == MapTool::AddRoute {
+        if let (Some(start), Some(pos)) = (&state.pending_route_start, pointer) {
+            if let Some(&a) = centers.get(start.as_str()) {
+                palette::draw_route_line(
+                    &painter,
+                    a,
+                    pos,
+                    route_thickness * 1.4,
+                    Color32::from_rgb(255, 220, 120),
+                    sectorforge::sector_model::RoutePattern::Dashed,
+                );
+            }
         }
     }
 
@@ -292,7 +313,6 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     // ── interaction ─────────────────────────────────────────────────────────
-    let pointer = response.interact_pointer_pos();
     let hit_system = |state: &BuilderState, pos: Pos2| -> Option<SystemId> {
         state
             .sector
@@ -306,7 +326,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     };
 
     // double-click → rename
-    if response.double_clicked() {
+    if response.double_clicked() && state.map_tool != MapTool::AddRoute {
         if let Some(pos) = pointer {
             if let Some(id) = hit_system(state, pos) {
                 let name = state
@@ -335,6 +355,11 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
                         }
                     }
                 }
+                MapTool::AddRoute => {
+                    if let Some(id) = hit_system(state, pos) {
+                        state.pending_route_start = Some(id);
+                    }
+                }
                 _ => {}
             }
         }
@@ -353,7 +378,14 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
 
     // drag stop
     if response.drag_stopped() {
-        if let (Some(drag_id), Some(pos)) = (state.drag_system.clone(), pointer) {
+        if state.map_tool == MapTool::AddRoute {
+            if let (Some(from), Some(pos)) = (state.pending_route_start.clone(), pointer) {
+                if let Some(to) = hit_system(state, pos) {
+                    add_route_between(state, from, to);
+                }
+            }
+            state.pending_route_start = None;
+        } else if let (Some(drag_id), Some(pos)) = (state.drag_system.clone(), pointer) {
             if let Some(coord) = hex_pick(pos - origin.to_vec2(), &g, sector_w, sector_h) {
                 handle_drag_drop(state, drag_id, coord);
             }
@@ -418,13 +450,41 @@ fn handle_click(
             }
         }
         MapTool::AddRoute => {
-            // Handled by §R panel; placeholder no-op here so the toolbox tool
-            // does not surprise the user.
+            if let Some(id) = hit {
+                if let Some(from) = state.pending_route_start.take() {
+                    add_route_between(state, from, id);
+                } else {
+                    state.pending_route_start = Some(id);
+                }
+            }
         }
         MapTool::RegionPaint => {
             // §REG panel territory; no-op on the §S surface.
         }
     }
+}
+
+fn add_route_between(state: &mut BuilderState, from: SystemId, to: SystemId) {
+    if from == to {
+        state.modal = Some(ModalKind::Message(
+            "Route needs two distinct systems.".into(),
+        ));
+        return;
+    }
+    let selected_route = ids::route_id(&from, &to);
+    let cmd = BuilderCommand::AddRoute {
+        from,
+        to,
+        route_type: sectorforge::sector_model::RouteType::ChartedPassage,
+        stability: sectorforge::sector_model::RouteStability::Stable,
+        result_id: None,
+    };
+    if let Err(e) = state.run(cmd) {
+        state.modal = Some(ModalKind::Message(format!("Add route failed: {e}")));
+        return;
+    }
+    state.selected_route_id = Some(selected_route);
+    state.active_tab = crate::builder::state::BuilderTab::Routes;
 }
 
 fn handle_drag_drop(state: &mut BuilderState, drag_id: SystemId, coord: HexCoord) {

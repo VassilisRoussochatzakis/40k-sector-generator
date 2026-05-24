@@ -178,8 +178,8 @@ for all remaining checklist items:
       REGIONS, ROUTES, SUBSECTORS, ECONOMY, RELATIONS, HISTORY, PERSONAE,
       HOOKS, SITES, MISSIONS, PROSE, ANALYTICS, INTERESTINGNESS, SEARCH,
       DIFF, BRIEFING, SEGMENTUM, EXPORT.
-  [x] Direct edit Phase B so far: SYSTEM and WORLD panels plus MAP tools;
-      routes/factions/control/claims still governed by the gap matrix below.
+  [x] Direct edit Phase B so far: SYSTEM, WORLD, and ROUTES panels plus
+      MAP tools; factions/control/claims still governed by the gap matrix below.
   [x] Validation/invariant panels and health status pip.
   [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
 
@@ -196,7 +196,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Generation config   [X]       §6
   System edit         [P]       §7
   World edit          [P]       §8
-  Route edit          [P]       §9
+  Route edit          [X]       §9
   Faction edit        [P]       §10
   Control / presence  [G]       §11
   Claims              [G]       §12
@@ -539,32 +539,42 @@ W7.   [DONE] Claims chip-row directly in the world inspector. Each
 9. ROUTES
 ================================================================================
 
-R1.   Route inspector covers every `GeneratedRoute` field: id, from/to,
-      type (StableWarpLane | ChartedPassage | SecretPassage | Webway |
-      BlackShip | SmugglingLane), stability (Stable | Unstable | Hazardous
-      | Perilous), distance (auto vs. manual override), tags, controls
-      (per-faction route_control, §16).
+R1.   [DONE] Route inspector in `builder/src/builder/panels/routes.rs`
+      covers every `GeneratedRoute` field: id, endpoints, type
+      (StableWarpLane | ChartedPassage | SecretPassage | Webway |
+      BlackShip | SmugglingLane), stability, distance with auto-distance
+      display, tags, and editable per-faction `RouteControl` rows.
 
-R2.   Add-route tool: click first system, drag to second system. Distance
-      auto-computed via `HexCoord::distance`.
+R2.   [DONE] Add-route tool is wired in `builder/src/builder/panels/map.rs`:
+      click-click or drag from first system to second system runs
+      `BuilderCommand::AddRoute`; distance is auto-computed from
+      `hex_distance`.
 
-R3.   Manual override of distance with a warning ("invariant
-      ROUTE_DISTANCE_MISMATCH will fire unless distance == hex_distance").
+R3.   [DONE] Manual distance override lives in the route inspector. It shows
+      auto distance, a "Use auto" action, and the warning
+      `ROUTE_DISTANCE_MISMATCH will fire unless distance == hex_distance`.
 
-R4.   Bulk operations: change all routes matching predicate (e.g.,
-      "all Charted Passages crossing region X" → set stability Hazardous).
+R4.   [DONE] Bulk operations support predicates over route type, stability,
+      tag substring, and region-crossing hex-line; actions set matching
+      route type or stability (e.g. all Charted Passages crossing region X
+      -> Hazardous).
 
-R5.   Route-rules editor (`data/routes/route_rules.toml`): table editor
-      for weight modifiers (conditions: world_type, notable_feature,
-      government, route_type). Live recompute of route weights in
-      preview.
+R5.   [DONE] Route-rules editor (`data/routes/route_rules.toml`) edits
+      default_weight, max_distance, preference flags, and modifier rows for
+      notable_feature, world_type, government, and route_type. Changes mark
+      the route_rules file dirty and schedule the live preview. Core
+      `RouteCondition` now includes `route_type`, and generation applies
+      government + route_type modifiers.
 
-R6.   Hidden routes panel (`src/hidden_routes.rs` config): set kind
-      (Webway/BlackShip/SmugglingLane), endpoints, K-nearest count,
-      blackout-region exclusion.
+R6.   [DONE] Hidden routes panel uses `src/hidden_routes.rs::HiddenRoutesConfig`
+      to set kind (Webway/BlackShip/SmugglingLane), explicit endpoints,
+      K-nearest count, and Blackout-region exclusion, then emits deduplicated
+      hidden-route edges.
 
-R7.   Routes "ensure connected" toggle re-runs MST connector after edit
-      to guarantee a single component.
+R7.   [DONE] Routes "ensure connected" toggle re-runs the MST-style bridge
+      connector after route edits/removals and via a manual "Run connector
+      now" action, adding `bridge` routes until the route graph is one
+      component.
 
 ================================================================================
 10. FACTIONS
@@ -1323,12 +1333,12 @@ N2.   [DONE] Each tab corresponds to a panel module under
       `show_active_panel` dispatches `BuilderTab` -> panel module:
         Project   -> panels/project.rs    (composes §P1..§P6 surfaces)
         Map       -> panels/map.rs        (hosts the §N3 toolbox)
-        System    -> panels/system.rs     (Phase B §S1..§S6 placeholder)
-        World     -> panels/world.rs      (Phase B §W1..§W7 placeholder)
+        System    -> panels/system.rs     (Phase B §S1..§S6 DONE)
+        World     -> panels/world.rs      (Phase B §W1..§W7 DONE)
         Factions  -> panels/factions.rs   (Phase B §F1..§F7 placeholder)
         Control   -> panels/control.rs    (Phase B §C1..§C8 placeholder)
         Regions   -> panels/regions.rs    (Phase C §REG1..§REG7)
-        Routes    -> panels/routes.rs     (Phase B §R1..§R7)
+        Routes    -> panels/routes.rs     (Phase B §R1..§R7 DONE)
         Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5)
         Economy   -> panels/economy.rs    (Phase C §E1..§E7)
         Relations -> panels/relations.rs  (Phase C §REL1..§REL9)
@@ -1345,8 +1355,8 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5)
         Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5)
         Export    -> panels/export.rs     (Phase E §EX1..§EX8)
-      Stub panels share `panels/placeholder.rs` so each body announces
-      the phase + section that fills the tab.
+      Stub panels share `panels/placeholder.rs` so each unfinished body
+      announces the phase + section that fills the tab.
 
 N3.   [DONE] Map tab keeps the editor toolbox
       (ADD/DELETE/MOVE/ROUTE/REGION paint).
@@ -1416,7 +1426,10 @@ Phase B — Direct entity edit
                    `generation::regenerate_world_payload`, searchable
                    features picker with weight preview, inline coupling
                    warnings, claims chip-row with deep-links)
-  R1..R7, (§9 routes)
+  R1..R7  - DONE  (§9 routes — inspector, map add-route, manual distance
+                   override, bulk operations, route-rules editor with live
+                   preview scheduling, hidden-route builder, ensure-connected
+                   bridge connector)
   F1..F7, (§10 factions)
   CL1..CL4, (§12 claims)
   C1..C8. (§11 control + presence)

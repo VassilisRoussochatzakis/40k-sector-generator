@@ -139,12 +139,23 @@ impl SessionFile {
             partial_regen_rect: None,
             selected_systems: std::collections::BTreeSet::new(),
             drag_system: None,
+            pending_route_start: None,
             pending_place: None,
             pending_rename: None,
             pending_collision: None,
             rect_select: None,
             hex_size: 28.0,
             world_reroll_counter: 0,
+            route_bulk_filter_type: None,
+            route_bulk_filter_stability: None,
+            route_bulk_filter_tag: String::new(),
+            route_bulk_filter_region: None,
+            route_bulk_set_type: sectorforge::sector_model::RouteType::ChartedPassage,
+            route_bulk_set_stability: sectorforge::sector_model::RouteStability::Hazardous,
+            hidden_route_kind: sectorforge::sector_model::RouteType::Webway,
+            hidden_route_k_nearest: sectorforge::hidden_routes::DEFAULT_HIDDEN_K_NEAREST,
+            hidden_route_exclude_blackout: true,
+            hidden_route_endpoints: std::collections::BTreeSet::new(),
         }
     }
 }

@@ -13,6 +13,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use serde::{Deserialize, Serialize};
+
 use crate::ids;
 use crate::regions::{RegionConditionKind, WarpRegion};
 use crate::sector_model::{
@@ -33,6 +35,151 @@ const ENDPOINT_THRESHOLD: f32 = 25.0;
 /// O(N²) full-clique blow-up that produced thousands of smuggling / webway
 /// edges in larger sectors.
 const HIDDEN_K_NEAREST: usize = 3;
+
+pub const DEFAULT_HIDDEN_K_NEAREST: usize = HIDDEN_K_NEAREST;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HiddenRoutesConfig {
+    pub kind: RouteType,
+    #[serde(default)]
+    pub endpoints: Vec<crate::ids::SystemId>,
+    #[serde(default = "default_hidden_k_nearest")]
+    pub k_nearest: usize,
+    #[serde(default = "default_true")]
+    pub exclude_blackout_regions: bool,
+}
+
+impl Default for HiddenRoutesConfig {
+    fn default() -> Self {
+        Self {
+            kind: RouteType::Webway,
+            endpoints: Vec::new(),
+            k_nearest: DEFAULT_HIDDEN_K_NEAREST,
+            exclude_blackout_regions: true,
+        }
+    }
+}
+
+fn default_hidden_k_nearest() -> usize {
+    DEFAULT_HIDDEN_K_NEAREST
+}
+
+fn default_true() -> bool {
+    true
+}
+
+/// Build one explicit hidden-route layer from user-selected endpoints.
+/// Existing undirected edges are skipped to preserve route uniqueness.
+#[must_use]
+pub fn configured_hidden_routes(
+    systems: &[GeneratedSystem],
+    factions: &[GeneratedFaction],
+    regions: &[WarpRegion],
+    existing_routes: &[GeneratedRoute],
+    config: &HiddenRoutesConfig,
+) -> Vec<GeneratedRoute> {
+    if !config.kind.is_hidden() || config.k_nearest == 0 {
+        return Vec::new();
+    }
+    let endpoint_ids: BTreeSet<&str> = config.endpoints.iter().map(|id| id.as_str()).collect();
+    if endpoint_ids.len() < 2 {
+        return Vec::new();
+    }
+    let blackout: BTreeSet<(i32, i32)> = if config.exclude_blackout_regions {
+        regions
+            .iter()
+            .filter(|r| matches!(r.kind, RegionConditionKind::Blackout))
+            .flat_map(|r| r.hexes.iter().map(|h| (h.q, h.r)))
+            .collect()
+    } else {
+        BTreeSet::new()
+    };
+    let mut endpoints: Vec<&GeneratedSystem> = systems
+        .iter()
+        .filter(|s| endpoint_ids.contains(s.id.as_str()))
+        .filter(|s| !blackout.contains(&(s.coord.q, s.coord.r)))
+        .collect();
+    if endpoints.len() < 2 {
+        return Vec::new();
+    }
+    endpoints.sort_by(|a, b| a.id.cmp(&b.id));
+
+    let mut existing: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> = BTreeSet::new();
+    let mut existing_route_ids: BTreeSet<crate::ids::RouteId> = BTreeSet::new();
+    for r in existing_routes {
+        let (a, b) = if r.from_system_id <= r.to_system_id {
+            (r.from_system_id.clone(), r.to_system_id.clone())
+        } else {
+            (r.to_system_id.clone(), r.from_system_id.clone())
+        };
+        existing.insert((a, b));
+        existing_route_ids.insert(r.id.clone());
+    }
+
+    let mut pairs: BTreeSet<(crate::ids::SystemId, crate::ids::SystemId)> = BTreeSet::new();
+    for (i, a) in endpoints.iter().enumerate() {
+        let mut peers: Vec<(u32, &str, usize)> = endpoints
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .map(|(j, b)| (hex_distance(a.coord, b.coord), b.id.as_str(), j))
+            .collect();
+        peers.sort_by(|x, y| x.0.cmp(&y.0).then_with(|| x.1.cmp(y.1)));
+        for (_, _, j) in peers.into_iter().take(config.k_nearest) {
+            let b = endpoints[j];
+            let (lo, hi) = if a.id <= b.id {
+                (a.id.clone(), b.id.clone())
+            } else {
+                (b.id.clone(), a.id.clone())
+            };
+            pairs.insert((lo, hi));
+        }
+    }
+
+    let systems_by_id: BTreeMap<&str, &GeneratedSystem> =
+        systems.iter().map(|s| (s.id.as_str(), s)).collect();
+    let suffix = hidden_suffix(config.kind);
+    let mut out = Vec::new();
+    for (from, to) in pairs {
+        if existing.contains(&(from.clone(), to.clone())) {
+            continue;
+        }
+        let id = crate::ids::RouteId::new(format!("{}-{suffix}", ids::route_id(&from, &to)));
+        if !existing_route_ids.insert(id.clone()) {
+            continue;
+        }
+        let Some(a) = systems_by_id.get(from.as_str()).copied() else {
+            continue;
+        };
+        let Some(b) = systems_by_id.get(to.as_str()).copied() else {
+            continue;
+        };
+        let mut route = GeneratedRoute {
+            id,
+            from_system_id: from,
+            to_system_id: to,
+            distance: hex_distance(a.coord, b.coord),
+            route_type: config.kind,
+            stability: RouteStability::Stable,
+            tags: vec![format!("hidden:{suffix}").into()],
+            controls: Vec::new(),
+        };
+        route.controls =
+            crate::route_control::derive_route_controls(&route, &systems_by_id, factions);
+        out.push(route);
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    out
+}
+
+fn hidden_suffix(kind: RouteType) -> &'static str {
+    match kind {
+        RouteType::Webway => "webway",
+        RouteType::BlackShip => "blackship",
+        RouteType::SmugglingLane => "smuggling",
+        _ => "hidden",
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HiddenRoutesProgress {
@@ -448,5 +595,48 @@ mod tests {
         let mut routes: Vec<GeneratedRoute> = Vec::new();
         let n = append_hidden_routes(&systems, &factions, &mut routes);
         assert_eq!(n, 0);
+    }
+
+    #[test]
+    fn configured_hidden_routes_use_explicit_endpoints_and_k() {
+        let systems = vec![
+            sys("sys-0001", (0, 0), ("eld", 0.0, 0.0)),
+            sys("sys-0002", (1, 0), ("eld", 0.0, 0.0)),
+            sys("sys-0003", (7, 7), ("eld", 0.0, 0.0)),
+        ];
+        let factions = vec![fac("eld", "aeldari")];
+        let cfg = HiddenRoutesConfig {
+            kind: RouteType::Webway,
+            endpoints: systems.iter().map(|s| s.id.clone()).collect(),
+            k_nearest: 1,
+            exclude_blackout_regions: true,
+        };
+        let routes = configured_hidden_routes(&systems, &factions, &[], &[], &cfg);
+        assert_eq!(routes.len(), 2);
+        assert!(routes.iter().all(|r| r.route_type == RouteType::Webway));
+    }
+
+    #[test]
+    fn configured_hidden_routes_exclude_blackout_endpoints() {
+        let systems = vec![
+            sys("sys-0001", (0, 0), ("eld", 0.0, 0.0)),
+            sys("sys-0002", (1, 0), ("eld", 0.0, 0.0)),
+        ];
+        let factions = vec![fac("eld", "aeldari")];
+        let regions = vec![crate::regions::WarpRegion {
+            id: "blackout".into(),
+            name: "Blackout".into(),
+            kind: crate::regions::RegionConditionKind::Blackout,
+            hexes: vec![HexCoord { q: 1, r: 0 }],
+            centre: HexCoord { q: 1, r: 0 },
+        }];
+        let cfg = HiddenRoutesConfig {
+            kind: RouteType::Webway,
+            endpoints: systems.iter().map(|s| s.id.clone()).collect(),
+            k_nearest: 1,
+            exclude_blackout_regions: true,
+        };
+        let routes = configured_hidden_routes(&systems, &factions, &regions, &[], &cfg);
+        assert!(routes.is_empty());
     }
 }

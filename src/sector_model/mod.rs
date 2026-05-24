@@ -353,7 +353,7 @@ impl GeneratedWorld {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GeneratedRoute {
     pub id: RouteId,
     pub from_system_id: SystemId,

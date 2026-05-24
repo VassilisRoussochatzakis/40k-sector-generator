@@ -75,6 +75,10 @@ pub enum BuilderCommand {
         id: RouteId,
         before: Option<Box<GeneratedRoute>>,
     },
+    ReplaceRoutes {
+        before: Vec<GeneratedRoute>,
+        after: Vec<GeneratedRoute>,
+    },
     AddFaction {
         id: FactionId,
         name: String,
@@ -169,6 +173,15 @@ impl BuilderCommand {
                 result_id,
             } => {
                 let id = sector.add_route(from, to, *route_type, *stability)?;
+                let systems_by_id: std::collections::BTreeMap<&str, &GeneratedSystem> =
+                    sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
+                if let Some(route) = sector.routes.iter_mut().find(|r| r.id == id) {
+                    route.controls = sectorforge::route_control::derive_route_controls(
+                        route,
+                        &systems_by_id,
+                        &sector.factions,
+                    );
+                }
                 *result_id = Some(id);
                 Ok(())
             }
@@ -181,6 +194,12 @@ impl BuilderCommand {
                     .ok_or_else(|| MutationError::RouteNotFound(id.to_string()))?;
                 sector.remove_route(id)?;
                 *before = Some(Box::new(r));
+                Ok(())
+            }
+            Self::ReplaceRoutes { before, after } => {
+                *before = sector.routes.clone();
+                sector.routes = after.clone();
+                sector.manifest.route_count = sector.routes.len();
                 Ok(())
             }
             Self::AddFaction { id, name, kind } => {
@@ -279,6 +298,11 @@ impl BuilderCommand {
                 }
                 Ok(())
             }
+            Self::ReplaceRoutes { before, .. } => {
+                sector.routes = before.clone();
+                sector.manifest.route_count = sector.routes.len();
+                Ok(())
+            }
             Self::AddFaction { id, .. } => sector.remove_faction(id),
             Self::RemoveFaction { before, .. } => {
                 if let Some(f) = before {
@@ -370,6 +394,35 @@ mod tests {
         cmd.revert(&mut s).unwrap();
         assert!(s.systems.iter().any(|x| x.id == a));
         assert!(!s.systems.iter().any(|x| &*x.name == "Replacement"));
+    }
+
+    #[test]
+    fn replace_routes_round_trip() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        let c = s.add_system(HexCoord { q: 2, r: 0 }, "C").unwrap();
+        s.add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let before = s.routes.clone();
+        let after = vec![GeneratedRoute {
+            id: sectorforge::ids::route_id(&b, &c),
+            from_system_id: b,
+            to_system_id: c,
+            distance: 1,
+            route_type: RouteType::ChartedPassage,
+            stability: RouteStability::Hazardous,
+            tags: vec!["bridge".into()],
+            controls: Vec::new(),
+        }];
+        let mut cmd = BuilderCommand::ReplaceRoutes {
+            before: Vec::new(),
+            after: after.clone(),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(s.routes, after);
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(s.routes, before);
     }
 
     /// R8 determinism: a fixed command sequence applied to a blank sector

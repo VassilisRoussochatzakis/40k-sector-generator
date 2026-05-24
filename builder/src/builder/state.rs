@@ -31,7 +31,7 @@ use sectorforge::config::AppConfig;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::input::ProjectInput;
 use sectorforge::invariants::check_sector;
-use sectorforge::sector_model::GeneratedSector;
+use sectorforge::sector_model::{GeneratedSector, RouteStability, RouteType};
 use sectorforge::validation::validate;
 use sectorforge::{InvariantReport, ValidationReport};
 
@@ -319,6 +319,8 @@ pub struct BuilderState {
     /// §S1: id of the system currently being dragged across the hex grid.
     /// Transient — cleared on drag-stop.
     pub drag_system: Option<SystemId>,
+    /// §R2: ADD ROUTE drag/click start endpoint.
+    pub pending_route_start: Option<SystemId>,
     /// §S1: ADD SYSTEM tool target coord awaiting a name entry. The map
     /// panel pops a small naming dialog while this is `Some`.
     pub pending_place: Option<PendingPlace>,
@@ -338,6 +340,18 @@ pub struct BuilderState {
     /// so repeated clicks on "Re-roll" yield distinct draws while staying
     /// deterministic for replay.
     pub world_reroll_counter: u64,
+    /// §R4: bulk route predicate controls.
+    pub route_bulk_filter_type: Option<RouteType>,
+    pub route_bulk_filter_stability: Option<RouteStability>,
+    pub route_bulk_filter_tag: String,
+    pub route_bulk_filter_region: Option<String>,
+    pub route_bulk_set_type: RouteType,
+    pub route_bulk_set_stability: RouteStability,
+    /// §R6: explicit hidden-route builder controls.
+    pub hidden_route_kind: RouteType,
+    pub hidden_route_k_nearest: usize,
+    pub hidden_route_exclude_blackout: bool,
+    pub hidden_route_endpoints: BTreeSet<SystemId>,
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -440,12 +454,23 @@ impl BuilderState {
             partial_regen_rect: None,
             selected_systems: BTreeSet::new(),
             drag_system: None,
+            pending_route_start: None,
             pending_place: None,
             pending_rename: None,
             pending_collision: None,
             rect_select: None,
             hex_size: 28.0,
             world_reroll_counter: 0,
+            route_bulk_filter_type: None,
+            route_bulk_filter_stability: None,
+            route_bulk_filter_tag: String::new(),
+            route_bulk_filter_region: None,
+            route_bulk_set_type: RouteType::ChartedPassage,
+            route_bulk_set_stability: RouteStability::Hazardous,
+            hidden_route_kind: RouteType::Webway,
+            hidden_route_k_nearest: sectorforge::hidden_routes::DEFAULT_HIDDEN_K_NEAREST,
+            hidden_route_exclude_blackout: true,
+            hidden_route_endpoints: BTreeSet::new(),
         }
     }
 

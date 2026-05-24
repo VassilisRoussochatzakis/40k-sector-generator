@@ -298,6 +298,28 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
                     });
                 }
             }
+            if let Some(s) = &m.when.government {
+                if taxonomy::parse_government_variant(s).is_none() {
+                    warnings.push(ValidationIssue {
+                        code: "ROUTE_UNKNOWN_GOVERNMENT".to_string(),
+                        message: format!("route condition references unknown government '{s}'"),
+                        path: Some(format!("routes.modifiers[{i}].when.government")),
+                        row: None,
+                        severity: Severity::Warning,
+                    });
+                }
+            }
+            if let Some(s) = &m.when.route_type {
+                if crate::sector_model::RouteType::from_key(&taxonomy::to_snake_case(s)).is_none() {
+                    warnings.push(ValidationIssue {
+                        code: "ROUTE_UNKNOWN_ROUTE_TYPE".to_string(),
+                        message: format!("route condition references unknown route type '{s}'"),
+                        path: Some(format!("routes.modifiers[{i}].when.route_type")),
+                        row: None,
+                        severity: Severity::Warning,
+                    });
+                }
+            }
         }
     }
 

@@ -1168,10 +1168,14 @@ multiplier = 0.25
 [[routes.modifiers]]
 when = { world_type = "ForgeWorld" }
 multiplier = 1.5
+
+[[routes.modifiers]]
+when = { route_type = "charted_passage" }
+multiplier = 0.8
 ```
 
-`when` accepts any combination of `notable_feature`, `world_type`, and
-`government` keys. Routes connect systems whose hex distance ≤ `max_distance`.
+`when` accepts any combination of `notable_feature`, `world_type`,
+`government`, and `route_type` keys. Routes connect systems whose hex distance ≤ `max_distance`.
 Weights factor in distance falloff, then the standard
 `prefer_populated_worlds` / `prefer_trade_hubs` / `avoid_warp_phenomena`
 bonuses, then your custom modifiers. With `ensure_connected_graph = true`,
@@ -1626,7 +1630,7 @@ foundation layer lives in:
 | [src/sector_model/mod.rs](src/sector_model/mod.rs) | `GeneratedSector::empty`, `GeneratedSystem::new_at`, `GeneratedWorld::new` constructors used by the builder when the user creates entities from scratch. |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, `add_faction`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
 | [builder/src/builder/state.rs](builder/src/builder/state.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + dirty flag + validation/invariant reports + pending jobs. |
-| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The Phase A surface covers system/world/route/faction add/remove/move/rename; overlay commands land with their panels in later phases. |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits; overlay commands land with their panels in later phases. |
 | [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
@@ -1749,8 +1753,8 @@ that adopts `BuilderState` as root state.
 | Piece | Where it lives |
 |---|---|
 | N1 tab enum | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1); SYSTEM hosts the §S2..§S6 inspector ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)); remaining tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs) (Phase B: world/factions/control/routes; Phase C: regions/subsectors/economy/relations/history; Phase D: personae/hooks/sites/missions/prose/interestingness/briefing; Phase E: analytics/search/diff/segmentum/export). |
-| N3 map toolbox | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the §S1 click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems}`. |
+| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
+| N3 map toolbox | [builder/src/builder/state.rs](builder/src/builder/state.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems, AddRoute}`. |
 | N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
 N5 (Ctrl-K command palette) is intentionally deferred to Phase F.
@@ -1825,6 +1829,26 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/
 Tests:
 
 * `coupling_flags_dead_world_with_population`, `coupling_flags_uninhabited_with_government`, `coupling_silent_on_normal_world`, `pinned_world_refuses_regen`, `enum_picker_variants_match_worlds_authoritative_set` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs).
+
+#### R1–R7 route panel (DONE)
+
+Phase B §9. The ROUTES tab in [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs) is the per-route editor: route picker, full `GeneratedRoute` inspector, bulk operations, route-rules table editor, explicit hidden-route builder, and ensure-connected bridge connector. The MAP tab's ADD ROUTE tool in [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) supports click-click and drag endpoint creation.
+
+| Piece | Where it lives |
+|---|---|
+| R1 inspector | [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs) — edits id, from/to endpoints, `RouteType`, `RouteStability`, distance, tags, and per-faction `RouteControl` rows. Endpoint changes canonicalize id + distance and re-derive controls. |
+| R2 add-route tool | [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) — `MapTool::AddRoute` stores `BuilderState::pending_route_start`, draws the pending line, then runs `BuilderCommand::AddRoute`; default type is `ChartedPassage`, default stability is `Stable`. |
+| R3 manual distance | The inspector shows computed `hex_distance`, allows manual override, and warns that `ROUTE_DISTANCE_MISMATCH` will fire until the value equals auto distance. |
+| R4 bulk ops | Predicate filters: route type, stability, tag substring, and region-crossing hex-line. Actions set matching type or stability. |
+| R5 route rules | `RouteRules` rows edit `notable_feature`, `world_type`, `government`, `route_type`, and multiplier. Edits mark `data/routes/route_rules.toml` dirty and schedule `PreviewState` so route weights recompute live. Core model change: [src/routes.rs](src/routes.rs) `RouteCondition.route_type`; [src/generation.rs](src/generation.rs) applies government + route-type modifiers. |
+| R6 hidden routes | [src/hidden_routes.rs](src/hidden_routes.rs) `HiddenRoutesConfig` plus `configured_hidden_routes` build explicit Webway / BlackShip / SmugglingLane edges from selected endpoints, K-nearest count, and Blackout-region exclusion. |
+| R7 ensure connected | [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs) `ensure_connected_routes` adds shortest `bridge` routes until the route graph has one component. The toggle re-runs after route edits/removals; "Run connector now" is also exposed. |
+
+Tests:
+
+* `ensure_connected_adds_bridge_between_components`, `route_region_predicate_uses_hex_line` in [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs).
+* `replace_routes_round_trip` in [builder/src/builder/command.rs](builder/src/builder/command.rs).
+* `configured_hidden_routes_use_explicit_endpoints_and_k`, `configured_hidden_routes_exclude_blackout_endpoints` in [src/hidden_routes.rs](src/hidden_routes.rs).
 
 ---
 
@@ -2122,7 +2146,7 @@ across runs, so a regression check is a diff away.
 | [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
 | [src/names.rs](src/names.rs) | Name table types |
 | [src/factions.rs](src/factions.rs) | Faction file types |
-| [src/routes.rs](src/routes.rs) | Route-rules file types |
+| [src/routes.rs](src/routes.rs) | Route-rules file types, including modifier conditions for notable feature, world type, government, and route type |
 | [src/rng.rs](src/rng.rs) | Stage-based deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
 | [src/ids.rs](src/ids.rs) | Typed-id newtypes (`SystemId` / `WorldId` / `FactionId` / `RouteId`, `#[serde(transparent)]`) + canonical id-string constructors |
@@ -2132,7 +2156,7 @@ across runs, so a regression check is a diff away.
 | [src/importance.rs](src/importance.rs) | §10.3 / §15: `display_importance` per faction + kind-group aggregation into legend buckets. Shared `DEFAULT_MINOR_FRACTION` / `DEFAULT_DISPLAY_CAP` consumed by the PNG legend, GUI sector overview, and Markdown renderer so all three stay in sync |
 | [src/stability.rs](src/stability.rs) | §11.1: static `StabilityState` per world + per system (public_order / corruption / fear / rebellion / xenos_threat / warp_instability / famine). Pure derivation from tags, world type, factions present, and existing control summary — no sim ticks |
 | [src/route_control.rs](src/route_control.rs) | §3: per-route per-faction `RouteControl` (patrol / toll / interdiction / piracy / secrecy / confidence). Derived from endpoint-system faction presence + faction kind + endpoint tags (`quarantined`, `war_zone`). Stored on `GeneratedRoute.controls` (`#[serde(default)]`). Surfaced in the Markdown renderer, sector PNG (per-route midpoint glyph + `ROUTE CONTROL` legend), GUI sector view (per-route midpoint glyph via `palette::draw_route_control_glyph`), and GUI `system_summary` (`ROUTES` block keyed off the selected system) |
-| [src/hidden_routes.rs](src/hidden_routes.rs) | §3 NEXT: append `Webway` / `BlackShip` / `SmugglingLane` route variants between same-kind faction endpoints, ignoring the warp-distance cap. Each endpoint connects only to its `HIDDEN_K_NEAREST` closest peers (dedup'd) so the layer scales O(N) instead of O(N²) |
+| [src/hidden_routes.rs](src/hidden_routes.rs) | §3 NEXT: append `Webway` / `BlackShip` / `SmugglingLane` route variants between same-kind faction endpoints, ignoring the warp-distance cap. Each endpoint connects only to its `HIDDEN_K_NEAREST` closest peers (dedup'd) so the layer scales O(N) instead of O(N²). Builder explicit-mode uses `HiddenRoutesConfig` + `configured_hidden_routes` for chosen endpoints / K-nearest / Blackout exclusion |
 | [src/orbital_assets.rs](src/orbital_assets.rs) | §2 NEXT: discrete `OrbitalAsset` model (Station / Shipyard / DefensePlatform / BlockadeFleet) per system + `BlockadeReport` |
 | [src/surface_region.rs](src/surface_region.rs) | §1 NEXT: per-world named `SurfaceRegion`s (Capital / Hive / Underhive / ForgeComplex / ShrineContinent / etc.) with per-region dominant faction |
 | [src/conflict.rs](src/conflict.rs) | §5 NEXT: per-world + per-system `ConflictState` (momentum / intensity / mobilisation / attacker / defender / visible_controller) and a tick loop via `advance_sector`. Hysteresis (§11.3) lives in `advance_one` |
@@ -2157,7 +2181,7 @@ across runs, so a regression check is a diff away.
 | [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |
 | [builder/src/builder/mod.rs](builder/src/builder/mod.rs) | Builder Phase A entry — re-exports `BuilderState`, `BuilderCommand`, `BuilderIndex`, `DataCatalogs`, `DerivationCache`, `Snapshot`, `BuilderError`, session save/load |
 | [builder/src/builder/state.rs](builder/src/builder/state.rs) | `BuilderState` (single working sector + log + index + caches + reports), `ModalKind` |
-| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` apply/revert pattern over `GeneratedSector` mutations |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` apply/revert pattern over `GeneratedSector` mutations, including `ReplaceRoutes` for route-panel batch edits |
 | [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table refreshed after every command |
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory TOML mirrors (worlds/factions/relations/route_rules/regions/economy/history/names) |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache for derived overlays |

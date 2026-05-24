@@ -58,4 +58,31 @@ pub struct RouteCondition {
     pub world_type: Option<String>,
     #[serde(default)]
     pub government: Option<String>,
+    #[serde(default)]
+    pub route_type: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn route_condition_accepts_route_type_key() {
+        let text = r#"
+            [routes]
+            default_weight = 1.0
+            max_distance = 4
+
+            [[routes.modifiers]]
+            when = { route_type = "charted_passage", government = "MilitaryGovernor" }
+            multiplier = 0.5
+        "#;
+        let file: RouteRulesFile = toml::from_str(text).unwrap();
+        let modifier = &file.routes.modifiers[0];
+        assert_eq!(modifier.when.route_type.as_deref(), Some("charted_passage"));
+        assert_eq!(
+            modifier.when.government.as_deref(),
+            Some("MilitaryGovernor")
+        );
+    }
 }

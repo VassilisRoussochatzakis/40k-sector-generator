@@ -1647,6 +1647,17 @@ intentional visual change with:
 UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet
 ```
 
+The lint wall is enforced in [`gui/clippy.toml`](gui/clippy.toml) and
+[`builder/clippy.toml`](builder/clippy.toml). Both app crates deny
+`egui::Painter`, raw `egui` shape/mesh primitives, and `Ui::painter*` access,
+so new pixel-producing code must be added to `gui-core` as a shared widget or
+paint helper. Check the wall with:
+
+```bash
+cargo clippy -p sectorforge-gui --quiet
+cargo clippy -p sectorforge-builder --quiet
+```
+
 The editor's own MAP surface in
 [gui/src/editor/map_panel.rs](gui/src/editor/map_panel.rs) now delegates every
 pixel-producing call to the shared

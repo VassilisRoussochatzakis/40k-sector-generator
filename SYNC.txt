@@ -74,14 +74,16 @@ Architectural wall:
 4. **Add snapshot tests** in `gui-core` (start with `egui_kittest`; fallback path documented above). Commit goldens. Wire into `cargo test`.
    - **DONE (2026-05-24).** Added `gui-core/tests/map_snapshots.rs` plus committed goldens under `gui-core/tests/goldens/map/`. Chose the documented fallback instead of `egui_kittest`: the test runs the real shared `SectorView` headlessly through `egui::Context`, tessellates the resulting painter shapes, rasterizes mesh triangles into an `image::RgbaImage`, hashes raw RGBA with `blake3`, and compares against committed `.png` + `.blake3` pairs. Coverage cases: `hex_tile`, `route_segments` (all canonical route types plus route-control glyphs), `system_glyphs` (star, special, black-hole, warp-anomaly, station + selection/pin/path rings), `region_overlays_labels` (all `RegionConditionKind` colours + label chips), and `full_fixture_sector` (mixed routes, regions, subsectors, capital marker, rect-select, selected route/system, path overlays). Normal `cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet` fails on drift and writes current PNGs to `target/map_snapshots/current/`; intentional visual changes are blessed with `UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet`. GUIDE.md updated with the workflow.
 5. **Lock with lint.** Add `disallowed_types` clippy entry forbidding `egui::Painter` (and any other render primitive) outside `gui-core`.
+   - **DONE (2026-05-24).** Added package-local lint configs in `gui/clippy.toml` and `builder/clippy.toml`, with `gui/Cargo.toml` and `builder/Cargo.toml` denying `clippy::disallowed_types` + `clippy::disallowed_methods`. The app crates now reject `egui::Painter`, raw `egui` shape/mesh primitives, and `Ui::painter` / `Ui::painter_at`; pixel-producing code must enter through `gui-core`. Removed the remaining app-side painter calls by promoting shared paint helpers into `gui-core/src/palette.rs`: faction chips, faction-style preview, fraction bar, clipped rect/text/circle helpers, and clipped route-line dispatch. Updated call-sites in `gui/src/editor/map_panel.rs`, `gui/src/editor/factions_panel.rs`, `gui/src/factions_overview.rs`, `gui/src/dashboard.rs`, `gui/src/segmentum_view.rs`, and `builder/src/builder/panels/factions.rs`. Validation: `cargo clippy -p sectorforge-gui --quiet`, `cargo clippy -p sectorforge-builder --quiet`, `cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet`, and `cargo test -p sectorforge-gui --quiet`.
 6. **Update `GUIDE.md`** per project rule: document the boundary and the snapshot-test workflow.
+   - **DONE (2026-05-24).** `GUIDE.md` now documents the `gui-core` paint boundary, the snapshot workflow, and the Clippy lint wall commands for both app crates.
 
 ## Why this beats "just remember to update both"
 - Steps 1–4 give a *substrate* — shared widget, shared theme, shared tokens.
 - Steps 5–6 give a *ratchet* — lint wall + snapshot tests catch drift in CI, not at review time.
 - Templates alone (e.g., a written checklist) decay. The compiler + golden tests do not.
 
-## Open questions to decide before step 1
-- `egui_kittest` vs. handrolled image+blake3 for snapshots? (kittest is the egui-native answer; handrolled is dependency-light.)
-- Should `MapTheme` ship as a hardcoded default + optional TOML override, or always load from a file?
-- Builder selection/ghost overlays: keep as closures passed into `MapView`, or expose as a dedicated `OverlayLayer` trait?
+## Resolved decisions
+- Snapshot tests use the documented fallback path: headless `egui::Context` + `image` rasterization + `blake3` goldens.
+- `MapTheme` ships as a hardcoded default today; optional TOML override remains a future extension.
+- Builder/editor overlays stay as shared `SectorView` inputs and `gui-core` paint helpers until a dedicated overlay trait becomes necessary.

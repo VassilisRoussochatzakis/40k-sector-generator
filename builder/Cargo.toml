@@ -20,6 +20,10 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 include_dir = "0.7.4"
 rand = "0.8"
 
+[lints.clippy]
+disallowed_types = "deny"
+disallowed_methods = "deny"
+
 [[bin]]
 name = "sectorforge-builder"
 path = "src/main.rs"

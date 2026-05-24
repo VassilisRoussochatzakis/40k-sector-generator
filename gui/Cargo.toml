@@ -21,6 +21,10 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 [dev-dependencies]
 tempfile = "3"
 
+[lints.clippy]
+disallowed_types = "deny"
+disallowed_methods = "deny"
+
 [[bin]]
 name = "sectorforge-gui"
 path = "src/main.rs"

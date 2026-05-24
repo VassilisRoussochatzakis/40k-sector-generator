@@ -3,7 +3,7 @@
 //! Ported from `bitmap.rs` / `system_map.rs` so the GUI matches the PNG export
 //! aesthetic. Keep all colors here so future restyling is one-file.
 
-use egui::{Color32, Pos2, Stroke, Vec2};
+use egui::{Align2, Color32, FontId, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::sector_model::{GeneratedFaction, GeneratedRoute, RoutePattern, RouteStability};
 
@@ -704,6 +704,139 @@ pub fn faction_style(kind: &str, id: &str, disposition: &str) -> FactionStyle {
         glyph: rgb.glyph,
         border: rgb.border,
     }
+}
+
+#[must_use]
+pub fn faction_style_from_rgb(rgb: sectorforge::faction_style::FactionStyleRgb) -> FactionStyle {
+    FactionStyle {
+        fill: from_rgb(rgb.fill),
+        accent: from_rgb(rgb.accent),
+        glyph: rgb.glyph,
+        border: rgb.border,
+    }
+}
+
+pub fn draw_faction_chip(ui: &mut Ui, style: FactionStyle) {
+    draw_faction_chip_sized(ui, style, Vec2::new(20.0, 20.0), 3.0, 13.0);
+}
+
+pub fn draw_faction_chip_sized(
+    ui: &mut Ui,
+    style: FactionStyle,
+    size: Vec2,
+    rounding: f32,
+    font_size: f32,
+) {
+    let (rect, _resp) = ui.allocate_exact_size(size, Sense::hover());
+    let painter = ui.painter_at(rect);
+    let bg = match style.border {
+        FactionBorder::Dotted => {
+            Color32::from_rgba_unmultiplied(style.fill.r(), style.fill.g(), style.fill.b(), 150)
+        }
+        _ => style.fill,
+    };
+    painter.rect_filled(rect, rounding, bg);
+    match style.border {
+        FactionBorder::Clean => {
+            painter.rect_stroke(rect, rounding, Stroke::new(1.2, style.accent));
+        }
+        FactionBorder::Jagged => {
+            painter.rect_stroke(rect, rounding, Stroke::new(2.4, style.accent));
+        }
+        FactionBorder::Dotted => {
+            painter.rect_stroke(rect, rounding, Stroke::new(1.0, PANEL_BG));
+        }
+        FactionBorder::Thin => {
+            painter.rect_stroke(rect, rounding, Stroke::new(0.8, style.accent));
+        }
+    }
+    painter.text(
+        rect.center(),
+        Align2::CENTER_CENTER,
+        style.glyph.to_string(),
+        FontId::monospace(font_size),
+        contrast_text(style.fill),
+    );
+}
+
+pub fn draw_faction_style_rgb_preview(
+    ui: &mut Ui,
+    style: sectorforge::faction_style::FactionStyleRgb,
+) {
+    let (rect, _resp) = ui.allocate_exact_size(Vec2::new(96.0, 32.0), Sense::hover());
+    let painter = ui.painter_at(rect);
+    let fill = from_rgb(style.fill);
+    let accent = from_rgb(style.accent);
+    painter.rect_filled(rect, 4.0, fill);
+    painter.rect_stroke(rect, 4.0, Stroke::new(2.0, accent));
+    painter.text(
+        rect.center(),
+        Align2::CENTER_CENTER,
+        style.glyph.to_string(),
+        FontId::monospace(16.0),
+        Color32::BLACK,
+    );
+}
+
+pub fn draw_fraction_bar(
+    ui: &mut Ui,
+    size: Vec2,
+    fraction: f32,
+    fill: Color32,
+    bg: Color32,
+    outline: Stroke,
+    rounding: f32,
+) {
+    let (rect, _resp) = ui.allocate_exact_size(size, Sense::hover());
+    let painter = ui.painter_at(rect);
+    painter.rect_filled(rect, rounding, bg);
+    let fill_width = (fraction.clamp(0.0, 1.0) * size.x).max(1.0);
+    let fill_rect = Rect::from_min_size(rect.min, Vec2::new(fill_width, size.y));
+    painter.rect_filled(fill_rect, rounding, fill);
+    painter.rect_stroke(rect, rounding, outline);
+}
+
+pub fn paint_rect_filled(ui: &Ui, clip_rect: Rect, rect: Rect, rounding: f32, fill: Color32) {
+    ui.painter_at(clip_rect).rect_filled(rect, rounding, fill);
+}
+
+pub fn paint_rect_stroke(ui: &Ui, clip_rect: Rect, rect: Rect, rounding: f32, stroke: Stroke) {
+    ui.painter_at(clip_rect).rect_stroke(rect, rounding, stroke);
+}
+
+pub fn paint_text(
+    ui: &Ui,
+    clip_rect: Rect,
+    pos: Pos2,
+    align: Align2,
+    text: impl ToString,
+    font_id: FontId,
+    color: Color32,
+) {
+    ui.painter_at(clip_rect)
+        .text(pos, align, text, font_id, color);
+}
+
+pub fn paint_circle_filled(ui: &Ui, clip_rect: Rect, center: Pos2, radius: f32, fill: Color32) {
+    ui.painter_at(clip_rect).circle_filled(center, radius, fill);
+}
+
+pub fn paint_circle_stroke(ui: &Ui, clip_rect: Rect, center: Pos2, radius: f32, stroke: Stroke) {
+    ui.painter_at(clip_rect)
+        .circle_stroke(center, radius, stroke);
+}
+
+pub fn draw_route_line_clipped(
+    ui: &Ui,
+    clip_rect: Rect,
+    a: Pos2,
+    b: Pos2,
+    thickness: f32,
+    color: Color32,
+    pattern: RoutePattern,
+) {
+    let painter = ui.painter_at(clip_rect);
+    draw_route_line(&painter, a, b, thickness, color, pattern);
 }
 
 pub const STAR_LEGEND: &[(&str, &str)] = &[

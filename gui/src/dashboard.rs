@@ -7,7 +7,7 @@ use egui::{Color32, RichText, Stroke, Ui};
 use sectorforge::analytics::{self, AnalyzeConfig, FlagSeverity, SectorAnalysis};
 use sectorforge::sector_model::GeneratedSector;
 
-use super::palette::{faction_style_by_id, TEXT, TEXT_DIM};
+use super::palette::{self, faction_style_by_id, TEXT, TEXT_DIM};
 
 #[derive(Default)]
 pub struct DashboardState {
@@ -257,13 +257,15 @@ fn share_bar(
     let bar_w = 220.0_f32;
     let bar_h = 14.0_f32;
     ui.horizontal(|ui| {
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(bar_w, bar_h), egui::Sense::hover());
-        let painter = ui.painter();
-        painter.rect_filled(rect, 1.0, Color32::from_gray(35));
-        let fill_w = (share.clamp(0.0, 1.0) * bar_w).max(1.0);
-        let fill_rect = egui::Rect::from_min_size(rect.min, egui::vec2(fill_w, bar_h));
-        painter.rect_filled(fill_rect, 1.0, color);
-        painter.rect_stroke(rect, 1.0, Stroke::new(1.0, Color32::from_gray(70)));
+        palette::draw_fraction_bar(
+            ui,
+            egui::vec2(bar_w, bar_h),
+            share,
+            color,
+            Color32::from_gray(35),
+            Stroke::new(1.0, Color32::from_gray(70)),
+            1.0,
+        );
         ui.label(
             RichText::new(format!("{:>5.1}%  {}", share * 100.0, name))
                 .color(TEXT)

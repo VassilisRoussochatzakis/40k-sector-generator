@@ -251,8 +251,7 @@ fn super_map(
         rows * cell_h + (rows - 1.0) * gap,
     );
     let (rect, response) = ui.allocate_exact_size(total, Sense::click());
-    let painter = ui.painter_at(rect);
-    painter.rect_filled(rect, 0.0, palette::BG);
+    palette::paint_rect_filled(ui, rect, rect, 0.0, palette::BG);
 
     let mut child_rects: BTreeMap<String, Rect> = BTreeMap::new();
     let mut centers: HashMap<(String, sectorforge::ids::SystemId), Pos2> = HashMap::new();
@@ -266,7 +265,9 @@ fn super_map(
         child_rects.insert(meta.id.clone(), child_rect);
 
         let active = active_child_id == Some(meta.id.as_str());
-        painter.rect_filled(
+        palette::paint_rect_filled(
+            ui,
+            rect,
             child_rect,
             2.0,
             if active {
@@ -275,7 +276,9 @@ fn super_map(
                 palette::PANEL_BG
             },
         );
-        painter.rect_stroke(
+        palette::paint_rect_stroke(
+            ui,
+            rect,
             child_rect,
             2.0,
             Stroke::new(
@@ -287,14 +290,18 @@ fn super_map(
                 },
             ),
         );
-        painter.text(
+        palette::paint_text(
+            ui,
+            rect,
             child_rect.left_top() + Vec2::new(10.0, 8.0),
             Align2::LEFT_TOP,
             meta.id.to_uppercase(),
             FontId::monospace(13.0),
             TEXT,
         );
-        painter.text(
+        palette::paint_text(
+            ui,
+            rect,
             child_rect.left_top() + Vec2::new(10.0, 24.0),
             Align2::LEFT_TOP,
             format!("{} sys / {} routes", meta.system_count, meta.route_count),
@@ -313,8 +320,9 @@ fn super_map(
                 let a = centers.get(&(meta.id.clone(), route.from_system_id.clone()));
                 let b = centers.get(&(meta.id.clone(), route.to_system_id.clone()));
                 if let (Some(&a), Some(&b)) = (a, b) {
-                    palette::draw_route_line(
-                        &painter,
+                    palette::draw_route_line_clipped(
+                        ui,
+                        rect,
                         a,
                         b,
                         1.0,
@@ -330,8 +338,14 @@ fn super_map(
                     } else {
                         Color32::from_rgb(140, 140, 150)
                     };
-                    painter.circle_filled(p, 3.2, fill);
-                    painter.circle_stroke(p, 3.2, Stroke::new(0.8, Color32::BLACK));
+                    palette::paint_circle_filled(ui, rect, p, 3.2, fill);
+                    palette::paint_circle_stroke(
+                        ui,
+                        rect,
+                        p,
+                        3.2,
+                        Stroke::new(0.8, Color32::BLACK),
+                    );
                 }
             }
         }
@@ -349,8 +363,9 @@ fn super_map(
         } else {
             stability_color(link.stability)
         };
-        palette::draw_route_line(
-            &painter,
+        palette::draw_route_line_clipped(
+            ui,
+            rect,
             a,
             b,
             if selected { 3.2 } else { 1.8 },
@@ -364,7 +379,9 @@ fn super_map(
             ),
         );
         let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
-        painter.text(
+        palette::paint_text(
+            ui,
+            rect,
             mid,
             Align2::CENTER_CENTER,
             &link.id,

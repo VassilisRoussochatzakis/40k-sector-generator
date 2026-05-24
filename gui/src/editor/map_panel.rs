@@ -53,7 +53,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     };
 
     {
-        let sector = state.sector.as_ref().expect("sector presence checked above");
+        let sector = state
+            .sector
+            .as_ref()
+            .expect("sector presence checked above");
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             SectorView {
                 sector,
@@ -91,7 +94,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     let mut dirty = false;
 
     {
-        let sector = state.sector.as_ref().expect("sector presence checked above");
+        let sector = state
+            .sector
+            .as_ref()
+            .expect("sector presence checked above");
 
         if response.drag_started() && state.tool == SectorEditTool::Select {
             if let Some(pos) = pointer {
@@ -246,10 +252,8 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
                         ) {
                             route.distance = sectorforge::sector_model::hex_distance(a, b);
                         }
-                        route.id = sectorforge::ids::route_id(
-                            &route.from_system_id,
-                            &route.to_system_id,
-                        );
+                        route.id =
+                            sectorforge::ids::route_id(&route.from_system_id, &route.to_system_id);
                     }
                 }
                 state.route_pick = None;
@@ -278,9 +282,14 @@ fn draw_toolbox(ui: &mut Ui, state: &mut EditorState) {
         Pos2::new(rect.min.x + 10.0, rect.min.y + 10.0),
         Vec2::new(140.0, 130.0),
     );
-    let painter = ui.painter();
-    painter.rect_filled(toolbox_rect, 4.0, palette::PANEL_BG);
-    painter.rect_stroke(toolbox_rect, 4.0, Stroke::new(1.0, HEX_OUTLINE));
+    palette::paint_rect_filled(ui, toolbox_rect, toolbox_rect, 4.0, palette::PANEL_BG);
+    palette::paint_rect_stroke(
+        ui,
+        toolbox_rect,
+        toolbox_rect,
+        4.0,
+        Stroke::new(1.0, HEX_OUTLINE),
+    );
 
     ui.put(toolbox_rect, |ui: &mut Ui| {
         ui.vertical_centered(|ui| {

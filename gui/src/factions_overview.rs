@@ -20,16 +20,14 @@ pub enum FactionDesignerError {
     Config(String),
 }
 
-use egui::{Color32, ComboBox, DragValue, RichText, Sense, Stroke, Ui};
+use egui::{Color32, ComboBox, DragValue, RichText, Ui};
 use rfd::FileDialog;
 
 use sectorforge::factions::{FactionDef, FactionsFile};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sector_model::{GeneratedFaction, GeneratedSector};
 
-use super::palette::{
-    contrast_text, faction_style, FactionBorder, FactionStyle, PANEL_BG, TEXT, TEXT_DIM,
-};
+use super::palette::{draw_faction_chip, faction_style, TEXT, TEXT_DIM};
 
 #[derive(Debug, Clone, Default)]
 struct PresenceStats {
@@ -555,7 +553,7 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
     let style = faction_style(&fac.kind, fac.id.as_str(), &fac.disposition);
     let observed = observed.cloned().unwrap_or_default();
     ui.horizontal(|ui| {
-        faction_chip(ui, style);
+        draw_faction_chip(ui, style);
         fixed_text(ui, 180.0, &fac.name.to_uppercase(), TEXT);
         fixed_text(ui, 150.0, fac.id.as_str(), TEXT_DIM);
         fixed_text(ui, 120.0, &fac.kind, TEXT_DIM);
@@ -608,7 +606,7 @@ fn show_edit_row(
     let style = faction_style(&fac.kind, fac.id.as_str(), &fac.disposition);
 
     ui.horizontal(|ui| {
-        faction_chip(ui, style);
+        draw_faction_chip(ui, style);
         fixed_text(ui, 180.0, &fac.name.to_uppercase(), TEXT);
         fixed_text(ui, 150.0, fac.id.as_str(), TEXT_DIM);
         fixed_text(ui, 120.0, &fac.kind, TEXT_DIM);
@@ -824,7 +822,7 @@ fn show_designer_rows(ui: &mut Ui, state: &mut FactionDesignerState) {
     for (i, row) in state.rows.iter_mut().enumerate() {
         let style = faction_style(&row.kind, &row.id, &row.disposition);
         ui.horizontal(|ui| {
-            faction_chip(ui, style);
+            draw_faction_chip(ui, style);
             fixed_text(ui, 40.0, &(i + 1).to_string(), TEXT_DIM);
             let _ = text_edit(ui, &mut row.id, 170.0);
             let _ = text_edit(ui, &mut row.name, 220.0);
@@ -1299,43 +1297,6 @@ where
         *value = T::from(buf);
     }
     changed
-}
-
-fn faction_chip(ui: &mut Ui, style: FactionStyle) {
-    let size = egui::vec2(20.0, 20.0);
-    let (rect, _resp) = ui.allocate_exact_size(size, Sense::hover());
-    let painter = ui.painter_at(rect);
-    let bg = match style.border {
-        FactionBorder::Dotted => egui::Color32::from_rgba_unmultiplied(
-            style.fill.r(),
-            style.fill.g(),
-            style.fill.b(),
-            150,
-        ),
-        _ => style.fill,
-    };
-    painter.rect_filled(rect, 3.0, bg);
-    match style.border {
-        FactionBorder::Clean => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(1.2, style.accent));
-        }
-        FactionBorder::Jagged => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(2.4, style.accent));
-        }
-        FactionBorder::Dotted => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(1.0, PANEL_BG));
-        }
-        FactionBorder::Thin => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(0.8, style.accent));
-        }
-    }
-    painter.text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        style.glyph.to_string(),
-        egui::FontId::monospace(13.0),
-        contrast_text(style.fill),
-    );
 }
 
 #[cfg(test)]

@@ -4,13 +4,13 @@
 
 use std::collections::BTreeSet;
 
-use egui::{Color32, RichText, Sense, Stroke, Ui};
+use egui::{Color32, RichText, Ui};
 
 use super::state::{empty_faction, EditorState, FactionSort};
 use super::ui_helpers::{
     combo_kv_id, combo_str_id, dim, label, mono, section, text_field, text_field_id,
 };
-use crate::palette::{contrast_text, faction_style, FactionBorder, PANEL_BG};
+use crate::palette::{draw_faction_chip, faction_style};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 
 pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
@@ -157,7 +157,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
 
         // Header row: chip + name + power + pin + delete.
         ui.horizontal(|ui| {
-            faction_chip(ui, style);
+            draw_faction_chip(ui, style);
             ui.label(
                 RichText::new(fac.name.to_uppercase())
                     .font(mono(13.0))
@@ -334,43 +334,4 @@ fn filter_combo<'a, I: IntoIterator<Item = &'a String>>(
 
 fn palette_dim() -> Color32 {
     Color32::from_rgb(150, 145, 165)
-}
-
-/// Small filled square with the faction glyph, sized to the chip font.
-/// Outline reflects the disposition-driven [`FactionBorder`].
-fn faction_chip(ui: &mut Ui, style: crate::palette::FactionStyle) {
-    let size = egui::vec2(20.0, 20.0);
-    let (rect, _resp) = ui.allocate_exact_size(size, Sense::hover());
-    let painter = ui.painter_at(rect);
-    let bg = match style.border {
-        FactionBorder::Dotted => egui::Color32::from_rgba_unmultiplied(
-            style.fill.r(),
-            style.fill.g(),
-            style.fill.b(),
-            150,
-        ),
-        _ => style.fill,
-    };
-    painter.rect_filled(rect, 3.0, bg);
-    match style.border {
-        FactionBorder::Clean => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(1.2, style.accent));
-        }
-        FactionBorder::Jagged => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(2.4, style.accent));
-        }
-        FactionBorder::Dotted => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(1.0, PANEL_BG));
-        }
-        FactionBorder::Thin => {
-            painter.rect_stroke(rect, 3.0, Stroke::new(0.8, style.accent));
-        }
-    }
-    painter.text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        style.glyph.to_string(),
-        egui::FontId::monospace(13.0),
-        contrast_text(style.fill),
-    );
 }

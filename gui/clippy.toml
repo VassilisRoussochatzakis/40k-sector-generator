@@ -1,0 +1,11 @@
+disallowed-types = [
+  { path = "egui::Painter", reason = "sector map rendering lives in sectorforge-gui-core" },
+  { path = "egui::Shape", reason = "raw paint primitives live in sectorforge-gui-core" },
+  { path = "egui::epaint::Shape", reason = "raw paint primitives live in sectorforge-gui-core" },
+  { path = "egui::epaint::Mesh", reason = "raw paint primitives live in sectorforge-gui-core" },
+]
+
+disallowed-methods = [
+  { path = "egui::Ui::painter", reason = "route custom paint through sectorforge-gui-core helpers/widgets" },
+  { path = "egui::Ui::painter_at", reason = "route custom paint through sectorforge-gui-core helpers/widgets" },
+]

@@ -15,6 +15,7 @@ use sectorforge::faction_style::{
 use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
+use sectorforge_gui_core::palette;
 
 use crate::builder::state::{BuilderTab, ModalKind};
 use crate::builder::BuilderState;
@@ -582,19 +583,7 @@ fn pick_multi(
 
 fn show_style_preview(ui: &mut Ui, draft: &FactionDef) {
     let style = resolve_style(draft);
-    let (rect, _resp) = ui.allocate_exact_size(egui::vec2(96.0, 32.0), egui::Sense::hover());
-    let painter = ui.painter_at(rect);
-    let fill = Color32::from_rgb(style.fill.0, style.fill.1, style.fill.2);
-    let accent = Color32::from_rgb(style.accent.0, style.accent.1, style.accent.2);
-    painter.rect_filled(rect, 4.0, fill);
-    painter.rect_stroke(rect, 4.0, egui::Stroke::new(2.0, accent));
-    painter.text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        style.glyph.to_string(),
-        egui::FontId::monospace(16.0),
-        Color32::BLACK,
-    );
+    palette::draw_faction_style_rgb_preview(ui, style);
     ui.label(format!(
         "fill={} accent={} glyph={} border={:?}",
         rgb_to_hex(style.fill),

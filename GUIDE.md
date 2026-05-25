@@ -1284,7 +1284,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   and `preview_job_revision` in [gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs).
 - **Cooperative cancellation.** `generate_with_progress_and_cancel` takes a
   `should_cancel` closure that is polled at every major emit (see
-  [src/generation.rs](src/generation.rs) — the `check_cancelled!` /
+  [src/generation/mod.rs](src/generation/mod.rs) — the `check_cancelled!` /
   `emit!` macros). The GUI flips an `Arc<AtomicBool>` to abandon a stale
   preview without waiting for it to finish; the worker returns
   `SectorError::GenerationCancelled`.

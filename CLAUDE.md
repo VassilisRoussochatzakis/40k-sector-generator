@@ -21,7 +21,12 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (incl. `VARIANTS`/`display_name`) |
 | [src/worlds_toml.rs](src/worlds_toml.rs) | §45 native typed `worlds.toml` config (sole world-data format) |
 | [src/world_pool.rs](src/world_pool.rs) | GenerationRow → weighted candidate pool (+ authored-feature overlay) |
-| [src/generation.rs](src/generation.rs) | Sector generation: placement, systems, worlds, factions, routes |
+| [src/generation/mod.rs](src/generation/mod.rs) | Sector generation facade: `SectorProgress`, `generate*` orchestrator, manifest build |
+| [src/generation/placement.rs](src/generation/placement.rs) | Hex grid placement with min-distance relaxation |
+| [src/generation/systems.rs](src/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming, spectral fallback |
+| [src/generation/world_placement.rs](src/generation/world_placement.rs) | Per-world build: candidate pick, features, naming, tags, `regenerate_world_payload` |
+| [src/generation/factions.rs](src/generation/factions.rs) | Faction assignment + `aggregate_factions` roll-up + `assign_factions_for_systems` |
+| [src/generation/routes.rs](src/generation/routes.rs) | Public route graph + `classify_route` + union-find connector |
 | [src/sector_model.rs](src/sector_model.rs) | Output DTOs with Serialize/Deserialize |
 | [src/control.rs](src/control.rs) | Multi-dim presence / claim / control / power derivation |
 | [src/validation.rs](src/validation.rs) | Pre-generation validation |

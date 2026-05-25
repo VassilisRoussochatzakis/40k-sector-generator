@@ -44,9 +44,11 @@
 
 ---
 
-## SPLIT-002 — Split [src/generation.rs](src/generation.rs) (2124 LOC)
+## SPLIT-002 — Split [src/generation.rs](src/generation.rs) (2124 LOC) — ✅ DONE
 
 **Scope:** 1 file → `src/generation/` directory.
+
+**Result:** `generation.rs` (2124 LOC) → `src/generation/` package: `mod.rs` (845; `SectorProgress` + `generate*` orchestrator + `build_manifest`), `placement.rs` (88), `systems.rs` (169), `world_placement.rs` (349; incl. `regenerate_world_payload`), `factions.rs` (488), `routes.rs` (246). Public API preserved (`generate`, `generate_with_progress`, `generate_with_progress_and_cancel`, `SectorProgress`, `build_system`, `build_system_with_bias`, `regenerate_world_payload`, `assign_factions_for_systems`). All 218 tests green; golden generation + PNG byte-identical.
 
 **Steps:**
 1. Create `src/generation/mod.rs` as facade.
@@ -55,10 +57,10 @@
 4. Delete the old [src/generation.rs](src/generation.rs).
 
 **Acceptance:**
-- All callers compile unchanged (search: `grep -r "generation::" src/ gui/ gui-core/ builder/ tests/`)
-- `cargo test` green
-- Golden tests in [tests/it/golden_generation.rs](tests/it/golden_generation.rs) unchanged
-- Update [CLAUDE.md](CLAUDE.md), [GUIDE.md](GUIDE.md)
+- [x] All callers compile unchanged (search: `grep -r "generation::" src/ gui/ gui-core/ builder/ tests/`)
+- [x] `cargo test` green
+- [x] Golden tests in [tests/it/golden_generation.rs](tests/it/golden_generation.rs) unchanged
+- [x] Update [CLAUDE.md](CLAUDE.md), [GUIDE.md](GUIDE.md)
 
 ---
 

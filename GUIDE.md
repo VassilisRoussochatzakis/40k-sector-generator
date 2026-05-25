@@ -1823,7 +1823,7 @@ foundation layer lives in:
 | [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Heavy derived state on `BuilderState`: `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`. |
 | [builder/src/builder/state/regions_ops.rs](builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region overlay mutators: `add_region`, `remove_region`, `paint_region_hex`, `erase_region_hex`, `update_region`, `next_region_id`. |
 | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4 wiring on `BuilderState`: `generate_system_here`, `find_world_indices`, `regenerate_world`, `reroll_seed`, `apply_preview`, `regenerate_partial`. |
-| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, plus the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`); overlay commands land with their panels in later phases. |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`), and the §O1/§O2 orbital-asset commands (`SetOrbitalAssets`, `SetBlockadeReport`); overlay commands land with their panels in later phases. |
 | [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
@@ -1946,7 +1946,7 @@ that adopts `BuilderState` as root state.
 | Piece | Where it lives |
 |---|---|
 | N1 tab enum | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector + §AR1..§AR3 archetype editor ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §C1..§C8 + §CL1..§CL4; REGIONS hosts §REG1..§REG7; SUBSECTORS hosts §SUB1..§SUB5; ECONOMY hosts §E1..§E7; RELATIONS hosts §REL1..§REL9; unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
+| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector + §AR1..§AR3 archetype editor ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)) + §O1/§O2 orbital + blockade editor ([builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §C1..§C8 + §CL1..§CL4; REGIONS hosts §REG1..§REG7; SUBSECTORS hosts §SUB1..§SUB5; ECONOMY hosts §E1..§E7; RELATIONS hosts §REL1..§REL9; unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
 | N3 map toolbox | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs) `show_toolbox` renders the selectable-label strip; the click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems, AddRoute}`. |
 | N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
@@ -2201,6 +2201,23 @@ BUILDER_REQS §30. `src/archetypes.rs` ships no TOML config layer, so the editor
 Round-trip tests live in [builder/src/builder/command.rs](builder/src/builder/command.rs):
 
 * `set_archetype_round_trip`, `auto_assign_archetypes_round_trip_respects_flag_mask`.
+
+<a id="orbital-editor"></a>
+#### O1–O2 orbital assets + blockade (DONE)
+
+BUILDER_REQS §31. Rendered inline in the SYSTEM tab; mutations are commands so the §U1/§U2 rails fire.
+
+| Piece | Where it lives |
+|---|---|
+| O1 per-system asset list | [builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs) `show_orbital_section` — one collapsing row per `OrbitalAsset` exposing the `kind` ComboBox (`Station` / `Shipyard` / `DefensePlatform` / `BlockadeFleet`), faction picker over the sector's factions, `strength` slider 0..=100, and an inline `ship_inventory` editor (rows of `hull_class` text + `count` DragValue). Add / × delete rows. Footer "+ Add orbital asset" seeds a `Station` for the first faction with id `{sys_id}-manual-N`. Edits dispatch `BuilderCommand::SetOrbitalAssets { system, before, after }`. |
+| O2 blockade report | Same panel — inline `Blockade report` block with `under_blockade` checkbox, `blockader` / `besieged` optional faction pickers (`(none)` clears), `intensity` slider 0..=100. Edits dispatch `BuilderCommand::SetBlockadeReport { system, before, after }`. |
+| Derive button | "Derive now" footer button calls `sectorforge::orbital_assets::derive_orbital_assets` for the focused system and stages both the assets list and the report; "Clear assets" / "Clear blockade" reset each independently. Each staged value emits its own command when it differs from the prior state, so undo restores the exact prior pair. |
+
+The SYSTEM tab's overlays summary (`show_overlays_section`) now points at this section ("edit below in §O1" / "§O2") instead of saying the overlay is managed elsewhere.
+
+Round-trip tests live in [builder/src/builder/command.rs](builder/src/builder/command.rs):
+
+* `set_orbital_assets_round_trip`, `set_blockade_report_round_trip`.
 
 ---
 

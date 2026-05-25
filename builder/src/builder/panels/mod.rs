@@ -46,6 +46,7 @@ pub mod interestingness;
 pub mod map;
 pub mod missions;
 pub mod nav;
+pub mod orbital;
 pub mod personae;
 pub mod placeholder;
 pub mod project;

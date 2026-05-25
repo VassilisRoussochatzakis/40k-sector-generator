@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use sectorforge::archetypes::ArchetypeState;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
+use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
 use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
@@ -169,6 +170,20 @@ pub enum BuilderCommand {
         flags: ArchetypeApplyFlags,
         before: Vec<(SystemId, ArchetypeState)>,
     },
+    /// §O1: overwrite a system's `orbital_assets` vector. `before` snapshots
+    /// the prior list so `revert` is exact.
+    SetOrbitalAssets {
+        system: SystemId,
+        before: Option<Vec<OrbitalAsset>>,
+        after: Vec<OrbitalAsset>,
+    },
+    /// §O2: overwrite a system's `BlockadeReport`. `before` snapshots the
+    /// prior report so `revert` is exact.
+    SetBlockadeReport {
+        system: SystemId,
+        before: Option<Box<BlockadeReport>>,
+        after: BlockadeReport,
+    },
 }
 
 impl BuilderCommand {
@@ -325,6 +340,34 @@ impl BuilderCommand {
                 }
                 Ok(())
             }
+            Self::SetOrbitalAssets {
+                system,
+                before,
+                after,
+            } => {
+                let sys = sector
+                    .systems
+                    .iter_mut()
+                    .find(|s| s.id == *system)
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                *before = Some(sys.orbital_assets.clone());
+                sys.orbital_assets = after.clone();
+                Ok(())
+            }
+            Self::SetBlockadeReport {
+                system,
+                before,
+                after,
+            } => {
+                let sys = sector
+                    .systems
+                    .iter_mut()
+                    .find(|s| s.id == *system)
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                *before = Some(Box::new(sys.blockade.clone()));
+                sys.blockade = after.clone();
+                Ok(())
+            }
         }
     }
 
@@ -428,6 +471,22 @@ impl BuilderCommand {
                 for (id, state) in before {
                     if sector.systems.iter().any(|s| s.id == *id) {
                         sector.set_archetype(id, state.clone())?;
+                    }
+                }
+                Ok(())
+            }
+            Self::SetOrbitalAssets { system, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
+                        sys.orbital_assets = prev.clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::SetBlockadeReport { system, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
+                        sys.blockade = (**prev).clone();
                     }
                 }
                 Ok(())
@@ -594,6 +653,53 @@ mod tests {
         cmd.revert(&mut s).unwrap();
         let sys = s.systems.iter().find(|x| x.id == id).unwrap();
         assert_eq!(sys.archetype.ork_waaagh, 11);
+    }
+
+    #[test]
+    fn set_orbital_assets_round_trip() {
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let after = vec![OrbitalAsset {
+            id: format!("{id}-manual-1"),
+            kind: sectorforge::orbital_assets::OrbitalAssetKind::Station,
+            faction_id: FactionId::new("imperium"),
+            strength: 80,
+            ship_inventory: Vec::new(),
+        }];
+        let mut cmd = BuilderCommand::SetOrbitalAssets {
+            system: id.clone(),
+            before: None,
+            after: after.clone(),
+        };
+        cmd.apply(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(sys.orbital_assets, after);
+        cmd.revert(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert!(sys.orbital_assets.is_empty());
+    }
+
+    #[test]
+    fn set_blockade_report_round_trip() {
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let after = BlockadeReport {
+            under_blockade: true,
+            blockader: Some(FactionId::new("orks")),
+            besieged: Some(FactionId::new("imperium")),
+            intensity: 65,
+        };
+        let mut cmd = BuilderCommand::SetBlockadeReport {
+            system: id.clone(),
+            before: None,
+            after: after.clone(),
+        };
+        cmd.apply(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(sys.blockade, after);
+        cmd.revert(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert!(BlockadeReport::is_default(&sys.blockade));
     }
 
     /// R8 determinism: a fixed command sequence applied to a blank sector

@@ -1298,12 +1298,29 @@ AR3.  [DONE] Archetype rules editor in `show_archetype_rules`.
 31. ORBITAL ASSETS + BLOCKADE
 ================================================================================
 
-O1.   Per-system orbital-asset editor: list of
+O1.   [DONE] Per-system orbital-asset editor: list of
       `{ kind (Station|Shipyard|DefensePlatform|BlockadeFleet),
-         faction, capacity, notes }`.
+         faction, capacity, notes }`. Implemented in
+      `builder/src/builder/panels/orbital.rs` as `show_orbital_section`,
+      called from `panels/system.rs`. Each row exposes a `kind`
+      `ComboBox`, faction `ComboBox` over the sector's faction list, a
+      `strength` slider (0..=100), an inline `ship_inventory` editor
+      (rows of `hull_class`/`count`), and × delete. Add / Derive /
+      Clear buttons sit at the section footer. Mutations flow through
+      `BuilderCommand::SetOrbitalAssets { system, before, after }` so
+      every edit is undoable.
 
-O2.   Blockade report editor: aggregated `BlockadeReport` per system,
-      derive button + manual override.
+O2.   [DONE] Blockade report editor: aggregated `BlockadeReport`
+      per system. The same `panels/orbital.rs` renders an inline
+      `Blockade` block: `under_blockade` checkbox, `blockader` /
+      `besieged` faction pickers (`(none)` clears), `intensity`
+      0..=100 slider. The "Derive now" button calls
+      `sectorforge::orbital_assets::derive_orbital_assets` for the
+      system and writes both the assets list and the report. Manual
+      overrides round-trip through
+      `BuilderCommand::SetBlockadeReport { system, before, after }`.
+      The §S2 overlays section in `panels/system.rs` jumps focus into
+      this section so the existing summary read-out is now a deep link.
 
 ================================================================================
 32. SURFACE REGIONS
@@ -1814,7 +1831,9 @@ Phase C — Overlays editable
   H1..H8 - DONE 
   I1..I5 - DONE
   AR1..AR3 - DONE
-  O1..O2,     (§31 orbital assets)
+  O1..O2 - DONE (§31 orbital assets — per-system editor + blockade report
+                 derive/override; panel `builder/src/builder/panels/orbital.rs`,
+                 commands `SetOrbitalAssets` / `SetBlockadeReport`)
   SU1..SU2,   (§32 surface regions)
   CF1..CF6.   (§28 conflict + stability)
 

@@ -79,6 +79,8 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             show_archetype_rules(ui, state);
             ui.add_space(4.0);
+            crate::builder::panels::orbital::show_orbital_section(ui, state, sys_idx);
+            ui.add_space(4.0);
             crate::builder::panels::intel::show_system_intel_section(ui, state, sys_idx);
             ui.add_space(8.0);
             show_regen_section(ui, state, sys_idx);
@@ -492,9 +494,12 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
         .default_open(false)
         .show(ui, |ui| {
             let sys = &state.sector.systems[sys_idx];
-            ui.label(format!("orbital_assets: {}", sys.orbital_assets.len()));
             ui.label(format!(
-                "blockade present: {}",
+                "orbital_assets: {} (edit below in §O1)",
+                sys.orbital_assets.len()
+            ));
+            ui.label(format!(
+                "blockade present: {} (edit below in §O2)",
                 !sectorforge::orbital_assets::BlockadeReport::is_default(&sys.blockade)
             ));
             ui.label(format!(

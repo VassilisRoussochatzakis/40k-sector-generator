@@ -17,7 +17,7 @@ use sectorforge::ids::{self, SystemId};
 use sectorforge::sector_model::HexCoord;
 use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 
-use sectorforge_gui_core::sector_view::{SectorGeom, SectorMapCache, SectorView};
+use sectorforge_gui_core::sector_view::{paint_system_rings, SectorGeom, SectorMapCache, SectorView};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::derivation_cache::digest_input;
@@ -186,17 +186,12 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     // base hex / route / system render.
     let stranded = crate::builder::panels::economy::stranded_system_ids(state);
     if !stranded.is_empty() {
-        let painter = ui.painter_at(rect).with_clip_rect(rect);
         let red = egui::Color32::from_rgb(230, 80, 80);
         let stroke = egui::Stroke::new(2.0, red);
         let ring_geom = SectorGeom::new(state.hex_size, origin);
-        for sys in &state.sector.systems {
-            if !stranded.contains(&sys.id) {
-                continue;
-            }
-            let centre = ring_geom.hex_center(sys.coord.q, sys.coord.r);
-            painter.circle_stroke(centre, state.hex_size * 0.7, stroke);
-        }
+        paint_system_rings(ui, rect, &ring_geom, &state.sector, 0.7, stroke, |id| {
+            stranded.contains(id)
+        });
     }
 
     // ── interaction ─────────────────────────────────────────────────────────

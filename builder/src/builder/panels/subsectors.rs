@@ -146,23 +146,21 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             state.subsector_target_systems = DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR;
             state.map_view_cache = None;
         }
-        if !state.subsector_system_overrides.is_empty()
+        if (!state.subsector_system_overrides.is_empty()
             || !state.subsector_capital_overrides.is_empty()
             || !state.subsector_colour_overrides.is_empty()
-            || !state.subsector_manual.is_empty()
-        {
-            if ui
+            || !state.subsector_manual.is_empty())
+            && ui
                 .add(egui::Button::new(
                     RichText::new("× clear all overrides").color(Color32::LIGHT_RED),
                 ))
                 .clicked()
-            {
-                state.subsector_system_overrides.clear();
-                state.subsector_capital_overrides.clear();
-                state.subsector_colour_overrides.clear();
-                state.subsector_manual.clear();
-                state.map_view_cache = None;
-            }
+        {
+            state.subsector_system_overrides.clear();
+            state.subsector_capital_overrides.clear();
+            state.subsector_colour_overrides.clear();
+            state.subsector_manual.clear();
+            state.map_view_cache = None;
         }
         ui.label(format!("clusters: {}", subs.len()));
     });

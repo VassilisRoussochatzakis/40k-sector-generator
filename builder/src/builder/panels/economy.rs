@@ -241,12 +241,12 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .show(ui, |ui| {
                 for key in RESOURCE_KEYS {
                     ui.label(*key);
-                    let mut v = vector.get(*key);
+                    let mut v = vector.get(key);
                     if ui
                         .add(egui::Slider::new(&mut v, -100.0..=100.0).fixed_decimals(0))
                         .changed()
                     {
-                        set_vector_field(&mut vector, *key, v);
+                        set_vector_field(&mut vector, key, v);
                         changed = true;
                     }
                     ui.end_row();
@@ -292,12 +292,12 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .show(ui, |ui| {
                 for key in STRATEGIC_RESOURCE_KEYS {
                     ui.label(*key);
-                    let mut v = strat.get(*key);
+                    let mut v = strat.get(key);
                     if ui
                         .add(egui::Slider::new(&mut v, 0.0..=100.0).fixed_decimals(0))
                         .changed()
                     {
-                        set_strategic_field(&mut strat, *key, v);
+                        set_strategic_field(&mut strat, key, v);
                         changed = true;
                     }
                     ui.end_row();
@@ -661,7 +661,7 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                     .show(ui, |ui| {
                         for k in RESOURCE_KEYS {
                             ui.label(*k);
-                            let mut v = vec.get(*k);
+                            let mut v = vec.get(k);
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut v)
@@ -670,7 +670,7 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                                 )
                                 .changed()
                             {
-                                set_vector_field(vec, *k, v);
+                                set_vector_field(vec, k, v);
                                 *changed = true;
                             }
                             ui.end_row();

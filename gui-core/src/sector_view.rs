@@ -939,6 +939,31 @@ impl SectorGeom {
     }
 }
 
+/// Paint a stroked circle around every system whose id satisfies `include`.
+/// Centralised here so builder panels do not have to call `Ui::painter_at`
+/// directly (which is on the builder's `disallowed-methods` list).
+pub fn paint_system_rings<F>(
+    ui: &Ui,
+    rect: egui::Rect,
+    geom: &SectorGeom,
+    sector: &GeneratedSector,
+    radius_factor: f32,
+    stroke: Stroke,
+    include: F,
+) where
+    F: Fn(&SystemId) -> bool,
+{
+    let painter = ui.painter_at(rect).with_clip_rect(rect);
+    let radius = geom.hex_size * radius_factor;
+    for sys in &sector.systems {
+        if !include(&sys.id) {
+            continue;
+        }
+        let centre = geom.hex_center(sys.coord.q, sys.coord.r);
+        painter.circle_stroke(centre, radius, stroke);
+    }
+}
+
 fn hex_center_xy(q: i32, r: i32, g: &SectorGeom) -> Pos2 {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;

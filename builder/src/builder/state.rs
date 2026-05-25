@@ -1084,13 +1084,13 @@ impl BuilderState {
     /// dirty markers are armed.
     pub fn recompute_economy(&mut self) {
         use sectorforge::economy::{
-            apply_stability_nudge, derive_with, EconomyConfig, ResourceVector, RESOURCE_KEYS,
+            apply_stability_nudge, derive_with, ResourceVector, RESOURCE_KEYS,
         };
         let mut cfg = self
             .data_catalogs
             .economy
             .clone()
-            .unwrap_or_else(EconomyConfig::default);
+            .unwrap_or_default();
         cfg.enabled = true;
         let mut report = derive_with(&self.sector, &cfg);
 

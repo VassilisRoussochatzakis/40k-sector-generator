@@ -1241,7 +1241,7 @@ is enforced by:
   the output.
 
 The integration test
-[tests/golden_generation.rs](tests/golden_generation.rs)
+[tests/it/golden_generation.rs](tests/it/golden_generation.rs)
 asserts byte equality across two runs with identical seed. The suite caches the
 default m42 fixture sector once per test process, validates post-generation
 invariants on that cached sector, and reloads exported JSON/manifest files so
@@ -2307,10 +2307,16 @@ Post-generation invariants ([src/invariants.rs](src/invariants.rs)):
 ```bash
 cargo test                                              # all tests EXCEPT slow segmentum suite
 cargo test --lib                                        # unit tests only
-cargo test --test segmentum_tests -- --ignored          # explicit opt-in for the slow §14 composition suite
+cargo test --test it segmentum_tests -- --ignored       # explicit opt-in for the slow §14 composition suite
 ```
 
-The [tests/segmentum_tests.rs](tests/segmentum_tests.rs) suite full-composes the
+All integration-test files live under [tests/it/](tests/it/) and are wired into
+a single [tests/it.rs](tests/it.rs) entry point via `#[path = "it/…"]` `mod`
+declarations. This produces one test binary (`it`) instead of one per file, so
+the linker runs once and incremental test edits rebuild faster. To run just one
+suite, filter by module name (e.g. `cargo test --test it golden_png::`).
+
+The [tests/it/segmentum_tests.rs](tests/it/segmentum_tests.rs) suite full-composes the
 m42 fixture five times and runs ~2-5 minutes (debug). Every test is marked
 `#[ignore]` so it never runs as part of `cargo test`; invoke it explicitly when
 touching `src/segmentum.rs` or the m42 fixture.
@@ -2321,12 +2327,12 @@ Notable suites:
 - [src/rng.rs::tests](src/rng.rs) — stage seeds and weighted selection
 - [src/sector_model.rs::tests](src/sector_model.rs) — axial hex distance
 - [src/subsectors/mod.rs::tests](src/subsectors/mod.rs) — clustering coverage, capital naming, route classification, determinism
-- [tests/golden_generation.rs](tests/golden_generation.rs) — cached full end-to-end + determinism + export reload checks
-- [tests/invariants_tests.rs](tests/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
-- [tests/invariants_proptest.rs](tests/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
-- [tests/validation_tests.rs](tests/validation_tests.rs) — adverse inputs
-- [tests/analytics_and_presets.rs](tests/analytics_and_presets.rs) — §8/§9 old/DONE.md: analytics determinism + writers, preset scaffolding round-trip
-- [tests/segmentum_tests.rs](tests/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
+- [tests/it/golden_generation.rs](tests/it/golden_generation.rs) — cached full end-to-end + determinism + export reload checks
+- [tests/it/invariants_tests.rs](tests/it/invariants_tests.rs) — post-generation invariants, JSON round-trip, standalone system generation, faction-influence ordering
+- [tests/it/invariants_proptest.rs](tests/it/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
+- [tests/it/validation_tests.rs](tests/it/validation_tests.rs) — adverse inputs
+- [tests/it/analytics_and_presets.rs](tests/it/analytics_and_presets.rs) — §8/§9 old/DONE.md: analytics determinism + writers, preset scaffolding round-trip
+- [tests/it/segmentum_tests.rs](tests/it/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
 
 Benchmarks (criterion):
 
@@ -2527,7 +2533,7 @@ These hold across the crate and are enforced by review, not lints:
 - **`unwrap_or_else(|| ...)` when the fallback is not a trivial copy.** `unwrap_or(expr)` evaluates `expr` eagerly even on the happy path. For `&str` borrows of fields owned by surrounding scope, `unwrap_or_else` avoids the spurious borrow.
 - **`x.to_string()` over `format!("{}", x)`** for single-argument display — skips the format machinery and a temporary `Arguments` struct.
 - **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/generation.rs:422](src/generation.rs#L422) for the recent fill-relax loop.
-- **Keep golden tests cached and format-scoped.** Reuse the cached fixture in [tests/golden_generation.rs](tests/golden_generation.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
+- **Keep golden tests cached and format-scoped.** Reuse the cached fixture in [tests/it/golden_generation.rs](tests/it/golden_generation.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
 
 ### Math-accuracy lints (intentionally NOT applied)
 
@@ -2610,13 +2616,13 @@ no changes; consumers that want the histogram can filter for
 ### Determinism regression tests
 
 In addition to the JSON-byte test in
-[tests/golden_generation.rs](tests/golden_generation.rs):
+[tests/it/golden_generation.rs](tests/it/golden_generation.rs):
 
-- [tests/cli_gui_parity.rs](tests/cli_gui_parity.rs) (OPTIMIZE.txt G2) spawns
+- [tests/it/cli_gui_parity.rs](tests/it/cli_gui_parity.rs) (OPTIMIZE.txt G2) spawns
   the compiled `sectorforge` binary and asserts that its `sector.json`
   matches the in-process library path the GUI uses. Catches drift between
   CLI-only and GUI-only code paths.
-- [tests/golden_png.rs](tests/golden_png.rs) (OPTIMIZE.txt G3) hashes the
+- [tests/it/golden_png.rs](tests/it/golden_png.rs) (OPTIMIZE.txt G3) hashes the
   PNG output of two independent generation runs and asserts the hashes
   agree, then asserts the hash changes when the seed changes. Detects any
   HashMap iteration-order leak or other nondeterminism reaching the

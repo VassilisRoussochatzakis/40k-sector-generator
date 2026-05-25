@@ -54,6 +54,16 @@ criterion = { version = "0.5", default-features = false, features = ["cargo_benc
 name = "generation"
 harness = false
 
+[profile.dev]
+# Library code keeps full debuginfo so the IDE / lldb can step through it.
+# Dependencies get debug = false (see [profile.dev.package."*"]) so we don't pay
+# the DWARF cost on every dep link.
+
+[profile.dev.package."*"]
+# Skip DWARF generation for dependencies. Cuts linker work on integration test
+# bins and the GUI/builder binaries. Local code is unaffected.
+debug = false
+
 [profile.release]
 lto = "fat"
 codegen-units = 1

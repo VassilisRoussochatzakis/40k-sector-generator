@@ -1,0 +1,83 @@
+{
+  "id": "sys-0003",
+  "index": 3,
+  "name": "Agnath Reliquary",
+  "coord": {
+    "q": 1,
+    "r": 15
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 0
+  },
+  "worlds": [
+    {
+      "id": "sys-0003-w01",
+      "index": 1,
+      "name": "Ember Purgata Beacon",
+      "orbit": 1,
+      "source_row_index": 0,
+      "world": {
+        "star_colour": "blue hypergiant",
+        "star_colour_code": "O",
+        "world_type": "AgriWorld",
+        "atmosphere": "Airless",
+        "temperature": "Freezing",
+        "biosphere": "Nonexistent",
+        "population": "Uninhabited",
+        "tech_level": "Primitive",
+        "government": "BalkanizedLocalFactions",
+        "notable_features": [
+          "Abhumans",
+          "AlteredHumans",
+          "AncientArchive",
+          "ColdWar"
+        ]
+      },
+      "tags": [
+        "atmosphere:airless",
+        "biosphere:nonexistent",
+        "feature:abhumans",
+        "feature:altered_humans",
+        "feature:ancient_archive",
+        "feature:cold_war",
+        "gov:balkanized_local_factions",
+        "population:uninhabited",
+        "star:blue_hypergiant",
+        "tech:primitive",
+        "temperature:freezing",
+        "world_type:agri_world"
+      ],
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      }
+    }
+  ],
+  "control": {
+    "state": "uncharted",
+    "dominant": null,
+    "sovereign": null,
+    "orbital_controller": null,
+    "economic_hegemon": null,
+    "hidden_master": null,
+    "top_factions": []
+  },
+  "stability": {
+    "public_order": 70.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  }
+}

@@ -1,0 +1,64 @@
+# Embattled Frontier — route weighting overrides.
+#
+# Long-hop frontier preference: bias lanes through administrative hubs,
+# spaceyards, and trade ports; punish warp phenomena and warzones heavily
+# so secured corridors stand out on the tactical map.
+
+[routes]
+default_weight = 1.0
+max_distance = 6
+prefer_populated_worlds = true
+prefer_trade_hubs = true
+avoid_warp_phenomena = true
+
+[[routes.modifiers]]
+when = { notable_feature = "TradeHub" }
+multiplier = 2.0
+
+[[routes.modifiers]]
+when = { notable_feature = "AdministrativeHub" }
+multiplier = 1.9
+
+[[routes.modifiers]]
+when = { notable_feature = "MajorSpaceyard" }
+multiplier = 1.7
+
+[[routes.modifiers]]
+when = { notable_feature = "Freeport" }
+multiplier = 1.5
+
+[[routes.modifiers]]
+when = { notable_feature = "WarpPhenomena" }
+multiplier = 0.20
+
+[[routes.modifiers]]
+when = { notable_feature = "WarZone" }
+multiplier = 0.45
+
+[[routes.modifiers]]
+when = { notable_feature = "HostileXenos" }
+multiplier = 0.55
+
+[[routes.modifiers]]
+when = { notable_feature = "DaemonicCorruption" }
+multiplier = 0.1
+
+[[routes.modifiers]]
+when = { world_type = "ForgeWorld" }
+multiplier = 1.5
+
+[[routes.modifiers]]
+when = { world_type = "BastionWorld" }
+multiplier = 1.4
+
+[[routes.modifiers]]
+when = { government = "MilitaryGovernor" }
+multiplier = 1.25
+
+[[routes.modifiers]]
+when = { route_type = "charted_passage" }
+multiplier = 0.85
+
+[[routes.modifiers]]
+when = { route_type = "secret_passage" }
+multiplier = 0.50

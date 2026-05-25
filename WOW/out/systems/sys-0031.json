@@ -1,0 +1,303 @@
+{
+  "id": "sys-0031",
+  "index": 31,
+  "name": "Obdura",
+  "coord": {
+    "q": 10,
+    "r": 10
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 11
+  },
+  "worlds": [
+    {
+      "id": "sys-0031-w01",
+      "index": 1,
+      "name": "Cindralis",
+      "orbit": 1,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "FactionalFragmentation"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "adeptus_arbites",
+          "subfaction_name": "Imperial Institutions",
+          "force_id": "adeptus_arbites",
+          "force_name": "Adeptus Arbites",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 91.0,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 50.0,
+            "industrial": 35.0,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 92.0,
+            "visibility": 90.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "ork",
+          "subfaction_id": "deathskulls_clan",
+          "subfaction_name": "Orks",
+          "force_id": "deathskulls_clan",
+          "force_name": "Deathskulls Clan",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 58.499996,
+            "orbital": 19.5,
+            "economic": 9.75,
+            "industrial": 22.75,
+            "ideological": 26.0,
+            "covert": 13.0,
+            "logistics": 19.5,
+            "legitimacy": 0.0,
+            "visibility": 54.6
+          },
+          "dominance": "presence",
+          "intel_confidence": 55
+        },
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "ordo_xenos",
+          "subfaction_name": "Inquisition",
+          "force_id": "ordo_xenos_conclave",
+          "force_name": "Ordo Xenos Conclave",
+          "influence": "minor",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 7.0,
+            "military": 12.25,
+            "orbital": 5.25,
+            "economic": 3.5,
+            "industrial": 3.5,
+            "ideological": 10.5,
+            "covert": 37.8,
+            "logistics": 8.75,
+            "legitimacy": 21.0,
+            "visibility": 0.0
+          },
+          "dominance": "presence",
+          "intel_confidence": 0
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "feature:factional_fragmentation",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial",
+          "claim_type": "imperial_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "ork",
+          "claim_type": "hunting_ground",
+          "strength": 21
+        }
+      ],
+      "control": {
+        "dominant": "imperial",
+        "sovereign": "imperial",
+        "occupier": "ork",
+        "economic_hegemon": "imperial",
+        "popular_authority": "imperial",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 59.628998
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "imperial",
+          "control_score": 70,
+          "population_weight": 30,
+          "visibility": 90
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "imperial",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "imperial",
+        "defender": "imperial",
+        "visible_controller": "imperial",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial",
+    "ork"
+  ],
+  "control": {
+    "state": "pacified",
+    "dominant": "imperial",
+    "sovereign": "imperial",
+    "orbital_controller": "imperial",
+    "economic_hegemon": "imperial",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "imperial",
+        "score": 60.409004
+      },
+      {
+        "faction_id": "ork",
+        "score": 21.255001
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 55.0,
+    "corruption": 35.0,
+    "fear": 25.0,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 30.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0031-defense-imperial",
+      "kind": "defense_platform",
+      "faction_id": "imperial",
+      "strength": 35,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0031-defense-ork",
+      "kind": "defense_platform",
+      "faction_id": "ork",
+      "strength": 43,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0031-station-imperial",
+      "kind": "station",
+      "faction_id": "imperial",
+      "strength": 62,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 0,
+    "mobilisation": 0,
+    "attacker": "imperial",
+    "defender": "imperial",
+    "visible_controller": "imperial",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "imperial": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "ork",
+            "source": "astropathic_report",
+            "confidence": 49
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "ork": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "imperial",
+            "source": "astropathic_report",
+            "confidence": 49
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 58,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 8,
+    "daemon_manifestation": 12
+  }
+}

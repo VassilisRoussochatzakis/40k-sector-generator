@@ -1,0 +1,310 @@
+{
+  "id": "sys-0054",
+  "index": 54,
+  "name": "Zionis II",
+  "coord": {
+    "q": 19,
+    "r": 15
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 11
+  },
+  "worlds": [
+    {
+      "id": "sys-0054-w01",
+      "index": 1,
+      "name": "Kanak",
+      "orbit": 1,
+      "source_row_index": 11,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "HereticalImperialCult",
+        "notable_features": [
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "DangerousWildlife",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "adeptus_astartes",
+          "subfaction_name": "Adeptus Astartes",
+          "force_id": "salamanders_4th_company",
+          "force_name": "Salamanders 4th Company",
+          "influence": "dominant",
+          "relationship_to_government": "zealous",
+          "dimensions": {
+            "admin": 20.0,
+            "military": 90.0,
+            "orbital": 70.0,
+            "economic": 10.0,
+            "industrial": 30.0,
+            "ideological": 58.0,
+            "covert": 30.0,
+            "logistics": 55.0,
+            "legitimacy": 79.0,
+            "visibility": 75.0
+          },
+          "dominance": "contested",
+          "intel_confidence": 75
+        },
+        {
+          "faction_id": "leagues_of_votann",
+          "subfaction_id": "kin_merchant_guilds",
+          "subfaction_name": "Leagues of Votann",
+          "force_id": "kin_merchant_guilds",
+          "force_name": "Kin Merchant Guilds",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 39.0,
+            "military": 35.75,
+            "orbital": 26.0,
+            "economic": 52.0,
+            "industrial": 55.249996,
+            "ideological": 22.75,
+            "covert": 19.5,
+            "logistics": 42.899998,
+            "legitimacy": 32.5,
+            "visibility": 45.5
+          },
+          "dominance": "influence",
+          "intel_confidence": 46
+        },
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "imperial_guard",
+          "subfaction_name": "Imperial Guard",
+          "force_id": "vostroyan_firstborn",
+          "force_name": "Vostroyan Firstborn",
+          "influence": "minor",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 17.599998,
+            "military": 28.0,
+            "orbital": 8.75,
+            "economic": 7.0,
+            "industrial": 19.25,
+            "ideological": 12.25,
+            "covert": 3.1499999,
+            "logistics": 21.0,
+            "legitimacy": 28.449999,
+            "visibility": 31.5
+          },
+          "dominance": "presence",
+          "intel_confidence": 32
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:civil_war",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:heretical_imperial_cult",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial",
+          "claim_type": "imperial_mandate",
+          "strength": 49
+        },
+        {
+          "faction_id": "leagues_of_votann",
+          "claim_type": "commercial_charter",
+          "strength": 36
+        }
+      ],
+      "control": {
+        "dominant": "imperial",
+        "sovereign": "imperial",
+        "occupier": "imperial",
+        "economic_hegemon": "leagues_of_votann",
+        "popular_authority": "imperial",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 61.667004
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "imperial",
+          "control_score": 49,
+          "population_weight": 30,
+          "visibility": 75
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "imperial",
+          "control_score": 23,
+          "population_weight": 70,
+          "visibility": 75
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "imperial",
+        "defender": "imperial",
+        "visible_controller": "imperial",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial",
+    "leagues_of_votann"
+  ],
+  "control": {
+    "state": "pacified",
+    "dominant": "imperial",
+    "sovereign": "leagues_of_votann",
+    "orbital_controller": "imperial",
+    "economic_hegemon": "leagues_of_votann",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "imperial",
+        "score": 65.354004
+      },
+      {
+        "faction_id": "leagues_of_votann",
+        "score": 36.465
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 55.0,
+    "corruption": 35.0,
+    "fear": 25.0,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 30.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0054-defense-imperial",
+      "kind": "defense_platform",
+      "faction_id": "imperial",
+      "strength": 100,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0054-defense-leagues_of_votann",
+      "kind": "defense_platform",
+      "faction_id": "leagues_of_votann",
+      "strength": 32,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0054-station-imperial",
+      "kind": "station",
+      "faction_id": "imperial",
+      "strength": 58,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0054-station-leagues_of_votann",
+      "kind": "station",
+      "faction_id": "leagues_of_votann",
+      "strength": 33,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 0,
+    "mobilisation": 0,
+    "attacker": "imperial",
+    "defender": "imperial",
+    "visible_controller": "imperial",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "imperial": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "leagues_of_votann",
+            "source": "astropathic_report",
+            "confidence": 34
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "leagues_of_votann": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "imperial",
+            "source": "astropathic_report",
+            "confidence": 34
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 0,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 8,
+    "daemon_manifestation": 12
+  }
+}

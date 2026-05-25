@@ -233,7 +233,7 @@ Bundled presets:
 | ID | Flavour |
 |---|---|
 | `m42-classic` | Balanced sample sector. Good starting point. |
-| `embattled-frontier` | Sparse, clustered placement, low route density, more hazardous lanes. |
+| `embattled-frontier` | 20×20 contested marchworld sector — Imperium vs. Orks open war with a small Leagues of Votann presence. Every overlay (factions, relations, regions, economy, history, personae, sites, HTML, map theme) is active. |
 | `dead-sector` | Low population, large hop distances, ruins-leaning generation. |
 | `mercantile-crossroads` | Dense placement, short hops, high route density, trade-hub feel. |
 

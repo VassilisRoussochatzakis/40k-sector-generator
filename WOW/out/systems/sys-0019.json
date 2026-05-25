@@ -1,0 +1,213 @@
+{
+  "id": "sys-0019",
+  "index": 19,
+  "name": "Unction Hollow",
+  "coord": {
+    "q": 6,
+    "r": 18
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 2
+  },
+  "worlds": [
+    {
+      "id": "sys-0019-w01",
+      "index": 1,
+      "name": "Bastion Ophidia",
+      "orbit": 1,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "CelestialPhenomena",
+          "BlindingMists",
+          "CivilWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "tempestus_scions",
+          "subfaction_name": "Imperial Guard",
+          "force_id": "tempestus_scions_frontier",
+          "force_name": "Tempestus Scions, 14th Storm",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 16.199999,
+            "military": 80.0,
+            "orbital": 25.0,
+            "economic": 9.0,
+            "industrial": 24.75,
+            "ideological": 35.0,
+            "covert": 9.0,
+            "logistics": 60.0,
+            "legitimacy": 30.15,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:ancient_archive",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial",
+          "claim_type": "imperial_mandate",
+          "strength": 35
+        }
+      ],
+      "control": {
+        "dominant": "imperial",
+        "sovereign": "imperial",
+        "occupier": "imperial",
+        "economic_hegemon": null,
+        "popular_authority": "imperial",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 34.734
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "imperial",
+          "control_score": 21,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "imperial",
+          "control_score": 28,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "imperial",
+          "control_score": 16,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "imperial",
+        "defender": "imperial",
+        "visible_controller": "imperial",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial"
+  ],
+  "control": {
+    "state": "pacified",
+    "dominant": "imperial",
+    "sovereign": "imperial",
+    "orbital_controller": "imperial",
+    "economic_hegemon": "imperial",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "imperial",
+        "score": 34.734
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 70.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0019-defense-imperial",
+      "kind": "defense_platform",
+      "faction_id": "imperial",
+      "strength": 58,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0019-station-imperial",
+      "kind": "station",
+      "faction_id": "imperial",
+      "strength": 21,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 6,
+    "mobilisation": 3,
+    "attacker": "imperial",
+    "defender": "imperial",
+    "visible_controller": "imperial",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "imperial": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  }
+}

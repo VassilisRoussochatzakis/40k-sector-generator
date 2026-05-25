@@ -1,0 +1,602 @@
+{
+  "id": "sys-0026",
+  "index": 26,
+  "name": "Fervent Palisade",
+  "coord": {
+    "q": 8,
+    "r": 4
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "B",
+    "colour_name": "blue-white",
+    "spectral_type": "B",
+    "source_row_index": 17
+  },
+  "worlds": [
+    {
+      "id": "sys-0026-w01",
+      "index": 1,
+      "name": "Xanthia",
+      "orbit": 1,
+      "source_row_index": 17,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "DeathWorld",
+        "atmosphere": "Tainted",
+        "temperature": "Hot",
+        "biosphere": "XenoHybrid",
+        "population": "ExtremelyDense",
+        "tech_level": "XenoHybrid",
+        "government": "Megacorporations",
+        "notable_features": [
+          "FactionalFragmentation",
+          "ExtremeEnvironment",
+          "EugenicCult",
+          "BlindingMists"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ork",
+          "subfaction_id": "blood_axes_clan",
+          "subfaction_name": "Orks",
+          "force_id": "blood_axes_clan",
+          "force_name": "Blood Axes Clan",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 10.5,
+            "military": 90.0,
+            "orbital": 30.0,
+            "economic": 15.749999,
+            "industrial": 36.75,
+            "ideological": 40.0,
+            "covert": 20.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 84.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 84
+        },
+        {
+          "faction_id": "ork",
+          "subfaction_id": "snakebites_clan",
+          "subfaction_name": "Orks",
+          "force_id": "snakebites_clan",
+          "force_name": "Snakebites Clan",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 8.662499,
+            "military": 58.499996,
+            "orbital": 19.5,
+            "economic": 10.237499,
+            "industrial": 23.887499,
+            "ideological": 26.0,
+            "covert": 13.0,
+            "logistics": 19.5,
+            "legitimacy": 0.0,
+            "visibility": 54.6
+          },
+          "dominance": "presence",
+          "intel_confidence": 55
+        },
+        {
+          "faction_id": "ork",
+          "subfaction_id": "evil_sunz_clan",
+          "subfaction_name": "Orks",
+          "force_id": "evil_sunz_clan",
+          "force_name": "Evil Sunz Clan",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 7.0874996,
+            "military": 31.5,
+            "orbital": 10.5,
+            "economic": 5.5125,
+            "industrial": 12.862499,
+            "ideological": 14.0,
+            "covert": 7.0,
+            "logistics": 10.5,
+            "legitimacy": 2.31,
+            "visibility": 29.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 29
+        }
+      ],
+      "tags": [
+        "atmosphere:tainted",
+        "biosphere:xeno_hybrid",
+        "feature:blinding_mists",
+        "feature:eugenic_cult",
+        "feature:extreme_environment",
+        "feature:factional_fragmentation",
+        "gov:megacorporations",
+        "population:extremely_dense",
+        "star:white",
+        "tech:xeno_hybrid",
+        "temperature:hot",
+        "world_type:death_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "ork",
+          "claim_type": "hunting_ground",
+          "strength": 34
+        }
+      ],
+      "control": {
+        "dominant": "ork",
+        "sovereign": "ork",
+        "occupier": "ork",
+        "economic_hegemon": "ork",
+        "popular_authority": "ork",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 54.7786
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Garrison",
+          "kind": "capital",
+          "dominant": "ork",
+          "control_score": 22,
+          "population_weight": 15,
+          "visibility": 84
+        },
+        {
+          "name": "Death-World Biome",
+          "kind": "wilderness",
+          "dominant": "ork",
+          "control_score": 30,
+          "population_weight": 75,
+          "visibility": 84
+        },
+        {
+          "name": "Cult Cells",
+          "kind": "hideout",
+          "dominant": "ork",
+          "control_score": 17,
+          "population_weight": 10,
+          "visibility": 84
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "ork",
+        "defender": "ork",
+        "visible_controller": "ork",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0026-w02",
+      "index": 2,
+      "name": "Luminar",
+      "orbit": 2,
+      "source_row_index": 4,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "CorruptAristocrats",
+        "notable_features": [
+          "ArchaeotechRuins",
+          "CivilWar",
+          "AncientArchive",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "planetary_defence_forces",
+          "subfaction_name": "Imperial Institutions",
+          "force_id": "planetary_defence_forces",
+          "force_name": "Planetary Defence Forces",
+          "influence": "dominant",
+          "relationship_to_government": "lawful",
+          "dimensions": {
+            "admin": 59.149998,
+            "military": 30.0,
+            "orbital": 20.0,
+            "economic": 32.5,
+            "industrial": 22.75,
+            "ideological": 45.0,
+            "covert": 9.0,
+            "logistics": 50.0,
+            "legitimacy": 59.8,
+            "visibility": 90.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 90
+        },
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "mechanicus",
+          "subfaction_name": "Mechanicus",
+          "force_id": "mechanicus",
+          "force_name": "Adeptus Mechanicus",
+          "influence": "significant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 23.2375,
+            "military": 22.75,
+            "orbital": 32.5,
+            "economic": 29.574999,
+            "industrial": 40.137497,
+            "ideological": 36.5,
+            "covert": 18.25,
+            "logistics": 38.35,
+            "legitimacy": 25.349998,
+            "visibility": 46.8
+          },
+          "dominance": "influence",
+          "intel_confidence": 47
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:ancient_archive",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:corrupt_aristocrats",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial",
+          "claim_type": "imperial_mandate",
+          "strength": 38
+        }
+      ],
+      "control": {
+        "dominant": "imperial",
+        "sovereign": "imperial",
+        "occupier": "imperial",
+        "economic_hegemon": "imperial",
+        "popular_authority": "imperial",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 66.71875
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "imperial",
+          "control_score": 30,
+          "population_weight": 70,
+          "visibility": 90
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "imperial",
+          "control_score": 43,
+          "population_weight": 10,
+          "visibility": 90
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "imperial",
+          "control_score": 14,
+          "population_weight": 20,
+          "visibility": 90
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "imperial",
+        "defender": "imperial",
+        "visible_controller": "imperial",
+        "age": 0
+      }
+    },
+    {
+      "id": "sys-0026-w03",
+      "index": 3,
+      "name": "Phaedron",
+      "orbit": 3,
+      "source_row_index": 2,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Nonexistent",
+        "population": "Minimal",
+        "tech_level": "Low",
+        "government": "ClansTribes",
+        "notable_features": [
+          "AncientArchive",
+          "CivilWar",
+          "BlindingMists",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "mechanicus",
+          "subfaction_name": "Mechanicus",
+          "force_id": "mechanicus",
+          "force_name": "Adeptus Mechanicus",
+          "influence": "dominant",
+          "relationship_to_government": "insular",
+          "dimensions": {
+            "admin": 24.75,
+            "military": 35.0,
+            "orbital": 50.0,
+            "economic": 31.5,
+            "industrial": 42.75,
+            "ideological": 50.0,
+            "covert": 25.0,
+            "logistics": 59.0,
+            "legitimacy": 27.0,
+            "visibility": 72.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 72
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:nonexistent",
+        "feature:ancient_archive",
+        "feature:blinding_mists",
+        "feature:celestial_phenomena",
+        "feature:civil_war",
+        "gov:clans_tribes",
+        "population:minimal",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "imperial",
+          "claim_type": "imperial_mandate",
+          "strength": 37
+        }
+      ],
+      "control": {
+        "dominant": "imperial",
+        "sovereign": "imperial",
+        "occupier": "imperial",
+        "economic_hegemon": "imperial",
+        "popular_authority": "imperial",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 37.115
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "imperial",
+          "control_score": 26,
+          "population_weight": 70,
+          "visibility": 72
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "imperial",
+          "control_score": 31,
+          "population_weight": 10,
+          "visibility": 72
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "imperial",
+          "control_score": 14,
+          "population_weight": 20,
+          "visibility": 72
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "imperial",
+        "defender": "imperial",
+        "visible_controller": "imperial",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial",
+    "ork"
+  ],
+  "control": {
+    "state": "fragmented",
+    "dominant": "imperial",
+    "sovereign": "imperial",
+    "orbital_controller": "imperial",
+    "economic_hegemon": "imperial",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "imperial",
+        "score": 103.833755
+      },
+      {
+        "faction_id": "ork",
+        "score": 69.178604
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 70.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0026-defense-imperial",
+      "kind": "defense_platform",
+      "faction_id": "imperial",
+      "strength": 94,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0026-defense-ork",
+      "kind": "defense_platform",
+      "faction_id": "ork",
+      "strength": 100,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0026-shipyard-imperial",
+      "kind": "shipyard",
+      "faction_id": "imperial",
+      "strength": 100,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0026-shipyard-ork",
+      "kind": "shipyard",
+      "faction_id": "ork",
+      "strength": 68,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0026-station-imperial",
+      "kind": "station",
+      "faction_id": "imperial",
+      "strength": 100,
+      "ship_inventory": []
+    },
+    {
+      "id": "sys-0026-station-ork",
+      "kind": "station",
+      "faction_id": "ork",
+      "strength": 43,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 25,
+    "mobilisation": 0,
+    "attacker": "ork",
+    "defender": "ork",
+    "visible_controller": "imperial",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "imperial": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "ork",
+            "source": "rumor",
+            "confidence": 16
+          }
+        ],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      },
+      "ork": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [
+          {
+            "faction_id": "imperial",
+            "source": "rumor",
+            "confidence": 18
+          }
+        ],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 60,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 0,
+    "daemon_manifestation": 0
+  }
+}

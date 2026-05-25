@@ -1,0 +1,262 @@
+{
+  "id": "sys-0045",
+  "index": 45,
+  "name": "Fervor",
+  "coord": {
+    "q": 17,
+    "r": 18
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 12
+  },
+  "worlds": [
+    {
+      "id": "sys-0045-w01",
+      "index": 1,
+      "name": "Pietas",
+      "orbit": 1,
+      "source_row_index": 12,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "BastionWorld",
+        "atmosphere": "Thin",
+        "temperature": "Temperate",
+        "biosphere": "Poisoned",
+        "population": "DenselyPopulated",
+        "tech_level": "Standard",
+        "government": "InfractionistGang",
+        "notable_features": [
+          "DangerousWildlife",
+          "DaemonicCorruption",
+          "CrumblingArcologies",
+          "ColdWar"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ork",
+          "subfaction_id": "blood_axes_clan",
+          "subfaction_name": "Orks",
+          "force_id": "blood_axes_clan",
+          "force_name": "Blood Axes Clan",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 5.0,
+            "military": 90.0,
+            "orbital": 30.0,
+            "economic": 15.0,
+            "industrial": 35.0,
+            "ideological": 40.0,
+            "covert": 20.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 84.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 84
+        },
+        {
+          "faction_id": "ork",
+          "subfaction_id": "big_mek_workshops",
+          "subfaction_name": "Orks",
+          "force_id": "big_mek_workshops",
+          "force_name": "Big Mek Workshops",
+          "influence": "significant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 3.25,
+            "military": 58.499996,
+            "orbital": 19.5,
+            "economic": 9.75,
+            "industrial": 22.75,
+            "ideological": 26.0,
+            "covert": 13.0,
+            "logistics": 19.5,
+            "legitimacy": 0.0,
+            "visibility": 54.6
+          },
+          "dominance": "presence",
+          "intel_confidence": 55
+        },
+        {
+          "faction_id": "ork",
+          "subfaction_id": "bad_moons_clan",
+          "subfaction_name": "Orks",
+          "force_id": "bad_moons_clan",
+          "force_name": "Bad Moons Clan",
+          "influence": "minor",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 1.75,
+            "military": 31.5,
+            "orbital": 10.5,
+            "economic": 5.25,
+            "industrial": 12.25,
+            "ideological": 14.0,
+            "covert": 7.0,
+            "logistics": 10.5,
+            "legitimacy": 0.0,
+            "visibility": 29.4
+          },
+          "dominance": "presence",
+          "intel_confidence": 29
+        }
+      ],
+      "tags": [
+        "atmosphere:thin",
+        "biosphere:poisoned",
+        "feature:cold_war",
+        "feature:crumbling_arcologies",
+        "feature:daemonic_corruption",
+        "feature:dangerous_wildlife",
+        "gov:infractionist_gang",
+        "population:densely_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:bastion_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "ork",
+          "claim_type": "hunting_ground",
+          "strength": 33
+        }
+      ],
+      "control": {
+        "dominant": "ork",
+        "sovereign": null,
+        "occupier": "ork",
+        "economic_hegemon": "ork",
+        "popular_authority": "ork",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 51.0
+      },
+      "stability": {
+        "public_order": 55.0,
+        "corruption": 35.0,
+        "fear": 25.0,
+        "rebellion_risk": 0.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 30.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Capital",
+          "kind": "capital",
+          "dominant": "ork",
+          "control_score": 20,
+          "population_weight": 30,
+          "visibility": 84
+        },
+        {
+          "name": "Hinterland",
+          "kind": "wilderness",
+          "dominant": "ork",
+          "control_score": 29,
+          "population_weight": 70,
+          "visibility": 84
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 0,
+        "mobilisation": 0,
+        "attacker": "ork",
+        "defender": "ork",
+        "visible_controller": "ork",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "ork"
+  ],
+  "control": {
+    "state": "pacified",
+    "dominant": "ork",
+    "sovereign": "ork",
+    "orbital_controller": "ork",
+    "economic_hegemon": "ork",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "ork",
+        "score": 65.4
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 55.0,
+    "corruption": 35.0,
+    "fear": 25.0,
+    "rebellion_risk": 0.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 30.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0045-defense-ork",
+      "kind": "defense_platform",
+      "faction_id": "ork",
+      "strength": 100,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "sys-0045-shipyard-ork",
+      "kind": "shipyard",
+      "faction_id": "ork",
+      "strength": 66,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 0,
+    "mobilisation": 0,
+    "attacker": "ork",
+    "defender": "ork",
+    "visible_controller": "ork",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "ork": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 60,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 8,
+    "daemon_manifestation": 12
+  }
+}

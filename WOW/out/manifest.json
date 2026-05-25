@@ -1,0 +1,27 @@
+{
+  "project_id": "embattled-frontier",
+  "generated_at_policy": "not recorded by default",
+  "generator_name": "sectorforge",
+  "generator_version": "0.1.0",
+  "seed": "embattled-frontier-seed",
+  "seed_hash": "blake3:f9230dc7e87a38901fb0705a14ba7d78a894da049250bb98c75390999370a48b",
+  "profile": null,
+  "input_digests": {
+    "data/factions/factions.toml": "blake3:a46df8d048b405bf2a0653ca59bb5db9b0168169110da48a7172560a25a46082",
+    "data/factions/relations.toml": "blake3:d8238e0ffc6348fbcf8501094eb304eece0573bdbc02d5cfdfb39893159a6d83",
+    "data/history.toml": "blake3:022ba8de501e6eeb5b5213fe5d301306d5a77a2a46f909902e68b771df1e5227",
+    "data/names/system_names.toml": "blake3:23e34e9e1a58c9ad8bb1b3d6e5b5b98fdd5ae92febc4bd11c7381bb392d551d9",
+    "data/names/world_names.toml": "blake3:2eed86668fbd7dd3acbc51651871a0852d01d835d31a4f75e8501c82ea48b363",
+    "data/personae.toml": "blake3:cdbfb2f6d60d0a828a335e06b0fa72cd040ea582e84b4822107487782b7a4594",
+    "data/routes/regions.toml": "blake3:3dcdf1e53865b4abbc6c8e7498e9bac4fbffc98a391cb236d2d7aaff13058339",
+    "data/routes/route_rules.toml": "blake3:5fd5f97c70c136a466f438e12a869b1b219da0c8701ce71379eb332257702e0e",
+    "data/sites.toml": "blake3:2fa483dafbc7f46c4b9e94a4e9b091c824ce51bc45c05e2e2c536b439ff65d9d",
+    "data/worlds/economy.toml": "blake3:36a31d998831737bf4b96b541916c0adcb8ad00afea446b1b101ced75af37195",
+    "data/worlds/worlds.toml": "blake3:ce74bce4504321ee178914a92d837b9f48cfbe4e33a872612b0a09740c5a7f75",
+    "sectorforge.toml": "blake3:f165307af7c1f15f33e9c07f7a6f1ba4128d63489ed164e31f3569439228a06a"
+  },
+  "settings_digest": "blake3:f51aafab3643d680b08b1daf219b825b3257c100751374264f7be8ff4c591a88",
+  "system_count": 56,
+  "world_count": 134,
+  "route_count": 98
+}

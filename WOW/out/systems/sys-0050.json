@@ -1,0 +1,241 @@
+{
+  "id": "sys-0050",
+  "index": 50,
+  "name": "Nicomedia Gate",
+  "coord": {
+    "q": 18,
+    "r": 15
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "O",
+    "colour_name": "blue hypergiant",
+    "spectral_type": "O",
+    "source_row_index": 5
+  },
+  "worlds": [
+    {
+      "id": "sys-0050-w01",
+      "index": 1,
+      "name": "Phaedron",
+      "orbit": 1,
+      "source_row_index": 5,
+      "world": {
+        "star_colour": "blue-white",
+        "star_colour_code": "B",
+        "world_type": "AgriWorld",
+        "atmosphere": "Breathable",
+        "temperature": "Cold",
+        "biosphere": "Minimal",
+        "population": "SoleSettlement",
+        "tech_level": "Low",
+        "government": "Demagogue",
+        "notable_features": [
+          "BlindingMists",
+          "ArchaeotechRuins",
+          "AlteredHumans",
+          "AncientTombs"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "imperial",
+          "subfaction_id": "ordo_xenos",
+          "subfaction_name": "Inquisition",
+          "force_id": "ordo_xenos_conclave",
+          "force_name": "Ordo Xenos Conclave",
+          "influence": "dominant",
+          "relationship_to_government": "secretive",
+          "dimensions": {
+            "admin": 13.0,
+            "military": 35.0,
+            "orbital": 15.0,
+            "economic": 6.5,
+            "industrial": 6.5,
+            "ideological": 30.0,
+            "covert": 100.0,
+            "logistics": 25.0,
+            "legitimacy": 39.0,
+            "visibility": 0.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 0
+        },
+        {
+          "faction_id": "leagues_of_votann",
+          "subfaction_id": "kindred_prospect_clans",
+          "subfaction_name": "Leagues of Votann",
+          "force_id": "kindred_prospect_clans",
+          "force_name": "Kindred Prospect Clans",
+          "influence": "significant",
+          "relationship_to_government": "opportunistic",
+          "dimensions": {
+            "admin": 25.349998,
+            "military": 35.75,
+            "orbital": 26.0,
+            "economic": 33.8,
+            "industrial": 35.912495,
+            "ideological": 26.75,
+            "covert": 21.5,
+            "logistics": 42.899998,
+            "legitimacy": 21.125,
+            "visibility": 45.5
+          },
+          "dominance": "influence",
+          "intel_confidence": 46
+        }
+      ],
+      "tags": [
+        "atmosphere:breathable",
+        "biosphere:minimal",
+        "feature:altered_humans",
+        "feature:ancient_tombs",
+        "feature:archaeotech_ruins",
+        "feature:blinding_mists",
+        "gov:demagogue",
+        "population:sole_settlement",
+        "star:blue_white",
+        "tech:low",
+        "temperature:cold",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "leagues_of_votann",
+          "claim_type": "commercial_charter",
+          "strength": 30
+        },
+        {
+          "faction_id": "imperial",
+          "claim_type": "imperial_mandate",
+          "strength": 27
+        }
+      ],
+      "control": {
+        "dominant": "leagues_of_votann",
+        "sovereign": "imperial",
+        "occupier": "leagues_of_votann",
+        "economic_hegemon": "leagues_of_votann",
+        "popular_authority": "imperial",
+        "hidden_master": "imperial",
+        "contested": false,
+        "control_score": 30.268248
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "leagues_of_votann",
+          "control_score": 22,
+          "population_weight": 70,
+          "visibility": 46
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "leagues_of_votann",
+          "control_score": 25,
+          "population_weight": 10,
+          "visibility": 46
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "leagues_of_votann",
+          "control_score": 11,
+          "population_weight": 20,
+          "visibility": 46
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "imperial",
+        "defender": "leagues_of_votann",
+        "visible_controller": "leagues_of_votann",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "imperial",
+    "leagues_of_votann"
+  ],
+  "control": {
+    "state": "pacified",
+    "dominant": "leagues_of_votann",
+    "sovereign": "leagues_of_votann",
+    "orbital_controller": "leagues_of_votann",
+    "economic_hegemon": "leagues_of_votann",
+    "hidden_master": "imperial",
+    "top_factions": [
+      {
+        "faction_id": "leagues_of_votann",
+        "score": 30.268248
+      },
+      {
+        "faction_id": "imperial",
+        "score": 27.41
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 70.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0050-station-leagues_of_votann",
+      "kind": "station",
+      "faction_id": "leagues_of_votann",
+      "strength": 26,
+      "ship_inventory": []
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 6,
+    "mobilisation": 3,
+    "attacker": "imperial",
+    "defender": "leagues_of_votann",
+    "visible_controller": "leagues_of_votann",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "imperial": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "none",
+        "classified_state": "public"
+      },
+      "leagues_of_votann": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  }
+}

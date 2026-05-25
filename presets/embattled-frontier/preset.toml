@@ -1,5 +1,5 @@
 title = "Embattled Frontier"
-description = "Sparse, high-hazard sector — fewer worlds per system, dangerous routes, contested politics."
-tags = ["war", "frontier", "sparse"]
+description = "20x20 contested marchworld sector: Imperium vs. Orks open war with a small Leagues of Votann presence. Fully fleshed out — every overlay (factions, relations, regions, economy, history, personae, sites, HTML/map theme) is active."
+tags = ["war", "frontier", "20x20", "imperium", "orks", "leagues-of-votann", "fully-featured"]
 default_seed = "embattled-frontier-seed"
 inherits = "_base"

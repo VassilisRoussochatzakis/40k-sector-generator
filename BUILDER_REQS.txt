@@ -1738,7 +1738,7 @@ Phase C — Overlays editable
                      derive_with_threshold; §REL9 Recompute matrix
                      button + auto-recompute on edit + Save
                      relations.toml passthrough via project_io::save_project)
-  H1..H8,     (§17 history)
+  H1..H8, - DONE 
   I1..I5,     (§29 intel + visibility)
   AR1..AR3,   (§30 archetypes)
   O1..O2,     (§31 orbital assets)

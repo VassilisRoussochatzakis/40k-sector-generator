@@ -1,0 +1,217 @@
+{
+  "id": "sys-0043",
+  "index": 43,
+  "name": "Avernus Scar",
+  "coord": {
+    "q": 16,
+    "r": 1
+  },
+  "kind": "star",
+  "star": {
+    "colour_code": "A",
+    "colour_name": "white",
+    "spectral_type": "A",
+    "source_row_index": 9
+  },
+  "worlds": [
+    {
+      "id": "sys-0043-w01",
+      "index": 1,
+      "name": "Anathrax",
+      "orbit": 1,
+      "source_row_index": 9,
+      "world": {
+        "star_colour": "white",
+        "star_colour_code": "A",
+        "world_type": "AgriWorld",
+        "atmosphere": "Corrosive",
+        "temperature": "Temperate",
+        "biosphere": "Thriving",
+        "population": "LightlyPopulated",
+        "tech_level": "Standard",
+        "government": "GuildsCombine",
+        "notable_features": [
+          "ColdWar",
+          "ArchaeotechRuins",
+          "AlteredHumans",
+          "CelestialPhenomena"
+        ]
+      },
+      "factions": [
+        {
+          "faction_id": "ork",
+          "subfaction_id": "big_mek_workshops",
+          "subfaction_name": "Orks",
+          "force_id": "big_mek_workshops",
+          "force_name": "Big Mek Workshops",
+          "influence": "dominant",
+          "relationship_to_government": "hostile",
+          "dimensions": {
+            "admin": 4.25,
+            "military": 90.0,
+            "orbital": 30.0,
+            "economic": 12.75,
+            "industrial": 29.75,
+            "ideological": 44.0,
+            "covert": 22.0,
+            "logistics": 30.0,
+            "legitimacy": 0.0,
+            "visibility": 84.0
+          },
+          "dominance": "influence",
+          "intel_confidence": 84
+        }
+      ],
+      "tags": [
+        "atmosphere:corrosive",
+        "biosphere:thriving",
+        "feature:altered_humans",
+        "feature:archaeotech_ruins",
+        "feature:celestial_phenomena",
+        "feature:cold_war",
+        "gov:guilds_combine",
+        "population:lightly_populated",
+        "star:white",
+        "tech:standard",
+        "temperature:temperate",
+        "world_type:agri_world"
+      ],
+      "claims": [
+        {
+          "faction_id": "ork",
+          "claim_type": "hunting_ground",
+          "strength": 33
+        }
+      ],
+      "control": {
+        "dominant": "ork",
+        "sovereign": null,
+        "occupier": "ork",
+        "economic_hegemon": null,
+        "popular_authority": "ork",
+        "hidden_master": null,
+        "contested": false,
+        "control_score": 32.525
+      },
+      "stability": {
+        "public_order": 70.0,
+        "corruption": 0.0,
+        "fear": 0.0,
+        "rebellion_risk": 20.0,
+        "xenos_threat": 0.0,
+        "warp_instability": 0.0,
+        "famine_or_resource_stress": 0.0
+      },
+      "regions": [
+        {
+          "name": "Agri Belt",
+          "kind": "agri_belt",
+          "dominant": "ork",
+          "control_score": 18,
+          "population_weight": 70,
+          "visibility": 84
+        },
+        {
+          "name": "Provincial Capital",
+          "kind": "capital",
+          "dominant": "ork",
+          "control_score": 20,
+          "population_weight": 10,
+          "visibility": 84
+        },
+        {
+          "name": "Wild Districts",
+          "kind": "wilderness",
+          "dominant": "ork",
+          "control_score": 29,
+          "population_weight": 20,
+          "visibility": 84
+        }
+      ],
+      "conflict": {
+        "started_tick": 0,
+        "last_change_tick": 0,
+        "momentum": 0,
+        "intensity": 6,
+        "mobilisation": 3,
+        "attacker": "ork",
+        "defender": "ork",
+        "visible_controller": "ork",
+        "age": 0
+      }
+    }
+  ],
+  "primary_factions": [
+    "ork"
+  ],
+  "control": {
+    "state": "pacified",
+    "dominant": "ork",
+    "sovereign": null,
+    "orbital_controller": "ork",
+    "economic_hegemon": "ork",
+    "hidden_master": null,
+    "top_factions": [
+      {
+        "faction_id": "ork",
+        "score": 32.525
+      }
+    ]
+  },
+  "stability": {
+    "public_order": 70.0,
+    "corruption": 0.0,
+    "fear": 0.0,
+    "rebellion_risk": 20.0,
+    "xenos_threat": 0.0,
+    "warp_instability": 0.0,
+    "famine_or_resource_stress": 0.0
+  },
+  "orbital_assets": [
+    {
+      "id": "sys-0043-defense-ork",
+      "kind": "defense_platform",
+      "faction_id": "ork",
+      "strength": 66,
+      "ship_inventory": [
+        {
+          "hull_class": "monitor",
+          "count": 2
+        }
+      ]
+    }
+  ],
+  "conflict": {
+    "started_tick": 0,
+    "last_change_tick": 0,
+    "momentum": 0,
+    "intensity": 6,
+    "mobilisation": 3,
+    "attacker": "ork",
+    "defender": "ork",
+    "visible_controller": "ork",
+    "age": 0
+  },
+  "intel": {
+    "by_observer": {
+      "ork": {
+        "last_verified_tick": 0,
+        "confidence": 90,
+        "suspected_presences": [],
+        "propaganda_state": "official_pacified",
+        "classified_state": "public"
+      }
+    }
+  },
+  "archetype": {
+    "imperial_co_sovereigns": [],
+    "necron_phase": "none",
+    "tyranid_stage": "none",
+    "ork_waaagh": 90,
+    "gsc_stage": "none",
+    "tau_sphere": "none",
+    "aeldari_activity": 0,
+    "chaos_corruption": 0,
+    "daemon_manifestation": 0
+  }
+}

@@ -1823,7 +1823,7 @@ foundation layer lives in:
 | [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Heavy derived state on `BuilderState`: `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`. |
 | [builder/src/builder/state/regions_ops.rs](builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region overlay mutators: `add_region`, `remove_region`, `paint_region_hex`, `erase_region_hex`, `update_region`, `next_region_id`. |
 | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4 wiring on `BuilderState`: `generate_system_here`, `find_world_indices`, `regenerate_world`, `reroll_seed`, `apply_preview`, `regenerate_partial`. |
-| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`), and the §O1/§O2 orbital-asset commands (`SetOrbitalAssets`, `SetBlockadeReport`); overlay commands land with their panels in later phases. |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`), the §O1/§O2 orbital-asset commands (`SetOrbitalAssets`, `SetBlockadeReport`), and the §SU1 surface-region command (`SetSurfaceRegions`); overlay commands land with their panels in later phases. |
 | [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
@@ -2011,7 +2011,7 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/
 
 | Piece | Where it lives |
 |---|---|
-| W1 inspector | [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays (§28 / §32 read-only), and the §W4 re-roll collapse. |
+| W1 inspector | [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays summary (§28 / §32), the §SU1/§SU2 surface-region editor ([builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs)), and the §W4 re-roll collapse. |
 | W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
 | W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/generation.rs](src/generation.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
@@ -2218,6 +2218,23 @@ The SYSTEM tab's overlays summary (`show_overlays_section`) now points at this s
 Round-trip tests live in [builder/src/builder/command.rs](builder/src/builder/command.rs):
 
 * `set_orbital_assets_round_trip`, `set_blockade_report_round_trip`.
+
+<a id="surface-region-editor"></a>
+#### SU1–SU2 surface regions (DONE)
+
+BUILDER_REQS §32. Per-world editor over `GeneratedWorld.regions` rendered inline in the WORLD tab; mutations route through the command bus so the §U1/§U2 rails fire.
+
+| Piece | Where it lives |
+|---|---|
+| SU1 per-world editor | [builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs) `show_surface_regions_section` — one collapsing row per `SurfaceRegion` exposing `name` text, `kind` ComboBox over the 12 `RegionKind` variants (Capital / Hive / Underhive / ForgeComplex / ShrineContinent / AgriBelt / CardinalSpire / KnightHousehold / Wilderness / TombComplex / Hideout / Other), optional `dominant` `FactionId` combo (`(none)` clears), `control_score` / `population_weight` / `visibility` sliders 0..=100, and a multi-line `notes` `TextEdit`. Footer "+ Add surface region" seeds a defaulted `Other` row. Edits dispatch `BuilderCommand::SetSurfaceRegions { world, before, after }`. A yellow over-allocation pill surfaces when the `population_weight` sum exceeds 100. |
+| SU2 auto-seed | "Auto-seed (§SU2)" button calls [src/surface_region.rs](src/surface_region.rs) `derive_regions(&GeneratedWorld)` for the focused world and replaces the list with the derived per-world-type split (HiveWorld → 4 rows, ForgeWorld → 4, AgriWorld → 3, etc.). The same function already runs from [src/generation/mod.rs](src/generation/mod.rs) during initial sector build so freshly generated worlds arrive populated. "Clear regions" empties the list. |
+| `notes` field | `SurfaceRegion.notes: String` added to [src/surface_region.rs](src/surface_region.rs) with `#[serde(default, skip_serializing_if = "String::is_empty")]` so existing JSON parses unchanged and serialises clean when empty. |
+
+The WORLD tab's overlays summary (`show_overlays_section`) now points at this section ("edit in §SU1 below") instead of saying the overlay is managed elsewhere.
+
+Round-trip tests live in [builder/src/builder/command.rs](builder/src/builder/command.rs):
+
+* `set_surface_regions_round_trip`.
 
 ---
 

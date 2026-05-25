@@ -1326,12 +1326,30 @@ O2.   [DONE] Blockade report editor: aggregated `BlockadeReport`
 32. SURFACE REGIONS
 ================================================================================
 
-SU1.  Per-world surface-region editor: list of
+SU1.  [DONE] Per-world surface-region editor: list of
       `{ kind (Capital|Hive|Underhive|ForgeComplex|ShrineContinent|...),
-         dominant_faction, notes }`.
+         dominant_faction, notes }`. Panel
+      `builder/src/builder/panels/surface_regions.rs` renders a
+      collapsing section under the WORLD tab. Each row exposes name,
+      kind ComboBox over the 12 `RegionKind` variants, optional
+      dominant FactionId combo, control_score / population_weight /
+      visibility sliders (0..=100), and a multi-line notes box. The
+      free-form `notes: String` field was added to
+      `src/surface_region.rs::SurfaceRegion` with
+      `#[serde(default, skip_serializing_if = "String::is_empty")]`
+      so existing JSON parses unchanged. Mutations route through
+      `BuilderCommand::SetSurfaceRegions { world, before, after }` so
+      every edit is undoable; round-trip covered by
+      `set_surface_regions_round_trip` in
+      `builder/src/builder/command.rs`. Population-weight sum > 100
+      surfaces a yellow over-allocation pill.
 
-SU2.  Auto-seed surface regions from world type via
-      `src/surface_region.rs`.
+SU2.  [DONE] Auto-seed surface regions from world type via
+      `src/surface_region.rs::derive_regions` — already invoked by
+      `src/generation/mod.rs` (world-build path) so freshly generated
+      worlds have regions populated. The §SU1 panel exposes an
+      "Auto-seed (§SU2)" button that calls `derive_regions` and
+      replaces the current list, plus a "Clear regions" button.
 
 ================================================================================
 33. VALIDATION + INVARIANTS SURFACE
@@ -1834,7 +1852,10 @@ Phase C — Overlays editable
   O1..O2 - DONE (§31 orbital assets — per-system editor + blockade report
                  derive/override; panel `builder/src/builder/panels/orbital.rs`,
                  commands `SetOrbitalAssets` / `SetBlockadeReport`)
-  SU1..SU2,   (§32 surface regions)
+  SU1..SU2 - DONE (§32 surface regions — per-world editor + auto-seed
+                   button; panel `builder/src/builder/panels/surface_regions.rs`,
+                   command `SetSurfaceRegions`, `notes: String` added to
+                   `SurfaceRegion`)
   CF1..CF6.   (§28 conflict + stability)
 
 Phase D — Derivations + GM tools

@@ -30,6 +30,9 @@ pub struct SurfaceRegion {
     /// 0..=100 visibility — covert regions (underhive, tomb interior) read
     /// low even when surface visibility is high.
     pub visibility: u8,
+    /// Free-form GM annotation. Surfaces in the builder §SU1 editor.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub notes: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -130,6 +133,7 @@ pub fn derive_regions(w: &GeneratedWorld) -> Vec<SurfaceRegion> {
             control_score: score,
             population_weight: weight,
             visibility,
+            notes: String::new(),
         });
     }
     out

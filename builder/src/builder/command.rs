@@ -16,6 +16,7 @@ use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
     RouteStability, RouteType,
 };
+use sectorforge::surface_region::SurfaceRegion;
 
 /// §AR3: per-axis enable mask for `BuilderCommand::AutoAssignArchetypes`. A
 /// disabled axis is reset to its default after `sectorforge::archetypes::
@@ -183,6 +184,13 @@ pub enum BuilderCommand {
         system: SystemId,
         before: Option<Box<BlockadeReport>>,
         after: BlockadeReport,
+    },
+    /// §SU1: overwrite a world's `regions` vector (§32 surface regions).
+    /// `before` snapshots the prior list so `revert` is exact.
+    SetSurfaceRegions {
+        world: WorldId,
+        before: Option<Vec<SurfaceRegion>>,
+        after: Vec<SurfaceRegion>,
     },
 }
 
@@ -368,6 +376,21 @@ impl BuilderCommand {
                 sys.blockade = after.clone();
                 Ok(())
             }
+            Self::SetSurfaceRegions {
+                world,
+                before,
+                after,
+            } => {
+                let w = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                *before = Some(w.regions.clone());
+                w.regions = after.clone();
+                Ok(())
+            }
         }
     }
 
@@ -487,6 +510,19 @@ impl BuilderCommand {
                 if let Some(prev) = before {
                     if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
                         sys.blockade = (**prev).clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::SetSurfaceRegions { world, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *world)
+                    {
+                        w.regions = prev.clone();
                     }
                 }
                 Ok(())
@@ -700,6 +736,44 @@ mod tests {
         cmd.revert(&mut s).unwrap();
         let sys = s.systems.iter().find(|x| x.id == id).unwrap();
         assert!(BlockadeReport::is_default(&sys.blockade));
+    }
+
+    #[test]
+    fn set_surface_regions_round_trip() {
+        use sectorforge::surface_region::{RegionKind, SurfaceRegion};
+        let mut s = empty();
+        let sys_id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let world_id = s.add_world_to_system(&sys_id, "Capitis").unwrap();
+        let after = vec![SurfaceRegion {
+            name: "Hive Primus".into(),
+            kind: RegionKind::Hive,
+            dominant: Some(FactionId::new("imperium")),
+            control_score: 75,
+            population_weight: 60,
+            visibility: 80,
+            notes: "manual entry".into(),
+        }];
+        let mut cmd = BuilderCommand::SetSurfaceRegions {
+            world: world_id.clone(),
+            before: None,
+            after: after.clone(),
+        };
+        cmd.apply(&mut s).unwrap();
+        let w = s
+            .systems
+            .iter()
+            .flat_map(|sys| sys.worlds.iter())
+            .find(|w| w.id == world_id)
+            .unwrap();
+        assert_eq!(w.regions, after);
+        cmd.revert(&mut s).unwrap();
+        let w = s
+            .systems
+            .iter()
+            .flat_map(|sys| sys.worlds.iter())
+            .find(|w| w.id == world_id)
+            .unwrap();
+        assert!(w.regions.is_empty());
     }
 
     /// R8 determinism: a fixed command sequence applied to a blank sector

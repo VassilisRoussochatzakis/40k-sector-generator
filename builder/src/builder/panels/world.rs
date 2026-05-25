@@ -75,6 +75,10 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             show_overlays_section(ui, state, sys_idx, w_idx);
             ui.add_space(4.0);
+            crate::builder::panels::surface_regions::show_surface_regions_section(
+                ui, state, sys_idx, w_idx,
+            );
+            ui.add_space(4.0);
             crate::builder::panels::intel::show_world_intel_section(ui, state, sys_idx, w_idx);
             ui.add_space(4.0);
             show_chronicle_section(ui, state, sys_idx, w_idx);
@@ -799,11 +803,14 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
 // ── overlays read-only ─────────────────────────────────────────────────────
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Overlays (§28 / §32 — managed elsewhere)")
+    egui::CollapsingHeader::new("Overlays (§28 / §32 summary)")
         .default_open(false)
         .show(ui, |ui| {
             let w = &state.sector.systems[sys_idx].worlds[w_idx];
-            ui.label(format!("surface_regions: {}", w.regions.len()));
+            ui.label(format!(
+                "surface_regions: {} (edit in §SU1 below)",
+                w.regions.len()
+            ));
             ui.label(format!(
                 "conflict default: {}",
                 sectorforge::conflict::ConflictState::is_default(&w.conflict)

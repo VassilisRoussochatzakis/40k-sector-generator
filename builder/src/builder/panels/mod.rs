@@ -58,5 +58,6 @@ pub mod search;
 pub mod segmentum;
 pub mod sites;
 pub mod subsectors;
+pub mod surface_regions;
 pub mod system;
 pub mod world;

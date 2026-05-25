@@ -2411,8 +2411,17 @@ across runs, so a regression check is a diff away.
 | [src/export.rs](src/export.rs) | JSON / Markdown / manifest writers + bundle export |
 | [src/html_export.rs](src/html_export.rs) | §11 NEW.md self-contained interactive HTML map: inlines sector JSON + theme CSS + vanilla-JS canvas renderer; supports player-edition redaction via the intel layer. Byte-deterministic. |
 | [src/map_theme.rs](src/map_theme.rs) | §13 NEW2.md bitmap map themes: built-in palettes, custom TOML theme parsing, color validation, label/legend/route/symbol style knobs |
-| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering (`image` crate); coordinates hex grid + routes + systems + themed legend |
+| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG facade: public `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, `RenderOptions`, plus the top-level `render()` orchestrator that wires the submodules together |
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel-level drawing primitives + embedded 5×7 font, shared with `system_map` |
+| [src/bitmap/geom.rs](src/bitmap/geom.rs) | `Geom` (scale-derived sizes), `MapBounds`, hex centre/vertex math, axis-aligned `Rect` for label collision |
+| [src/bitmap/colors.rs](src/bitmap/colors.rs) | Spectral star colour, stability colour, route thickness, `tint_against` / `darken` / `dim_rgba` / `stroke_px`, `short()` label truncation |
+| [src/bitmap/grid.rs](src/bitmap/grid.rs) | Hex grid fill + per-system / region tint computation (§5 region overlay sits under §8 faction tint / §10 heatmap) |
+| [src/bitmap/routes.rs](src/bitmap/routes.rs) | Route lines: solid/dashed/dotted/burst/zigzag/disc-trail/chevron/tripod motifs + midpoint route-control glyph; exports `RouteLineParams` |
+| [src/bitmap/regions.rs](src/bitmap/regions.rs) | §5 warp region label overlay (centroid anchor + truncated uppercase) |
+| [src/bitmap/systems.rs](src/bitmap/systems.rs) | Star disks (spectral colour), world-count pip text, subsector capital marker (diamond / cross / tactical) |
+| [src/bitmap/labels.rs](src/bitmap/labels.rs) | System name labels with pill background, subsector polka-dot borders, and centroid-seeded subsector label placement with collision avoidance |
+| [src/bitmap/legend.rs](src/bitmap/legend.rs) | Right-hand legend pane: title block, route-type/route-stability/route-control keys, faction swatches (importance-bucketed), heatmap chip — full + compact variants |
+| [src/bitmap/tests.rs](src/bitmap/tests.rs) | Smoke tests for the bitmap facade (renders, scaling, glyph table) |
 | [src/svg_export.rs](src/svg_export.rs) | Vector counterpart to `bitmap`: emits a self-contained SVG sector map (hex grid + region tints + routes/patterns/control glyphs + capital markers + labels + themed legend) using real `<text>` for labels so output scales without resampling |
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` plus bitmap map themes |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
@@ -2537,7 +2546,7 @@ These hold across the crate and are enforced by review, not lints:
 
 ### Math-accuracy lints (intentionally NOT applied)
 
-`cargo clippy -- -W clippy::nursery` flags `mul_add` and `hypot` opportunities across [src/bitmap/mod.rs](src/bitmap/mod.rs) and [gui-core/src/palette.rs](gui-core/src/palette.rs). They are **not** applied because the crate's golden outputs (PNGs, JSON snapshots) are byte-deterministic and `a.mul_add(b, c)` / `dx.hypot(dy)` produce different last-bit results from `a*b + c` / `(dx*dx+dy*dy).sqrt()`. If you ever benchmark a hot per-pixel loop and want the FMA win, regenerate the golden fixtures in the same commit.
+`cargo clippy -- -W clippy::nursery` flags `mul_add` and `hypot` opportunities across the [src/bitmap/](src/bitmap/) submodules (notably [geom.rs](src/bitmap/geom.rs), [routes.rs](src/bitmap/routes.rs), [colors.rs](src/bitmap/colors.rs), [labels.rs](src/bitmap/labels.rs)) and [gui-core/src/palette.rs](gui-core/src/palette.rs). They are **not** applied because the crate's golden outputs (PNGs, JSON snapshots) are byte-deterministic and `a.mul_add(b, c)` / `dx.hypot(dy)` produce different last-bit results from `a*b + c` / `(dx*dx+dy*dy).sqrt()`. If you ever benchmark a hot per-pixel loop and want the FMA win, regenerate the golden fixtures in the same commit.
 
 Same caveat for the `while condition comparing floats` warnings in the bitmap/palette renderers — converting them to integer-step loops changes the last iteration's `f` value and the rendered output.
 

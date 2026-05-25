@@ -45,8 +45,17 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |
 | [src/lib.rs](src/lib.rs) | Public API surface (doc-tests + `# Errors`) |
-| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG rendering |
+| [src/bitmap/mod.rs](src/bitmap/mod.rs) | Sector PNG facade: `write_bitmap*`, `render_sector_image`, `encode_png_bytes`, `RenderOptions`, top-level `render()` orchestrator |
 | [src/bitmap/primitives.rs](src/bitmap/primitives.rs) | Pixel primitives + 5×7 font (shared w/ system_map) |
+| [src/bitmap/geom.rs](src/bitmap/geom.rs) | `Geom`, `MapBounds`, hex centre/vertices, `Rect` collision type |
+| [src/bitmap/colors.rs](src/bitmap/colors.rs) | Star/route/tint/darken/short color helpers |
+| [src/bitmap/grid.rs](src/bitmap/grid.rs) | Hex grid fill + per-system/region tint computation |
+| [src/bitmap/routes.rs](src/bitmap/routes.rs) | Route line drawing: stride/jagged/zigzag/disc/chevron/etc. patterns + route control glyphs |
+| [src/bitmap/regions.rs](src/bitmap/regions.rs) | §5 warp region label overlay |
+| [src/bitmap/systems.rs](src/bitmap/systems.rs) | Star disks, pip text, capital markers |
+| [src/bitmap/labels.rs](src/bitmap/labels.rs) | System labels, subsector borders, subsector label placement |
+| [src/bitmap/legend.rs](src/bitmap/legend.rs) | Right-hand legend (title, route key, factions, heatmap chip) |
+| [src/bitmap/tests.rs](src/bitmap/tests.rs) | Unit tests for the bitmap facade |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership, faction control, capital selection |
 | [gui-core/src/lib.rs](gui-core/src/lib.rs) | Shared egui widgets/utilities used by GUI + builder |

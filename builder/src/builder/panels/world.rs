@@ -75,6 +75,8 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             show_overlays_section(ui, state, sys_idx, w_idx);
             ui.add_space(4.0);
+            crate::builder::panels::intel::show_world_intel_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
             show_chronicle_section(ui, state, sys_idx, w_idx);
             ui.add_space(8.0);
             show_regen_section(ui, state, sys_idx, w_idx);

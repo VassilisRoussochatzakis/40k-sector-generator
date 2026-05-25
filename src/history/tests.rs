@@ -75,6 +75,7 @@ fn world(id: &str, name: &str) -> GeneratedWorld {
         stability: Default::default(),
         regions: vec![],
         conflict: Default::default(),
+        intel: Default::default(),
     }
 }
 

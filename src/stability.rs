@@ -339,6 +339,7 @@ mod tests {
             stability: StabilityState::default(),
             regions: Vec::new(),
             conflict: Default::default(),
+            intel: Default::default(),
         }
     }
 

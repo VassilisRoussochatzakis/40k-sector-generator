@@ -98,6 +98,65 @@ pub fn derive_system_intel(sys: &GeneratedSystem, observer_ids: &[&str]) -> Syst
     out
 }
 
+/// Per-world equivalent of [`derive_system_intel`]. Builds an observer view
+/// scoped to a single world's `factions` list — used by the §29 BUILDER_REQS
+/// per-world editor + the §I3 "Generate baseline intel" button.
+#[must_use]
+pub fn derive_world_intel(world: &GeneratedWorld, observer_ids: &[&str]) -> SystemIntel {
+    let mut out = SystemIntel::default();
+    for obs in observer_ids {
+        let view = derive_world_observer_view(world, obs);
+        out.by_observer.insert((*obs).to_string(), view);
+    }
+    out
+}
+
+fn derive_world_observer_view(w: &GeneratedWorld, observer: &str) -> ObserverView {
+    let mut suspected = derive_world_suspected(w, observer);
+    suspected.sort_by(|a, b| a.faction_id.cmp(&b.faction_id));
+    suspected.dedup_by(|a, b| a.faction_id == b.faction_id);
+
+    let observer_present = w.factions.iter().any(|p| p.faction_id == observer);
+    let confidence = if observer_present { 90 } else { 30 };
+
+    let propaganda = if w.control.dominant.as_deref() == Some(observer) {
+        PropagandaState::OfficialPacified
+    } else if w.control.contested {
+        PropagandaState::OfficialContested
+    } else {
+        PropagandaState::None
+    };
+    let classified = if w
+        .tags
+        .iter()
+        .any(|t| t.as_ref().ends_with(":quarantined"))
+    {
+        ClassifiedState::CodexRedactus
+    } else {
+        ClassifiedState::Public
+    };
+
+    ObserverView {
+        last_verified_tick: 0,
+        confidence,
+        suspected_presences: suspected,
+        propaganda_state: propaganda,
+        classified_state: classified,
+    }
+}
+
+/// §I3 — derive baseline intel for an entire sector, writing both system and
+/// world layers in place. `observer_ids` is typically every distinct
+/// `faction_id` known to the sector.
+pub fn derive_intel(sector: &mut crate::sector_model::GeneratedSector, observer_ids: &[&str]) {
+    for sys in sector.systems.iter_mut() {
+        sys.intel = derive_system_intel(sys, observer_ids);
+        for w in sys.worlds.iter_mut() {
+            w.intel = derive_world_intel(w, observer_ids);
+        }
+    }
+}
+
 fn derive_observer_view(sys: &GeneratedSystem, observer: &str) -> ObserverView {
     let mut suspected: Vec<SuspectedPresence> = Vec::new();
     for w in &sys.worlds {
@@ -254,6 +313,7 @@ mod tests {
             stability: Default::default(),
             regions: Vec::new(),
             conflict: Default::default(),
+            intel: Default::default(),
         }
     }
 

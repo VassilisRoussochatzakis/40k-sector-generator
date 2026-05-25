@@ -44,6 +44,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.label(format!("route from: {id}"));
         }
     });
+    crate::builder::panels::intel::show_map_intel_controls(ui, state);
     ui.separator();
 
     egui::ScrollArea::both().show(ui, |ui| {

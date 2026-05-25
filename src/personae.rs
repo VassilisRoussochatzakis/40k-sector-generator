@@ -1049,6 +1049,7 @@ mod tests {
                 stability: Default::default(),
                 regions: vec![],
                 conflict: Default::default(),
+                intel: Default::default(),
             }],
             primary_factions: vec!["imp".into()],
             tags: vec![],

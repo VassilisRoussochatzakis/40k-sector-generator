@@ -1386,6 +1386,15 @@ is also scoped to observer factions with at least one presence in the
 system; rumor views for unrelated observers can be reconstructed on
 demand from the raw system state.
 
+`GeneratedWorld` also carries an `intel` field of the same
+`SystemIntel` type (BUILDER_REQS §I2). The per-world record stores
+observer-faction views keyed by faction id; it shadows the omniscient
+view for the listed observers and is also skipped on serialise when
+empty. `sectorforge::intel::derive_world_intel` / `derive_intel` build
+baseline observer views from each world's `factions` list +
+`control.dominant` / `tags`. The builder app surfaces both layers
+through `panels/intel.rs` (see [Intel editor](#intel-editor) below).
+
 `sector.json` is the canonical JSON artifact and already contains every
 `GeneratedSystem`. Per-system JSON files under `systems/sys-NNNN.json`
 duplicate those entries and are off by default. Enable
@@ -2153,6 +2162,31 @@ Tests live in [builder/src/builder/panels/relations.rs](builder/src/builder/pane
 
 * `recompute_relations_builds_pair_for_two_factions`, `upsert_override_pins_attitude_through_recompute`, `pair_override_wins_over_kind_default`, `feed_conflict_round_trips_to_matrix`, `min_world_presence_filters_matrix`, `canonical_pair_sorts_inputs`.
 
+<a id="intel-editor"></a>
+#### I1–I5 intel panel (DONE)
+
+BUILDER_REQS §29. The intel / fog-of-war surface lives in [builder/src/builder/panels/intel.rs](builder/src/builder/panels/intel.rs) and is mounted from three places:
+
+* SYSTEM tab — `show_system_intel_section` under the system inspector's `§I1 — Intel / fog of war` collapsing header.
+* WORLD tab — `show_world_intel_section` under the world inspector's `§I2 — Intel / fog of war` collapsing header, plus a `redact_world_for_observer` preview when an observer lens or non-zero cutoff is active.
+* MAP tab — `show_map_intel_controls` row hosting the §I4 observer combo, §I5 cutoff slider, and the §I3 baseline button.
+
+Storage is `GeneratedSystem.intel: SystemIntel` (already present) plus the new `GeneratedWorld.intel: SystemIntel` field on `src/sector_model/mod.rs`. Both fields skip-on-default so empty observer records do not appear in `sector.json`. The new `sectorforge::intel::derive_world_intel` builds an `ObserverView` per faction id from a world's `factions` list + `control.dominant` + tag set; the top-level `sectorforge::intel::derive_intel(&mut sector, observer_ids)` walks every system and world and overwrites the records — that is what the §I3 button calls.
+
+| Piece | Where it lives |
+|---|---|
+| I1 per-system editor | `show_system_intel_section` → `show_observer_editor` over `sys.intel.by_observer`. Each `ObserverView` row exposes `last_verified_tick` DragValue, confidence Slider 0..=100, propaganda + classified state ComboBoxes, and a nested `suspected_presences` list (faction id, `IntelSource` combo, confidence slider, `×` remove). `+ observer` row adds an observer keyed by an existing faction id or a free-text key. |
+| I2 per-world editor | `show_world_intel_section` reuses the same `show_observer_editor` against `world.intel.by_observer`. Below the editor it renders `show_world_redaction_preview`, which calls `sectorforge::intel::redact_world_for_observer(world, observer_id, cutoff)` whenever an observer lens is active. |
+| I3 Generate baseline intel | `run_baseline_intel` collects every distinct `sector.factions[i].id` as an observer set and calls `sectorforge::intel::derive_intel`. Available from the MAP row and from both intel sections so the baseline can be regenerated without leaving the active tab. Marks `state.dirty` + arms validation. |
+| I4 observer lens | `show_map_intel_controls` ComboBox bound to `BuilderState::intel_observer: Option<FactionId>`. The `(omniscient)` entry maps to `None`; selecting a faction id arms the redaction preview on the WORLD tab. A "clear lens" button resets to `None` in one click. |
+| I5 player cutoff | `show_map_intel_controls` `egui::Slider 0..=100` bound to `BuilderState::intel_player_min_confidence: u8` (default `0`). Both intel sections render the slider's current value in the header strip so users can see the active cutoff at a glance. |
+
+Tests live in [builder/src/builder/panels/intel.rs](builder/src/builder/panels/intel.rs):
+
+* `run_baseline_intel_writes_system_and_world_records`, `run_baseline_intel_with_factions_populates_observers`.
+
+`GeneratedWorld` literal sites were updated in one pass to initialise the new field with `intel: Default::default(),` (script-driven, see `git log` for the touched files); existing world `SystemIntel` records remain empty unless the §I3 button is pressed or the user adds an observer manually.
+
 ---
 
 ## 9. Library use
@@ -2556,6 +2590,7 @@ across runs, so a regression check is a diff away.
 | [builder/src/builder/panels/generation.rs](builder/src/builder/panels/generation.rs) | §6 G1..G6 Generation panel (parameters parity / seed lock + re-roll / live preview / Apply / partial regen / New from preset) hosted under PROJECT tab |
 | [builder/src/builder/panels/economy.rs](builder/src/builder/panels/economy.rs) | §15 E1..E7 Economy panel — per-world/system overrides, stranded list, lifeline highlight toggle, heatmap picker, `economy.toml` editor; MAP-side helpers `stranded_system_ids` + `lifeline_route_ids` |
 | [builder/src/builder/panels/relations.rs](builder/src/builder/panels/relations.rs) | §16 REL1..REL9 Relations panel — diplomacy matrix grid, symmetric + directional cell editor pinning attitudes / treaty / 7 numeric dimensions, kind / disposition / pair_overrides editors, `feed_conflict` toggle, `min_world_presence` slider, Recompute + auto-recompute + Save relations.toml |
+| [builder/src/builder/panels/intel.rs](builder/src/builder/panels/intel.rs) | §29 I1..I5 Intel panel helpers — `show_system_intel_section` (SYSTEM tab), `show_world_intel_section` (WORLD tab), `show_map_intel_controls` (observer combo + cutoff slider + baseline button), `run_baseline_intel` wrapper around `sectorforge::intel::derive_intel` |
 | [src/sector_model/mutation.rs](src/sector_model/mutation.rs) | Canonical sector-mutation API — sole entry point used by the builder bus |
 | [src/presets.rs](src/presets.rs) | Adds `scaffold_to_dir(preset_id, dest, seed_override)` for §P1 — default `presets/` resolution + binary-adjacent fallback |
 

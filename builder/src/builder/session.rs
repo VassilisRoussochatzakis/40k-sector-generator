@@ -183,6 +183,8 @@ impl SessionFile {
             selected_history_event: None,
             history_auto_recompute: false,
             history_wizard: None,
+            intel_observer: None,
+            intel_player_min_confidence: 0,
         }
     }
 }

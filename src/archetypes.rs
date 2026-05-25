@@ -505,6 +505,7 @@ mod tests {
             stability: Default::default(),
             regions: Vec::new(),
             conflict: Default::default(),
+            intel: Default::default(),
         }
     }
 

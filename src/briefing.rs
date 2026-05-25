@@ -571,6 +571,7 @@ mod tests {
             stability: Default::default(),
             regions: Vec::new(),
             conflict: Default::default(),
+            intel: Default::default(),
         };
         let sys = GeneratedSystem {
             id: "sys-0001".into(),

@@ -338,6 +338,7 @@ pub fn empty_world(system_index: usize, index: usize, name: String) -> Generated
         stability: Default::default(),
         regions: Vec::new(),
         conflict: Default::default(),
+        intel: Default::default(),
     }
 }
 

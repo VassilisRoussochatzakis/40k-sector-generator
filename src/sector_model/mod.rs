@@ -169,6 +169,11 @@ pub struct GeneratedWorld {
         skip_serializing_if = "crate::conflict::ConflictState::is_default"
     )]
     pub conflict: crate::conflict::ConflictState,
+    /// Intel / fog-of-war record for the world, keyed by observer faction
+    /// id (§29 BUILDER_REQS, mirror of `GeneratedSystem.intel`). Empty when
+    /// full omniscient view is in effect.
+    #[serde(default, skip_serializing_if = "crate::intel::SystemIntel::is_empty")]
+    pub intel: crate::intel::SystemIntel,
 }
 
 /// Serializable view over `crate::worlds::World`. Variant names are stable
@@ -349,6 +354,7 @@ impl GeneratedWorld {
             stability: crate::stability::StabilityState::default(),
             regions: Vec::new(),
             conflict: crate::conflict::ConflictState::default(),
+            intel: crate::intel::SystemIntel::default(),
         }
     }
 }

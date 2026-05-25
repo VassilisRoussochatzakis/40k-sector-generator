@@ -783,6 +783,7 @@ mod tests {
             stability: Default::default(),
             regions: vec![],
             conflict: Default::default(),
+            intel: Default::default(),
         }
     }
 

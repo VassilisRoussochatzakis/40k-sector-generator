@@ -235,7 +235,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Search              [P]       §26   (wishes UI exists; need full constraints)
   Diff + ticks        [G]       §27
   Conflict + stability[G]       §28
-  Intel / visibility  [G]       §29
+  Intel / visibility  [X]       §29   (per-system + per-world editors, baseline derive_intel, observer lens, player cutoff)
   Archetypes          [G]       §30
   Orbital assets      [G]       §31
   Surface regions     [G]       §32
@@ -1221,17 +1221,40 @@ CF6.  Conflict heatmap option in §35.
 29. INTEL + VISIBILITY
 ================================================================================
 
-I1.   Per-system intel editor: per-observer-faction record with
-      suspected/propaganda/classified state, confidence (0..=100).
+I1.   [DONE] Per-system intel editor lives under the SYSTEM tab as
+      `§I1 — Intel / fog of war` (see
+      `builder/src/builder/panels/intel.rs::show_system_intel_section`).
+      Each observer faction id maps to an `ObserverView` row with
+      `last_verified_tick`, confidence (0..=100), propaganda + classified
+      state combos, and a nested `suspected_presences` list (faction id,
+      `IntelSource`, confidence). Backing store is
+      `GeneratedSystem::intel.by_observer`.
 
-I2.   Per-world intel editor (same pattern).
+I2.   [DONE] Per-world intel editor mirrors §I1 under the WORLD tab as
+      `§I2 — Intel / fog of war`. Same `ObserverView` editor + redaction
+      preview, scoped to a new `GeneratedWorld.intel: SystemIntel` field
+      added in `src/sector_model/mod.rs`. `src/intel.rs::derive_world_intel`
+      builds the per-world observer view; both layers serialise with
+      `skip_serializing_if = "SystemIntel::is_empty"` so omniscient
+      sectors stay compact on disk.
 
-I3.   "Generate baseline intel" runs `src/intel.rs::derive_intel`.
+I3.   [DONE] "§I3 Generate baseline intel" button on the MAP / SYSTEM /
+      WORLD intel sections calls `sectorforge::intel::derive_intel` over
+      the live sector with every distinct `sector.factions[i].id` as the
+      observer set. Pre-existing observer records are overwritten. Marks
+      the project dirty + arms validation.
 
-I4.   Observer toggle in main map: view sector as observer faction X.
-      Hidden-tier presences below confidence cutoff redacted.
+I4.   [DONE] Observer-faction lens on the MAP tab via
+      `show_map_intel_controls`. The combo writes
+      `BuilderState::intel_observer: Option<FactionId>` (`None` =
+      omniscient). The §I2 redaction preview consumes the lens through
+      `sectorforge::intel::redact_world_for_observer` so hidden presences
+      are dropped from the per-world readout in real time.
 
-I5.   Player-edition cutoff slider (`player_min_confidence` config).
+I5.   [DONE] `player_min_confidence` slider on the same MAP control row,
+      bound to `BuilderState::intel_player_min_confidence: u8` (0..=100,
+      default 0). Cutoff feeds `redact_world_for_observer` so the
+      WORLD-tab redaction preview matches the `--player` export gate.
 
 ================================================================================
 30. ARCHETYPES
@@ -1764,8 +1787,8 @@ Phase C — Overlays editable
                      derive_with_threshold; §REL9 Recompute matrix
                      button + auto-recompute on edit + Save
                      relations.toml passthrough via project_io::save_project)
-  H1..H8, - DONE 
-  I1..I5,     (§29 intel + visibility)
+  H1..H8 - DONE 
+  I1..I5 - DONE
   AR1..AR3,   (§30 archetypes)
   O1..O2,     (§31 orbital assets)
   SU1..SU2,   (§32 surface regions)

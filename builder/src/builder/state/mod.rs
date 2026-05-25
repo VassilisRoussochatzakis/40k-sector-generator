@@ -282,6 +282,14 @@ pub struct BuilderState {
     /// §H5: scratch state for the "Add event" wizard. `None` when the wizard is
     /// closed; populated by the panel when the user clicks "+ event".
     pub history_wizard: Option<HistoryWizardState>,
+    /// §I4: observer-faction lens for the MAP / SYSTEM / WORLD intel tabs.
+    /// `None` = omniscient view (default). When set, the intel editors render
+    /// the observer's recorded view and the §I5 cutoff redaction kicks in.
+    pub intel_observer: Option<FactionId>,
+    /// §I5: player-edition confidence cutoff. Hidden-tier presences below this
+    /// value are redacted from per-world readouts. 0 = show everything,
+    /// 100 = redact everything outside the observer's own presences.
+    pub intel_player_min_confidence: u8,
 }
 
 impl BuilderState {
@@ -372,6 +380,8 @@ impl BuilderState {
             selected_history_event: None,
             history_auto_recompute: false,
             history_wizard: None,
+            intel_observer: None,
+            intel_player_min_confidence: 0,
         }
     }
 }

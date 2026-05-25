@@ -107,6 +107,7 @@ pub(super) fn generate_worlds_for_system(
             stability: crate::stability::StabilityState::default(),
             regions: Vec::new(),
             conflict: Default::default(),
+            intel: Default::default(),
         });
     }
     // Sort by orbit for stable output.

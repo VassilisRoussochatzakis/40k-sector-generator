@@ -11,6 +11,10 @@ pools, deterministic placement, systems, worlds, routes, factions,
 subsector clustering, validation, export, an interactive GUI viewer/editor, and
 a dedicated builder app.
 
+New to the builder UI? Start with [BUILDER.md](BUILDER.md) — a procedural
+step-by-step walkthrough that takes a first-time user from launching the app
+to a small saved sector, touching every major panel along the way.
+
 ---
 
 ## 0. Prerequisites

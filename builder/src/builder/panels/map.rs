@@ -17,7 +17,9 @@ use sectorforge::ids::{self, SystemId};
 use sectorforge::sector_model::HexCoord;
 use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 
-use sectorforge_gui_core::sector_view::{paint_system_rings, SectorGeom, SectorMapCache, SectorView};
+use sectorforge_gui_core::sector_view::{
+    paint_system_rings, SectorGeom, SectorMapCache, SectorView,
+};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::derivation_cache::digest_input;

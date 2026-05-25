@@ -1224,6 +1224,48 @@ To get different output, change the seed:
 sectorforge generate --project examples/m42_project --seed alternative-seed
 ```
 
+### 4.1 Threading & snapshot model — what the GUI relies on
+
+(OPTIMIZE.txt G6: documents the guarantees the optimisation spec §6 calls
+"GUI-specific review template" items 1–8.)
+
+- **Single source of truth.** The authoritative `GeneratedSector` lives in one
+  place per app. The GUI keeps it behind `Arc<GeneratedSector>` snapshots
+  ([gui/src/app/mod.rs](gui/src/app/mod.rs)); the builder keeps it inside a
+  preview-state cell ([builder/src/builder/preview.rs](builder/src/builder/preview.rs)).
+  Workers receive an immutable snapshot; UI threads never read a sector that
+  is mid-write.
+- **Workers are `std::thread` + `mpsc::channel`.** No async runtime, no
+  rayon. Generation, hashing, PNG export, and HTML export all run off the
+  egui event loop ([gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs),
+  [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs),
+  [gui-core/src/jobs.rs](gui-core/src/jobs.rs)). The GUI never blocks for
+  more than the cost of dispatch.
+- **Revision IDs on every long job.** Each background job carries a
+  monotonic revision attached to the input snapshot. When the worker returns,
+  the GUI compares the result's revision to the current revision and discards
+  any stale result. See `apply_result` in
+  [builder/src/builder/preview.rs:223](builder/src/builder/preview.rs#L223)
+  and `preview_job_revision` in [gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs).
+- **Cooperative cancellation.** `generate_with_progress_and_cancel` takes a
+  `should_cancel` closure that is polled at every major emit (see
+  [src/generation.rs](src/generation.rs) — the `check_cancelled!` /
+  `emit!` macros). The GUI flips an `Arc<AtomicBool>` to abandon a stale
+  preview without waiting for it to finish; the worker returns
+  `SectorError::GenerationCancelled`.
+- **Selection & hover bind to typed IDs.** GUI state references entities by
+  `SystemId` / `WorldId` / `RouteId` ([src/ids.rs](src/ids.rs)), never by
+  vec index. A regeneration that reorders systems will not silently rebind
+  a selection to a different system.
+- **No locks held across rendering.** `egui` receives an `Arc<GeneratedSector>`
+  clone for the frame and drops it at frame end; the worker side never
+  takes a `Mutex` that overlaps the paint pass.
+
+If you add a new long-running job to the GUI or builder, follow the same
+pattern: snapshot the inputs, run on a `std::thread`, attach a revision,
+poll a cancellation flag, deliver via `mpsc::Sender`, and reject stale
+results on receive.
+
 ---
 
 ## 5. World data files
@@ -2442,3 +2484,82 @@ Maps and sets across the crate use the std default `RandomState` (SipHash). For 
 ### Optimization review backlog
 
 See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. GUI preview job revision/cancellation handling and off-thread GUI exports are now implemented; the next highest-priority items are derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.
+
+### Profiling profile (OPTIMIZE.txt G5)
+
+`cargo build --profile profiling` produces a release-grade binary that keeps
+frame pointers, line-tables-only debug info, and unstripped symbols so
+flamegraph / samply / Instruments can resolve stack frames. The release
+profile strips symbols and uses a single codegen unit; the profiling profile
+relaxes both so re-runs link in seconds.
+
+```bash
+# Flamegraph (Linux/macOS — needs `cargo install flamegraph`)
+cargo flamegraph --profile profiling --bin sectorforge -- \
+    generate --project examples/m42_project --allow-warnings
+
+# samply (cross-platform — `cargo install samply`)
+cargo build --profile profiling --bin sectorforge
+samply record ./target/profiling/sectorforge generate --project examples/m42_project --allow-warnings
+```
+
+### Heap profiling with `dhat` (OPTIMIZE.txt G4)
+
+`Cargo.toml` declares an optional `dhat` dependency gated behind the
+`dhat-heap` feature. Enabling it compiles a separate
+[`dhat-profile`](src/bin/dhat_profile.rs) binary that runs the full
+`load → generate → render → encode → serialise` pipeline under the dhat
+allocator. Default builds pay zero cost — the dependency, feature, and
+binary all stay inert.
+
+```bash
+cargo run --release --features dhat-heap --bin dhat-profile -- examples/m42_project
+# Opens dhat-heap.json in CWD; view at
+# https://nnethercote.github.io/dh_view/dh_view.html
+```
+
+### Criterion benchmark phases (OPTIMIZE.txt G1)
+
+[benches/generation.rs](benches/generation.rs) runs five groups across the
+tiny / normal / large scale matrix from the optimisation spec §5B:
+
+- `generate_sector` — pure generation; isolated per iteration with
+  `iter_batched`.
+- `validate_project` / `validate_sector_invariants` — pre- and post-generation
+  validation hot paths.
+- `render_sector_image` — bitmap rasterisation alone, no PNG encode, no I/O
+  ([src/bitmap/mod.rs](src/bitmap/mod.rs) exposes `render_sector_image` for
+  this purpose).
+- `encode_png_bytes` — PNG encoder cost on a pre-rasterised image. Splitting
+  raster from encode lets you see whether image compression or pixel layout
+  is the bottleneck.
+
+Run all groups: `cargo bench --bench generation`. Run one group:
+`cargo bench --bench generation -- encode_png_bytes`.
+
+### Stage timings (OPTIMIZE.txt G7)
+
+`SectorProgress::StageElapsed { stage, millis }` is emitted at the end of
+each major pipeline phase: `world_pool`, `placements`, `regions`,
+`systems_build`, `factions`, `public_routes`, `route_controls`,
+`system_state`, `archetypes`, `power_projection`, `influence_field`,
+`relations`, `economy`, `chronicle`. The CLI logs them at the same level as
+structural progress so a single `sectorforge generate` run gives you a stage
+histogram for free. Listeners that wildcard-match on `SectorProgress` need
+no changes; consumers that want the histogram can filter for
+`StageElapsed`.
+
+### Determinism regression tests
+
+In addition to the JSON-byte test in
+[tests/golden_generation.rs](tests/golden_generation.rs):
+
+- [tests/cli_gui_parity.rs](tests/cli_gui_parity.rs) (OPTIMIZE.txt G2) spawns
+  the compiled `sectorforge` binary and asserts that its `sector.json`
+  matches the in-process library path the GUI uses. Catches drift between
+  CLI-only and GUI-only code paths.
+- [tests/golden_png.rs](tests/golden_png.rs) (OPTIMIZE.txt G3) hashes the
+  PNG output of two independent generation runs and asserts the hashes
+  agree, then asserts the hash changes when the seed changes. Detects any
+  HashMap iteration-order leak or other nondeterminism reaching the
+  rasteriser / PNG encoder.

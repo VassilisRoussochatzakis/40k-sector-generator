@@ -153,6 +153,42 @@ pub fn write_sector_png_to_with(
     save_png_fast(&img, path)
 }
 
+/// OPTIMIZE.txt G1: pure rasterisation (no PNG encoding, no disk I/O). Returns
+/// the in-memory RGBA image so benches and golden tests can isolate
+/// rasterisation cost from PNG encode cost.
+#[must_use]
+pub fn render_sector_image(
+    sector: &GeneratedSector,
+    scale: u32,
+    subsectors: Option<&[Subsector]>,
+    opts: RenderOptions,
+) -> RgbaImage {
+    render(sector, scale, subsectors, opts)
+}
+
+/// OPTIMIZE.txt G1: encode an in-memory RGBA image to PNG bytes. Same encoder
+/// settings as [`write_bitmap`] (fast deflate, no filter). Bench / golden-test
+/// only — production callers should use [`write_bitmap`] /
+/// [`write_sector_png_to`] which stream straight to disk.
+///
+/// # Errors
+///
+/// Returns [`SectorError::ExportFailed`] if the encoder rejects the buffer.
+pub fn encode_png_bytes(img: &RgbaImage) -> Result<Vec<u8>, SectorError> {
+    let mut buf: Vec<u8> = Vec::with_capacity(img.as_raw().len() / 4);
+    let encoder =
+        PngEncoder::new_with_quality(&mut buf, CompressionType::Fast, FilterType::NoFilter);
+    encoder
+        .write_image(
+            img.as_raw(),
+            img.width(),
+            img.height(),
+            ExtendedColorType::Rgba8,
+        )
+        .map_err(|e| SectorError::export("<memory>", e.to_string()))?;
+    Ok(buf)
+}
+
 // ── Rendering ───────────────────────────────────────────────────────────────
 
 /// Map pixel bounds matching the GUI's `sector_view` layout. Includes the

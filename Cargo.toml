@@ -14,6 +14,12 @@ path = "src/lib.rs"
 name = "sectorforge"
 path = "src/main.rs"
 
+# OPTIMIZE.txt G4: heap-profiling driver. Only compiles with `--features dhat-heap`.
+[[bin]]
+name = "dhat-profile"
+path = "src/bin/dhat_profile.rs"
+required-features = ["dhat-heap"]
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive", "rc"] }
@@ -25,6 +31,15 @@ rand_chacha = "0.3"
 blake3 = "1"
 camino = { version = "1", features = ["serde1"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
+# OPTIMIZE.txt G4: optional heap profiler. Off by default — zero cost in
+# normal builds. Enable with: `cargo build --features dhat-heap --bin dhat-profile`.
+dhat = { version = "0.3", optional = true }
+
+[features]
+default = []
+# OPTIMIZE.txt G4: gate dhat-heap behind a feature so production builds stay
+# allocator-free.
+dhat-heap = ["dep:dhat"]
 
 [dev-dependencies]
 tempfile = "3"
@@ -44,3 +59,13 @@ strip = "symbols"
 [profile.bench]
 lto = "thin"
 codegen-units = 1
+
+# OPTIMIZE.txt G5: profiling profile inherits release but keeps frame pointers,
+# line-table debug info, and symbols so flamegraph/samply/Instruments resolve.
+# Use: `cargo build --profile profiling --bin sectorforge`
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = "none"
+codegen-units = 16
+lto = "thin"

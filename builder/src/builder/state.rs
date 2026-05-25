@@ -1086,11 +1086,7 @@ impl BuilderState {
         use sectorforge::economy::{
             apply_stability_nudge, derive_with, ResourceVector, RESOURCE_KEYS,
         };
-        let mut cfg = self
-            .data_catalogs
-            .economy
-            .clone()
-            .unwrap_or_default();
+        let mut cfg = self.data_catalogs.economy.clone().unwrap_or_default();
         cfg.enabled = true;
         let mut report = derive_with(&self.sector, &cfg);
 

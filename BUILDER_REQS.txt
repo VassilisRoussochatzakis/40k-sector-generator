@@ -80,7 +80,7 @@ R1.   [DONE] Single source of truth = `GeneratedSector` from
       direct ownership behind `&mut BuilderState` — equivalent to the
       `Rc<RefCell<>>` option in the spec (GUI thread is sole writer; jobs
       hold cloned read-only snapshots). Design choice documented in
-      `builder/src/builder/state.rs`.
+      `builder/src/builder/state/mod.rs`.
 
 R2.   [DONE] All `BuilderCommand`, `BuilderIndex`, `BuilderState`, and
       `SessionFile` ID fields are the typed `SystemId` / `WorldId` /
@@ -288,7 +288,9 @@ D4.   [DONE] Re-index pass (`GeneratedSector::reindex_ids`) manages `sys-NNNN`,
       (`id_history` in `GeneratedSector`) when `stable_ids_on_rename`
       is enabled in the builder.
 
-D5.   [DONE] `BuilderState` (in `builder/src/builder/state.rs`):
+D5.   [DONE] `BuilderState` (in `builder/src/builder/state/mod.rs`; method
+      impl blocks split per concern across `state/{types, selection, undo,
+      derivations, regions_ops, generation_ops}.rs`):
         - `sector: GeneratedSector`
         - `project_path: Option<Utf8PathBuf>` (use `camino`)
         - `config: SectorforgeConfig` (from `src/config.rs`)
@@ -1549,7 +1551,7 @@ N1.   [DONE] Top-level tabs: PROJECT | MAP | SYSTEM | WORLD | FACTIONS |
       HISTORY | PERSONAE | HOOKS | SITES | MISSIONS | PROSE |
       ANALYTICS | INTERESTINGNESS | SEARCH | DIFF | BRIEFING |
       SEGMENTUM | EXPORT.
-      `builder/src/builder/state.rs::BuilderTab` enumerates all 24 tabs;
+      `builder/src/builder/state/types.rs::BuilderTab` enumerates all 24 tabs;
       `BuilderTab::ALL` is the canonical ordering used by the top tab
       strip. Active tab persists on `BuilderState::active_tab` (defaults
       to `Project`). Tests `default_tab_is_project`,
@@ -1589,7 +1591,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
 
 N3.   [DONE] Map tab keeps the editor toolbox
       (ADD/DELETE/MOVE/ROUTE/REGION paint).
-      `builder/src/builder/state.rs::MapTool` enumerates Select / AddSystem
+      `builder/src/builder/state/types.rs::MapTool` enumerates Select / AddSystem
       / DeleteSystem / MoveSystem / AddRoute / RegionPaint;
       `BuilderState::map_tool` holds the armed tool (default `Select`).
       `builder/src/builder/panels/map.rs::show_toolbox` renders the strip

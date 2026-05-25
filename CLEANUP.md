@@ -125,9 +125,11 @@
 
 ---
 
-## SPLIT-006 — Split [builder/src/builder/state.rs](builder/src/builder/state.rs) (1707 LOC)
+## SPLIT-006 — Split [builder/src/builder/state.rs](builder/src/builder/state.rs) (1707 LOC) — ✅ DONE
 
 **Scope:** God-object risk. Split by concern.
+
+**Result:** `state.rs` (1707 LOC) → `builder/src/builder/state/` package: `mod.rs` (441; struct definition + `new_blank` + `default_config` + slice facade with `pub use`), `types.rs` (354; UI/dialog types — `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `Pending*`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, `DEFAULT_*` consts), `selection.rs` (29; `focus_system`, `toggle_system_selection`), `undo.rs` (123; R4 command bus — `run`, `undo`, `redo`, `enforce_command_log_capacity`, `snapshot`, `trigger_auto_save`), `derivations.rs` (298; `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`), `regions_ops.rs` (106; §REG1..§REG3 helpers), `generation_ops.rs` (257; `generate_system_here`, `regenerate_world`, `apply_preview`, `regenerate_partial`, `reroll_seed`, `find_world_indices`), `tests.rs` (198; ring-buffer + undo/redo + debounce + nav-default tests). Public API preserved (`BuilderState`, `ModalKind`, `PartialRegenRect`, every `BuilderTab` / `MapTool` / `ControlOverlay` / `HealthLevel` / `MapViewCache` / `HistoryAnchorKind` / `HistoryWizardState` / `JobHandle` / `Pending*` / `DEFAULT_*` accessed through `crate::builder::state::*`). All 162 unit + 50 integration + 107 builder + 3 gui + 8 gui-core + 1 map_snapshot + 6 doc tests green; builder binary builds + `--help` runs.
 
 **Steps:**
 1. Identify state slices: project, selection, panels, undo, derivations, dialogs.
@@ -135,10 +137,10 @@
 3. Top-level `state/mod.rs` composes them into the root `BuilderState`.
 
 **Acceptance:**
-- Builder launches: `cargo run -p sectorforge-builder`
-- All panels still mount
-- Update [BUILDER_REQS.txt](BUILDER_REQS.txt) architecture notes
-- Update [CLAUDE.md](CLAUDE.md) source-layout
+- [x] Builder launches: `cargo run -p sectorforge-builder` (build + `--help` smoke green)
+- [x] All panels still mount (every `crate::builder::state::TYPE` import resolves via the facade re-exports)
+- [x] Update [BUILDER_REQS.txt](BUILDER_REQS.txt) architecture notes (R1, D5, N1, N3 paths refreshed)
+- [x] Update [CLAUDE.md](CLAUDE.md) source-layout (new rows for `state/mod.rs` + each slice)
 
 ---
 

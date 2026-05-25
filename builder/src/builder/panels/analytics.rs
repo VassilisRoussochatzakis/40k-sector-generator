@@ -1,4 +1,5 @@
 //! ANALYTICS tab (§N1 / §N2). Phase E §A1..§A4 fills the analytics dashboard.
+// TODO(docs/BUILDER_REQS.txt §A1..§A4): implement — tracked in §41 Outstanding panels.
 
 use crate::builder::BuilderState;
 

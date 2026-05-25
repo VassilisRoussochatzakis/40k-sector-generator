@@ -1589,6 +1589,30 @@ N2.   [DONE] Each tab corresponds to a panel module under
       Stub panels share `panels/placeholder.rs` so each unfinished body
       announces the phase + section that fills the tab.
 
+      Outstanding panels (ground-truth tracker for STUB-001; each stub file
+      carries a matching `// TODO(docs/BUILDER_REQS.txt §X.Y): implement`
+      header so `rg "TODO.docs/BUILDER_REQS"` enumerates the same set):
+
+        Phase D
+          [ ] panels/briefing.rs        §BR1..§BR5  briefing editor
+          [ ] panels/hooks.rs           §HK1..§HK6  hook editor
+          [ ] panels/interestingness.rs §INT1..§INT4 scorer
+          [ ] panels/missions.rs        §M1..§M5    mission editor
+          [ ] panels/personae.rs        §PER1..§PER5 persona editor
+          [ ] panels/prose.rs           §PR1..§PR4  prose editor
+          [ ] panels/sites.rs           §ST1..§ST4  site editor
+
+        Phase E
+          [ ] panels/analytics.rs       §A1..§A4    analytics dashboard
+          [ ] panels/diff.rs            §DF1..§DF5  diff + tick editor
+          [ ] panels/export.rs          §EX1..§EX8  export bundle editor
+          [ ] panels/search.rs          §SR1..§SR5  wishes/search editor
+          [ ] panels/segmentum.rs       §SG1..§SG5  compose editor
+
+      `panels/placeholder.rs` is the shared 13-LOC routing-fallback helper
+      every stub above calls — it is NOT a stub itself and stays after the
+      last Phase D/E panel above lands.
+
 N3.   [DONE] Map tab keeps the editor toolbox
       (ADD/DELETE/MOVE/ROUTE/REGION paint).
       `builder/src/builder/state/types.rs::MapTool` enumerates Select / AddSystem

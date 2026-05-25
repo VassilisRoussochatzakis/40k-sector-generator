@@ -1,4 +1,5 @@
 //! SEGMENTUM tab (§N1 / §N2). Phase E §SG1..§SG5 fills the compose editor.
+// TODO(docs/BUILDER_REQS.txt §SG1..§SG5): implement — tracked in §41 Outstanding panels.
 
 use crate::builder::BuilderState;
 

@@ -144,10 +144,12 @@
 
 ---
 
-## STUB-001 — Resolve 14 stub panel files (8 LOC each)
+## STUB-001 — Resolve 14 stub panel files (8 LOC each) — ✅ DONE
 
 **Files (all under [builder/src/builder/panels/](builder/src/builder/panels/)):**
 `segmentum.rs`, `hooks.rs`, `briefing.rs`, `diff.rs`, `search.rs`, `prose.rs`, `missions.rs`, `analytics.rs`, `interestingness.rs`, `sites.rs`, `personae.rs`, `export.rs`, `placeholder.rs`, plus any other 8-LOC files in that dir.
+
+**Result:** Audited every 8-LOC file under [builder/src/builder/panels/](builder/src/builder/panels/). Found 12 phase-stubs (`analytics.rs`, `briefing.rs`, `diff.rs`, `export.rs`, `hooks.rs`, `interestingness.rs`, `missions.rs`, `personae.rs`, `prose.rs`, `search.rs`, `segmentum.rs`, `sites.rs`) — all 12 are explicitly planned in [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) §41/N2 panel-to-module map (lines 1577–1588), so each one now carries a `// TODO(docs/BUILDER_REQS.txt §X.Y): implement` header line beneath its module doc, naming the exact section range that fills the tab (e.g. `// TODO(docs/BUILDER_REQS.txt §A1..§A4): implement — tracked in §41 Outstanding panels.`). Added a new "Outstanding panels" tracking block to [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) §41/N2 (right after the panel map) listing every outstanding stub by file → §-range → one-line purpose, grouped by Phase D vs Phase E, so `rg "TODO.docs/BUILDER_REQS" builder/src/builder/panels/` and the §41 tracker enumerate the same set. [placeholder.rs](builder/src/builder/panels/placeholder.rs) (13 LOC) is the shared routing-fallback helper every stub calls — kept, with a one-line note in the tracker recording that it is the helper rather than a stub. No file deletions, no `mod` removals, no `nav.rs` dispatch changes (all 12 panels are still routed by [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) so the `BuilderTab::ALL` iteration test still has a target per arm). `cargo fmt`, `cargo check -p sectorforge-builder`, `cargo build -p sectorforge-builder`, `cargo test -p sectorforge-builder` (107 passed) all green; `sectorforge-builder --help` runs.
 
 **Steps:**
 1. For each stub, consult [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) — is the panel planned?
@@ -156,9 +158,9 @@
 4. `placeholder.rs` — keep only if used by routing fallback, otherwise delete.
 
 **Acceptance:**
-- No 8-LOC stubs without a `TODO(BUILDER_REQS §X.Y)` reference
-- `cargo build -p sectorforge-builder` clean
-- [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) reflects ground truth
+- [x] No 8-LOC stubs without a `TODO(BUILDER_REQS §X.Y)` reference
+- [x] `cargo build -p sectorforge-builder` clean
+- [x] [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) reflects ground truth
 
 ---
 
@@ -185,7 +187,10 @@
 
 ---
 
-## TEST-001 — Raise test coverage on hot modules — ✅ DONE
+## TEST-001 — Raise test coverage on hot modules — ⚠️ NEEDS-RERUN (previously ✅ DONE)
+
+> **Re-verification required.** STUB-001 edited 12 stub panel files + [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt). The four `tests/it/*` integration suites (`economy_tests.rs`, `relations_tests.rs`, `personae_tests.rs`, `hooks_tests.rs`) target library modules unrelated to the touched builder panels, so a regression is not expected, but the proptest-driven determinism + golden-markdown assertions need to be re-run before this task can be reconfirmed `DONE`. Action: run `cargo test --test it` and re-tick the acceptance boxes if green; otherwise diagnose. The acceptance checkboxes below are left in their pre-STUB-001 state for the rerun to confirm.
+
 
 **Scope:** 1.4k test LOC vs 44k src LOC is thin. Don't pad — add tests for **specific gaps**.
 

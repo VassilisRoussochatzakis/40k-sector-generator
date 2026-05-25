@@ -1,4 +1,5 @@
 //! HOOKS tab (§N1 / §N2). Phase D §HK1..§HK6 fills the hook editor.
+// TODO(docs/BUILDER_REQS.txt §HK1..§HK6): implement — tracked in §41 Outstanding panels.
 
 use crate::builder::BuilderState;
 

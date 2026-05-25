@@ -37,7 +37,21 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [src/svg_export.rs](src/svg_export.rs) | Vector SVG sector map mirroring `bitmap` |
 | [src/search.rs](src/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/diff.rs](src/diff.rs) | §10 sector diff: model-aware before/after report |
-| [src/history.rs](src/history.rs) | §1 chronicle: dated in-universe event derivation |
+| [src/history/mod.rs](src/history/mod.rs) | §1 chronicle facade: `derive*`, orchestration, `anchor_key`, `pub use` surface |
+| [src/history/config.rs](src/history/config.rs) | `HistoryConfig`/`HistoryFile`/`HistoryEra`/`HistoryEventRule` + defaults |
+| [src/history/model.rs](src/history/model.rs) | Output DTOs: `HistoryReport`, `HistoryEvent`, `HistoryAnchor`, `EventKind` (+ topo/weight), entity/consequence types |
+| [src/history/context.rs](src/history/context.rs) | `EmitContext` borrowed state threaded into emit families |
+| [src/history/progress.rs](src/history/progress.rs) | `HistoryProgress` enum + progress-stride helpers |
+| [src/history/build.rs](src/history/build.rs) | Event construction: `build_event`, date/era synthesis, entity refs, consequences |
+| [src/history/worlds.rs](src/history/worlds.rs) | Per-world emission: foundation, claims, contested control, hidden cults, purges |
+| [src/history/systems.rs](src/history/systems.rs) | Per-system emission: system state + archetype activations (necron/tyranid/ork/GSC/tau/aeldari/chaos) |
+| [src/history/routes.rs](src/history/routes.rs) | Per-route emission: warp hazards, concealed passages, pirate/interdictor control |
+| [src/history/subsectors.rs](src/history/subsectors.rs) | Per-subsector emission: clustering vs deterministic sampling |
+| [src/history/regions.rs](src/history/regions.rs) | Per-region emission: warp phenomena → chronicle entries |
+| [src/history/rules.rs](src/history/rules.rs) | Declarative `[[event_rules]]` enforcement + `EventKind` aliases |
+| [src/history/labels.rs](src/history/labels.rs) | Small string helpers: `kind_slug`, `article_phrase`, `gsc_stage_label`, `tau_band_label` |
+| [src/history/markdown.rs](src/history/markdown.rs) | `render_markdown` + `write_report` (history.md/json) |
+| [src/history/tests.rs](src/history/tests.rs) | Determinism + smoke tests for the chronicle pipeline |
 | [src/personae.rs](src/personae.rs) | §3 dramatis personae: named characters per faction presence |
 | [src/hooks.rs](src/hooks.rs) | §7 plot-hook generator: condition→template over model state |
 | [src/prose.rs](src/prose.rs) | §6 gazetteer prose: deterministic template grammar |

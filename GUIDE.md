@@ -475,6 +475,18 @@ covers:
 so derived chronicles stay byte-stable while authored entries survive
 regen.
 
+Internal layout (post-SPLIT-003): `src/history/` is split by emission
+family. `mod.rs` is the public facade (`derive*`, orchestration, `pub
+use`). `config.rs` holds `HistoryConfig`/`HistoryEra`/`HistoryEventRule`
++ defaults; `model.rs` holds the output DTOs and `EventKind`
+(topo/weight); `progress.rs` holds `HistoryProgress`; `context.rs` holds
+the borrowed `EmitContext`. `build.rs` is the shared event constructor
+(date/era/id/entity/consequence). Emission families are one file each:
+`worlds.rs`, `systems.rs`, `routes.rs`, `subsectors.rs`, `regions.rs`.
+`rules.rs` enforces `[[event_rules]]`. `labels.rs` is tiny string
+helpers. `markdown.rs` renders the chronicle Markdown + writes
+`history.{md,json}`. `tests.rs` holds determinism + smoke tests.
+
 ### `sectorforge personae` (§3 old/DONE.md)
 
 Deterministic dramatis personae overlay. Anchors a named character on

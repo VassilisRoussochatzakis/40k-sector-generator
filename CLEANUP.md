@@ -64,16 +64,24 @@
 
 ---
 
-## SPLIT-003 — Split [src/history.rs](src/history.rs) (2118 LOC)
+## SPLIT-003 — Split [src/history.rs](src/history.rs) (2118 LOC) — ✅ DONE
 
-**Scope:** 1 file → `src/history/` directory, organized by event derivation domain.
+**Scope:** 1 file → `src/history/` directory, organized by emission family.
+
+**Result:** `history.rs` (2118 LOC) → `src/history/` package: `mod.rs` (172; facade + `derive*` orchestrator + `anchor_key`), `config.rs` (189), `model.rs` (200; DTOs + `EventKind` topo/weight), `context.rs` (14), `progress.rs` (54), `build.rs` (228; `build_event`, date/era/id/entity/consequence), `worlds.rs` (178), `systems.rs` (197), `routes.rs` (117), `subsectors.rs` (200), `regions.rs` (78), `rules.rs` (152; `apply_event_rules` + `event_kind_from_str`), `labels.rs` (69), `markdown.rs` (166), `tests.rs` (219). Public API preserved (`derive`, `derive_with`, `derive_with_progress`, `HistoryProgress`, `HistoryConfig`, `HistoryFile`, `HistoryEra`, `HistoryEventRule`, `HistoryReport`, `SectorChronicle`, `HistoryEvent`, `HistoryAnchor`, `EventKind`, `HistoryEntityKind`, `HistoryEntityRef`, `HistoryConsequence`, `HistoryConsequenceKind`, `render_markdown`, `write_report`). All 218 tests green; chronicle output byte-stable.
 
 **Steps:**
 1. Inspect derivation functions. Group by event family (founding, conflicts, schisms, contact events, calamities, etc.).
 2. One submodule per family: `src/history/<family>.rs`.
 3. Shared types stay in `src/history/mod.rs`.
 
-**Acceptance:** As SPLIT-001. Update [GUIDE.md](GUIDE.md) §1 chronicle section.
+**Acceptance:**
+- [x] `mod.rs` ≤ 300 LOC (172)
+- [x] No new public symbols; no removed ones
+- [x] All callers compile unchanged
+- [x] `cargo test` green (162 unit + 50 integration + 6 doc)
+- [x] Update [CLAUDE.md](CLAUDE.md) source-layout table with new files
+- [x] Update [GUIDE.md](GUIDE.md) §1 chronicle section
 
 ---
 

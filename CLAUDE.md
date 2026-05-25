@@ -68,7 +68,27 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [src/regions.rs](src/regions.rs) | §5 regional warp phenomena overlay: seeded blob growth + route effects |
 | [src/economy.rs](src/economy.rs) | §12 trade & resource economy: production/consumption + route volume |
 | [src/segmentum.rs](src/segmentum.rs) | §14 multi-sector composition: child loader + deterministic stitch + super-manifest |
-| [src/main.rs](src/main.rs) | CLI (sectorforge binary) |
+| [src/main.rs](src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps errors to exit 2 |
+| [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli` + `Command` enum + per-variant `run` dispatcher |
+| [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: JSON printing, validation/invariant/workbook printers, `parse_heatmap`, `load_or_regenerate`, `log_*progress` |
+| [src/cli/generate.rs](src/cli/generate.rs) | `generate` + `generate-system` runners (with §15 NEW2 constraint search wiring) |
+| [src/cli/validate.rs](src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
+| [src/cli/analyze.rs](src/cli/analyze.rs) | `analyze` runner |
+| [src/cli/presets.rs](src/cli/presets.rs) | `new` + `list-presets` runners |
+| [src/cli/search.rs](src/cli/search.rs) | `search` runner |
+| [src/cli/history.rs](src/cli/history.rs) | `history` runner |
+| [src/cli/personae.rs](src/cli/personae.rs) | `personae` runner |
+| [src/cli/hooks.rs](src/cli/hooks.rs) | `hooks` runner |
+| [src/cli/prose.rs](src/cli/prose.rs) | `prose` runner |
+| [src/cli/relations.rs](src/cli/relations.rs) | `relations` runner |
+| [src/cli/regions.rs](src/cli/regions.rs) | `regions` runner |
+| [src/cli/economy.rs](src/cli/economy.rs) | `economy` runner |
+| [src/cli/compose.rs](src/cli/compose.rs) | `compose` runner |
+| [src/cli/interestingness.rs](src/cli/interestingness.rs) | `interestingness` runner + profile parser |
+| [src/cli/briefing.rs](src/cli/briefing.rs) | `briefing` runner |
+| [src/cli/missions.rs](src/cli/missions.rs) | `missions` runner |
+| [src/cli/sites.rs](src/cli/sites.rs) | `sites` runner |
+| [src/cli/diff.rs](src/cli/diff.rs) | `diff` runner + `DiffArgs` |
 | [src/config.rs](src/config.rs) | sectorforge.toml schema |
 | [src/rng.rs](src/rng.rs) | Deterministic RNG |
 | [src/taxonomy.rs](src/taxonomy.rs) | Variant-name ↔ enum bridge |

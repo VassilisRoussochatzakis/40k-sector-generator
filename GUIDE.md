@@ -2408,7 +2408,27 @@ across runs, so a regression check is a diff away.
 | File | Purpose |
 |---|---|
 | [src/lib.rs](src/lib.rs) | Public API surface and re-exports (with doc-tests + `# Errors` on every fallible fn) |
-| [src/main.rs](src/main.rs) | Clap-based CLI (`sectorforge` binary) |
+| [src/main.rs](src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps `SectorError` → exit code 2 |
+| [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli`/`Command` definitions + per-variant `run` dispatcher |
+| [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `load_or_regenerate`, all `log_*progress` hooks |
+| [src/cli/generate.rs](src/cli/generate.rs) | `generate` + `generate-system` runners (incl. §15 NEW2 constraint search wiring) |
+| [src/cli/validate.rs](src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
+| [src/cli/analyze.rs](src/cli/analyze.rs) | `analyze` runner — §8 NEW.md analytics dashboard |
+| [src/cli/presets.rs](src/cli/presets.rs) | `new` + `list-presets` runners |
+| [src/cli/search.rs](src/cli/search.rs) | `search` runner — §2 NEW.md seed search |
+| [src/cli/history.rs](src/cli/history.rs) | `history` runner — §1 NEW2.md chronicle derivation |
+| [src/cli/personae.rs](src/cli/personae.rs) | `personae` runner — §3 NEW.md dramatis personae |
+| [src/cli/hooks.rs](src/cli/hooks.rs) | `hooks` runner — §7 NEW.md adventure hooks |
+| [src/cli/prose.rs](src/cli/prose.rs) | `prose` runner — §6 NEW.md gazetteer prose |
+| [src/cli/relations.rs](src/cli/relations.rs) | `relations` runner — §5 NEW2.md diplomacy matrix |
+| [src/cli/regions.rs](src/cli/regions.rs) | `regions` runner — §5 NEW.md warp-phenomena overlay |
+| [src/cli/economy.rs](src/cli/economy.rs) | `economy` runner — §12 NEW.md / §4 NEW2.md trade snapshot |
+| [src/cli/compose.rs](src/cli/compose.rs) | `compose` runner — §14 NEW.md multi-sector segmentum |
+| [src/cli/interestingness.rs](src/cli/interestingness.rs) | `interestingness` runner — §18 NEW2.md scorecard + profile parser |
+| [src/cli/briefing.rs](src/cli/briefing.rs) | `briefing` runner — §9 NEW2.md audience redaction pack |
+| [src/cli/missions.rs](src/cli/missions.rs) | `missions` runner — §3 NEW2.md mission seeds |
+| [src/cli/sites.rs](src/cli/sites.rs) | `sites` runner — §7 NEW2.md planetary points-of-interest |
+| [src/cli/diff.rs](src/cli/diff.rs) | `diff` runner + `DiffArgs` — §10 NEW.md sector diff |
 | [gui/src/main.rs](gui/src/main.rs) | GUI binary entry point (`sectorforge-gui`) |
 | [builder/src/main.rs](builder/src/main.rs) | Builder binary entry point (`sectorforge-builder`) |
 | [builder/src/app.rs](builder/src/app.rs) | Thin eframe app host for builder workspaces |

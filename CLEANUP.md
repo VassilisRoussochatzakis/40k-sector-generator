@@ -106,9 +106,11 @@
 
 ---
 
-## SPLIT-005 — Split [src/main.rs](src/main.rs) (1814 LOC) — CLI dispatch
+## SPLIT-005 — Split [src/main.rs](src/main.rs) (1814 LOC) — CLI dispatch — ✅ DONE
 
-**Scope:** 1 file → `src/bin/sectorforge/` (or `src/cli/` module called from `main.rs`).
+**Scope:** 1 file → `src/cli/` module called from `main.rs`.
+
+**Result:** `main.rs` (1814 LOC) → minimal entry (18 LOC: parses `cli::Cli`, dispatches `cli::run`, maps `SectorError` → exit 2). New `src/cli/` package: `mod.rs` (618; clap `Cli`/`Command` enums + dispatcher), `common.rs` (484; shared helpers — `print_json`/`to_json_pretty`, validation/invariant/workbook printers, `parse_heatmap`, `load_or_regenerate`, `log_progress`/`log_sector_progress`/`log_segmentum_progress`), plus 18 per-subcommand runner modules: `generate.rs` (183 — includes §15 NEW2 constraint search), `validate.rs` (66; `validate`/`validate-sector`/`render-markdown`/`inspect-worlds`), `diff.rs` (54; runner + `DiffArgs`), `compose.rs` (51), `relations.rs` (49), `analyze.rs` (48), `economy.rs` (48), `interestingness.rs` (47; +profile parser), `search.rs` (46), `history.rs` (43), `sites.rs` (43), `personae.rs` (42), `briefing.rs` (37), `prose.rs` (36), `hooks.rs` (32), `regions.rs` (32), `missions.rs` (31), `presets.rs` (31; `new`+`list-presets`). `--help` output unchanged, CLI ↔ library parity test green. All 218 tests pass (162 unit + 50 integration + 6 doc).
 
 **Steps:**
 1. Keep `fn main()` minimal — only arg parsing entry + dispatch.
@@ -116,9 +118,10 @@
 3. Shared helpers in `cli/common.rs`.
 
 **Acceptance:**
-- `cargo run --bin sectorforge -- --help` output unchanged
-- [tests/it/cli_gui_parity.rs](tests/it/cli_gui_parity.rs) passes
-- Update [GUIDE.md](GUIDE.md) CLI section
+- [x] `cargo run --bin sectorforge -- --help` output unchanged
+- [x] [tests/it/cli_gui_parity.rs](tests/it/cli_gui_parity.rs) passes
+- [x] Update [GUIDE.md](GUIDE.md) CLI section
+- [x] Update [CLAUDE.md](CLAUDE.md) source-layout table
 
 ---
 

@@ -2350,6 +2350,10 @@ Notable suites:
 - [tests/it/invariants_proptest.rs](tests/it/invariants_proptest.rs) — proptest fuzz: invariants + determinism across random seeds, sector sizes, world ranges
 - [tests/it/validation_tests.rs](tests/it/validation_tests.rs) — adverse inputs
 - [tests/it/analytics_and_presets.rs](tests/it/analytics_and_presets.rs) — §8/§9 old/DONE.md: analytics determinism + writers, preset scaffolding round-trip
+- [tests/it/economy_tests.rs](tests/it/economy_tests.rs) — §12 economy: disabled/enabled config behaviour, per-world/per-system/per-route entry coverage, friction/strategic-output bounds, golden markdown anchors, proptest determinism over random seeds (TEST-001)
+- [tests/it/relations_tests.rs](tests/it/relations_tests.rs) — §4 relations: every faction pair covered, canonical ordering, `stance_between` order-independence, tension/cause invariants, golden markdown header row, proptest determinism (TEST-001)
+- [tests/it/personae_tests.rs](tests/it/personae_tests.rs) — §3 dramatis personae: faction/system/world anchor validity, sector-wide name uniqueness, `max_per_world`/`max_per_system` caps, golden markdown structure, proptest determinism (TEST-001)
+- [tests/it/hooks_tests.rs](tests/it/hooks_tests.rs) — §7 plot hooks: anchor validity for system/world/route variants, id uniqueness, descending weight ordering, `hide_hidden_hooks` filter, golden markdown attribute lines, proptest determinism (TEST-001)
 - [tests/it/segmentum_tests.rs](tests/it/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
 
 Benchmarks (criterion):

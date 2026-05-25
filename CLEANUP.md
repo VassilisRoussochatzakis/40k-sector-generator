@@ -185,9 +185,11 @@
 
 ---
 
-## TEST-001 — Raise test coverage on hot modules
+## TEST-001 — Raise test coverage on hot modules — ✅ DONE
 
 **Scope:** 1.4k test LOC vs 44k src LOC is thin. Don't pad — add tests for **specific gaps**.
+
+**Result:** Four new integration-test files added under [tests/it/](tests/it/), one per prioritised module — each pairs a `proptest`-driven determinism check (random seed → byte-identical derived JSON, 16 cases per module) with structural invariants and a golden-markdown test against the m42 fixture. New suites: [tests/it/economy_tests.rs](tests/it/economy_tests.rs) (8 tests: disabled/enabled config, per-world/per-system/per-route entry coverage, friction ∈ [0,1.5], strategic-output finiteness, markdown anchors + disabled-message branch, fixture + random-seed determinism), [tests/it/relations_tests.rs](tests/it/relations_tests.rs) (7 tests: every faction pair covered, canonical ordering, `stance_between` order-independence, tension/cause invariants, full-matrix markdown header, fixture + random-seed determinism), [tests/it/personae_tests.rs](tests/it/personae_tests.rs) (7 tests: report metadata, faction/system/world anchor validity, sector-wide name uniqueness, `max_per_world`/`max_per_system` caps via public config, markdown structure, fixture + random-seed determinism), [tests/it/hooks_tests.rs](tests/it/hooks_tests.rs) (7 tests: report metadata, anchor validity for `System`/`World`/`Route` variants + id uniqueness, descending-weight ordering, `hide_hidden_hooks` filter, markdown attribute lines, fixture + random-seed determinism). Wired through [tests/it.rs](tests/it.rs). All 247 tests green (162 unit + 79 integration + 6 doc); fmt clean.
 
 **Steps:**
 1. Run: `cargo test -- --list | wc -l` to baseline.
@@ -197,8 +199,8 @@
 5. Add golden tests where output is stable text/markdown.
 
 **Acceptance:**
-- Each of the four modules above has ≥ 1 dedicated integration test in `tests/it/`
-- Update [GUIDE.md](GUIDE.md) "Testing" section if it exists
+- [x] Each of the four modules above has ≥ 1 dedicated integration test in `tests/it/`
+- [x] Update [GUIDE.md](GUIDE.md) "Testing" section if it exists
 
 ---
 

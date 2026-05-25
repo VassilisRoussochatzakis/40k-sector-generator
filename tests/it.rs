@@ -5,16 +5,24 @@
 mod analytics_and_presets;
 #[path = "it/cli_gui_parity.rs"]
 mod cli_gui_parity;
+#[path = "it/economy_tests.rs"]
+mod economy_tests;
 #[path = "it/golden_generation.rs"]
 mod golden_generation;
 #[path = "it/golden_png.rs"]
 mod golden_png;
+#[path = "it/hooks_tests.rs"]
+mod hooks_tests;
 #[path = "it/imports_test.rs"]
 mod imports_test;
 #[path = "it/invariants_proptest.rs"]
 mod invariants_proptest;
 #[path = "it/invariants_tests.rs"]
 mod invariants_tests;
+#[path = "it/personae_tests.rs"]
+mod personae_tests;
+#[path = "it/relations_tests.rs"]
+mod relations_tests;
 #[path = "it/search_and_diff.rs"]
 mod search_and_diff;
 #[path = "it/segmentum_tests.rs"]

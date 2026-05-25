@@ -243,10 +243,18 @@ fn show_view_editor(
                 .changed();
             ui.end_row();
             ui.label("propaganda_state");
-            dirty |= propaganda_combo(ui, &format!("{id_salt}_{observer}_prop"), &mut view.propaganda_state);
+            dirty |= propaganda_combo(
+                ui,
+                &format!("{id_salt}_{observer}_prop"),
+                &mut view.propaganda_state,
+            );
             ui.end_row();
             ui.label("classified_state");
-            dirty |= classified_combo(ui, &format!("{id_salt}_{observer}_cls"), &mut view.classified_state);
+            dirty |= classified_combo(
+                ui,
+                &format!("{id_salt}_{observer}_cls"),
+                &mut view.classified_state,
+            );
             ui.end_row();
         });
 
@@ -281,8 +289,11 @@ fn show_view_editor(
 
     ui.horizontal_wrapped(|ui| {
         ui.label("+ suspected:");
-        let existing: std::collections::BTreeSet<_> =
-            view.suspected_presences.iter().map(|s| s.faction_id.clone()).collect();
+        let existing: std::collections::BTreeSet<_> = view
+            .suspected_presences
+            .iter()
+            .map(|s| s.faction_id.clone())
+            .collect();
         for (fid, name) in factions {
             if existing.contains(fid) {
                 continue;
@@ -494,10 +505,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 0, r: 0 }, "A")
             .unwrap();
-        state
-            .sector
-            .add_world_to_system(&sys, "World One")
-            .unwrap();
+        state.sector.add_world_to_system(&sys, "World One").unwrap();
         // Roster has zero factions, so observer_ids is empty and the records
         // stay empty — but we still expect the call not to panic and to mark
         // dirty.
@@ -516,10 +524,7 @@ mod tests {
             .sector
             .add_system(HexCoord { q: 0, r: 0 }, "A")
             .unwrap();
-        let wid = state
-            .sector
-            .add_world_to_system(&sys, "World One")
-            .unwrap();
+        let wid = state.sector.add_world_to_system(&sys, "World One").unwrap();
         state.sector.factions.push(GeneratedFaction {
             id: "imp".into(),
             name: "Imperium".into(),

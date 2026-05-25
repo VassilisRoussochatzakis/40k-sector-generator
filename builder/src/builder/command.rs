@@ -8,12 +8,79 @@
 
 use serde::{Deserialize, Serialize};
 
+use sectorforge::archetypes::ArchetypeState;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
     RouteStability, RouteType,
 };
+
+/// §AR3: per-axis enable mask for `BuilderCommand::AutoAssignArchetypes`. A
+/// disabled axis is reset to its default after `sectorforge::archetypes::
+/// apply_all` runs, so the user can opt a faction archetype out of the
+/// sector-wide derivation without forking `src/archetypes.rs`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchetypeApplyFlags {
+    pub imperial: bool,
+    pub necron: bool,
+    pub tyranid: bool,
+    pub ork: bool,
+    pub gsc: bool,
+    pub tau: bool,
+    pub aeldari: bool,
+    pub chaos: bool,
+}
+
+impl Default for ArchetypeApplyFlags {
+    fn default() -> Self {
+        Self {
+            imperial: true,
+            necron: true,
+            tyranid: true,
+            ork: true,
+            gsc: true,
+            tau: true,
+            aeldari: true,
+            chaos: true,
+        }
+    }
+}
+
+impl ArchetypeApplyFlags {
+    /// Reset every axis on `state` whose flag is `false` to the default value
+    /// from `ArchetypeState::default()`. Used by
+    /// `BuilderCommand::AutoAssignArchetypes::apply` after
+    /// `sectorforge::archetypes::apply_all` writes its derived values.
+    pub fn mask(self, state: &mut ArchetypeState) {
+        let d = ArchetypeState::default();
+        if !self.imperial {
+            state.imperial_co_sovereigns = d.imperial_co_sovereigns.clone();
+        }
+        if !self.necron {
+            state.necron_phase = d.necron_phase;
+        }
+        if !self.tyranid {
+            state.tyranid_stage = d.tyranid_stage;
+        }
+        if !self.ork {
+            state.ork_waaagh = d.ork_waaagh;
+        }
+        if !self.gsc {
+            state.gsc_stage = d.gsc_stage;
+        }
+        if !self.tau {
+            state.tau_sphere = d.tau_sphere;
+        }
+        if !self.aeldari {
+            state.aeldari_activity = d.aeldari_activity;
+        }
+        if !self.chaos {
+            state.chaos_corruption = d.chaos_corruption;
+            state.daemon_manifestation = d.daemon_manifestation;
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BuilderCommand {
@@ -87,6 +154,20 @@ pub enum BuilderCommand {
     RemoveFaction {
         id: FactionId,
         before: Option<Box<GeneratedFaction>>,
+    },
+    /// §AR1: pin one system's `ArchetypeState` to `after`. `before` is filled
+    /// by `apply` so `revert` restores the prior value exactly.
+    SetArchetype {
+        system: SystemId,
+        before: Option<Box<ArchetypeState>>,
+        after: ArchetypeState,
+    },
+    /// §AR2: sector-wide auto-assign that runs `sectorforge::archetypes::
+    /// apply_all` then masks per-axis using `flags`. `before` snapshots every
+    /// system's prior state so `revert` is a deterministic restore.
+    AutoAssignArchetypes {
+        flags: ArchetypeApplyFlags,
+        before: Vec<(SystemId, ArchetypeState)>,
     },
 }
 
@@ -217,6 +298,33 @@ impl BuilderCommand {
                 *before = Some(Box::new(f));
                 Ok(())
             }
+            Self::SetArchetype {
+                system,
+                before,
+                after,
+            } => {
+                let prev = sector
+                    .systems
+                    .iter()
+                    .find(|s| s.id == *system)
+                    .map(|s| s.archetype.clone())
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                sector.set_archetype(system, after.clone())?;
+                *before = Some(Box::new(prev));
+                Ok(())
+            }
+            Self::AutoAssignArchetypes { flags, before } => {
+                *before = sector
+                    .systems
+                    .iter()
+                    .map(|s| (s.id.clone(), s.archetype.clone()))
+                    .collect();
+                sectorforge::archetypes::apply_all(sector);
+                for sys in &mut sector.systems {
+                    flags.mask(&mut sys.archetype);
+                }
+                Ok(())
+            }
         }
     }
 
@@ -307,6 +415,20 @@ impl BuilderCommand {
             Self::RemoveFaction { before, .. } => {
                 if let Some(f) = before {
                     sector.factions.push((**f).clone());
+                }
+                Ok(())
+            }
+            Self::SetArchetype { system, before, .. } => {
+                if let Some(prev) = before {
+                    sector.set_archetype(system, (**prev).clone())?;
+                }
+                Ok(())
+            }
+            Self::AutoAssignArchetypes { before, .. } => {
+                for (id, state) in before {
+                    if sector.systems.iter().any(|s| s.id == *id) {
+                        sector.set_archetype(id, state.clone())?;
+                    }
                 }
                 Ok(())
             }
@@ -423,6 +545,55 @@ mod tests {
         assert_eq!(s.routes, after);
         cmd.revert(&mut s).unwrap();
         assert_eq!(s.routes, before);
+    }
+
+    #[test]
+    fn set_archetype_round_trip() {
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 1, r: 1 }, "A").unwrap();
+        let mut after = ArchetypeState::default();
+        after.ork_waaagh = 73;
+        after.necron_phase = sectorforge::archetypes::NecronPhase::Awakening;
+        let mut cmd = BuilderCommand::SetArchetype {
+            system: id.clone(),
+            before: None,
+            after: after.clone(),
+        };
+        cmd.apply(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(sys.archetype.ork_waaagh, 73);
+        assert_eq!(
+            sys.archetype.necron_phase,
+            sectorforge::archetypes::NecronPhase::Awakening
+        );
+        cmd.revert(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert!(ArchetypeState::is_default(&sys.archetype));
+    }
+
+    #[test]
+    fn auto_assign_archetypes_round_trip_respects_flag_mask() {
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        // Pre-seed a non-default archetype so revert has something to restore.
+        let mut seed = ArchetypeState::default();
+        seed.ork_waaagh = 11;
+        s.set_archetype(&id, seed.clone()).unwrap();
+        let flags = ArchetypeApplyFlags {
+            ork: false,
+            ..ArchetypeApplyFlags::default()
+        };
+        let mut cmd = BuilderCommand::AutoAssignArchetypes {
+            flags,
+            before: Vec::new(),
+        };
+        cmd.apply(&mut s).unwrap();
+        // Ork axis is masked → defaults restored; pre-seeded value gone.
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(sys.archetype.ork_waaagh, 0);
+        cmd.revert(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(sys.archetype.ork_waaagh, 11);
     }
 
     /// R8 determinism: a fixed command sequence applied to a blank sector

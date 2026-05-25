@@ -73,6 +73,12 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             show_overlays_section(ui, state, sys_idx);
             ui.add_space(4.0);
+            show_archetype_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_archetype_auto_assign(ui, state);
+            ui.add_space(4.0);
+            show_archetype_rules(ui, state);
+            ui.add_space(4.0);
             crate::builder::panels::intel::show_system_intel_section(ui, state, sys_idx);
             ui.add_space(8.0);
             show_regen_section(ui, state, sys_idx);
@@ -501,12 +507,254 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                 sectorforge::intel::SystemIntel::is_empty(&sys.intel)
             ));
             ui.label(format!(
-                "archetype default: {}",
+                "archetype default: {} (see §AR1 / §30 — Archetypes section)",
                 sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype)
             ));
             ui.horizontal(|ui| {
                 if ui.button("Open REGIONS").clicked() {
                     state.active_tab = BuilderTab::Regions;
+                }
+            });
+        });
+}
+
+// ── AR1 / AR2 / AR3 — Archetypes (§30) ─────────────────────────────────────
+
+fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+    use sectorforge::archetypes::{
+        ArchetypeState, GscStage, NecronPhase, TauSphereBand, TyranidStage,
+    };
+
+    let sys_id = state.sector.systems[sys_idx].id.clone();
+    let mut working = state.sector.systems[sys_idx].archetype.clone();
+    let original = working.clone();
+
+    egui::CollapsingHeader::new("§AR1 — Archetypes (§30)")
+        .default_open(false)
+        .show(ui, |ui| {
+            ui.colored_label(
+                Color32::GRAY,
+                "per-axis progression markers. flavour notes live in the Tags / Notes section.",
+            );
+            ui.add_space(4.0);
+
+            egui::Grid::new("archetype_axes")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label("imperial co-sovereigns");
+                    ui.vertical(|ui| {
+                        let mut remove_at: Option<usize> = None;
+                        for (i, fid) in working.imperial_co_sovereigns.iter().enumerate() {
+                            ui.horizontal(|ui| {
+                                ui.monospace(fid.to_string());
+                                if ui.small_button("×").clicked() {
+                                    remove_at = Some(i);
+                                }
+                            });
+                        }
+                        if let Some(i) = remove_at {
+                            working.imperial_co_sovereigns.remove(i);
+                        }
+                        ui.horizontal(|ui| {
+                            let mut to_add: Option<sectorforge::ids::FactionId> = None;
+                            egui::ComboBox::from_id_salt("arch_imp_add")
+                                .selected_text("+ add")
+                                .show_ui(ui, |ui| {
+                                    for f in &state.sector.factions {
+                                        if working.imperial_co_sovereigns.contains(&f.id) {
+                                            continue;
+                                        }
+                                        if ui.button(format!("{} ({})", f.id, f.name)).clicked() {
+                                            to_add = Some(f.id.clone());
+                                        }
+                                    }
+                                });
+                            if let Some(fid) = to_add {
+                                working.imperial_co_sovereigns.push(fid);
+                            }
+                        });
+                    });
+                    ui.end_row();
+
+                    ui.label("necron phase");
+                    egui::ComboBox::from_id_salt("arch_necron")
+                        .selected_text(format!("{:?}", working.necron_phase))
+                        .show_ui(ui, |ui| {
+                            for v in [
+                                NecronPhase::None,
+                                NecronPhase::Dormant,
+                                NecronPhase::Awakening,
+                                NecronPhase::Awake,
+                            ] {
+                                ui.selectable_value(&mut working.necron_phase, v, format!("{v:?}"));
+                            }
+                        });
+                    ui.end_row();
+
+                    ui.label("tyranid stage");
+                    egui::ComboBox::from_id_salt("arch_tyranid")
+                        .selected_text(format!("{:?}", working.tyranid_stage))
+                        .show_ui(ui, |ui| {
+                            for v in [
+                                TyranidStage::None,
+                                TyranidStage::Inhabited,
+                                TyranidStage::Besieged,
+                                TyranidStage::Consumed,
+                            ] {
+                                ui.selectable_value(
+                                    &mut working.tyranid_stage,
+                                    v,
+                                    format!("{v:?}"),
+                                );
+                            }
+                        });
+                    ui.end_row();
+
+                    ui.label("ork waaagh!");
+                    ui.add(egui::Slider::new(&mut working.ork_waaagh, 0..=100).text("/100"));
+                    ui.end_row();
+
+                    ui.label("genestealer stage");
+                    egui::ComboBox::from_id_salt("arch_gsc")
+                        .selected_text(format!("{:?}", working.gsc_stage))
+                        .show_ui(ui, |ui| {
+                            for v in [
+                                GscStage::None,
+                                GscStage::Rumor,
+                                GscStage::HiddenCell,
+                                GscStage::DistrictControl,
+                                GscStage::ParallelGovernment,
+                                GscStage::Uprising,
+                                GscStage::PlanetarySeizure,
+                            ] {
+                                ui.selectable_value(&mut working.gsc_stage, v, format!("{v:?}"));
+                            }
+                        });
+                    ui.end_row();
+
+                    ui.label("tau sphere");
+                    egui::ComboBox::from_id_salt("arch_tau")
+                        .selected_text(format!("{:?}", working.tau_sphere))
+                        .show_ui(ui, |ui| {
+                            for v in [
+                                TauSphereBand::None,
+                                TauSphereBand::Contact,
+                                TauSphereBand::Fringe,
+                                TauSphereBand::Client,
+                                TauSphereBand::Core,
+                            ] {
+                                ui.selectable_value(&mut working.tau_sphere, v, format!("{v:?}"));
+                            }
+                        });
+                    ui.end_row();
+
+                    ui.label("aeldari activity");
+                    ui.add(egui::Slider::new(&mut working.aeldari_activity, 0..=100).text("/100"));
+                    ui.end_row();
+
+                    ui.label("chaos corruption");
+                    ui.add(egui::Slider::new(&mut working.chaos_corruption, 0..=100).text("/100"));
+                    ui.end_row();
+
+                    ui.label("daemon manifestation");
+                    ui.add(
+                        egui::Slider::new(&mut working.daemon_manifestation, 0..=100).text("/100"),
+                    );
+                    ui.end_row();
+                });
+
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                if ui.button("Reset to default").clicked() {
+                    working = ArchetypeState::default();
+                }
+                if ui
+                    .button("Auto-assign from sector data (this system only)")
+                    .on_hover_text(
+                        "Runs the §AR2 derivation over the full sector and keeps only \
+                         this system's freshly derived archetype.",
+                    )
+                    .clicked()
+                {
+                    let mut scratch = state.sector.clone();
+                    sectorforge::archetypes::apply_all(&mut scratch);
+                    if let Some(s) = scratch.systems.iter().find(|s| s.id == sys_id) {
+                        working = s.archetype.clone();
+                        state.archetype_flags.mask(&mut working);
+                    }
+                }
+            });
+        });
+
+    if working != original {
+        let cmd = BuilderCommand::SetArchetype {
+            system: sys_id,
+            before: None,
+            after: working,
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!("Archetype update failed: {e}")));
+        }
+    }
+}
+
+fn show_archetype_auto_assign(ui: &mut Ui, state: &mut BuilderState) {
+    egui::CollapsingHeader::new("§AR2 — Auto-assign archetypes (sector-wide)")
+        .default_open(false)
+        .show(ui, |ui| {
+            ui.colored_label(
+                Color32::GRAY,
+                "runs `sectorforge::archetypes::apply_all` over the whole sector, \
+                 masked by the §AR3 enable flags below. Undoable.",
+            );
+            if ui.button("Run apply_all now").clicked() {
+                let flags = state.archetype_flags;
+                let cmd = BuilderCommand::AutoAssignArchetypes {
+                    flags,
+                    before: Vec::new(),
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.modal = Some(ModalKind::Message(format!("Auto-assign failed: {e}")));
+                }
+            }
+        });
+}
+
+fn show_archetype_rules(ui: &mut Ui, state: &mut BuilderState) {
+    egui::CollapsingHeader::new("§AR3 — Archetype rules (builder-only defaults)")
+        .default_open(false)
+        .show(ui, |ui| {
+            ui.colored_label(
+                Color32::GRAY,
+                "`src/archetypes.rs` ships no TOML config layer, so these flags \
+                 live on `BuilderState` only and are not serialised into \
+                 `sector.json`. Disabled axes are reset to defaults after §AR2.",
+            );
+            let flags = &mut state.archetype_flags;
+            ui.checkbox(&mut flags.imperial, "imperial governance stack (§16.1)");
+            ui.checkbox(&mut flags.necron, "necron phase (§16.9)");
+            ui.checkbox(&mut flags.tyranid, "tyranid front (§16.8)");
+            ui.checkbox(&mut flags.ork, "ork waaagh! (§16.7)");
+            ui.checkbox(&mut flags.gsc, "genestealer stages (§16.6)");
+            ui.checkbox(&mut flags.tau, "tau sphere (§16.11)");
+            ui.checkbox(&mut flags.aeldari, "aeldari intermittent (§16.10)");
+            ui.checkbox(&mut flags.chaos, "chaos corruption + daemon (§16.12)");
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                if ui.button("Enable all").clicked() {
+                    *flags = crate::builder::command::ArchetypeApplyFlags::default();
+                }
+                if ui.button("Disable all").clicked() {
+                    *flags = crate::builder::command::ArchetypeApplyFlags {
+                        imperial: false,
+                        necron: false,
+                        tyranid: false,
+                        ork: false,
+                        gsc: false,
+                        tau: false,
+                        aeldari: false,
+                        chaos: false,
+                    };
                 }
             });
         });

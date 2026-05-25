@@ -126,11 +126,7 @@ fn derive_world_observer_view(w: &GeneratedWorld, observer: &str) -> ObserverVie
     } else {
         PropagandaState::None
     };
-    let classified = if w
-        .tags
-        .iter()
-        .any(|t| t.as_ref().ends_with(":quarantined"))
-    {
+    let classified = if w.tags.iter().any(|t| t.as_ref().ends_with(":quarantined")) {
         ClassifiedState::CodexRedactus
     } else {
         ClassifiedState::Public

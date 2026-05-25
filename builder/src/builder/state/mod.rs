@@ -290,6 +290,11 @@ pub struct BuilderState {
     /// value are redacted from per-world readouts. 0 = show everything,
     /// 100 = redact everything outside the observer's own presences.
     pub intel_player_min_confidence: u8,
+    /// §AR3: per-axis enable mask used by `BuilderCommand::AutoAssignArchetypes`.
+    /// Defaults to all axes enabled. Stored on `BuilderState` only — never
+    /// serialised into `sector.json` because `src/archetypes.rs` has no TOML
+    /// config layer.
+    pub archetype_flags: super::command::ArchetypeApplyFlags,
 }
 
 impl BuilderState {
@@ -382,6 +387,7 @@ impl BuilderState {
             history_wizard: None,
             intel_observer: None,
             intel_player_min_confidence: 0,
+            archetype_flags: super::command::ArchetypeApplyFlags::default(),
         }
     }
 }

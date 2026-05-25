@@ -236,7 +236,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Diff + ticks        [G]       §27
   Conflict + stability[G]       §28
   Intel / visibility  [X]       §29   (per-system + per-world editors, baseline derive_intel, observer lens, player cutoff)
-  Archetypes          [G]       §30
+  Archetypes          [X]       §30   (per-system AR1 editor + AR2 sector-wide apply_all + AR3 per-axis enable mask)
   Orbital assets      [G]       §31
   Surface regions     [G]       §32
   Validation surface  [P]       §33
@@ -1260,15 +1260,39 @@ I5.   [DONE] `player_min_confidence` slider on the same MAP control row,
 30. ARCHETYPES
 ================================================================================
 
-AR1.  Per-system archetype editor: kind (Imperial | Necron | Tyranid |
-      Ork | GSC | T'au | Aeldari | Chaos), progression markers
-      (stage 0..N), flavour notes.
+AR1.  [DONE] Per-system archetype editor in the SYSTEM tab
+      (`builder/src/builder/panels/system.rs::show_archetype_section`)
+      covers every `ArchetypeState` field: `imperial_co_sovereigns`
+      chip-row with faction picker + × remove, `necron_phase` /
+      `tyranid_stage` / `gsc_stage` / `tau_sphere` ComboBoxes, and
+      `ork_waaagh` / `aeldari_activity` / `chaos_corruption` /
+      `daemon_manifestation` sliders 0..=100. Flavour notes live in the
+      existing Tags / Notes section. Edits route through
+      `BuilderCommand::SetArchetype { system, before, after }` so undo
+      restores the prior `ArchetypeState`; a "Reset to default" button
+      pins `ArchetypeState::default()` and an "Auto-assign from sector
+      data (this system only)" button runs `archetypes::apply_all` over
+      a scratch clone of the sector and applies the §AR3 mask before
+      copying the result back into the live system. Round-trip covered
+      by `set_archetype_round_trip`.
 
-AR2.  "Auto-assign archetypes" runs `src/archetypes.rs::derive`.
+AR2.  [DONE] "Auto-assign archetypes" sector-wide button lives in
+      `show_archetype_auto_assign`. Dispatches
+      `BuilderCommand::AutoAssignArchetypes { flags, before }`, which
+      snapshots every `(SystemId, ArchetypeState)` before running
+      `sectorforge::archetypes::apply_all` (the canonical entry — no
+      separate `derive` exists) and then masks each per-axis result via
+      the §AR3 flags. Revert restores the snapshot in one pass. Covered
+      by `auto_assign_archetypes_round_trip_respects_flag_mask`.
 
-AR3.  Archetype rules editor (TBD: extract from
-      `src/archetypes.rs` if a config layer exists; else builder-app-only
-      defaults under `sectorforge-builder`).
+AR3.  [DONE] Archetype rules editor in `show_archetype_rules`.
+      `src/archetypes.rs` ships no TOML config layer, so this is a
+      builder-app-only defaults panel: per-axis enable checkboxes (8
+      axes mirroring §16.1..§16.12) plus "Enable all" / "Disable all"
+      buttons. State lives on `BuilderState::archetype_flags:
+      ArchetypeApplyFlags` (declared in `builder/src/builder/command.rs`)
+      and is never serialised into `sector.json`. Disabled axes are
+      reset to `ArchetypeState::default()` values after §AR2 runs.
 
 ================================================================================
 31. ORBITAL ASSETS + BLOCKADE
@@ -1789,7 +1813,7 @@ Phase C — Overlays editable
                      relations.toml passthrough via project_io::save_project)
   H1..H8 - DONE 
   I1..I5 - DONE
-  AR1..AR3,   (§30 archetypes)
+  AR1..AR3 - DONE
   O1..O2,     (§31 orbital assets)
   SU1..SU2,   (§32 surface regions)
   CF1..CF6.   (§28 conflict + stability)

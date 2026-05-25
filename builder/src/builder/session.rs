@@ -185,6 +185,7 @@ impl SessionFile {
             history_wizard: None,
             intel_observer: None,
             intel_player_min_confidence: 0,
+            archetype_flags: crate::builder::command::ArchetypeApplyFlags::default(),
         }
     }
 }

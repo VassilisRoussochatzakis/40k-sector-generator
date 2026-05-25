@@ -4,7 +4,7 @@
 //! Panels and the builder command bus call into here so structural
 //! invariants (ID indexing, route bookkeeping, tombstones) stay consistent.
 //!
-//! See `BUILDER_REQS.txt` §D3 and §49 for the contract.
+//! See `docs/BUILDER_REQS.txt` §D3 and §49 for the contract.
 
 use std::collections::BTreeMap;
 use thiserror::Error;

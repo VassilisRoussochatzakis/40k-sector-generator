@@ -14,7 +14,7 @@ path = "src/lib.rs"
 name = "sectorforge"
 path = "src/main.rs"
 
-# OPTIMIZE.txt G4: heap-profiling driver. Only compiles with `--features dhat-heap`.
+# docs/OPTIMIZE.txt G4: heap-profiling driver. Only compiles with `--features dhat-heap`.
 [[bin]]
 name = "dhat-profile"
 path = "src/bin/dhat_profile.rs"
@@ -35,13 +35,13 @@ rustc-hash = "2"
 # FIX.txt §13: data-parallel candidate enumeration in src/search.rs. Order-
 # preserving collect keeps `SearchOutcome.near_misses` byte-deterministic.
 rayon = "1"
-# OPTIMIZE.txt G4: optional heap profiler. Off by default — zero cost in
+# docs/OPTIMIZE.txt G4: optional heap profiler. Off by default — zero cost in
 # normal builds. Enable with: `cargo build --features dhat-heap --bin dhat-profile`.
 dhat = { version = "0.3", optional = true }
 
 [features]
 default = []
-# OPTIMIZE.txt G4: gate dhat-heap behind a feature so production builds stay
+# docs/OPTIMIZE.txt G4: gate dhat-heap behind a feature so production builds stay
 # allocator-free.
 dhat-heap = ["dep:dhat"]
 
@@ -74,7 +74,7 @@ strip = "symbols"
 lto = "thin"
 codegen-units = 1
 
-# OPTIMIZE.txt G5: profiling profile inherits release but keeps frame pointers,
+# docs/OPTIMIZE.txt G5: profiling profile inherits release but keeps frame pointers,
 # line-table debug info, and symbols so flamegraph/samply/Instruments resolve.
 # Use: `cargo build --profile profiling --bin sectorforge`
 [profile.profiling]

@@ -1,5 +1,5 @@
 //! Command-bus mutation entry point + undo/redo + snapshot + auto-save.
-//! Implements R4 of BUILDER_REQS: every mutation routes through
+//! Implements R4 of docs/BUILDER_REQS: every mutation routes through
 //! [`BuilderState::run`], invariants re-check, the ring buffer trims, and the
 //! auto-save fires when configured.
 

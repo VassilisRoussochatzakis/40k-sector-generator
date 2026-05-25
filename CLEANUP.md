@@ -8,10 +8,10 @@
 2. **Obey [INPUT.md](INPUT.md):** narrow scope, no unrequested refactors, no cleanup of unrelated code.
 3. **Always update affected docs in the same PR:**
    - [GUIDE.md](GUIDE.md) — architecture / module map / behavioral spec
-   - [BUILDER_REQS.txt](BUILDER_REQS.txt) — builder panel requirements (if task touches `builder/`)
+   - [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) — builder panel requirements (if task touches `builder/`)
    - [OVERVIEW.md](OVERVIEW.md) — high-level project description (if module surface changes)
    - [CLAUDE.md](CLAUDE.md) source-layout table (if files added/moved/renamed)
-   - [AGENTS.md](AGENTS.md), [REFACTOR.txt](REFACTOR.txt), [IMPROVEMENT.txt](IMPROVEMENT.txt), [OPTIMIZE.txt](OPTIMIZE.txt), [GUIBUILDER.txt](GUIBUILDER.txt) — only if directly affected
+   - [AGENTS.md](AGENTS.md), [docs/REFACTOR.txt](docs/REFACTOR.txt), [docs/IMPROVEMENT.txt](docs/IMPROVEMENT.txt), [docs/OPTIMIZE.txt](docs/OPTIMIZE.txt), [docs/GUIBUILDER.txt](docs/GUIBUILDER.txt) — only if directly affected
 4. **Verify before reporting done:**
    - `cargo fmt`
    - `cargo check`
@@ -139,7 +139,7 @@
 **Acceptance:**
 - [x] Builder launches: `cargo run -p sectorforge-builder` (build + `--help` smoke green)
 - [x] All panels still mount (every `crate::builder::state::TYPE` import resolves via the facade re-exports)
-- [x] Update [BUILDER_REQS.txt](BUILDER_REQS.txt) architecture notes (R1, D5, N1, N3 paths refreshed)
+- [x] Update [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) architecture notes (R1, D5, N1, N3 paths refreshed)
 - [x] Update [CLAUDE.md](CLAUDE.md) source-layout (new rows for `state/mod.rs` + each slice)
 
 ---
@@ -150,36 +150,38 @@
 `segmentum.rs`, `hooks.rs`, `briefing.rs`, `diff.rs`, `search.rs`, `prose.rs`, `missions.rs`, `analytics.rs`, `interestingness.rs`, `sites.rs`, `personae.rs`, `export.rs`, `placeholder.rs`, plus any other 8-LOC files in that dir.
 
 **Steps:**
-1. For each stub, consult [BUILDER_REQS.txt](BUILDER_REQS.txt) — is the panel planned?
-2. **If planned but unimplemented:** mark with `// TODO(BUILDER_REQS §X.Y): implement` and a tracking entry in [BUILDER_REQS.txt](BUILDER_REQS.txt) "Outstanding panels" section. Keep the stub.
-3. **If not planned / abandoned:** delete file + remove `mod` declaration + remove nav entry. Note removal in [BUILDER_REQS.txt](BUILDER_REQS.txt).
+1. For each stub, consult [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) — is the panel planned?
+2. **If planned but unimplemented:** mark with `// TODO(BUILDER_REQS §X.Y): implement` and a tracking entry in [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) "Outstanding panels" section. Keep the stub.
+3. **If not planned / abandoned:** delete file + remove `mod` declaration + remove nav entry. Note removal in [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt).
 4. `placeholder.rs` — keep only if used by routing fallback, otherwise delete.
 
 **Acceptance:**
 - No 8-LOC stubs without a `TODO(BUILDER_REQS §X.Y)` reference
 - `cargo build -p sectorforge-builder` clean
-- [BUILDER_REQS.txt](BUILDER_REQS.txt) reflects ground truth
+- [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) reflects ground truth
 
 ---
 
-## DOCS-001 — Consolidate root spec/req `.txt` files into `docs/`
+## DOCS-001 — Consolidate root spec/req `.txt` files into `docs/` — ✅ DONE
 
 **Scope:** Reduce root clutter. Currently 5 large spec/req `.txt` files at repo root.
 
-**Files to move:** [BUILDER_REQS.txt](BUILDER_REQS.txt), [IMPROVEMENT.txt](IMPROVEMENT.txt), [OPTIMIZE.txt](OPTIMIZE.txt), [REFACTOR.txt](REFACTOR.txt), [GUIBUILDER.txt](GUIBUILDER.txt).
+**Files moved:** [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt), [docs/IMPROVEMENT.txt](docs/IMPROVEMENT.txt), [docs/OPTIMIZE.txt](docs/OPTIMIZE.txt), [docs/REFACTOR.txt](docs/REFACTOR.txt), [docs/GUIBUILDER.txt](docs/GUIBUILDER.txt).
+
+**Result:** All five spec/requirement `.txt` files relocated from repo root into new `docs/` directory via `git mv` (rename history preserved). Every external reference (18 source-code comments + 1 user-facing builder placeholder string + 10 GUIDE.md links/headings + 4 Cargo.toml comments + CLAUDE.md OBEY block) updated to the `docs/` prefix. Internal sibling citations *within* the moved docs/ txt files retain bare `OPTIMIZE.txt` / `REFACTOR.txt` form (still resolve as siblings). `cargo fmt` + `cargo check` + `cargo test` all green (162 unit + 50 integration + 107 builder + 3 gui + 8 gui-core + 1 map_snapshot + 6 doc).
 
 **Steps:**
 1. `mkdir docs/`
 2. `git mv` each file into `docs/`
 3. Grep for references: `grep -rn "BUILDER_REQS\|IMPROVEMENT\.txt\|OPTIMIZE\.txt\|REFACTOR\.txt\|GUIBUILDER\.txt" --include="*.rs" --include="*.md" --include="*.toml"`
-4. Update every reference (source-code comments cite these files heavily — see [Cargo.toml](Cargo.toml) "OPTIMIZE.txt G4" comment as an example).
+4. Update every reference (source-code comments cite these files heavily — see [Cargo.toml](Cargo.toml) "docs/OPTIMIZE.txt G4" comment as an example).
 5. Keep [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), [GUIDE.md](GUIDE.md), [OVERVIEW.md](OVERVIEW.md), [INPUT.md](INPUT.md), [README.md](README.md), this file at root.
 
 **Acceptance:**
-- `grep -rn "docs/BUILDER_REQS"` shows all references updated
-- No broken doc links
-- Update [CLAUDE.md](CLAUDE.md) `OBEY ALL INSTRUCTIONS IN INPUT.md` block to add `docs/BUILDER_REQS.txt` path
-- Update this file's links
+- [x] `grep -rn "docs/BUILDER_REQS"` shows all references updated
+- [x] No broken doc links
+- [x] Update [CLAUDE.md](CLAUDE.md) `OBEY ALL INSTRUCTIONS IN INPUT.md` block to add `docs/BUILDER_REQS.txt` path
+- [x] Update this file's links
 
 ---
 
@@ -205,7 +207,7 @@
 Pick one ID. Do not bundle. Bundling violates [INPUT.md](INPUT.md) scope rule.
 
 Pure mechanical splits (SPLIT-001..006) — safest. Run first.
-STUB-001 — requires reading [BUILDER_REQS.txt](BUILDER_REQS.txt); medium effort.
+STUB-001 — requires reading [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt); medium effort.
 DOCS-001 — wide grep + edit blast radius; do last (after splits stabilize paths).
 TEST-001 — open-ended; gate on what's actually missing.
 
@@ -217,7 +219,7 @@ TEST-001 — open-ended; gate on what's actually missing.
 - [ ] `cargo test` (relevant subset listed)
 - [ ] UI smoke (binaries launched / panel exercised) — if applicable
 - [ ] [GUIDE.md](GUIDE.md) updated
-- [ ] [BUILDER_REQS.txt](BUILDER_REQS.txt) updated (if `builder/` touched)
+- [ ] [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) updated (if `builder/` touched)
 - [ ] [CLAUDE.md](CLAUDE.md) source-layout updated (if files moved/added)
 - [ ] [OVERVIEW.md](OVERVIEW.md) updated (if module surface changed)
 - [ ] Other affected docs listed: `____`

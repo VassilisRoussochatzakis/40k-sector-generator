@@ -2,7 +2,7 @@
 //!
 //! Run with: `cargo bench --bench generation`
 //!
-//! OPTIMIZE.txt §5B matrix: tiny / normal / large scales for generation,
+//! docs/OPTIMIZE.txt §5B matrix: tiny / normal / large scales for generation,
 //! plus split groups for rasterisation vs PNG encode so encoding overhead
 //! can be tracked independently of the draw pass.
 
@@ -79,7 +79,7 @@ fn fixture_for(w: u32, h: u32, count: usize) -> GeneratedSector {
     generate_sector(input).expect("generate fixture")
 }
 
-/// OPTIMIZE.txt G1: rasterisation alone (no PNG encode, no I/O).
+/// docs/OPTIMIZE.txt G1: rasterisation alone (no PNG encode, no I/O).
 fn bench_render_png(c: &mut Criterion) {
     let mut group = c.benchmark_group("render_sector_image");
     for &(w, h, count) in SCALES {
@@ -99,7 +99,7 @@ fn bench_render_png(c: &mut Criterion) {
     group.finish();
 }
 
-/// OPTIMIZE.txt G1: PNG encode alone (rasterised in setup, not measured).
+/// docs/OPTIMIZE.txt G1: PNG encode alone (rasterised in setup, not measured).
 fn bench_encode_png(c: &mut Criterion) {
     let mut group = c.benchmark_group("encode_png_bytes");
     for &(w, h, count) in SCALES {

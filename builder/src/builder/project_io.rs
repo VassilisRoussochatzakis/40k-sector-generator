@@ -1,4 +1,4 @@
-//! Project file I/O for the GUI builder (BUILDER_REQS §P1–§P3).
+//! Project file I/O for the GUI builder (docs/BUILDER_REQS §P1–§P3).
 //!
 //! Three responsibilities:
 //!

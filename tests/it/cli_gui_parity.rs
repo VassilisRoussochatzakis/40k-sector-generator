@@ -1,4 +1,4 @@
-//! OPTIMIZE.txt G2 (rust_sectorforge_existing_app_optimization_prompt_v4 §3A):
+//! docs/OPTIMIZE.txt G2 (rust_sectorforge_existing_app_optimization_prompt_v4 §3A):
 //! prove the CLI binary and the in-process library path (used by the GUI) emit
 //! the same sector for the same project + seed.
 //!

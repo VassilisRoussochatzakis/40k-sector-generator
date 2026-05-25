@@ -1,6 +1,7 @@
 # CLAUDE.md
 Do not ever look in, or modify, anything in the "old" directory.
 OBEY ALL INSTRUCTIONS IN INPUT.md
+Spec/requirement files live under [docs/](docs/): [docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt), [docs/IMPROVEMENT.txt](docs/IMPROVEMENT.txt), [docs/OPTIMIZE.txt](docs/OPTIMIZE.txt), [docs/REFACTOR.txt](docs/REFACTOR.txt), [docs/GUIBUILDER.txt](docs/GUIBUILDER.txt).
 When making changes, update GUIDE.md accordingly.
 ## Commands
 

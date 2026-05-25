@@ -1,4 +1,4 @@
-//! OPTIMIZE.txt G4 (rust_sectorforge_existing_app_optimization_prompt_v4 §5C):
+//! docs/OPTIMIZE.txt G4 (rust_sectorforge_existing_app_optimization_prompt_v4 §5C):
 //! heap-allocation profiler driver. Compiled only when the `dhat-heap` feature
 //! is enabled so production builds stay allocator-free.
 //!

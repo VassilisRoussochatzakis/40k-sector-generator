@@ -1,4 +1,4 @@
-//! OPTIMIZE.txt G3 (rust_sectorforge_existing_app_optimization_prompt_v4 §3F,
+//! docs/OPTIMIZE.txt G3 (rust_sectorforge_existing_app_optimization_prompt_v4 §3F,
 //! §8 "Image/output anti-patterns"): byte-stable PNG output for a fixed
 //! project + seed.
 //!

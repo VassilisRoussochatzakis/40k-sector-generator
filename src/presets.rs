@@ -260,7 +260,7 @@ pub fn preset_path(presets_dir: &Utf8Path, preset_id: &str) -> Utf8PathBuf {
 /// Default presets directory used when callers do not supply one explicitly.
 /// Resolves first to `./presets`, falling back to a path next to the current
 /// executable. Used by [`scaffold_to_dir`] and the GUI builder wizard
-/// (BUILDER_REQS §P1).
+/// (docs/BUILDER_REQS §P1).
 #[must_use]
 pub fn default_presets_dir() -> Utf8PathBuf {
     let local = Utf8PathBuf::from("presets");
@@ -280,7 +280,7 @@ pub fn default_presets_dir() -> Utf8PathBuf {
 }
 
 /// Thin wrapper over [`scaffold`] that resolves the presets directory via
-/// [`default_presets_dir`]. Per BUILDER_REQS §P1 the GUI builder wizard uses
+/// [`default_presets_dir`]. Per docs/BUILDER_REQS §P1 the GUI builder wizard uses
 /// this helper so callers don't have to thread the presets path through
 /// every entry point.
 ///

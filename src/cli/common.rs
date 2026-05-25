@@ -462,7 +462,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
         } => log_progress(format_args!(
             "{prefix}: generation complete ({systems} systems, {worlds} worlds, {routes} routes)"
         )),
-        // OPTIMIZE.txt G7: stage-timing events are CLI-logged at a quieter
+        // docs/OPTIMIZE.txt G7: stage-timing events are CLI-logged at a quieter
         // level so they don't drown out structural progress lines.
         SectorProgress::StageElapsed { stage, millis } => {
             log_progress(format_args!("{prefix}: stage `{stage}` took {millis} ms"));

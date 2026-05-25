@@ -195,7 +195,7 @@ pub enum SectorProgress {
         worlds: usize,
         routes: usize,
     },
-    /// OPTIMIZE.txt G7 (rust_sectorforge_existing_app_optimization_prompt_v4
+    /// docs/OPTIMIZE.txt G7 (rust_sectorforge_existing_app_optimization_prompt_v4
     /// §5A): wall-clock duration of a major pipeline stage. Emitted after a
     /// stage's structural completion event so CLI / GUI listeners can build a
     /// stage-time histogram without instrumenting their own timers.
@@ -283,7 +283,7 @@ where
         ..
     } = project;
 
-    // OPTIMIZE.txt G7: stage timings. Each `Instant::now()` is paired with a
+    // docs/OPTIMIZE.txt G7: stage timings. Each `Instant::now()` is paired with a
     // `StageElapsed` emit; macro avoids the boilerplate.
     macro_rules! time_stage {
         ($name:literal, $start:expr) => {

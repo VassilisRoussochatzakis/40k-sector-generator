@@ -4,7 +4,7 @@
 //! # R1: single source of truth
 //!
 //! `BuilderState` owns the sole live [`GeneratedSector`] for the project. Per
-//! BUILDER_REQS §R1, the spec allows `Arc<RwLock<GeneratedSector>>` or
+//! docs/BUILDER_REQS §R1, the spec allows `Arc<RwLock<GeneratedSector>>` or
 //! `Rc<RefCell<GeneratedSector>>` if the GUI thread is sole writer. We choose
 //! the simpler design: direct ownership behind `&mut BuilderState`, since
 //! every mutation route must hold an exclusive borrow on the state, and

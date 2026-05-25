@@ -1268,7 +1268,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
 
 ### 4.1 Threading & snapshot model — what the GUI relies on
 
-(OPTIMIZE.txt G6: documents the guarantees the optimisation spec §6 calls
+(docs/OPTIMIZE.txt G6: documents the guarantees the optimisation spec §6 calls
 "GUI-specific review template" items 1–8.)
 
 - **Single source of truth.** The authoritative `GeneratedSector` lives in one
@@ -1711,7 +1711,7 @@ It owns the builder workspace and saves projects to disk; `sectorforge-gui`
 then opens the same project directory via `--project <dir>` and reloads the
 saved `out/sector.json`.
 
-[BUILDER_REQS.txt](BUILDER_REQS.txt) tracks requirements for
+[docs/BUILDER_REQS.txt](docs/BUILDER_REQS.txt) tracks requirements for
 `sectorforge-builder` only. New builder panels, commands, modals, workspace
 state, project I/O, and builder-specific tests live under [builder/src/](builder/src/).
 App-neutral egui helpers belong in [gui-core/src/](gui-core/src/).
@@ -1798,7 +1798,7 @@ cargo sbuild
 cargo run -p sectorforge-builder -- --help
 ```
 
-#### Builder foundation (BUILDER_REQS.txt §43 Phase A)
+#### Builder foundation (docs/BUILDER_REQS.txt §43 Phase A)
 
 The builder constructs a sector from scratch with full parity to the CLI. Its
 foundation layer lives in:
@@ -2604,9 +2604,9 @@ Maps and sets across the crate use the std default `RandomState` (SipHash). For 
 
 ### Optimization review backlog
 
-See [OPTIMIZE.txt](OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. GUI preview job revision/cancellation handling and off-thread GUI exports are now implemented; the next highest-priority items are derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.
+See [docs/OPTIMIZE.txt](docs/OPTIMIZE.txt) for the current optimization review against `rust_sectorforge_existing_app_optimization_prompt_v4.txt`. GUI preview job revision/cancellation handling and off-thread GUI exports are now implemented; the next highest-priority items are derivation-cache digest error handling, benchmark phase coverage, and PNG pixel-golden tests.
 
-### Profiling profile (OPTIMIZE.txt G5)
+### Profiling profile (docs/OPTIMIZE.txt G5)
 
 `cargo build --profile profiling` produces a release-grade binary that keeps
 frame pointers, line-tables-only debug info, and unstripped symbols so
@@ -2624,7 +2624,7 @@ cargo build --profile profiling --bin sectorforge
 samply record ./target/profiling/sectorforge generate --project examples/m42_project --allow-warnings
 ```
 
-### Heap profiling with `dhat` (OPTIMIZE.txt G4)
+### Heap profiling with `dhat` (docs/OPTIMIZE.txt G4)
 
 `Cargo.toml` declares an optional `dhat` dependency gated behind the
 `dhat-heap` feature. Enabling it compiles a separate
@@ -2639,7 +2639,7 @@ cargo run --release --features dhat-heap --bin dhat-profile -- examples/m42_proj
 # https://nnethercote.github.io/dh_view/dh_view.html
 ```
 
-### Criterion benchmark phases (OPTIMIZE.txt G1)
+### Criterion benchmark phases (docs/OPTIMIZE.txt G1)
 
 [benches/generation.rs](benches/generation.rs) runs five groups across the
 tiny / normal / large scale matrix from the optimisation spec §5B:
@@ -2658,7 +2658,7 @@ tiny / normal / large scale matrix from the optimisation spec §5B:
 Run all groups: `cargo bench --bench generation`. Run one group:
 `cargo bench --bench generation -- encode_png_bytes`.
 
-### Stage timings (OPTIMIZE.txt G7)
+### Stage timings (docs/OPTIMIZE.txt G7)
 
 `SectorProgress::StageElapsed { stage, millis }` is emitted at the end of
 each major pipeline phase: `world_pool`, `placements`, `regions`,
@@ -2675,11 +2675,11 @@ no changes; consumers that want the histogram can filter for
 In addition to the JSON-byte test in
 [tests/it/golden_generation.rs](tests/it/golden_generation.rs):
 
-- [tests/it/cli_gui_parity.rs](tests/it/cli_gui_parity.rs) (OPTIMIZE.txt G2) spawns
+- [tests/it/cli_gui_parity.rs](tests/it/cli_gui_parity.rs) (docs/OPTIMIZE.txt G2) spawns
   the compiled `sectorforge` binary and asserts that its `sector.json`
   matches the in-process library path the GUI uses. Catches drift between
   CLI-only and GUI-only code paths.
-- [tests/it/golden_png.rs](tests/it/golden_png.rs) (OPTIMIZE.txt G3) hashes the
+- [tests/it/golden_png.rs](tests/it/golden_png.rs) (docs/OPTIMIZE.txt G3) hashes the
   PNG output of two independent generation runs and asserts the hashes
   agree, then asserts the hash changes when the seed changes. Detects any
   HashMap iteration-order leak or other nondeterminism reaching the

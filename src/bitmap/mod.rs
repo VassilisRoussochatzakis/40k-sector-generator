@@ -138,7 +138,7 @@ pub fn write_sector_png_to_with(
     save_png_fast(&img, path)
 }
 
-/// OPTIMIZE.txt G1: pure rasterisation (no PNG encoding, no disk I/O). Returns
+/// docs/OPTIMIZE.txt G1: pure rasterisation (no PNG encoding, no disk I/O). Returns
 /// the in-memory RGBA image so benches and golden tests can isolate
 /// rasterisation cost from PNG encode cost.
 #[must_use]
@@ -151,7 +151,7 @@ pub fn render_sector_image(
     render(sector, scale, subsectors, opts)
 }
 
-/// OPTIMIZE.txt G1: encode an in-memory RGBA image to PNG bytes. Same encoder
+/// docs/OPTIMIZE.txt G1: encode an in-memory RGBA image to PNG bytes. Same encoder
 /// settings as [`write_bitmap`] (fast deflate, no filter). Bench / golden-test
 /// only — production callers should use [`write_bitmap`] /
 /// [`write_sector_png_to`] which stream straight to disk.

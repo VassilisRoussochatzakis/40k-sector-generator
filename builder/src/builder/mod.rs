@@ -1,4 +1,4 @@
-//! GUI builder foundation (Phase A of BUILDER_REQS.txt).
+//! GUI builder foundation (Phase A of docs/BUILDER_REQS.txt).
 //!
 //! The builder owns a single working `GeneratedSector` plus the configs that
 //! produced it. Every mutation routes through [`BuilderCommand`], which
@@ -6,7 +6,7 @@
 //! caches. Long-running work (search, compose, large regen) lives in
 //! [`crate::jobs`] off the UI thread.
 //!
-//! See `BUILDER_REQS.txt` §D5 / §D6 for the contract.
+//! See `docs/BUILDER_REQS.txt` §D5 / §D6 for the contract.
 
 pub mod command;
 pub mod data_catalogs;

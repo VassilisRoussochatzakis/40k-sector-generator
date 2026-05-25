@@ -180,6 +180,9 @@ impl SessionFile {
             economy_lifeline_min_score: 35.0,
             relations_selected_pair: None,
             relations_auto_recompute: true,
+            selected_history_event: None,
+            history_auto_recompute: false,
+            history_wizard: None,
         }
     }
 }

@@ -262,6 +262,11 @@ pub struct HistoryEvent {
     /// 0..=100. Higher = more dramatically central. Drives the sector-wide
     /// "Key events" digest ordering.
     pub weight: u8,
+    /// §H6: when true, this event was authored manually by the builder UI and
+    /// must survive `derive_with` regenerations. Default false for everything
+    /// the derivation pipeline emits; the §H5 add-event wizard sets it to true.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub manual: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -636,6 +641,7 @@ fn build_event(
         entities,
         consequences: consequences_for(kind),
         weight,
+        manual: false,
     }
 }
 

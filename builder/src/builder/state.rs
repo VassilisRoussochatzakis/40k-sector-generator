@@ -439,6 +439,81 @@ pub struct BuilderState {
     /// faction roster trigger an immediate [`Self::recompute_relations`] pass.
     /// Defaults to `true`.
     pub relations_auto_recompute: bool,
+    /// §H7: currently focused event id in the HISTORY tab. Drives the per-event
+    /// inspector and the "highlight on map" anchor lookup.
+    pub selected_history_event: Option<String>,
+    /// §H6: when true, mutations that touch the history catalog or the
+    /// `[history]` config trigger an immediate [`Self::recompute_chronicle`]
+    /// pass. Defaults to `false` because chronicle derivation is heavier than
+    /// relations / economy — users opt in.
+    pub history_auto_recompute: bool,
+    /// §H5: scratch state for the "Add event" wizard. `None` when the wizard is
+    /// closed; populated by the panel when the user clicks "+ event".
+    pub history_wizard: Option<HistoryWizardState>,
+}
+
+/// §H5: scratch buffer for the add-event wizard. The wizard collects the
+/// anchor pick (system / world / route / region / sector), the event kind,
+/// suggested + selected factions, optional date / narrative overrides, and a
+/// generated id preview. On confirm the panel commits a new
+/// [`sectorforge::history::HistoryEvent`] with `manual = true` so it survives
+/// the §H6 regeneration pass.
+#[derive(Debug, Clone)]
+pub struct HistoryWizardState {
+    pub anchor_kind: HistoryAnchorKind,
+    pub anchor_system: Option<SystemId>,
+    pub anchor_world: Option<WorldId>,
+    pub anchor_route: Option<RouteId>,
+    pub anchor_region: Option<String>,
+    pub kind: sectorforge::history::EventKind,
+    pub selected_factions: BTreeSet<FactionId>,
+    pub date: String,
+    pub narrative: String,
+}
+
+impl Default for HistoryWizardState {
+    fn default() -> Self {
+        Self {
+            anchor_kind: HistoryAnchorKind::System,
+            anchor_system: None,
+            anchor_world: None,
+            anchor_route: None,
+            anchor_region: None,
+            kind: sectorforge::history::EventKind::Foundation,
+            selected_factions: BTreeSet::new(),
+            date: String::new(),
+            narrative: String::new(),
+        }
+    }
+}
+
+/// §H5: shape of the anchor the wizard is building.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryAnchorKind {
+    Sector,
+    System,
+    World,
+    Route,
+    Region,
+}
+
+impl HistoryAnchorKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Sector => "Sector",
+            Self::System => "System",
+            Self::World => "World",
+            Self::Route => "Route",
+            Self::Region => "Region",
+        }
+    }
+    pub const ALL: &'static [Self] = &[
+        Self::Sector,
+        Self::System,
+        Self::World,
+        Self::Route,
+        Self::Region,
+    ];
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -613,6 +688,9 @@ impl BuilderState {
             economy_lifeline_min_score: 35.0,
             relations_selected_pair: None,
             relations_auto_recompute: true,
+            selected_history_event: None,
+            history_auto_recompute: false,
+            history_wizard: None,
         }
     }
 
@@ -1233,6 +1311,35 @@ impl BuilderState {
         let threshold = self.config.generation.relations.min_world_presence;
         let matrix = sectorforge::relations::derive_with_threshold(&self.sector, &cfg, threshold);
         self.sector.relations = std::sync::Arc::new(matrix);
+        self.dirty = true;
+        self.mark_validation_dirty();
+        self.trigger_auto_save();
+    }
+
+    /// §H6: rebuild `sector.chronicle` from the in-memory history catalog
+    /// while preserving every event flagged `manual = true`. Steps:
+    ///  1. Drain the existing chronicle and split derived vs. manual events.
+    ///  2. Run [`sectorforge::history::derive_with`] against the live sector
+    ///     using the configured catalog (or `HistoryConfig::default()` when
+    ///     none is loaded).
+    ///  3. Append every preserved manual event back onto the report and
+    ///     re-sort by `date` so the chronological view stays correct.
+    pub fn recompute_chronicle(&mut self) {
+        let cfg = self.data_catalogs.history.clone().unwrap_or_default();
+        let manual: Vec<sectorforge::history::HistoryEvent> = self
+            .sector
+            .chronicle
+            .events
+            .iter()
+            .filter(|e| e.manual)
+            .cloned()
+            .collect();
+        let mut report = sectorforge::history::derive_with(&self.sector, &cfg);
+        report.events.extend(manual);
+        report
+            .events
+            .sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+        self.sector.chronicle = report;
         self.dirty = true;
         self.mark_validation_dirty();
         self.trigger_auto_save();

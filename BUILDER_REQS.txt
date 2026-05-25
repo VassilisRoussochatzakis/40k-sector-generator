@@ -188,6 +188,11 @@ for all remaining checklist items:
       strategic overrides, per-system tithe/supply/priority overrides, stranded
       recompute with red-ring MAP overlay, `economy.toml` editor with Save +
       Apply, lifeline-lane highlight, trade/food/tithe/supply heatmap picker.
+  [x] Direct edit Phase C §H1..§H8 (HISTORY tab + WORLD snippet): chronicle
+      config grid, eras / event-rule editors, per-event inspector, add-event
+      wizard, Regenerate chronicle (preserves `manual = true` entries),
+      timeline with focus-on-anchor, and the WORLD inspector
+      `§H8 — Chronicle snippets` block.
   [x] Direct edit Phase C §REL1..§REL9 (RELATIONS tab): diplomacy matrix grid
       with click-to-select pair, symmetric + directional cell editor pinning
       attitudes / treaty / 7 numeric dimensions, kind_rules + disposition_rules
@@ -218,7 +223,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Regions             [G]       §14   (view only; need place/grow/edit)
   Economy             [X]       §15   (per-world / per-system overrides, lifelines, heatmaps)
   Relations           [X]       §16   (matrix + overrides + kind/disposition rules + feed_conflict + min_world_presence + recompute + save)
-  History             [G]       §17   (view only; need event editor + eras)
+  History             [X]       §17   (chronicle config, eras, rules, event editor, add wizard, regenerate, timeline, world snippets)
   Personae            [G]       §18
   Hooks               [G]       §19
   Sites               [G]       §20
@@ -945,31 +950,64 @@ REL9. [DONE] "Recompute matrix" button in the header runs
 17. HISTORY (CHRONICLE)
 ================================================================================
 
-H1.   History config editor: enabled, epoch_start, epoch_end.
+H1.   [DONE] HISTORY tab `§H1 — chronicle config` grid in
+      `builder/src/builder/panels/history.rs::show_config_section` binds
+      `enabled`, `epoch_start`, `epoch_end`, `max_events_per_world`,
+      `max_events_per_system`, `max_events_per_route`, `key_events_top_n`,
+      and `max_subsector_events` to typed widgets driving
+      `data_catalogs.history`. Edits arm dirty + auto-recompute when on.
 
-H2.   Eras editor: list of `{ id, label, relative_start, relative_end,
-      weight, allowed_events }`.
+H2.   [DONE] `show_eras_editor` renders one `egui::Frame::group` per
+      `HistoryEra`: id / label text fields, relative_start / relative_end /
+      weight `DragValue`s, and an inline allowed-events selectable strip
+      keyed off `EVENT_KINDS`. `+ era` appends a fresh row with a
+      synthesised id; `× remove` drops the row.
 
-H3.   Event-rule editor: `{ when_system_state, prefer_event,
-      minimum_events }`.
+H3.   [DONE] `show_event_rules_editor` renders one row per
+      `HistoryEventRule` with optional `id`, `when_system_state` ComboBox
+      over `SystemState` variants (plus `(any)`), `prefer_event` ComboBox
+      over `EventKind` (plus `(none)`), and `minimum_events` DragValue.
+      Add / remove buttons wire to `data_catalogs.history.event_rules`.
 
-H4.   Chronicle event editor: list of typed events. Each event has
-      kind (Founding, Compliance, Treaty, War, Annexation, Reconquest,
-      ...), date (M{epoch}.{ddd} format), participating factions,
-      entity refs (system | route | subsector | region | world), prose
-      template id, consequences.
+H4.   [DONE] `show_events_editor` paints a striped grid (date / kind /
+      anchor / weight / source / actions) backed by
+      `sector.chronicle.events` and arms `BuilderState::
+      selected_history_event`. The per-event inspector beneath the grid
+      mutates date, kind, era_label, weight, summary, narrative, faction
+      list, and consequences in place; every edit pins `manual = true` so
+      the regen pass preserves it. `HistoryEvent` gains `manual: bool` in
+      `src/history.rs` (skip_serializing_if = "not") so derived events stay
+      compact on disk and only authored entries carry the flag.
 
-H5.   "Add event" wizard: pick anchor entity → pick event kind →
-      auto-suggest participating factions → preview prose.
+H5.   [DONE] `show_add_event_wizard` opens a scratch `HistoryWizardState`
+      (anchor kind + anchor pick + event kind + factions + optional date /
+      narrative override). The wizard previews narrative live, lists
+      suggested participating factions from the sector roster, and
+      `Commit event` pushes a `HistoryEvent { manual: true }` through
+      `BuilderState`.
 
-H6.   "Regenerate chronicle" runs `src/history.rs` over the current
-      sector + config; merges with user-added events (user events
-      flagged `manual = true` survive).
+H6.   [DONE] Header `Regenerate chronicle` button calls
+      `BuilderState::recompute_chronicle` which drains the existing
+      chronicle, splits derived from manual, re-runs
+      `sectorforge::history::derive_with` against the live sector + the
+      in-memory `HistoryConfig`, then appends every preserved manual event
+      back onto the report and re-sorts by date. `auto-recompute on edit`
+      toggle re-runs the same pass after every catalog edit.
 
-H7.   Timeline panel: chronological list, click-to-highlight affected
-      systems/routes on map. Already partial — extend to write-mode.
+H7.   [DONE] `show_timeline` renders the chronicle in date order with
+      `date / kind / anchor / narrative-link / focus` per row. Clicking
+      `focus` calls `focus_anchor` which sets the matching
+      `selected_system_id` / `selected_world_id` / `selected_route_id` /
+      `selected_region_id` / `selected_subsector_id` and switches to the
+      relevant inspector tab. Clicking the narrative link arms the §H4
+      inspector with the same event.
 
-H8.   Event-derived world history snippets shown in world inspector.
+H8.   [DONE] WORLD inspector
+      (`builder/src/builder/panels/world.rs::show_chronicle_section`)
+      renders a `§H8 — Chronicle snippets (n)` collapsing block sourced
+      from `panels::history::world_chronicle_events`. Each row shows date,
+      event kind, manual badge, and narrative; `→ HISTORY` jumps to the
+      HISTORY tab with that event focused.
 
 ================================================================================
 18. PERSONAE (DRAMATIS)

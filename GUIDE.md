@@ -445,6 +445,36 @@ system/world sections. The GUI has a full-page **HISTORY** tab with a
 timeline, event detail panel, first-system jump button, and snapshot/revert
 controls.
 
+The `sectorforge-builder` app exposes the full chronicle authoring surface
+under `BuilderTab::History` (`builder/src/builder/panels/history.rs`). It
+covers:
+* §H1 — chronicle config grid for `enabled`, `epoch_start`, `epoch_end`,
+  per-anchor caps, and `max_subsector_events`.
+* §H2 — eras editor: id / label / relative_start / relative_end / weight
+  plus an inline allowed-events toggle strip.
+* §H3 — event-rule editor: `when_system_state` (any | Pacified | … |
+  Uncharted) + `prefer_event` + `minimum_events`.
+* §H4 — per-event inspector backed by `sector.chronicle.events`. Edits
+  (date / kind / era_label / weight / summary / narrative / faction
+  refs / consequences) flip the event to `manual = true`.
+* §H5 — add-event wizard: anchor kind (sector / system / world / route /
+  region) + anchor pick + event kind + suggested factions + optional
+  date / narrative override. Commit pushes a `HistoryEvent { manual: true }`.
+* §H6 — `Regenerate chronicle` calls
+  `BuilderState::recompute_chronicle`, which re-runs
+  `sectorforge::history::derive_with` and re-merges every preserved
+  manual event. `auto-recompute on edit` runs the same pass after every
+  catalog mutation.
+* §H7 — chronological timeline. Click `focus` to jump to the affected
+  system / world / route / region / subsector inspector.
+* §H8 — WORLD inspector renders `§H8 — Chronicle snippets (n)` sourced
+  from `panels::history::world_chronicle_events`, with a `→ HISTORY`
+  jump button per snippet.
+
+`HistoryEvent` gains a `manual: bool` field (skip-serialised when false)
+so derived chronicles stay byte-stable while authored entries survive
+regen.
+
 ### `sectorforge personae` (§3 old/DONE.md)
 
 Deterministic dramatis personae overlay. Anchors a named character on

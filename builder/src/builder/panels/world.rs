@@ -74,6 +74,8 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             show_control_section(ui, state, sys_idx, w_idx);
             ui.add_space(4.0);
             show_overlays_section(ui, state, sys_idx, w_idx);
+            ui.add_space(4.0);
+            show_chronicle_section(ui, state, sys_idx, w_idx);
             ui.add_space(8.0);
             show_regen_section(ui, state, sys_idx, w_idx);
         });
@@ -808,6 +810,64 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 "stability default: {}",
                 sectorforge::stability::StabilityState::is_default(&w.stability)
             ));
+        });
+}
+
+// ── §H8 chronicle snippets ─────────────────────────────────────────────────
+
+fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
+    let sys_id = state.sector.systems[sys_idx].id.clone();
+    let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+    // Snapshot rows up-front so the closure body can mutate `state` freely.
+    let rows: Vec<(String, String, String, String, bool)> = {
+        let events =
+            crate::builder::panels::history::world_chronicle_events(state, &sys_id, &world_id);
+        events
+            .iter()
+            .map(|e| {
+                (
+                    e.id.clone(),
+                    e.date.clone(),
+                    crate::builder::panels::history::kind_label(e.kind).to_string(),
+                    e.narrative.clone(),
+                    e.manual,
+                )
+            })
+            .collect()
+    };
+    let count = rows.len();
+    egui::CollapsingHeader::new(format!("§H8 — Chronicle snippets ({count})"))
+        .default_open(false)
+        .show(ui, |ui| {
+            if rows.is_empty() {
+                ui.colored_label(
+                    Color32::GRAY,
+                    "No chronicle events anchored at this world. Open HISTORY → Regenerate.",
+                );
+                if ui.link("→ HISTORY tab").clicked() {
+                    state.active_tab = BuilderTab::History;
+                }
+                return;
+            }
+            let mut jump_to: Option<String> = None;
+            for (id, date, kind, narrative, manual) in &rows {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new(date).monospace().strong());
+                    ui.label(kind.as_str());
+                    if *manual {
+                        ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
+                    }
+                    if ui.small_button("→ HISTORY").clicked() {
+                        jump_to = Some(id.clone());
+                    }
+                });
+                ui.colored_label(Color32::DARK_GRAY, narrative);
+                ui.separator();
+            }
+            if let Some(id) = jump_to {
+                state.selected_history_event = Some(id);
+                state.active_tab = BuilderTab::History;
+            }
         });
 }
 

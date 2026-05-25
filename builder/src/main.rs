@@ -44,7 +44,7 @@ fn main() -> ExitCode {
     ) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("gui error: {e}");
+            eprintln!("builder error: {e}");
             ExitCode::from(1)
         }
     }

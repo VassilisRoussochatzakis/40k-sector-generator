@@ -1,7 +1,7 @@
 # SPECIFICATION: INTERACTIVE SECTOR BUILDER GUI (GUIBUILDER.txt)
 
-> Target crate moved 2026-05-24 from `sectorforge-gui` to
-> `sectorforge-builder`. References to `gui/src/builder/` in older revisions
+> Target crate moved 2026-05-24 from `sectorforge-viewer` to
+> `sectorforge-builder`. References to `viewer/src/builder/` in older revisions
 > now point to `builder/src/builder/`.
 
 ## GOAL

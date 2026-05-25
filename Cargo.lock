@@ -2726,7 +2726,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "sectorforge-gui"
+name = "sectorforge-gui-core"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "eframe",
+ "egui",
+ "image",
+ "sector-generator",
+]
+
+[[package]]
+name = "sectorforge-viewer"
 version = "0.1.0"
 dependencies = [
  "camino",
@@ -2743,17 +2754,6 @@ dependencies = [
  "tempfile",
  "thiserror 1.0.69",
  "toml",
-]
-
-[[package]]
-name = "sectorforge-gui-core"
-version = "0.1.0"
-dependencies = [
- "blake3",
- "eframe",
- "egui",
- "image",
- "sector-generator",
 ]
 
 [[package]]

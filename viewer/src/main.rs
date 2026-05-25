@@ -1,9 +1,9 @@
-//! sectorforge-gui — viewer for a previously generated sector JSON.
+//! sectorforge-viewer — viewer for a previously generated sector JSON.
 //!
 //! Usage:
-//!   sectorforge-gui <path/to/sector.json>
-//!   sectorforge-gui --project <project-dir>          # auto-loads out/sector.json
-//!   sectorforge-gui --segmentum <path/to/segmentum.json>
+//!   sectorforge-viewer <path/to/sector.json>
+//!   sectorforge-viewer --project <project-dir>       # auto-loads out/sector.json
+//!   sectorforge-viewer --segmentum <path/to/segmentum.json>
 //!   (no args)                                        # launches editor with no sector loaded
 
 use std::process::ExitCode;
@@ -11,11 +11,11 @@ use std::process::ExitCode;
 use camino::Utf8PathBuf;
 use clap::Parser;
 
-use sectorforge_gui::App;
+use sectorforge_viewer::App;
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "sectorforge-gui",
+    name = "sectorforge-viewer",
     about = "Interactive viewer for a generated 40k sector"
 )]
 struct Cli {
@@ -39,7 +39,7 @@ fn main() -> ExitCode {
     };
     let path = resolve_sector_path(&cli);
     let (mut app, title) = if let Some(p) = &cli.segmentum {
-        match sectorforge_gui::segmentum_view::load_segmentum_bundle(p) {
+        match sectorforge_viewer::segmentum_view::load_segmentum_bundle(p) {
             Ok(bundle) => {
                 let t = format!("sectorforge — {}", bundle.segmentum.id);
                 (App::new_segmentum(bundle), t)
@@ -81,7 +81,7 @@ fn main() -> ExitCode {
     match res {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("gui error: {e}");
+            eprintln!("viewer error: {e}");
             ExitCode::from(1)
         }
     }

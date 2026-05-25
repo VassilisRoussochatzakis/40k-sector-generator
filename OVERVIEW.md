@@ -18,7 +18,7 @@ The headline use case is **building reusable, deterministic Warhammer 40k sector
 
 It is intentionally setting-agnostic at the data layer: the world taxonomy and faction model are designed for 40k, but the catalogues are typed TOML files you fully control, so it can be reskinned to other space-opera universes by replacing the data.
 
-The app ships as three front ends — a command-line tool (`sectorforge`) for scripted, headless, batch workflows, a desktop viewer/editor (`sectorforge-gui`) for exploring generated sectors, and a desktop builder (`sectorforge-builder`) for constructing projects interactively. All consume the same project directories and emit the same outputs, so you can flip between them in the same project.
+The app ships as three front ends — a command-line tool (`sectorforge`) for scripted, headless, batch workflows, a desktop viewer/editor (`sectorforge-viewer`) for exploring generated sectors, and a desktop builder (`sectorforge-builder`) for constructing projects interactively. All consume the same project directories and emit the same outputs, so you can flip between them in the same project.
 
 ---
 
@@ -120,9 +120,9 @@ Beyond the static political snapshot, the application carries an additional simu
 
 ## 4. The graphical front end
 
-`sectorforge-gui` is a desktop application (native on macOS / Windows / Linux with a graphical display; not headless) that loads any generated sector and lets you explore and edit it interactively.
+`sectorforge-viewer` is a desktop application (native on macOS / Windows / Linux with a graphical display; not headless) that loads any generated sector and lets you explore and edit it interactively.
 
-`sectorforge-builder` is a separate desktop application for building and saving sector projects. It owns the builder workspace, project tree, generation controls, live preview, undo/redo command bus, and project save path; the viewer can then open the same directory with `sectorforge-gui --project <dir>`.
+`sectorforge-builder` is a separate desktop application for building and saving sector projects. It owns the builder workspace, project tree, generation controls, live preview, undo/redo command bus, and project save path; the viewer can then open the same directory with `sectorforge-viewer --project <dir>`.
 
 ### 4.1 Sector view
 

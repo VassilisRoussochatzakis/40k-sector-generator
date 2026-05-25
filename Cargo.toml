@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["gui", "gui-core", "builder"]
+members = ["viewer", "gui-core", "builder"]
 
 [lib]
 name = "sectorforge"

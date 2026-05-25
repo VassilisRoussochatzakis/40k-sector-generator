@@ -35,7 +35,7 @@ cargo --version
 From the repository root:
 
 ```bash
-# Build all binaries (sectorforge CLI + sectorforge-gui + sectorforge-builder)
+# Build all binaries (sectorforge CLI + sectorforge-viewer + sectorforge-builder)
 cargo build --release
 
 # Note: Example projects (big_test, big_sparse_test, m42_project) are 
@@ -51,7 +51,7 @@ cargo run --bin sectorforge -- generate --project examples/m42_project --allow-w
 cargo run --bin sectorforge -- inspect-worlds --data-dir examples/m42_project/data/worlds
 
 # Launch the GUI viewer/editor (cargo alias is `sgui`)
-cargo sgui --project examples/m42_project
+cargo sview --project examples/m42_project
 
 # Launch the interactive sector builder (cargo alias is `sbuild`)
 cargo sbuild --project examples/m42_project
@@ -865,7 +865,7 @@ out/segmentum/
 Open the composed segmentum in the GUI with:
 
 ```bash
-cargo sgui --segmentum out/segmentum/segmentum.json
+cargo sview --segmentum out/segmentum/segmentum.json
 ```
 
 The **SEGMENTUM** tab shows the scaled super-map, super-grid, aggregate
@@ -1273,15 +1273,15 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
 
 - **Single source of truth.** The authoritative `GeneratedSector` lives in one
   place per app. The GUI keeps it behind `Arc<GeneratedSector>` snapshots
-  ([gui/src/app/mod.rs](gui/src/app/mod.rs)); the builder keeps it inside a
+  ([viewer/src/app/mod.rs](viewer/src/app/mod.rs)); the builder keeps it inside a
   preview-state cell ([builder/src/builder/preview.rs](builder/src/builder/preview.rs)).
   Workers receive an immutable snapshot; UI threads never read a sector that
   is mid-write.
 - **Workers are `std::thread` + `mpsc::channel`.** No async runtime in the
   GUI/builder workers. Generation, hashing, PNG export, and HTML export all
   run off the egui event loop
-  ([gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs),
-  [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs),
+  ([viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs),
+  [viewer/src/app/export_ui.rs](viewer/src/app/export_ui.rs),
   [gui-core/src/jobs.rs](gui-core/src/jobs.rs)). The GUI never blocks for
   more than the cost of dispatch. The library does pull in `rayon` (per
   FIX.txt §13) but it is scoped to one site:
@@ -1293,7 +1293,7 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   the GUI compares the result's revision to the current revision and discards
   any stale result. See `apply_result` in
   [builder/src/builder/preview.rs:223](builder/src/builder/preview.rs#L223)
-  and `preview_job_revision` in [gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs).
+  and `preview_job_revision` in [viewer/src/app/lifecycle.rs](viewer/src/app/lifecycle.rs).
 - **Cooperative cancellation.** `generate_with_progress_and_cancel` takes a
   `should_cancel` closure that is polled at every major emit (see
   [src/generation/mod.rs](src/generation/mod.rs) — the `check_cancelled!` /
@@ -1560,9 +1560,9 @@ are accepted by the config parser but the current clustering ignores them.
 
 ## 8. Desktop front ends
 
-### 8.1 Viewer/editor (`sectorforge-gui`)
+### 8.1 Viewer/editor (`sectorforge-viewer`)
 
-`sectorforge-gui` is an interactive viewer/editor for generated sectors,
+`sectorforge-viewer` is an interactive viewer/editor for generated sectors,
 built with egui + eframe. It exposes the following views via the top
 navigation bar:
 
@@ -1632,7 +1632,7 @@ navigation bar:
 - **Diplomacy** (§5 NEW2.md/DONE) — table view of
   `sector.relations.pairs`: every faction pair with public/secret
   attitudes, treaty status, tension scalar, and cause text. Backed by
-  [gui/src/app/mod.rs](gui/src/app/mod.rs)
+  [viewer/src/app/mod.rs](viewer/src/app/mod.rs)
   `draw_relations_layout`.
 - **Regions** (§5 old/DONE.md) — table view of `sector.regions`: id, name,
   kind, hex count, centre coord. Pairs with the in-map region tint.
@@ -1645,7 +1645,7 @@ navigation bar:
   callout (component count, diameter, articulation points, isolated systems),
   world / star / population / route distributions, per-subsector political
   variety, and a list of health flags. Backed by
-  [src/analytics.rs](src/analytics.rs) and [gui/src/dashboard.rs](gui/src/dashboard.rs).
+  [src/analytics.rs](src/analytics.rs) and [viewer/src/dashboard.rs](viewer/src/dashboard.rs).
 - **History** (§1 NEW2.md/DONE) — full-page sector chronicle view. The left
   column lists dated events, the right column shows event refs/consequences and
   can jump to the first referenced system; snapshot/revert controls live below
@@ -1655,7 +1655,7 @@ navigation bar:
   scaffold a fresh project tree from one. The new project is **not**
   auto-loaded; the gallery prints the next-step command. Backed by
   [src/presets.rs](src/presets.rs) and
-  [gui/src/preset_gallery.rs](gui/src/preset_gallery.rs).
+  [viewer/src/preset_gallery.rs](viewer/src/preset_gallery.rs).
 
 The GUI also supports exporting bitmap PNGs at a configurable scale and theme:
 sector overview, a single system map, or all per-system maps. File pickers stay
@@ -1674,24 +1674,24 @@ sector was loaded from a project.
 
 #### Launching the viewer/editor
 
-A `cargo sgui` alias is registered in [.cargo/config.toml](.cargo/config.toml):
+A `cargo sview` alias is registered in [.cargo/config.toml](.cargo/config.toml):
 
 ```bash
 # From a project directory (auto-loads out/sector.json if present)
-cargo sgui --project examples/m42_project
+cargo sview --project examples/m42_project
 
 # Direct path to a sector.json
-cargo sgui examples/m42_project/out/sector.json
+cargo sview examples/m42_project/out/sector.json
 
 # Composed segmentum overview + child-sector switching
-cargo sgui --segmentum out/segmentumTEST/segmentum.json
+cargo sview --segmentum out/segmentumTEST/segmentum.json
 
 # Empty editor (no sector loaded — starts in edit mode)
-cargo sgui
+cargo sview
 ```
 
 With no args, the GUI launches an empty editor. To load the default example,
-use: `cargo sgui --project examples/m42_project`.
+use: `cargo sview --project examples/m42_project`.
 
 **Note:** The GUI requires a graphical display (X11/Wayland on Linux, native on macOS/Windows).
 It will not run on headless servers. For CLI-only workflows, use `sectorforge generate`
@@ -1699,7 +1699,7 @@ and inspect the output files.
 
 #### Library-level viewer usage
 
-The viewer crate exposes `sectorforge_gui::App`. The struct takes a
+The viewer crate exposes `sectorforge_viewer::App`. The struct takes a
 `GeneratedSector` in `App::new(sector)` or launches empty via `App::new_empty()`.
 Use `app.with_project_dir(dir)` to attach a project directory for regeneration
 and data-editor preloading.
@@ -1707,7 +1707,7 @@ and data-editor preloading.
 ### 8.2 Builder (`sectorforge-builder`)
 
 `sectorforge-builder` is the separate interactive sector-construction binary.
-It owns the builder workspace and saves projects to disk; `sectorforge-gui`
+It owns the builder workspace and saves projects to disk; `sectorforge-viewer`
 then opens the same project directory via `--project <dir>` and reloads the
 saved `out/sector.json`.
 
@@ -1715,20 +1715,20 @@ saved `out/sector.json`.
 `sectorforge-builder` only. New builder panels, commands, modals, workspace
 state, project I/O, and builder-specific tests live under [builder/src/](builder/src/).
 App-neutral egui helpers belong in [gui-core/src/](gui-core/src/).
-`sectorforge-gui` remains the viewer/editor and must not mount builder panels;
+`sectorforge-viewer` remains the viewer/editor and must not mount builder panels;
 the integration boundary is the project directory on disk.
 
 The current sync contract is file-based: builder saves project config,
 catalogs, `out/sector.json`, and manifest data; viewer reloads that same
 project directory. Keep new synchronization work on that boundary rather than
-adding `sectorforge_gui::builder` imports or in-process shared state.
+adding `sectorforge_builder` imports or in-process shared state.
 
 Split completion checkpoint (2026-05-24): [SEPARATE.txt](SEPARATE.txt) is
 complete. The three-crate layout was re-verified with
 `cargo build --workspace --quiet`, `cargo test --workspace --quiet`,
 `cargo clippy --workspace -- -D warnings`, both `--help` commands, and short
 startup smoke runs for `sectorforge-builder --project examples/m42_project`
-and `sectorforge-gui --project examples/m42_project`.
+and `sectorforge-viewer --project examples/m42_project`.
 
 Every map element — hex tile, route, system glyph, label, region tint, overlay
 ring — reads its colour and sizing from
@@ -1766,19 +1766,19 @@ intentional visual change with:
 UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet
 ```
 
-The lint wall is enforced in [`gui/clippy.toml`](gui/clippy.toml) and
+The lint wall is enforced in [`viewer/clippy.toml`](viewer/clippy.toml) and
 [`builder/clippy.toml`](builder/clippy.toml). Both app crates deny
 `egui::Painter`, raw `egui` shape/mesh primitives, and `Ui::painter*` access,
 so new pixel-producing code must be added to `gui-core` as a shared widget or
 paint helper. Check the wall with:
 
 ```bash
-cargo clippy -p sectorforge-gui --quiet
+cargo clippy -p sectorforge-viewer --quiet
 cargo clippy -p sectorforge-builder --quiet
 ```
 
 The editor's own MAP surface in
-[gui/src/editor/map_panel.rs](gui/src/editor/map_panel.rs) now delegates every
+[viewer/src/editor/map_panel.rs](viewer/src/editor/map_panel.rs) now delegates every
 pixel-producing call to the shared
 `sectorforge_gui_core::sector_view::SectorView` widget (same pattern the builder
 uses in [builder/src/builder/panels/map.rs](builder/src/builder/panels/map.rs)).
@@ -1930,7 +1930,7 @@ Tests in the panel modules cover the path-bucket logic without touching `egui`:
 #### N1–N4 UI routing / nav (DONE)
 
 The builder ships a single top-tab router plus a status bar wired to the
-shared health pip. The viewer `sectorforge_gui::App` continues to own its own
+shared health pip. The viewer `sectorforge_viewer::App` continues to own its own
 navigation; the §N router is the entry point for the upcoming builder shell
 that adopts `BuilderState` as root state.
 
@@ -2003,7 +2003,7 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/
 | Piece | Where it lives |
 |---|---|
 | W1 inspector | [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays (§28 / §32 read-only), and the §W4 re-roll collapse. |
-| W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `gui/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
+| W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
 | W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/generation.rs](src/generation.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
 | W5 features picker | `show_features_section` searchable multi-select. Weight previews are computed by `feature_weights_for_world` which sums per-world-type, per-star-colour, and global tiers of the pool's `FeaturePool` — empty when no worlds catalog is loaded. Already-present features are hidden from the add list. |
@@ -2262,7 +2262,7 @@ The newtypes also implement `Deref<Target = str>`, `AsRef<str>`, `Display`,
 `HashSet<RouteId>`, `format!("{}", id)`, and `map.get(id.as_str())` without
 ceremony.
 
-For GUI text-edit fields, [gui/src/editor/ui_helpers.rs](gui/src/editor/ui_helpers.rs)
+For GUI text-edit fields, [viewer/src/editor/ui_helpers.rs](viewer/src/editor/ui_helpers.rs)
 exposes `text_field_id`, `combo_str_id`, and `combo_kv_id` — generic wrappers
 over the `&mut String` versions that round-trip the typed id through a
 temporary `String` buffer so `egui::TextEdit` keeps working unchanged.
@@ -2439,7 +2439,7 @@ across runs, so a regression check is a diff away.
 | [src/cli/missions.rs](src/cli/missions.rs) | `missions` runner — §3 NEW2.md mission seeds |
 | [src/cli/sites.rs](src/cli/sites.rs) | `sites` runner — §7 NEW2.md planetary points-of-interest |
 | [src/cli/diff.rs](src/cli/diff.rs) | `diff` runner + `DiffArgs` — §10 NEW.md sector diff |
-| [gui/src/main.rs](gui/src/main.rs) | GUI binary entry point (`sectorforge-gui`) |
+| [viewer/src/main.rs](viewer/src/main.rs) | GUI binary entry point (`sectorforge-viewer`) |
 | [builder/src/main.rs](builder/src/main.rs) | Builder binary entry point (`sectorforge-builder`) |
 | [builder/src/app.rs](builder/src/app.rs) | Thin eframe app host for builder workspaces |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
@@ -2492,8 +2492,8 @@ across runs, so a regression check is a diff away.
 | [src/briefing.rs](src/briefing.rs) | §9 NEW2.md briefing profiles: six audience presets (gm / navy / inquisition / trader / governor / public) that combine the existing intel redaction primitives with hidden-route, relations, claim, archetype, and orbital-asset stripping. |
 | [src/missions.rs](src/missions.rs) | §3 NEW2.md mission seed generator: typed Investigate / Escort / Sabotage / Diplomacy / Assassination / Recovery / Defense / Exploration seeds keyed off contested worlds, hidden masters, mismatched claims, perilous routes, and uncharted systems. |
 | [src/sites.rs](src/sites.rs) | §7 NEW2.md planetary points-of-interest: 21 site kinds (governor's palace, cathedral spire, manufactorum, underhive, cult safehouse, …) derived from world type / features / surface regions, with `public_status` vs. `actual_status` masking and one-line hooks. |
-| [gui/src/dashboard.rs](gui/src/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
-| [gui/src/preset_gallery.rs](gui/src/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
+| [viewer/src/dashboard.rs](viewer/src/dashboard.rs) | §8 old/DONE.md GUI dashboard tab |
+| [viewer/src/preset_gallery.rs](viewer/src/preset_gallery.rs) | §9 old/DONE.md GUI preset gallery modal |
 | [src/config.rs](src/config.rs) | `sectorforge.toml` schema |
 | [src/input.rs](src/input.rs) | Project loader (config + inputs + digests) |
 | [src/names.rs](src/names.rs) | Name table types |
@@ -2520,15 +2520,15 @@ across runs, so a regression check is a diff away.
 | [src/world_ecs.rs](src/world_ecs.rs) | §12 NEXT: flat columnar `EntityWorld` adapter over `GeneratedSector` (System/World/Faction/Route entities) for callers that want an ECS-friendly shape without a `bevy_ecs` migration |
 | [gui-core/src/lib.rs](gui-core/src/lib.rs) | Shared GUI widget/util crate re-exporting palette, jobs, map/detail widgets, info panel, heatmap |
 | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) | Background job helper shared by viewer/editor and builder |
-| [gui/src/app/mod.rs](gui/src/app/mod.rs) | Top-level eframe app + navigation |
-| [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export, dispatched through background export jobs with all-system PNG cancellation |
+| [viewer/src/app/mod.rs](viewer/src/app/mod.rs) | Top-level eframe app + navigation |
+| [viewer/src/app/export_ui.rs](viewer/src/app/export_ui.rs) | PNG / SVG / HTML export dialogs + sector JSON bundle export, dispatched through background export jobs with all-system PNG cancellation |
 | [gui-core/src/sector_view.rs](gui-core/src/sector_view.rs) | Hex map render widget |
 | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
-| [gui/src/factions_overview.rs](gui/src/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
-| [gui/src/data_editor.rs](gui/src/data_editor.rs) | `worlds.toml` data editor UI |
-| [gui/src/route_planner.rs](gui/src/route_planner.rs) | Route planner (Safest / Shortest) |
+| [viewer/src/factions_overview.rs](viewer/src/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
+| [viewer/src/data_editor.rs](viewer/src/data_editor.rs) | `worlds.toml` data editor UI |
+| [viewer/src/route_planner.rs](viewer/src/route_planner.rs) | Route planner (Safest / Shortest) |
 | [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
-| [gui/src/editor/](gui/src/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
+| [viewer/src/editor/](viewer/src/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette for GUI; egui wrapper around [src/faction_style.rs](src/faction_style.rs) (`faction_style`, glyph + border) |
 | [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | egui wrapper around [src/heatmap.rs](src/heatmap.rs) — same scoring, returns `Color32` cells |
 | [builder/src/builder/mod.rs](builder/src/builder/mod.rs) | Builder Phase A entry — re-exports `BuilderState`, `BuilderCommand`, `BuilderIndex`, `DataCatalogs`, `DerivationCache`, `Snapshot`, `BuilderError`, session save/load |

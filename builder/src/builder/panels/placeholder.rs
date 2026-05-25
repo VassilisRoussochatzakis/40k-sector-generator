@@ -1,5 +1,5 @@
 //! Shared helper for stub panels (§N2). Every Phase B+ tab ships an empty
-//! module under `gui/src/builder/panels/` so the §N1 router can wire it; the
+//! module under `builder/src/builder/panels/` so the §N1 router can wire it; the
 //! body is filled when the matching phase lands. The helper renders a single
 //! grey label naming the phase and the docs/BUILDER_REQS section that fills it in.
 

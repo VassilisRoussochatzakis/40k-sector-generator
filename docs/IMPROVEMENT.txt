@@ -4,7 +4,7 @@ IMPROVEMENT.txt — sectorforge codebase improvement plan
 Methodology:
   - Whole-repo audit against REFACTOR.txt (sections 1–12).
   - Cross-checked every still-open OPTIMIZE.txt item against current code.
-  - Read every entry point (src/main.rs, builder/src/main.rs, gui/src/main.rs),
+  - Read every entry point (src/main.rs, builder/src/main.rs, viewer/src/main.rs),
     lib.rs, the largest 12 modules, the full builder state/preview/command/
     derivation_cache layer, and the GUI export/jobs path.
   - Ran cargo clippy --workspace --all-targets and pedantic clippy.
@@ -168,7 +168,7 @@ Validation:
 ────────────────────────────────────────────────────────────────────────────────
 P0-3  Production unwrap in GUI auto-save  [IN PROGRESS]
 ────────────────────────────────────────────────────────────────────────────────
-File:    gui/src/app/mod.rs:209
+File:    viewer/src/app/mod.rs:209
 Current:
     let text = serde_json::to_string_pretty(sec).unwrap();
 
@@ -329,7 +329,7 @@ Recommendation:
 P2-2  Clippy: 10 default warnings + ~430 pedantic, ~6 mechanical buckets  [IN PROGRESS]
 ────────────────────────────────────────────────────────────────────────────────
 Default-level (visible without --pedantic):
-  - items_after_test_module     src/factions.rs:162, gui/src/editor/state.rs:246
+  - items_after_test_module     src/factions.rs:162, viewer/src/editor/state.rs:246
   - needless_borrow             tests/golden_generation.rs:69,85,106
   - too_many_arguments          gui-core/tests/map_snapshots.rs:647 (test helper)
 
@@ -440,8 +440,8 @@ Recommendation:
 ────────────────────────────────────────────────────────────────────────────────
 P2-6  OPTIMIZE.txt #7 is already addressed — close out  [DONE]
 ────────────────────────────────────────────────────────────────────────────────
-File:    gui/src/app/mod.rs:47    `sector: Option<Arc<GeneratedSector>>`
-         gui/src/app/export_ui.rs:154, 309, 359, 399 all do `self.sector.clone()`
+File:    viewer/src/app/mod.rs:47    `sector: Option<Arc<GeneratedSector>>`
+         viewer/src/app/export_ui.rs:154, 309, 359, 399 all do `self.sector.clone()`
 Current: cheap — clones an Arc, not the sector.
 
 Recommendation:
@@ -570,7 +570,7 @@ OPTIMIZE.txt #3 (derivation_cache digest)           → IN PROGRESS → P0-1
 OPTIMIZE.txt #4 (settings_digest narrow)            → IN PROGRESS → P0-2
 OPTIMIZE.txt #5 (bench phases)                      → IN PROGRESS → P1-2
 OPTIMIZE.txt #6 (PNG golden / pixel hash)           → IN PROGRESS → P1-1
-OPTIMIZE.txt #7 (whole-sector clones in GUI export) → DONE: gui/src/app/mod.rs
+OPTIMIZE.txt #7 (whole-sector clones in GUI export) → DONE: viewer/src/app/mod.rs
                                                        already holds the sector
                                                        as Option<Arc<GeneratedSector>>;
                                                        all `self.sector.clone()`
@@ -597,7 +597,7 @@ Open questions from OPTIMIZE.txt:
   - "Byte-identical PNG output required?" — Recommend: pixel-identical, not
     byte-identical. PNG byte stability depends on the encoder library and
     is not under our control.
-  - "Which GUI path is primary: gui/src/editor or builder?" — Both are
+  - "Which GUI path is primary: viewer/src/editor or builder?" — Both are
     shipping; builder is the newer surface, editor remains the simpler
     quick-export tool. Keep both; the shared widgets already live in
     gui-core. Decision should be recorded in GUIDE.md.
@@ -611,7 +611,7 @@ PR 1 — Mechanical cleanup, no behaviour change  [IN PROGRESS]
   - cargo clippy --fix for autofixable categories                  P2-2
   - drop dead `shutdown_check` accumulator in file_watcher         P2-3
   - move items-after-test-module in src/factions.rs and
-    gui/src/editor/state.rs                                        (clippy)
+    viewer/src/editor/state.rs                                        (clippy)
   - drop needless borrows in tests/golden_generation.rs            (clippy)
   Risk: none. Verify with `cargo test --workspace`.
 
@@ -714,8 +714,8 @@ src/sector_model/mod.rs                1212 LOC, all key types
 src/errors.rs                            76 LOC, two error enums
 src/subsectors/mod.rs                   986 LOC, production unwraps at :518+
 src/economy.rs                         1723 LOC, unwrap at :904
-gui/src/app/mod.rs                            sector field is Arc, ok
-gui/src/app/export_ui.rs                482 LOC, Arc-clones (cheap)
+viewer/src/app/mod.rs                            sector field is Arc, ok
+viewer/src/app/export_ui.rs                482 LOC, Arc-clones (cheap)
 gui-core/src/jobs.rs                    131 LOC, real JobHandle<T>
 builder/src/builder/state.rs           1257 LOC, has stub JobHandle
 builder/src/builder/preview.rs          266 LOC, revision-tagged preview ✓

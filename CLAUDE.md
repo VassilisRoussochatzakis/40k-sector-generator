@@ -6,12 +6,12 @@ When making changes, update GUIDE.md accordingly.
 ## Commands
 
 ```bash
-cargo build            # build all targets (sectorforge + sectorforge-gui + sectorforge-builder)
+cargo build            # build all targets (sectorforge + sectorforge-viewer + sectorforge-builder)
 cargo test             # all tests
 cargo fmt              # format code
 cargo check            # compile check
 cargo run --bin sectorforge --help   # CLI help
-cargo run -p sectorforge-gui -- --help   # GUI help
+cargo run -p sectorforge-viewer -- --help   # Viewer help
 cargo run -p sectorforge-builder -- --help   # Builder help
 ```
 
@@ -114,11 +114,11 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
 | [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
 | [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | GUI heatmap color/cache wrapper |
-| [gui/src/main.rs](gui/src/main.rs) | Viewer/editor binary entry (`sectorforge-gui`) |
-| [gui/src/app/mod.rs](gui/src/app/mod.rs) | Top-level viewer/editor eframe app + navigation |
-| [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs) | PNG/SVG/HTML/JSON export UI |
-| [gui/src/data_editor.rs](gui/src/data_editor.rs) | §45 typed `worlds.toml` editor (dropdowns + DragValue) |
-| [gui/src/editor/](gui/src/editor/) | Sector/world editing UI |
+| [viewer/src/main.rs](viewer/src/main.rs) | Viewer/editor binary entry (`sectorforge-viewer`) |
+| [viewer/src/app/mod.rs](viewer/src/app/mod.rs) | Top-level viewer/editor eframe app + navigation |
+| [viewer/src/app/export_ui.rs](viewer/src/app/export_ui.rs) | PNG/SVG/HTML/JSON export UI |
+| [viewer/src/data_editor.rs](viewer/src/data_editor.rs) | §45 typed `worlds.toml` editor (dropdowns + DragValue) |
+| [viewer/src/editor/](viewer/src/editor/) | Sector/world editing UI |
 | [builder/src/main.rs](builder/src/main.rs) | Builder binary entry (`sectorforge-builder`) |
 | [builder/src/app.rs](builder/src/app.rs) | Thin builder eframe app host |
 | [builder/src/builder/](builder/src/builder/) | Builder state, command bus, project I/O, panels |

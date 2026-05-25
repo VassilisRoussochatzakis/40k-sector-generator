@@ -15,7 +15,7 @@
 //!
 //! # R10: panel contract
 //!
-//! Panels live in `gui/src/builder/panels/` and are functions with the
+//! Panels live in `builder/src/builder/panels/` and are functions with the
 //! signature `fn(ui: &mut egui::Ui, state: &mut BuilderState)`. They never
 //! hold module-level mutable state, never use `lazy_static`, and never carry
 //! raw string IDs across boundaries. Modal state lives in

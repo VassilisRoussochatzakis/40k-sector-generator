@@ -2,7 +2,7 @@ Suggested changes
 
 3. Do not panic or hide serialization failure in derivation cache digest
 Severity: Medium
-Evidence: `gui/src/builder/derivation_cache.rs` uses
+Evidence: `viewer/src/builder/derivation_cache.rs` uses
 `serde_json::to_vec(input).unwrap_or_default()`.
 Risk: serialization failure hashes empty bytes, causing unrelated failed inputs to share one
 cache digest.
@@ -58,7 +58,7 @@ Validation:
 
 7. Avoid whole-sector clones in GUI export paths where avoidable
 Severity: Low
-Evidence: `gui/src/app/export_ui.rs` clones `self.sector` before each export.
+Evidence: `viewer/src/app/export_ui.rs` clones `self.sector` before each export.
 Risk: large generated sectors pay extra memory/time before export starts.
 Fix:
 - For synchronous paths, borrow `&GeneratedSector`.
@@ -68,8 +68,8 @@ Validation:
 
 8. Clarify GUI job model: legacy editor vs builder
 Severity: Low
-Evidence: `gui/src/jobs.rs` has real `JobHandle<T>`, while
-`gui/src/builder/state.rs` has a type-erased `JobHandle` with only id/description and
+Evidence: `viewer/src/jobs.rs` has real `JobHandle<T>`, while
+`viewer/src/builder/state.rs` has a type-erased `JobHandle` with only id/description and
 `pending_jobs` status UI.
 Risk: future background tasks may split across two job abstractions with different
 cancellation/error semantics.
@@ -118,5 +118,5 @@ Open questions
 - Should manifest `settings_digest` mean "generation settings only" or "all semantic output
   inputs"? Current name implies the latter, current implementation is narrower.
 - Is byte-identical PNG output required, or only pixel-identical output?
-- Which GUI path is primary now: legacy editor under `gui/src/editor` or builder under
-  `gui/src/builder`?
+- Which GUI path is primary now: legacy editor under `viewer/src/editor` or builder under
+  `viewer/src/builder`?

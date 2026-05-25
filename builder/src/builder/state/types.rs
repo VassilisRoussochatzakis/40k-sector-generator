@@ -71,7 +71,7 @@ pub enum HealthLevel {
 }
 
 /// §N1: top-level builder tab. Each variant maps 1:1 to a panel module under
-/// `gui/src/builder/panels/` (§N2). The router lives in
+/// `builder/src/builder/panels/` (§N2). The router lives in
 /// [`crate::builder::panels::nav`]; the active tab is persisted on
 /// [`super::BuilderState::active_tab`] so panels never reach for global state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

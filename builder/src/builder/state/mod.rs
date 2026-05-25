@@ -66,7 +66,8 @@ mod tests;
 pub use types::{
     BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState, JobHandle,
     MapTool, MapViewCache, ModalKind, PartialRegenRect, PendingCollision, PendingPlace,
-    PendingRename, DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
+    PendingRename, TickLogEntry, TickLogScope, DEFAULT_COMMAND_LOG_CAPACITY,
+    DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
 pub struct BuilderState {
@@ -295,6 +296,21 @@ pub struct BuilderState {
     /// serialised into `sector.json` because `src/archetypes.rs` has no TOML
     /// config layer.
     pub archetype_flags: super::command::ArchetypeApplyFlags,
+    /// §CF2: per-system "override aggregate" toggle. When the system id is in
+    /// the set the SYSTEM-level conflict editor pins
+    /// `GeneratedSystem::conflict` to whatever the panel saved; otherwise the
+    /// section re-derives via `conflict::derive_system_conflict` each frame.
+    /// Never serialised — purely an editor mode flag.
+    pub system_conflict_override: BTreeSet<SystemId>,
+    /// §CF4 ticks-to-advance scratch input bound to the "Advance N ticks"
+    /// button. Defaults to 1.
+    pub conflict_ticks_to_advance: u32,
+    /// §CF5: chronological tick log captured after each
+    /// `BuilderCommand::AdvanceConflictTicks` run. Bounded ring of the most
+    /// recent [`Self::tick_log_capacity`] entries; in-memory only.
+    pub tick_log: std::collections::VecDeque<TickLogEntry>,
+    /// §CF5: ring-buffer cap for [`Self::tick_log`].
+    pub tick_log_capacity: usize,
 }
 
 impl BuilderState {
@@ -388,6 +404,10 @@ impl BuilderState {
             intel_observer: None,
             intel_player_min_confidence: 0,
             archetype_flags: super::command::ArchetypeApplyFlags::default(),
+            system_conflict_override: BTreeSet::new(),
+            conflict_ticks_to_advance: 1,
+            tick_log: std::collections::VecDeque::new(),
+            tick_log_capacity: 500,
         }
     }
 }

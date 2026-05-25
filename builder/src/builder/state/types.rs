@@ -288,6 +288,32 @@ pub struct PendingCollision {
     pub occupant: SystemId,
 }
 
+/// §CF5: scope of a single `tick_log` entry — system-level summary or per-world
+/// detail.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TickLogScope {
+    System(SystemId),
+    World { system: SystemId, world: WorldId },
+}
+
+/// §CF5: one row of the chronological conflict-tick log surfaced from the
+/// CONFLICT section. Captured by [`super::BuilderState::record_tick_diffs`]
+/// after each [`super::super::command::BuilderCommand::AdvanceConflictTicks`]
+/// run. In-memory only — never serialised to JSON.
+#[derive(Debug, Clone)]
+pub struct TickLogEntry {
+    pub tick_index: u32,
+    pub scope: TickLogScope,
+    pub momentum_before: i8,
+    pub momentum_after: i8,
+    pub intensity_before: u8,
+    pub intensity_after: u8,
+    pub defender_before: Option<FactionId>,
+    pub defender_after: Option<FactionId>,
+    pub visible_before: Option<FactionId>,
+    pub visible_after: Option<FactionId>,
+}
+
 /// §S2 cache backing the MAP panel renderer. `digest` is a BLAKE3 hex string
 /// over the slice of `GeneratedSector` (systems, routes, regions) that drives
 /// the subsector clustering + per-hex lookup tables. The panel rebuilds the

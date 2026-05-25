@@ -2236,6 +2236,21 @@ Round-trip tests live in [builder/src/builder/command.rs](builder/src/builder/co
 
 * `set_surface_regions_round_trip`.
 
+### Conflict + stability editor
+
+BUILDER_REQS §28 (CF1..CF6). Per-world conflict + stability editor mounted under the WORLD tab; per-system aggregate view + override + advance + tick log + heatmap toggle mounted under the SYSTEM tab. Mutations route through the command bus so the §U1/§U2 undo/redo rails fire.
+
+| Piece | Where it lives |
+|---|---|
+| CF1 per-world conflict editor | [builder/src/builder/panels/conflict.rs](builder/src/builder/panels/conflict.rs) `show_world_conflict_section` — sliders for `momentum` (-100..=100), `intensity` / `mobilisation` (0..=100), DragValues for `started_tick` / `last_change_tick` / `age`, and optional faction combos for `attacker` / `defender` / `visible_controller`. "Re-derive from control" calls [src/conflict.rs](src/conflict.rs) `derive_world_conflict(&GeneratedWorld)`. Edits dispatch `BuilderCommand::SetWorldConflict { world, before, after }`. |
+| CF2 per-system view + override | `show_system_conflict_section` — by default keeps `GeneratedSystem::conflict` synced with `derive_system_conflict(&sys)` (which itself reads `sys.control.dominant` for `visible_controller`) and renders a read-only grid. "Override aggregate" toggle records the system id in `BuilderState::system_conflict_override` and flips the section to a full editor that dispatches `BuilderCommand::SetSystemConflict { system, before, after }`. The hysteresis window (`conflict::HYSTERESIS_TICKS`) is surfaced inline. |
+| CF3 per-world stability editor | `show_world_conflict_section` — sliders for the 7 `StabilityState` dimensions (`public_order`, `corruption`, `fear`, `rebellion_risk`, `xenos_threat`, `warp_instability`, `famine_or_resource_stress`). "Re-derive" calls [src/stability.rs](src/stability.rs) `derive_world_stability(&GeneratedWorld, &factions)`. Edits dispatch `BuilderCommand::SetWorldStability { world, before, after }`. |
+| CF4 advance N ticks | `advance_ticks_block` — DragValue for the tick count (`BuilderState::conflict_ticks_to_advance`, default 1) + "Advance N ticks" button that calls `BuilderState::advance_conflict_ticks(ticks)`. Internally that runs `BuilderCommand::AdvanceConflictTicks { ticks, before_world, before_system, before_dominant }` which snapshots every system and world conflict block plus each system's `control.dominant`, then loops `sectorforge::conflict::advance_sector(&mut sector)` once per tick. Hysteresis is preserved because the simulator itself enforces `HYSTERESIS_TICKS` before flipping `visible_controller`. The command is undoable: revert restores every snapshotted field. |
+| CF5 tick log | `show_tick_log` reads from `BuilderState::tick_log` — a bounded `VecDeque<TickLogEntry>` (capacity `tick_log_capacity`, default 500, in-memory only) that `advance_conflict_ticks` populates after each run. Rows record `tick_index`, `scope` (`TickLogScope::System(SystemId)` or `TickLogScope::World { system, world }`), and the before/after pairs for `momentum`, `intensity`, `defender`, `visible_controller`. Pristine entries (no change) are skipped. The SYSTEM tab filters the log to the focused system. "× clear" empties the deque. |
+| CF6 conflict heatmap | `show_conflict_heatmap_picker` — "Show conflict intensity on MAP" checkbox flips `BuilderState::map_heatmap_mode` between `HeatmapMode::Off` and `HeatmapMode::ConflictIntensity`. The new variant is registered in [src/heatmap.rs](src/heatmap.rs) under label "CONFLICT" (red tint 215/70/90) and scores each system as `f32::from(sys.conflict.intensity)`. The MAP panel already routes `state.map_heatmap_mode` through `sectorforge_gui_core::heatmap::compute` so no extra rendering plumbing is needed; §C7/§C8 control overlays still win when on. |
+
+`BuilderState` adds three CF fields: `system_conflict_override: BTreeSet<SystemId>`, `conflict_ticks_to_advance: u32`, and `tick_log: VecDeque<TickLogEntry>` (with `tick_log_capacity: usize`). Both default to empty / 1 / empty / 500 in `new_blank` and in the `.sgforge` session loader. The WORLD tab's overlays summary still points at the conflict block via "edit below in §CF1".
+
 ---
 
 ## 9. Library use

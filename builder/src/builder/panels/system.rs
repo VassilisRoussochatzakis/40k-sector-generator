@@ -81,6 +81,8 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             crate::builder::panels::orbital::show_orbital_section(ui, state, sys_idx);
             ui.add_space(4.0);
+            crate::builder::panels::conflict::show_system_conflict_section(ui, state, sys_idx);
+            ui.add_space(4.0);
             crate::builder::panels::intel::show_system_intel_section(ui, state, sys_idx);
             ui.add_space(8.0);
             show_regen_section(ui, state, sys_idx);

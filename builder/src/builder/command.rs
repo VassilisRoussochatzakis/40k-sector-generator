@@ -9,6 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 use sectorforge::archetypes::ArchetypeState;
+use sectorforge::conflict::ConflictState;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
 use sectorforge::sector_model::mutation::MutationError;
@@ -16,6 +17,7 @@ use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
     RouteStability, RouteType,
 };
+use sectorforge::stability::StabilityState;
 use sectorforge::surface_region::SurfaceRegion;
 
 /// §AR3: per-axis enable mask for `BuilderCommand::AutoAssignArchetypes`. A
@@ -191,6 +193,37 @@ pub enum BuilderCommand {
         world: WorldId,
         before: Option<Vec<SurfaceRegion>>,
         after: Vec<SurfaceRegion>,
+    },
+    /// §CF1: overwrite a world's `ConflictState`. `before` snapshots the prior
+    /// state so `revert` is exact.
+    SetWorldConflict {
+        world: WorldId,
+        before: Option<Box<ConflictState>>,
+        after: ConflictState,
+    },
+    /// §CF2: overwrite a system's aggregated `ConflictState`. The "Override
+    /// aggregate" toggle in the panel switches edits from `derive_system_conflict`
+    /// to direct mutation through this command.
+    SetSystemConflict {
+        system: SystemId,
+        before: Option<Box<ConflictState>>,
+        after: ConflictState,
+    },
+    /// §CF3: overwrite a world's `StabilityState` (7 dimensions).
+    SetWorldStability {
+        world: WorldId,
+        before: Option<Box<StabilityState>>,
+        after: StabilityState,
+    },
+    /// §CF4: run `sectorforge::conflict::advance_sector` for `ticks` ticks.
+    /// `before_world` / `before_system` snapshot per-entity conflict state so
+    /// `revert` is a deterministic restore. `before_dominant` snapshots the
+    /// `SystemControlSummary::dominant` field touched by hysteresis flips.
+    AdvanceConflictTicks {
+        ticks: u32,
+        before_world: Vec<(WorldId, ConflictState)>,
+        before_system: Vec<(SystemId, ConflictState)>,
+        before_dominant: Vec<(SystemId, Option<FactionId>)>,
     },
 }
 
@@ -391,6 +424,71 @@ impl BuilderCommand {
                 w.regions = after.clone();
                 Ok(())
             }
+            Self::SetWorldConflict {
+                world,
+                before,
+                after,
+            } => {
+                let w = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                *before = Some(Box::new(w.conflict.clone()));
+                w.conflict = after.clone();
+                Ok(())
+            }
+            Self::SetSystemConflict {
+                system,
+                before,
+                after,
+            } => {
+                let sys = sector
+                    .systems
+                    .iter_mut()
+                    .find(|s| s.id == *system)
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                *before = Some(Box::new(sys.conflict.clone()));
+                sys.conflict = after.clone();
+                Ok(())
+            }
+            Self::SetWorldStability {
+                world,
+                before,
+                after,
+            } => {
+                let w = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                *before = Some(Box::new(w.stability.clone()));
+                w.stability = after.clone();
+                Ok(())
+            }
+            Self::AdvanceConflictTicks {
+                ticks,
+                before_world,
+                before_system,
+                before_dominant,
+            } => {
+                before_world.clear();
+                before_system.clear();
+                before_dominant.clear();
+                for sys in &sector.systems {
+                    before_system.push((sys.id.clone(), sys.conflict.clone()));
+                    before_dominant.push((sys.id.clone(), sys.control.dominant.clone()));
+                    for w in &sys.worlds {
+                        before_world.push((w.id.clone(), w.conflict.clone()));
+                    }
+                }
+                for _ in 0..*ticks {
+                    sectorforge::conflict::advance_sector(sector);
+                }
+                Ok(())
+            }
         }
     }
 
@@ -523,6 +621,68 @@ impl BuilderCommand {
                         .find(|w| w.id == *world)
                     {
                         w.regions = prev.clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::SetWorldConflict { world, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *world)
+                    {
+                        w.conflict = (**prev).clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::SetSystemConflict { system, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
+                        sys.conflict = (**prev).clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::SetWorldStability { world, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *world)
+                    {
+                        w.stability = (**prev).clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::AdvanceConflictTicks {
+                before_world,
+                before_system,
+                before_dominant,
+                ..
+            } => {
+                for (sys_id, conflict) in before_system {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *sys_id) {
+                        sys.conflict = conflict.clone();
+                    }
+                }
+                for (sys_id, dominant) in before_dominant {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *sys_id) {
+                        sys.control.dominant = dominant.clone();
+                    }
+                }
+                for (world_id, conflict) in before_world {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *world_id)
+                    {
+                        w.conflict = conflict.clone();
                     }
                 }
                 Ok(())

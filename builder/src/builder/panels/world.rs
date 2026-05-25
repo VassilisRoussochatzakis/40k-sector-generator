@@ -75,6 +75,10 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             show_overlays_section(ui, state, sys_idx, w_idx);
             ui.add_space(4.0);
+            crate::builder::panels::conflict::show_world_conflict_section(
+                ui, state, sys_idx, w_idx,
+            );
+            ui.add_space(4.0);
             crate::builder::panels::surface_regions::show_surface_regions_section(
                 ui, state, sys_idx, w_idx,
             );

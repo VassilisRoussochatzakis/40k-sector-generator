@@ -33,6 +33,7 @@ pub mod validation;
 // phase lands.
 pub mod analytics;
 pub mod briefing;
+pub mod conflict;
 pub mod control;
 pub mod diff;
 pub mod economy;

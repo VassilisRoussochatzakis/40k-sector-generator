@@ -123,9 +123,10 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [builder/src/app.rs](builder/src/app.rs) | Thin builder eframe app host |
 | [builder/src/builder/](builder/src/builder/) | Builder state, command bus, project I/O, panels |
 | [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` struct (§D5) + `new_blank` constructor + `default_config` + slice facade |
-| [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `Pending*`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, `DEFAULT_*` |
+| [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `Pending*`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, `TickLogEntry`, `TickLogScope`, `DEFAULT_*` |
 | [builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs) | §S1/§S4 selection helpers: `focus_system`, `toggle_system_selection` |
 | [builder/src/builder/state/undo.rs](builder/src/builder/state/undo.rs) | R4 command bus: `run`, `undo`, `redo`, ring-buffer trim, `snapshot`, `trigger_auto_save` |
-| [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Economy / relations / chronicle re-derive, debounced validation pump, `synthesize_project_input`, `health_level` |
+| [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Economy / relations / chronicle re-derive, debounced validation pump, `synthesize_project_input`, `health_level`, §CF4/§CF5 `advance_conflict_ticks` driver + tick-log capture |
 | [builder/src/builder/state/regions_ops.rs](builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region helpers: add/remove/paint/erase/update/next id |
 | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4: `generate_system_here`, `regenerate_world`, `apply_preview`, `regenerate_partial`, `reroll_seed`, `find_world_indices` |
+| [builder/src/builder/panels/conflict.rs](builder/src/builder/panels/conflict.rs) | §CF1..§CF6 conflict + stability editor: per-world / per-system `ConflictState` + `StabilityState`, advance-ticks button, tick log, conflict heatmap toggle |

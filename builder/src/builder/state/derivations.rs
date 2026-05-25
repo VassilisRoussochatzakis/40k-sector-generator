@@ -295,4 +295,108 @@ impl BuilderState {
         }
         HealthLevel::Green
     }
+
+    /// §CF4 / §CF5: run `BuilderCommand::AdvanceConflictTicks` for `ticks` and
+    /// append per-system + per-world diff rows to [`Self::tick_log`]. Diffs
+    /// only land in the log when a momentum, intensity, defender, or visible
+    /// controller field actually changed — pristine entities stay quiet.
+    pub fn advance_conflict_ticks(
+        &mut self,
+        ticks: u32,
+    ) -> Result<(), crate::builder::errors::BuilderError> {
+        use super::types::{TickLogEntry, TickLogScope};
+        use crate::builder::command::BuilderCommand;
+        if ticks == 0 {
+            return Ok(());
+        }
+        let cmd = BuilderCommand::AdvanceConflictTicks {
+            ticks,
+            before_world: Vec::new(),
+            before_system: Vec::new(),
+            before_dominant: Vec::new(),
+        };
+        self.run(cmd)?;
+        let last = self
+            .command_log
+            .get(self.command_cursor.saturating_sub(1))
+            .cloned();
+        let Some(BuilderCommand::AdvanceConflictTicks {
+            before_world,
+            before_system,
+            ..
+        }) = last
+        else {
+            return Ok(());
+        };
+        let next_index = self.tick_log.back().map(|e| e.tick_index + 1).unwrap_or(0);
+        let mut sys_lookup: BTreeMap<sectorforge::ids::WorldId, sectorforge::ids::SystemId> =
+            BTreeMap::new();
+        for sys in &self.sector.systems {
+            for w in &sys.worlds {
+                sys_lookup.insert(w.id.clone(), sys.id.clone());
+            }
+        }
+        for (sys_id, before) in &before_system {
+            let Some(sys) = self.sector.systems.iter().find(|s| s.id == *sys_id) else {
+                continue;
+            };
+            let after = &sys.conflict;
+            if before == after {
+                continue;
+            }
+            self.push_tick_entry(TickLogEntry {
+                tick_index: next_index,
+                scope: TickLogScope::System(sys_id.clone()),
+                momentum_before: before.momentum,
+                momentum_after: after.momentum,
+                intensity_before: before.intensity,
+                intensity_after: after.intensity,
+                defender_before: before.defender.clone(),
+                defender_after: after.defender.clone(),
+                visible_before: before.visible_controller.clone(),
+                visible_after: after.visible_controller.clone(),
+            });
+        }
+        for (world_id, before) in &before_world {
+            let Some(sys_id) = sys_lookup.get(world_id).cloned() else {
+                continue;
+            };
+            let Some(world) = self
+                .sector
+                .systems
+                .iter()
+                .flat_map(|s| s.worlds.iter())
+                .find(|w| w.id == *world_id)
+            else {
+                continue;
+            };
+            let after = &world.conflict;
+            if before == after {
+                continue;
+            }
+            self.push_tick_entry(TickLogEntry {
+                tick_index: next_index,
+                scope: TickLogScope::World {
+                    system: sys_id,
+                    world: world_id.clone(),
+                },
+                momentum_before: before.momentum,
+                momentum_after: after.momentum,
+                intensity_before: before.intensity,
+                intensity_after: after.intensity,
+                defender_before: before.defender.clone(),
+                defender_after: after.defender.clone(),
+                visible_before: before.visible_controller.clone(),
+                visible_after: after.visible_controller.clone(),
+            });
+        }
+        Ok(())
+    }
+
+    fn push_tick_entry(&mut self, entry: super::types::TickLogEntry) {
+        if self.tick_log.len() >= self.tick_log_capacity {
+            self.tick_log.pop_front();
+        }
+        self.tick_log.push_back(entry);
+    }
 }

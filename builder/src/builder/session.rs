@@ -186,6 +186,10 @@ impl SessionFile {
             intel_observer: None,
             intel_player_min_confidence: 0,
             archetype_flags: crate::builder::command::ArchetypeApplyFlags::default(),
+            system_conflict_override: std::collections::BTreeSet::new(),
+            conflict_ticks_to_advance: 1,
+            tick_log: std::collections::VecDeque::new(),
+            tick_log_capacity: 500,
         }
     }
 }

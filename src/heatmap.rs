@@ -35,6 +35,9 @@ pub enum HeatmapMode {
     TitheStress,
     /// §4 NEW2.md: supply vulnerability, high = disrupted/collapsing.
     SupplyVulnerability,
+    /// §28 CF6 / §35 T3: per-system conflict intensity sourced from
+    /// `GeneratedSystem::conflict.intensity` (0..=100).
+    ConflictIntensity,
 }
 
 impl HeatmapMode {
@@ -53,6 +56,7 @@ impl HeatmapMode {
         HeatmapMode::FoodOutput,
         HeatmapMode::TitheStress,
         HeatmapMode::SupplyVulnerability,
+        HeatmapMode::ConflictIntensity,
     ];
 
     pub fn label(self) -> &'static str {
@@ -71,6 +75,7 @@ impl HeatmapMode {
             HeatmapMode::FoodOutput => "FOOD",
             HeatmapMode::TitheStress => "TITHE",
             HeatmapMode::SupplyVulnerability => "SUPPLY",
+            HeatmapMode::ConflictIntensity => "CONFLICT",
         }
     }
 
@@ -85,6 +90,7 @@ impl HeatmapMode {
             HeatmapMode::FoodOutput => (80, 190, 120),
             HeatmapMode::TitheStress => (220, 80, 70),
             HeatmapMode::SupplyVulnerability => (235, 120, 60),
+            HeatmapMode::ConflictIntensity => (215, 70, 90),
             HeatmapMode::Industrial => (220, 110, 50),
             HeatmapMode::Covert => (150, 90, 220),
             HeatmapMode::Faith => (230, 220, 90),
@@ -241,6 +247,9 @@ fn score_system_in(
                 .unwrap_or(0.0);
             return (score, None);
         }
+        HeatmapMode::ConflictIntensity => {
+            return (f32::from(sys.conflict.intensity), None);
+        }
         _ => {}
     }
 
@@ -269,7 +278,8 @@ fn score_system_in(
                 | HeatmapMode::TradeVolume
                 | HeatmapMode::FoodOutput
                 | HeatmapMode::TitheStress
-                | HeatmapMode::SupplyVulnerability => 0.0,
+                | HeatmapMode::SupplyVulnerability
+                | HeatmapMode::ConflictIntensity => 0.0,
             };
             score += v;
         }

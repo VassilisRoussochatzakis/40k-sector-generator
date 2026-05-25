@@ -234,7 +234,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Analytics           [P]       §25   (dashboard exists; need full §8 fields)
   Search              [P]       §26   (wishes UI exists; need full constraints)
   Diff + ticks        [G]       §27
-  Conflict + stability[G]       §28
+  Conflict + stability[X]       §28
   Intel / visibility  [X]       §29   (per-system + per-world editors, baseline derive_intel, observer lens, player cutoff)
   Archetypes          [X]       §30   (per-system AR1 editor + AR2 sector-wide apply_all + AR3 per-axis enable mask)
   Orbital assets      [G]       §31
@@ -1856,7 +1856,40 @@ Phase C — Overlays editable
                    button; panel `builder/src/builder/panels/surface_regions.rs`,
                    command `SetSurfaceRegions`, `notes: String` added to
                    `SurfaceRegion`)
-  CF1..CF6.   (§28 conflict + stability)
+  CF1..CF6 - DONE (§28 conflict + stability — panel
+                   `builder/src/builder/panels/conflict.rs`:
+                   §CF1 per-world `ConflictState` editor (momentum / intensity /
+                   mobilisation / attacker / defender / visible_controller /
+                   started_tick / last_change_tick / age) routed through
+                   `BuilderCommand::SetWorldConflict` with "Re-derive from
+                   control" calling `conflict::derive_world_conflict`;
+                   §CF2 per-system view aggregated via
+                   `conflict::derive_system_conflict` by default, "Override
+                   aggregate" toggle (`BuilderState::system_conflict_override`)
+                   switches to direct edit through
+                   `BuilderCommand::SetSystemConflict`;
+                   §CF3 per-world `StabilityState` editor over all 7 dimensions
+                   (`public_order`, `corruption`, `fear`, `rebellion_risk`,
+                   `xenos_threat`, `warp_instability`,
+                   `famine_or_resource_stress`) via
+                   `BuilderCommand::SetWorldStability` with "Re-derive" calling
+                   `stability::derive_world_stability`;
+                   §CF4 "Advance N ticks" button driving
+                   `BuilderState::advance_conflict_ticks` →
+                   `BuilderCommand::AdvanceConflictTicks` (snapshots per-system
+                   + per-world `ConflictState` + per-system `dominant` for an
+                   exact revert; `HYSTERESIS_TICKS` preserved because the loop
+                   calls `conflict::advance_sector` per tick);
+                   §CF5 chronological tick log (`BuilderState::tick_log`,
+                   bounded ring of `TickLogEntry` capped by
+                   `tick_log_capacity`, in-memory only, filtered to the focused
+                   system) populated automatically after every advance;
+                   §CF6 `HeatmapMode::ConflictIntensity` added to
+                   `src/heatmap.rs` (per-system `conflict.intensity` 0..=100,
+                   labelled "CONFLICT", red tint) with a MAP toggle in the
+                   SYSTEM panel that sets `BuilderState::map_heatmap_mode` so
+                   the existing §E7 wiring through `SectorView::heatmap`
+                   renders without extra plumbing.)
 
 Phase D — Derivations + GM tools
   PER1..PER5, (§18 personae)

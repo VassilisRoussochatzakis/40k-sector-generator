@@ -430,6 +430,15 @@ pub struct BuilderState {
     /// below this score are not painted. Defaults to 35.0 — same threshold
     /// `economy::derive_dependency_edges` uses for the supplier cutoff.
     pub economy_lifeline_min_score: f32,
+    /// §REL1: currently focused pair in the diplomacy matrix grid. Stored as
+    /// the canonical (lo, hi) ordering used by [`sectorforge::relations`] so
+    /// the cell editor can locate or create an entry in `RelationsConfig::
+    /// overrides` deterministically.
+    pub relations_selected_pair: Option<(FactionId, FactionId)>,
+    /// §REL9: when true, mutations that touch the relations catalog or the
+    /// faction roster trigger an immediate [`Self::recompute_relations`] pass.
+    /// Defaults to `true`.
+    pub relations_auto_recompute: bool,
 }
 
 /// §S1: pending ADD SYSTEM input — coord chosen by the user, name being typed.
@@ -602,6 +611,8 @@ impl BuilderState {
             map_heatmap_mode: sectorforge::heatmap::HeatmapMode::Off,
             economy_highlight_lifelines: false,
             economy_lifeline_min_score: 35.0,
+            relations_selected_pair: None,
+            relations_auto_recompute: true,
         }
     }
 
@@ -1204,6 +1215,25 @@ impl BuilderState {
         let _ = sys_idx;
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
+        self.trigger_auto_save();
+    }
+
+    /// §REL9: recompute the inter-faction diplomacy matrix from the in-memory
+    /// relations catalog and the live `sector.factions` / `sector.systems`
+    /// rows, then publish the result onto `sector.relations`.
+    ///
+    /// Honours the §REL8 `[generation.relations].min_world_presence` knob so
+    /// the matrix size matches what a fresh `cargo run -- generate` would
+    /// emit. `feed_conflict` is copied through from the catalog (or defaulted
+    /// off when the catalog is absent) so [`sectorforge::conflict::advance_sector`]
+    /// can re-read it on the next tick without a reload.
+    pub fn recompute_relations(&mut self) {
+        let cfg = self.data_catalogs.relations.clone().unwrap_or_default();
+        let threshold = self.config.generation.relations.min_world_presence;
+        let matrix = sectorforge::relations::derive_with_threshold(&self.sector, &cfg, threshold);
+        self.sector.relations = std::sync::Arc::new(matrix);
+        self.dirty = true;
         self.mark_validation_dirty();
         self.trigger_auto_save();
     }

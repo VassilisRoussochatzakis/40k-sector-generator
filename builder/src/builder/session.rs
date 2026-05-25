@@ -178,6 +178,8 @@ impl SessionFile {
             map_heatmap_mode: sectorforge::heatmap::HeatmapMode::Off,
             economy_highlight_lifelines: false,
             economy_lifeline_min_score: 35.0,
+            relations_selected_pair: None,
+            relations_auto_recompute: true,
         }
     }
 }

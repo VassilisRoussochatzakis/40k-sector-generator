@@ -188,6 +188,12 @@ for all remaining checklist items:
       strategic overrides, per-system tithe/supply/priority overrides, stranded
       recompute with red-ring MAP overlay, `economy.toml` editor with Save +
       Apply, lifeline-lane highlight, trade/food/tithe/supply heatmap picker.
+  [x] Direct edit Phase C §REL1..§REL9 (RELATIONS tab): diplomacy matrix grid
+      with click-to-select pair, symmetric + directional cell editor pinning
+      attitudes / treaty / 7 numeric dimensions, kind_rules + disposition_rules
+      + legacy pair_overrides editors, feed_conflict toggle,
+      [generation.relations].min_world_presence slider, Recompute matrix +
+      auto-recompute + Save relations.toml passthrough.
   [x] Validation/invariant panels and health status pip.
   [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
 
@@ -211,7 +217,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Subsectors          [P]       §13   (view only; need reassignment)
   Regions             [G]       §14   (view only; need place/grow/edit)
   Economy             [X]       §15   (per-world / per-system overrides, lifelines, heatmaps)
-  Relations           [G]       §16   (view only; need matrix + overrides)
+  Relations           [X]       §16   (matrix + overrides + kind/disposition rules + feed_conflict + min_world_presence + recompute + save)
   History             [G]       §17   (view only; need event editor + eras)
   Personae            [G]       §18
   Hooks               [G]       §19
@@ -874,30 +880,66 @@ E7.   [DONE] Trade-volume heatmap mode picker.
 16. RELATIONS (DIPLOMACY)
 ================================================================================
 
-REL1. Diplomacy matrix editor: pair grid (faction × faction).
-      Per-cell editor for public_attitude, secret_attitude,
-      treaty_status, dimensions (trust/fear/rivalry/ideological_distance/
-      economic_dependency/military_pressure/covert_activity), tension
-      (0..=100), cause text.
+REL1. [DONE] Diplomacy matrix editor in
+      `builder/src/builder/panels/relations.rs`: per-pair grid row
+      (faction A, faction B, public/secret attitudes, treaty, tension,
+      trust/fear/rivalry) with click-to-select arming
+      `BuilderState::relations_selected_pair`. The detail editor below the
+      grid pins `public_attitude`, `secret_attitude`, `treaty_status`,
+      `trust` / `fear` / `rivalry` / `ideological_distance` /
+      `economic_dependency` / `military_pressure` / `covert_activity`
+      (each with a per-axis "pin" checkbox + derived-value badge),
+      `cause/reason` override, and the read-only tension scalar.
 
-REL2. Directional cells (a_to_b, b_to_a) editable independently.
+REL2. [DONE] Same cell editor exposes directional `a_to_b` / `b_to_a`
+      views side-by-side; the `a_public_attitude`, `b_public_attitude`,
+      `a_secret_attitude`, and `b_secret_attitude` combos under
+      `RelationOverride` are editable independently and the derived
+      attitudes are shown beneath each combo for reference.
 
-REL3. Kind-rules editor (`relations.toml` `[kind_rules]`): table of
-      (kind_a, kind_b) → base stance.
+REL3. [DONE] Kind-pair stance rules editor (`§REL3` collapsing header):
+      one row per `KindRule` with kind A / kind B / stance ComboBox /
+      cause; add/remove row buttons; commits live to
+      `BuilderState::data_catalogs.relations.kind_rules`.
 
-REL4. Disposition-rules editor (`[disposition_rules]`): delta on top of
-      base stance.
+REL4. [DONE] Disposition delta rules editor (`§REL4`): one row per
+      `DispositionRule` with disposition A / disposition B / `delta`
+      DragValue (clamped -3..=3) / cause; add/remove buttons; commits to
+      `data_catalogs.relations.disposition_rules`.
 
-REL5. Pair-override editor (`[[pair_overrides]]`): legacy stance pin.
+REL5. [DONE] Legacy `pair_overrides` editor (`§REL5`): list of pinned
+      `(faction_id, faction_id, stance, cause)` rows with stance ComboBox
+      and cause text edit; "+ add pin" row picks faction A / faction B /
+      stance from the live `sector.factions` roster and dedupes by
+      canonical pair on insert.
 
-REL6. Relation-override editor (`[[relations.overrides]]`): per-pair
-      pin of any subset (public, secret, treaty, dimensions, reason).
+REL6. [DONE] Rich `RelationOverride` editor is the same cell editor as
+      REL1 — every field under `RelationsConfig::overrides` is wired
+      (public/secret attitudes symmetric + directional, treaty status,
+      all 7 numeric dimensions, reason). "Clear override for pair" drops
+      the row; the badge flips between "override pinned" /
+      "derived (no override)" based on whether any field is set.
 
-REL7. `feed_conflict` toggle (couples relations to conflict tick, §28).
+REL7. [DONE] `feed_conflict` checkbox in the §REL7 settings row. Edits
+      flow to `data_catalogs.relations.feed_conflict` and recompute
+      copies the flag onto `RelationsMatrix.feed_conflict` so the
+      conflict tick reads the live value.
 
-REL8. `min_world_presence` slider (controls matrix size).
+REL8. [DONE] `min_world_presence` slider (1..=10) bound to
+      `state.config.generation.relations.min_world_presence`. Sliding
+      the value arms `sectorforge.toml` dirty and (when auto-recompute
+      is on) triggers `recompute_relations`, which forwards the
+      threshold into `relations::derive_with_threshold`.
 
-REL9. Live "Recompute matrix" button + auto-recompute on edit.
+REL9. [DONE] "Recompute matrix" button in the header runs
+      `BuilderState::recompute_relations` synchronously; the
+      "auto-recompute on edit" checkbox (default ON) re-runs the same
+      pass after every kind-rule / disposition-rule / pair-override /
+      RelationOverride / settings mutation. The header also surfaces a
+      "Save relations.toml" action that flushes the catalog through
+      `project_io::save_project` (auto-pointing
+      `config.inputs.relations` at `data/factions/relations.toml` when
+      unset).
 
 ================================================================================
 17. HISTORY (CHRONICLE)
@@ -1490,7 +1532,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Routes    -> panels/routes.rs     (Phase B §R1..§R7 DONE)
         Subsectors -> panels/subsectors.rs (Phase C §SUB1..§SUB5 DONE)
         Economy   -> panels/economy.rs    (Phase C §E1..§E7 DONE)
-        Relations -> panels/relations.rs  (Phase C §REL1..§REL9)
+        Relations -> panels/relations.rs  (Phase C §REL1..§REL9 DONE)
         History   -> panels/history.rs    (Phase C §H1..§H8)
         Personae  -> panels/personae.rs   (Phase D §PER1..§PER5)
         Hooks     -> panels/hooks.rs      (Phase D §HK1..§HK6)
@@ -1644,7 +1686,20 @@ Phase C — Overlays editable
                    feeding `SectorView::heatmap` (§E7); all mutations route
                    through `BuilderState::recompute_economy` and the MAP panel
                    reads `state.map_heatmap_mode` whenever §C7/§C8 are off)
-  REL1..REL9, (§16 relations)
+  REL1..REL9 - DONE (§16 relations — RELATIONS tab: §REL1 diplomacy matrix
+                     grid with click-to-select pair; §REL2 directional
+                     a_to_b / b_to_a editors; §REL3 kind_rules editor;
+                     §REL4 disposition_rules editor with -3..=3 delta;
+                     §REL5 legacy pair_overrides list editor; §REL6 rich
+                     RelationOverride editor pinning public/secret
+                     attitudes, treaty, all 7 numeric dimensions,
+                     directional overrides, and cause/reason; §REL7
+                     feed_conflict toggle round-tripping through
+                     RelationsMatrix; §REL8 [generation.relations].
+                     min_world_presence slider feeding
+                     derive_with_threshold; §REL9 Recompute matrix
+                     button + auto-recompute on edit + Save
+                     relations.toml passthrough via project_io::save_project)
   H1..H8,     (§17 history)
   I1..I5,     (§29 intel + visibility)
   AR1..AR3,   (§30 archetypes)

@@ -74,7 +74,10 @@ impl Stance {
     pub fn is_hot(self) -> bool {
         matches!(self, Stance::Hostile | Stance::AtWar)
     }
-    fn label(self) -> &'static str {
+    /// Stable human-readable label. Used by the markdown digest and the
+    /// builder relations panel.
+    #[must_use]
+    pub fn label(self) -> &'static str {
         match self {
             Stance::Allied => "Allied",
             Stance::Aligned => "Aligned",
@@ -289,7 +292,10 @@ impl RelationAttitude {
         }
     }
 
-    fn label(self) -> &'static str {
+    /// Stable human-readable label. Used by the markdown digest and the
+    /// builder relations panel.
+    #[must_use]
+    pub fn label(self) -> &'static str {
         match self {
             Self::Allied => "Allied",
             Self::Friendly => "Friendly",
@@ -317,7 +323,10 @@ pub enum TreatyStatus {
 }
 
 impl TreatyStatus {
-    fn label(self) -> &'static str {
+    /// Stable human-readable label. Used by the markdown digest and the
+    /// builder relations panel.
+    #[must_use]
+    pub fn label(self) -> &'static str {
         match self {
             Self::None => "None",
             Self::Pact => "Pact",

@@ -85,9 +85,11 @@
 
 ---
 
-## SPLIT-004 — Split [src/svg_export.rs](src/svg_export.rs) (2089 LOC)
+## SPLIT-004 — Split [src/svg_export.rs](src/svg_export.rs) (2089 LOC) — ✅ DONE
 
 **Scope:** Mirror the bitmap submodule layout.
+
+**Result:** `svg_export.rs` (2089 LOC) → `src/svg_export/` package: `mod.rs` (146; facade + `render_sector_svg` orchestrator + `write_sector_svg_to*` + `HEX_SIZE`/`star_radius_ratio`/`legend_width`), `primitives.rs` (153; `<rect>`/`<circle>`/`<polygon>`/`<line>`/`<text>` emitters + XML escape), `colors.rs` (98; star/route/tint/darken/dim/short helpers), `geom.rs` (44; `MapBounds`, `map_bounds`, `hex_center`, `hex_vertices`), `grid.rs` (153; hex grid + subsector borders + system/region tints), `routes.rs` (594; `RouteGeom` + 14 pattern emitters + `ControlKind` + route-control glyph), `regions.rs` (61; warp-region label overlay), `systems.rs` (120; star disks + capital markers + pips), `labels.rs` (285; system label pills + collision-aware subsector titles), `legend.rs` (475; full + compact legend), `tests.rs` (83; well-formed SVG smoke test). Public API preserved (`render_sector_svg`, `write_sector_svg_to`, `write_sector_svg_to_with`). All 162 unit + 50 integration + 6 doc tests green.
 
 **Steps:**
 1. Create `src/svg_export/` directory.
@@ -95,8 +97,12 @@
 3. Keep `pub fn render_svg(...)` in `mod.rs`.
 
 **Acceptance:**
-- [tests/it/svg_export_tests.rs](tests/it/svg_export_tests.rs) passes
-- Update [CLAUDE.md](CLAUDE.md), [GUIDE.md](GUIDE.md)
+- [x] `mod.rs` ≤ 300 LOC (146)
+- [x] No new public symbols; no removed ones
+- [x] [tests/it/svg_export_tests.rs](tests/it/svg_export_tests.rs) passes
+- [x] `cargo test` green (162 unit + 50 integration + 6 doc)
+- [x] Update [CLAUDE.md](CLAUDE.md) source-layout table with new files
+- [x] Update [GUIDE.md](GUIDE.md) bitmap-mirror section + source-layout table
 
 ---
 

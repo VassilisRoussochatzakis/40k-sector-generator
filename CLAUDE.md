@@ -34,7 +34,16 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [src/render.rs](src/render.rs) | Markdown rendering (sector + standalone system) |
 | [src/export.rs](src/export.rs) | JSON / Markdown / manifest / bitmap writers |
 | [src/html_export.rs](src/html_export.rs) | §11 self-contained interactive HTML map (inlined JSON + JS canvas renderer + theme CSS) |
-| [src/svg_export.rs](src/svg_export.rs) | Vector SVG sector map mirroring `bitmap` |
+| [src/svg_export/mod.rs](src/svg_export/mod.rs) | SVG export facade: `render_sector_svg`, `write_sector_svg_to*`, top-level orchestrator + shared `HEX_SIZE` / `star_radius_ratio` |
+| [src/svg_export/primitives.rs](src/svg_export/primitives.rs) | Low-level SVG emitters: `<rect>`/`<circle>`/`<polygon>`/`<line>`/`<text>` + XML escape |
+| [src/svg_export/colors.rs](src/svg_export/colors.rs) | Star/route/tint/darken/dim/short helpers |
+| [src/svg_export/geom.rs](src/svg_export/geom.rs) | `MapBounds`, `map_bounds`, `hex_center`, `hex_vertices` |
+| [src/svg_export/grid.rs](src/svg_export/grid.rs) | Hex grid fill + subsector borders + per-system/region tints |
+| [src/svg_export/routes.rs](src/svg_export/routes.rs) | Route line patterns + route-control glyphs (exports `draw_route_pattern`, `ControlKind` for legend) |
+| [src/svg_export/regions.rs](src/svg_export/regions.rs) | §5 warp-region label overlay |
+| [src/svg_export/systems.rs](src/svg_export/systems.rs) | Star disks, capital markers, world-count pips |
+| [src/svg_export/labels.rs](src/svg_export/labels.rs) | System name labels + collision-aware subsector titles |
+| [src/svg_export/legend.rs](src/svg_export/legend.rs) | Right-hand legend (title, route key, factions, heatmap chip), full + compact variants |
 | [src/search.rs](src/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/diff.rs](src/diff.rs) | §10 sector diff: model-aware before/after report |
 | [src/history/mod.rs](src/history/mod.rs) | §1 chronicle facade: `derive*`, orchestration, `anchor_key`, `pub use` surface |

@@ -1665,7 +1665,7 @@ the current HEATMAP selection in the sector view is carried into the exported se
 Top-bar **EXPORT SVG** writes the sector map as a self-contained scalable
 vector graphic — same layout and theme as the PNG, but rendered as
 `<polygon>` / `<circle>` / `<line>` / `<text>` primitives backed by
-[src/svg_export.rs](src/svg_export.rs). Because SVG scales without
+[src/svg_export/mod.rs](src/svg_export/mod.rs). Because SVG scales without
 resampling, the dialog skips the resolution picker; theme and heatmap follow
 the active map view. Top-bar **EXPORT BUNDLE** writes a complete sector
 bundle to a chosen folder: `<sector-id>/out/sector.json`, manifest,
@@ -2434,7 +2434,17 @@ across runs, so a regression check is a diff away.
 | [src/bitmap/labels.rs](src/bitmap/labels.rs) | System name labels with pill background, subsector polka-dot borders, and centroid-seeded subsector label placement with collision avoidance |
 | [src/bitmap/legend.rs](src/bitmap/legend.rs) | Right-hand legend pane: title block, route-type/route-stability/route-control keys, faction swatches (importance-bucketed), heatmap chip — full + compact variants |
 | [src/bitmap/tests.rs](src/bitmap/tests.rs) | Smoke tests for the bitmap facade (renders, scaling, glyph table) |
-| [src/svg_export.rs](src/svg_export.rs) | Vector counterpart to `bitmap`: emits a self-contained SVG sector map (hex grid + region tints + routes/patterns/control glyphs + capital markers + labels + themed legend) using real `<text>` for labels so output scales without resampling |
+| [src/svg_export/mod.rs](src/svg_export/mod.rs) | SVG export facade: `render_sector_svg`, `write_sector_svg_to`, `write_sector_svg_to_with`, top-level orchestrator, shared `HEX_SIZE` constant + `star_radius_ratio` helper |
+| [src/svg_export/primitives.rs](src/svg_export/primitives.rs) | `<rect>` / `<circle>` / `<polygon>` / `<line>` / `<text>` emitters + XML escaping |
+| [src/svg_export/colors.rs](src/svg_export/colors.rs) | Star spectral colours, route stability/thickness, RGBA mix/tint/darken/dim, string-truncation helper |
+| [src/svg_export/geom.rs](src/svg_export/geom.rs) | `MapBounds`, `map_bounds`, `hex_center`, `hex_vertices` |
+| [src/svg_export/grid.rs](src/svg_export/grid.rs) | Hex grid fill + subsector polka-dot borders + per-system/region tint computation |
+| [src/svg_export/routes.rs](src/svg_export/routes.rs) | Route line drawing — solid/strided/jagged/zigzag/disc-trail/chevron/tripod/burst patterns + midpoint route-control glyph; exports `draw_route_pattern` for the legend |
+| [src/svg_export/regions.rs](src/svg_export/regions.rs) | §5 warp-region label overlay (centroid anchor, truncated uppercase) |
+| [src/svg_export/systems.rs](src/svg_export/systems.rs) | Star disks, capital markers (diamond / cross / tactical / redacted), world-count pip text |
+| [src/svg_export/labels.rs](src/svg_export/labels.rs) | System name labels with pill background; centroid-seeded subsector label placement with collision avoidance |
+| [src/svg_export/legend.rs](src/svg_export/legend.rs) | Right-hand legend pane: title block, route-type/stability/control keys, faction swatches, heatmap chip — full + compact variants |
+| [src/svg_export/tests.rs](src/svg_export/tests.rs) | Smoke test for SVG facade (well-formed XML + `<polygon>` present) |
 | [src/system_map.rs](src/system_map.rs) | Per-system PNG rendering; honours `outputs.bitmap.faction_fill` plus bitmap map themes |
 | [src/subsectors/mod.rs](src/subsectors/mod.rs) | Subsector clustering (k-means / Lloyd) + public API |
 | [src/subsectors/summary.rs](src/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |

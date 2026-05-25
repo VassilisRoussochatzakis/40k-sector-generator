@@ -205,11 +205,12 @@ fn map_bounds(sector: &GeneratedSector, g: &Geom) -> MapBounds {
     // so the bounding rect is `width * horiz_step` wide plus a half-step
     // when height > 1 to cover the staggered odd rows.
     let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
-    let w = (g.margin as f32 * 2.0 + horiz_step * (sector.width as f32 + odd_shift)) as i32;
+    let w = (g.margin as f32).mul_add(2.0, horiz_step * (sector.width as f32 + odd_shift)) as i32;
     let label_band = (g.hex_size * 0.55) as i32;
-    let h = (g.margin as f32 * 2.0
-        + (sector.height.saturating_sub(1)) as f32 * vert_step
-        + 2.0 * g.hex_size) as i32
+    let h = 2.0f32.mul_add(
+        g.hex_size,
+        (g.margin as f32).mul_add(2.0, (sector.height.saturating_sub(1)) as f32 * vert_step),
+    ) as i32
         + label_band;
     MapBounds { w, h }
 }
@@ -283,8 +284,9 @@ fn compute_system_tints(
         // both paths agree.
         if !matches!(opts.heatmap, HeatmapMode::Off) {
             if let Some(cell) = heat.get(&sys.id) {
-                let strength =
-                    opts.theme.heatmap_tint_min + cell.intensity * opts.theme.heatmap_tint_range;
+                let strength = cell
+                    .intensity
+                    .mul_add(opts.theme.heatmap_tint_range, opts.theme.heatmap_tint_min);
                 let color = rgba(cell.rgb);
                 out.insert(key, tint_against(color, strength, opts.theme.hex_empty));
                 continue;
@@ -457,7 +459,7 @@ fn draw_route_control_glyph(
             // Crossbar perpendicular to the line.
             let dx = (b.0 - a.0) as f32;
             let dy = (b.1 - a.1) as f32;
-            let len = (dx * dx + dy * dy).sqrt().max(1.0);
+            let len = dx.hypot(dy).max(1.0);
             let px = -dy / len;
             let py = dx / len;
             let half = size as f32;
@@ -538,19 +540,19 @@ fn star_radius_ratio() -> f32 {
 fn shorten_to_star(a: (i32, i32), b: (i32, i32), star_r: f32) -> Option<((i32, i32), (i32, i32))> {
     let dx = (b.0 - a.0) as f32;
     let dy = (b.1 - a.1) as f32;
-    let len = (dx * dx + dy * dy).sqrt();
+    let len = dx.hypot(dy);
     if len <= star_r * 2.0 {
         return None;
     }
     let ux = dx / len;
     let uy = dy / len;
     let s = (
-        (a.0 as f32 + ux * star_r).round() as i32,
-        (a.1 as f32 + uy * star_r).round() as i32,
+        ux.mul_add(star_r, a.0 as f32).round() as i32,
+        uy.mul_add(star_r, a.1 as f32).round() as i32,
     );
     let e = (
-        (b.0 as f32 - ux * star_r).round() as i32,
-        (b.1 as f32 - uy * star_r).round() as i32,
+        ux.mul_add(-star_r, b.0 as f32).round() as i32,
+        uy.mul_add(-star_r, b.1 as f32).round() as i32,
     );
     Some((s, e))
 }
@@ -716,7 +718,7 @@ impl BitmapRouteGeom {
     fn new(x0: i32, y0: i32, x1: i32, y1: i32, thickness: i32) -> Option<Self> {
         let dx = (x1 - x0) as f32;
         let dy = (y1 - y0) as f32;
-        let total = (dx * dx + dy * dy).sqrt();
+        let total = dx.hypot(dy);
         if total <= 0.0 {
             return None;
         }
@@ -739,12 +741,37 @@ impl BitmapRouteGeom {
     fn at(self, t: f32, offset: f32) -> (i32, i32) {
         let t = t.clamp(0.0, self.total);
         (
-            (self.x0 as f32 + self.ux * t + self.nx * offset).round() as i32,
-            (self.y0 as f32 + self.uy * t + self.ny * offset).round() as i32,
+            self.nx
+                .mul_add(offset, self.ux.mul_add(t, self.x0 as f32))
+                .round() as i32,
+            self.ny
+                .mul_add(offset, self.uy.mul_add(t, self.y0 as f32))
+                .round() as i32,
         )
     }
 }
 
+/// FIX.txt §3: closed-form iteration count for `t = start; while t < total {
+/// t += spacing }` loops, replacing accumulated float drift with a single
+/// stable computation. Returns 0 for non-positive spacing or non-finite
+/// results so caller `for i in 0..n_steps` becomes a no-op.
+#[inline]
+fn float_loop_steps(total: f32, start: f32, spacing: f32) -> i32 {
+    if !(spacing > 0.0) {
+        return 0;
+    }
+    let n = ((total - start) / spacing).ceil();
+    if n.is_finite() && n > 0.0 {
+        n as i32
+    } else {
+        0
+    }
+}
+
+// FIX.txt §3: variable per-iteration stride + `.min(total)` clamp; the
+// closed-form `((total-start)/step).ceil()` rewrite does not apply here
+// because `step` changes each loop.
+#[allow(clippy::while_float)]
 fn draw_bitmap_strided_route(
     img: &mut RgbaImage,
     geom: BitmapRouteGeom,
@@ -819,15 +846,16 @@ fn draw_bitmap_ticks(
     spacing: f32,
     half_len: f32,
 ) {
-    let mut t = spacing * 0.5;
-    while t < geom.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let (mx, my) = geom.at(t, 0.0);
-        let sx = (mx as f32 - geom.nx * half_len).round() as i32;
-        let sy = (my as f32 - geom.ny * half_len).round() as i32;
-        let ex = (mx as f32 + geom.nx * half_len).round() as i32;
-        let ey = (my as f32 + geom.ny * half_len).round() as i32;
+        let sx = geom.nx.mul_add(-half_len, mx as f32).round() as i32;
+        let sy = geom.ny.mul_add(-half_len, my as f32).round() as i32;
+        let ex = geom.nx.mul_add(half_len, mx as f32).round() as i32;
+        let ey = geom.ny.mul_add(half_len, my as f32).round() as i32;
         draw_line_thick(img, sx, sy, ex, ey, color, stroke_px(thickness, 0.75));
-        t += spacing;
     }
 }
 
@@ -840,13 +868,14 @@ fn draw_bitmap_jagged_route(
     amplitude: f32,
 ) {
     let mut prev = (geom.x0, geom.y0);
-    let mut t = spacing;
+    let start = spacing;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
     let mut sign = 1.0;
-    while t < geom.total {
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let next = geom.at(t, amplitude * sign);
         draw_line_thick(img, prev.0, prev.1, next.0, next.1, color, thickness);
         prev = next;
-        t += spacing;
         sign = -sign;
     }
     draw_line_thick(img, prev.0, prev.1, geom.x1, geom.y1, color, thickness);
@@ -861,13 +890,14 @@ fn draw_bitmap_zigzag_route(
     amplitude: f32,
 ) {
     let mut prev = geom.at(0.0, -amplitude);
-    let mut t = spacing * 0.5;
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
     let mut sign = 1.0;
-    while t < geom.total {
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let next = geom.at(t, amplitude * sign);
         draw_line_thick(img, prev.0, prev.1, next.0, next.1, color, thickness);
         prev = next;
-        t += spacing;
         sign = -sign;
     }
     let end = geom.at(geom.total, -amplitude * sign);
@@ -883,10 +913,11 @@ fn draw_bitmap_disc_trail(
     hollow: bool,
     alternating: bool,
 ) {
-    let mut t = spacing * 0.5;
-    let mut i = 0usize;
-    while t < geom.total {
-        let radius = if alternating && i.is_multiple_of(2) {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
+        let radius = if alternating && (i as usize).is_multiple_of(2) {
             thickness as f32 * 0.85
         } else {
             thickness as f32 * 0.55
@@ -898,8 +929,6 @@ fn draw_bitmap_disc_trail(
         } else {
             fill_circle(img, mx, my, radius.max(1), color);
         }
-        t += spacing;
-        i += 1;
     }
 }
 
@@ -913,15 +942,16 @@ fn draw_bitmap_dot_clusters(
 ) {
     let dot_gap = geom.unit * 1.25;
     let radius = ((thickness as f32) * 0.55).round() as i32;
-    let mut t = spacing * 0.5;
-    while t < geom.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for step in 0..n_steps {
+        let t = spacing.mul_add(step as f32, start);
         let center = (count as f32 - 1.0) * 0.5;
         for i in 0..count {
             let local = (i as f32 - center) * dot_gap;
             let (mx, my) = geom.at(t + local, 0.0);
             fill_circle(img, mx, my, radius.max(1), color);
         }
-        t += spacing;
     }
 }
 
@@ -934,17 +964,18 @@ fn draw_bitmap_double_taps(
 ) {
     let pair_gap = geom.unit * 1.3;
     let half_len = thickness as f32 * 1.8;
-    let mut t = spacing * 0.5;
-    while t < geom.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         for local in [-pair_gap * 0.5, pair_gap * 0.5] {
             let (mx, my) = geom.at(t + local, 0.0);
-            let sx = (mx as f32 - geom.nx * half_len).round() as i32;
-            let sy = (my as f32 - geom.ny * half_len).round() as i32;
-            let ex = (mx as f32 + geom.nx * half_len).round() as i32;
-            let ey = (my as f32 + geom.ny * half_len).round() as i32;
+            let sx = geom.nx.mul_add(-half_len, mx as f32).round() as i32;
+            let sy = geom.ny.mul_add(-half_len, my as f32).round() as i32;
+            let ex = geom.nx.mul_add(half_len, mx as f32).round() as i32;
+            let ey = geom.ny.mul_add(half_len, my as f32).round() as i32;
             draw_line_thick(img, sx, sy, ex, ey, color, stroke_px(thickness, 0.8));
         }
-        t += spacing;
     }
 }
 
@@ -956,21 +987,22 @@ fn draw_bitmap_chevrons(
     spacing: f32,
 ) {
     let size = geom.unit * 1.8;
-    let mut t = spacing * 0.5;
-    while t < geom.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let tip = geom.at(t + size * 0.35, 0.0);
         let back = geom.at(t - size * 0.35, 0.0);
         let left = (
-            (back.0 as f32 + geom.nx * size * 0.35).round() as i32,
-            (back.1 as f32 + geom.ny * size * 0.35).round() as i32,
+            (geom.nx * size).mul_add(0.35, back.0 as f32).round() as i32,
+            (geom.ny * size).mul_add(0.35, back.1 as f32).round() as i32,
         );
         let right = (
-            (back.0 as f32 - geom.nx * size * 0.35).round() as i32,
-            (back.1 as f32 - geom.ny * size * 0.35).round() as i32,
+            (geom.nx * size).mul_add(-0.35, back.0 as f32).round() as i32,
+            (geom.ny * size).mul_add(-0.35, back.1 as f32).round() as i32,
         );
         draw_line_thick(img, left.0, left.1, tip.0, tip.1, color, thickness);
         draw_line_thick(img, right.0, right.1, tip.0, tip.1, color, thickness);
-        t += spacing;
     }
 }
 
@@ -982,8 +1014,10 @@ fn draw_bitmap_tripods(
     spacing: f32,
 ) {
     let size = (geom.unit * 1.8).max(thickness as f32 * 2.5);
-    let mut t = spacing * 0.5;
-    while t < geom.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let mid = geom.at(t, 0.0);
         let mid_p = (mid.0 as f32, mid.1 as f32);
 
@@ -993,17 +1027,15 @@ fn draw_bitmap_tripods(
 
         // Lateral legs
         let l_pos = (
-            (mid_p.0 + geom.nx * size * 0.4).round() as i32,
-            (mid_p.1 + geom.ny * size * 0.4).round() as i32,
+            (geom.nx * size).mul_add(0.4, mid_p.0).round() as i32,
+            (geom.ny * size).mul_add(0.4, mid_p.1).round() as i32,
         );
         let r_pos = (
-            (mid_p.0 - geom.nx * size * 0.4).round() as i32,
-            (mid_p.1 - geom.ny * size * 0.4).round() as i32,
+            (geom.nx * size).mul_add(-0.4, mid_p.0).round() as i32,
+            (geom.ny * size).mul_add(-0.4, mid_p.1).round() as i32,
         );
         draw_line_thick(img, mid.0, mid.1, l_pos.0, l_pos.1, color, thickness);
         draw_line_thick(img, mid.0, mid.1, r_pos.0, r_pos.1, color, thickness);
-
-        t += spacing;
     }
 }
 
@@ -1015,23 +1047,24 @@ fn draw_bitmap_bursts(
     spacing: f32,
 ) {
     let radius = (thickness as f32 * 1.6).max(2.0);
-    let mut t = spacing * 0.5;
-    while t < geom.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(geom.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let mid = geom.at(t, 0.0);
         let a = geom.at(t - radius, 0.0);
         let b = geom.at(t + radius, 0.0);
         let c = (
-            (mid.0 as f32 - geom.nx * radius).round() as i32,
-            (mid.1 as f32 - geom.ny * radius).round() as i32,
+            geom.nx.mul_add(-radius, mid.0 as f32).round() as i32,
+            geom.ny.mul_add(-radius, mid.1 as f32).round() as i32,
         );
         let d = (
-            (mid.0 as f32 + geom.nx * radius).round() as i32,
-            (mid.1 as f32 + geom.ny * radius).round() as i32,
+            geom.nx.mul_add(radius, mid.0 as f32).round() as i32,
+            geom.ny.mul_add(radius, mid.1 as f32).round() as i32,
         );
         draw_line_thick(img, a.0, a.1, b.0, b.1, color, stroke_px(thickness, 0.65));
         draw_line_thick(img, c.0, c.1, d.0, d.1, color, stroke_px(thickness, 0.65));
         fill_circle(img, mid.0, mid.1, stroke_px(thickness, 0.45), color);
-        t += spacing;
     }
 }
 
@@ -1320,12 +1353,12 @@ fn draw_subsector_borders(
                 }
                 let a = v[i];
                 let b = v[(i + 1) % 6];
-                let edge_len = (((b.0 - a.0) as f32).powi(2) + ((b.1 - a.1) as f32).powi(2)).sqrt();
+                let edge_len = ((b.0 - a.0) as f32).hypot((b.1 - a.1) as f32);
                 let segments = (edge_len / spacing).ceil() as usize;
                 for j in 0..=segments {
                     let t = j as f32 / segments as f32;
-                    let mx = (a.0 as f32 + (b.0 - a.0) as f32 * t).round() as i32;
-                    let my = (a.1 as f32 + (b.1 - a.1) as f32 * t).round() as i32;
+                    let mx = ((b.0 - a.0) as f32).mul_add(t, a.0 as f32).round() as i32;
+                    let my = ((b.1 - a.1) as f32).mul_add(t, a.1 as f32).round() as i32;
                     fill_circle(img, mx, my, dot_radius, theme.subsector_border);
                 }
             }
@@ -2012,7 +2045,7 @@ fn hex_center(q: i32, r: i32, g: &Geom) -> (i32, i32) {
     let horiz_step = g.hex_size * 3f32.sqrt();
     let vert_step = g.hex_size * 1.5;
     let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
-    let x = g.margin as f32 + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
+    let x = horiz_step.mul_add(q as f32 + row_shift, g.margin as f32) + horiz_step / 2.0;
     let y = g.margin as f32 + vert_step * r as f32 + g.hex_size;
     (x.round() as i32, y.round() as i32)
 }
@@ -2020,9 +2053,9 @@ fn hex_center(q: i32, r: i32, g: &Geom) -> (i32, i32) {
 fn hex_vertices(cx: i32, cy: i32, size: f32) -> [(i32, i32); 6] {
     let mut out = [(0i32, 0i32); 6];
     for (i, slot) in out.iter_mut().enumerate() {
-        let angle = std::f32::consts::PI / 180.0 * (60.0 * i as f32 - 30.0);
-        let x = cx as f32 + size * angle.cos();
-        let y = cy as f32 + size * angle.sin();
+        let angle = std::f32::consts::PI / 180.0 * 60.0f32.mul_add(i as f32, -30.0);
+        let x = size.mul_add(angle.cos(), cx as f32);
+        let y = size.mul_add(angle.sin(), cy as f32);
         *slot = (x.round() as i32, y.round() as i32);
     }
     out
@@ -2073,7 +2106,7 @@ fn stability_color(theme: &MapTheme, s: RouteStability) -> Rgba<u8> {
 
 pub(crate) fn tint_against(c: Rgba<u8>, amount: f32, base: Rgba<u8>) -> Rgba<u8> {
     let mix = |v: u8, base: u8| {
-        let f = f32::from(v) * amount + f32::from(base) * (1.0 - amount);
+        let f = f32::from(v).mul_add(amount, f32::from(base) * (1.0 - amount));
         f.round().clamp(0.0, 255.0) as u8
     };
     Rgba([

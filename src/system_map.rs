@@ -387,7 +387,10 @@ fn world_type_color(t: &str) -> Rgba<u8> {
 }
 
 fn contrast_text(c: Rgba<u8>) -> Rgba<u8> {
-    let luma = 0.2126 * f32::from(c.0[0]) + 0.7152 * f32::from(c.0[1]) + 0.0722 * f32::from(c.0[2]);
+    let luma = 0.0722f32.mul_add(
+        f32::from(c.0[2]),
+        0.2126f32.mul_add(f32::from(c.0[0]), 0.7152 * f32::from(c.0[1])),
+    );
     if luma > 140.0 {
         Rgba([20, 20, 30, 255])
     } else {

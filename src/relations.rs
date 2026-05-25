@@ -889,9 +889,16 @@ fn directional_metrics(
     stats: CooccurStats,
 ) -> RelationMetrics {
     let ideology = ideological_distance(&from.kind, &to.kind, secret.to_stance());
-    let to_force = normalized_power(to.power.military + to.power.naval + to.power.logistical * 0.4);
-    let from_force =
-        normalized_power(from.power.military + from.power.naval + from.power.logistical * 0.4);
+    let to_force = normalized_power(
+        to.power
+            .logistical
+            .mul_add(0.4, to.power.military + to.power.naval),
+    );
+    let from_force = normalized_power(
+        from.power
+            .logistical
+            .mul_add(0.4, from.power.military + from.power.naval),
+    );
     let to_econ = normalized_power(to.power.economic + to.power.industrial + to.power.logistical);
     let from_econ =
         normalized_power(from.power.economic + from.power.industrial + from.power.logistical);
@@ -914,48 +921,61 @@ fn directional_metrics(
         RelationAttitude::ExistentialEnemy => 0.0,
     };
 
-    let rivalry = clamp_score(
-        rivalry_base
-            + stats.contested_worlds as f32 * 7.0
-            + stats.claim_conflicts as f32 * 10.0
-            + stats.active_warzones as f32 * 10.0
-            + stats.route_competition * 0.45,
-    );
+    let rivalry = clamp_score(stats.route_competition.mul_add(
+        0.45,
+        (stats.active_warzones as f32).mul_add(
+            10.0,
+            (stats.claim_conflicts as f32).mul_add(
+                10.0,
+                (stats.contested_worlds as f32).mul_add(7.0, rivalry_base),
+            ),
+        ),
+    ));
     let military_pressure = clamp_score(
-        to_force * 0.65 + stats.military_pressure * 0.45 + stats.active_warzones as f32 * 14.0,
+        (stats.active_warzones as f32)
+            .mul_add(14.0, to_force * 0.65 + stats.military_pressure * 0.45),
     );
     let covert_activity = clamp_score(
-        to_covert * 0.75
-            + stats.covert_activity * 0.5
+        to_covert.mul_add(0.75, stats.covert_activity * 0.5)
             + if is_hidden_kind(&to.kind) { 18.0 } else { 0.0 },
     );
     let economic_dependency = clamp_score(
-        from_econ.min(to_econ) * 0.55
-            + stats.economic_dependency * 0.55
+        from_econ
+            .min(to_econ)
+            .mul_add(0.55, stats.economic_dependency * 0.55)
             + if is_merchant_kind(&from.kind) || is_merchant_kind(&to.kind) {
                 8.0
             } else {
                 0.0
             },
     );
-    let fear = clamp_score(
-        match secret {
-            RelationAttitude::Allied => 5.0,
-            RelationAttitude::Friendly => 10.0,
-            RelationAttitude::Transactional => 20.0,
-            RelationAttitude::Suspicious => 35.0,
-            RelationAttitude::Hostile => 55.0,
-            RelationAttitude::ExistentialEnemy => 78.0,
-        } + military_pressure as f32 * 0.35
-            + covert_activity as f32 * 0.12
-            + (to_force - from_force).max(0.0) * 0.5,
-    );
-    let trust = clamp_score(
-        trust_base + economic_dependency as f32 * 0.12
-            - rivalry as f32 * 0.24
-            - ideology as f32 * 0.18
-            - covert_activity as f32 * 0.08,
-    );
+    let fear = clamp_score((to_force - from_force).max(0.0).mul_add(
+        0.5,
+        (covert_activity as f32).mul_add(
+            0.12,
+            (military_pressure as f32).mul_add(
+                0.35,
+                match secret {
+                    RelationAttitude::Allied => 5.0,
+                    RelationAttitude::Friendly => 10.0,
+                    RelationAttitude::Transactional => 20.0,
+                    RelationAttitude::Suspicious => 35.0,
+                    RelationAttitude::Hostile => 55.0,
+                    RelationAttitude::ExistentialEnemy => 78.0,
+                },
+            ),
+        ),
+    ));
+    let trust = clamp_score((covert_activity as f32).mul_add(
+        -0.08,
+        (ideology as f32).mul_add(
+            -0.18,
+            (rivalry as f32).mul_add(
+                -0.24,
+                (economic_dependency as f32).mul_add(0.12, trust_base),
+            ),
+        ),
+    ));
 
     RelationMetrics {
         trust,
@@ -1113,7 +1133,7 @@ fn ideological_distance(a: &str, b: &str, stance: Stance) -> u8 {
 }
 
 fn normalized_power(v: f32) -> f32 {
-    ((v.max(0.0) + 1.0).ln() * 12.0).clamp(0.0, 100.0)
+    (v.max(0.0).ln_1p() * 12.0).clamp(0.0, 100.0)
 }
 
 fn clamp_score(v: f32) -> u8 {
@@ -1147,9 +1167,11 @@ fn build_cooccurrence(sector: &GeneratedSector) -> BTreeMap<(String, String), Co
                     let b = pb.faction_id.as_str();
                     bump_cooccur(&mut out, a, b, |s| {
                         s.same_system_worlds += 1;
-                        s.economic_dependency += pa.dimensions.economic.min(pb.dimensions.economic)
-                            * 0.06
-                            + pa.dimensions.logistics.min(pb.dimensions.logistics) * 0.04;
+                        s.economic_dependency +=
+                            pa.dimensions.economic.min(pb.dimensions.economic).mul_add(
+                                0.06,
+                                pa.dimensions.logistics.min(pb.dimensions.logistics) * 0.04,
+                            );
                         s.military_pressure += (pa.dimensions.military + pa.dimensions.orbital)
                             .max(pb.dimensions.military + pb.dimensions.orbital)
                             * 0.04;
@@ -1205,16 +1227,23 @@ fn build_cooccurrence(sector: &GeneratedSector) -> BTreeMap<(String, String), Co
                     a.faction_id.as_str(),
                     b.faction_id.as_str(),
                     |s| {
-                        s.route_competition += a.patrol.min(b.patrol) * 0.15
-                            + a.toll.min(b.toll) * 0.20
-                            + a.interdiction.min(b.interdiction) * 0.25
-                            + a.piracy.min(b.piracy) * 0.25;
+                        s.route_competition += a.piracy.min(b.piracy).mul_add(
+                            0.25,
+                            a.interdiction.min(b.interdiction).mul_add(
+                                0.25,
+                                a.patrol
+                                    .min(b.patrol)
+                                    .mul_add(0.15, a.toll.min(b.toll) * 0.20),
+                            ),
+                        );
                         s.economic_dependency += a.toll.min(b.toll) * 0.20;
                         s.military_pressure += (a.patrol + a.interdiction + a.piracy)
                             .max(b.patrol + b.interdiction + b.piracy)
                             * 0.10;
-                        s.covert_activity +=
-                            a.secrecy.max(b.secrecy) * 0.10 + a.piracy.max(b.piracy) * 0.10;
+                        s.covert_activity += a
+                            .secrecy
+                            .max(b.secrecy)
+                            .mul_add(0.10, a.piracy.max(b.piracy) * 0.10);
                         if a.secrecy.max(b.secrecy) >= 65.0 {
                             s.hidden_overlap += 1;
                         }
@@ -1254,14 +1283,25 @@ fn tension_of(
         Stance::Aligned => -5.0,
         Stance::Allied => -10.0,
     };
-    let raw = stance_bonus
-        + stats.contested_worlds as f32 * 8.0
-        + stats.active_warzones as f32 * 10.0
-        + stats.same_system_worlds as f32 * 1.5
-        + stats.claim_conflicts as f32 * 6.0
-        + stats.route_competition * 0.4
-        + stats.military_pressure * 0.2
-        + stats.covert_activity * 0.1;
+    let raw = stats.covert_activity.mul_add(
+        0.1,
+        stats.military_pressure.mul_add(
+            0.2,
+            stats.route_competition.mul_add(
+                0.4,
+                (stats.claim_conflicts as f32).mul_add(
+                    6.0,
+                    (stats.same_system_worlds as f32).mul_add(
+                        1.5,
+                        (stats.active_warzones as f32).mul_add(
+                            10.0,
+                            (stats.contested_worlds as f32).mul_add(8.0, stance_bonus),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    );
     raw.clamp(0.0, 100.0)
 }
 

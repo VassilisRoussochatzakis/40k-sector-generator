@@ -152,10 +152,12 @@ fn apply_imperial_governance(sector: &mut GeneratedSector, kinds: &BTreeMap<Fact
             for p in &w.factions {
                 let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if imperial_stack.contains(&kind) {
-                    let weight = p.dimensions.admin
-                        + p.dimensions.legitimacy
-                        + p.dimensions.industrial * 0.5
-                        + p.dimensions.ideological * 0.5;
+                    let weight = p.dimensions.ideological.mul_add(
+                        0.5,
+                        p.dimensions
+                            .industrial
+                            .mul_add(0.5, p.dimensions.admin + p.dimensions.legitimacy),
+                    );
                     if weight >= 30.0 {
                         co_sovereigns.insert(p.faction_id.clone());
                     }
@@ -430,10 +432,12 @@ fn apply_chaos_corruption(sector: &mut GeneratedSector, kinds: &BTreeMap<Faction
                 }
             }
         }
-        let corruption =
-            (traitor_military / 4.0 + daemonic_presence / 2.0 + warp_phen_count as f32 * 8.0)
-                .clamp(0.0, 100.0);
-        let manifestation = (daemonic_presence + warp_phen_count as f32 * 12.0).clamp(0.0, 100.0);
+        let corruption = (warp_phen_count as f32)
+            .mul_add(8.0, traitor_military / 4.0 + daemonic_presence / 2.0)
+            .clamp(0.0, 100.0);
+        let manifestation = (warp_phen_count as f32)
+            .mul_add(12.0, daemonic_presence)
+            .clamp(0.0, 100.0);
         system_chaos.insert(
             sys.id.clone(),
             (corruption.round() as u8, manifestation.round() as u8),

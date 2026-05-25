@@ -259,16 +259,29 @@ impl StrategicOutput {
 
     #[must_use]
     pub fn weighted_priority_score(&self) -> f32 {
-        self.food * 0.70
-            + self.ore * 0.70
-            + self.manufacturing * 0.85
-            + self.arms * 1.00
-            + self.ships * 1.20
-            + self.pilgrimage * 0.55
-            + self.psyker_tithe * 1.10
-            + self.manpower * 0.80
-            + self.knowledge * 1.00
-            + self.xenos_value * 0.90
+        self.xenos_value.mul_add(
+            0.90,
+            self.knowledge.mul_add(
+                1.00,
+                self.manpower.mul_add(
+                    0.80,
+                    self.psyker_tithe.mul_add(
+                        1.10,
+                        self.pilgrimage.mul_add(
+                            0.55,
+                            self.ships.mul_add(
+                                1.20,
+                                self.arms.mul_add(
+                                    1.00,
+                                    self.manufacturing
+                                        .mul_add(0.85, self.food.mul_add(0.70, self.ore * 0.70)),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
     }
 }
 
@@ -895,7 +908,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
     // Stranded check: a world is stranded if it has any deficit ≥ 20 and the
     // system also nets a deficit there *and* no inbound route from a surplus
     // system on that resource exists.
-    let mut stranded_world_idx: Vec<usize> = Vec::new();
+    let mut stranded_world_idx: Vec<usize> = Vec::with_capacity(worlds.len());
     for (idx, we) in worlds.iter().enumerate() {
         let sys = by_sys.get(we.system_id.as_str()).copied();
         if sys.is_none() {
@@ -1101,7 +1114,7 @@ fn derive_dependency_edges(
         }
     }
 
-    let mut out = Vec::new();
+    let mut out = Vec::with_capacity(systems.len());
 
     for consumer in systems {
         let Some(consumer_sys_ref) = system_refs.get(consumer.system_id.as_str()) else {
@@ -1245,11 +1258,15 @@ fn lower_risk(risk: SupplyRisk) -> SupplyRisk {
 }
 
 fn world_tithe_status(w: &GeneratedWorld, we: &WorldEconomy) -> TitheStatus {
-    let stress = w.stability.famine_or_resource_stress * 0.5
-        + w.stability.rebellion_risk * 0.35
-        + w.stability.corruption * 0.25
-        + w.conflict.intensity as f32 * 0.55
-        + if w.control.contested { 20.0 } else { 0.0 }
+    let stress = (w.conflict.intensity as f32).mul_add(
+        0.55,
+        w.stability.corruption.mul_add(
+            0.25,
+            w.stability
+                .famine_or_resource_stress
+                .mul_add(0.5, w.stability.rebellion_risk * 0.35),
+        ),
+    ) + if w.control.contested { 20.0 } else { 0.0 }
         + if we.stranded { 30.0 } else { 0.0 };
     let reliability = we.strategic_output.weighted_priority_score() - stress;
     if w.control.hidden_master.is_some() && reliability >= 25.0 {
@@ -1266,10 +1283,12 @@ fn system_tithe_status(
     let avg_score = sy.strategic_output.weighted_priority_score() / world_count.max(1) as f32;
     let stress = sys_ref
         .map(|s| {
-            s.stability.famine_or_resource_stress * 0.4
-                + s.stability.rebellion_risk * 0.25
-                + s.conflict.intensity as f32 * 0.5
-                + if s.blockade.under_blockade { 25.0 } else { 0.0 }
+            (s.conflict.intensity as f32).mul_add(
+                0.5,
+                s.stability
+                    .famine_or_resource_stress
+                    .mul_add(0.4, s.stability.rebellion_risk * 0.25),
+            ) + if s.blockade.under_blockade { 25.0 } else { 0.0 }
         })
         .unwrap_or(0.0);
     tithe_from_reliability(avg_score - stress)
@@ -1300,7 +1319,7 @@ fn route_economy(r: &GeneratedRoute, by_sys: &BTreeMap<&str, &SystemEconomy>) ->
                 .map(|k| (a.strategic_output.get(k) - b.strategic_output.get(k)).abs())
                 .sum::<f32>()
                 / STRATEGIC_RESOURCE_KEYS.len() as f32;
-            legacy + strategic * 0.5
+            strategic.mul_add(0.5, legacy)
         }
         _ => 0.0,
     };

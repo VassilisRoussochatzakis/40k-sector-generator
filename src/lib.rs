@@ -24,6 +24,13 @@
 pub mod worlds;
 pub mod worlds_toml;
 
+// FIX.txt §4: faster non-cryptographic hash for internal maps/sets.
+// Determinism rule (already crate-wide): never iterate a hash map for
+// output. Output writers must sort keys first. These aliases are for
+// internal lookup-only structures.
+pub(crate) type FxMap<K, V> = rustc_hash::FxHashMap<K, V>;
+pub(crate) type FxSet<T> = rustc_hash::FxHashSet<T>;
+
 pub mod analytics;
 pub mod archetypes;
 pub mod bitmap;

@@ -894,15 +894,26 @@ impl PresenceDimensions {
     /// at the same weight as economic since both encode commercial strength.
     #[must_use]
     pub fn local_control_score(&self) -> f32 {
-        self.admin * 0.20
-            + self.military * 0.18
-            + self.orbital * 0.10
-            + self.economic * 0.12
-            + self.industrial * 0.06
-            + self.ideological * 0.10
-            + self.covert * 0.08
-            + self.logistics * 0.10
-            + self.legitimacy * 0.06
+        self.legitimacy.mul_add(
+            0.06,
+            self.logistics.mul_add(
+                0.10,
+                self.covert.mul_add(
+                    0.08,
+                    self.ideological.mul_add(
+                        0.10,
+                        self.industrial.mul_add(
+                            0.06,
+                            self.economic.mul_add(
+                                0.12,
+                                self.orbital
+                                    .mul_add(0.10, self.admin.mul_add(0.20, self.military * 0.18)),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
     }
 }
 
@@ -1047,15 +1058,28 @@ impl PowerProfile {
     /// Spec §4.3 default projection — weighted single-number total.
     #[must_use]
     pub fn total_projection(&self) -> f32 {
-        self.administrative * 0.8
-            + self.military * 1.1
-            + self.naval * 1.2
-            + self.economic * 0.9
-            + self.industrial * 0.9
-            + self.ideological * 0.7
-            + self.covert * 0.7
-            + self.logistical * 1.0
-            + self.legitimacy * 0.5
+        self.legitimacy.mul_add(
+            0.5,
+            self.logistical.mul_add(
+                1.0,
+                self.covert.mul_add(
+                    0.7,
+                    self.ideological.mul_add(
+                        0.7,
+                        self.industrial.mul_add(
+                            0.9,
+                            self.economic.mul_add(
+                                0.9,
+                                self.naval.mul_add(
+                                    1.2,
+                                    self.administrative.mul_add(0.8, self.military * 1.1),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
     }
 }
 

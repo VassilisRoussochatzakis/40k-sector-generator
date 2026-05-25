@@ -1080,42 +1080,71 @@ pub fn run_search(
         });
     }
 
+    // FIX.txt §13: data-parallel candidate enumeration. Each iteration is
+    // independent (clone_project_with_seed copies the template by value;
+    // generation's RNG is seeded from `seed` per-candidate). Order is preserved
+    // via collect, then the lowest-n passing report is selected — matching the
+    // sequential break-on-first-pass winner exactly, so byte-deterministic
+    // outputs are unchanged. The full budget is always processed; reported
+    // `candidates_evaluated` is normalised below to mimic the sequential
+    // semantics ("we'd have stopped at winner.n + 1").
+    use rayon::prelude::*;
+
+    enum Slot {
+        Skipped,
+        Report(Box<CandidateReport>),
+    }
+
+    let slots: Vec<Slot> = (0..budget)
+        .into_par_iter()
+        .map(|n| {
+            let seed = derive_candidate_seed(&base_seed, n);
+            let mut input = clone_project_with_seed(project_template, &seed);
+            input.config.generation.seed = seed.clone();
+
+            let pre = crate::validation::validate(&input);
+            if !pre.ok {
+                return Slot::Skipped;
+            }
+
+            let sector = match crate::generation::generate(input) {
+                Ok(s) => s,
+                Err(_) => return Slot::Skipped,
+            };
+            let analysis = analytics::analyze(&sector);
+            Slot::Report(Box::new(evaluate_all(
+                &sector,
+                &analysis,
+                &wishes.constraints,
+                n,
+                &seed,
+            )))
+        })
+        .collect();
+
     let mut near_misses: Vec<CandidateReport> = Vec::new();
     let mut winning: Option<CandidateReport> = None;
-    let mut evaluated = 0u32;
 
-    for n in 0..budget {
-        let seed = derive_candidate_seed(&base_seed, n);
-        let mut input = clone_project_with_seed(project_template, &seed);
-        input.config.generation.seed = seed.clone();
-
-        // Pre-generation validation must pass to count as a candidate; budget
-        // is still spent on rejects so an over-constrained project surfaces
-        // quickly.
-        let pre = crate::validation::validate(&input);
-        if !pre.ok {
-            evaluated += 1;
-            continue;
-        }
-
-        let sector = match crate::generation::generate(input) {
-            Ok(s) => s,
-            Err(_) => {
-                evaluated += 1;
-                continue;
+    for slot in slots {
+        match slot {
+            Slot::Skipped => {}
+            Slot::Report(r) => {
+                if r.passed && winning.is_none() {
+                    winning = Some(*r);
+                } else if !r.passed {
+                    insert_top_n(&mut near_misses, *r, report_top);
+                }
             }
-        };
-        let analysis = analytics::analyze(&sector);
-        let report = evaluate_all(&sector, &analysis, &wishes.constraints, n, &seed);
-        evaluated += 1;
-
-        if report.passed {
-            winning = Some(report);
-            break;
-        } else {
-            insert_top_n(&mut near_misses, report, report_top);
         }
     }
+
+    // Match sequential semantics: serial code increments `evaluated` once per
+    // iteration and breaks immediately after the first pass; in parallel we
+    // ran the full budget, so report what the serial counter would have read.
+    let evaluated: u32 = match &winning {
+        Some(w) => w.n.saturating_add(1),
+        None => budget,
+    };
 
     near_misses.sort_by(|a, b| {
         a.total_miss

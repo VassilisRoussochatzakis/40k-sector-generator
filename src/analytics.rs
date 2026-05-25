@@ -277,7 +277,7 @@ fn gini_coefficient(values: &[f32]) -> f32 {
     for (i, x) in sorted.iter().enumerate() {
         accum += (i as f32 + 1.0) * *x;
     }
-    let g = (2.0 * accum - (n + 1.0) * total) / (n * total);
+    let g = 2.0f32.mul_add(accum, -((n + 1.0) * total)) / (n * total);
     g.clamp(0.0, 1.0)
 }
 

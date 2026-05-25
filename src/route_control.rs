@@ -225,7 +225,7 @@ pub fn derive_route_controls(
         ids.insert(k, ());
     }
 
-    let mut out: Vec<RouteControl> = Vec::new();
+    let mut out: Vec<RouteControl> = Vec::with_capacity(ids.len());
     for (id, _) in ids {
         let ea = agg_a.get(id).copied().unwrap_or_default();
         let eb = agg_b.get(id).copied().unwrap_or_default();

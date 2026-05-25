@@ -257,7 +257,9 @@ fn score_system_in(
                 HeatmapMode::Faith => p.dimensions.ideological,
                 HeatmapMode::Threat => {
                     if matches!(p.relationship_to_government.as_ref(), "hostile" | "zealous") {
-                        p.dimensions.military * 1.2 + p.dimensions.covert * 0.4
+                        p.dimensions
+                            .military
+                            .mul_add(1.2, p.dimensions.covert * 0.4)
                     } else {
                         0.0
                     }

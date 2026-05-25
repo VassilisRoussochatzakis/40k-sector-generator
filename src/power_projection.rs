@@ -24,7 +24,9 @@
 //! * Aeldari/Harlequin: 0.8 baseline, 1.5 along webway
 //! * Default: 1.0
 
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
+
+use crate::{FxMap, FxSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -87,8 +89,9 @@ struct Edge {
     rt: RouteType,
 }
 
-fn build_adjacency(sector: &GeneratedSector) -> HashMap<crate::ids::SystemId, Vec<Edge>> {
-    let mut adj: HashMap<crate::ids::SystemId, Vec<Edge>> = HashMap::new();
+fn build_adjacency(sector: &GeneratedSector) -> FxMap<crate::ids::SystemId, Vec<Edge>> {
+    let mut adj: FxMap<crate::ids::SystemId, Vec<Edge>> =
+        FxMap::with_capacity_and_hasher(sector.systems.len(), Default::default());
     for r in &sector.routes {
         adj.entry(r.from_system_id.clone()).or_default().push(Edge {
             other: r.to_system_id.clone(),
@@ -103,13 +106,13 @@ fn build_adjacency(sector: &GeneratedSector) -> HashMap<crate::ids::SystemId, Ve
 }
 
 fn bfs_distances(
-    adj: &HashMap<crate::ids::SystemId, Vec<Edge>>,
+    adj: &FxMap<crate::ids::SystemId, Vec<Edge>>,
     start: &crate::ids::SystemId,
     kind: &str,
     _id: &str,
 ) -> Vec<(crate::ids::SystemId, u32)> {
     const MAX_HOPS: u32 = 6;
-    let mut visited: HashSet<crate::ids::SystemId> = HashSet::new();
+    let mut visited: FxSet<crate::ids::SystemId> = FxSet::default();
     let mut out: Vec<(crate::ids::SystemId, u32)> = Vec::new();
     let mut q: VecDeque<(crate::ids::SystemId, u32)> = VecDeque::new();
     q.push_back((start.clone(), 0));

@@ -1,11 +1,10 @@
 //! Sector → Markdown rendering. Pure; never mutates the sector.
 
-use std::collections::HashMap;
-
 use crate::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
 };
 use crate::sector_model::{GeneratedSector, GeneratedSystem};
+use crate::FxMap;
 
 /// Spec §12: deterministic Markdown overview for a generated sector.
 pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
@@ -56,8 +55,8 @@ pub fn render_sector_markdown(sector: &GeneratedSector) -> String {
     s.push('\n');
 
     // Precompute history event indices to avoid O(N * M) lookup.
-    let mut events_by_system: HashMap<&str, Vec<&crate::history::HistoryEvent>> = HashMap::new();
-    let mut events_by_world: HashMap<&str, Vec<&crate::history::HistoryEvent>> = HashMap::new();
+    let mut events_by_system: FxMap<&str, Vec<&crate::history::HistoryEvent>> = FxMap::default();
+    let mut events_by_world: FxMap<&str, Vec<&crate::history::HistoryEvent>> = FxMap::default();
     for e in &sector.chronicle.events {
         match &e.anchor {
             crate::history::HistoryAnchor::System { system_id } => {
@@ -194,7 +193,7 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
     s.push_str(&format_system_control(sys));
     s.push('\n');
     s.push_str(&format_world_table(sys));
-    let empty_map = HashMap::new();
+    let empty_map = FxMap::default();
     s.push_str(&format_world_control_blocks(
         sys, None, &empty_map, &empty_map,
     ));
@@ -261,8 +260,8 @@ fn format_history_section(sector: &GeneratedSector) -> String {
 fn format_local_history(
     system_id: &str,
     world_id: Option<&str>,
-    events_by_system: &HashMap<&str, Vec<&crate::history::HistoryEvent>>,
-    events_by_world: &HashMap<&str, Vec<&crate::history::HistoryEvent>>,
+    events_by_system: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
+    events_by_world: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
 ) -> String {
     let empty_vec = Vec::new();
     let hits = match world_id {
@@ -348,7 +347,7 @@ fn format_faction_display_buckets(sector: &GeneratedSector) -> String {
 }
 
 fn format_sector_map(sector: &GeneratedSector) -> String {
-    let mut at: HashMap<(i32, i32), &str> = HashMap::new();
+    let mut at: FxMap<(i32, i32), &str> = FxMap::default();
     for s in &sector.systems {
         let code = s
             .star
@@ -358,7 +357,7 @@ fn format_sector_map(sector: &GeneratedSector) -> String {
         at.insert((s.coord.q, s.coord.r), code);
     }
     // §5 NEW.md: warp region glyphs for empty hexes inside a region footprint.
-    let mut region_at: HashMap<(i32, i32), char> = HashMap::new();
+    let mut region_at: FxMap<(i32, i32), char> = FxMap::default();
     for reg in sector.regions.iter() {
         let g = region_glyph(reg.kind);
         for h in &reg.hexes {
@@ -567,8 +566,8 @@ fn region_glyph(kind: crate::regions::RegionConditionKind) -> char {
 fn format_system_section(
     sys: &GeneratedSystem,
     sector: &GeneratedSector,
-    events_by_system: &HashMap<&str, Vec<&crate::history::HistoryEvent>>,
-    events_by_world: &HashMap<&str, Vec<&crate::history::HistoryEvent>>,
+    events_by_system: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
+    events_by_world: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
 ) -> String {
     let mut s = String::new();
     s.push_str(&format!("## {} — {}\n\n", sys.id.to_uppercase(), sys.name));
@@ -737,8 +736,8 @@ fn format_stability_line(st: &crate::stability::StabilityState) -> String {
 fn format_world_control_blocks(
     sys: &GeneratedSystem,
     _sector: Option<&GeneratedSector>,
-    events_by_system: &HashMap<&str, Vec<&crate::history::HistoryEvent>>,
-    events_by_world: &HashMap<&str, Vec<&crate::history::HistoryEvent>>,
+    events_by_system: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
+    events_by_world: &FxMap<&str, Vec<&crate::history::HistoryEvent>>,
 ) -> String {
     let mut s = String::new();
     for w in &sys.worlds {

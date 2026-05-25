@@ -1235,12 +1235,17 @@ sectorforge generate --project examples/m42_project --seed alternative-seed
   preview-state cell ([builder/src/builder/preview.rs](builder/src/builder/preview.rs)).
   Workers receive an immutable snapshot; UI threads never read a sector that
   is mid-write.
-- **Workers are `std::thread` + `mpsc::channel`.** No async runtime, no
-  rayon. Generation, hashing, PNG export, and HTML export all run off the
-  egui event loop ([gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs),
+- **Workers are `std::thread` + `mpsc::channel`.** No async runtime in the
+  GUI/builder workers. Generation, hashing, PNG export, and HTML export all
+  run off the egui event loop
+  ([gui/src/app/lifecycle.rs](gui/src/app/lifecycle.rs),
   [gui/src/app/export_ui.rs](gui/src/app/export_ui.rs),
   [gui-core/src/jobs.rs](gui-core/src/jobs.rs)). The GUI never blocks for
-  more than the cost of dispatch.
+  more than the cost of dispatch. The library does pull in `rayon` (per
+  FIX.txt §13) but it is scoped to one site:
+  [src/search.rs](src/search.rs)'s candidate enumeration uses
+  `into_par_iter`. Order-preserving collect keeps `SearchOutcome` byte-
+  deterministic; the GUI does not call into rayon directly.
 - **Revision IDs on every long job.** Each background job carries a
   monotonic revision attached to the input snapshot. When the worker returns,
   the GUI compares the result's revision to the current revision and discards

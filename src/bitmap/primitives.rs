@@ -226,7 +226,7 @@ pub(super) fn fill_polygon(img: &mut RgbaImage, pts: &[(i32, i32)], color: Rgba<
             let (bx, by) = pts[(i + 1) % pts.len()];
             if (ay <= y && by > y) || (by <= y && ay > y) {
                 let t = (y - ay) as f32 / (by - ay) as f32;
-                let x = ax as f32 + t * (bx - ax) as f32;
+                let x = t.mul_add((bx - ax) as f32, ax as f32);
                 xs.push(x.round() as i32);
             }
         }

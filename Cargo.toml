@@ -31,6 +31,10 @@ rand_chacha = "0.3"
 blake3 = "1"
 camino = { version = "1", features = ["serde1"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
+rustc-hash = "2"
+# FIX.txt §13: data-parallel candidate enumeration in src/search.rs. Order-
+# preserving collect keeps `SearchOutcome.near_misses` byte-deterministic.
+rayon = "1"
 # OPTIMIZE.txt G4: optional heap profiler. Off by default — zero cost in
 # normal builds. Enable with: `cargo build --features dhat-heap --bin dhat-profile`.
 dhat = { version = "0.3", optional = true }

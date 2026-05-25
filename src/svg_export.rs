@@ -150,12 +150,12 @@ fn map_bounds(sector: &GeneratedSector) -> MapBounds {
     let horiz_step = HEX_SIZE * 3f32.sqrt();
     let vert_step = HEX_SIZE * 1.5;
     let odd_shift = if sector.height > 1 { 0.5 } else { 0.0 };
-    let w = MARGIN * 2.0 + horiz_step * (sector.width as f32 + odd_shift);
+    let w = MARGIN.mul_add(2.0, horiz_step * (sector.width as f32 + odd_shift));
     let label_band = HEX_SIZE * 0.55;
-    let h = MARGIN * 2.0
-        + sector.height.saturating_sub(1) as f32 * vert_step
-        + 2.0 * HEX_SIZE
-        + label_band;
+    let h = 2.0f32.mul_add(
+        HEX_SIZE,
+        MARGIN.mul_add(2.0, sector.height.saturating_sub(1) as f32 * vert_step),
+    ) + label_band;
     MapBounds { w, h }
 }
 
@@ -163,7 +163,7 @@ fn hex_center(q: i32, r: i32) -> (f32, f32) {
     let horiz_step = HEX_SIZE * 3f32.sqrt();
     let vert_step = HEX_SIZE * 1.5;
     let row_shift = if r & 1 == 0 { 0.0 } else { 0.5 };
-    let x = MARGIN + horiz_step * (q as f32 + row_shift) + horiz_step / 2.0;
+    let x = horiz_step.mul_add(q as f32 + row_shift, MARGIN) + horiz_step / 2.0;
     let y = MARGIN + vert_step * r as f32 + HEX_SIZE;
     (x, y)
 }
@@ -171,8 +171,8 @@ fn hex_center(q: i32, r: i32) -> (f32, f32) {
 fn hex_vertices(cx: f32, cy: f32, size: f32) -> [(f32, f32); 6] {
     let mut out = [(0.0f32, 0.0f32); 6];
     for (i, slot) in out.iter_mut().enumerate() {
-        let angle = std::f32::consts::PI / 180.0 * (60.0 * i as f32 - 30.0);
-        *slot = (cx + size * angle.cos(), cy + size * angle.sin());
+        let angle = std::f32::consts::PI / 180.0 * 60.0f32.mul_add(i as f32, -30.0);
+        *slot = (size.mul_add(angle.cos(), cx), size.mul_add(angle.sin(), cy));
     }
     out
 }
@@ -189,8 +189,9 @@ fn compute_system_tints(
         let key = (sys.coord.q, sys.coord.r);
         if !matches!(opts.heatmap, HeatmapMode::Off) {
             if let Some(cell) = heat.get(&sys.id) {
-                let strength =
-                    opts.theme.heatmap_tint_min + cell.intensity * opts.theme.heatmap_tint_range;
+                let strength = cell
+                    .intensity
+                    .mul_add(opts.theme.heatmap_tint_range, opts.theme.heatmap_tint_min);
                 let color = rgba_from_tuple(cell.rgb);
                 out.insert(key, tint_against(color, strength, opts.theme.hex_empty));
                 continue;
@@ -301,12 +302,12 @@ fn draw_subsector_borders(
                 }
                 let a = v[i];
                 let b = v[(i + 1) % 6];
-                let edge_len = ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt();
+                let edge_len = (b.0 - a.0).hypot(b.1 - a.1);
                 let segments = (edge_len / spacing).ceil().max(1.0) as usize;
                 for j in 0..=segments {
                     let t = j as f32 / segments as f32;
-                    let mx = a.0 + (b.0 - a.0) * t;
-                    let my = a.1 + (b.1 - a.1) * t;
+                    let mx = (b.0 - a.0).mul_add(t, a.0);
+                    let my = (b.1 - a.1).mul_add(t, a.1);
                     circle(s, mx, my, dot_radius, theme.subsector_border, None, 0.0);
                 }
             }
@@ -343,15 +344,15 @@ fn draw_routes(s: &mut String, sector: &GeneratedSector, opts: &RenderOptions) {
 fn shorten_to_star(a: (f32, f32), b: (f32, f32), star_r: f32) -> Option<((f32, f32), (f32, f32))> {
     let dx = b.0 - a.0;
     let dy = b.1 - a.1;
-    let len = (dx * dx + dy * dy).sqrt();
+    let len = dx.hypot(dy);
     if len <= star_r * 2.0 {
         return None;
     }
     let ux = dx / len;
     let uy = dy / len;
     Some((
-        (a.0 + ux * star_r, a.1 + uy * star_r),
-        (b.0 - ux * star_r, b.1 - uy * star_r),
+        (ux.mul_add(star_r, a.0), uy.mul_add(star_r, a.1)),
+        (ux.mul_add(-star_r, b.0), uy.mul_add(-star_r, b.1)),
     ))
 }
 
@@ -373,7 +374,7 @@ impl RouteGeom {
     fn new(x0: f32, y0: f32, x1: f32, y1: f32, thickness: f32) -> Option<Self> {
         let dx = x1 - x0;
         let dy = y1 - y0;
-        let total = (dx * dx + dy * dy).sqrt();
+        let total = dx.hypot(dy);
         if total <= 0.0 {
             return None;
         }
@@ -396,8 +397,8 @@ impl RouteGeom {
     fn at(self, t: f32, offset: f32) -> (f32, f32) {
         let t = t.clamp(0.0, self.total);
         (
-            self.x0 + self.ux * t + self.nx * offset,
-            self.y0 + self.uy * t + self.ny * offset,
+            self.nx.mul_add(offset, self.ux.mul_add(t, self.x0)),
+            self.ny.mul_add(offset, self.uy.mul_add(t, self.y0)),
         )
     }
 }
@@ -477,6 +478,26 @@ fn draw_route_pattern(
     }
 }
 
+/// FIX.txt §3: closed-form iteration count for `t = start; while t < total {
+/// t += spacing }` loops, replacing accumulated float drift with a single
+/// stable computation.
+#[inline]
+fn float_loop_steps(total: f32, start: f32, spacing: f32) -> i32 {
+    if !(spacing > 0.0) {
+        return 0;
+    }
+    let n = ((total - start) / spacing).ceil();
+    if n.is_finite() && n > 0.0 {
+        n as i32
+    } else {
+        0
+    }
+}
+
+// FIX.txt §3: variable per-iteration stride + `.min(total)` clamp; the
+// closed-form `((total-start)/step).ceil()` rewrite does not apply here
+// because `step` changes each loop.
+#[allow(clippy::while_float)]
 fn strided(s: &mut String, g: RouteGeom, color: Rgba<u8>, thickness: f32, strides: &[f32]) {
     if strides.is_empty() {
         line(s, g.x0, g.y0, g.x1, g.y1, color, thickness, None);
@@ -533,15 +554,16 @@ fn ticks(
     spacing: f32,
     half_len: f32,
 ) {
-    let mut t = spacing * 0.5;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let (mx, my) = g.at(t, 0.0);
-        let sx = mx - g.nx * half_len;
-        let sy = my - g.ny * half_len;
-        let ex = mx + g.nx * half_len;
-        let ey = my + g.ny * half_len;
+        let sx = g.nx.mul_add(-half_len, mx);
+        let sy = g.ny.mul_add(-half_len, my);
+        let ex = g.nx.mul_add(half_len, mx);
+        let ey = g.ny.mul_add(half_len, my);
         line(s, sx, sy, ex, ey, color, stroke_px(thickness, 0.75), None);
-        t += spacing;
     }
 }
 
@@ -554,13 +576,14 @@ fn jagged(
     amplitude: f32,
 ) {
     let mut prev = (g.x0, g.y0);
-    let mut t = spacing;
+    let start = spacing;
+    let n_steps = float_loop_steps(g.total, start, spacing);
     let mut sign = 1.0_f32;
-    while t < g.total {
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let next = g.at(t, amplitude * sign);
         line(s, prev.0, prev.1, next.0, next.1, color, thickness, None);
         prev = next;
-        t += spacing;
         sign = -sign;
     }
     line(s, prev.0, prev.1, g.x1, g.y1, color, thickness, None);
@@ -575,13 +598,14 @@ fn zigzag(
     amplitude: f32,
 ) {
     let mut prev = g.at(0.0, -amplitude);
-    let mut t = spacing * 0.5;
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
     let mut sign = 1.0_f32;
-    while t < g.total {
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let next = g.at(t, amplitude * sign);
         line(s, prev.0, prev.1, next.0, next.1, color, thickness, None);
         prev = next;
-        t += spacing;
         sign = -sign;
     }
     let end = g.at(g.total, -amplitude * sign);
@@ -597,9 +621,10 @@ fn disc_trail(
     hollow: bool,
     alternating: bool,
 ) {
-    let mut t = spacing * 0.5;
-    let mut i = 0usize;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let radius = if alternating && i & 1 == 0 {
             thickness * 0.85
         } else {
@@ -619,8 +644,6 @@ fn disc_trail(
         } else {
             circle(s, mx, my, radius.max(1.0), color, None, 0.0);
         }
-        t += spacing;
-        i += 1;
     }
 }
 
@@ -634,73 +657,91 @@ fn dot_clusters(
 ) {
     let dot_gap = g.unit * 1.25;
     let radius = thickness * 0.55;
-    let mut t = spacing * 0.5;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for step in 0..n_steps {
+        let t = spacing.mul_add(step as f32, start);
         let center = (count as f32 - 1.0) * 0.5;
         for i in 0..count {
             let local = (i as f32 - center) * dot_gap;
             let (mx, my) = g.at(t + local, 0.0);
             circle(s, mx, my, radius.max(1.0), color, None, 0.0);
         }
-        t += spacing;
     }
 }
 
 fn double_taps(s: &mut String, g: RouteGeom, color: Rgba<u8>, thickness: f32, spacing: f32) {
     let pair_gap = g.unit * 1.3;
     let half_len = thickness * 1.8;
-    let mut t = spacing * 0.5;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         for local in [-pair_gap * 0.5, pair_gap * 0.5] {
             let (mx, my) = g.at(t + local, 0.0);
-            let sx = mx - g.nx * half_len;
-            let sy = my - g.ny * half_len;
-            let ex = mx + g.nx * half_len;
-            let ey = my + g.ny * half_len;
+            let sx = g.nx.mul_add(-half_len, mx);
+            let sy = g.ny.mul_add(-half_len, my);
+            let ex = g.nx.mul_add(half_len, mx);
+            let ey = g.ny.mul_add(half_len, my);
             line(s, sx, sy, ex, ey, color, stroke_px(thickness, 0.8), None);
         }
-        t += spacing;
     }
 }
 
 fn chevrons(s: &mut String, g: RouteGeom, color: Rgba<u8>, thickness: f32, spacing: f32) {
     let size = g.unit * 1.8;
-    let mut t = spacing * 0.5;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let tip = g.at(t + size * 0.35, 0.0);
         let back = g.at(t - size * 0.35, 0.0);
-        let left = (back.0 + g.nx * size * 0.35, back.1 + g.ny * size * 0.35);
-        let right = (back.0 - g.nx * size * 0.35, back.1 - g.ny * size * 0.35);
+        let left = (
+            (g.nx * size).mul_add(0.35, back.0),
+            (g.ny * size).mul_add(0.35, back.1),
+        );
+        let right = (
+            (g.nx * size).mul_add(-0.35, back.0),
+            (g.ny * size).mul_add(-0.35, back.1),
+        );
         line(s, left.0, left.1, tip.0, tip.1, color, thickness, None);
         line(s, right.0, right.1, tip.0, tip.1, color, thickness, None);
-        t += spacing;
     }
 }
 
 fn tripods(s: &mut String, g: RouteGeom, color: Rgba<u8>, thickness: f32, spacing: f32) {
     let size = (g.unit * 1.8).max(thickness * 2.5);
-    let mut t = spacing * 0.5;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let mid = g.at(t, 0.0);
         let fwd = g.at(t + size * 0.4, 0.0);
         line(s, mid.0, mid.1, fwd.0, fwd.1, color, thickness, None);
-        let l_pos = (mid.0 + g.nx * size * 0.4, mid.1 + g.ny * size * 0.4);
-        let r_pos = (mid.0 - g.nx * size * 0.4, mid.1 - g.ny * size * 0.4);
+        let l_pos = (
+            (g.nx * size).mul_add(0.4, mid.0),
+            (g.ny * size).mul_add(0.4, mid.1),
+        );
+        let r_pos = (
+            (g.nx * size).mul_add(-0.4, mid.0),
+            (g.ny * size).mul_add(-0.4, mid.1),
+        );
         line(s, mid.0, mid.1, l_pos.0, l_pos.1, color, thickness, None);
         line(s, mid.0, mid.1, r_pos.0, r_pos.1, color, thickness, None);
-        t += spacing;
     }
 }
 
 fn bursts(s: &mut String, g: RouteGeom, color: Rgba<u8>, thickness: f32, spacing: f32) {
     let radius = (thickness * 1.6).max(2.0);
-    let mut t = spacing * 0.5;
-    while t < g.total {
+    let start = spacing * 0.5;
+    let n_steps = float_loop_steps(g.total, start, spacing);
+    for i in 0..n_steps {
+        let t = spacing.mul_add(i as f32, start);
         let mid = g.at(t, 0.0);
         let a = g.at(t - radius, 0.0);
         let b = g.at(t + radius, 0.0);
-        let c = (mid.0 - g.nx * radius, mid.1 - g.ny * radius);
-        let d = (mid.0 + g.nx * radius, mid.1 + g.ny * radius);
+        let c = (g.nx.mul_add(-radius, mid.0), g.ny.mul_add(-radius, mid.1));
+        let d = (g.nx.mul_add(radius, mid.0), g.ny.mul_add(radius, mid.1));
         line(
             s,
             a.0,
@@ -730,7 +771,6 @@ fn bursts(s: &mut String, g: RouteGeom, color: Rgba<u8>, thickness: f32, spacing
             None,
             0.0,
         );
-        t += spacing;
     }
 }
 
@@ -812,7 +852,7 @@ fn draw_route_control_glyph(
         ControlKind::Interdiction => {
             let dx = b.0 - a.0;
             let dy = b.1 - a.1;
-            let len = (dx * dx + dy * dy).sqrt().max(1.0);
+            let len = dx.hypot(dy).max(1.0);
             let px = -dy / len;
             let py = dx / len;
             let half = size;
@@ -893,8 +933,8 @@ fn draw_systems(
         let pip = sector.get_worlds_for_system(sys).len();
         if pip > 0 {
             let label = format!("{pip}");
-            let tx = cx + HEX_SIZE * 0.55;
-            let ty = cy + HEX_SIZE * 0.55;
+            let tx = HEX_SIZE.mul_add(0.55, cx);
+            let ty = HEX_SIZE.mul_add(0.55, cy);
             text(s, tx, ty, &label, opts.theme.text, PIP_FONT, "end");
         }
     }
@@ -992,7 +1032,7 @@ fn draw_region_labels(
         text(
             s,
             x + bw * 0.5,
-            y + bh * 0.5 + REGION_LABEL_FONT * 0.35,
+            REGION_LABEL_FONT.mul_add(0.35, y + bh * 0.5),
             &label,
             theme.text_dim,
             REGION_LABEL_FONT,
@@ -1134,7 +1174,7 @@ fn draw_subsector_labels(
         let tw_top = top.chars().count() as f32 * SUB_LABEL_FONT * 0.6;
         let tw_bot = bot_owned.chars().count() as f32 * SUB_LABEL_FONT * 0.6;
         let block_w = tw_top.max(tw_bot);
-        let block_h = SUB_LABEL_FONT * 2.0 + line_gap;
+        let block_h = SUB_LABEL_FONT.mul_add(2.0, line_gap);
 
         let mut sx = 0.0_f32;
         let mut sy = 0.0_f32;
@@ -1160,7 +1200,7 @@ fn draw_subsector_labels(
                 let (cx, cy) = hex_center(q as i32, r as i32);
                 let dx = cx - cen_x;
                 let dy = cy - cen_y;
-                (q as i32, r as i32, dx * dx + dy * dy)
+                (q as i32, r as i32, dx.mul_add(dx, dy * dy))
             })
             .collect();
         cands.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
@@ -1221,8 +1261,8 @@ fn draw_subsector_labels(
                 .min_by(|&&(q1, r1), &&(q2, r2)| {
                     let (cx1, cy1) = hex_center(q1 as i32, r1 as i32);
                     let (cx2, cy2) = hex_center(q2 as i32, r2 as i32);
-                    let d1 = (cx1 - cen_x).powi(2) + (cy1 - cen_y).powi(2);
-                    let d2 = (cx2 - cen_x).powi(2) + (cy2 - cen_y).powi(2);
+                    let d1 = (cy1 - cen_y).mul_add(cy1 - cen_y, (cx1 - cen_x).powi(2));
+                    let d2 = (cy2 - cen_y).mul_add(cy2 - cen_y, (cx2 - cen_x).powi(2));
                     d1.partial_cmp(&d2).unwrap_or(std::cmp::Ordering::Equal)
                 })
                 .expect("non-empty");
@@ -1256,7 +1296,7 @@ fn draw_subsector_labels(
         text(
             s,
             block_min_x + block_w * 0.5,
-            block_top_y + SUB_LABEL_FONT * 2.0 + line_gap,
+            SUB_LABEL_FONT.mul_add(2.0, block_top_y) + line_gap,
             &bot_owned,
             theme.subsector_label,
             SUB_LABEL_FONT,
@@ -1299,7 +1339,7 @@ fn legend_height(sector: &GeneratedSector, opts: &RenderOptions) -> f32 {
     };
     if matches!(opts.theme.legend, LegendStyle::Compact) {
         let lines = 4 + 1 + 5 + 1 + factions_visible(sector) as i32 + heatmap_lines;
-        return LEGEND_PAD * 2.0 + lines as f32 * LINE_H;
+        return LEGEND_PAD.mul_add(2.0, lines as f32 * LINE_H);
     }
     let route_type_rows = match opts.route_view_mode {
         crate::sector_model::RouteViewMode::Detailed => RouteType::ALL.len() as i32,
@@ -1323,7 +1363,7 @@ fn legend_height(sector: &GeneratedSector, opts: &RenderOptions) -> f32 {
         + 1
         + factions_visible(sector) as i32
         + heatmap_lines;
-    LEGEND_PAD * 2.0 + lines as f32 * LINE_H
+    LEGEND_PAD.mul_add(2.0, lines as f32 * LINE_H)
 }
 
 fn factions_visible(sector: &GeneratedSector) -> usize {
@@ -1405,9 +1445,9 @@ fn draw_legend(s: &mut String, sector: &GeneratedSector, map_w: f32, opts: &Rend
                 draw_route_pattern(
                     s,
                     x0,
-                    y - BODY_FONT * 0.3,
+                    BODY_FONT.mul_add(-0.3, y),
                     x0 + 30.0,
-                    y - BODY_FONT * 0.3,
+                    BODY_FONT.mul_add(-0.3, y),
                     theme.route_type,
                     3.0,
                     rt.pattern(opts.route_view_mode),
@@ -1421,9 +1461,9 @@ fn draw_legend(s: &mut String, sector: &GeneratedSector, map_w: f32, opts: &Rend
                 draw_route_pattern(
                     s,
                     x0,
-                    y - BODY_FONT * 0.3,
+                    BODY_FONT.mul_add(-0.3, y),
                     x0 + 30.0,
-                    y - BODY_FONT * 0.3,
+                    BODY_FONT.mul_add(-0.3, y),
                     theme.route_type,
                     3.0,
                     kind.patterns()[0],
@@ -1456,9 +1496,9 @@ fn draw_legend(s: &mut String, sector: &GeneratedSector, map_w: f32, opts: &Rend
         line(
             s,
             x0,
-            y - BODY_FONT * 0.3,
+            BODY_FONT.mul_add(-0.3, y),
             x0 + 22.0,
-            y - BODY_FONT * 0.3,
+            BODY_FONT.mul_add(-0.3, y),
             color,
             3.0,
             None,
@@ -1482,7 +1522,7 @@ fn draw_legend(s: &mut String, sector: &GeneratedSector, map_w: f32, opts: &Rend
             ("INTERDICTION", ControlKind::Interdiction),
             ("PIRACY", ControlKind::Piracy),
         ] {
-            let cy_y = y - BODY_FONT * 0.3;
+            let cy_y = BODY_FONT.mul_add(-0.3, y);
             match kind {
                 ControlKind::Patrol => {
                     circle(
@@ -1653,9 +1693,9 @@ fn draw_compact_legend_body(
         line(
             s,
             x0,
-            y - BODY_FONT * 0.3,
+            BODY_FONT.mul_add(-0.3, y),
             x0 + 22.0,
-            y - BODY_FONT * 0.3,
+            BODY_FONT.mul_add(-0.3, y),
             color,
             route_thickness(theme, stab),
             None,
@@ -1787,7 +1827,7 @@ fn rgba_from_tuple(t: (u8, u8, u8)) -> Rgba<u8> {
 
 fn tint_against(c: Rgba<u8>, amount: f32, base: Rgba<u8>) -> Rgba<u8> {
     let mix = |v: u8, base: u8| {
-        let f = f32::from(v) * amount + f32::from(base) * (1.0 - amount);
+        let f = f32::from(v).mul_add(amount, f32::from(base) * (1.0 - amount));
         f.round().clamp(0.0, 255.0) as u8
     };
     Rgba([

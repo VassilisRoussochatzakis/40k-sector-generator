@@ -64,7 +64,7 @@ Why skip default:
 
 
 ----------------------------------------------------------------
-4. HashMap hasher swap                                         [bench]
+4. HashMap hasher swap                                         [applied]
 ----------------------------------------------------------------
 ~500 HashMap/HashSet sites. Default RandomState (SipHash) is
 DoS-hardened but slow. The crate has no adversarial input — keys
@@ -87,6 +87,47 @@ the bug visible immediately.
 Expected win: 10-40% on map-heavy passes. Bench src/segmentum.rs
 stitch and src/search.rs evaluate first to confirm.
 
+Applied this pass:
+  Dep:  rustc-hash = "2" added to Cargo.toml.
+  Aliases (src/lib.rs):
+    pub(crate) type FxMap<K,V> = rustc_hash::FxHashMap<K,V>;
+    pub(crate) type FxSet<T>   = rustc_hash::FxHashSet<T>;
+  Swapped (internal lookup-only structures; no iter-to-output):
+    src/power_projection.rs
+      build_adjacency return:  HashMap -> FxMap (with_capacity hint
+        seeded from sector.systems.len())
+      bfs_distances visited:   HashSet -> FxSet
+      bfs_distances adj param: HashMap -> FxMap
+      (BTreeMap<FactionId, BTreeMap<SystemId, f32>> output map
+       intentionally kept — it is the Serialize'd public DTO
+       PowerProjectionMap.by_faction, so JSON ordering MUST stay
+       deterministic.)
+    src/render.rs
+      events_by_system / events_by_world: HashMap -> FxMap
+        (per-value Vec is sorted before consumption; map itself
+         is lookup-only via .get(key))
+      at / region_at: HashMap -> FxMap (lookup-only via .get)
+      empty_map: HashMap::new() -> FxMap::default()
+Scope of swap (intentionally narrow):
+  - Only the explicitly hot, internal-lookup sites are converted.
+  - heatmap::compute_rgb returns HashMap<SystemId, HeatCellRgb> and
+    is used as `&HashMap<...>` across bitmap.rs and svg_export.rs —
+    swapping would cascade through public-ish render plumbing. Left
+    as HashMap; consumer code only does .get(sys.id) lookups, so
+    Sip-vs-Fx is the only difference and a future pass can flip the
+    return type along with all 6 callsites in one go.
+  - Other crate-wide HashMap sites (importance.rs grouping aggregator,
+    search.rs FactionIndex, bitmap/svg_export tints, worlds.rs config
+    maps) were left alone — most are cold or load-once.
+Verification:
+  - cargo test --lib  : 162 passed.
+  - cargo test        : full suite green (svg_export, validation,
+    proptest, doc-tests all pass).
+  - Determinism check: ran `cargo run --release --bin sectorforge --
+    generate --project examples/m42_project` twice and
+    `diff -rq` on the full out/ tree reported no differences.
+    Confirms the Fx-hashed maps are never iterated for output.
+
 
 ----------------------------------------------------------------
 5. Preallocate hot Vec/String constructors                     [applied]
@@ -100,10 +141,18 @@ Applied this commit:
   src/segmentum.rs:709   chosen             with_capacity(cap)
   src/regions.rs:242     centres            with_capacity(target)
   src/regions.rs:330     hexes              with_capacity(target)
+Applied this pass:
+  src/economy.rs:898   stranded_world_idx  with_capacity(worlds.len())
+  src/economy.rs:1104  out (dependency edges) with_capacity(systems.len())
+                       (lower-bound floor; per-consumer push is conditional on
+                       best=Some, max push count ≈ systems.len() × strategic_needs)
+  src/segmentum.rs:589 links  with_capacity(children.len()*2*max_links_per_pair)
+                       (sum-of-slot-adjacencies upper bound; saturating_mul guards
+                       overflow on pathological inputs)
+  src/route_control.rs:228 out  with_capacity(ids.len())
+                       (exact upper bound — at most one RouteControl per
+                       distinct faction across both endpoints)
 Remaining open candidates (no obvious upper bound, lower priority):
-  src/economy.rs:881  stranded_world_idx (worst-case = worlds.len(); rare path)
-  src/economy.rs:1084 out
-  src/segmentum.rs:586 links (bound = sum over slot adjacencies × max_links_per_pair)
   src/render.rs / html_export.rs String buffers (need profile data)
 
 321 Vec::new() / String::new() vs 27 with_capacity() in src/.
@@ -141,15 +190,24 @@ Applied this commit:
                     + iter). Replaced with a `peekable()` filter — same two-use
                     pattern, no Vec allocation.
 
-Remaining open:
+Verified this pass:
   src/route_control.rs
-    Per-route iteration over faction lists. If route count grows,
-    consider a HashMap<&FactionId, RouteControl> per system rather
-    than Vec<RouteControl>.
+    Original suggestion (HashMap<&FactionId, RouteControl> per
+    system) does not apply: all callers iterate route.controls
+    sequentially (svg_export, bitmap, gui-core info/palette,
+    relations cross-pair loop, economy fold-max, hooks find/any,
+    hidden_routes assignment, factions_overview retain). No
+    faction-key lookup exists, so the Vec layout is the right
+    shape. Switching to HashMap would break the public DTO
+    (RouteControl is Serialize/Deserialize) for no callsite win.
+    Action taken: with_capacity(ids.len()) on the building Vec
+    in derive_route_controls — exact upper bound, zero realloc.
 
+Remaining open:
   src/power_projection.rs
     BFS uses HashMap<SystemId, f32>. If FxHashMap is adopted (§4)
     this is the single biggest hot loop in the crate.
+    [applied second-pass — see §4 for details]
 
 
 ----------------------------------------------------------------
@@ -298,7 +356,7 @@ Suggested apply order for the next pass
   6.  §2 / §3 math-accuracy + float-loop  (with golden regen)
 
 ----------------------------------------------------------------
-This-commit summary
+First-pass commit summary
 ----------------------------------------------------------------
   Applied: §5 (Vec with_capacity at 8 hot bound-known sites),
            §6 (stance lookup index in conflict.rs;
@@ -312,5 +370,129 @@ This-commit summary
   surface changed (RelationsMatrix::stance_between remains, only
   conflict.rs's private bias helper signature changed).
 
+----------------------------------------------------------------
+Second-pass commit summary (safe-only follow-up + Fx hasher)
+----------------------------------------------------------------
+  Applied: §5 remaining bound-known with_capacity sites —
+           economy.rs:898 stranded_world_idx (worlds.len()),
+           economy.rs:1104 dependency-edge out (systems.len() floor),
+           segmentum.rs:589 links (children×2×max_links_per_pair,
+           saturating_mul), route_control.rs:228 out (ids.len()).
+           §4 Fx hasher — added rustc-hash="2", FxMap/FxSet aliases
+           in src/lib.rs, swapped HashMap→FxMap and HashSet→FxSet in
+           power_projection.rs (adj+visited; BFS hot loop) and
+           render.rs (events_by_system/world, at, region_at, empty_map).
+           Public DTO `PowerProjectionMap` kept on BTreeMap so JSON
+           output ordering remains deterministic.
+           §6 power_projection BFS — now Fx-hashed per §4 above.
+  Verified: §6 route_control suggestion (HashMap<&FactionId,
+            RouteControl> per system) does not apply — all 11
+            call-sites iterate the Vec sequentially with no
+            faction-key lookup, and switching breaks the public
+            Serialize/Deserialize DTO. Vec is the right shape;
+            capacity-hint is the only safe local win.
+  Deferred: §5 render.rs / html_export.rs String buffers
+            (no caller-derivable upper bound; FIX.txt notes
+            "need profile data" — still true),
+            §13 rayon, §8 Vec<u8> buffers, §14 bitmap loop hoist,
+            §9 small-string interning, §11 rand dup, §2/§3
+            math/float-loop (golden regen required).
+  Tests: 162 library unit tests pass post-change. Full `cargo test`
+         green. Byte-determinism verified via two-run diff -rq on
+         examples/m42_project full output tree. No public API
+         surface changed.
+
+
+----------------------------------------------------------------
+Third-pass commit summary (remaining safe + bench-gated items)
+----------------------------------------------------------------
+  Applied: §5 html_export.rs render_html — switched the top-level format!()
+           to a String::with_capacity + std::fmt::Write::write!() pipeline.
+           Capacity is the exact sum of STYLE_CSS + theme_css + RENDERER_JS +
+           sector_json + faction_palette + theme + title*2 + id + edition +
+           1024-byte template-literal margin, so the embedded ~27 KB
+           renderer.js + ~30 KB CSS + variable sector JSON land in a single
+           preallocated buffer instead of the format!() arena growing through
+           several reallocs.
+           §5 html_export.rs build_faction_palette_json — String::with_capacity
+           sized to entries.len() * 80 (per-faction ID + hex + name + JSON
+           punctuation), with an inner write!() instead of format!() + push_str
+           so no intermediate allocation per faction.
+           §13 src/search.rs run_search — rayon::into_par_iter() over the
+           candidate-seed budget. Each iteration is independent
+           (clone_project_with_seed copies the template by value, generation
+           runs with a per-candidate seeded RNG), and the previous
+           break-on-first-pass winner is recovered deterministically by
+           selecting the lowest-n passed report after an order-preserving
+           collect. `candidates_evaluated` is normalised back to the
+           sequential semantics (winner.n + 1, or budget) so SearchOutcome
+           JSON shape is unchanged.
+           §2 mul_add / hypot — clippy::suboptimal_flops + imprecise_flops
+           applied via `cargo clippy --fix` (three passes until quiescent).
+           Touched src/bitmap/primitives.rs, src/bitmap/mod.rs,
+           src/svg_export.rs, src/sector_model/mod.rs, src/economy.rs, and
+           assorted call sites. No golden fixtures are committed (verified
+           in tests/), so the byte-determinism risk that motivated the
+           original `[skip]` no longer applies — the suite checks run-to-run
+           determinism inside one binary, not bytewise equality to frozen
+           snapshots.
+           §3 while_float — closed-form rewrite for every constant-spacing
+           `let mut t = start; while t < total { ...; t += spacing }` loop.
+           Replaced with `let n_steps = float_loop_steps(total, start,
+           spacing); for i in 0..n_steps { let t = spacing.mul_add(i as f32,
+           start); ... }`. Helper lives at
+           src/bitmap/mod.rs::float_loop_steps and a private copy in
+           src/svg_export.rs; both return 0 for non-positive spacing or
+           non-finite ceil(), so degenerate inputs become no-ops. Sites
+           covered: bitmap/mod.rs:821 ticks, 843 jagged, 864 zigzag,
+           886 disc_trail, 915 dot_clusters, 936 double_taps, 958 chevrons,
+           984 tripods, 1042 bursts; svg_export.rs:535 ticks, 557 jagged,
+           578 zigzag, 600 disc_trail, 636 dot_clusters, 651 double_taps,
+           667 chevrons, 681 tripods, 696 bursts. The strided variants
+           (bitmap:780, svg_export:485) use a per-iteration variable stride
+           plus `.min(total)` clamp, so the closed-form rewrite does not
+           apply — kept as `while` with a `#[allow(clippy::while_float)]`.
+  Verified (no-op decisions, no code change):
+           §14 — fill_circle/draw_ring in src/bitmap/primitives.rs already
+           hoist r2/outer2/inner2 outside the dy loop; bitmap/mod.rs has no
+           nested x,y per-pixel loops with distance checks (uses scanline
+           fill_polygon + fill_row), so the FIX.txt pattern does not exist
+           in the current codebase. The original suggestion was based on a
+           hypothetical inner-loop shape.
+           §8 — render_html already returns `String` to `fs::write(path,
+           text)`. `fs::write` consumes `AsRef<[u8]>`, so the only "skip
+           one UTF-8 validate" win FIX.txt cites would require rewriting
+           the entire render path to thread `Vec<u8>` end-to-end including
+           the size_warn_bytes diagnostic. Not worth the API churn for a
+           single byte-length validation that is already a memcmp-class op.
+           §9 — src/ids.rs already wraps `Arc<str>` with Borrow<str>,
+           AsRef<str>, Deref<Target=str>, From<&str>/From<String>, and
+           #[serde(transparent)]. Clone is a single refcount bump (cheaper
+           than ecow::EcoString for the typical 8–20 byte slugs in use),
+           and FxHash already addresses the hash-cost share. Symbol(u32)
+           interning would require a thread-safe intern table, a custom
+           Serialize/Deserialize impl to keep the on-disk format stable,
+           and 42 constructor + ~hundreds of as_str()/Display/Borrow
+           callsites to retouch — large blast radius for a marginal gain
+           after FxHash. Skipped.
+           §11 — Cargo.lock shows the rand duplication is dev-only:
+           rand 0.8 + rand_chacha 0.3 from our crate, rand 0.9 +
+           rand_chacha 0.9 transitively from proptest. Release builds link
+           only the 0.8 copy (verified by the absence of rand_core 0.9 in
+           the release artifact deps). Upgrading rand_chacha 0.3 → 0.9
+           keeps ChaCha8Rng byte-deterministic but renames Rng::gen* →
+           Rng::random*, gen_range → random_range, gen_bool → random_bool,
+           etc. — ~hundreds of call-site renames for zero runtime benefit.
+           Skipped.
+  Tests:  cargo test (lib + integration) — 162 + ~50 integration tests
+          all green. `cargo clippy --lib -- -W clippy::while_float
+          -W clippy::suboptimal_flops -W clippy::imprecise_flops
+          -A clippy::all` quiescent (only the strided #[allow]'d sites
+          remain). Two-run determinism check on
+          `examples/m42_project`: release-build `sectorforge generate`
+          executed twice into `/tmp/det_a` and `/tmp/det_b`, `diff -rq`
+          reports zero differences. The rayon-parallel candidate
+          enumeration in §13 preserves SearchOutcome byte-stability via
+          order-preserving collect.
 
 End of FIX.txt

@@ -123,7 +123,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
                 id: format!("{}-station-{}", sys.id, id),
                 kind: OrbitalAssetKind::Station,
                 faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.orbital * 0.5 + d.admin * 0.5),
+                strength: scale_strength(d.orbital.mul_add(0.5, d.admin * 0.5)),
                 ship_inventory: Vec::new(),
             });
         }
@@ -133,7 +133,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
                 id: format!("{}-shipyard-{}", sys.id, id),
                 kind: OrbitalAssetKind::Shipyard,
                 faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.industrial * 0.6 + d.orbital * 0.4),
+                strength: scale_strength(d.industrial.mul_add(0.6, d.orbital * 0.4)),
                 ship_inventory: Vec::new(),
             });
         }
@@ -144,7 +144,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
                 id: format!("{}-defense-{}", sys.id, id),
                 kind: OrbitalAssetKind::DefensePlatform,
                 faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.military * 0.6 + d.orbital * 0.4),
+                strength: scale_strength(d.military.mul_add(0.6, d.orbital * 0.4)),
                 ship_inventory: vec![ShipStock {
                     hull_class: "monitor".into(),
                     count: 2,
@@ -169,7 +169,7 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
                 id: format!("{}-blockade-{}", sys.id, id),
                 kind: OrbitalAssetKind::BlockadeFleet,
                 faction_id: crate::ids::FactionId::new(*id),
-                strength: scale_strength(d.military * 0.5 + d.orbital * 0.5),
+                strength: scale_strength(d.military.mul_add(0.5, d.orbital * 0.5)),
                 ship_inventory: vec![
                     ShipStock {
                         hull_class: "cruiser".into(),

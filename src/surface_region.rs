@@ -170,46 +170,51 @@ fn region_bias(kind: RegionKind, fid: &str, d: &crate::sector_model::PresenceDim
     // bias narrative ownership where the dimensions alone would tie.
     let id_has = |needle: &str| fid.contains(needle);
     match kind {
-        RegionKind::Capital => 0.6 + d.admin * 0.005 + d.legitimacy * 0.004,
-        RegionKind::Hive => 0.6 + d.economic * 0.004 + d.industrial * 0.004 + d.admin * 0.002,
+        RegionKind::Capital => d.legitimacy.mul_add(0.004, d.admin.mul_add(0.005, 0.6)),
+        RegionKind::Hive => d.admin.mul_add(
+            0.002,
+            d.industrial.mul_add(0.004, d.economic.mul_add(0.004, 0.6)),
+        ),
         RegionKind::Underhive => {
-            let mut b = 0.4 + d.covert * 0.01 + (100.0 - d.visibility) * 0.003;
+            let mut b = (100.0 - d.visibility).mul_add(0.003, d.covert.mul_add(0.01, 0.4));
             if id_has("genestealer") || id_has("cult") || id_has("criminal") {
                 b += 0.4;
             }
             b
         }
         RegionKind::ForgeComplex => {
-            let mut b = 0.4 + d.industrial * 0.008;
+            let mut b = d.industrial.mul_add(0.008, 0.4);
             if id_has("mechanicus") {
                 b += 0.4;
             }
             b
         }
         RegionKind::ShrineContinent => {
-            let mut b = 0.4 + d.ideological * 0.008;
+            let mut b = d.ideological.mul_add(0.008, 0.4);
             if id_has("ecclesiarch") || id_has("sororitas") || id_has("shrine") {
                 b += 0.4;
             }
             b
         }
-        RegionKind::AgriBelt => 0.5 + d.economic * 0.005 + d.legitimacy * 0.002,
+        RegionKind::AgriBelt => d.legitimacy.mul_add(0.002, d.economic.mul_add(0.005, 0.5)),
         RegionKind::CardinalSpire => {
-            let mut b = 0.4 + d.ideological * 0.006 + d.legitimacy * 0.003;
+            let mut b = d
+                .legitimacy
+                .mul_add(0.003, d.ideological.mul_add(0.006, 0.4));
             if id_has("ecclesiarch") {
                 b += 0.5;
             }
             b
         }
         RegionKind::KnightHousehold => {
-            let mut b = 0.3 + d.military * 0.003;
+            let mut b = d.military.mul_add(0.003, 0.3);
             if id_has("knight") {
                 b += 0.6;
             }
             b
         }
         RegionKind::Wilderness => {
-            let mut b = 0.3 + d.military * 0.002;
+            let mut b = d.military.mul_add(0.002, 0.3);
             if id_has("tyranid") || id_has("ork") || id_has("daemon") {
                 b += 0.4;
             }
@@ -222,8 +227,8 @@ fn region_bias(kind: RegionKind, fid: &str, d: &crate::sector_model::PresenceDim
             }
             b
         }
-        RegionKind::Hideout => 0.3 + d.covert * 0.01,
-        RegionKind::Other => 0.5 + d.admin * 0.003,
+        RegionKind::Hideout => d.covert.mul_add(0.01, 0.3),
+        RegionKind::Other => d.admin.mul_add(0.003, 0.5),
     }
 }
 

@@ -268,7 +268,7 @@ pub fn append_hidden_routes_with_regions_and_progress(
         &["aeldari", "harlequin"],
         RouteType::Webway,
         "webway",
-        |d| d.covert * 0.7 + d.military * 0.3,
+        |d| d.covert.mul_add(0.7, d.military * 0.3),
         &mut progress,
     );
     added += emit_layer(
@@ -279,7 +279,7 @@ pub fn append_hidden_routes_with_regions_and_progress(
         &["inquisition", "deathwatch", "grey_knights"],
         RouteType::BlackShip,
         "blackship",
-        |d| d.covert * 0.5 + d.admin * 0.5,
+        |d| d.covert.mul_add(0.5, d.admin * 0.5),
         &mut progress,
     );
     added += emit_layer(
@@ -290,7 +290,7 @@ pub fn append_hidden_routes_with_regions_and_progress(
         &["criminal", "drukhari", "rebel", "genestealer_cult"],
         RouteType::SmugglingLane,
         "smuggling",
-        |d| d.covert * 0.6 + d.economic * 0.4,
+        |d| d.covert.mul_add(0.6, d.economic * 0.4),
         &mut progress,
     );
     added

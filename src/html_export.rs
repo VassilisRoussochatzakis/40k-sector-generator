@@ -99,7 +99,27 @@ pub fn render_html(
         .unwrap_or_else(|| "GM EDITION".to_string());
     let title_html = html_escape(&view.title);
     let id_html = html_escape(&view.id);
-    Ok(format!(
+    let edition_html = html_escape(&edition);
+    let theme_css_str = theme_css(cfg.theme);
+
+    // §5/§8 FIX.txt: preallocate the final HTML so the format! arena does not
+    // reallocate while concatenating the embedded JS/CSS/JSON. Static template
+    // text (literal between {} substitutions) is ~640 bytes; round to 1024.
+    const STATIC_TEMPLATE_OVERHEAD: usize = 1024;
+    let cap = STATIC_TEMPLATE_OVERHEAD
+        + STYLE_CSS.len()
+        + theme_css_str.len()
+        + RENDERER_JS.len()
+        + sector_json.len()
+        + faction_palette.len()
+        + theme.len()
+        + title_html.len() * 2
+        + id_html.len()
+        + edition_html.len();
+    let mut out = String::with_capacity(cap);
+    use std::fmt::Write as _;
+    write!(
+        out,
         "<!doctype html>\n\
 <html lang=\"en\"><head><meta charset=\"utf-8\">\n\
 <meta name=\"generator\" content=\"sectorforge\">\n\
@@ -129,14 +149,16 @@ const THEME = {theme};\n\
 </body></html>\n",
         id = id_html,
         title = title_html,
-        edition = html_escape(&edition),
+        edition = edition_html,
         base_css = STYLE_CSS,
-        theme_css = theme_css(cfg.theme),
+        theme_css = theme_css_str,
         sector_json = sector_json,
         faction_palette = faction_palette,
         theme = theme,
         renderer = RENDERER_JS,
-    ))
+    )
+    .expect("write! into String cannot fail");
+    Ok(out)
 }
 
 fn html_escape(s: &str) -> String {
@@ -165,7 +187,11 @@ fn build_faction_palette_json(sector: &GeneratedSector) -> Result<String, serde_
         );
         entries.insert(f.id.as_str(), (hex, f.name.as_ref()));
     }
-    let mut out = String::from("{");
+    // §5 FIX.txt: ~80 bytes per faction entry (id+hex+name+JSON punctuation)
+    // plus the surrounding braces. Exact upper bound is not knowable without
+    // serialising, but the linear estimate avoids the realloc chain.
+    let mut out = String::with_capacity(2 + entries.len() * 80);
+    out.push('{');
     let mut first = true;
     for (id, (hex, name)) in entries {
         if !first {
@@ -174,11 +200,14 @@ fn build_faction_palette_json(sector: &GeneratedSector) -> Result<String, serde_
         first = false;
         out.push_str(&serde_json::to_string(id)?);
         out.push(':');
-        out.push_str(&format!(
+        use std::fmt::Write as _;
+        write!(
+            out,
             "{{\"fill\":{},\"name\":{}}}",
             serde_json::to_string(&hex)?,
             serde_json::to_string(name)?
-        ));
+        )
+        .expect("write! into String cannot fail");
     }
     out.push('}');
     Ok(out)

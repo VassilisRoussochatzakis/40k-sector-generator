@@ -586,7 +586,11 @@ fn stitch_children(
         by_slot.insert((c.column, c.row), c);
     }
 
-    let mut links: Vec<InterSectorLink> = Vec::new();
+    let cap = children
+        .len()
+        .saturating_mul(2)
+        .saturating_mul(file.stitch.max_links_per_pair as usize);
+    let mut links: Vec<InterSectorLink> = Vec::with_capacity(cap);
     let mut link_idx: u32 = 1;
 
     // Walk slots in (col, row) order. Emit only east + south neighbours so

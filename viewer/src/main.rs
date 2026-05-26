@@ -67,10 +67,14 @@ fn main() -> ExitCode {
     if let Some(dir) = project_dir {
         app = app.with_project_dir(dir.into_std_path_buf());
     }
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_inner_size([1400.0, 900.0])
+        .with_title(title);
+    if let Some(icon) = sectorforge_gui_core::app_icon::load_app_icon() {
+        viewport = viewport.with_icon(icon);
+    }
     let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1400.0, 900.0])
-            .with_title(title),
+        viewport,
         ..Default::default()
     };
     let res = eframe::run_native(

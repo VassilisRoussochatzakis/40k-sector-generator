@@ -30,10 +30,14 @@ fn main() -> ExitCode {
         BuilderApp::new()
     };
 
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_inner_size([1400.0, 900.0])
+        .with_title("sectorforge - builder");
+    if let Some(icon) = sectorforge_gui_core::app_icon::load_app_icon() {
+        viewport = viewport.with_icon(icon);
+    }
     let opts = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1400.0, 900.0])
-            .with_title("sectorforge - builder"),
+        viewport,
         ..Default::default()
     };
 

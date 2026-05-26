@@ -1,3 +1,4 @@
+pub mod app_icon;
 pub mod heatmap;
 pub mod info_panel;
 pub mod jobs;

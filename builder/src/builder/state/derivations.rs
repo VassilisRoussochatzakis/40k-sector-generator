@@ -223,6 +223,24 @@ impl BuilderState {
         self.mark_validation_dirty();
     }
 
+    /// §HK1..§HK6 — rebuild [`sectorforge::hooks::HooksReport`] from the live
+    /// sector + the in-memory `data_catalogs.hooks` (falling back to defaults
+    /// when no catalog is loaded). The §HK5 player-edition toggle is folded
+    /// into the working config so the cached report already has GM-only rows
+    /// stripped when on. The result is stashed on [`Self::hooks_report`] so
+    /// the HOOKS tab can render without re-running the derivation each frame.
+    ///
+    /// Manual hooks embedded in the catalog (`HooksConfig::manual`) are
+    /// appended by `derive_with` itself, so the recompute path automatically
+    /// preserves them across regenerates.
+    pub fn recompute_hooks(&mut self) {
+        let mut cfg = self.data_catalogs.hooks.clone().unwrap_or_default();
+        cfg.hide_hidden_hooks = self.hooks_player_edition;
+        let report = sectorforge::hooks::derive_with(&self.sector, &cfg);
+        self.hooks_report = Some(report);
+        self.mark_validation_dirty();
+    }
+
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed
     /// since the last mutation, build a synthetic [`ProjectInput`] from the
     /// in-memory catalogs and run [`validate`] against it. Returns `true`
@@ -281,6 +299,7 @@ impl BuilderState {
             history: self.data_catalogs.history.clone().unwrap_or_default(),
             personae: self.data_catalogs.personae.clone().unwrap_or_default(),
             sites: sectorforge::sites::SitesConfig::default(),
+            hooks: self.data_catalogs.hooks.clone().unwrap_or_default(),
             input_digests: BTreeMap::new(),
         })
     }

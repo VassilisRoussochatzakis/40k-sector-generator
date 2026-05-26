@@ -38,6 +38,11 @@ pub struct HooksConfig {
     /// mode). Defaults to false (GM mode — show everything).
     #[serde(default)]
     pub hide_hidden_hooks: bool,
+    /// §HK3 / §HK4: handcrafted hooks appended after the derivation pass and
+    /// preserved across "Regenerate hooks". Manual ids take precedence over
+    /// any derived hook that happens to share the same id.
+    #[serde(default)]
+    pub manual: Vec<Hook>,
 }
 
 impl Default for HooksConfig {
@@ -46,6 +51,7 @@ impl Default for HooksConfig {
             max_per_anchor: default_per_anchor(),
             top_n_digest: default_top(),
             hide_hidden_hooks: false,
+            manual: Vec::new(),
         }
     }
 }
@@ -141,6 +147,15 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HooksConfig) -> HooksReport {
         emit_route_hooks(r, sector, cfg, &mut out);
     }
     emit_economy_hooks(sector, cfg, &mut out);
+
+    // §HK3 / §HK4 — drop any derived hook whose id collides with a manual
+    // entry so the user's authored prose wins, then append the manual block.
+    if !cfg.manual.is_empty() {
+        let manual_ids: std::collections::BTreeSet<&str> =
+            cfg.manual.iter().map(|h| h.id.as_str()).collect();
+        out.retain(|h| !manual_ids.contains(h.id.as_str()));
+        out.extend(cfg.manual.iter().cloned());
+    }
 
     // Dedupe by id and apply max_per_anchor cap.
     cap_per_anchor(&mut out, cfg.max_per_anchor);

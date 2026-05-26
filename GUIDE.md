@@ -535,6 +535,14 @@ non-Perilous route that is the *only* import of a critical resource
 (foodstuffs / promethium / manufactured) into a deficit system —
 anchored to the route, ranked alongside the structural hooks.
 
+Handcrafted hooks live in `data/hooks.toml` (referenced by `[inputs].hooks`).
+The file deserialises into `HooksConfig` — `max_per_anchor`, `top_n_digest`,
+`hide_hidden_hooks`, plus a `[[manual]]` table of `Hook` records.
+`derive_with` drops any derived hook sharing a manual id and appends the
+manual block last, so authored prose wins over the generator. The
+builder's HOOKS tab (see [HOOKS tab — §HK1..§HK6](#hooks-tab--hk1hk6))
+edits this file in-place.
+
 ### `sectorforge prose` (§6 old/DONE.md)
 
 Narrative gazetteer generator: deterministic template grammar (not an
@@ -2267,11 +2275,13 @@ only sanctioned link widget for entity references. Panels call it and dispatch
 command bus — navigation is UI state, not undoable mutation.
 
 **Refusal pattern:** When a panel needs to mention an entity that lives
-in a tab not yet implemented (Phase D HOOKS, BRIEFING; Phase E
-ANALYTICS etc.) the link is still emitted — focus_entity navigates to the
+in a tab not yet implemented (Phase D BRIEFING; Phase E ANALYTICS etc.)
+the link is still emitted — focus_entity navigates to the
 stub panel with the selection field populated, so the link lands
 first-class the moment the panel ships. PERSONAE (`EntityRef::Persona`)
 ships in Phase D §PER1..§PER5 — see [PERSONAE tab — §PER1..§PER5](#personae-tab--per1per5).
+HOOKS (`EntityRef::Hook`) ships in Phase D §HK1..§HK6 — see
+[HOOKS tab — §HK1..§HK6](#hooks-tab--hk1hk6).
 
 | Alt+← / ⌥+← | Navigate back through cross-tab link history (§LINK3). |
 | Alt+→ / ⌥+→ | Navigate forward through cross-tab link history (§LINK3). |
@@ -2304,6 +2314,21 @@ BUILDER_REQS §18 (PER1..PER5). Dramatis personae are a pure overlay over the fi
 | PER5 agenda derivation tooltip | The agenda string itself is produced by `personae::build_agenda` — when the anchor world has a competing claim the prose calls out the rival faction (`Seeks to {verb} on {world} against {rival} (claim: {kind})`). The panel surfaces the derivation source as an `on_hover_text` tooltip beside each row: `Source: kind = <faction_kind>`, `faction = <faction_id>`, `anchor = system <id> (<slot>)` or `world <system>/<world>`. |
 
 `BuilderState` adds three personae fields: `personae_report: Option<PersonaeReport>`, `personae_auto_recompute: bool`, and `personae_edit_target: Option<String>`. Defaults: `None` / `true` / `None` in both `new_blank` and the `.sgforge` session loader. The `[inputs].personae` field defaults to `data/personae.toml` and is filled in lazily by `ensure_personae_catalog` on first edit. `synthesize_project_input` now feeds `data_catalogs.personae` to validation / regeneration instead of the previous `PersonaeConfig::default()`.
+
+### HOOKS tab — §HK1..§HK6
+
+BUILDER_REQS §19 (HK1..HK6). Plot hooks are a pure overlay over the finished sector — they live nowhere on `GeneratedSector`, so the builder caches the most recent [`HooksReport`](src/hooks.rs) on `BuilderState::hooks_report` and rebuilds it via `BuilderState::recompute_hooks` (added in [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs)). Catalog edits land in [`data_catalogs.hooks`](builder/src/builder/data_catalogs.rs) and round-trip to `data/hooks.toml` through `project_io::save_project_as` / `reload_catalog`.
+
+| Piece | Where it lives |
+|---|---|
+| HK1 ranked hook list + kind filter | [builder/src/builder/panels/hooks.rs](builder/src/builder/panels/hooks.rs) `show_filter_row` exposes a `ComboBox` over every `HookKind` variant (`CounterInfiltration`, `Reconquest`, `LostPassage`, `ConvoyEscort`, `BlockadeRun`, `HoldTheLine`, `SealedTombs`, `CrushUprising`, `SealedSystem`, `CultPurge`, `DiplomaticCrisis`, `SuccessionDispute`, `StarvingWorld`, `LifelineLane`); `show_hook_list` renders the cached `BuilderState::hooks_report` rows (`hooks::derive_with` already sorts by descending dramatic weight) with the filter applied on top. |
+| HK2 per-hook detail card | `show_detail_card` reads from `BuilderState::hooks_edit_target` / `selected_hook_id` and renders `id / kind / anchor / weight / gm-only / title / situation / stakes / factions / complications` in a two-column grid. Selecting a row in `show_hook_list` populates both fields so cross-tab links land here first-class. |
+| HK3 manual entry editor | `show_manual_editor` adds/removes entries on `HooksConfig::manual`. Each row exposes id / kind / anchor scope (System / World / Route) / anchor ids / title / situation / stakes / weight / gm-only / factions (CSV) / complications (one per line). |
+| HK4 auto-derive + auto-recompute | `show_header_actions` exposes the "Regenerate hooks" button (calls `BuilderState::recompute_hooks`) and a `hooks_auto_recompute` toggle that mirrors §H6 / §REL9 / §PER3 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual hooks survive every regenerate because `hooks::derive_with` drops any derived hook sharing a manual id and then appends the whole `cfg.manual` block last. |
+| HK5 player-edition toggle | `BuilderState::hooks_player_edition` is flipped by the "player edition (--player)" checkbox in `show_header_actions`; `recompute_hooks` overrides `HooksConfig::hide_hidden_hooks` from this flag every run so the cached report already has `gm_only = true` rows stripped — mirroring the CLI `--player` behaviour. |
+| HK6 click-to-highlight anchor | Every anchor cell in `show_hook_list` and the "highlight on map" button on the detail card route through `focus_anchor` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `World` / `Route` (falls back to `EntityRef::Tab(BuilderTab::Map)` when the anchor id is empty). |
+
+`BuilderState` adds five hooks fields: `hooks_report: Option<HooksReport>`, `hooks_auto_recompute: bool`, `hooks_player_edition: bool`, `hooks_filter_kind: Option<HookKind>`, `hooks_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. The `[inputs].hooks` field defaults to `data/hooks.toml` and is filled in lazily by `ensure_hooks_catalog` on first edit. `HooksConfig::manual` (new field on `src/hooks.rs::HooksConfig`) is appended after derivation and survives "Regenerate hooks". `synthesize_project_input` now feeds `data_catalogs.hooks` to validation / regeneration instead of defaulting.
 
 ---
 

@@ -339,6 +339,24 @@ pub struct BuilderState {
     /// Stored separately from [`Self::selected_persona_id`] so cross-tab
     /// linking and inline editing don't fight each other.
     pub personae_edit_target: Option<String>,
+    /// §HK1..§HK6: latest plot-hook overlay. Hooks are not part of
+    /// `GeneratedSector`, so the builder caches the most recent
+    /// `derive_hooks_with` result here. Rebuilt by [`Self::recompute_hooks`].
+    pub hooks_report: Option<sectorforge::hooks::HooksReport>,
+    /// §HK4: when true, mutations that touch the hooks catalog trigger an
+    /// immediate [`Self::recompute_hooks`] pass. Defaults to `true` — the
+    /// derivation is cheap.
+    pub hooks_auto_recompute: bool,
+    /// §HK5: player-edition toggle. Mirrors `--player` on the CLI by setting
+    /// `HooksConfig::hide_hidden_hooks` on each recompute so the cached
+    /// report has GM-only rows stripped.
+    pub hooks_player_edition: bool,
+    /// §HK1: kind filter for the panel's hook list. `None` shows everything;
+    /// a specific kind narrows the list. Stored here so the active filter
+    /// survives tab switches.
+    pub hooks_filter_kind: Option<sectorforge::hooks::HookKind>,
+    /// §HK2: id of the hook currently expanded in the panel detail view.
+    pub hooks_edit_target: Option<String>,
 }
 
 impl BuilderState {
@@ -443,6 +461,11 @@ impl BuilderState {
             personae_report: None,
             personae_auto_recompute: true,
             personae_edit_target: None,
+            hooks_report: None,
+            hooks_auto_recompute: true,
+            hooks_player_edition: false,
+            hooks_filter_kind: None,
+            hooks_edit_target: None,
         }
     }
 }
@@ -472,6 +495,7 @@ fn default_config(id: &str, title: &str, seed: &str, width: u32, height: u32) ->
             history: None,
             personae: None,
             sites: None,
+            hooks: None,
         },
         generation: GenerationConfig {
             seed: seed.to_string(),

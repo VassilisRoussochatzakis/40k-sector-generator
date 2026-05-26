@@ -1075,20 +1075,50 @@ PER5. [DONE] Agenda text bound to competing claims on the anchor world.
 19. HOOKS (PLOT)
 ================================================================================
 
-HK1.  Hook list panel: ranked, filterable by kind (contested-claim,
+HK1.  [DONE] Hook list panel: ranked, filterable by kind (contested-claim,
       hidden-master, Perilous route, blockade, quarantine, warzone,
       Tyranid/Necron/Chaos pressure, StarvingWorld, LifelineLane).
+      `builder/src/builder/panels/hooks.rs::show_filter_row` exposes a
+      ComboBox over every `HookKind` variant; `show_hook_list` renders the
+      cached `BuilderState::hooks_report` rows (`derive_with` already orders
+      by descending dramatic weight) with the filter applied on top.
 
-HK2.  Per-hook details: anchor entity, prose, dramatic weight, GM-only
-      flag.
+HK2.  [DONE] Per-hook details: anchor entity, prose, dramatic weight,
+      GM-only flag. `show_detail_card` reads from
+      `BuilderState::hooks_edit_target` / `selected_hook_id` and renders
+      `id / kind / anchor / weight / gm-only / title / situation / stakes
+      / factions / complications` in a two-column grid. Selecting a row in
+      `show_hook_list` populates both fields so cross-tab links land here
+      first-class.
 
-HK3.  Manual hook add: pick kind → pick anchor → write prose.
+HK3.  [DONE] Manual hook add: pick kind → pick anchor → write prose.
+      `show_manual_editor` appends `HooksConfig::manual` entries via
+      `+ manual hook` and offers per-entry editors for id / kind / anchor
+      scope (System / World / Route) / anchor ids / title / situation /
+      stakes / weight / GM-only / factions / complications.
 
-HK4.  "Regenerate hooks" runs `src/hooks.rs`. Manual hooks survive.
+HK4.  [DONE] "Regenerate hooks" runs `src/hooks.rs`. Manual hooks survive.
+      `show_header_actions` exposes the "Regenerate hooks" button which
+      calls `BuilderState::recompute_hooks` →
+      `sectorforge::hooks::derive_with`. Manual entries survive because
+      `derive_with` drops any derived hook sharing a manual id and then
+      appends the whole `cfg.manual` block. `[inputs].hooks` -> `data/hooks.toml`
+      mirrors the catalog through `project_io::save_project_as` /
+      `reload_catalog` alongside the other catalogs.
 
-HK5.  Player-edition toggle (mirrors `--player`): hides GM-only hooks.
+HK5.  [DONE] Player-edition toggle (mirrors `--player`): hides GM-only hooks.
+      `BuilderState::hooks_player_edition` is flipped via the checkbox in
+      `show_header_actions`; `recompute_hooks` overrides
+      `HooksConfig::hide_hidden_hooks` from this flag so the cached report
+      already has `gm_only = true` rows stripped without re-running per
+      frame.
 
-HK6.  Click-to-highlight anchor on map.
+HK6.  [DONE] Click-to-highlight anchor on map. Every anchor cell in
+      `show_hook_list` and the "highlight on map" button on the detail
+      card route through `focus_anchor` → `BuilderState::focus_entity`
+      with the matching `EntityRef::System` / `World` / `Route`
+      (falls back to `EntityRef::Tab(BuilderTab::Map)` when the anchor id
+      is empty).
 
 ================================================================================
 20. SITES
@@ -1718,7 +1748,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
 
         Phase D
           [ ] panels/briefing.rs        §BR1..§BR5  briefing editor
-          [ ] panels/hooks.rs           §HK1..§HK6  hook editor
+          [x] panels/hooks.rs           §HK1..§HK6  hook editor
           [ ] panels/interestingness.rs §INT1..§INT4 scorer
           [ ] panels/missions.rs        §M1..§M5    mission editor
           [x] panels/personae.rs        §PER1..§PER5 persona editor
@@ -1962,7 +1992,48 @@ Phase D — Derivations + GM tools
                      `synthesize_project_input` now feeds
                      `data_catalogs.personae` to validation/regeneration
                      instead of defaulting.)
-  HK1..HK6,   (§19 hooks)
+  HK1..HK6 - DONE (§19 hooks — panel
+                   `builder/src/builder/panels/hooks.rs`:
+                   §HK1 ranked hook list with per-`HookKind` ComboBox
+                   filter (`show_filter_row`) over the cached
+                   `BuilderState::hooks_report` published by
+                   `BuilderState::recompute_hooks`; rows are sorted
+                   descending by dramatic weight inside
+                   `hooks::derive_with`;
+                   §HK2 detail card driven by
+                   `BuilderState::hooks_edit_target` /
+                   `selected_hook_id` showing id / kind / anchor /
+                   weight / gm-only / situation / stakes / factions /
+                   complications;
+                   §HK3 manual entry editor on `HooksConfig::manual`
+                   with per-entry kind picker, anchor-scope toggle
+                   (System / World / Route), id editors, prose and
+                   complications fields;
+                   §HK4 "Regenerate hooks" button calling
+                   `BuilderState::recompute_hooks` — manual hooks
+                   survive because `hooks::derive_with` drops any
+                   derived hook sharing a manual id and appends the
+                   whole `cfg.manual` block last (auto-recompute toggle
+                   mirrors the personae pattern);
+                   §HK5 `BuilderState::hooks_player_edition` checkbox
+                   that flips `HooksConfig::hide_hidden_hooks` on every
+                   recompute so the cached report already has
+                   `gm_only = true` rows stripped;
+                   §HK6 every anchor cell + "highlight on map" button
+                   funnels through `focus_anchor` →
+                   `BuilderState::focus_entity` with
+                   `EntityRef::System` / `World` / `Route` (falls back
+                   to `EntityRef::Tab(BuilderTab::Map)` when the
+                   anchor id is empty). Project I/O wired in
+                   `project_io::catalogs_from_input` /
+                   `save_project_as` / `reload_catalog` so
+                   `data/hooks.toml` round-trips alongside the other
+                   catalogs; `[inputs].hooks` added to
+                   `src/config.rs::InputConfig` and `src/input.rs`
+                   parses the file into `ProjectInput::hooks`;
+                   `synthesize_project_input` now feeds
+                   `data_catalogs.hooks` to validation / regeneration
+                   instead of defaulting.)
   ST1..ST4,   (§20 sites)
   M1..M5,     (§21 missions)
   PR1..PR4,   (§22 prose)

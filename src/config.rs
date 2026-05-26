@@ -74,6 +74,10 @@ pub struct InputConfig {
     /// §7 NEW2.md: optional `sites.toml` with manual entries.
     #[serde(default)]
     pub sites: Option<String>,
+    /// §HK4 BUILDER_REQS: optional `hooks.toml` with `HooksConfig` knobs and
+    /// `[[manual]]` entries that survive "Regenerate hooks".
+    #[serde(default)]
+    pub hooks: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -197,6 +197,11 @@ impl SessionFile {
             personae_report: None,
             personae_auto_recompute: true,
             personae_edit_target: None,
+            hooks_report: None,
+            hooks_auto_recompute: true,
+            hooks_player_edition: false,
+            hooks_filter_kind: None,
+            hooks_edit_target: None,
         }
     }
 }

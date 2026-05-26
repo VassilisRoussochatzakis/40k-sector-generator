@@ -38,6 +38,8 @@ pub struct ProjectInput {
     pub personae: crate::personae::PersonaeConfig,
     /// §7 NEW2.md: parsed sites config, default manual when unset.
     pub sites: crate::sites::SitesConfig,
+    /// §HK4 BUILDER_REQS: parsed hooks config, default knobs/manual when unset.
+    pub hooks: crate::hooks::HooksConfig,
     /// Project-relative path -> "blake3:<hex>" digest of input file bytes.
     pub input_digests: BTreeMap<String, String>,
 }
@@ -174,6 +176,13 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         crate::sites::SitesConfig::default()
     };
 
+    let hooks = if let Some(rel) = &config.inputs.hooks {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        toml::from_str(&text).map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?
+    } else {
+        crate::hooks::HooksConfig::default()
+    };
+
     Ok(ProjectInput {
         root_dir,
         config,
@@ -189,6 +198,7 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         history,
         personae,
         sites,
+        hooks,
         input_digests: digests,
     })
 }

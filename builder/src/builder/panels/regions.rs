@@ -158,11 +158,15 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
         });
 
         // name
-        let mut name = region.name.clone();
+        let name_key = egui::Id::new(("region_name_buf", id.as_str()));
+        let name_src = region.name.clone();
         ui.horizontal(|ui| {
             ui.label("name:");
-            if ui.text_edit_singleline(&mut name).lost_focus() && name != region.name {
+            let (name, resp) =
+                crate::builder::panels::persistent_singleline(ui, name_key, &name_src);
+            if resp.lost_focus() && name != name_src {
                 let _ = state.update_region(&id, |r| r.name = name.clone());
+                crate::builder::panels::persistent_text_clear(ui, name_key);
             }
         });
 
@@ -516,8 +520,11 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                 )
                 .changed();
             ui.label("label");
-            let mut label_buf = entry.label.clone().unwrap_or_default();
-            if ui.text_edit_singleline(&mut label_buf).lost_focus() {
+            let label_key = egui::Id::new(("region_cfg_label_buf", i));
+            let label_src = entry.label.clone().unwrap_or_default();
+            let (label_buf, resp) =
+                crate::builder::panels::persistent_singleline(ui, label_key, &label_src);
+            if resp.lost_focus() {
                 let new = if label_buf.is_empty() {
                     None
                 } else {
@@ -527,6 +534,7 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                     entry.label = new;
                     changed = true;
                 }
+                crate::builder::panels::persistent_text_clear(ui, label_key);
             }
             if ui
                 .button(RichText::new("×").color(Color32::LIGHT_RED))

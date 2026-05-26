@@ -17,6 +17,9 @@
 //!
 //! As Phase B / Phase C panels land they get added below.
 
+mod text_buf;
+pub use text_buf::{persistent_multiline, persistent_singleline, persistent_text_clear};
+
 pub mod conflict_resolver;
 pub mod invariants;
 pub mod new_project;

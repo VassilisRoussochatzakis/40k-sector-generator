@@ -25,8 +25,9 @@ use std::path::Path;
 use camino::{Utf8Path, Utf8PathBuf};
 
 use sectorforge::config::AppConfig;
-use sectorforge::factions::FactionsFile;
+use sectorforge::factions::{FactionDef, FactionsFile};
 use sectorforge::history::HistoryFile;
+use sectorforge::ids::FactionId;
 use sectorforge::input::{load_project, ProjectInput};
 use sectorforge::regions::RegionsFile;
 use sectorforge::relations::RelationsFile;
@@ -72,8 +73,8 @@ fn default_app_config(id: &str, title: &str, seed: &str, width: u32, height: u32
             subsector_width: None,
             subsector_height: None,
             system_count: 0,
-            min_worlds_per_system: 0,
-            max_worlds_per_system: 0,
+            min_worlds_per_system: 2,
+            max_worlds_per_system: 4,
             allow_empty_hexes: true,
             world_feature_count: 1,
             strict_world_rows: true,
@@ -113,8 +114,10 @@ pub struct NewProjectOptions {
     pub width: u32,
     pub height: u32,
     /// Optional preset overlay (id under `presets/`). When `None` the wizard
-    /// writes a blank project (default `sectorforge.toml` + empty
-    /// `data/worlds/worlds.toml`).
+    /// writes a blank project: default `sectorforge.toml` plus
+    /// `data/worlds/worlds.toml` seeded from `presets/_base` when reachable
+    /// (so the world pool is non-empty), falling back to an empty default if
+    /// the `_base` preset is unavailable.
     pub preset: Option<String>,
 }
 
@@ -122,10 +125,12 @@ pub struct NewProjectOptions {
 ///
 /// When `preset` is `Some`, delegates to
 /// [`sectorforge::presets::scaffold_to_dir`] and optionally rewrites the
-/// generation seed. When `preset` is `None`, writes a minimal two-file
-/// project (`sectorforge.toml` + empty `data/worlds/worlds.toml`) and loads
-/// it back through the standard `open_project` path so the in-memory state
-/// is identical to a fresh open.
+/// generation seed. When `preset` is `None`, writes a fresh project tree
+/// (`sectorforge.toml` + every catalog) and seeds `data/worlds/worlds.toml`
+/// from `presets/_base` when reachable so "Regenerate this system" finds a
+/// non-empty world pool on a brand-new project; then loads it back through
+/// the standard `open_project` path so the in-memory state is identical to a
+/// fresh open.
 pub fn new_project(opts: NewProjectOptions) -> Result<BuilderState, BuilderError> {
     let dest = opts.dest.clone();
     if dest.exists() {
@@ -152,29 +157,233 @@ pub fn new_project(opts: NewProjectOptions) -> Result<BuilderState, BuilderError
 fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
     let dest = &opts.dest;
     fs::create_dir_all(Path::new(dest.as_str()))?;
-    let worlds_dir = dest.join("data/worlds");
-    fs::create_dir_all(Path::new(worlds_dir.as_str()))?;
 
-    let cfg = default_app_config(&opts.id, &opts.title, &opts.seed, opts.width, opts.height);
+    // Build the config with `[inputs]` already pointing at every catalog the
+    // wizard is about to scaffold, so the loader sees a complete project the
+    // moment it reopens.
+    let mut cfg = default_app_config(&opts.id, &opts.title, &opts.seed, opts.width, opts.height);
+    cfg.inputs.factions = Some("data/factions/factions.toml".to_string());
+    cfg.inputs.route_rules = Some("data/routes/route_rules.toml".to_string());
+    cfg.inputs.relations = Some("data/factions/relations.toml".to_string());
+    cfg.inputs.regions = Some("data/regions/regions.toml".to_string());
+    cfg.inputs.economy = Some("data/worlds/economy.toml".to_string());
+    cfg.inputs.history = Some("data/history.toml".to_string());
+
     let toml_text = toml::to_string_pretty(&cfg).map_err(|e| BuilderError::ParseFailed {
         file: "sectorforge.toml".to_string(),
         message: e.to_string(),
     })?;
     atomic_write(&dest.join("sectorforge.toml"), toml_text.as_bytes())?;
 
-    // Empty worlds.toml — `WorldsConfig::default()` round-trips to a file
-    // with empty `[[generation]]` and `[features]` sections. The loader
-    // accepts that and treats every world enum as fully enumerated.
-    let worlds_default = sectorforge::worlds_toml::WorldsConfig::default();
-    let worlds_text = worlds_default
-        .to_toml_string()
-        .map_err(|e| BuilderError::ParseFailed {
-            file: "worlds.toml".to_string(),
-            message: e.to_string(),
-        })?;
+    // Seed worlds.toml from the `_base` preset workbook. Prefer the on-disk
+    // copy under `./presets` or next to the executable so users can edit it,
+    // but fall back to the workbook embedded at compile time so the wizard
+    // always produces a non-empty world pool regardless of CWD or install
+    // layout. A blank `WorldsConfig::default()` would round-trip to empty
+    // `[[generation]]`/`[features]` sections — valid for the loader, but the
+    // world-pool builder then yields zero candidates, so every "Regenerate
+    // this system" call fails with `NoWorldCandidates`.
+    const EMBEDDED_BASE_WORLDS: &str =
+        include_str!("../../../presets/_base/data/worlds/worlds.toml");
+    let worlds_dir = dest.join("data/worlds");
+    fs::create_dir_all(Path::new(worlds_dir.as_str()))?;
+    let presets_dir = sectorforge::presets::default_presets_dir();
+    let base_workbook = presets_dir.join("_base/data/worlds/worlds.toml");
+    let worlds_text = if base_workbook.is_file() {
+        fs::read_to_string(base_workbook.as_path())?
+    } else {
+        EMBEDDED_BASE_WORLDS.to_string()
+    };
     atomic_write(&worlds_dir.join("worlds.toml"), worlds_text.as_bytes())?;
 
+    // factions.toml + relations.toml share data/factions/.
+    let factions_dir = dest.join("data/factions");
+    fs::create_dir_all(Path::new(factions_dir.as_str()))?;
+    let factions = FactionsFile {
+        factions: default_starter_roster(),
+    };
+    let text =
+        toml::to_string_pretty(&factions).map_err(parse_err("data/factions/factions.toml"))?;
+    atomic_write(&factions_dir.join("factions.toml"), text.as_bytes())?;
+    let relations = RelationsFile {
+        relations: Default::default(),
+    };
+    let text =
+        toml::to_string_pretty(&relations).map_err(parse_err("data/factions/relations.toml"))?;
+    atomic_write(&factions_dir.join("relations.toml"), text.as_bytes())?;
+
+    // route_rules.toml under data/routes/.
+    let routes_dir = dest.join("data/routes");
+    fs::create_dir_all(Path::new(routes_dir.as_str()))?;
+    let route_rules_file = RouteRulesFile {
+        routes: Default::default(),
+    };
+    let text = toml::to_string_pretty(&route_rules_file)
+        .map_err(parse_err("data/routes/route_rules.toml"))?;
+    atomic_write(&routes_dir.join("route_rules.toml"), text.as_bytes())?;
+
+    // regions.toml under data/regions/.
+    let regions_dir = dest.join("data/regions");
+    fs::create_dir_all(Path::new(regions_dir.as_str()))?;
+    let regions_file = RegionsFile {
+        regions: Default::default(),
+    };
+    let text =
+        toml::to_string_pretty(&regions_file).map_err(parse_err("data/regions/regions.toml"))?;
+    atomic_write(&regions_dir.join("regions.toml"), text.as_bytes())?;
+
+    // economy.toml shares data/worlds/.
+    let economy_file = sectorforge::economy::EconomyFile {
+        economy: Default::default(),
+        resources: sectorforge::economy::ResourceModelConfig::default(),
+    };
+    let text =
+        toml::to_string_pretty(&economy_file).map_err(parse_err("data/worlds/economy.toml"))?;
+    atomic_write(&worlds_dir.join("economy.toml"), text.as_bytes())?;
+
+    // history.toml at data/ root.
+    fs::create_dir_all(Path::new(dest.join("data").as_str()))?;
+    let history_file = HistoryFile {
+        history: Default::default(),
+    };
+    let text = toml::to_string_pretty(&history_file).map_err(parse_err("data/history.toml"))?;
+    atomic_write(&dest.join("data/history.toml"), text.as_bytes())?;
+
+    // Empty `out/sector.json` so the project loads with a baseline sector
+    // and the EXPORT/TREE views show the canonical output file.
+    let out_dir = dest.join("out");
+    fs::create_dir_all(Path::new(out_dir.as_str()))?;
+    let empty_sector =
+        GeneratedSector::empty(&opts.id, &opts.title, &opts.seed, opts.width, opts.height);
+    let sector_text = serde_json::to_string_pretty(&empty_sector)?;
+    atomic_write(&out_dir.join("sector.json"), sector_text.as_bytes())?;
+
     Ok(())
+}
+
+fn parse_err(rel: &'static str) -> impl Fn(toml::ser::Error) -> BuilderError {
+    move |e| BuilderError::ParseFailed {
+        file: rel.to_string(),
+        message: e.to_string(),
+    }
+}
+
+/// Small Imperium/Chaos/xenos/cult/trader roster the §P1 wizard drops into a
+/// blank project so the FACTIONS tab and downstream derivations have
+/// something to bind to. Matches the starter set described in BUILDER.md §5.
+fn default_starter_roster() -> Vec<FactionDef> {
+    fn def(
+        id: &str,
+        name: &str,
+        kind: &str,
+        weight: f64,
+        disposition: &str,
+        world_types: &[&str],
+        governments: &[&str],
+        features: &[&str],
+    ) -> FactionDef {
+        FactionDef {
+            faction: None,
+            faction_name: None,
+            subfaction: None,
+            subfaction_name: None,
+            id: FactionId::new(id),
+            name: name.to_string(),
+            kind: kind.to_string(),
+            weight,
+            default_disposition: disposition.to_string(),
+            preferred_world_types: world_types.iter().map(|s| (*s).to_string()).collect(),
+            preferred_governments: governments.iter().map(|s| (*s).to_string()).collect(),
+            preferred_notable_features: features.iter().map(|s| (*s).to_string()).collect(),
+            style_fill: None,
+            style_accent: None,
+            style_glyph: None,
+            style_border: None,
+            legend_visible: None,
+        }
+    }
+
+    vec![
+        def(
+            "imperial_administration",
+            "Imperial Administration",
+            "imperial",
+            10.0,
+            "lawful",
+            &["HiveWorld", "BastionWorld", "IndustrialWorld"],
+            &[
+                "MilitaryGovernor",
+                "MagistrateCouncil",
+                "EcclesiarchicalAppointee",
+            ],
+            &["AdministrativeHub", "PoliceState", "ImportantShrine"],
+        ),
+        def(
+            "mechanicus",
+            "Adeptus Mechanicus",
+            "mechanicus",
+            6.0,
+            "insular",
+            &["ForgeWorld", "ResearchStation", "Orbital"],
+            &["MechanicusForgeLord", "ExploratorAuthority"],
+            &[
+                "ArchaeotechRuins",
+                "ForbiddenTech",
+                "MajorSpaceyard",
+                "LocalTech",
+            ],
+        ),
+        def(
+            "free_traders",
+            "Free Trader Compact",
+            "merchant",
+            4.0,
+            "opportunistic",
+            &["FrontierWorld", "AgriWorld"],
+            &["RogueTraderDynasty", "Megacorporations", "GuildsCombine"],
+            &["Freeport", "TradeHub", "Prosperous"],
+        ),
+        def(
+            "word_bearers",
+            "Word Bearers Warband",
+            "chaos_space_marine",
+            3.0,
+            "hostile",
+            &["HiveWorld", "ShrineWorld", "DeathWorld"],
+            &[],
+            &["DaemonicCorruption", "ChaosCultists", "WitchHunt"],
+        ),
+        def(
+            "goff_klanz",
+            "Goff Ork Klanz",
+            "ork",
+            3.0,
+            "hostile",
+            &["FeralWorld", "DeathWorld", "FrontierWorld"],
+            &["Warlords"],
+            &["HostileXenos", "WarZone"],
+        ),
+        def(
+            "hive_fleet_hydra",
+            "Hive Fleet Hydra Splinter",
+            "tyranid",
+            2.0,
+            "hostile",
+            &["DeathWorld", "FeralWorld", "AgriWorld"],
+            &[],
+            &["HostileXenos", "Quarantined"],
+        ),
+        def(
+            "cult_of_the_four_armed_emperor",
+            "Cult of the Four-Armed Emperor",
+            "genestealer_cult",
+            2.0,
+            "secretive",
+            &["HiveWorld", "ExtractiveColony", "IndustrialWorld"],
+            &[],
+            &["ChaosCultists", "PsykerCult", "PopularUprising"],
+        ),
+    ]
 }
 
 /// §P2: load an existing project from disk into a [`BuilderState`].
@@ -667,7 +876,60 @@ mod tests {
         assert_eq!(state.sector.id.as_ref(), "test");
         assert!(dest.join("sectorforge.toml").exists());
         assert!(dest.join("data/worlds/worlds.toml").exists());
+        assert!(dest.join("data/factions/factions.toml").exists());
+        assert!(dest.join("data/factions/relations.toml").exists());
+        assert!(dest.join("data/routes/route_rules.toml").exists());
+        assert!(dest.join("data/regions/regions.toml").exists());
+        assert!(dest.join("data/worlds/economy.toml").exists());
+        assert!(dest.join("data/history.toml").exists());
+        assert!(dest.join("out/sector.json").exists());
         assert!(state.data_catalogs.worlds.is_some());
+        assert!(state.data_catalogs.factions.is_some());
+        // Wizard ships a 7-faction starter roster so the FACTIONS tab and
+        // downstream derivations have something to bind to.
+        assert_eq!(
+            state
+                .data_catalogs
+                .factions
+                .as_ref()
+                .unwrap()
+                .factions
+                .len(),
+            7
+        );
+        assert!(state.data_catalogs.relations.is_some());
+        assert!(state.data_catalogs.route_rules.is_some());
+        assert!(state.data_catalogs.regions.is_some());
+        assert!(state.data_catalogs.economy.is_some());
+        assert!(state.data_catalogs.history.is_some());
+
+        // The scaffold should seed `worlds.toml` from the `_base` preset when
+        // it is reachable (it is during `cargo test` from the workspace root)
+        // so "Regenerate this system" finds a non-empty world pool. The
+        // fallback `WorldsConfig::default()` path leaves zero rows; guard
+        // against that regression while still tolerating it on installs that
+        // ship without presets.
+        if sectorforge::presets::default_presets_dir()
+            .join("_base/data/worlds/worlds.toml")
+            .is_file()
+        {
+            assert!(
+                !state
+                    .data_catalogs
+                    .worlds
+                    .as_ref()
+                    .unwrap()
+                    .generation
+                    .is_empty(),
+                "blank scaffold should copy generation rows from presets/_base"
+            );
+        }
+
+        // Reopening the project must succeed — confirms every scaffolded
+        // catalogue parses cleanly through `load_project`.
+        let reopened = open_project(&dest).expect("reopen scaffolded project");
+        assert_eq!(reopened.sector.width, 6);
+        assert!(reopened.data_catalogs.regions.is_some());
     }
 
     #[test]

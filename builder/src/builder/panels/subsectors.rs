@@ -138,7 +138,13 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             state.subsector_target_systems = value;
             state.map_view_cache = None; // force refresh on next MAP-tab tick
         }
-        if ui.button("Recluster").clicked() {
+        if ui
+            .button("Apply target & refresh")
+            .on_hover_text(
+                "Stores the target and clears the map-view cache; clustering re-runs on the next MAP-tab tick.",
+            )
+            .clicked()
+        {
             state.subsector_target_systems = value.max(1);
             state.map_view_cache = None;
         }
@@ -166,7 +172,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
     });
     ui.colored_label(
         Color32::DARK_GRAY,
-        "Recluster runs the §13 k-means / Lloyd pass at the new target. Manual moves and capital overrides are reapplied on top.",
+        "Sets the target and clears the map-view cache; the §13 k-means / Lloyd pass re-runs on the next MAP-tab tick. Manual moves and capital overrides are reapplied on top.",
     );
 }
 

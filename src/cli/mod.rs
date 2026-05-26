@@ -81,6 +81,11 @@ enum Command {
         /// §15 NEW2.md: Maximum number of candidate seeds to evaluate.
         #[arg(long)]
         max_candidates: Option<u32>,
+        /// Comma-separated output formats. Overrides
+        /// `[outputs].formats` in `sectorforge.toml`. Tokens: `json`,
+        /// `markdown`, `png` (alias for `bitmap`), `svg`, `html`.
+        #[arg(long, value_delimiter = ',')]
+        formats: Option<Vec<String>>,
     },
     /// Generate a single standalone system from a project directory.
     GenerateSystem {
@@ -420,6 +425,7 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             theme,
             constraints,
             max_candidates,
+            formats,
         } => generate::run_generate(
             project,
             seed,
@@ -430,6 +436,7 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             theme,
             constraints,
             max_candidates,
+            formats,
         ),
         Command::GenerateSystem {
             project,

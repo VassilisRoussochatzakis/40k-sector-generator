@@ -333,6 +333,26 @@ pub enum ControlOverlay {
     PowerProjection,
     /// Per-system tint from `influence_field::build` sampled at the system coord.
     InfluenceField,
+    /// Per-presence `admin` rolled up per system; top faction tints the cell.
+    Administrative,
+    /// Per-presence `military` rolled up per system.
+    Military,
+    /// Per-presence `orbital` rolled up per system.
+    Orbital,
+    /// `military + orbital` composite (orbital strike + naval force projection).
+    Naval,
+    /// Per-presence `economic` rolled up per system (trade / commerce).
+    Mercantile,
+    /// Per-presence `industrial` rolled up per system (forge / manufactory).
+    Industrial,
+    /// Per-presence `logistics` rolled up per system (supply chain).
+    Logistical,
+    /// Per-presence `covert` rolled up per system (intel / cult / heresy).
+    Informational,
+    /// Per-presence `ideological` rolled up per system (cult / faith).
+    Religious,
+    /// Per-presence `legitimacy` rolled up per system (sympathetic populace).
+    Sympathetic,
 }
 
 impl ControlOverlay {
@@ -341,6 +361,16 @@ impl ControlOverlay {
             Self::None => "OFF",
             Self::PowerProjection => "POWER PROJECTION",
             Self::InfluenceField => "INFLUENCE FIELD",
+            Self::Administrative => "ADMINISTRATIVE",
+            Self::Military => "MILITARY",
+            Self::Orbital => "ORBITAL",
+            Self::Naval => "NAVAL",
+            Self::Mercantile => "MERCANTILE",
+            Self::Industrial => "INDUSTRIAL",
+            Self::Logistical => "LOGISTICAL",
+            Self::Informational => "INFORMATIONAL",
+            Self::Religious => "RELIGIOUS",
+            Self::Sympathetic => "SYMPATHETIC",
         }
     }
 }

@@ -689,9 +689,9 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                 *changed = true;
             }
             ui.horizontal(|ui| {
-                let mut buf = String::new();
+                let key = egui::Id::new("economy_world_type_new_buf");
+                let (buf, resp) = crate::builder::panels::persistent_singleline(ui, key, "");
                 ui.label("+ world_type:");
-                let resp = ui.text_edit_singleline(&mut buf);
                 if (resp.lost_focus()
                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
                     && !buf.is_empty())
@@ -699,6 +699,7 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                 {
                     cfg.by_world_type.insert(buf, ResourceVector::default());
                     *changed = true;
+                    crate::builder::panels::persistent_text_clear(ui, key);
                 }
             });
         },

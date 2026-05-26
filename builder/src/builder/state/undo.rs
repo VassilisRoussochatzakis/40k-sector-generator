@@ -120,4 +120,18 @@ impl BuilderState {
             self.command_cursor,
         ));
     }
+
+    /// Revert to a named snapshot: restores the sector and rewinds the
+    /// command cursor. Subsequent `run` calls evict the redo tail.
+    pub fn revert_to_snapshot(&mut self, name: &str) -> bool {
+        let Some(snap) = self.snapshots.iter().find(|s| s.name == name).cloned() else {
+            return false;
+        };
+        self.sector = snap.sector;
+        self.command_cursor = snap.command_log_position.min(self.command_log.len());
+        self.dirty = true;
+        self.mark_validation_dirty();
+        self.trigger_auto_save();
+        true
+    }
 }

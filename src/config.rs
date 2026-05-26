@@ -328,8 +328,25 @@ pub enum OutputFormat {
     Markdown,
     /// PNG hex map with legend.
     Bitmap,
+    /// Vector hex map (sector.svg).
+    Svg,
     /// §11 NEW.md: self-contained interactive HTML map.
     Html,
+}
+
+impl OutputFormat {
+    /// Parse a CLI-style format token (`json`, `markdown`, `md`, `png`,
+    /// `bitmap`, `svg`, `html`). Case-insensitive.
+    pub fn parse_token(token: &str) -> Option<Self> {
+        match token.trim().to_ascii_lowercase().as_str() {
+            "json" => Some(Self::Json),
+            "markdown" | "md" => Some(Self::Markdown),
+            "png" | "bitmap" => Some(Self::Bitmap),
+            "svg" => Some(Self::Svg),
+            "html" => Some(Self::Html),
+            _ => None,
+        }
+    }
 }
 
 /// §11 NEW.md: interactive HTML exporter knobs. Theme picks the palette;

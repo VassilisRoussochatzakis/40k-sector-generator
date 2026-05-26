@@ -187,11 +187,16 @@ accidentally place duplicates.
 Click **SYSTEM** in the top tab strip. The tab now shows:
 
 - A **system picker** dropdown defaulting to `Velikan`.
-- An **identity section** with the system id, name, coordinates, and a
-  `SystemKind` selector (DeepSpace, Inhabited, Frontier, etc.).
-- A **star section** with star colour and spectral class.
-- A handful of further sections (tags, worlds link, routes, factions,
-  control, overlays, archetype, orbital, conflict, intel, regenerate).
+- An **Identity** collapsing section with the system id, name, coordinates,
+  and a `SystemKind` selector (DeepSpace, Inhabited, Frontier, etc.).
+- A **Star** section with star colour code, colour name, and spectral type.
+- A handful of further sections, each a collapsing header — most are
+  prefixed with their spec reference: `Tags + Notes`, `Worlds (§8)`,
+  `Routes (§9 — read-only here)`, `Primary factions (§10)`, `Control
+  (§11)`, `Overlays (§28..§32 — managed elsewhere)`, `§AR1 — Archetypes
+  (§30)`, `§AR2 — Auto-assign archetypes`, `§AR3 — Archetype rules`,
+  `§S5 — Generate one system here`, `§S4 — Bulk operations`, plus
+  injected orbital / conflict / intel sub-sections.
 
 You have your first system. Two notes:
 
@@ -209,9 +214,8 @@ populate the system for you. We will do both, so you have seen both flows.
 
 ### 4.1 Generate a few worlds first
 
-In the SYSTEM tab scroll down to the **Regenerate** section near the bottom.
-You should see a button labelled along the lines of **Regenerate this
-system**. Click it.
+In the SYSTEM tab scroll down to the **§S5 — Generate one system here**
+collapsing header near the bottom and click **Regenerate this system**.
 
 The builder runs the standalone single-system generator using the project's
 seed plus the system's id. After a moment the **Worlds** link section
@@ -224,35 +228,46 @@ Click the **WORLD** tab. The world picker at the top now lists every world
 across every system; pick `Velikan I` (or whichever the generator named the
 first one).
 
-Each world has the following sections, each a collapsing header:
+Each world has the following sections, each a collapsing header (most
+prefixed with their spec reference):
 
 - **Identity** — id, name, parent system.
 - **Classification** — `WorldType`, e.g. `HiveWorld`, `AgriWorld`, …
-- **Environment** — atmosphere, temperature, biosphere (each its own dropdown
-  bound to a canonical enum).
+- **Environment** — atmosphere, temperature, biosphere (each its own
+  dropdown bound to a canonical enum).
 - **Society** — population scale, tech level, government.
-- **Features** — a multi-select of `NotableFeature` tags (TradeHub,
-  AdministrativeCapital, CultActivity, etc.).
-- **Tags/notes** — free-form strings.
-- **Factions** — read-only summary of who is present; edit on FACTIONS.
-- **Claims** — chip-row of `FactionClaim` entries.
-- **Control / Overlays / Conflict / Intel / Orbital** — derived data.
+- **§W5 — Notable features** — multi-select of `NotableFeature` tags
+  (`TradeHub`, `AdministrativeCapital`, `CultActivity`, etc.).
+- **§W6 — Coupling warnings** — derived sanity checks across the world's
+  fields.
+- **Tags + Notes** — free-form strings.
+- **Faction presence (§10)** — per-faction influence + dominance rows
+  (this is where **+ Add presence** lives — see §6.2).
+- **§W7 — Claims** — `FactionClaim` rows.
+- **Control summary (§11 — read-only)** — derived control roll-up.
+- **Overlays (§28 / §32 summary)** — derived overlay summary.
+- **Conflict** + **Intel** — sub-panels injected by the conflict/intel
+  modules.
+- **§H8 — Chronicle snippets** — history events anchored on this world.
+- **§W4 — Re-roll from candidate pool** — one-shot regenerate of just
+  this world.
 
 Try this: open **Classification**, change the WorldType to `HiveWorld`. Open
 **Society**, set `Population` to one of the high tiers and `Government` to
-`AdeptusTerraGovernor`. The status footer's validation pip may flicker; the
+`MilitaryGovernor`. The status footer's validation pip may flicker; the
 builder is debouncing a re-validation pass.
 
 ### 4.3 Hand-author a world
 
-Stay on the WORLD tab. Look for an **Add world** action — typically a button
-in the world picker row or a button at the top of the inspector. Click it.
+Adding a blank world lives on the **SYSTEM** tab, not WORLD. Switch back to
+SYSTEM, make sure `Velikan` is the focused system, and expand the **Worlds
+(§8)** collapsing header. Click **+ Add world**.
 
-A new blank world is added to the currently-focused system (so make sure
-`Velikan` is selected). It is given a placeholder name and a default
-classification. Rename it from the **Identity** section, then set its
-classification, environment and society fields the same way you edited the
-generated one.
+A new blank world named `World-N` is appended to the system. The header
+shows a `→ <id> <name>` link for it — click that link to jump straight into
+the WORLD tab with the new world selected. Rename it from the **Identity**
+section, then set its classification, environment and society fields the
+same way you edited the generated one.
 
 Save the project (PROJECT tab → **Save**) so you do not lose what you have.
 
@@ -291,20 +306,35 @@ button on any factions you don't want — keep at least:
 
 ### 5.3 Add a custom faction
 
-Use the **+ Add faction** button. Fill in the row:
+The roster is a three-level hierarchy: **top faction → subfaction → row**.
+Clicking **+ Add faction** at the top of the panel appends a new *subfaction
+row* — by default it inherits its top faction from its `kind` (a row with
+`kind: imperial` lands underneath the `imperium` top group, a row with
+`kind: chaos` under `chaos`, and so on). There is no separate "add
+top-level faction" button: a brand-new top faction is created by adding a
+row and then giving it its own top id via the hierarchy editor below.
 
-| Field        | Suggested value           |
-|--------------|---------------------------|
-| id           | `house-velikan`           |
-| display name | `House Velikan`           |
-| kind         | `imperial` (Rogue Trader) |
-| disposition  | `opportunistic`           |
-| weight       | `12`                      |
-| preferred world types | TradeHub-friendly types like `HiveWorld`, `AgriWorld` |
-| preferred features    | `TradeHub`, `AdministrativeCapital` |
+Click **+ Add faction** now. A row called `new_faction_1 / "New faction"` is
+appended and auto-selected. In the right-hand inspector fill in:
 
-Pick a distinctive colour from the swatch picker so you can see this faction
-on the map at a glance.
+| Section            | Field                    | Value                                              |
+|--------------------|--------------------------|----------------------------------------------------|
+| §F1 Identity       | id                       | `house-velikan`                                    |
+|                    | name                     | `House Velikan`                                    |
+|                    | kind                     | `imperial` (closest match for a Rogue Trader)      |
+|                    | default_disposition      | `opportunistic`                                    |
+|                    | weight                   | `12`                                               |
+| §F3 Hierarchy      | faction (top id)         | `house-velikan` *(makes it a brand-new top group)* |
+|                    | faction_name (top display) | `House Velikan`                                  |
+|                    | subfaction (mid id)      | leave empty (defaults to `kind`)                   |
+| §F1 Preferences    | preferred_world_types    | `HiveWorld`, `AgriWorld`                           |
+|                    | preferred_notable_features | `TradeHub`, `AdministrativeCapital`              |
+| §F2 Style override | fill / accent            | pick a distinctive colour                          |
+
+The `Resolved hierarchy:` line at the bottom of §F3 confirms how the row
+will be grouped — with the values above it should read `house-velikan >
+imperial > house-velikan`. Leave §F3 blank and the row would instead nest
+under whatever top group the `imperial` kind resolves to.
 
 ### 5.4 Persist the roster
 
@@ -327,17 +357,38 @@ on the preferences you authored.
 
 We will do the auto-assign and then tweak by hand.
 
-### 6.2 Auto-assign on the system
+### 6.2 Seed the sector roster from the catalogue
 
-Return to **SYSTEM**, focus `Velikan`, scroll to the **Regenerate** section
-and click **Regenerate this system** again. This time the generator already
-has the new faction roster to draw from, so the regenerated worlds get an
-updated faction layer.
+**Important:** the **FACTIONS** tab edits `data/factions/factions.toml` —
+the *catalogue* of factions that *could* exist. The WORLD tab's **+ Add
+presence** dropdown does not read from the catalogue: it reads from the
+sector's own roster (`sector.factions`), which is the list of factions
+that have actually been instantiated into this sector. Until that roster
+is seeded, the WORLD presence editor will say *"no factions in the sector
+roster — add factions in FACTIONS first."* — confusingly, even when
+FACTIONS is full. There is no "+ Add to sector roster" button; the roster
+is only populated by a full regeneration pass.
 
-Open **WORLD** again, pick `Velikan I`, expand the **Factions** section. You
-should see one to three factions listed, each with their **influence tier**
-(Dominant / Significant / Minor / Hidden) and **dominance state** (Rumored,
-Presence, Influence, Contested, Controlled, Stronghold).
+To seed it, go to **PROJECT → Generation (§6) → Live preview (§G3)** and
+click **Regenerate preview now**. When the green `PREVIEW READY` chip
+appears, click the green **Apply preview (§G4)** button. The full
+generator runs end-to-end: every faction the catalogue defines is now
+materialised in `sector.factions`, with first-pass presence rows attached
+to worlds whose `WorldType` / `Government` / `NotableFeature` mix matches
+each faction's preferences.
+
+Open **WORLD** again, pick `Velikan I`, expand the **Factions** section.
+You should now see one to three factions listed, each with their
+**influence tier** (Dominant / Significant / Minor / Hidden) and
+**dominance state** (Rumored, Presence, Influence, Contested, Controlled,
+Stronghold). The **+ Add presence** row at the bottom of the Factions
+section is now populated with every roster faction that does not yet have
+a row on this world.
+
+> **Note.** Per-system **Regenerate this system** (§4.1) does *not*
+> re-aggregate the sector roster — only a full regenerate via Generation
+> §G4 does. If you add a new faction to the catalogue later, repeat the
+> §G3 → §G4 cycle to get it into the roster.
 
 ### 6.3 Add a hidden Genestealer cult
 
@@ -369,11 +420,12 @@ substantial. Repeat §3 for each:
 For each: arm **ADD SYSTEM** in the MAP toolbox, click the hex, type the
 name, hit **Place**, then **SELECT** to disarm.
 
-Once they exist, run **Regenerate this system** on each from the SYSTEM tab,
-or use the **PROJECT → Generation (§6)** collapsing header. The Generation
-section also exposes the seed-locked re-roll (§G2), the §G3/§G4 live preview,
-and per-rectangle partial regeneration (§G5) if you want the whole sector
-populated at once instead.
+Once they exist, run **Regenerate this system** (in §S5 — Generate one
+system here) on each from the SYSTEM tab, or use the **PROJECT →
+Generation (§6)** collapsing header. The Generation section also exposes
+the seed-locked re-roll (§G2), the §G3/§G4 live preview, and per-rectangle
+partial regeneration (§G5) if you want the whole sector populated at once
+instead.
 
 ### 7.1 Move a system you placed in the wrong spot
 
@@ -415,11 +467,21 @@ The ROUTES tab shows:
   hop count.
 - A **route picker**.
 - A per-route inspector with:
-  - `RouteType` (default `ChartedPassage`).
-  - `RouteStability` (Stable / Unstable / Hazardous / Perilous).
-  - `Hidden` flag.
-  - Per-faction control assignments (which faction owns each leg).
-  - Modifier list (warp turbulence, pirate interdict, blockade, …).
+  - **Identity / endpoints** — id, from/to system, `RouteType` (default
+    `ChartedPassage`), `RouteStability` (Stable / Unstable / Hazardous /
+    Perilous).
+  - **Distance** — hex distance with an `auto=` suggestion and `Use auto`
+    button.
+  - **Tags** — free-form tag list.
+  - **Route control** — per-faction patrol / toll / interdiction / piracy
+    / secrecy / confidence grid, with **Add control row** and **Re-derive
+    controls** buttons.
+- A **Route rules** section lower in the panel that edits modifier
+  templates (warp turbulence, pirate interdict, blockade, …) — these are
+  applied globally rather than per individual route from the inspector.
+- A **Hidden routes** section that builds bulk hidden-route topologies
+  (webway / black ship / smuggling lane) from selected endpoints — the
+  per-route inspector itself does not expose an individual `hidden` flag.
 
 Set the Velikan ↔ Cassio route to Stable, then add routes:
 
@@ -432,8 +494,9 @@ Set the Velikan ↔ Cassio route to Stable, then add routes:
 
 The summary line above the picker shows **components: N**. With five systems
 and the routes above, it should read `components: 1`. If a system is
-isolated the number will be 2 or higher; use the **Ensure connected**
-section's button to insert union-find connector routes automatically.
+isolated the number will be 2 or higher; expand the **Ensure connected**
+collapsing header and click **Run connector now** to insert union-find
+connector routes automatically.
 
 ---
 
@@ -446,22 +509,33 @@ automatically from the system positions) and the per-cluster inspector for
 each.
 
 The default clustering target is small enough that five systems normally
-fall into 1 or 2 subsectors. You can:
+fall into 1 or 2 subsectors. The controls (each tagged with its spec
+reference) are:
 
-- **Recluster** — adjust the *target systems per subsector* slider and click
-  to re-cluster.
-- **Reassign** — drag a system between subsectors in the cluster list. This
-  override survives reclustering.
-- **Capital** — set a manual capital per subsector.
-- **Colour** — override the per-subsector tint that shows on the MAP.
+- **§SUB2 — Recluster** — change *target systems / subsector* via the
+  DragValue and click **Apply target & refresh**. (The clustering re-runs
+  on the next MAP-tab tick, not on click — the button only resets the
+  cache.)
+- **§SUB3 — Manual reassignment** — for each system in the picked
+  cluster, pick a destination cluster from the *move to* dropdown. This
+  is a dropdown, not a drag-and-drop; the override survives reclustering
+  and is flagged `manual` on the row.
+- **§SUB4 — Capital override** — pick a manual capital per subsector
+  from the dropdown.
+- **§SUB5 — Colour override** — open the colour picker to override the
+  per-subsector tint that shows on the MAP.
 
 Pick one cluster and:
 
-1. Set its **label** to `Velikan Reach`.
-2. Set the **capital** to `Velikan`.
-3. Click the colour swatch and pick a noticeable colour.
+1. Pick **Velikan** as the capital from the §SUB4 dropdown.
+2. Open the §SUB5 colour picker and pick a noticeable colour.
 
 The MAP picks up the colour override immediately.
+
+> **Note.** Subsector *labels* and *names* are derived from the
+> clustering pass — the builder does not expose a per-subsector label
+> override field. To rename, edit the clustering inputs (system count /
+> manual reassignment) rather than the label directly.
 
 ---
 
@@ -513,9 +587,9 @@ hand-paint.
 
 ### 10.4 Apply route effects
 
-The **Live route effect preview** section shows how many of your routes
-currently cross the region. If you click **Apply to routes** the builder
-rewrites their `route_modifier` and `stability` to reflect the warp
+The **§REG4 — route effect preview** section shows how many of your routes
+currently cross the region. If you click **Apply effects to routes** the
+builder rewrites their `route_modifier` and `stability` to reflect the warp
 condition — Hazardous routes appear differently on the map.
 
 ---
@@ -530,12 +604,15 @@ it. You don't generally edit them first; you read them and adjust if needed.
 
 Click **CONTROL**. The panel shows:
 
-- An **overlay picker** (Administrative, Military, Orbital, Naval,
-  Mercantile, Industrial, Logistical, Informational, Religious, Sympathetic).
-- A scoreboard of which faction dominates each dimension across the sector.
-
-Pick *Military* — the MAP heatmap tint changes to reflect military power per
-hex. Pick *Off* to clear it.
+- A **§C7 / §C8 — MAP overlays** section with an overlay picker:
+  `None`, `PowerProjection`, `InfluenceField`, `Administrative`,
+  `Military`, `Orbital`, `Naval`, `Mercantile`, `Industrial`,
+  `Logistical`, `Informational`, `Religious`, `Sympathetic`. Picking one
+  retints the MAP hexes; picking `None` clears the overlay.
+- A **§C1..§C3 — World presence** editor (per-world faction presence /
+  influence / dominance), plus **§C4 / §C5 — System control**, **§C6 —
+  PowerProfile preview**, **§CL1/§CL2 — Per-world claims**, **§CL3 —
+  Contested**, and **§CL4 — Bulk convert claims**.
 
 ### 11.2 ECONOMY
 
@@ -564,33 +641,48 @@ Click **HISTORY**. The panel is split into:
 - **Event rules** — when system state X is active, prefer event kind Y.
 - **Chronicle** — the actual derived timeline of events.
 
-Click **Regenerate chronicle**. The chronicle list populates with foundation
-events, faction claims, contested-control flips, cult exposures, and so on.
-Manual events you add via **Add event** survive future regenerations.
+Click **Regenerate chronicle** (at the top of the panel). The chronicle
+list populates with foundation events, faction claims, contested-control
+flips, cult exposures, and so on. Manual events you add via the §H5 —
+add event header → **+ event (open wizard)** survive future
+regenerations.
 
-### 11.5 PERSONAE, HOOKS, PROSE, BRIEFING
+### 11.5 PERSONAE, HOOKS, PROSE, BRIEFING, SITES, MISSIONS
 
-- **PERSONAE** — named NPCs per faction presence.
-- **HOOKS** — plot hook templates that condition on the model state.
-- **PROSE** — deterministic gazetteer paragraphs per world.
-- **BRIEFING** — a longer prose pack stitched together for the whole sector.
+> **As of this writing, all six of these tabs are placeholders** — they
+> open to a stub that says *"Phase D §… — not yet wired"*. The
+> underlying engines are real and exposed via the `sectorforge` CLI
+> (`personae`, `hooks`, `prose`, `briefing`, `sites`, `missions`
+> subcommands); the builder panels have not landed yet.
+>
+> Conceptually:
+>
+> - **PERSONAE** — named NPCs per faction presence.
+> - **HOOKS** — plot hook templates that condition on the model state.
+> - **PROSE** — deterministic gazetteer paragraphs per world.
+> - **BRIEFING** — a longer prose pack stitched together for the whole
+>   sector.
+> - **SITES** — notable sites / encounter locations per world.
+> - **MISSIONS** — mission seeds anchored on systems / worlds.
 
-For each tab the workflow is the same: open it, scan the output, and if you
-want different flavour, edit the inputs (faction prefs, world features,
-notable features) and reload.
+### 11.6 ANALYTICS, INTERESTINGNESS, SEARCH, DIFF, SEGMENTUM, EXPORT
 
-### 11.6 ANALYTICS, INTERESTINGNESS, SEARCH, DIFF
-
-These are diagnostic tabs you will not need on a first sector:
-
-- **ANALYTICS** — counts, distributions, completeness checks.
-- **INTERESTINGNESS** — scored "is this sector dramatically interesting"
-  metrics with a per-profile preset.
-- **SEARCH** — declarative wish-based seed search. *"Find me a seed where
-  the Imperium is contested by Tau on at least two hive worlds."*
-- **DIFF** — compare two saved states of the sector.
-
-Open each, read its summary, and close it.
+> **All five of these tabs are also placeholders as of this writing** —
+> Phase E work. They open to the same stub. Use the `sectorforge` CLI for
+> the underlying functionality (`analyze`, `interestingness`, `search`,
+> `diff`, `compose`, `generate --formats …`).
+>
+> Conceptually:
+>
+> - **ANALYTICS** — counts, distributions, completeness checks.
+> - **INTERESTINGNESS** — scored "is this sector dramatically
+>   interesting" metrics with a per-profile preset.
+> - **SEARCH** — declarative wish-based seed search. *"Find me a seed
+>   where the Imperium is contested by Tau on at least two hive worlds."*
+> - **DIFF** — compare two saved states of the sector.
+> - **SEGMENTUM** — multi-sector composition.
+> - **EXPORT** — bundle PNG / SVG / HTML / JSON / Markdown writes; see
+>   §14 for the CLI fallback.
 
 ---
 
@@ -600,16 +692,27 @@ These are not tabs — they are always-on systems you should know about.
 
 ### 12.1 The footer
 
-Every tab has a footer that surfaces:
+Every tab has a footer that surfaces (left to right): project path, a
+`● dirty` / `clean` indicator, a tri-coloured **health pip** (green /
+yellow / red) followed by an inline validation + invariant summary
+(`validation: N err / M warn · invariants: K`), the command-bus cursor
+(`cmd P/Q`), the derivation cache size, and a job spinner when async
+work is running.
 
-- **Validation** — pre-generation rule checks (your config and data are
-  coherent).
-- **Invariants** — post-generation integrity (no orphan worlds, no overlapping
-  region hexes, …).
-- **Health pip** — green / yellow / red rollup.
+- **Validation** counts pre-generation rule checks (your config and data
+  are coherent).
+- **Invariant violations** counts post-generation integrity failures (no
+  orphan worlds, no overlapping region hexes, …).
+- The **health pip** is green when both are clean, yellow when there are
+  only warnings (or no report yet), red when at least one error or
+  violation fires.
 
-Click the validation or invariants chip to expand a list of any failing
-rules. Most are non-fatal warnings; fix them when you can.
+The footer is read-only — there is no clickable chip to expand the
+failing rules in the current build. To see the actual issue list, either
+re-run `cargo run --bin sectorforge -- validate --project <path>` from a
+terminal, or use the inline per-section hints (e.g. the
+`ROUTE_DISTANCE_MISMATCH` warning that appears in the route inspector,
+or the `§REG6` chips at the top of REGIONS).
 
 ### 12.2 Undo / Redo
 
@@ -686,13 +789,16 @@ you saved is what gets exported. The outputs land in `./tutorial-sector/out/`:
 
 Now that you have built a small sector end-to-end:
 
-- Use the **SEARCH** tab to find seeds with specific properties, then
+- Use the **SEARCH** tab (or, while it is a placeholder, the
+  `sectorforge search` CLI) to find seeds with specific properties, then
   scaffold a fresh project from one of them.
-- Switch the **Generation (§6)** panel preset to one of the curated presets
-  (`m42-classic`, `embattled-frontier`, `mercantile-crossroads`, `dead-sector`)
-  to see how the tonal knobs change the output without changing the catalogues.
-- Open **SEGMENTUM** to compose multiple sector projects into a multi-sector
-  super-manifest.
+- In **PROJECT → Generation (§6)**, click **Open preset launcher…** to
+  switch to one of the curated presets (`m42-classic`,
+  `embattled-frontier`, `mercantile-crossroads`, `dead-sector`) and see
+  how the tonal knobs change the output without changing the catalogues.
+- Compose multiple sector projects into a super-manifest with the
+  `sectorforge compose` CLI (the **SEGMENTUM** tab is currently a
+  placeholder).
 - Read [OVERVIEW.md](OVERVIEW.md) for the qualitative tour of the system, then
   [GUIDE.md](GUIDE.md) for the engineering-level details on every module the
   builder calls into.

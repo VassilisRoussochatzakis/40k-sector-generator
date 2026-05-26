@@ -12,7 +12,11 @@ use std::sync::Arc;
 
 use egui::{Color32, RichText, Ui};
 
-use sectorforge::sector_model::{ClaimType, FactionClaim};
+use sectorforge::ids::FactionId;
+use sectorforge::sector_model::{
+    ClaimType, DominanceState, FactionClaim, FactionInfluence, PresenceDimensions,
+    WorldFactionPresence,
+};
 use sectorforge::worlds::{
     Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
     Temperature, WorldType,
@@ -151,7 +155,9 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .show(ui, |ui| {
             let w = &state.sector.systems[sys_idx].worlds[w_idx];
             let wid = w.id.clone();
-            let mut name_buf = w.name.to_string();
+            let name_buf_key = egui::Id::new(("world_identity_name_buf", wid.as_str()));
+            let name_src = w.name.to_string();
+            let mut name_buf = name_src.clone();
             let mut orbit = i32::from(w.orbit);
             let mut name_changed = false;
             egui::Grid::new("w_identity_grid")
@@ -167,7 +173,10 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                     ui.monospace(w.source_row_index.to_string());
                     ui.end_row();
                     ui.label("name");
-                    name_changed = ui.text_edit_singleline(&mut name_buf).lost_focus();
+                    let (buf, resp) =
+                        crate::builder::panels::persistent_singleline(ui, name_buf_key, &name_src);
+                    name_buf = buf;
+                    name_changed = resp.lost_focus();
                     ui.end_row();
                     ui.label("orbit");
                     ui.add(egui::DragValue::new(&mut orbit).range(1..=99));
@@ -196,6 +205,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
             if name_changed && name_buf.trim() != w.name.as_ref() {
                 w.name = Arc::from(name_buf.trim());
                 mutated = true;
+                crate::builder::panels::persistent_text_clear(ui, name_buf_key);
             }
             if mutated {
                 state.dirty = true;
@@ -560,22 +570,32 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
     egui::CollapsingHeader::new("Tags + Notes")
         .default_open(false)
         .show(ui, |ui| {
-            let mut tags_buf = state.sector.systems[sys_idx].worlds[w_idx]
+            let wid_key = state.sector.systems[sys_idx].worlds[w_idx]
+                .id
+                .as_str()
+                .to_string();
+            let tags_key = egui::Id::new(("world_tags_buf", wid_key.as_str()));
+            let notes_key = egui::Id::new(("world_notes_buf", wid_key.as_str()));
+            let tags_src = state.sector.systems[sys_idx].worlds[w_idx]
                 .tags
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
-            let mut notes_buf = state.sector.systems[sys_idx].worlds[w_idx]
+            let notes_src = state.sector.systems[sys_idx].worlds[w_idx]
                 .notes
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
                 .join("\n");
             ui.label("tags (comma-separated)");
-            let tags_changed = ui.text_edit_singleline(&mut tags_buf).lost_focus();
+            let (tags_buf, tags_resp) =
+                crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
+            let tags_changed = tags_resp.lost_focus();
             ui.label("notes (one per line)");
-            let notes_changed = ui.text_edit_multiline(&mut notes_buf).lost_focus();
+            let (notes_buf, notes_resp) =
+                crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
+            let notes_changed = notes_resp.lost_focus();
             if tags_changed {
                 state.sector.systems[sys_idx].worlds[w_idx].tags = tags_buf
                     .split(',')
@@ -583,6 +603,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
+                crate::builder::panels::persistent_text_clear(ui, tags_key);
                 state.dirty = true;
                 state.mark_validation_dirty();
             }
@@ -593,6 +614,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
+                crate::builder::panels::persistent_text_clear(ui, notes_key);
                 state.dirty = true;
                 state.mark_validation_dirty();
             }
@@ -602,15 +624,15 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
 // ── factions ──────────────────────────────────────────────────────────────
 
 fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Faction presence (§10 — read-only)")
+    egui::CollapsingHeader::new("Faction presence (§10)")
         .default_open(false)
         .show(ui, |ui| {
             let presences = state.sector.systems[sys_idx].worlds[w_idx].factions.clone();
             if presences.is_empty() {
                 ui.colored_label(Color32::GRAY, "no faction presence on this world");
-                return;
             }
-            for p in presences {
+            let mut remove_idx: Option<usize> = None;
+            for (i, p) in presences.iter().enumerate() {
                 ui.horizontal(|ui| {
                     if ui.link(format!("→ {}", p.faction_id)).clicked() {
                         state.selected_faction_id = Some(p.faction_id.clone());
@@ -623,9 +645,143 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                             p.influence, p.relationship_to_government, p.dominance
                         ),
                     );
+                    if ui
+                        .small_button("×")
+                        .on_hover_text("Remove this presence")
+                        .clicked()
+                    {
+                        remove_idx = Some(i);
+                    }
                 });
             }
+            if let Some(i) = remove_idx {
+                state.sector.systems[sys_idx].worlds[w_idx]
+                    .factions
+                    .remove(i);
+                state.dirty = true;
+                state.mark_validation_dirty();
+            }
+            ui.separator();
+            show_add_presence_row(ui, state, sys_idx, w_idx);
         });
+}
+
+const INFLUENCE_TIERS: &[FactionInfluence] = &[
+    FactionInfluence::Dominant,
+    FactionInfluence::Significant,
+    FactionInfluence::Minor,
+    FactionInfluence::Hidden,
+];
+
+const DOMINANCE_STATES: &[DominanceState] = &[
+    DominanceState::Rumored,
+    DominanceState::Presence,
+    DominanceState::Influence,
+    DominanceState::Contested,
+    DominanceState::Controlled,
+    DominanceState::Stronghold,
+];
+
+fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
+    let factions: Vec<(FactionId, String)> = state
+        .sector
+        .factions
+        .iter()
+        .map(|f| (f.id.clone(), f.name.to_string()))
+        .collect();
+    if factions.is_empty() {
+        ui.colored_label(
+            Color32::GRAY,
+            "no factions in the sector roster — add factions in FACTIONS first.",
+        );
+        return;
+    }
+    let already: std::collections::BTreeSet<FactionId> = state.sector.systems[sys_idx].worlds
+        [w_idx]
+        .factions
+        .iter()
+        .map(|p| p.faction_id.clone())
+        .collect();
+    let candidates: Vec<&(FactionId, String)> = factions
+        .iter()
+        .filter(|(fid, _)| !already.contains(fid))
+        .collect();
+    if candidates.is_empty() {
+        ui.colored_label(
+            Color32::GRAY,
+            "every faction in the roster already has a presence row here.",
+        );
+        return;
+    }
+
+    let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+    let buf_id = egui::Id::new(("w_add_presence", world_id.as_str()));
+    #[derive(Clone)]
+    struct Buf {
+        faction: FactionId,
+        tier: FactionInfluence,
+        dominance: DominanceState,
+    }
+    let default = Buf {
+        faction: candidates[0].0.clone(),
+        tier: FactionInfluence::Minor,
+        dominance: DominanceState::Presence,
+    };
+    let mut buf: Buf = ui.data_mut(|d| d.get_temp::<Buf>(buf_id).unwrap_or(default));
+    if !candidates.iter().any(|(fid, _)| fid == &buf.faction) {
+        buf.faction = candidates[0].0.clone();
+    }
+
+    ui.horizontal_wrapped(|ui| {
+        ui.label("+ Add presence:");
+        let label = candidates
+            .iter()
+            .find(|(fid, _)| fid == &buf.faction)
+            .map(|(_, n)| n.clone())
+            .unwrap_or_else(|| candidates[0].1.clone());
+        egui::ComboBox::from_id_salt(("w_add_fac", world_id.as_str()))
+            .selected_text(label)
+            .show_ui(ui, |ui| {
+                for (fid, n) in &candidates {
+                    if ui.selectable_label(&buf.faction == fid, n).clicked() {
+                        buf.faction = (*fid).clone();
+                    }
+                }
+            });
+        egui::ComboBox::from_id_salt(("w_add_tier", world_id.as_str()))
+            .selected_text(format!("{:?}", buf.tier))
+            .show_ui(ui, |ui| {
+                for t in INFLUENCE_TIERS {
+                    ui.selectable_value(&mut buf.tier, *t, format!("{t:?}"));
+                }
+            });
+        egui::ComboBox::from_id_salt(("w_add_dom", world_id.as_str()))
+            .selected_text(format!("{:?}", buf.dominance))
+            .show_ui(ui, |ui| {
+                for d in DOMINANCE_STATES {
+                    ui.selectable_value(&mut buf.dominance, *d, format!("{d:?}"));
+                }
+            });
+        if ui.button("+ presence").clicked() {
+            state.sector.systems[sys_idx].worlds[w_idx]
+                .factions
+                .push(WorldFactionPresence {
+                    faction_id: buf.faction.clone(),
+                    subfaction_id: None,
+                    subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
+                    influence: buf.tier,
+                    relationship_to_government: "neutral".into(),
+                    dimensions: PresenceDimensions::default(),
+                    dominance: buf.dominance,
+                    intel_confidence: 100,
+                });
+            state.dirty = true;
+            state.mark_validation_dirty();
+        }
+    });
+    ui.data_mut(|d| d.insert_temp(buf_id, buf));
 }
 
 // ── claims chip-row (W7) ───────────────────────────────────────────────────

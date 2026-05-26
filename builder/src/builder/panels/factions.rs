@@ -152,7 +152,7 @@ fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
         if ui.button("Save factions.toml").clicked() {
             save_factions_only(state);
         }
-        if ui.button("Add row").clicked() {
+        if ui.button("+ Add faction").clicked() {
             add_new_row(state);
         }
         if let Some(id) = state.selected_faction_id.clone() {
@@ -164,7 +164,7 @@ fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
                 duplicate_row(state, &id);
             }
             if ui
-                .button("Delete selected")
+                .button("Remove")
                 .on_hover_text("Remove the selected row from the roster")
                 .clicked()
             {
@@ -253,8 +253,10 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
             .push(i);
     }
 
+    let selected = state.selected_faction_id.clone();
+    let mut new_selection: Option<sectorforge::ids::FactionId> = None;
+    let mut remove_id: Option<sectorforge::ids::FactionId> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
-        let selected = state.selected_faction_id.clone();
         for (top_id, subs) in &groups {
             let top_name = display_name_from_id(top_id);
             egui::CollapsingHeader::new(
@@ -278,9 +280,18 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
                                 if f.legend_visible == Some(false) {
                                     label = label.color(Color32::DARK_GRAY);
                                 }
-                                if ui.selectable_label(is_selected, label).clicked() {
-                                    state.selected_faction_id = Some(f.id.clone());
-                                }
+                                ui.horizontal(|ui| {
+                                    if ui.selectable_label(is_selected, label).clicked() {
+                                        new_selection = Some(f.id.clone());
+                                    }
+                                    if ui
+                                        .small_button("×")
+                                        .on_hover_text("Remove this faction from the roster")
+                                        .clicked()
+                                    {
+                                        remove_id = Some(f.id.clone());
+                                    }
+                                });
                             }
                         });
                 }
@@ -290,6 +301,12 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
             ui.colored_label(Color32::GRAY, "No matches.");
         }
     });
+    if let Some(id) = new_selection {
+        state.selected_faction_id = Some(id);
+    }
+    if let Some(id) = remove_id {
+        delete_row(state, &id);
+    }
 }
 
 // ── inspector (right pane) ──────────────────────────────────────────────────

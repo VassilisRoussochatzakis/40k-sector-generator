@@ -87,6 +87,10 @@ pub fn export_all(
                 crate::bitmap::write_bitmap_with(sector, output_dir, bm.sector_scale, None, opts)?;
                 wrote_image = true;
             }
+            OutputFormat::Svg => {
+                let svg_path = output_dir.join("sector.svg");
+                crate::svg_export::write_sector_svg_to(sector, &svg_path, None)?;
+            }
             OutputFormat::Html => {
                 crate::html_export::write_html(sector, output_dir, &output_config.html)?;
             }

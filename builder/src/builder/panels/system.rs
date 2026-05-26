@@ -144,11 +144,13 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
             let id = sys.id.clone();
             let coord = sys.coord;
             let kind = sys.kind;
-            let mut name_buf = sys.name.to_string();
+            let name_buf_key = egui::Id::new(("sys_identity_name_buf", id.as_str()));
+            let source_name = sys.name.to_string();
             let mut q = coord.q;
             let mut r = coord.r;
             let mut kind_choice = kind;
 
+            let mut name_buf = String::new();
             let mut name_changed = false;
             egui::Grid::new("sys_identity_grid")
                 .num_columns(2)
@@ -157,7 +159,13 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     ui.monospace(id.to_string());
                     ui.end_row();
                     ui.label("name");
-                    name_changed = ui.text_edit_singleline(&mut name_buf).lost_focus();
+                    let (buf, resp) = crate::builder::panels::persistent_singleline(
+                        ui,
+                        name_buf_key,
+                        &source_name,
+                    );
+                    name_buf = buf;
+                    name_changed = resp.lost_focus();
                     ui.end_row();
                     ui.label("coord");
                     ui.horizontal(|ui| {
@@ -215,6 +223,8 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     };
                     if let Err(e) = state.run(cmd) {
                         state.modal = Some(ModalKind::Message(format!("Rename failed: {e}")));
+                    } else {
+                        crate::builder::panels::persistent_text_clear(ui, name_buf_key);
                     }
                 }
                 if ui.button("Apply coord").clicked() {
@@ -270,6 +280,7 @@ fn show_star_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     egui::CollapsingHeader::new("Star")
         .default_open(false)
         .show(ui, |ui| {
+            let sys_id_key = state.sector.systems[sys_idx].id.as_str().to_string();
             let mut has_star = state.sector.systems[sys_idx].star.is_some();
             let mut toggle_star = false;
             if ui.checkbox(&mut has_star, "present").changed() {
@@ -277,10 +288,18 @@ fn show_star_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             }
             let mut star_buf = state.sector.systems[sys_idx].star.clone();
             let mut field_changed = false;
+            let (code_key, name_key, spectral_key) = (
+                egui::Id::new(("sys_star_code_buf", sys_id_key.as_str())),
+                egui::Id::new(("sys_star_name_buf", sys_id_key.as_str())),
+                egui::Id::new(("sys_star_spectral_buf", sys_id_key.as_str())),
+            );
+            let mut new_code = String::new();
+            let mut new_name = String::new();
+            let mut new_spectral = String::new();
             if let Some(star) = star_buf.as_mut() {
-                let mut code = star.colour_code.to_string();
-                let mut name = star.colour_name.to_string();
-                let mut spectral = star
+                let code_src = star.colour_code.to_string();
+                let name_src = star.colour_name.to_string();
+                let spectral_src = star
                     .spectral_type
                     .as_ref()
                     .map(|s| s.to_string())
@@ -289,21 +308,33 @@ fn show_star_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     .num_columns(2)
                     .show(ui, |ui| {
                         ui.label("colour_code");
-                        field_changed |= ui.text_edit_singleline(&mut code).lost_focus();
+                        let (buf, resp) =
+                            crate::builder::panels::persistent_singleline(ui, code_key, &code_src);
+                        new_code = buf;
+                        field_changed |= resp.lost_focus();
                         ui.end_row();
                         ui.label("colour_name");
-                        field_changed |= ui.text_edit_singleline(&mut name).lost_focus();
+                        let (buf, resp) =
+                            crate::builder::panels::persistent_singleline(ui, name_key, &name_src);
+                        new_name = buf;
+                        field_changed |= resp.lost_focus();
                         ui.end_row();
                         ui.label("spectral_type");
-                        field_changed |= ui.text_edit_singleline(&mut spectral).lost_focus();
+                        let (buf, resp) = crate::builder::panels::persistent_singleline(
+                            ui,
+                            spectral_key,
+                            &spectral_src,
+                        );
+                        new_spectral = buf;
+                        field_changed |= resp.lost_focus();
                         ui.end_row();
                     });
-                star.colour_code = Arc::from(code.as_str());
-                star.colour_name = Arc::from(name.as_str());
-                star.spectral_type = if spectral.trim().is_empty() {
+                star.colour_code = Arc::from(new_code.as_str());
+                star.colour_name = Arc::from(new_name.as_str());
+                star.spectral_type = if new_spectral.trim().is_empty() {
                     None
                 } else {
-                    Some(Arc::from(spectral.as_str()))
+                    Some(Arc::from(new_spectral.as_str()))
                 };
             }
 
@@ -321,6 +352,9 @@ fn show_star_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 }
             } else if field_changed {
                 sys.star = star_buf;
+                crate::builder::panels::persistent_text_clear(ui, code_key);
+                crate::builder::panels::persistent_text_clear(ui, name_key);
+                crate::builder::panels::persistent_text_clear(ui, spectral_key);
             }
             if toggle_star || field_changed {
                 state.dirty = true;
@@ -335,22 +369,29 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
     egui::CollapsingHeader::new("Tags + Notes")
         .default_open(false)
         .show(ui, |ui| {
-            let mut tags_buf = state.sector.systems[sys_idx]
+            let sys_id_key = state.sector.systems[sys_idx].id.as_str().to_string();
+            let tags_key = egui::Id::new(("sys_tags_buf", sys_id_key.as_str()));
+            let notes_key = egui::Id::new(("sys_notes_buf", sys_id_key.as_str()));
+            let tags_src = state.sector.systems[sys_idx]
                 .tags
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
                 .join(", ");
-            let mut notes_buf = state.sector.systems[sys_idx]
+            let notes_src = state.sector.systems[sys_idx]
                 .notes
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
                 .join("\n");
             ui.label("tags (comma-separated)");
-            let tags_changed = ui.text_edit_singleline(&mut tags_buf).lost_focus();
+            let (tags_buf, tags_resp) =
+                crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
+            let tags_changed = tags_resp.lost_focus();
             ui.label("notes (one per line)");
-            let notes_changed = ui.text_edit_multiline(&mut notes_buf).lost_focus();
+            let (notes_buf, notes_resp) =
+                crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
+            let notes_changed = notes_resp.lost_focus();
             if tags_changed {
                 state.sector.systems[sys_idx].tags = tags_buf
                     .split(',')
@@ -358,6 +399,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
+                crate::builder::panels::persistent_text_clear(ui, tags_key);
                 state.dirty = true;
                 state.mark_validation_dirty();
             }
@@ -368,6 +410,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
+                crate::builder::panels::persistent_text_clear(ui, notes_key);
                 state.dirty = true;
                 state.mark_validation_dirty();
             }
@@ -380,13 +423,33 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     egui::CollapsingHeader::new("Worlds (§8)")
         .default_open(false)
         .show(ui, |ui| {
-            let sys = &state.sector.systems[sys_idx];
-            ui.label(format!("{} world(s)", sys.worlds.len()));
-            let world_ids: Vec<_> = sys
-                .worlds
-                .iter()
-                .map(|w| (w.id.clone(), w.name.to_string()))
-                .collect();
+            let (sys_id, world_ids, world_count) = {
+                let sys = &state.sector.systems[sys_idx];
+                let ids: Vec<_> = sys
+                    .worlds
+                    .iter()
+                    .map(|w| (w.id.clone(), w.name.to_string()))
+                    .collect();
+                (sys.id.clone(), ids, sys.worlds.len())
+            };
+            ui.horizontal(|ui| {
+                ui.label(format!("{world_count} world(s)"));
+                if ui
+                    .button("+ Add world")
+                    .on_hover_text("Append a blank world to this system")
+                    .clicked()
+                {
+                    let name = format!("World-{}", world_count + 1);
+                    let cmd = BuilderCommand::AddWorld {
+                        system: sys_id.clone(),
+                        name,
+                        result_id: None,
+                    };
+                    if let Err(e) = state.run(cmd) {
+                        state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+                    }
+                }
+            });
             for (wid, name) in world_ids {
                 if ui.link(format!("→ {wid} {name}")).clicked() {
                     state.selected_world_id = Some(wid);
@@ -774,11 +837,15 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
         .default_open(false)
         .show(ui, |ui| {
             let sys = &state.sector.systems[sys_idx];
+            let original_coord = sys.coord;
+            let sys_id = sys.id.clone();
             let mut q = sys.coord.q;
             let mut r = sys.coord.r;
             let mut index = sys.index;
-            let mut seed = state.config.generation.seed.clone();
             let id = sys.id.clone();
+            let seed_src = state.config.generation.seed.clone();
+            let seed_key = egui::Id::new(("sys_regen_seed_buf", id.as_str()));
+            let mut seed = seed_src.clone();
 
             egui::Grid::new("sys_regen_grid")
                 .num_columns(2)
@@ -801,16 +868,34 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     ui.add(egui::DragValue::new(&mut index).range(1..=usize::MAX));
                     ui.end_row();
                     ui.label("seed");
-                    ui.text_edit_singleline(&mut seed);
+                    let (buf, _) =
+                        crate::builder::panels::persistent_singleline(ui, seed_key, &seed_src);
+                    seed = buf;
                     ui.end_row();
                 });
 
             ui.horizontal(|ui| {
                 if ui.button("Regenerate this system").clicked() {
-                    run_regen(state, HexCoord { q, r }, index, &seed);
+                    run_regen(state, original_coord, index, &seed);
                 }
-                if ui.button("Regenerate at coord (replace)").clicked() {
-                    run_regen(state, HexCoord { q, r }, index, &seed);
+                if (q, r) != (original_coord.q, original_coord.r)
+                    && ui.button("Regenerate at coord (replace)").clicked()
+                {
+                    let new_coord = HexCoord { q, r };
+                    let occupant = state
+                        .sector
+                        .systems
+                        .iter()
+                        .find(|s| s.coord == new_coord && s.id != sys_id)
+                        .map(|s| s.id.clone());
+                    if let Some(occupant) = occupant {
+                        state.modal = Some(ModalKind::Message(format!(
+                            "Hex ({},{}) is held by {occupant}. Move or delete it before regenerating here.",
+                            new_coord.q, new_coord.r
+                        )));
+                    } else {
+                        run_regen(state, new_coord, index, &seed);
+                    }
                 }
             });
             ui.colored_label(

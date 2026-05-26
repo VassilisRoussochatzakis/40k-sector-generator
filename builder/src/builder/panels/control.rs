@@ -106,12 +106,22 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
     egui::CollapsingHeader::new("§C7 / §C8 — MAP overlays")
         .default_open(true)
         .show(ui, |ui| {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.label("overlay:");
                 for mode in [
                     ControlOverlay::None,
                     ControlOverlay::PowerProjection,
                     ControlOverlay::InfluenceField,
+                    ControlOverlay::Administrative,
+                    ControlOverlay::Military,
+                    ControlOverlay::Orbital,
+                    ControlOverlay::Naval,
+                    ControlOverlay::Mercantile,
+                    ControlOverlay::Industrial,
+                    ControlOverlay::Logistical,
+                    ControlOverlay::Informational,
+                    ControlOverlay::Religious,
+                    ControlOverlay::Sympathetic,
                 ] {
                     let selected = state.control_overlay == mode;
                     if ui.selectable_label(selected, mode.label()).clicked() {
@@ -124,7 +134,7 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
             });
             ui.colored_label(
                 Color32::DARK_GRAY,
-                "Toggles override the MAP heatmap channel. POWER PROJECTION uses src/power_projection.rs; INFLUENCE FIELD samples src/influence_field.rs at every system coord.",
+                "Toggles override the MAP heatmap channel. POWER PROJECTION uses src/power_projection.rs; INFLUENCE FIELD samples src/influence_field.rs. The remaining 10 modes aggregate the matching PresenceDimensions axis per system and tint by the top faction.",
             );
         });
 }
@@ -1159,7 +1169,85 @@ pub fn build_overlay_cells(
             }
             Some(out)
         }
+        ControlOverlay::Administrative
+        | ControlOverlay::Military
+        | ControlOverlay::Orbital
+        | ControlOverlay::Naval
+        | ControlOverlay::Mercantile
+        | ControlOverlay::Industrial
+        | ControlOverlay::Logistical
+        | ControlOverlay::Informational
+        | ControlOverlay::Religious
+        | ControlOverlay::Sympathetic => Some(build_dimension_overlay(sector, factions, overlay)),
     }
+}
+
+/// Compute per-system top-faction tints for the 10 PresenceDimensions overlays.
+/// Aggregates each world's presence rows by faction, sums the chosen axis, and
+/// picks the highest scorer in each system. Intensity scales against the
+/// sector-wide max so empty / low cells fade out and stronghold cells saturate.
+fn build_dimension_overlay(
+    sector: &sectorforge::sector_model::GeneratedSector,
+    factions: &[sectorforge::sector_model::GeneratedFaction],
+    overlay: ControlOverlay,
+) -> std::collections::HashMap<SystemId, sectorforge_gui_core::heatmap::HeatCell> {
+    use sectorforge::sector_model::PresenceDimensions;
+    use sectorforge_gui_core::heatmap::HeatCell;
+    let axis = |d: &PresenceDimensions| -> f32 {
+        match overlay {
+            ControlOverlay::Administrative => d.admin,
+            ControlOverlay::Military => d.military,
+            ControlOverlay::Orbital => d.orbital,
+            ControlOverlay::Naval => 0.5 * (d.military + d.orbital),
+            ControlOverlay::Mercantile => d.economic,
+            ControlOverlay::Industrial => d.industrial,
+            ControlOverlay::Logistical => d.logistics,
+            ControlOverlay::Informational => d.covert,
+            ControlOverlay::Religious => d.ideological,
+            ControlOverlay::Sympathetic => d.legitimacy,
+            _ => 0.0,
+        }
+    };
+    let mut per_sys: Vec<(SystemId, std::collections::BTreeMap<FactionId, f32>)> = Vec::new();
+    let mut global_max = 1.0_f32;
+    for sys in &sector.systems {
+        let mut by_fac: std::collections::BTreeMap<FactionId, f32> =
+            std::collections::BTreeMap::new();
+        for w in &sys.worlds {
+            for p in &w.factions {
+                let v = axis(&p.dimensions);
+                if v > 0.0 {
+                    *by_fac.entry(p.faction_id.clone()).or_insert(0.0) += v;
+                }
+            }
+        }
+        if let Some(&m) = by_fac.values().max_by(|a, b| a.partial_cmp(b).unwrap()) {
+            global_max = global_max.max(m);
+        }
+        per_sys.push((sys.id.clone(), by_fac));
+    }
+    let mut out: std::collections::HashMap<SystemId, HeatCell> = std::collections::HashMap::new();
+    for (sid, by_fac) in per_sys {
+        let Some((fid, score)) = by_fac
+            .iter()
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .map(|(f, s)| (f.clone(), *s))
+        else {
+            continue;
+        };
+        if score <= 0.0 {
+            continue;
+        }
+        let style = sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str());
+        out.insert(
+            sid,
+            HeatCell {
+                color: style.fill,
+                intensity: (score / global_max).clamp(0.0, 1.0),
+            },
+        );
+    }
+    out
 }
 
 #[cfg(test)]

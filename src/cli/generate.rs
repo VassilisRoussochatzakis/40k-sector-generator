@@ -21,6 +21,7 @@ pub fn run_generate(
     theme: Option<String>,
     constraints: Option<Utf8PathBuf>,
     max_candidates: Option<u32>,
+    formats: Option<Vec<String>>,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     log_progress(format_args!("sector: loading project {project}"));
     let mut input = sectorforge::load_project(&project)?;
@@ -88,6 +89,20 @@ pub fn run_generate(
     }
     if let Some(t) = theme {
         input.config.outputs.bitmap.theme.name = Some(t);
+    }
+    if let Some(tokens) = formats {
+        let mut parsed = Vec::with_capacity(tokens.len());
+        for tok in &tokens {
+            let Some(fmt) = sectorforge::config::OutputFormat::parse_token(tok) else {
+                return Err(sectorforge::SectorError::InvalidConfig(format!(
+                    "unknown format '{tok}' (use json, markdown, png, svg, or html)"
+                )));
+            };
+            if !parsed.contains(&fmt) {
+                parsed.push(fmt);
+            }
+        }
+        input.config.outputs.formats = parsed;
     }
     log_progress("sector: validating inputs");
     let report = sectorforge::validate_project(&input)?;

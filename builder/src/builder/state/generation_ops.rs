@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::invariants::check_sector;
+use sectorforge::SectorError;
 
 use super::super::command::BuilderCommand;
 use super::super::errors::BuilderError;
@@ -38,17 +39,21 @@ impl BuilderState {
                 ),
             });
         }
-        if let Some(existing) = self.sector.systems.iter().find(|s| s.coord == coord) {
-            if self.pinned_systems.contains(&existing.id) {
-                return Err(BuilderError::ParseFailed {
-                    file: "generate-system-here".into(),
-                    message: format!(
-                        "system {} at ({},{}) is pinned",
-                        existing.id, coord.q, coord.r
-                    ),
-                });
-            }
-        }
+        let preserved_name =
+            if let Some(existing) = self.sector.systems.iter().find(|s| s.coord == coord) {
+                if self.pinned_systems.contains(&existing.id) {
+                    return Err(BuilderError::ParseFailed {
+                        file: "generate-system-here".into(),
+                        message: format!(
+                            "system {} at ({},{}) is pinned",
+                            existing.id, coord.q, coord.r
+                        ),
+                    });
+                }
+                Some(existing.name.clone())
+            } else {
+                None
+            };
         let mut input =
             self.synthesize_project_input()
                 .ok_or_else(|| BuilderError::ParseFailed {
@@ -58,13 +63,24 @@ impl BuilderState {
         if let Some(seed) = seed_override {
             input.config.generation.seed = seed.to_string();
         }
-        let new_sys =
-            sectorforge::generate_system_standalone(input, index, coord).map_err(|e| {
-                BuilderError::ParseFailed {
+        let mut new_sys =
+            sectorforge::generate_system_standalone(input, index, coord).map_err(|e| match e {
+                SectorError::NoWorldCandidates => BuilderError::ParseFailed {
+                    file: "data/worlds/worlds.toml".into(),
+                    message: "world workbook has no usable generation rows — add `[[generation]]` \
+                         entries with star_colour/world_type/atmosphere/temperature/biosphere/\
+                         population/tech/government/weight, or scaffold from a preset that \
+                         already includes them"
+                        .into(),
+                },
+                other => BuilderError::ParseFailed {
                     file: "generate-system-here".into(),
-                    message: e.to_string(),
-                }
+                    message: other.to_string(),
+                },
             })?;
+        if let Some(name) = preserved_name {
+            new_sys.name = name;
+        }
         let id = new_sys.id.clone();
         let cmd = BuilderCommand::ReplaceSystem {
             coord,

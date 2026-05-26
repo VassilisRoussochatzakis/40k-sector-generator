@@ -357,6 +357,24 @@ pub struct BuilderState {
     pub hooks_filter_kind: Option<sectorforge::hooks::HookKind>,
     /// §HK2: id of the hook currently expanded in the panel detail view.
     pub hooks_edit_target: Option<String>,
+    /// §ST1..§ST4: latest planetary-sites overlay. Sites are not part of
+    /// `GeneratedSector`, so the builder caches the most recent
+    /// `derive_sites_with` result here. Rebuilt by [`Self::recompute_sites`].
+    pub sites_report: Option<sectorforge::sites::SitesReport>,
+    /// §ST2: when true, mutations that touch the sites catalog trigger an
+    /// immediate [`Self::recompute_sites`] pass. Defaults to `true` — the
+    /// derivation is cheap.
+    pub sites_auto_recompute: bool,
+    /// §ST3: player-edition toggle. Mirrors `--player` on the CLI by setting
+    /// `SitesConfig::player_edition` on each recompute so the cached report
+    /// drops rows whose `public_status` masks the `actual_status`.
+    pub sites_player_edition: bool,
+    /// §ST1: kind filter for the panel's site list. `None` shows everything.
+    pub sites_filter_kind: Option<sectorforge::sites::SiteKind>,
+    /// §ST1: selected site id used by SITES inbound links + detail card.
+    pub selected_site_id: Option<String>,
+    /// §ST1: id of the site currently expanded in the panel detail view.
+    pub sites_edit_target: Option<String>,
 }
 
 impl BuilderState {
@@ -466,6 +484,12 @@ impl BuilderState {
             hooks_player_edition: false,
             hooks_filter_kind: None,
             hooks_edit_target: None,
+            sites_report: None,
+            sites_auto_recompute: true,
+            sites_player_edition: false,
+            sites_filter_kind: None,
+            selected_site_id: None,
+            sites_edit_target: None,
         }
     }
 }

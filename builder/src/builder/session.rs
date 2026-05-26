@@ -202,6 +202,12 @@ impl SessionFile {
             hooks_player_edition: false,
             hooks_filter_kind: None,
             hooks_edit_target: None,
+            sites_report: None,
+            sites_auto_recompute: true,
+            sites_player_edition: false,
+            sites_filter_kind: None,
+            selected_site_id: None,
+            sites_edit_target: None,
         }
     }
 }

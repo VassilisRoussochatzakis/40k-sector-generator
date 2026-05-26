@@ -11,6 +11,7 @@ use sectorforge::personae::PersonaeConfig;
 use sectorforge::regions::RegionsConfig;
 use sectorforge::relations::RelationsConfig;
 use sectorforge::routes::RouteRules;
+use sectorforge::sites::SitesConfig;
 use sectorforge::worlds_toml::WorldsConfig;
 
 #[derive(Debug, Clone, Default)]
@@ -33,6 +34,11 @@ pub struct DataCatalogs {
     /// `hooks::derive_with` against whatever lives here (falling back to
     /// defaults when `None`).
     pub hooks: Option<HooksConfig>,
+    /// §ST4: `SitesConfig` knobs + manual sites. Mirrors `data/sites.toml`
+    /// on disk. The SITES tab edits this in-place; `recompute_sites` re-runs
+    /// `sites::derive_with` against whatever lives here (falling back to
+    /// defaults when `None`).
+    pub sites: Option<SitesConfig>,
 }
 
 impl DataCatalogs {

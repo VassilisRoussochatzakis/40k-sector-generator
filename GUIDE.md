@@ -2281,7 +2281,9 @@ stub panel with the selection field populated, so the link lands
 first-class the moment the panel ships. PERSONAE (`EntityRef::Persona`)
 ships in Phase D §PER1..§PER5 — see [PERSONAE tab — §PER1..§PER5](#personae-tab--per1per5).
 HOOKS (`EntityRef::Hook`) ships in Phase D §HK1..§HK6 — see
-[HOOKS tab — §HK1..§HK6](#hooks-tab--hk1hk6).
+[HOOKS tab — §HK1..§HK6](#hooks-tab--hk1hk6). SITES inbound links use
+`EntityRef::World` (sites are anchored to a world); the SITES tab itself
+ships in Phase D §ST1..§ST4 — see [SITES tab — §ST1..§ST4](#sites-tab--st1st4).
 
 | Alt+← / ⌥+← | Navigate back through cross-tab link history (§LINK3). |
 | Alt+→ / ⌥+→ | Navigate forward through cross-tab link history (§LINK3). |
@@ -2329,6 +2331,19 @@ BUILDER_REQS §19 (HK1..HK6). Plot hooks are a pure overlay over the finished se
 | HK6 click-to-highlight anchor | Every anchor cell in `show_hook_list` and the "highlight on map" button on the detail card route through `focus_anchor` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `World` / `Route` (falls back to `EntityRef::Tab(BuilderTab::Map)` when the anchor id is empty). |
 
 `BuilderState` adds five hooks fields: `hooks_report: Option<HooksReport>`, `hooks_auto_recompute: bool`, `hooks_player_edition: bool`, `hooks_filter_kind: Option<HookKind>`, `hooks_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. The `[inputs].hooks` field defaults to `data/hooks.toml` and is filled in lazily by `ensure_hooks_catalog` on first edit. `HooksConfig::manual` (new field on `src/hooks.rs::HooksConfig`) is appended after derivation and survives "Regenerate hooks". `synthesize_project_input` now feeds `data_catalogs.hooks` to validation / regeneration instead of defaulting.
+
+### SITES tab — §ST1..§ST4
+
+BUILDER_REQS §20 (ST1..ST4). Planetary sites are a pure overlay over the finished sector — they live nowhere on `GeneratedSector`, so the builder caches the most recent [`SitesReport`](src/sites.rs) on `BuilderState::sites_report` and rebuilds it via `BuilderState::recompute_sites` (added in [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs)). Catalog edits land in [`data_catalogs.sites`](builder/src/builder/data_catalogs.rs) and round-trip to `data/sites.toml` through `project_io::save_project_as` / `reload_catalog`.
+
+| Piece | Where it lives |
+|---|---|
+| ST1 per-world site editor + detail | [builder/src/builder/panels/sites.rs](builder/src/builder/panels/sites.rs) `show_filter_row` exposes a `ComboBox` over every `SiteKind` variant (governor's palace, cathedral spire, manufactorum, underhive sump-city, void elevator, star-fort dockyard, quarantine zone, xenos ruin, pilgrim necropolis, astropathic choir, Arbites precinct, data-vault, disputed shrine, penal mine, black-market enclave, cult safehouse, crashed voidship, agri granary, forge reactor, tomb complex, naval anchorage); `show_site_list` renders the cached `BuilderState::sites_report` rows (grouped by world id and sorted inside `sites::derive_with`) with the filter applied on top. Row click sets `BuilderState::selected_site_id` / `sites_edit_target` and fires `focus_entity(EntityRef::World)` so cross-tab links land first-class. `show_detail_card` reads from `sites_edit_target` / `selected_site_id` and renders `id / kind / system+world (link) / region / name / controller (faction link) / public+actual status / known-to / tags / hook` in a two-column grid. |
+| ST2 auto-derive + manual survive | `show_header_actions` exposes the "Auto-derive sites" button (calls `BuilderState::recompute_sites`) and a `sites_auto_recompute` toggle that mirrors §PER3 / §HK4 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual sites survive every regenerate because `sites::derive_with` appends the whole `cfg.manual` block after sorting the derived rows. `show_manual_editor` adds/removes entries on `SitesConfig::manual` with id / kind / system+world ids / name / controller / public+actual status pickers / known-to (CSV) / tags (CSV) / hook fields. |
+| ST3 player-edition toggle | `BuilderState::sites_player_edition` is flipped by the "player edition (--player)" checkbox in `show_header_actions`; `recompute_sites` overrides `SitesConfig::player_edition` from this flag every run so the cached report drops rows where `public_status != actual_status` — mirroring the CLI `--player` behaviour. The detail card and the list grid also hide the `Actual` column when the flag is on. |
+| ST4 sites.toml editor + round-trip | `show_config_section` binds `SitesConfig::max_per_world` (DragValue, 0..=32) and `SitesConfig::skip_uninhabited` (checkbox). `show_save_row` writes `data/sites.toml` through `project_io::save_project` (`[inputs].sites` defaults to `data/sites.toml` and is filled in lazily by `ensure_sites_catalog` on first edit). `project_io::catalogs_from_input` / `save_project_as` / `reload_catalog` and the file watcher round-trip the file alongside the other catalogs. |
+
+`BuilderState` adds six sites fields: `sites_report: Option<SitesReport>`, `sites_auto_recompute: bool`, `sites_player_edition: bool`, `sites_filter_kind: Option<SiteKind>`, `selected_site_id: Option<String>`, `sites_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::sites: Option<SitesConfig>` mirrors the on-disk file; the [`SitesConfig::manual`](src/sites.rs) field — already present from §46 PSI2 — is appended after derivation and survives "Auto-derive sites". `synthesize_project_input` now feeds `data_catalogs.sites` to validation / regeneration instead of `SitesConfig::default()`.
 
 ---
 

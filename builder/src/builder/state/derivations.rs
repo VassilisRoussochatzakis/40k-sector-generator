@@ -241,6 +241,25 @@ impl BuilderState {
         self.mark_validation_dirty();
     }
 
+    /// §ST1..§ST4 — rebuild [`sectorforge::sites::SitesReport`] from the live
+    /// sector + the in-memory `data_catalogs.sites` (falling back to defaults
+    /// when no catalog is loaded). The §ST3 player-edition toggle is folded
+    /// into the working config so the cached report already has rows where
+    /// `public_status != actual_status` stripped when on. The result is
+    /// stashed on [`Self::sites_report`] so the SITES tab can render without
+    /// re-running the derivation each frame.
+    ///
+    /// Manual sites embedded in the catalog (`SitesConfig::manual`) are
+    /// appended by `derive_with` itself, so the recompute path automatically
+    /// preserves them across regenerates.
+    pub fn recompute_sites(&mut self) {
+        let mut cfg = self.data_catalogs.sites.clone().unwrap_or_default();
+        cfg.player_edition = self.sites_player_edition;
+        let report = sectorforge::sites::derive_with(&self.sector, &cfg);
+        self.sites_report = Some(report);
+        self.mark_validation_dirty();
+    }
+
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed
     /// since the last mutation, build a synthetic [`ProjectInput`] from the
     /// in-memory catalogs and run [`validate`] against it. Returns `true`
@@ -298,7 +317,7 @@ impl BuilderState {
             economy: self.data_catalogs.economy.clone().unwrap_or_default(),
             history: self.data_catalogs.history.clone().unwrap_or_default(),
             personae: self.data_catalogs.personae.clone().unwrap_or_default(),
-            sites: sectorforge::sites::SitesConfig::default(),
+            sites: self.data_catalogs.sites.clone().unwrap_or_default(),
             hooks: self.data_catalogs.hooks.clone().unwrap_or_default(),
             input_digests: BTreeMap::new(),
         })

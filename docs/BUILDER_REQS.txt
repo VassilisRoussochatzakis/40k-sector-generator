@@ -1124,22 +1124,48 @@ HK6.  [DONE] Click-to-highlight anchor on map. Every anchor cell in
 20. SITES
 ================================================================================
 
-ST1.  Per-world site editor: list of `{ kind, controller, public_status,
-      actual_status, hook }`. Kind picker covers all 21 (governor's
-      palace, cathedral spire, manufactorum, underhive sump-city, void
-      elevator, star-fort dockyard, quarantine zone, xenos ruin,
-      pilgrim necropolis, astropathic choir, Arbites precinct, data-vault,
-      disputed shrine, penal mine, black-market enclave, cult safehouse,
-      crashed voidship, agri granary, forge reactor, tomb complex, naval
-      anchorage).
+ST1.  [DONE] Per-world site editor: list of `{ kind, controller,
+      public_status, actual_status, hook }`. Kind picker covers all 21
+      (governor's palace, cathedral spire, manufactorum, underhive
+      sump-city, void elevator, star-fort dockyard, quarantine zone,
+      xenos ruin, pilgrim necropolis, astropathic choir, Arbites precinct,
+      data-vault, disputed shrine, penal mine, black-market enclave, cult
+      safehouse, crashed voidship, agri granary, forge reactor, tomb
+      complex, naval anchorage). Implemented in
+      `builder/src/builder/panels/sites.rs::show_site_list` /
+      `show_detail_card` over the cached
+      `BuilderState::sites_report` (published by
+      `BuilderState::recompute_sites`); selecting a row stores
+      `BuilderState::selected_site_id` /
+      `BuilderState::sites_edit_target` and focuses the matching
+      `EntityRef::World` so cross-tab links land first-class.
 
-ST2.  Auto-derive button runs `src/sites.rs::derive_sites`. Manual sites
-      survive.
+ST2.  [DONE] "Auto-derive sites" button calling
+      `BuilderState::recompute_sites` runs
+      `sectorforge::sites::derive_with(&sector, &cfg)` and stashes the
+      result on `BuilderState::sites_report`. Manual sites survive
+      because `derive_with` appends the whole `cfg.manual` block after
+      the derived rows. Mirrors the personae/hooks pattern with an
+      `sites_auto_recompute` toggle.
 
-ST3.  Player-edition toggle hides sites where `public_status !=
-      actual_status`.
+ST3.  [DONE] Player-edition toggle (`BuilderState::sites_player_edition`)
+      flips `SitesConfig::player_edition` on every recompute so the
+      derived rows where `public_status != actual_status` are stripped.
+      The detail card hides the `actual_status` column under the same
+      flag.
 
-ST4. Site config editor: `data/sites.toml` (placed in `[inputs].sites`).
+ST4.  [DONE] `data/sites.toml` editor: `show_config_section` binds
+      `SitesConfig::max_per_world` and `SitesConfig::skip_uninhabited`;
+      `show_manual_editor` edits `SitesConfig::manual` (id / kind picker
+      across all 21 `SiteKind`s / system-world ids / name / controller /
+      public + actual status pickers / known-to + tags CSV / hook prose).
+      Project I/O wired in `project_io::catalogs_from_input` /
+      `save_project_as` / `reload_catalog` so `data/sites.toml`
+      round-trips alongside the other catalogs; `[inputs].sites` already
+      lives on `src/config.rs::InputConfig` and `src/input.rs` parses
+      the file into `ProjectInput::sites`; `synthesize_project_input`
+      now feeds `data_catalogs.sites` to validation/regeneration instead
+      of defaulting.
 
 ================================================================================
 21. MISSIONS
@@ -2034,7 +2060,39 @@ Phase D — Derivations + GM tools
                    `synthesize_project_input` now feeds
                    `data_catalogs.hooks` to validation / regeneration
                    instead of defaulting.)
-  ST1..ST4,   (§20 sites)
+  ST1..ST4 - DONE (§20 sites — panel
+                   `builder/src/builder/panels/sites.rs`:
+                   §ST1 per-world site editor with the full 21-kind
+                   `SiteKind` ComboBox over the cached
+                   `BuilderState::sites_report` published by
+                   `BuilderState::recompute_sites`; row click sets
+                   `selected_site_id` / `sites_edit_target` and focuses
+                   `EntityRef::World { system, world }` so cross-tab
+                   links land first-class;
+                   §ST2 "Auto-derive sites" button +
+                   `sites_auto_recompute` toggle backed by
+                   `BuilderState::recompute_sites` (added in
+                   `state/derivations.rs`) which runs
+                   `sites::derive_with` — manual entries survive
+                   because the derivation appends `cfg.manual` after
+                   the derived rows;
+                   §ST3 `BuilderState::sites_player_edition` checkbox
+                   that flips `SitesConfig::player_edition` on every
+                   recompute so derived rows where
+                   `public_status != actual_status` are stripped, and
+                   the detail card hides the `actual_status` column;
+                   §ST4 `show_config_section` binds
+                   `max_per_world` / `skip_uninhabited`;
+                   `show_manual_editor` edits `SitesConfig::manual`
+                   with id / kind / system-world ids / name /
+                   controller / public + actual status / known-to +
+                   tags CSV / hook fields. Project I/O wired in
+                   `project_io::catalogs_from_input` /
+                   `save_project_as` / `reload_catalog` so
+                   `data/sites.toml` round-trips alongside the other
+                   catalogs; `synthesize_project_input` now feeds
+                   `data_catalogs.sites` to validation / regeneration
+                   instead of defaulting.)
   M1..M5,     (§21 missions)
   PR1..PR4,   (§22 prose)
   BR1..BR5,   (§23 briefing)

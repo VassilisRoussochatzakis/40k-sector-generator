@@ -960,6 +960,7 @@ my-sector-project/
     history.toml                   # §1 NEW2 (optional)
     personae.toml                  # §3 (optional)
     sites.toml                     # §7 NEW2 (optional)
+    missions.toml                  # §M1..§M5 BUILDER_REQS (optional, builder-authored)
   out/                             # created by generate
 ```
 
@@ -998,6 +999,7 @@ economy               = "data/worlds/economy.toml"         # optional (§12 old/
 history               = "data/history.toml"                # optional (§1 NEW2.md/DONE)
 personae              = "data/personae.toml"               # optional (§3 old/DONE.md)
 sites                 = "data/sites.toml"                  # optional (§7 NEW2.md/DONE)
+missions              = "data/missions.toml"               # optional (§M1..§M5 BUILDER_REQS/DONE)
 
 [generation]
 seed                       = "my-seed-string"
@@ -2284,6 +2286,10 @@ HOOKS (`EntityRef::Hook`) ships in Phase D §HK1..§HK6 — see
 [HOOKS tab — §HK1..§HK6](#hooks-tab--hk1hk6). SITES inbound links use
 `EntityRef::World` (sites are anchored to a world); the SITES tab itself
 ships in Phase D §ST1..§ST4 — see [SITES tab — §ST1..§ST4](#sites-tab--st1st4).
+MISSIONS inbound links resolve `primary_location` (`sys` or `sys/world`)
+to the matching `EntityRef::System` / `EntityRef::World`, falling back to
+the first route id or `EntityRef::Tab(BuilderTab::Map)`; the MISSIONS tab
+itself ships in Phase D §M1..§M5 — see [MISSIONS tab — §M1..§M5](#missions-tab--m1m5).
 
 | Alt+← / ⌥+← | Navigate back through cross-tab link history (§LINK3). |
 | Alt+→ / ⌥+→ | Navigate forward through cross-tab link history (§LINK3). |
@@ -2344,6 +2350,20 @@ BUILDER_REQS §20 (ST1..ST4). Planetary sites are a pure overlay over the finish
 | ST4 sites.toml editor + round-trip | `show_config_section` binds `SitesConfig::max_per_world` (DragValue, 0..=32) and `SitesConfig::skip_uninhabited` (checkbox). `show_save_row` writes `data/sites.toml` through `project_io::save_project` (`[inputs].sites` defaults to `data/sites.toml` and is filled in lazily by `ensure_sites_catalog` on first edit). `project_io::catalogs_from_input` / `save_project_as` / `reload_catalog` and the file watcher round-trip the file alongside the other catalogs. |
 
 `BuilderState` adds six sites fields: `sites_report: Option<SitesReport>`, `sites_auto_recompute: bool`, `sites_player_edition: bool`, `sites_filter_kind: Option<SiteKind>`, `selected_site_id: Option<String>`, `sites_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::sites: Option<SitesConfig>` mirrors the on-disk file; the [`SitesConfig::manual`](src/sites.rs) field — already present from §46 PSI2 — is appended after derivation and survives "Auto-derive sites". `synthesize_project_input` now feeds `data_catalogs.sites` to validation / regeneration instead of `SitesConfig::default()`.
+
+### MISSIONS tab — §M1..§M5
+
+BUILDER_REQS §21 (M1..M5). Mission seeds are a pure overlay over the finished sector — they live nowhere on `GeneratedSector`, so the builder caches the most recent [`MissionsReport`](src/missions.rs) on `BuilderState::missions_report` and rebuilds it via `BuilderState::recompute_missions` (added in [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs)). Catalog edits land in [`data_catalogs.missions`](builder/src/builder/data_catalogs.rs) and round-trip to `data/missions.toml` through `project_io::save_project_as` / `reload_catalog`.
+
+| Piece | Where it lives |
+|---|---|
+| M1 mission list + detail card | [builder/src/builder/panels/missions.rs](builder/src/builder/panels/missions.rs) `show_filter_row` exposes a `ComboBox` over every `MissionKind` variant (`investigate`, `escort`, `sabotage`, `diplomacy`, `assassination`, `recovery`, `defense`, `exploration`); `show_mission_list` renders the cached `BuilderState::missions_report` rows (sorted inside `missions::derive_with` by descending weight, then id) with the filter applied on top. Row click sets `BuilderState::selected_mission_id` / `missions_edit_target`. `show_detail_card` reads from `missions_edit_target` / `selected_mission_id` and renders `id / kind / title / patron (faction link) / target (faction link) / primary + secondary location (link) / routes (route links) / objective / hidden complication / reward / consequence / scale / visibility / weight` in a two-column grid. |
+| M2 manual mission editor | `show_manual_editor` adds/removes entries on `MissionsConfig::manual`. Each row exposes id / kind picker / title / patron + target faction id / `primary_location` text (`sys` or `sys/world`) / secondary location / route-id CSV / objective / hidden complication / reward / consequence / scale + visibility pickers / weight DragValue / GM-only checkbox. New rows are seeded with `blank_manual_mission` so each row starts with stable defaults. |
+| M3 auto-derive + manual survive | `show_header_actions` exposes the "Auto-derive missions" button (calls `BuilderState::recompute_missions`) and a `missions_auto_recompute` toggle that mirrors §PER3 / §HK4 / §ST2 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual missions survive every regenerate because `missions::derive_with` now extends the working list with `cfg.manual` after the per-anchor cap pass and then re-sorts by `weight desc, id` so manual entries keep their authored priority. |
+| M4 player-edition toggle | `BuilderState::missions_player_edition` is flipped by the "player edition (--player)" checkbox in `show_header_actions`; `recompute_missions` overrides `MissionsConfig::player_edition` from this flag every run so the cached report drops `gm_only = true` rows — mirroring the CLI `--player` behaviour. The list grid hides the `GM` column and the detail card hides the hidden-complication row under the same flag. |
+| M5 click-to-highlight location | Every "highlight" button on the list, the detail card's primary / secondary location links, and the route id links route through `focus_primary_location` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `EntityRef::World` / `EntityRef::Route`. The helper parses the mission's `primary_location` string (`sys` or `sys/world`); when the string is empty it falls back to the first route id (when present) or `EntityRef::Tab(BuilderTab::Map)`. |
+
+`BuilderState` adds six missions fields: `missions_report: Option<MissionsReport>`, `missions_auto_recompute: bool`, `missions_player_edition: bool`, `missions_filter_kind: Option<MissionKind>`, `selected_mission_id: Option<String>`, `missions_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::missions: Option<MissionsConfig>` mirrors the on-disk file; the new `MissionsConfig::manual` field on [src/missions.rs](src/missions.rs) is appended after derivation and survives "Auto-derive missions". `[inputs].missions` was added to `src/config.rs::InputConfig` and `src/input.rs` parses the file into `ProjectInput::missions`; `synthesize_project_input` now feeds `data_catalogs.missions` to validation / regeneration instead of `MissionsConfig::default()`.
 
 ---
 

@@ -208,6 +208,12 @@ impl SessionFile {
             sites_filter_kind: None,
             selected_site_id: None,
             sites_edit_target: None,
+            missions_report: None,
+            missions_auto_recompute: true,
+            missions_player_edition: false,
+            missions_filter_kind: None,
+            selected_mission_id: None,
+            missions_edit_target: None,
         }
     }
 }

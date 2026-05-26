@@ -78,6 +78,10 @@ pub struct InputConfig {
     /// `[[manual]]` entries that survive "Regenerate hooks".
     #[serde(default)]
     pub hooks: Option<String>,
+    /// §M1..§M5 BUILDER_REQS: optional `missions.toml` with `MissionsConfig`
+    /// knobs and `[[manual]]` mission seeds that survive "Auto-derive missions".
+    #[serde(default)]
+    pub missions: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

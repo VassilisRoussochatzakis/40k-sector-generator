@@ -41,6 +41,11 @@ pub struct MissionsConfig {
     /// Hidden-tier presence (player edition).
     #[serde(default)]
     pub player_edition: bool,
+    /// §M2/§M3 BUILDER_REQS: handcrafted missions appended to the derived set.
+    /// Survive "Auto-derive" because they are merged in after the per-anchor
+    /// cap pass.
+    #[serde(default)]
+    pub manual: Vec<MissionSeed>,
 }
 
 impl Default for MissionsConfig {
@@ -49,6 +54,7 @@ impl Default for MissionsConfig {
             max_per_anchor: default_per_anchor(),
             top_n_digest: default_top(),
             player_edition: false,
+            manual: Vec::new(),
         }
     }
 }
@@ -144,10 +150,11 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &MissionsConfig) -> MissionsRe
     }
 
     cap_per_anchor(&mut out, cfg.max_per_anchor);
-    out.sort_by(|a, b| b.weight.cmp(&a.weight).then_with(|| a.id.cmp(&b.id)));
     if cfg.player_edition {
         out.retain(|m| !m.gm_only);
     }
+    out.extend(cfg.manual.iter().cloned());
+    out.sort_by(|a, b| b.weight.cmp(&a.weight).then_with(|| a.id.cmp(&b.id)));
     MissionsReport {
         sector_id: sector.id.to_string(),
         seed: sector.seed.to_string(),

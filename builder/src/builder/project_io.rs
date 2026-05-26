@@ -66,6 +66,7 @@ fn default_app_config(id: &str, title: &str, seed: &str, width: u32, height: u32
             personae: None,
             sites: None,
             hooks: None,
+            missions: None,
         },
         generation: GenerationConfig {
             seed: seed.to_string(),
@@ -580,6 +581,13 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
         write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
     }
+    if let (Some(rel), Some(cfg)) = (
+        state.config.inputs.missions.as_deref(),
+        state.data_catalogs.missions.as_ref(),
+    ) {
+        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
+        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+    }
 
     // Sector JSON — under `outputs.directory` (default `out/`).
     let out_dir_rel = state.config.outputs.directory.trim_end_matches('/');
@@ -652,6 +660,7 @@ fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {
         personae: Some(input.personae.clone()),
         hooks: Some(input.hooks.clone()),
         sites: Some(input.sites.clone()),
+        missions: Some(input.missions.clone()),
     }
 }
 
@@ -880,6 +889,12 @@ pub fn reload_catalog(state: &mut BuilderState, rel: &str, text: &str) {
     if state.config.inputs.sites.as_deref() == Some(rel) {
         if let Ok(cfg) = toml::from_str::<sectorforge::sites::SitesConfig>(text) {
             state.data_catalogs.sites = Some(cfg);
+        }
+        return;
+    }
+    if state.config.inputs.missions.as_deref() == Some(rel) {
+        if let Ok(cfg) = toml::from_str::<sectorforge::missions::MissionsConfig>(text) {
+            state.data_catalogs.missions = Some(cfg);
         }
         return;
     }

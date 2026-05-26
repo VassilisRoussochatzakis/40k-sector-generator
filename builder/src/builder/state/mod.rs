@@ -375,6 +375,25 @@ pub struct BuilderState {
     pub selected_site_id: Option<String>,
     /// §ST1: id of the site currently expanded in the panel detail view.
     pub sites_edit_target: Option<String>,
+    /// §M1..§M5: latest mission-seed overlay. Missions are not part of
+    /// `GeneratedSector`, so the builder caches the most recent
+    /// `derive_missions_with` result here. Rebuilt by
+    /// [`Self::recompute_missions`].
+    pub missions_report: Option<sectorforge::missions::MissionsReport>,
+    /// §M3: when true, mutations that touch the missions catalog trigger an
+    /// immediate [`Self::recompute_missions`] pass. Defaults to `true` — the
+    /// derivation is cheap.
+    pub missions_auto_recompute: bool,
+    /// §M4: player-edition toggle. Mirrors `--player` on the CLI by setting
+    /// `MissionsConfig::player_edition` on each recompute so the cached
+    /// report drops Hidden-tier-derived missions.
+    pub missions_player_edition: bool,
+    /// §M1: kind filter for the panel's mission list. `None` shows everything.
+    pub missions_filter_kind: Option<sectorforge::missions::MissionKind>,
+    /// §M1: selected mission id used for the detail card.
+    pub selected_mission_id: Option<String>,
+    /// §M1: id of the mission currently expanded in the panel detail view.
+    pub missions_edit_target: Option<String>,
 }
 
 impl BuilderState {
@@ -490,6 +509,12 @@ impl BuilderState {
             sites_filter_kind: None,
             selected_site_id: None,
             sites_edit_target: None,
+            missions_report: None,
+            missions_auto_recompute: true,
+            missions_player_edition: false,
+            missions_filter_kind: None,
+            selected_mission_id: None,
+            missions_edit_target: None,
         }
     }
 }
@@ -520,6 +545,7 @@ fn default_config(id: &str, title: &str, seed: &str, width: u32, height: u32) ->
             personae: None,
             sites: None,
             hooks: None,
+            missions: None,
         },
         generation: GenerationConfig {
             seed: seed.to_string(),

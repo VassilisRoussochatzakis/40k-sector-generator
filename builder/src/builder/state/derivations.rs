@@ -260,6 +260,25 @@ impl BuilderState {
         self.mark_validation_dirty();
     }
 
+    /// §M1..§M5 — rebuild [`sectorforge::missions::MissionsReport`] from the
+    /// live sector + the in-memory `data_catalogs.missions` (falling back to
+    /// defaults when no catalog is loaded). The §M4 player-edition toggle is
+    /// folded into the working config so the cached report already has
+    /// Hidden-tier-derived missions stripped when on. The result is stashed
+    /// on [`Self::missions_report`] so the MISSIONS tab can render without
+    /// re-running the derivation each frame.
+    ///
+    /// Manual missions embedded in the catalog (`MissionsConfig::manual`) are
+    /// appended by `derive_with` itself after the per-anchor cap, so the
+    /// recompute path automatically preserves them across regenerates.
+    pub fn recompute_missions(&mut self) {
+        let mut cfg = self.data_catalogs.missions.clone().unwrap_or_default();
+        cfg.player_edition = self.missions_player_edition;
+        let report = sectorforge::missions::derive_with(&self.sector, &cfg);
+        self.missions_report = Some(report);
+        self.mark_validation_dirty();
+    }
+
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed
     /// since the last mutation, build a synthetic [`ProjectInput`] from the
     /// in-memory catalogs and run [`validate`] against it. Returns `true`
@@ -319,6 +338,7 @@ impl BuilderState {
             personae: self.data_catalogs.personae.clone().unwrap_or_default(),
             sites: self.data_catalogs.sites.clone().unwrap_or_default(),
             hooks: self.data_catalogs.hooks.clone().unwrap_or_default(),
+            missions: self.data_catalogs.missions.clone().unwrap_or_default(),
             input_digests: BTreeMap::new(),
         })
     }

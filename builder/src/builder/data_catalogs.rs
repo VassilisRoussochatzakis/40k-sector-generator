@@ -6,6 +6,7 @@ use sectorforge::economy::EconomyConfig;
 use sectorforge::factions::FactionsFile;
 use sectorforge::history::HistoryConfig;
 use sectorforge::hooks::HooksConfig;
+use sectorforge::missions::MissionsConfig;
 use sectorforge::names::NameTables;
 use sectorforge::personae::PersonaeConfig;
 use sectorforge::regions::RegionsConfig;
@@ -39,6 +40,11 @@ pub struct DataCatalogs {
     /// `sites::derive_with` against whatever lives here (falling back to
     /// defaults when `None`).
     pub sites: Option<SitesConfig>,
+    /// §M1..§M5: `MissionsConfig` knobs + manual missions. Mirrors
+    /// `data/missions.toml` on disk. The MISSIONS tab edits this in-place;
+    /// `recompute_missions` re-runs `missions::derive_with` against whatever
+    /// lives here (falling back to defaults when `None`).
+    pub missions: Option<MissionsConfig>,
 }
 
 impl DataCatalogs {

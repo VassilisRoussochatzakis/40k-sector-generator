@@ -1202,6 +1202,7 @@ fn clone_project_with_seed(template: &ProjectInput, seed: &str) -> ProjectInput 
         personae: template.personae.clone(),
         sites: template.sites.clone(),
         hooks: template.hooks.clone(),
+        missions: template.missions.clone(),
         input_digests: template.input_digests.clone(),
     }
 }

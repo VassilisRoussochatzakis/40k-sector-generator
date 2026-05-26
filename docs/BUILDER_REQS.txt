@@ -1171,19 +1171,63 @@ ST4.  [DONE] `data/sites.toml` editor: `show_config_section` binds
 21. MISSIONS
 ================================================================================
 
-M1.   Mission list panel: kind (Investigate | Escort | Sabotage |
-      Diplomacy | Assassination | Recovery | Defense | Exploration),
-      patron, target, primary + secondary location, public objective,
-      hidden complication, reward, consequence.
+M1.   [DONE] Mission list panel `builder/src/builder/panels/missions.rs`
+      renders the cached `MissionsReport` published by
+      `BuilderState::recompute_missions` (added in
+      `state/derivations.rs`). Rows show kind across the full eight-kind
+      `MissionKind` set (Investigate | Escort | Sabotage | Diplomacy |
+      Assassination | Recovery | Defense | Exploration), title, patron,
+      target, primary + secondary location, scale and a GM-only chip.
+      A side detail card surfaces public objective, hidden complication
+      (GM-only), reward, "if ignored" consequence, route ids, scale and
+      visibility. Selecting a row populates `selected_mission_id` and
+      `missions_edit_target` and focuses the matching `EntityRef::World`
+      / `System` / `Route` so cross-tab links land first-class.
 
-M2.   Manual mission add: kind picker → patron/target/location wizard.
+M2.   [DONE] `show_manual_editor` block edits
+      `MissionsConfig::manual` with a kind picker over the full
+      `KIND_VARIANTS` list, id / title / patron / target faction id /
+      primary + secondary `sys[/world]` location / route-id CSV /
+      objective / hidden / reward / consequence prose / scale +
+      visibility pickers / weight DragValue / GM-only checkbox. New
+      entries seeded with `blank_manual_mission` so each row starts with
+      stable defaults.
 
-M3.   Auto-derive button runs `src/missions.rs::derive_missions`. Manual
-      missions survive.
+M3.   [DONE] "Auto-derive missions" button calling
+      `BuilderState::recompute_missions` runs
+      `sectorforge::missions::derive_with(&sector, &cfg)` and stashes the
+      result on `BuilderState::missions_report`. Manual missions survive
+      because `derive_with` now extends the working list with
+      `cfg.manual` after the per-anchor cap pass — sorted alongside the
+      derived rows by `weight desc, id` so manual entries keep their
+      authored priority. Mirrors the personae / hooks / sites pattern
+      with a `missions_auto_recompute` toggle that re-runs the recompute
+      whenever the catalog is edited.
 
-M4.   Player-edition toggle hides Hidden-tier-derived missions.
+M4.   [DONE] Player-edition toggle
+      (`BuilderState::missions_player_edition`) flips
+      `MissionsConfig::player_edition` on every recompute so the cached
+      report drops `gm_only` rows. The list hides the "GM" column and
+      the detail card hides the hidden-complication row under the same
+      flag.
 
-M5.   Click-to-highlight locations on map.
+M5.   [DONE] Click-to-highlight. Every list row's "highlight" button,
+      the detail card's primary / secondary location links and the
+      route id links resolve through `focus_primary_location`, which
+      parses the mission's `primary_location` string (`sys` or
+      `sys/world`) into the matching `EntityRef::World` /
+      `EntityRef::System` and dispatches `BuilderState::focus_entity`,
+      landing on the right tab with the focus overlay set. When the
+      location string is empty the call falls through to the first
+      route id (when present) or the MAP tab.
+
+      Project I/O wired in `project_io::catalogs_from_input` /
+      `save_project_as` / `reload_catalog` so `data/missions.toml`
+      round-trips alongside the other catalogs; `[inputs].missions`
+      added to `src/config.rs::InputConfig` and `src/input.rs` parses
+      the file into `ProjectInput::missions`;
+      `synthesize_project_input` now feeds `data_catalogs.missions` to
+      validation / regeneration instead of defaulting.
 
 ================================================================================
 22. PROSE (GAZETTEER)
@@ -2093,7 +2137,45 @@ Phase D — Derivations + GM tools
                    catalogs; `synthesize_project_input` now feeds
                    `data_catalogs.sites` to validation / regeneration
                    instead of defaulting.)
-  M1..M5,     (§21 missions)
+  M1..M5 - DONE (§21 missions — panel
+                   `builder/src/builder/panels/missions.rs`:
+                   §M1 mission-list panel over the cached
+                   `BuilderState::missions_report` published by
+                   `BuilderState::recompute_missions` (added in
+                   `state/derivations.rs`); rows + side detail card
+                   cover kind / patron / target / primary + secondary
+                   location / scale / visibility / objective / hidden
+                   complication / reward / consequence;
+                   §M2 "+ manual mission" form edits
+                   `MissionsConfig::manual` with kind / patron / target
+                   / location / route-ids / scale / visibility / weight
+                   / GM-only knobs;
+                   §M3 "Auto-derive missions" button +
+                   `missions_auto_recompute` toggle backed by
+                   `BuilderState::recompute_missions` which runs
+                   `missions::derive_with` — manual entries survive
+                   because the derivation extends with `cfg.manual` after
+                   the per-anchor cap;
+                   §M4 `BuilderState::missions_player_edition` checkbox
+                   that flips `MissionsConfig::player_edition` on every
+                   recompute so `gm_only` rows are stripped and the
+                   panel hides the GM column / hidden-complication row;
+                   §M5 row + detail-card "highlight" buttons run
+                   `focus_primary_location` which parses
+                   `primary_location` (`sys` or `sys/world`) and calls
+                   `BuilderState::focus_entity` with
+                   `EntityRef::System` / `World` / `Route` (falls back
+                   to the first route id, then `EntityRef::Tab(Map)`,
+                   when the anchor string is empty). Project I/O wired
+                   in `project_io::catalogs_from_input` /
+                   `save_project_as` / `reload_catalog` so
+                   `data/missions.toml` round-trips alongside the other
+                   catalogs; `[inputs].missions` added to
+                   `src/config.rs::InputConfig` and `src/input.rs` parses
+                   the file into `ProjectInput::missions`;
+                   `synthesize_project_input` now feeds
+                   `data_catalogs.missions` to validation / regeneration
+                   instead of defaulting.)
   PR1..PR4,   (§22 prose)
   BR1..BR5,   (§23 briefing)
   INT1..INT4. (§24 interestingness)

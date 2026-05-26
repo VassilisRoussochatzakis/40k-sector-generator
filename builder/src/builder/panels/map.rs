@@ -490,8 +490,7 @@ fn add_route_between(state: &mut BuilderState, from: SystemId, to: SystemId) {
         state.modal = Some(ModalKind::Message(format!("Add route failed: {e}")));
         return;
     }
-    state.selected_route_id = Some(selected_route);
-    state.active_tab = crate::builder::state::BuilderTab::Routes;
+    state.focus_entity(crate::builder::state::EntityRef::Route(selected_route));
 }
 
 fn handle_drag_drop(state: &mut BuilderState, drag_id: SystemId, coord: HexCoord) {

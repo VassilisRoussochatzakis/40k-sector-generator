@@ -28,7 +28,7 @@ use sectorforge::sector_model::{
     WorldFactionPresence,
 };
 
-use crate::builder::state::{BuilderTab, ControlOverlay};
+use crate::builder::state::{BuilderTab, ControlOverlay, EntityRef};
 use crate::builder::BuilderState;
 
 const CLAIM_TYPES: &[ClaimType] = &[
@@ -129,7 +129,7 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
                     }
                 }
                 if ui.small_button("→ MAP").clicked() {
-                    state.active_tab = BuilderTab::Map;
+                    state.focus_entity(EntityRef::Tab(BuilderTab::Map));
                 }
             });
             ui.colored_label(
@@ -733,10 +733,13 @@ fn show_contested_summary(ui: &mut Ui, state: &mut BuilderState) {
                             w.claims.len()
                         );
                         let wid = w.id.clone();
+                        let sys_id = state.sector.systems[si].id.clone();
                         ui.horizontal(|ui| {
                             if ui.small_button("→ WORLD").clicked() {
-                                state.selected_world_id = Some(wid);
-                                state.active_tab = BuilderTab::World;
+                                state.focus_entity(EntityRef::World {
+                                    system: sys_id.clone(),
+                                    world: wid,
+                                });
                             }
                             ui.label(RichText::new(label).color(Color32::from_rgb(220, 160, 80)));
                         });
@@ -948,12 +951,14 @@ fn show_world_row(
     w_idx: usize,
     factions: &[(FactionId, String)],
 ) {
-    let (name, wid, claims_snapshot, contested) = {
-        let w = &state.sector.systems[sys_idx].worlds[w_idx];
+    let (name, wid, sys_id, claims_snapshot, contested) = {
+        let sys = &state.sector.systems[sys_idx];
+        let w = &sys.worlds[w_idx];
         let distinct: BTreeSet<FactionId> = w.claims.iter().map(|c| c.faction_id.clone()).collect();
         (
             w.name.to_string(),
             w.id.clone(),
+            sys.id.clone(),
             w.claims.clone(),
             distinct.len() > 1,
         )
@@ -975,8 +980,10 @@ fn show_world_row(
                     .monospace(),
             );
             if ui.small_button("→ WORLD").clicked() {
-                state.selected_world_id = Some(wid.clone());
-                state.active_tab = BuilderTab::World;
+                state.focus_entity(EntityRef::World {
+                    system: sys_id.clone(),
+                    world: wid.clone(),
+                });
             }
         });
 

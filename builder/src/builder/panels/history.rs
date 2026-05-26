@@ -24,7 +24,7 @@ use sectorforge::history::{
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::SystemState;
 
-use crate::builder::state::{BuilderTab, HistoryAnchorKind, HistoryWizardState};
+use crate::builder::state::{BuilderTab, EntityRef, HistoryAnchorKind, HistoryWizardState};
 use crate::builder::BuilderState;
 
 const DEFAULT_HISTORY_PATH: &str = "data/history.toml";
@@ -1156,8 +1156,14 @@ fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
                                 Color32::DARK_GRAY,
                                 format!("({})", anchor_label(&ev.anchor)),
                             );
-                            if ui.link(short_narrative(&ev.narrative)).clicked() {
-                                state.selected_history_event = Some(ev.id.clone());
+                            if sectorforge_gui_core::entity_link(
+                                ui,
+                                short_narrative(&ev.narrative),
+                                false,
+                            )
+                            .clicked()
+                            {
+                                state.focus_entity(EntityRef::HistoryEvent(ev.id.clone()));
                             }
                             if ui.small_button("focus").clicked() {
                                 focus_anchor(state, i);
@@ -1213,35 +1219,21 @@ fn focus_anchor(state: &mut BuilderState, event_idx: usize) {
     let Some(ev) = state.sector.chronicle.events.get(event_idx).cloned() else {
         return;
     };
-    match ev.anchor {
-        HistoryAnchor::Sector => {
-            state.active_tab = BuilderTab::Map;
-        }
-        HistoryAnchor::System { system_id } => {
-            state.selected_system_id = Some(system_id);
-            state.active_tab = BuilderTab::System;
-        }
+    let target = match ev.anchor {
+        HistoryAnchor::Sector => EntityRef::Tab(BuilderTab::Map),
+        HistoryAnchor::System { system_id } => EntityRef::System(system_id),
         HistoryAnchor::World {
             system_id,
             world_id,
-        } => {
-            state.selected_system_id = Some(system_id);
-            state.selected_world_id = Some(world_id);
-            state.active_tab = BuilderTab::World;
-        }
-        HistoryAnchor::Route { route_id, .. } => {
-            state.selected_route_id = Some(route_id);
-            state.active_tab = BuilderTab::Routes;
-        }
-        HistoryAnchor::Subsector { subsector_id } => {
-            state.selected_subsector_id = Some(subsector_id);
-            state.active_tab = BuilderTab::Subsectors;
-        }
-        HistoryAnchor::Region { region_id } => {
-            state.selected_region_id = Some(region_id);
-            state.active_tab = BuilderTab::Regions;
-        }
-    }
+        } => EntityRef::World {
+            system: system_id,
+            world: world_id,
+        },
+        HistoryAnchor::Route { route_id, .. } => EntityRef::Route(route_id),
+        HistoryAnchor::Subsector { subsector_id } => EntityRef::Subsector(subsector_id),
+        HistoryAnchor::Region { region_id } => EntityRef::Region(region_id),
+    };
+    state.focus_entity(target);
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────

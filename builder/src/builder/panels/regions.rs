@@ -22,7 +22,7 @@ use sectorforge::regions::{
 };
 use sectorforge::sector_model::HexCoord;
 
-use crate::builder::state::MapTool;
+use crate::builder::state::{BuilderTab, EntityRef, MapTool};
 use crate::builder::BuilderState;
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
@@ -226,7 +226,7 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             }
             if ui.button("paint mode →").clicked() {
                 state.map_tool = MapTool::RegionPaint;
-                state.active_tab = crate::builder::state::BuilderTab::Map;
+                state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
             if ui
                 .add(egui::Button::new(
@@ -388,7 +388,7 @@ fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
             .clicked()
         {
             state.map_tool = MapTool::RegionPaint;
-            state.active_tab = crate::builder::state::BuilderTab::Map;
+            state.focus_entity(EntityRef::Tab(BuilderTab::Map));
         }
         ui.colored_label(
             Color32::DARK_GRAY,

@@ -1,9 +1,11 @@
 //! Determinism + undo/redo + ring-buffer + debounce + nav-default tests for
 //! [`super::BuilderState`].
 
+use super::nav::EntityRef;
 use super::types::{BuilderTab, HealthLevel, MapTool, DEFAULT_COMMAND_LOG_CAPACITY};
 use super::BuilderState;
 use crate::builder::command::BuilderCommand;
+use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sector_model::HexCoord;
 use std::time::Duration;
 
@@ -195,4 +197,108 @@ fn health_level_green_when_both_clean() {
         },
     });
     assert_eq!(state.health_level(), HealthLevel::Green);
+}
+
+// ── §LINK navigation tests ────────────────────────────────────────────────
+
+fn sid(s: &str) -> SystemId {
+    SystemId::new(s)
+}
+
+#[test]
+fn focus_entity_sets_tab_and_selection_per_variant() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+
+    s.focus_entity(EntityRef::System(sid("sys-0001")));
+    assert_eq!(s.active_tab, BuilderTab::System);
+    assert_eq!(s.selected_system_id, Some(sid("sys-0001")));
+
+    s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
+    assert_eq!(s.active_tab, BuilderTab::Factions);
+    assert_eq!(s.selected_faction_id, Some(FactionId::new("imperium")));
+
+    s.focus_entity(EntityRef::Tab(BuilderTab::Map));
+    assert_eq!(s.active_tab, BuilderTab::Map);
+
+    s.focus_entity(EntityRef::Region("warp-storm-1".into()));
+    assert_eq!(s.active_tab, BuilderTab::Regions);
+    assert_eq!(s.selected_region_id.as_deref(), Some("warp-storm-1"));
+
+    s.focus_entity(EntityRef::Subsector("sub-A".into()));
+    assert_eq!(s.active_tab, BuilderTab::Subsectors);
+    assert_eq!(s.selected_subsector_id.as_deref(), Some("sub-A"));
+
+    s.focus_entity(EntityRef::HistoryEvent("ev-1".into()));
+    assert_eq!(s.active_tab, BuilderTab::History);
+    assert_eq!(s.selected_history_event.as_deref(), Some("ev-1"));
+
+    s.focus_entity(EntityRef::Persona("p-1".into()));
+    assert_eq!(s.active_tab, BuilderTab::Personae);
+    assert_eq!(s.selected_persona_id.as_deref(), Some("p-1"));
+
+    s.focus_entity(EntityRef::Hook("h-1".into()));
+    assert_eq!(s.active_tab, BuilderTab::Hooks);
+    assert_eq!(s.selected_hook_id.as_deref(), Some("h-1"));
+}
+
+#[test]
+fn focus_entity_world_sets_both_system_and_world() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    s.focus_entity(EntityRef::World {
+        system: sid("sys-0042"),
+        world: WorldId::new("sys-0042-w01"),
+    });
+    assert_eq!(s.active_tab, BuilderTab::World);
+    assert_eq!(s.selected_system_id, Some(sid("sys-0042")));
+    assert_eq!(s.selected_world_id, Some(WorldId::new("sys-0042-w01")));
+}
+
+#[test]
+fn focus_entity_pushes_back_stack() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    s.focus_entity(EntityRef::System(sid("sys-alpha")));
+    s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
+    // Stack contains the initial Tab(Project) snapshot plus System(alpha).
+    assert_eq!(s.nav_back_stack.len(), 2);
+    s.nav_back();
+    assert_eq!(s.active_tab, BuilderTab::System);
+    assert_eq!(s.selected_system_id, Some(sid("sys-alpha")));
+    assert_eq!(s.nav_forward_stack.len(), 1);
+}
+
+#[test]
+fn focus_entity_is_idempotent() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
+    let before = s.nav_back_stack.len();
+    s.focus_entity(EntityRef::Faction(FactionId::new("imperium")));
+    assert_eq!(s.nav_back_stack.len(), before);
+}
+
+#[test]
+fn back_stack_caps_at_64() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    for i in 0..100 {
+        s.focus_entity(EntityRef::Faction(FactionId::new(format!("f-{i}"))));
+    }
+    assert_eq!(s.nav_back_stack.len(), 64);
+}
+
+#[test]
+fn forward_stack_clears_on_new_focus() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    s.focus_entity(EntityRef::System(sid("a")));
+    s.focus_entity(EntityRef::System(sid("b")));
+    s.nav_back();
+    assert_eq!(s.nav_forward_stack.len(), 1);
+    s.focus_entity(EntityRef::System(sid("c")));
+    assert!(s.nav_forward_stack.is_empty());
+}
+
+#[test]
+fn nav_back_on_empty_stack_is_noop() {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    let tab = s.active_tab;
+    s.nav_back();
+    assert_eq!(s.active_tab, tab);
 }

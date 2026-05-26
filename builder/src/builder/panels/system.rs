@@ -18,7 +18,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
 
 use crate::builder::command::BuilderCommand;
-use crate::builder::state::{BuilderTab, ModalKind};
+use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
@@ -451,9 +451,11 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 }
             });
             for (wid, name) in world_ids {
-                if ui.link(format!("→ {wid} {name}")).clicked() {
-                    state.selected_world_id = Some(wid);
-                    state.active_tab = BuilderTab::World;
+                if sectorforge_gui_core::entity_link(ui, format!("{wid} {name}"), true).clicked() {
+                    state.focus_entity(EntityRef::World {
+                        system: sys_id.clone(),
+                        world: wid,
+                    });
                 }
             }
         });
@@ -480,12 +482,14 @@ fn show_routes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 .collect();
             ui.label(format!("{} route(s) touching", touching.len()));
             for (rid, from, to, dist) in touching {
-                if ui
-                    .link(format!("→ {rid}  {from} → {to}  d={dist}"))
-                    .clicked()
+                if sectorforge_gui_core::entity_link(
+                    ui,
+                    format!("{rid}  {from} → {to}  d={dist}"),
+                    true,
+                )
+                .clicked()
                 {
-                    state.selected_route_id = Some(rid);
-                    state.active_tab = BuilderTab::Routes;
+                    state.focus_entity(EntityRef::Route(rid));
                 }
             }
         });
@@ -497,9 +501,8 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
         .show(ui, |ui| {
             let primary: Vec<_> = state.sector.systems[sys_idx].primary_factions.to_vec();
             for fid in &primary {
-                if ui.link(format!("→ {fid}")).clicked() {
-                    state.selected_faction_id = Some(fid.clone());
-                    state.active_tab = BuilderTab::Factions;
+                if sectorforge_gui_core::entity_link(ui, fid.to_string(), true).clicked() {
+                    state.focus_entity(EntityRef::Faction(fid.clone()));
                 }
             }
             if primary.is_empty() {
@@ -582,7 +585,7 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
             ));
             ui.horizontal(|ui| {
                 if ui.button("Open REGIONS").clicked() {
-                    state.active_tab = BuilderTab::Regions;
+                    state.focus_entity(EntityRef::Tab(BuilderTab::Regions));
                 }
             });
         });
@@ -983,6 +986,9 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 for (fid, name) in &factions {
                     if ui.button(format!("→ {name} ({fid})")).clicked() {
                         apply_bulk_primary_faction(state, fid.clone());
+                    }
+                    if sectorforge_gui_core::entity_link(ui, fid.to_string(), true).clicked() {
+                        state.focus_entity(EntityRef::Faction(fid.clone()));
                     }
                 }
             });

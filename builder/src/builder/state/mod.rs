@@ -55,6 +55,7 @@ use super::snapshot::Snapshot;
 
 pub mod derivations;
 pub mod generation_ops;
+pub mod nav;
 pub mod regions_ops;
 pub mod selection;
 pub mod types;
@@ -63,6 +64,7 @@ pub mod undo;
 #[cfg(test)]
 mod tests;
 
+pub use nav::EntityRef;
 pub use types::{
     BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState, JobHandle,
     MapTool, MapViewCache, ModalKind, PartialRegenRect, PendingCollision, PendingPlace,
@@ -311,6 +313,19 @@ pub struct BuilderState {
     pub tick_log: std::collections::VecDeque<TickLogEntry>,
     /// §CF5: ring-buffer cap for [`Self::tick_log`].
     pub tick_log_capacity: usize,
+    /// §LINK1 — back-stack of prior focus snapshots, populated by
+    /// [`Self::focus_entity`]. Capped at 64; not serialised; not part of undo.
+    pub nav_back_stack: Vec<EntityRef>,
+    /// §LINK1 — forward stack populated by [`Self::nav_back`]. Cleared by any
+    /// new `focus_entity` call.
+    pub nav_forward_stack: Vec<EntityRef>,
+    /// §LINK1 — selected persona id used by PERSONAE inbound links. The
+    /// PERSONAE panel is a Phase D stub today; the field exists now so links
+    /// land first-class when the panel ships.
+    pub selected_persona_id: Option<String>,
+    /// §LINK1 — selected hook id used by HOOKS inbound links. Mirrors the
+    /// persona stub above.
+    pub selected_hook_id: Option<String>,
 }
 
 impl BuilderState {
@@ -408,6 +423,10 @@ impl BuilderState {
             conflict_ticks_to_advance: 1,
             tick_log: std::collections::VecDeque::new(),
             tick_log_capacity: 500,
+            nav_back_stack: Vec::new(),
+            nav_forward_stack: Vec::new(),
+            selected_persona_id: None,
+            selected_hook_id: None,
         }
     }
 }

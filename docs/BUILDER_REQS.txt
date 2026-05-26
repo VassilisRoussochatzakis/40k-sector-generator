@@ -2101,4 +2101,54 @@ SID4. [DONE] Builder Setting. `BuilderState` includes `stable_ids_on_rename`
       `sectorforge-builder` sessions.
 
 ================================================================================
+50. CROSS-TAB NAVIGATION (§LINK)
+================================================================================
+
+Rationale: Builder UI surfaces dozens of entity ids (factions, systems,
+worlds, routes, regions, subsectors, history events) across 24 tabs. Users
+need to traverse those references with one click and a back-stack rather
+than hunting through pickers. Phase A..C grew ~20 ad-hoc `ui.link` sites
+that all reimplement the same `state.active_tab = X; state.selected_*_id =
+Some(y)` pattern. §LINK centralises this surface and closes the remaining
+gaps.
+
+LINK1. [DONE] EntityRef enum. New file builder/src/builder/state/nav.rs
+       defines `EntityRef` covering System, World, Faction, Route, Region,
+       Subsector, Persona, HistoryEvent, Hook, and Tab variants. `Persona`
+       and `Hook` are stub-compatible — the variants exist before the
+       Phase D panels land.
+
+LINK2. [DONE] focus_entity dispatch. `BuilderState::focus_entity(target)`
+       in builder/src/builder/state/selection.rs is the only path that
+       writes `active_tab`. Sets `active_tab = target.target_tab()` and
+       the matching selection field. Idempotent. Pushes prior focus onto
+       `nav_back_stack`, clears `nav_forward_stack`.
+
+LINK3. [DONE] Back-stack. `BuilderState` carries `nav_back_stack` and
+       `nav_forward_stack: Vec<EntityRef>`, each capped at 64. Alt+← /
+       Alt+→ navigate; tab strip exposes chevron affordances; stacks are
+       in-memory only and do not survive reload.
+
+LINK4. [DONE] Entity link widget. `gui_core::entity_link(ui, label,
+       with_arrow) -> Response` is the single rendering helper. All 20
+       existing ad-hoc link sites refactor to use it. No `state.active_tab =`
+       assignment is permitted outside the tab-strip click handlers in
+       builder/src/builder/panels/nav.rs.
+
+LINK5. [DONE] Gap closure. Converted plain-text entity references to
+       `entity_link` in: world.rs claims chips, control.rs presence editor,
+       economy.rs stranded badges + lifeline endpoints. Route editor combos
+       keep the existing dual-widget pattern (combo edits draft, trailing
+       `→` navigates).
+
+LINK6. [DONE] Phase D/E pre-wiring. PERSONAE / HOOKS / BRIEFING panels
+       remain stubs, but inbound `EntityRef::Persona(_)` /
+       `EntityRef::Hook(_)` dispatches already select the right id on the
+       stub so that linkification lands first-class when the panel ships.
+
+LINK7. [DONE] Tests. `builder/src/builder/state/tests.rs` covers every
+       EntityRef variant, back/forward symmetry, idempotency, stack cap,
+       forward-stack clearing on new focus, and world-ref dual-selection.
+
+================================================================================
 END OF BUILDER_REQS.txt

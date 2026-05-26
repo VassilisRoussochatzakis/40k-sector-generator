@@ -24,9 +24,26 @@ use super::{
 };
 
 /// Render the top tab strip. Mutates [`BuilderState::active_tab`] when the
-/// user clicks a tab.
+/// user clicks a tab. Leftmost two chevrons walk the §LINK3 nav history.
 pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
+        let can_back = !state.nav_back_stack.is_empty();
+        let can_forward = !state.nav_forward_stack.is_empty();
+        if ui
+            .add_enabled(can_back, egui::Button::new("‹").small())
+            .on_hover_text("Back (Alt+←)")
+            .clicked()
+        {
+            state.nav_back();
+        }
+        if ui
+            .add_enabled(can_forward, egui::Button::new("›").small())
+            .on_hover_text("Forward (Alt+→)")
+            .clicked()
+        {
+            state.nav_forward();
+        }
+        ui.separator();
         for tab in BuilderTab::ALL {
             let selected = state.active_tab == *tab;
             if ui.selectable_label(selected, tab.label()).clicked() {

@@ -236,7 +236,9 @@ fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
             };
         }
         if ui.button("→ MAP").clicked() {
-            state.active_tab = crate::builder::state::BuilderTab::Map;
+            state.focus_entity(crate::builder::state::EntityRef::Tab(
+                crate::builder::state::BuilderTab::Map,
+            ));
         }
     });
 }

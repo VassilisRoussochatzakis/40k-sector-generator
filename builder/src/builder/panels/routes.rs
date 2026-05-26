@@ -14,7 +14,7 @@ use sectorforge::worlds::{Government, NotableFeature, WorldType};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::preview::DEFAULT_DEBOUNCE_MS;
-use crate::builder::state::{BuilderTab, ModalKind};
+use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 const ROUTE_STABILITIES: [RouteStability; 4] = [
@@ -124,13 +124,11 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
     ui.group(|ui| {
         ui.horizontal_wrapped(|ui| {
             ui.heading(draft.id.to_string());
-            if ui.link("from").clicked() {
-                state.selected_system_id = Some(draft.from_system_id.clone());
-                state.active_tab = BuilderTab::System;
+            if sectorforge_gui_core::entity_link(ui, "from", false).clicked() {
+                state.focus_entity(EntityRef::System(draft.from_system_id.clone()));
             }
-            if ui.link("to").clicked() {
-                state.selected_system_id = Some(draft.to_system_id.clone());
-                state.active_tab = BuilderTab::System;
+            if sectorforge_gui_core::entity_link(ui, "to", false).clicked() {
+                state.focus_entity(EntityRef::System(draft.to_system_id.clone()));
             }
         });
 

@@ -17,7 +17,7 @@ use sectorforge::ids::FactionId;
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
 use sectorforge_gui_core::palette;
 
-use crate::builder::state::{BuilderTab, ModalKind};
+use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 const KNOWN_KINDS: &[&str] = &[
@@ -755,7 +755,7 @@ fn presence_link(ui: &mut Ui, state: &mut BuilderState, draft: &FactionDef) {
         .clicked()
     {
         state.selected_faction_id = Some(draft.id.clone());
-        state.active_tab = BuilderTab::Control;
+        state.focus_entity(EntityRef::Tab(BuilderTab::Control));
     }
 }
 

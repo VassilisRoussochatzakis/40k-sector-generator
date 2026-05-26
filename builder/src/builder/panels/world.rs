@@ -22,7 +22,7 @@ use sectorforge::worlds::{
     Temperature, WorldType,
 };
 
-use crate::builder::state::{BuilderTab, ModalKind};
+use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
@@ -137,9 +137,8 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
                 .monospace(),
         );
         ui.colored_label(Color32::DARK_GRAY, format!("in {sys_name}"));
-        if ui.link("→ open system").clicked() {
-            state.selected_system_id = Some(sys_id);
-            state.active_tab = BuilderTab::System;
+        if sectorforge_gui_core::entity_link(ui, "open system", true).clicked() {
+            state.focus_entity(EntityRef::System(sys_id));
         }
         if pinned {
             ui.colored_label(Color32::from_rgb(255, 160, 100), "PINNED");
@@ -634,9 +633,10 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
             let mut remove_idx: Option<usize> = None;
             for (i, p) in presences.iter().enumerate() {
                 ui.horizontal(|ui| {
-                    if ui.link(format!("→ {}", p.faction_id)).clicked() {
-                        state.selected_faction_id = Some(p.faction_id.clone());
-                        state.active_tab = BuilderTab::Factions;
+                    if sectorforge_gui_core::entity_link(ui, p.faction_id.to_string(), true)
+                        .clicked()
+                    {
+                        state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
                     }
                     ui.colored_label(
                         Color32::DARK_GRAY,
@@ -807,8 +807,7 @@ fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_
                                     format!("{}  {:?}  {}", c.faction_id, c.claim_type, c.strength);
                                 let resp = ui.label(RichText::new(label).color(fg).monospace());
                                 if resp.clicked() {
-                                    state.selected_faction_id = Some(c.faction_id.clone());
-                                    state.active_tab = BuilderTab::Factions;
+                                    state.focus_entity(EntityRef::Faction(c.faction_id.clone()));
                                 }
                                 if ui.small_button("×").clicked() {
                                     remove = Some(i);
@@ -1013,8 +1012,8 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
                     Color32::GRAY,
                     "No chronicle events anchored at this world. Open HISTORY → Regenerate.",
                 );
-                if ui.link("→ HISTORY tab").clicked() {
-                    state.active_tab = BuilderTab::History;
+                if sectorforge_gui_core::entity_link(ui, "HISTORY tab", true).clicked() {
+                    state.focus_entity(EntityRef::Tab(BuilderTab::History));
                 }
                 return;
             }
@@ -1034,8 +1033,7 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
                 ui.separator();
             }
             if let Some(id) = jump_to {
-                state.selected_history_event = Some(id);
-                state.active_tab = BuilderTab::History;
+                state.focus_entity(EntityRef::HistoryEvent(id));
             }
         });
 }

@@ -190,6 +190,10 @@ impl SessionFile {
             conflict_ticks_to_advance: 1,
             tick_log: std::collections::VecDeque::new(),
             tick_log_capacity: 500,
+            nav_back_stack: Vec::new(),
+            nav_forward_stack: Vec::new(),
+            selected_persona_id: None,
+            selected_hook_id: None,
         }
     }
 }

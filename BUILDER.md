@@ -736,7 +736,53 @@ hit confirm. You can revert to a snapshot later from the same list.
 
 ---
 
-## 13. Save, close, reopen
+## 13. Navigating between tabs
+
+The builder is built around 24 tabs that share state. To move quickly
+between them, every entity name shown anywhere in the UI is a clickable
+link that jumps you to the tab that owns that entity, with the entity
+already selected.
+
+### 13.1 Clicking entity references
+
+Whenever you see a faction id, a system name, a world reference, a route
+id, a region name, or a subsector id rendered in the inspector, it is
+clickable. The link is usually styled with a small `→` prefix
+(e.g. `→ imperium`, `→ Velikan`, `→ R-007 Velikan → Cassio`). Clicking
+sends you to the FACTIONS, SYSTEM, WORLD, ROUTES, REGIONS or SUBSECTORS
+tab respectively, with the inspector already focused on that entity.
+
+For example:
+- On the **WORLD** tab, the header line shows `system: → Velikan`; click
+  it to jump to the SYSTEM tab with Velikan selected.
+- On the **SYSTEM** tab, the **Worlds** section lists every world as a
+  `→ wid name` link; click any to drop into the WORLD tab with that
+  world focused.
+- In the **HISTORY** chronicle, each event has a `focus` button that
+  jumps to whatever the event is anchored on — system, world, region,
+  route, subsector, all handled uniformly.
+
+### 13.2 Back / forward
+
+Two chevrons sit to the left of the tab strip (`‹ ›`). They walk a
+per-session navigation history of up to 64 jumps. The same actions are
+bound to **Alt+←** and **Alt+→** (Linux/Win) or **⌥+←** / **⌥+→** (macOS).
+
+The history does **not** persist across sessions — reopening a project
+starts the stacks empty. It is also separate from undo (Cmd+Z): going
+back through linked entities does not undo your edits.
+
+### 13.3 Tab-only jumps
+
+A handful of links are marked `→ MAP`, `→ CONTROL`, `→ HISTORY tab` etc.
+These jump to a tab without changing what is selected inside it. Useful
+when a panel wants to send you to a global view rather than a specific
+entity (e.g. ECONOMY's lifeline button sends you to MAP with no system
+focus change).
+
+---
+
+## 14. Save, close, reopen
 
 ### 13.1 Save
 
@@ -762,7 +808,7 @@ through disk, so what you see should match what you left.
 
 ---
 
-## 14. Export
+## 15. Export
 
 Click **EXPORT**. (As of this writing the export panel is in active
 development — if it shows a placeholder, use the CLI for now:)
@@ -785,7 +831,7 @@ you saved is what gets exported. The outputs land in `./tutorial-sector/out/`:
 
 ---
 
-## 15. Where to go next
+## 16. Where to go next
 
 Now that you have built a small sector end-to-end:
 

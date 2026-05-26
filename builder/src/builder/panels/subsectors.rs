@@ -27,7 +27,7 @@ use sectorforge::subsectors::{
     build_subsectors, Subsector, SubsectorConfig, DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
 };
 
-use crate::builder::state::BuilderTab;
+use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
@@ -277,7 +277,7 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
             ui.label(target.name.as_ref());
             ui.label(format!("id: {}", target.id));
             if ui.button("→ MAP").clicked() {
-                state.active_tab = BuilderTab::Map;
+                state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
         });
         ui.label(format!(

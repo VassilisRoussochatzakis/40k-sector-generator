@@ -2242,6 +2242,39 @@ Round-trip tests live in [builder/src/builder/command.rs](builder/src/builder/co
 
 * `set_surface_regions_round_trip`.
 
+#### Cross-tab navigation (§LINK)
+
+The builder treats inter-tab navigation as a first-class UI primitive
+rather than a per-panel ad-hoc concern. See [LINKING.md](LINKING.md) for
+the full implementation contract.
+
+**Core type:** `EntityRef` in
+[builder/src/builder/state/nav.rs](builder/src/builder/state/nav.rs) is a
+sum over every linkable entity kind — System, World, Faction, Route,
+Region, Subsector, Persona, HistoryEvent, Hook, and a tab-only `Tab`
+variant. Every cross-tab jump funnels through
+`BuilderState::focus_entity(EntityRef)` in
+[builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs);
+nothing else writes `active_tab` outside the tab-strip click handler.
+
+**Rendering:** `sectorforge_gui_core::entity_link(ui, label, with_arrow)` is the
+only sanctioned link widget for entity references. Panels call it and dispatch
+`state.focus_entity(EntityRef::…)` on the returned `Response`'s `.clicked()`.
+
+**Back-stack:** Two `Vec<EntityRef>` on `BuilderState` (`nav_back_stack`,
+`nav_forward_stack`), capped at 64 each, in-memory only, bound to Alt+←
+/ Alt+→. The stacks are deliberately *not* routed through the §R4
+command bus — navigation is UI state, not undoable mutation.
+
+**Refusal pattern:** When a panel needs to mention an entity that lives
+in a tab not yet implemented (Phase D PERSONAE, HOOKS, BRIEFING; Phase E
+ANALYTICS etc.) the link is still emitted — focus_entity navigates to the
+stub panel with the selection field populated, so the link lands
+first-class the moment the panel ships.
+
+| Alt+← / ⌥+← | Navigate back through cross-tab link history (§LINK3). |
+| Alt+→ / ⌥+→ | Navigate forward through cross-tab link history (§LINK3). |
+
 ### Conflict + stability editor
 
 BUILDER_REQS §28 (CF1..CF6). Per-world conflict + stability editor mounted under the WORLD tab; per-system aggregate view + override + advance + tick log + heatmap toggle mounted under the SYSTEM tab. Mutations route through the command bus so the §U1/§U2 undo/redo rails fire.

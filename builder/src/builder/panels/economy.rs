@@ -26,7 +26,7 @@ use sectorforge::economy::{
 use sectorforge::heatmap::HeatmapMode;
 use sectorforge::ids::{SystemId, WorldId};
 
-use crate::builder::state::BuilderTab;
+use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
 
 const TITHE_STATES: &[TitheStatus] = &[
@@ -202,10 +202,15 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     }
                 }
             });
-        if let Some(id) = &state.selected_world_id {
+        if let Some(id) = state.selected_world_id.clone() {
             if ui.button("→ WORLD inspector").clicked() {
-                state.active_tab = BuilderTab::World;
-                state.selected_world_id = Some(id.clone());
+                if let Some((sys_idx, _)) = state.find_world_indices(&id) {
+                    let sys_id = state.sector.systems[sys_idx].id.clone();
+                    state.focus_entity(EntityRef::World {
+                        system: sys_id,
+                        world: id,
+                    });
+                }
             }
         }
     });
@@ -445,8 +450,7 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                         state.recompute_economy();
                     }
                     if ui.button("→ SYSTEM").clicked() {
-                        state.selected_system_id = Some(id.clone());
-                        state.active_tab = BuilderTab::System;
+                        state.focus_entity(EntityRef::System(id.clone()));
                     }
                 });
                 ui.end_row();
@@ -492,8 +496,11 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
                 ),
             );
             if ui.button("→ WORLD").clicked() {
-                state.selected_world_id = Some(w.world_id.clone());
-                state.active_tab = BuilderTab::World;
+                let sys_id = w.system_id.clone();
+                state.focus_entity(EntityRef::World {
+                    system: sys_id,
+                    world: w.world_id.clone(),
+                });
             }
         });
     }
@@ -515,7 +522,7 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
                 .speed(1.0),
         );
         if ui.button("→ MAP").clicked() {
-            state.active_tab = BuilderTab::Map;
+            state.focus_entity(EntityRef::Tab(BuilderTab::Map));
         }
     });
     let mut edges: Vec<_> = state
@@ -524,6 +531,7 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
         .dependency_edges
         .iter()
         .filter(|e| e.score >= state.economy_lifeline_min_score)
+        .cloned()
         .collect();
     edges.sort_by(|a, b| {
         b.score
@@ -537,6 +545,7 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     }
+    let mut focus_route: Option<sectorforge::ids::RouteId> = None;
     for e in edges.iter().take(20) {
         ui.horizontal_wrapped(|ui| {
             ui.label(format!(
@@ -545,11 +554,13 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
             ));
             if let Some(route_id) = e.route_id.as_ref() {
                 if ui.small_button("focus route").clicked() {
-                    state.selected_route_id = Some(route_id.clone());
-                    state.active_tab = BuilderTab::Routes;
+                    focus_route = Some(route_id.clone());
                 }
             }
         });
+    }
+    if let Some(rid) = focus_route {
+        state.focus_entity(EntityRef::Route(rid));
     }
 }
 
@@ -568,7 +579,7 @@ fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
         if ui.button("→ MAP").clicked() {
-            state.active_tab = BuilderTab::Map;
+            state.focus_entity(EntityRef::Tab(BuilderTab::Map));
         }
         ui.colored_label(
             Color32::DARK_GRAY,

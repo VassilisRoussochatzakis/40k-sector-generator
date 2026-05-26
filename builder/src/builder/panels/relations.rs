@@ -29,7 +29,7 @@ use sectorforge::relations::{
     Stance, TreatyStatus,
 };
 
-use crate::builder::state::BuilderTab;
+use crate::builder::state::EntityRef;
 use crate::builder::BuilderState;
 
 const ATTITUDES: &[RelationAttitude] = &[
@@ -434,12 +434,10 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
         };
         ui.label(badge);
         if ui.button("Jump to FACTIONS tab (a)").clicked() {
-            state.active_tab = BuilderTab::Factions;
-            state.selected_faction_id = Some(pair.0.clone());
+            state.focus_entity(EntityRef::Faction(pair.0.clone()));
         }
         if ui.button("Jump to FACTIONS tab (b)").clicked() {
-            state.active_tab = BuilderTab::Factions;
-            state.selected_faction_id = Some(pair.1.clone());
+            state.focus_entity(EntityRef::Faction(pair.1.clone()));
         }
     });
 

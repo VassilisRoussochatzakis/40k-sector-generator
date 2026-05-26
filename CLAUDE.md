@@ -114,6 +114,7 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
 | [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
 | [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | GUI heatmap color/cache wrapper |
+| [gui-core/src/nav.rs](gui-core/src/nav.rs) | §LINK4 `entity_link` cross-tab link widget |
 | [viewer/src/main.rs](viewer/src/main.rs) | Viewer/editor binary entry (`sectorforge-viewer`) |
 | [viewer/src/app/mod.rs](viewer/src/app/mod.rs) | Top-level viewer/editor eframe app + navigation |
 | [viewer/src/app/export_ui.rs](viewer/src/app/export_ui.rs) | PNG/SVG/HTML/JSON export UI |
@@ -124,7 +125,8 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [builder/src/builder/](builder/src/builder/) | Builder state, command bus, project I/O, panels |
 | [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` struct (§D5) + `new_blank` constructor + `default_config` + slice facade |
 | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `Pending*`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, `TickLogEntry`, `TickLogScope`, `DEFAULT_*` |
-| [builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs) | §S1/§S4 selection helpers: `focus_system`, `toggle_system_selection` |
+| [builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs) | §S1/§S4 selection helpers: `focus_system`, `toggle_system_selection` + §LINK2 `focus_entity` / `nav_back` / `nav_forward` |
+| [builder/src/builder/state/nav.rs](builder/src/builder/state/nav.rs) | §LINK1 cross-tab navigation: `EntityRef` enum + `target_tab` |
 | [builder/src/builder/state/undo.rs](builder/src/builder/state/undo.rs) | R4 command bus: `run`, `undo`, `redo`, ring-buffer trim, `snapshot`, `trigger_auto_save` |
 | [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Economy / relations / chronicle re-derive, debounced validation pump, `synthesize_project_input`, `health_level`, §CF4/§CF5 `advance_conflict_ticks` driver + tick-log capture |
 | [builder/src/builder/state/regions_ops.rs](builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region helpers: add/remove/paint/erase/update/next id |

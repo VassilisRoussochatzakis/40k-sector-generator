@@ -199,6 +199,12 @@ for all remaining checklist items:
       + legacy pair_overrides editors, feed_conflict toggle,
       [generation.relations].min_world_presence slider, Recompute matrix +
       auto-recompute + Save relations.toml passthrough.
+  [x] Direct edit Phase D §PER1..§PER5 (PERSONAE tab): per-faction-kind pool
+      editor (names/titles/traits) with custom-kind add + reset, per-anchor
+      derived roster with cross-tab anchor links, `[[manual]]` editor (manual
+      personae survive regenerate), `min_world_dominance` + per-anchor caps,
+      Auto-derive + auto-recompute toggle, agenda derivation source tooltip,
+      Save personae.toml passthrough.
   [x] Validation/invariant panels and health status pip.
   [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
 
@@ -224,7 +230,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Economy             [X]       §15   (per-world / per-system overrides, lifelines, heatmaps)
   Relations           [X]       §16   (matrix + overrides + kind/disposition rules + feed_conflict + min_world_presence + recompute + save)
   History             [X]       §17   (chronicle config, eras, rules, event editor, add wizard, regenerate, timeline, world snippets)
-  Personae            [G]       §18
+  Personae            [X]       §18   (kind pool editor, manual entries, dominance tier + caps, auto-derive + auto-recompute, agenda tooltip)
   Hooks               [G]       §19
   Sites               [G]       §20
   Missions            [G]       §21
@@ -1015,20 +1021,55 @@ H8.   [DONE] WORLD inspector
 18. PERSONAE (DRAMATIS)
 ================================================================================
 
-PER1. Per-faction persona pool editor: load defaults from `src/personae.rs`
-      built-ins; override per-project via `data/personae.toml`
-      (placed in `[inputs].personae`).
+PER1. [DONE] Per-faction-kind persona pool editor. Panel
+      `builder/src/builder/panels/personae.rs::show_kind_pools_section`
+      renders a collapsing header per built-in faction kind
+      (`imperial / mechanicus / ecclesiarchy / inquisition / rogue_trader /
+      chaos / rebel / necron / tyranid / ork / tau / aeldari / drukhari /
+      harlequin / genestealer / xenos`) plus any custom kind the user
+      authors via the "custom kind id" entry. Each kind exposes
+      `name_prefixes / name_roots / name_suffixes / single_names / titles /
+      traits` as comma-separated `text_edit_multiline` rows backed by
+      `KindPools`. Empty pool fields fall back to the built-in defaults in
+      `src/personae.rs::default_pool` via `merge_with_defaults`. The
+      `[inputs].personae` field defaults to `data/personae.toml`; the
+      catalog mirror lives on `BuilderState::data_catalogs.personae` and
+      `recompute_personae` resolves it through the existing
+      `personae::derive_with` entry point. Loaded by
+      `project_io::catalogs_from_input` and round-tripped by
+      `save_project_as` / `reload_catalog`.
 
-PER2. Per-anchor persona editor: system sovereign / orbital controller /
-      hidden master / world presence — name, title, traits, agenda.
+PER2. [DONE] Per-anchor persona table + manual editor. Panel
+      `show_persona_table` lists every derived persona by faction / kind /
+      anchor (system slot or world id) / name / title / traits / agenda with
+      per-row links that fire `BuilderState::focus_entity` so SYSTEM /
+      WORLD / FACTIONS inspectors jump to the source. Manual entries are
+      authored in `show_manual_editor` and written to
+      `PersonaeConfig::manual`; `personae::derive_with` already appends them
+      last so manual personae survive every regenerate pass.
 
-PER3. Auto-derive button runs `src/personae.rs::derive_personae`.
+PER3. [DONE] "Auto-derive personae" button calls
+      `BuilderState::recompute_personae` (added in
+      `state/derivations.rs`) which runs
+      `sectorforge::personae::derive_with(&sector, &cfg)` and stashes the
+      [`PersonaeReport`] on `BuilderState::personae_report` (personae is not
+      part of `GeneratedSector`). The companion
+      `personae_auto_recompute` toggle mirrors the §H6 / §REL9 pattern so
+      catalog edits trigger an immediate recompute by default.
 
-PER4. Dominance-tier setting controls which presence anchors receive a
-      persona.
+PER4. [DONE] Dominance-tier setting controls which presence anchors
+      receive a persona. `show_dominance_section` exposes
+      `min_world_dominance` over the `DominanceTier` enum (Presence /
+      Influence / Contested / Controlled / Stronghold) alongside the
+      `max_per_world` / `max_per_system` `DragValue` caps. All three are
+      consumed by `personae::derive_with` on the next recompute.
 
-PER5. Agenda text bound to competing claims on the anchor world; show
-      derivation source in tooltip.
+PER5. [DONE] Agenda text bound to competing claims on the anchor world.
+      The agenda string is produced by `personae::build_agenda` which
+      reads `world.claims` to find a rival faction; the panel surfaces the
+      derivation source as a tooltip beside each row
+      (`kind = <faction_kind>`, `faction = <faction_id>`,
+      `anchor = system <id> (<slot>)` or `world <system>/<world>`).
 
 ================================================================================
 19. HOOKS (PLOT)
@@ -1680,7 +1721,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
           [ ] panels/hooks.rs           §HK1..§HK6  hook editor
           [ ] panels/interestingness.rs §INT1..§INT4 scorer
           [ ] panels/missions.rs        §M1..§M5    mission editor
-          [ ] panels/personae.rs        §PER1..§PER5 persona editor
+          [x] panels/personae.rs        §PER1..§PER5 persona editor
           [ ] panels/prose.rs           §PR1..§PR4  prose editor
           [ ] panels/sites.rs           §ST1..§ST4  site editor
 
@@ -1892,7 +1933,35 @@ Phase C — Overlays editable
                    renders without extra plumbing.)
 
 Phase D — Derivations + GM tools
-  PER1..PER5, (§18 personae)
+  PER1..PER5 - DONE (§18 personae — panel
+                     `builder/src/builder/panels/personae.rs`:
+                     §PER1 per-faction-kind pool editor (name prefixes /
+                     roots / suffixes / single names / titles / traits per
+                     `KindPools`, custom-kind add, "Reset to defaults"
+                     button) plumbed through
+                     `BuilderState::data_catalogs.personae` ↔
+                     `data/personae.toml`;
+                     §PER2 per-anchor table + `[[manual]]` editor (manual
+                     personae survive regenerate because
+                     `personae::derive_with` appends `cfg.manual` last);
+                     §PER3 "Auto-derive personae" button +
+                     `personae_auto_recompute` toggle backed by
+                     `BuilderState::recompute_personae` (added in
+                     `state/derivations.rs`) which stashes the report on
+                     `BuilderState::personae_report` (personae is overlay-
+                     only, not on `GeneratedSector`);
+                     §PER4 `min_world_dominance` + `max_per_world` +
+                     `max_per_system` editor binding the matching
+                     `PersonaeConfig` knobs;
+                     §PER5 agenda derivation source surfaced as a row
+                     tooltip — `kind / faction / anchor` lifted from
+                     `personae::build_agenda`. Project I/O wired in
+                     `project_io::catalogs_from_input` /
+                     `save_project_as` / `reload_catalog` so personae.toml
+                     round-trips alongside the other catalogs;
+                     `synthesize_project_input` now feeds
+                     `data_catalogs.personae` to validation/regeneration
+                     instead of defaulting.)
   HK1..HK6,   (§19 hooks)
   ST1..ST4,   (§20 sites)
   M1..M5,     (§21 missions)

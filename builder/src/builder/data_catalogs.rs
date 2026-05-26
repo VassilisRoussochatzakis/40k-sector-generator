@@ -6,6 +6,7 @@ use sectorforge::economy::EconomyConfig;
 use sectorforge::factions::FactionsFile;
 use sectorforge::history::HistoryConfig;
 use sectorforge::names::NameTables;
+use sectorforge::personae::PersonaeConfig;
 use sectorforge::regions::RegionsConfig;
 use sectorforge::relations::RelationsConfig;
 use sectorforge::routes::RouteRules;
@@ -21,6 +22,11 @@ pub struct DataCatalogs {
     pub regions: Option<RegionsConfig>,
     pub economy: Option<EconomyConfig>,
     pub history: Option<HistoryConfig>,
+    /// §PER1: per-faction-kind pools + dominance / per-anchor caps + manual
+    /// personae. Mirrors `data/personae.toml` on disk. The PERSONAE tab edits
+    /// this in-place; `recompute_personae` re-runs `personae::derive_with`
+    /// using whatever lives here (falling back to defaults when `None`).
+    pub personae: Option<PersonaeConfig>,
 }
 
 impl DataCatalogs {

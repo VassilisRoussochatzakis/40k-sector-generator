@@ -207,6 +207,22 @@ impl BuilderState {
         self.trigger_auto_save();
     }
 
+    /// §PER1..§PER5 — rebuild [`sectorforge::personae::PersonaeReport`] from
+    /// the live sector + the in-memory `data_catalogs.personae` (falling back
+    /// to defaults when no catalog is loaded). The result is stashed on
+    /// [`Self::personae_report`] so the PERSONAE tab can render without
+    /// re-running the derivation each frame.
+    ///
+    /// Manual personae embedded in the catalog (`PersonaeConfig::manual`) are
+    /// appended by `derive_with` itself, so the recompute path automatically
+    /// preserves them across regenerates.
+    pub fn recompute_personae(&mut self) {
+        let cfg = self.data_catalogs.personae.clone().unwrap_or_default();
+        let report = sectorforge::personae::derive_with(&self.sector, &cfg);
+        self.personae_report = Some(report);
+        self.mark_validation_dirty();
+    }
+
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed
     /// since the last mutation, build a synthetic [`ProjectInput`] from the
     /// in-memory catalogs and run [`validate`] against it. Returns `true`
@@ -263,7 +279,7 @@ impl BuilderState {
             regions: self.data_catalogs.regions.clone().unwrap_or_default(),
             economy: self.data_catalogs.economy.clone().unwrap_or_default(),
             history: self.data_catalogs.history.clone().unwrap_or_default(),
-            personae: sectorforge::personae::PersonaeConfig::default(),
+            personae: self.data_catalogs.personae.clone().unwrap_or_default(),
             sites: sectorforge::sites::SitesConfig::default(),
             input_digests: BTreeMap::new(),
         })

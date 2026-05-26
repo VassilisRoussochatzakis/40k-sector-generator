@@ -558,6 +558,13 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
         let text = toml::to_string_pretty(&wrapper).map_err(toml_err(rel))?;
         write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
     }
+    if let (Some(rel), Some(cfg)) = (
+        state.config.inputs.personae.as_deref(),
+        state.data_catalogs.personae.as_ref(),
+    ) {
+        let text = toml::to_string_pretty(cfg).map_err(toml_err(rel))?;
+        write_and_digest(root, Utf8Path::new(rel), text.as_bytes(), &mut digests)?;
+    }
 
     // Sector JSON — under `outputs.directory` (default `out/`).
     let out_dir_rel = state.config.outputs.directory.trim_end_matches('/');
@@ -627,6 +634,7 @@ fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {
         regions: Some(input.regions.clone()),
         economy: Some(input.economy.clone()),
         history: Some(input.history.clone()),
+        personae: Some(input.personae.clone()),
     }
 }
 
@@ -837,6 +845,12 @@ pub fn reload_catalog(state: &mut BuilderState, rel: &str, text: &str) {
     if state.config.inputs.history.as_deref() == Some(rel) {
         if let Ok(file) = toml::from_str::<HistoryFile>(text) {
             state.data_catalogs.history = Some(file.history);
+        }
+        return;
+    }
+    if state.config.inputs.personae.as_deref() == Some(rel) {
+        if let Ok(cfg) = toml::from_str::<sectorforge::personae::PersonaeConfig>(text) {
+            state.data_catalogs.personae = Some(cfg);
         }
         return;
     }

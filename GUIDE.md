@@ -2267,10 +2267,11 @@ only sanctioned link widget for entity references. Panels call it and dispatch
 command bus — navigation is UI state, not undoable mutation.
 
 **Refusal pattern:** When a panel needs to mention an entity that lives
-in a tab not yet implemented (Phase D PERSONAE, HOOKS, BRIEFING; Phase E
+in a tab not yet implemented (Phase D HOOKS, BRIEFING; Phase E
 ANALYTICS etc.) the link is still emitted — focus_entity navigates to the
 stub panel with the selection field populated, so the link lands
-first-class the moment the panel ships.
+first-class the moment the panel ships. PERSONAE (`EntityRef::Persona`)
+ships in Phase D §PER1..§PER5 — see [PERSONAE tab — §PER1..§PER5](#personae-tab--per1per5).
 
 | Alt+← / ⌥+← | Navigate back through cross-tab link history (§LINK3). |
 | Alt+→ / ⌥+→ | Navigate forward through cross-tab link history (§LINK3). |
@@ -2289,6 +2290,20 @@ BUILDER_REQS §28 (CF1..CF6). Per-world conflict + stability editor mounted unde
 | CF6 conflict heatmap | `show_conflict_heatmap_picker` — "Show conflict intensity on MAP" checkbox flips `BuilderState::map_heatmap_mode` between `HeatmapMode::Off` and `HeatmapMode::ConflictIntensity`. The new variant is registered in [src/heatmap.rs](src/heatmap.rs) under label "CONFLICT" (red tint 215/70/90) and scores each system as `f32::from(sys.conflict.intensity)`. The MAP panel already routes `state.map_heatmap_mode` through `sectorforge_gui_core::heatmap::compute` so no extra rendering plumbing is needed; §C7/§C8 control overlays still win when on. |
 
 `BuilderState` adds three CF fields: `system_conflict_override: BTreeSet<SystemId>`, `conflict_ticks_to_advance: u32`, and `tick_log: VecDeque<TickLogEntry>` (with `tick_log_capacity: usize`). Both default to empty / 1 / empty / 500 in `new_blank` and in the `.sgforge` session loader. The WORLD tab's overlays summary still points at the conflict block via "edit below in §CF1".
+
+### PERSONAE tab — §PER1..§PER5
+
+BUILDER_REQS §18 (PER1..PER5). Dramatis personae are a pure overlay over the finished sector — they live nowhere on `GeneratedSector`, so the builder caches the most recent [`PersonaeReport`](src/personae.rs) on `BuilderState::personae_report` and rebuilds it via `BuilderState::recompute_personae` (added in [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs)). Catalog edits land in [`data_catalogs.personae`](builder/src/builder/data_catalogs.rs) and round-trip to `data/personae.toml` through `project_io::save_project_as` / `reload_catalog`.
+
+| Piece | Where it lives |
+|---|---|
+| PER1 per-faction-kind pool editor | [builder/src/builder/panels/personae.rs](builder/src/builder/panels/personae.rs) `show_kind_pools_section` — one `CollapsingHeader` per built-in kind (`imperial`, `mechanicus`, ..., `xenos`) plus any custom kind authored via the "custom kind id" text-entry. Each kind exposes `name_prefixes / name_roots / name_suffixes / single_names / titles / traits` as comma-separated `text_edit_multiline` rows wired to [`KindPools`](src/personae.rs). Empty fields fall back to the built-in defaults in `src/personae.rs::default_pool` via `merge_with_defaults`. "Reset to defaults" removes the per-kind override so the built-in pool resumes. |
+| PER2 per-anchor table + manual editor | `show_persona_table` lists every derived persona (faction / kind / anchor / name / title / traits / agenda) with per-row links that fire `BuilderState::focus_entity` — the system slot links jump to the SYSTEM tab, world anchor links jump to the WORLD tab, faction labels jump to FACTIONS. `show_manual_editor` adds/removes `[[manual]]` rows on `PersonaeConfig::manual`; `personae::derive_with` appends them last so manual personae survive every regenerate. |
+| PER3 auto-derive + auto-recompute | `show_header_actions` exposes the "Auto-derive personae" button (calls `BuilderState::recompute_personae`) and a `personae_auto_recompute` toggle that mirrors §H6 / §REL9 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. |
+| PER4 dominance tier + caps | `show_dominance_section` binds `min_world_dominance` (`Presence` ↦ `Stronghold`), `max_per_world`, and `max_per_system` to the [`PersonaeConfig`](src/personae.rs) knobs. Higher tier ⇒ fewer worlds anchor personae. Caps are enforced inside `personae::derive_with`. |
+| PER5 agenda derivation tooltip | The agenda string itself is produced by `personae::build_agenda` — when the anchor world has a competing claim the prose calls out the rival faction (`Seeks to {verb} on {world} against {rival} (claim: {kind})`). The panel surfaces the derivation source as an `on_hover_text` tooltip beside each row: `Source: kind = <faction_kind>`, `faction = <faction_id>`, `anchor = system <id> (<slot>)` or `world <system>/<world>`. |
+
+`BuilderState` adds three personae fields: `personae_report: Option<PersonaeReport>`, `personae_auto_recompute: bool`, and `personae_edit_target: Option<String>`. Defaults: `None` / `true` / `None` in both `new_blank` and the `.sgforge` session loader. The `[inputs].personae` field defaults to `data/personae.toml` and is filled in lazily by `ensure_personae_catalog` on first edit. `synthesize_project_input` now feeds `data_catalogs.personae` to validation / regeneration instead of the previous `PersonaeConfig::default()`.
 
 ---
 

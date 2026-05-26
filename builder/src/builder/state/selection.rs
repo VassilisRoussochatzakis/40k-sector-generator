@@ -82,10 +82,7 @@ impl BuilderState {
     /// back-stack so that returning to a tab restores the previous focus.
     pub fn current_focus(&self) -> Option<EntityRef> {
         match self.active_tab {
-            BuilderTab::System => self
-                .selected_system_id
-                .clone()
-                .map(EntityRef::System),
+            BuilderTab::System => self.selected_system_id.clone().map(EntityRef::System),
             BuilderTab::World => match (&self.selected_system_id, &self.selected_world_id) {
                 (Some(s), Some(w)) => Some(EntityRef::World {
                     system: s.clone(),
@@ -96,10 +93,7 @@ impl BuilderState {
             BuilderTab::Factions => self.selected_faction_id.clone().map(EntityRef::Faction),
             BuilderTab::Routes => self.selected_route_id.clone().map(EntityRef::Route),
             BuilderTab::Regions => self.selected_region_id.clone().map(EntityRef::Region),
-            BuilderTab::Subsectors => self
-                .selected_subsector_id
-                .clone()
-                .map(EntityRef::Subsector),
+            BuilderTab::Subsectors => self.selected_subsector_id.clone().map(EntityRef::Subsector),
             BuilderTab::Personae => self.selected_persona_id.clone().map(EntityRef::Persona),
             BuilderTab::History => self
                 .selected_history_event

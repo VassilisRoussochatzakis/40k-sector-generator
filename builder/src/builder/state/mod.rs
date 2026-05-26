@@ -326,6 +326,19 @@ pub struct BuilderState {
     /// §LINK1 — selected hook id used by HOOKS inbound links. Mirrors the
     /// persona stub above.
     pub selected_hook_id: Option<String>,
+    /// §PER1..§PER5: latest dramatis-personae overlay. Personae are not part
+    /// of `GeneratedSector`, so the builder caches the most recent
+    /// `derive_personae` result here. Rebuilt by [`Self::recompute_personae`].
+    pub personae_report: Option<sectorforge::personae::PersonaeReport>,
+    /// §PER3: when true, mutations that touch the personae catalog trigger an
+    /// immediate [`Self::recompute_personae`] pass. Defaults to `true` — the
+    /// derivation is cheap.
+    pub personae_auto_recompute: bool,
+    /// §PER2: id of the persona currently expanded in the per-anchor editor.
+    /// Mirrors the `[[manual]]` row keyed by id, or a derived persona row.
+    /// Stored separately from [`Self::selected_persona_id`] so cross-tab
+    /// linking and inline editing don't fight each other.
+    pub personae_edit_target: Option<String>,
 }
 
 impl BuilderState {
@@ -427,6 +440,9 @@ impl BuilderState {
             nav_forward_stack: Vec::new(),
             selected_persona_id: None,
             selected_hook_id: None,
+            personae_report: None,
+            personae_auto_recompute: true,
+            personae_edit_target: None,
         }
     }
 }

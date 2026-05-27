@@ -422,6 +422,7 @@ fn render_case(case: &SnapshotCase) -> RgbaImage {
                     sense: Sense::hover(),
                     disable_internal_click_dispatch: true,
                     theme: Some(&theme),
+                    show_hover_coord: false,
                 }
                 .show(ui);
             });

@@ -413,6 +413,7 @@ impl App {
                 sense: egui::Sense::click(),
                 disable_internal_click_dispatch: false,
                 theme: None,
+                show_hover_coord: true,
             }
             .show(ui);
             match click {

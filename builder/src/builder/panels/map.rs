@@ -180,6 +180,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             sense: Sense::hover(),
             disable_internal_click_dispatch: true,
             theme: None,
+            show_hover_coord: true,
         }
         .show(ui);
     });

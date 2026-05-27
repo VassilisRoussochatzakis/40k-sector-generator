@@ -1770,6 +1770,14 @@ the painter resolves with `hex_size * mul` floored at `min`. To restyle the map,
 edit one struct; the viewer, the editor MAP panel, and the builder MAP tab all
 follow.
 
+When `SectorView::show_hover_coord` is `true`, the widget paints a small
+monospace `qq,rr` chip to the left of the cursor for the hovered hex (flips to
+the right edge if it would clip, clamps vertically inside the canvas). Viewer
+sector view, viewer editor MAP panel, viewer planner, and builder MAP tab all
+opt in; the headless snapshot test in
+[`map_snapshots.rs`](gui-core/tests/map_snapshots.rs) leaves it `false` so
+goldens stay deterministic.
+
 Semantic map tokens live in
 [`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph`,
 `MapRouteVisual`, and `MapRegionOverlay`. `SectorView` converts

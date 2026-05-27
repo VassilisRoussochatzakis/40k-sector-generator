@@ -124,6 +124,9 @@ pub struct SectorView<'a> {
     /// Visual theme — colours + sizing tokens. `None` falls back to
     /// [`MapTheme::default`] so existing call-sites compile unchanged.
     pub theme: Option<&'a MapTheme>,
+    /// When true, paint a small chip to the left of the cursor showing the
+    /// (q, r) coords of the hovered hex. Off for snapshot tests.
+    pub show_hover_coord: bool,
 }
 
 pub enum SectorClick {
@@ -760,6 +763,31 @@ impl<'a> SectorView<'a> {
                 let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);
                 painter.rect_filled(bg_rect, 2.0, theme.bg);
                 painter.galley(pos, galley, theme.text_dim);
+            }
+        }
+
+        if self.show_hover_coord {
+            if let Some(pos) = response.hover_pos() {
+                if let Some(HexCoord { q, r }) =
+                    hex_pick(pos, &g, origin, self.sector.width, self.sector.height)
+                {
+                    let txt = format!("{q:02},{r:02}");
+                    let font = FontId::monospace(11.0);
+                    let galley = painter.layout_no_wrap(txt, font, theme.text);
+                    let pad = Vec2::new(4.0, 2.0);
+                    let size = galley.size() + pad * 2.0;
+                    let mut anchor = Pos2::new(pos.x - 14.0 - size.x, pos.y - size.y / 2.0);
+                    if anchor.x < rect.left() + 2.0 {
+                        anchor.x = pos.x + 14.0;
+                    }
+                    anchor.y = anchor
+                        .y
+                        .clamp(rect.top() + 2.0, rect.bottom() - size.y - 2.0);
+                    let bg = egui::Rect::from_min_size(anchor, size);
+                    painter.rect_filled(bg, 2.0, theme.bg);
+                    painter.rect_stroke(bg, 2.0, Stroke::new(1.0, theme.hex_outline));
+                    painter.galley(anchor + pad, galley, theme.text);
+                }
             }
         }
 

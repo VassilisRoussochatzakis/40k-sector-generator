@@ -223,6 +223,10 @@ impl SessionFile {
             briefing_preview_md: None,
             briefing_preview_pack: None,
             briefing_export_dir: None,
+            interestingness_profile: sectorforge::interestingness::ProfileId::PoliticalSandbox,
+            interestingness_report: None,
+            interestingness_custom_overrides: std::collections::BTreeMap::new(),
+            interestingness_custom_pick: String::new(),
         }
     }
 }

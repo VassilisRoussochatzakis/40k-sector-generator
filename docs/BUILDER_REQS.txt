@@ -236,7 +236,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Missions            [G]       §21
   Prose / gazetteer   [G]       §22
   Briefing            [G]       §23
-  Interestingness     [G]       §24
+  Interestingness     [X]       §24
   Analytics           [P]       §25   (dashboard exists; need full §8 fields)
   Search              [P]       §26   (wishes UI exists; need full constraints)
   Diff + ticks        [G]       §27
@@ -1350,15 +1350,74 @@ BR5.  [DONE] Export both `.md` + `.json` to chosen folder.
 24. INTERESTINGNESS
 ================================================================================
 
-INT1. Profile picker: political_sandbox | grim_collapse | mercantile |
+INT1. [DONE] Profile picker: political_sandbox | grim_collapse | mercantile |
       villainous | frontier.
+      - `builder/src/builder/panels/interestingness.rs::show_profile_row`
+        renders a `ComboBox` over the five built-in
+        `sectorforge::interestingness::ProfileId` variants and writes the
+        selection back to `BuilderState::interestingness_profile`
+        (default `ProfileId::PoliticalSandbox`).
+      - Switching the profile clears
+        `BuilderState::interestingness_report` and
+        `interestingness_custom_pick`, so the next §INT2 pass rebuilds
+        against the new bands and the §INT4 picker resets its scratch
+        selection. Per-profile override tables in
+        `interestingness_custom_overrides` survive the switch.
 
-INT2. "Score sector" runs `src/interestingness.rs`. Shows 0..=100 score
+INT2. [DONE] "Score sector" runs `src/interestingness.rs`. Shows 0..=100 score
       + strengths/weaknesses lines.
+      - `show_score_row` calls a local `rescore()` helper that builds an
+        `InterestingnessConfig` from the live profile +
+        `interestingness_custom_overrides` and runs
+        `sectorforge::derive_interestingness_with`. The cached
+        `InterestingnessReport` lives on
+        `BuilderState::interestingness_report`.
+      - The "Overall: N / 100" badge is colour-coded (green ≥75,
+        amber ≥50, red otherwise). Strengths / weaknesses lists are
+        rendered straight from the report.
 
-INT3. Per-metric bar chart with target band shaded.
+INT3. [DONE] Per-metric bar chart with target band shaded.
+      - `show_metrics_chart` walks `metric_scores` and calls
+        `draw_metric_row`, which allocates an 18-pixel-tall track
+        (`ui.allocate_exact_size` + `ui.painter_at`) and paints:
+          * a dark-grey background spanning `[0, vmax]` where
+            `vmax = max(target_high * 1.5, observed * 1.2, 1.0)`,
+          * a green band over `[target_low, target_high]`,
+          * a white tick at `observed`,
+          * a 1-pixel border.
+      - The right-hand text reads
+        `obs … · band … · fit …% · w …` and inherits the same
+        green/amber/red colour ramp as the overall badge.
 
-INT4. Threshold override per profile (custom profile editor).
+INT4. [DONE] Threshold override per profile (custom profile editor).
+      - `BuilderState::interestingness_custom_overrides` is a
+        `BTreeMap<String, BTreeMap<String, MetricTarget>>` keyed by the
+        snake-case profile id (`political_sandbox`, `grim_collapse`,
+        `mercantile`, `villainous`, `frontier`) so each profile keeps
+        its own table; switching profile + back leaves the overrides
+        intact.
+      - `show_add_override_row` exposes a `ComboBox` over a fixed
+        `METRIC_CATALOG` covering every metric the library's
+        `observed_metrics` table emits (`faction_gini`,
+        `contested_world_ratio`, `avg_claims_per_world`,
+        `route_components`, `articulation_points`, `isolated_systems`,
+        `route_diameter`, `world_type_diversity`, `warzone_count`,
+        `blockaded_count`, `infiltrated_count`,
+        `asymmetric_control_worlds`, `faction_count`). Already-overridden
+        metrics are filtered out.
+      - "Add" seeds the new entry from the profile's built-in band via
+        `seed_target`, which queries the library through a one-shot
+        `derive_interestingness_with` so the seed never drifts from the
+        scorer's source of truth.
+      - Existing override rows expose `DragValue` editors for
+        `low / high / floor / ceil / weight`. An `∞ / set finite ceil`
+        toggle handles the `MetricTarget::ceil = f32::INFINITY` case
+        without breaking the `DragValue` widget. "Remove" drops the
+        override (and prunes the per-profile sub-map when it goes
+        empty), reverting that metric to the built-in band.
+      - Any add / edit / remove clears
+        `interestingness_report` so the chart never lies about which
+        bands fed the last score.
 
 ================================================================================
 25. ANALYTICS DASHBOARD
@@ -1892,7 +1951,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Missions  -> panels/missions.rs   (Phase D §M1..§M5)
         Prose     -> panels/prose.rs      (Phase D §PR1..§PR4)
         Analytics -> panels/analytics.rs  (Phase E §A1..§A4)
-        Interestingness -> panels/interestingness.rs (Phase D §INT1..§INT4)
+        Interestingness -> panels/interestingness.rs (Phase D §INT1..§INT4 DONE)
         Search    -> panels/search.rs     (Phase E §SR1..§SR5)
         Diff      -> panels/diff.rs       (Phase E §DF1..§DF5)
         Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5 DONE)
@@ -1908,7 +1967,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Phase D
           [x] panels/briefing.rs        §BR1..§BR5  briefing editor
           [x] panels/hooks.rs           §HK1..§HK6  hook editor
-          [ ] panels/interestingness.rs §INT1..§INT4 scorer
+          [x] panels/interestingness.rs §INT1..§INT4 scorer
           [x] panels/missions.rs        §M1..§M5    mission editor
           [x] panels/personae.rs        §PER1..§PER5 persona editor
           [x] panels/prose.rs           §PR1..§PR4  prose editor
@@ -2324,7 +2383,21 @@ Phase D — Derivations + GM tools
                    carry the panel's selection plus the cached pack
                    between generate and export so the same redacted
                    pack the GM previewed is the one the writer emits.)
-  INT1..INT4. (§24 interestingness)
+  INT1..INT4. (§24 interestingness — DONE.
+                   `builder/src/builder/panels/interestingness.rs` ships
+                   the §INT1 profile picker, §INT2 "Score sector" button +
+                   strengths/weaknesses readout, §INT3 per-metric band
+                   chart rendered through `ui.painter_at`, and §INT4
+                   per-profile threshold override editor. BuilderState
+                   gained `interestingness_profile`,
+                   `interestingness_report`,
+                   `interestingness_custom_overrides` (keyed by snake-case
+                   profile id), and `interestingness_custom_pick` so the
+                   profile, cached scorecard, per-profile override tables,
+                   and the "Add override" scratch selection survive
+                   between Score-sector clicks. The cached report is
+                   cleared on any profile / override mutation so the chart
+                   never paints stale bands.)
 
 Phase E — Tooling
   SR1..SR5,   (§26 search)

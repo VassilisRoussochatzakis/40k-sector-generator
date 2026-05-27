@@ -435,6 +435,30 @@ pub struct BuilderState {
     /// §BR5: last folder picked by the export dialog. Defaults to the
     /// project's `out/` directory if a project is open; cleared otherwise.
     pub briefing_export_dir: Option<Utf8PathBuf>,
+    /// §INT1: active built-in profile selected in the INTERESTINGNESS tab.
+    /// Defaults to
+    /// [`sectorforge::interestingness::ProfileId::PoliticalSandbox`].
+    /// Used as the seed for
+    /// [`sectorforge::interestingness::InterestingnessConfig`] before any
+    /// per-profile overrides from
+    /// [`Self::interestingness_custom_overrides`] are layered on top.
+    pub interestingness_profile: sectorforge::interestingness::ProfileId,
+    /// §INT2: cached scorecard produced by the last "Score sector" pass.
+    /// Cleared whenever the profile or any per-profile override changes so
+    /// the chart never shows a stale fit.
+    pub interestingness_report: Option<sectorforge::interestingness::InterestingnessReport>,
+    /// §INT4: per-profile metric overrides. Outer key is the snake-case id
+    /// of [`sectorforge::interestingness::ProfileId`] (matching the serde
+    /// representation); inner key is the metric name (`faction_gini`,
+    /// `contested_world_ratio`, …). Overrides survive switching to another
+    /// profile and back so a user can tune each profile independently.
+    /// Never serialised — purely an editor scratch table.
+    pub interestingness_custom_overrides:
+        BTreeMap<String, BTreeMap<String, sectorforge::interestingness::MetricTarget>>,
+    /// §INT4: scratch metric name selected in the "Add override" combo so a
+    /// re-render keeps the picker's selection. Empty string = nothing
+    /// picked.
+    pub interestingness_custom_pick: String,
 }
 
 impl BuilderState {
@@ -565,6 +589,10 @@ impl BuilderState {
             briefing_preview_md: None,
             briefing_preview_pack: None,
             briefing_export_dir: None,
+            interestingness_profile: sectorforge::interestingness::ProfileId::PoliticalSandbox,
+            interestingness_report: None,
+            interestingness_custom_overrides: BTreeMap::new(),
+            interestingness_custom_pick: String::new(),
         }
     }
 }

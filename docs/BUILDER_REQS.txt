@@ -1291,16 +1291,60 @@ PR4.  [DONE] "Regenerate prose" runs `src/prose.rs`. Manual overrides
 23. BRIEFING
 ================================================================================
 
-BR1.  Preset picker: gm | navy | inquisition | trader | governor | public.
+BR1.  [DONE] Preset picker: gm | navy | inquisition | trader | governor | public.
+      `builder/src/builder/panels/briefing.rs::show_preset_row` exposes a
+      `ComboBox` over the six `sectorforge::briefing::AudiencePreset`
+      variants (`GmFullTruth` / `ImperialNavy` / `Inquisition` /
+      `RogueTrader` / `LocalGovernor` / `PublicAtlas`). The selected
+      variant lives on `BuilderState::briefing_preset` (default
+      `GmFullTruth`); flipping it calls `invalidate_preview` so the next
+      "Generate briefing" pass rebuilds against the new audience instead
+      of showing a stale Markdown body.
 
-BR2.  Observer-faction picker (optional).
+BR2.  [DONE] Observer-faction picker (optional).
+      `show_observer_row` enumerates `state.sector.factions` into a
+      `ComboBox` whose value is stored on
+      `BuilderState::briefing_observer: Option<FactionId>` (default
+      `None`). When `Some`, `build_profile` sets
+      `BriefingProfile::observer_faction` so `briefing::apply` retains
+      only that observer's intel sub-record on each system and runs the
+      observer-visibility floor through `min_confidence`. When `None`,
+      every non-observer intel record is dropped.
 
-BR3.  `min_confidence` slider (0..=100).
+BR3.  [DONE] `min_confidence` slider (0..=100).
+      `show_confidence_row` binds `BuilderState::briefing_min_confidence`
+      (default 30, matches `BriefingProfile::default`) to a 0..=100
+      `egui::Slider`. `effective_min_confidence` reapplies the
+      preset-baked floor (e.g. `PublicAtlas` clamps to ≥80,
+      `Inquisition` clamps to ≤20) and the panel surfaces the
+      post-clamp value next to the slider so the GM sees what the
+      profile will actually enforce.
 
-BR4.  "Generate briefing" writes redacted clone via `src/briefing.rs`.
-      Preview the redacted Markdown in a side panel.
+BR4.  [DONE] "Generate briefing" writes redacted clone via
+      `src/briefing.rs`. Preview the redacted Markdown in a side panel.
+      `show_generate_row` -> `regenerate_preview` builds a
+      `BriefingProfile` via `build_profile`, calls
+      `sectorforge::apply_briefing` (the public alias for
+      `briefing::apply`) and stores the returned `BriefingPack` on
+      `BuilderState::briefing_preview_pack` plus the rendered Markdown
+      from `briefing::render_markdown` on
+      `BuilderState::briefing_preview_md`. `show_preview` renders the
+      Markdown verbatim in a scrollable monospace `TextEdit::multiline`
+      so the GM can review the redacted output before exporting. Any
+      change to preset / observer / confidence calls
+      `invalidate_preview` so the preview can't drift away from the
+      controls.
 
-BR5.  Export both `.md` + `.json` to chosen folder.
+BR5.  [DONE] Export both `.md` + `.json` to chosen folder.
+      `show_export_row` pairs "Choose export folder…" (a `rfd`
+      `FileDialog::pick_folder` that stamps
+      `BuilderState::briefing_export_dir`) with "Export .md + .json"
+      (enabled only when both the folder and the cached pack exist) that
+      calls `sectorforge::write_briefing(dir, &pack, &profile)`. The
+      writer emits `briefing-<profile_id>.md` and
+      `briefing-<profile_id>.json`; success and failure both surface
+      through `ModalKind::Message`. The folder selection persists across
+      generations so a "tweak → export" loop needs only one folder pick.
 
 ================================================================================
 24. INTERESTINGNESS
@@ -1851,7 +1895,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Interestingness -> panels/interestingness.rs (Phase D §INT1..§INT4)
         Search    -> panels/search.rs     (Phase E §SR1..§SR5)
         Diff      -> panels/diff.rs       (Phase E §DF1..§DF5)
-        Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5)
+        Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5 DONE)
         Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5)
         Export    -> panels/export.rs     (Phase E §EX1..§EX8)
       Stub panels share `panels/placeholder.rs` so each unfinished body
@@ -1862,7 +1906,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
       header so `rg "TODO.docs/BUILDER_REQS"` enumerates the same set):
 
         Phase D
-          [ ] panels/briefing.rs        §BR1..§BR5  briefing editor
+          [x] panels/briefing.rs        §BR1..§BR5  briefing editor
           [x] panels/hooks.rs           §HK1..§HK6  hook editor
           [ ] panels/interestingness.rs §INT1..§INT4 scorer
           [x] panels/missions.rs        §M1..§M5    mission editor
@@ -2268,7 +2312,18 @@ Phase D — Derivations + GM tools
                    also honours `[inputs].prose` when `--project` is
                    supplied so authored overrides survive on the CLI
                    path.)
-  BR1..BR5,   (§23 briefing)
+  BR1..BR5,   (§23 briefing — DONE.
+                   `builder/src/builder/panels/briefing.rs` ships the
+                   preset / observer / min-confidence controls plus the
+                   `briefing::apply` preview and the `rfd`
+                   folder-picker-backed `sectorforge::write_briefing`
+                   export. BuilderState gained
+                   `briefing_preset` /  `briefing_observer` /
+                   `briefing_min_confidence` /  `briefing_preview_md` /
+                   `briefing_preview_pack` /  `briefing_export_dir` to
+                   carry the panel's selection plus the cached pack
+                   between generate and export so the same redacted
+                   pack the GM previewed is the one the writer emits.)
   INT1..INT4. (§24 interestingness)
 
 Phase E — Tooling

@@ -408,6 +408,33 @@ pub struct BuilderState {
     /// PROSE tab inherits the SYSTEM tab's selection; a per-tab pick may
     /// then diverge.
     pub selected_prose_system_id: Option<SystemId>,
+    /// §BR1: audience preset selected in the BRIEFING tab's profile picker.
+    /// Defaults to [`sectorforge::briefing::AudiencePreset::GmFullTruth`]
+    /// (no redaction). Used as the seed for
+    /// [`sectorforge::briefing::preset`] before observer / confidence
+    /// overrides are layered on top.
+    pub briefing_preset: sectorforge::briefing::AudiencePreset,
+    /// §BR2: optional observer faction. When set, presences are filtered
+    /// through the observer's visibility and the briefing pack only keeps
+    /// the observer's intel sub-record on each system.
+    pub briefing_observer: Option<FactionId>,
+    /// §BR3: `minimum_intel_confidence` slider value (0..=100). 0 keeps
+    /// everything visible; 100 keeps only directly-observable presences.
+    /// Defaults to 30 — the same default as
+    /// [`sectorforge::briefing::BriefingProfile::default`].
+    pub briefing_min_confidence: u8,
+    /// §BR4: cached redacted Markdown produced by the last "Generate
+    /// briefing" pass. Rendered into the side preview pane; cleared on
+    /// preset / observer / confidence change so a stale preview never
+    /// shows.
+    pub briefing_preview_md: Option<String>,
+    /// §BR4: cached redacted pack produced by the last "Generate briefing"
+    /// pass. Held alongside `briefing_preview_md` so the §BR5 export
+    /// writes the same pack the user previewed.
+    pub briefing_preview_pack: Option<sectorforge::briefing::BriefingPack>,
+    /// §BR5: last folder picked by the export dialog. Defaults to the
+    /// project's `out/` directory if a project is open; cleared otherwise.
+    pub briefing_export_dir: Option<Utf8PathBuf>,
 }
 
 impl BuilderState {
@@ -532,6 +559,12 @@ impl BuilderState {
             prose_report: None,
             prose_auto_recompute: true,
             selected_prose_system_id: None,
+            briefing_preset: sectorforge::briefing::AudiencePreset::GmFullTruth,
+            briefing_observer: None,
+            briefing_min_confidence: 30,
+            briefing_preview_md: None,
+            briefing_preview_pack: None,
+            briefing_export_dir: None,
         }
     }
 }

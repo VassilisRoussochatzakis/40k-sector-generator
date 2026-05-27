@@ -217,6 +217,12 @@ impl SessionFile {
             prose_report: None,
             prose_auto_recompute: true,
             selected_prose_system_id: None,
+            briefing_preset: sectorforge::briefing::AudiencePreset::GmFullTruth,
+            briefing_observer: None,
+            briefing_min_confidence: 30,
+            briefing_preview_md: None,
+            briefing_preview_pack: None,
+            briefing_export_dir: None,
         }
     }
 }

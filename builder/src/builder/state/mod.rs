@@ -459,6 +459,13 @@ pub struct BuilderState {
     /// re-render keeps the picker's selection. Empty string = nothing
     /// picked.
     pub interestingness_custom_pick: String,
+    /// §CTX0 — Phase 0 of `docs/CONTEXT_MENU.txt`: when the SYSTEM tab renders,
+    /// it consumes this field and scrolls the named collapsing header into
+    /// view exactly once. Set by the embedded `SystemView` widget when the
+    /// user clicks the central star disk. Carried as a `&'static str` so the
+    /// id matches the literal passed to `egui::Grid::new` (e.g.
+    /// `"sys_star_grid"`). In-memory only — never serialised.
+    pub scroll_target: Option<&'static str>,
 }
 
 impl BuilderState {
@@ -593,6 +600,7 @@ impl BuilderState {
             interestingness_report: None,
             interestingness_custom_overrides: BTreeMap::new(),
             interestingness_custom_pick: String::new(),
+            scroll_target: None,
         }
     }
 }

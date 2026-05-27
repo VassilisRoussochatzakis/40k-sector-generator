@@ -16,10 +16,16 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
+use sectorforge_gui_core::system_view::{SystemClick, SystemSelection, SystemView};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
+
+/// §CTX0 — scroll-anchor id used by [`show_star_section`] when
+/// [`BuilderState::scroll_target`] points at the Star header. Mirrors the
+/// literal passed to the inner `egui::Grid::new` so both sides stay in sync.
+const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
@@ -57,9 +63,20 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
             show_header(ui, state, sys_idx);
             ui.separator();
+            show_system_map_section(ui, state, sys_idx);
+            ui.add_space(4.0);
             show_identity_section(ui, state, sys_idx);
             ui.add_space(4.0);
-            show_star_section(ui, state, sys_idx);
+            let star_resp = show_star_section(ui, state, sys_idx);
+            if state
+                .scroll_target
+                .map_or(false, |t| t == SYS_STAR_GRID_ANCHOR)
+            {
+                star_resp
+                    .header_response
+                    .scroll_to_me(Some(egui::Align::TOP));
+                state.scroll_target = None;
+            }
             ui.add_space(4.0);
             show_tags_notes_section(ui, state, sys_idx);
             ui.add_space(4.0);
@@ -132,6 +149,56 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             ui.colored_label(Color32::from_rgb(255, 160, 100), "PINNED");
         }
     });
+}
+
+// ── §CTX0 in-system map (Phase 0 of docs/CONTEXT_MENU.txt) ─────────────────
+
+/// Embeds the shared [`SystemView`] widget under the SYSTEM tab so the in-system
+/// map has a host before the context-menu work in Phase 6 lands. Click on a
+/// planet → updates [`BuilderState::selected_world_id`]; click on the central
+/// star → arms [`BuilderState::scroll_target`] so the Star section scrolls
+/// into view on the same frame.
+fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+    egui::CollapsingHeader::new("In-system map")
+        .default_open(true)
+        .show(ui, |ui| {
+            let sys = &state.sector.systems[sys_idx];
+            let selected = match state.selected_world_id.as_ref() {
+                Some(wid) => sys
+                    .worlds
+                    .iter()
+                    .find(|w| &w.id == wid)
+                    .map(|w| SystemSelection::World(w.index))
+                    .unwrap_or(SystemSelection::None),
+                None => SystemSelection::None,
+            };
+            let (_resp, click) = SystemView {
+                system: sys,
+                selected,
+                side: 480.0,
+            }
+            .show(ui);
+            if let Some(c) = click {
+                handle_system_view_click(state, sys_idx, c);
+            }
+        });
+}
+
+/// Side-effect-free routing of a [`SystemClick`] to the corresponding builder
+/// state mutation. Extracted so unit tests can exercise the wiring without
+/// spinning up an egui context.
+fn handle_system_view_click(state: &mut BuilderState, sys_idx: usize, click: SystemClick) {
+    match click {
+        SystemClick::Star => {
+            state.scroll_target = Some(SYS_STAR_GRID_ANCHOR);
+        }
+        SystemClick::World(idx) => {
+            let sys = &state.sector.systems[sys_idx];
+            if let Some(w) = sys.worlds.iter().find(|w| w.index == idx) {
+                state.selected_world_id = Some(w.id.clone());
+            }
+        }
+    }
 }
 
 // ── identity (S2 + S6) ──────────────────────────────────────────────────────
@@ -276,7 +343,11 @@ fn apply_coord_move(state: &mut BuilderState, id: SystemId, from: HexCoord, to: 
 
 // ── star ────────────────────────────────────────────────────────────────────
 
-fn show_star_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+fn show_star_section(
+    ui: &mut Ui,
+    state: &mut BuilderState,
+    sys_idx: usize,
+) -> egui::CollapsingResponse<()> {
     egui::CollapsingHeader::new("Star")
         .default_open(false)
         .show(ui, |ui| {
@@ -360,7 +431,7 @@ fn show_star_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 state.dirty = true;
                 state.mark_validation_dirty();
             }
-        });
+        })
 }
 
 // ── tags + notes ────────────────────────────────────────────────────────────
@@ -1168,6 +1239,58 @@ mod tests {
         assert!(state.pinned_systems.contains(&a));
         state.pinned_systems.remove(&a);
         assert!(!state.pinned_systems.contains(&a));
+    }
+
+    #[test]
+    fn system_view_renders_when_no_worlds() {
+        // §CTX0 Phase 0: an empty system must not panic when SystemView is
+        // mounted under the SYSTEM tab.
+        let mut state = blank();
+        let a = state
+            .sector
+            .add_system(HexCoord { q: 0, r: 0 }, "A")
+            .unwrap();
+        state.selected_system_id = Some(a);
+        let ctx = egui::Context::default();
+        let raw = egui::RawInput::default();
+        let _ = ctx.run(raw, |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                let sys_idx = state
+                    .sector
+                    .systems
+                    .iter()
+                    .position(|s| Some(&s.id) == state.selected_system_id.as_ref())
+                    .unwrap();
+                show_system_map_section(ui, &mut state, sys_idx);
+            });
+        });
+        assert!(state.selected_world_id.is_none());
+        assert!(state.scroll_target.is_none());
+    }
+
+    #[test]
+    fn world_click_updates_selected_world_id() {
+        // §CTX0 Phase 0: SystemClick::World must route to the matching
+        // GeneratedWorld id; SystemClick::Star must arm scroll_target.
+        let mut state = blank();
+        let sys = state
+            .sector
+            .add_system(HexCoord { q: 0, r: 0 }, "A")
+            .unwrap();
+        let world = state.sector.add_world_to_system(&sys, "W").unwrap();
+        let sys_idx = 0;
+        let world_idx = state.sector.systems[sys_idx]
+            .worlds
+            .iter()
+            .find(|w| w.id == world)
+            .unwrap()
+            .index;
+        handle_system_view_click(&mut state, sys_idx, SystemClick::World(world_idx));
+        assert_eq!(state.selected_world_id.as_ref(), Some(&world));
+        assert!(state.scroll_target.is_none());
+
+        handle_system_view_click(&mut state, sys_idx, SystemClick::Star);
+        assert_eq!(state.scroll_target, Some(SYS_STAR_GRID_ANCHOR));
     }
 
     #[test]

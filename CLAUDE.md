@@ -111,7 +111,7 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) | Background job helper |
 | [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette / faction glyph rendering |
 | [gui-core/src/sector_view.rs](gui-core/src/sector_view.rs) | Read-only hex map render |
-| [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget |
+| [gui-core/src/system_view.rs](gui-core/src/system_view.rs) | System detail panel widget — also embedded under the SYSTEM tab by `panels/system.rs::show_system_map_section` (§CTX0) |
 | [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
 | [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | GUI heatmap color/cache wrapper |
 | [gui-core/src/nav.rs](gui-core/src/nav.rs) | §LINK4 `entity_link` cross-tab link widget |
@@ -123,7 +123,7 @@ cargo run -p sectorforge-builder -- --help   # Builder help
 | [builder/src/main.rs](builder/src/main.rs) | Builder binary entry (`sectorforge-builder`) |
 | [builder/src/app.rs](builder/src/app.rs) | Thin builder eframe app host |
 | [builder/src/builder/](builder/src/builder/) | Builder state, command bus, project I/O, panels |
-| [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` struct (§D5) + `new_blank` constructor + `default_config` + slice facade |
+| [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` struct (§D5) + `new_blank` constructor + `default_config` + slice facade. Carries §CTX0 `scroll_target: Option<&'static str>` consumed by `panels/system.rs::show` to scroll the Star section into view when the in-system map's central star is clicked. |
 | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `Pending*`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, `TickLogEntry`, `TickLogScope`, `DEFAULT_*` |
 | [builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs) | §S1/§S4 selection helpers: `focus_system`, `toggle_system_selection` + §LINK2 `focus_entity` / `nav_back` / `nav_forward` |
 | [builder/src/builder/state/nav.rs](builder/src/builder/state/nav.rs) | §LINK1 cross-tab navigation: `EntityRef` enum + `target_tab` |

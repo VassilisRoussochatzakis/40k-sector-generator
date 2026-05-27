@@ -227,6 +227,7 @@ impl SessionFile {
             interestingness_report: None,
             interestingness_custom_overrides: std::collections::BTreeMap::new(),
             interestingness_custom_pick: String::new(),
+            scroll_target: None,
         }
     }
 }

@@ -2650,4 +2650,34 @@ LINK7. [DONE] Tests. `builder/src/builder/state/tests.rs` covers every
        forward-stack clearing on new focus, and world-ref dual-selection.
 
 ================================================================================
+§CTX — RIGHT-CLICK CONTEXT MENUS (MAP + SYSTEM)
+================================================================================
+
+Rationale + full design: see [docs/CONTEXT_MENU.txt]. The CTX series adds
+right-click context menus on the MAP tab (over hexes / systems / routes /
+regions / multi-selections) and on a new in-system map embedded in the
+SYSTEM tab. Phases land incrementally; the in-system widget is a
+prerequisite for the system-view menu.
+
+CTX0. [DONE] Phase 0 — Embed `SystemView` in the SYSTEM tab. New
+       collapsing section "In-system map" at the top of
+       `builder/src/builder/panels/system.rs` (`show_system_map_section`)
+       renders the shared `sectorforge_gui_core::system_view::SystemView`
+       widget. `SystemClick::World(idx)` updates
+       `BuilderState::selected_world_id`; `SystemClick::Star` arms a new
+       `BuilderState::scroll_target: Option<&'static str>` field which
+       `show()` consumes in the same frame via `Response::scroll_to_me` on
+       the Star header so the Star section scrolls into view. Tests:
+       `system_view_renders_when_no_worlds`,
+       `world_click_updates_selected_world_id`.
+
+CTX1. Phase 1+ — see docs/CONTEXT_MENU.txt §5–§7 for the menu state types
+       (`SectorContextMenu`, `SectorMenuTarget`, `SystemContextMenu`,
+       `SystemMenuTarget`), menu schemas, and per-phase implementation
+       plan.
+
+CTX2. Phase 6 — System-view context menus require CTX0. See
+       docs/CONTEXT_MENU.txt §6.6–§6.9.
+
+================================================================================
 END OF BUILDER_REQS.txt

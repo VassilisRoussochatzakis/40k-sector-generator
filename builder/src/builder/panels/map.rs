@@ -46,6 +46,17 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         if let Some(id) = &state.pending_route_start {
             ui.label(format!("route from: {id}"));
         }
+        // §CTX1 Phase 4 — surface the live partial-regen anchor so the user
+        // can tell why their next primary click will be consumed.
+        if let Some(anchor) = state.partial_regen_anchor {
+            ui.colored_label(
+                egui::Color32::from_rgb(120, 200, 240),
+                format!("partial-regen anchor: ({}, {})", anchor.q, anchor.r),
+            );
+            if ui.small_button("cancel anchor").clicked() {
+                state.partial_regen_anchor = None;
+            }
+        }
     });
     crate::builder::panels::intel::show_map_intel_controls(ui, state);
     ui.separator();
@@ -302,7 +313,16 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             let modifiers = ui.ctx().input(|i| i.modifiers);
             let hit = pick_geom.hit_system(&state.sector, pos);
             let coord = pick_geom.pick_hex(pos, sector_w, sector_h);
-            handle_click(state, hit, coord, modifiers.shift);
+            // §CTX1 Phase 4 — primary click while a partial-regen anchor is
+            // armed completes the rect (anchor → click coord) and consumes the
+            // click without falling through to the tool dispatch below.
+            let completed = match (state.partial_regen_anchor, coord) {
+                (Some(_), Some(c)) => apply_partial_regen_anchor_click(state, c),
+                _ => false,
+            };
+            if !completed {
+                handle_click(state, hit, coord, modifiers.shift);
+            }
         }
     }
 
@@ -437,6 +457,12 @@ pub(super) enum SectorMenuAction {
     OpenIn {
         id: SystemId,
         target: OpenInTarget,
+    },
+    /// §CTX1 Phase 4 — arm the §G5 partial-regen anchor at `coord`. The next
+    /// primary click on the map completes the rect anchor→click (see
+    /// [`apply_partial_regen_anchor_click`]).
+    StartPartialRegen {
+        coord: HexCoord,
     },
     // ── §CTX1 Phase 3 — §6.3 multi-selection items ────────────────────────
     /// Focus the first id in `selected_systems` ordering.
@@ -575,6 +601,9 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
                 state.pinned_systems.insert(id);
             }
         }
+        SectorMenuAction::StartPartialRegen { coord } => {
+            state.partial_regen_anchor = Some(coord);
+        }
         SectorMenuAction::OpenIn { id, target } => match target {
             OpenInTarget::System => {
                 state.focus_entity(EntityRef::System(id));
@@ -693,6 +722,17 @@ fn render_empty_hex_menu(ui: &mut egui::Ui, state: &mut BuilderState, coord: Hex
     }
 
     ui.separator();
+
+    // §CTX1 Phase 4 — arm the §G5 partial-regen anchor at this hex. While the
+    // anchor is live the GENERATION tab surfaces a hint and the next primary
+    // click on the map completes the rect (see
+    // [`apply_partial_regen_anchor_click`]).
+    if ui
+        .selectable_label(false, "START PARTIAL REGEN HERE")
+        .clicked()
+    {
+        close |= apply_sector_menu_action(state, SectorMenuAction::StartPartialRegen { coord });
+    }
 
     let label = format!("COPY COORD ({},{})", coord.q, coord.r);
     if ui.selectable_label(false, label).clicked() {
@@ -1184,6 +1224,27 @@ fn handle_click(
             }
         }
     }
+}
+
+/// §CTX1 Phase 4 — primary-click completion of the partial-regen anchor flow.
+/// Reads the live anchor from `state`, normalises a [`PartialRegenRect`] with
+/// the click coord, writes it into [`BuilderState::partial_regen_rect`], clears
+/// the anchor, and returns `true` so the caller can swallow the click without
+/// double-dispatching the armed map tool. Returns `false` when no anchor is
+/// armed.
+pub(super) fn apply_partial_regen_anchor_click(
+    state: &mut BuilderState,
+    click_coord: HexCoord,
+) -> bool {
+    let Some(anchor) = state.partial_regen_anchor else {
+        return false;
+    };
+    state.partial_regen_rect = Some(crate::builder::state::PartialRegenRect::from_corners(
+        anchor,
+        click_coord,
+    ));
+    state.partial_regen_anchor = None;
+    true
 }
 
 /// §REG2 left/right click brush — `erase=true` removes the hex, otherwise
@@ -2155,6 +2216,62 @@ mod tests {
         let before_modal = state.modal.is_some();
         apply_sector_menu_action(&mut state, SectorMenuAction::MultiReseedWorlds);
         assert_eq!(state.modal.is_some(), before_modal);
+    }
+
+    // ── §CTX1 Phase 4 tests — partial-regen anchor ────────────────────────
+
+    #[test]
+    fn ctx_partial_regen_anchor_defaults_none() {
+        let state = blank(4, 4);
+        assert!(state.partial_regen_anchor.is_none());
+    }
+
+    #[test]
+    fn ctx_action_start_partial_regen_arms_anchor() {
+        let mut state = blank(8, 8);
+        let coord = HexCoord { q: 2, r: 3 };
+        let closed =
+            apply_sector_menu_action(&mut state, SectorMenuAction::StartPartialRegen { coord });
+        assert!(closed, "menu dismisses after arming the anchor");
+        assert_eq!(state.partial_regen_anchor, Some(coord));
+        // Arming the anchor must not pre-fill the rect.
+        assert!(state.partial_regen_rect.is_none());
+    }
+
+    #[test]
+    fn ctx_partial_regen_anchor_click_completes_rect() {
+        let mut state = blank(8, 8);
+        state.partial_regen_anchor = Some(HexCoord { q: 1, r: 5 });
+        let consumed = apply_partial_regen_anchor_click(&mut state, HexCoord { q: 4, r: 2 });
+        assert!(consumed, "click consumed while anchor was armed");
+        assert!(state.partial_regen_anchor.is_none(), "anchor cleared");
+        let rect = state.partial_regen_rect.expect("rect populated");
+        // Corners are normalised so min <= max regardless of click order.
+        assert_eq!(rect.min_q, 1);
+        assert_eq!(rect.max_q, 4);
+        assert_eq!(rect.min_r, 2);
+        assert_eq!(rect.max_r, 5);
+    }
+
+    #[test]
+    fn ctx_partial_regen_anchor_click_noop_without_anchor() {
+        let mut state = blank(8, 8);
+        let consumed = apply_partial_regen_anchor_click(&mut state, HexCoord { q: 0, r: 0 });
+        assert!(!consumed);
+        assert!(state.partial_regen_rect.is_none());
+    }
+
+    #[test]
+    fn ctx_partial_regen_anchor_not_in_session_file() {
+        // §CTX1 Phase 4 acceptance: anchor is in-memory only. `SessionFile`
+        // is the only on-disk encoding of `BuilderState`; round-tripping a
+        // state with the anchor armed must drop it.
+        use crate::builder::session::SessionFile;
+        let mut state = blank(4, 4);
+        state.partial_regen_anchor = Some(HexCoord { q: 2, r: 2 });
+        let file = SessionFile::from_state(&state, Vec::new());
+        let round_tripped = file.into_state();
+        assert!(round_tripped.partial_regen_anchor.is_none());
     }
 
     #[test]

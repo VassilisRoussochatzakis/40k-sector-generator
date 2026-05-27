@@ -391,18 +391,45 @@ leaving the MAP tab.
 **Tests:** bulk delete confirms before running; submenus disabled when no
 factions exist.
 
-### Phase 4 — Partial-regen anchor (§6.1 "START PARTIAL REGEN HERE")
+### Phase 4 — Partial-regen anchor (§6.1 "START PARTIAL REGEN HERE")  [DONE]
 
 Reuses the existing §G5 partial-regen flow. Adds a transient anchor field:
 
-- `pub partial_regen_anchor: Option<HexCoord>` on `BuilderState`.
-- When set, the GENERATION tab shows a "Use anchor + drag rect on map"
-  hint that completes the existing `PartialRegenRect`.
-- Map secondary-click sets the anchor; subsequent left-drag with the
-  GENERATION tab's "Partial regen" tool armed completes the rect.
+- `pub partial_regen_anchor: Option<HexCoord>` on `BuilderState`
+  ([builder/src/builder/state/mod.rs](../builder/src/builder/state/mod.rs)),
+  initialised to `None` in both `new_blank` and
+  `session::SessionFile::into_state` so a round-trip drops the anchor.
+- The empty-hex schema's `START PARTIAL REGEN HERE` row dispatches
+  `SectorMenuAction::StartPartialRegen { coord }` which writes the anchor
+  in [panels/map.rs](../builder/src/builder/panels/map.rs).
+- While the anchor is live: the MAP toolbox shows a coloured chip
+  `partial-regen anchor: (q, r)` plus a `cancel anchor` button, and the
+  GENERATION tab's §G5 collapsing header surfaces the hint *"Anchor armed
+  at (q, r) — click an opposite corner on the map to complete the rect"*
+  with a `Cancel anchor` button above the q/r DragValues.
+- The next primary click on any sector hex is consumed by
+  `apply_partial_regen_anchor_click(state, click_coord)`. It normalises a
+  `PartialRegenRect::from_corners(anchor, click_coord)` into
+  `state.partial_regen_rect`, clears the anchor, and returns `true` so
+  the click is **not** double-dispatched through the armed `MapTool`.
 
-**Tests:** anchor round-trips through serialisation skip-list (it is
-in-memory only and must not be persisted to `project.toml`).
+Implementation deviation vs. the original draft: the spec mentioned a
+"GENERATION-tab Partial regen tool" arming a drag; we use the anchor
+itself as the arm signal and consume the next primary click instead,
+which avoids adding a new `MapTool` variant and keeps Phase 4 inside the
+≤4 file budget for `builder/`.
+
+**Tests** (in [panels/map.rs](../builder/src/builder/panels/map.rs)
+under `mod tests`):
+
+- `ctx_partial_regen_anchor_defaults_none`
+- `ctx_action_start_partial_regen_arms_anchor`
+- `ctx_partial_regen_anchor_click_completes_rect` — also asserts the
+  corners get normalised regardless of click order.
+- `ctx_partial_regen_anchor_click_noop_without_anchor`
+- `ctx_partial_regen_anchor_not_in_session_file` — round-trips through
+  `SessionFile::{from_state, into_state}` and asserts the anchor is
+  dropped, satisfying the §12 in-memory-only invariant.
 
 ### Phase 5 — Route + region context (new commands)
 

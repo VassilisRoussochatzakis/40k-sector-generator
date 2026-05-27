@@ -375,6 +375,22 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
     egui::CollapsingHeader::new("Partial regeneration (§G5)")
         .default_open(false)
         .show(ui, |ui| {
+            // §CTX1 Phase 4 — hint shown when the MAP tab's right-click
+            // `START PARTIAL REGEN HERE` item armed an anchor. The next
+            // primary click on the map completes the rect anchor→click.
+            if let Some(anchor) = state.partial_regen_anchor {
+                ui.colored_label(
+                    egui::Color32::from_rgb(120, 200, 240),
+                    format!(
+                        "Anchor armed at ({}, {}) — click an opposite corner on the map to complete the rect.",
+                        anchor.q, anchor.r
+                    ),
+                );
+                if ui.button("Cancel anchor").clicked() {
+                    state.partial_regen_anchor = None;
+                }
+                ui.separator();
+            }
             let mut rect = state.partial_regen_rect.unwrap_or(PartialRegenRect {
                 min_q: 0,
                 min_r: 0,

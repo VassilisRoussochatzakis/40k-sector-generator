@@ -230,6 +230,7 @@ impl SessionFile {
             interestingness_custom_pick: String::new(),
             scroll_target: None,
             sector_context_menu: None,
+            partial_regen_anchor: None,
         }
     }
 }

@@ -2674,14 +2674,22 @@ CTX0. [DONE] Phase 0 — Embed `SystemView` in the SYSTEM tab. New
 CTX1. Phase 1+ — see docs/CONTEXT_MENU.txt §5–§7 for the menu state types
        (`SectorContextMenu`, `SectorMenuTarget`, `SystemContextMenu`,
        `SystemMenuTarget`), menu schemas, and per-phase implementation
-       plan. [DONE Phase 1/2/3] — sector right-click plumbing (Phase 1),
-       empty-hex + single-system items (Phase 2), and multi-selection
-       items including the inline DELETE-ALL confirm gate, ASSIGN PRIMARY
+       plan. [DONE Phase 1/2/3/4] — sector right-click plumbing (Phase 1),
+       empty-hex + single-system items (Phase 2), multi-selection items
+       including the inline DELETE-ALL confirm gate, ASSIGN PRIMARY
        FACTION + FLIP CONTROL STATE submenus, BULK RENAME pattern dialog,
-       PIN/UNPIN/RESEED bulk dispatch, and CLEAR SELECTION (Phase 3) are
-       shipped. The `apply_bulk_*` helpers in
-       `builder/src/builder/panels/system.rs` are `pub(crate)` so map.rs
-       reuses the same code path as the §S4 bulk-ops dialog.
+       PIN/UNPIN/RESEED bulk dispatch, and CLEAR SELECTION (Phase 3), and
+       the partial-regen anchor flow (Phase 4) are shipped. The
+       `apply_bulk_*` helpers in `builder/src/builder/panels/system.rs`
+       are `pub(crate)` so map.rs reuses the same code path as the §S4
+       bulk-ops dialog. Phase 4 adds the empty-hex menu's
+       `START PARTIAL REGEN HERE` item, the new
+       `BuilderState::partial_regen_anchor: Option<HexCoord>` (in-memory
+       only — dropped by `session::SessionFile` round-trip), the MAP
+       toolbox chip + "cancel anchor" button, the GENERATION tab hint
+       above the §G5 rect editor, and `apply_partial_regen_anchor_click`
+       in `panels/map.rs` which consumes the next primary click to
+       normalise a `PartialRegenRect` from anchor → click coord.
 
 CTX2. Phase 6 — System-view context menus require CTX0. See
        docs/CONTEXT_MENU.txt §6.6–§6.9.

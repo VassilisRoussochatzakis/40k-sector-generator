@@ -474,6 +474,14 @@ pub struct BuilderState {
     /// `secondary_clicked`; cleared on Escape / outside-click / focus-loss /
     /// item activation. In-memory only — never serialised.
     pub sector_context_menu: Option<SectorContextMenu>,
+    /// §CTX1 — Phase 4 of `docs/CONTEXT_MENU.txt`: anchor hex armed by the MAP
+    /// tab's right-click `START PARTIAL REGEN HERE` item. When `Some`, the next
+    /// primary click on any sector hex completes [`Self::partial_regen_rect`]
+    /// (anchor → click coord, normalised by [`PartialRegenRect::from_corners`])
+    /// and clears the anchor. The GENERATION tab surfaces a hint while the
+    /// anchor is live and offers a "Cancel anchor" button. In-memory only —
+    /// never serialised to `project.toml`.
+    pub partial_regen_anchor: Option<sectorforge::sector_model::HexCoord>,
 }
 
 impl BuilderState {
@@ -611,6 +619,7 @@ impl BuilderState {
             interestingness_custom_pick: String::new(),
             scroll_target: None,
             sector_context_menu: None,
+            partial_regen_anchor: None,
         }
     }
 }

@@ -1,0 +1,606 @@
+# CONTEXT_MENU — Builder Right-Click Menus (Sector + System Views)
+
+Scope: builder binary only (`sectorforge-builder`). Adds right-click context
+menus to the sector hex map (MAP tab) and to a per-system "in-system" map
+widget (SYSTEM tab). Viewer, exporter, and CLI binaries are out of scope.
+
+This document is a build guide for an LLM agent. It assumes the agent has
+read [CLAUDE.md](../CLAUDE.md), [docs/BUILDER_REQS.txt](BUILDER_REQS.txt), and
+the files referenced under "Touchpoints" before editing.
+
+---
+
+## 0. Why context menus
+
+The builder already exposes ~40 operations across the SYSTEM, ROUTES,
+REGIONS, FACTIONS, CONFLICT, ORBITAL, ARCHETYPE, CONTROL panels. Reaching
+them requires (1) selecting the entity, (2) switching tabs, (3) scrolling to
+the right collapsing-header section. A right-click menu lets a user perform
+the most common follow-up actions in-place without losing map context. This
+is purely an interaction-layer feature: every menu item must dispatch
+through an existing or new `BuilderCommand` so the undo log and validation
+pump continue to work.
+
+---
+
+## 1. Non-goals
+
+- No new persisted data model. Menu state is transient and in-memory only.
+- No global "command palette" — that is a separate feature.
+- No changes to viewer (`sectorforge-viewer`) or CLI surface.
+- No re-implementation of `egui::menu::menu_button`; reuse the egui idioms.
+- No keyboard-only shortcuts in v1 (covered in §15 — Future work).
+- No localisation pass — strings are English literals matching the existing
+  tab labels (`SCREAMING_CASE` for verbs, sentence case for tooltips).
+
+---
+
+## 2. Glossary
+
+| Term | Meaning |
+|------|---------|
+| MAP tab | `[builder/src/builder/panels/map.rs](../builder/src/builder/panels/map.rs)` — hex-grid sector view (the `SectorView` widget). |
+| SYSTEM tab | `[builder/src/builder/panels/system.rs](../builder/src/builder/panels/system.rs)` — per-system inspector. Currently has no in-system map widget. |
+| In-system map | `[gui-core/src/system_view.rs](../gui-core/src/system_view.rs)` (`SystemView`) — star + orbit rings + planets, used by viewer today. To be embedded in the SYSTEM tab as a precondition (Phase 0). |
+| Context = "right-click" target | The entity (or empty hex / orbit) under the cursor at the moment of the secondary click. |
+| Menu schema | The ordered list of items shown for a given context. |
+| Tool gating | Some items hide when an incompatible tool is armed (e.g. `AddRoute` arming a half-route). |
+
+---
+
+## 3. Existing infrastructure to reuse
+
+Read these before writing new code. The menu wiring should look like a
+natural extension of them, not a parallel system.
+
+| Concern | File:Line | Notes |
+|---------|-----------|-------|
+| Map interaction dispatch | [builder/src/builder/panels/map.rs:201-307](../builder/src/builder/panels/map.rs#L201-L307) | drag-start / drag-stop / click / `secondary_clicked` already wired. |
+| `pick_geom.hit_system` | [gui-core/src/sector_view.rs:958](../gui-core/src/sector_view.rs#L958) | Use to identify the system under cursor. |
+| `pick_geom.pick_hex` | [gui-core/src/sector_view.rs:942](../gui-core/src/sector_view.rs#L942) | Use to resolve a hex coord when not on a system. |
+| Map cache (`MapViewCache`) | [builder/src/builder/state/types.rs:321-325](../builder/src/builder/state/types.rs#L321-L325) | Contains subsector + per-hex lookup table — use it for region-hex / subsector context. |
+| Routes "touching system" | [builder/src/builder/panels/system.rs:464-496](../builder/src/builder/panels/system.rs#L464-L496) | Reuse the existing filter to list routes from a context system. |
+| `BuilderState::focus_entity` | [builder/src/builder/state/selection.rs:37](../builder/src/builder/state/selection.rs#L37) | Cross-tab nav with back-stack. Use for "Open in <tab>" items. |
+| `EntityRef` | [builder/src/builder/state/nav.rs:17-32](../builder/src/builder/state/nav.rs#L17-L32) | Already covers System / World / Route / Region / Subsector / Faction. |
+| `BuilderCommand` enum | [builder/src/builder/command.rs:90](../builder/src/builder/command.rs#L90) | Mutations must dispatch via existing variants (or new variants in Phase 5). |
+| `state.run(cmd)` | [builder/src/builder/state/undo.rs](../builder/src/builder/state/undo.rs) | Ring buffer + auto-save trigger — every menu mutation funnels here. |
+| `ModalKind::Message` | [builder/src/builder/state/types.rs:52](../builder/src/builder/state/types.rs#L52) | Error surface for failed commands. |
+| Existing transient dialogs | [builder/src/builder/panels/map.rs:564-696](../builder/src/builder/panels/map.rs#L564-L696) | Pattern to follow for any context-menu modal (rename / place / collision). |
+| Region painting helpers | [builder/src/builder/state/regions_ops.rs](../builder/src/builder/state/regions_ops.rs) | Reuse, do not duplicate. |
+| `paint_system_rings` | [gui-core/src/sector_view.rs:973](../gui-core/src/sector_view.rs#L973) | Use for hover-highlight ring under the cursor before opening the menu. |
+
+---
+
+## 4. UX specification
+
+### 4.1 Trigger gesture
+
+- **Primary trigger:** `Response::secondary_clicked()` on the map canvas.
+- **Modifier-aware:** `Ctrl + secondary_clicked` opens the menu even when
+  `MapTool::RegionPaint` is armed (the brush already consumes right-click
+  for erase — see [map.rs:286](../builder/src/builder/panels/map.rs#L286)).
+- **Suppress while dragging:** if `state.drag_system.is_some()` or
+  `state.rect_select.is_some()`, ignore the secondary click.
+- **Suppress while menu is open:** only one menu at a time; second secondary
+  click closes any open menu first, then opens a new one at the new pos.
+
+### 4.2 Menu appearance
+
+- Render with `egui::Area` (anchored at the cursor) + a containing
+  `egui::Frame::menu(ui.style())`. **Do not** use `Window` (menus must not
+  be resizable, draggable, or collapsible).
+- The menu must stay within the viewport — clamp its top-left so the area's
+  rect fits in `ui.ctx().screen_rect()`. If the menu would extend past the
+  right or bottom edge, flip it to anchor at the opposite corner of the
+  cursor.
+- Item style: `selectable_label` with monospace font, `2.0` vertical spacing,
+  `8.0` horizontal padding. Disabled items use `ui.add_enabled(false, …)`.
+- Submenus via `egui::menu::menu_button` for grouped destinations
+  (e.g. "Open in tab ▸ {Routes, Subsectors, Regions}").
+
+### 4.3 Dismiss rules
+
+- Click outside the area → dismiss.
+- `Escape` → dismiss (read via `ui.input(|i| i.key_pressed(Key::Escape))`).
+- Window loses focus → dismiss (`ui.ctx().input(|i| i.focused) == false`).
+- Item activation → run command, then dismiss.
+
+### 4.4 Hover preview
+
+While the menu is open, paint a `paint_system_rings` overlay (yellow,
+2.0 px) around the context entity so the user can confirm the click hit
+the intended target. Same overlay applies to the SystemView (highlight
+the contextual planet ring).
+
+---
+
+## 5. State plumbing
+
+A single new struct on `BuilderState` carries the open-menu payload. All
+context resolution happens at click-time; the struct just records "menu is
+open, here's where, here's what it points at".
+
+### 5.1 New types ([builder/src/builder/state/types.rs](../builder/src/builder/state/types.rs))
+
+```rust
+/// §CTX1 — open context menu on the MAP tab. None when no menu is open.
+#[derive(Debug, Clone)]
+pub struct SectorContextMenu {
+    pub screen_pos: egui::Pos2,
+    pub target: SectorMenuTarget,
+}
+
+#[derive(Debug, Clone)]
+pub enum SectorMenuTarget {
+    EmptyHex { coord: HexCoord },
+    System { id: SystemId, coord: HexCoord },
+    Route { id: RouteId, near_coord: HexCoord },
+    RegionHex { region: String, coord: HexCoord },
+    SubsectorBorder { subsector: String, coord: HexCoord },
+    MultiSelection { ids: Vec<SystemId> },
+}
+
+/// §CTX2 — open context menu on the in-system map (SYSTEM tab).
+#[derive(Debug, Clone)]
+pub struct SystemContextMenu {
+    pub screen_pos: egui::Pos2,
+    pub target: SystemMenuTarget,
+}
+
+#[derive(Debug, Clone)]
+pub enum SystemMenuTarget {
+    Star { system: SystemId },
+    World { system: SystemId, world: WorldId, orbit: u8 },
+    EmptyOrbit { system: SystemId, orbit: u8 },
+    Background { system: SystemId },
+}
+```
+
+Add two fields to `BuilderState`:
+
+```rust
+pub sector_context_menu: Option<SectorContextMenu>,
+pub system_context_menu: Option<SystemContextMenu>,
+```
+
+Both initialised to `None` in `BuilderState::new_blank` and `default_config`.
+
+### 5.2 Selection vs context
+
+Opening the menu **does not** mutate selection. The context target is
+ephemeral — distinct from `selected_system_id` / `selected_systems`. This
+matches existing modal patterns (`PendingPlace`, `PendingRename`).
+
+Exception: items labelled "Focus" or "Open in …" call `focus_entity` after
+running, which does mutate selection. That is the user's explicit intent.
+
+### 5.3 Menu lifecycle
+
+```
+secondary_clicked → resolve_context() → state.sector_context_menu = Some(…)
+                                          ↓
+                            show_context_menu(ctx, state) renders Area
+                                          ↓
+                  item activated → run command, then `state.sector_context_menu = None`
+                  dismiss        → `state.sector_context_menu = None`
+```
+
+---
+
+## 6. Menu schemas
+
+Every item lists: **label** (display string), **enabled-when** (gate), and
+**action** (the `BuilderCommand`, helper fn, or focus call it triggers).
+The order below is the render order.
+
+### 6.1 Sector map — empty hex
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `PLACE SYSTEM HERE…` | always | `state.pending_place = Some(PendingPlace { coord, name: "Sys-N" })` (reuses existing dialog) |
+| `PAINT REGION HERE` | `state.selected_region_id.is_some()` | `paint_region_at(state, coord, false)` |
+| `ERASE REGION HERE` | hex belongs to a region | `state.erase_region_hex(&id, coord)` |
+| —–-divider—– | | |
+| `START PARTIAL REGEN HERE` | always | `state.partial_regen_anchor = Some(coord)` (Phase 4 — new field) |
+| `COPY COORD ({q},{r})` | always | clipboard via `ui.output_mut(\|o\| o.copied_text = format!("{q},{r}"))` |
+
+### 6.2 Sector map — single system
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `FOCUS SYSTEM` | always | `state.focus_entity(EntityRef::System(id))` |
+| `RENAME…` | always | `state.pending_rename = Some(PendingRename { … })` |
+| `MOVE…` (arms tool) | always | `state.map_tool = MapTool::MoveSystem; state.drag_system = Some(id)` |
+| `DELETE` | always | `BuilderCommand::RemoveSystem { id, before: None, removed_routes: vec![] }` |
+| —–-divider—– | | |
+| `ADD ROUTE FROM HERE…` | always | `state.map_tool = MapTool::AddRoute; state.pending_route_start = Some(id)` |
+| `ADD WORLD` | always | `BuilderCommand::AddWorld { system: id, name: "World-N", result_id: None }` |
+| `REGENERATE SYSTEM` | `!pinned_systems.contains(&id)` | `state.generate_system_here(coord, index, None)` |
+| `TOGGLE PIN` | always | `pinned_systems.insert/remove(id)` |
+| —–-divider—– | | |
+| `Open in ▸` (submenu) | always | jumps via `focus_entity`: System, Worlds, Routes, Conflict, Orbital, Archetype, Intel |
+| —–-divider—– | | |
+| `COPY ID` | always | clipboard |
+| `COPY COORD` | always | clipboard |
+
+### 6.3 Sector map — multi-selection (rect-select live OR `selected_systems.len() > 1`)
+
+Shown when the right-click lands on a system already in
+`state.selected_systems`, or when no system is hit but the cursor is inside
+the live `rect_select` box.
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `FOCUS FIRST` | always | `state.focus_entity(EntityRef::System(first))` |
+| `BULK RENAME…` | always | opens a small dialog (reuse `show_rename_dialog` pattern) with `Sys-{n}` default; calls `apply_bulk_rename` from [system.rs:1030](../builder/src/builder/panels/system.rs#L1030) |
+| `PIN ALL` | any unpinned in selection | mutates `pinned_systems` |
+| `UNPIN ALL` | any pinned in selection | mutates `pinned_systems` |
+| `DELETE ALL` | always | issue N `BuilderCommand::RemoveSystem`; surface failures via `ModalKind::Message`; **must** be confirmation-gated via a small inline "Confirm? [Yes] [No]" submenu — no global modal |
+| `ASSIGN PRIMARY FACTION ▸` | factions exist | submenu with one button per faction → `apply_bulk_primary_faction` |
+| `FLIP CONTROL STATE ▸` | always | submenu → `apply_bulk_control_state` |
+| `RESEED WORLDS` | any non-pinned in selection | `apply_bulk_reseed` |
+| `CLEAR SELECTION` | always | `state.selected_systems.clear()` |
+
+(All `apply_bulk_*` helpers already exist in [system.rs:1030-1110](../builder/src/builder/panels/system.rs#L1030-L1110). Promote them to `pub(crate)` so map.rs can call them.)
+
+### 6.4 Sector map — route line
+
+Hit-test: extend `pick_geom` with `hit_route(&sector, screen_pos) -> Option<RouteId>` (see Phase 5 — new geometry helper). Route lines are drawn as poly-lines between hex centres; the helper does point-to-segment distance ≤ `hex_size * 0.18`.
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `FOCUS ROUTE` | always | `focus_entity(EntityRef::Route(id))` |
+| `REMOVE ROUTE` | always | `BuilderCommand::RemoveRoute { id, before: None }` |
+| `CYCLE ROUTE TYPE` | always | `BuilderCommand::SetRouteType { id, after: <next variant> }` (new — see Phase 5) |
+| `CYCLE STABILITY` | always | `BuilderCommand::SetRouteStability { id, after: <next variant> }` (new) |
+| `Open in ROUTES ▸` | always | `focus_entity(EntityRef::Route(id))` |
+
+### 6.5 Sector map — region hex
+
+Resolved via `MapViewCache.lookup.region_for_hex(coord)` (add to
+`SectorMapCache` if missing — Phase 5).
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `FOCUS REGION` | always | `focus_entity(EntityRef::Region(region))` |
+| `ERASE FROM REGION` | always | `state.erase_region_hex(&region, coord)` |
+| `RECOLOR ▸` | always | submenu of palette entries → `BuilderCommand::SetRegionColor { … }` (new — Phase 5) |
+| `RENAME REGION…` | always | inline dialog → `BuilderCommand::RenameRegion { … }` (new — Phase 5) |
+
+### 6.6 System view — star
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `FOCUS STAR DETAILS` | always | scroll the SYSTEM tab to the Star section (set `state.scroll_target = Some("sys_star_grid")`) — see Phase 0 |
+| `CYCLE SPECTRAL CLASS` | star is present | `BuilderCommand::SetStarSpectral { system, after: <next> }` (new — Phase 6) |
+| `REMOVE STAR` | star is present | `BuilderCommand::SetStar { system, after: None }` (new — Phase 6) |
+| `ADD STAR` | no star | `BuilderCommand::SetStar { system, after: Some(GeneratedStar { … defaults … }) }` |
+
+### 6.7 System view — world (planet)
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `FOCUS WORLD` | always | `focus_entity(EntityRef::World { system, world })` |
+| `RENAME…` | always | inline dialog → `BuilderCommand::RenameWorld { … }` (new — Phase 6) |
+| `MOVE ORBIT ▸` | always | submenu of orbits 1..=max → mutates `world.orbit` via new `BuilderCommand::SetWorldOrbit { … }` |
+| `DUPLICATE WORLD` | always | `BuilderCommand::AddWorld { … }` then copy fields (compound action) |
+| `REMOVE WORLD` | always | `BuilderCommand::RemoveWorld { … }` |
+| —–-divider—– | | |
+| `Open in WORLD tab` | always | `focus_entity` |
+| `COPY ID` | always | clipboard |
+
+### 6.8 System view — empty orbit
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `ADD WORLD HERE` | always | `BuilderCommand::AddWorld { system, name: "World-N", result_id: None }` then set its orbit (compound) |
+
+### 6.9 System view — background
+
+| Item | Enabled when | Action |
+|------|--------------|--------|
+| `ADD WORLD` | always | as above, default orbit = `max+1` |
+| `REGENERATE SYSTEM` | `!pinned` | `state.generate_system_here(coord, index, None)` |
+| `DERIVE ORBITAL ASSETS` | always | call `derive_orbital_assets(sys)` and dispatch `SetOrbitalAssets` + `SetBlockadeReport` |
+| `Open in ORBITAL section` | always | jump to the §O1 collapsing header |
+
+---
+
+## 7. Implementation plan
+
+Phases are sized to each fit within a single Claude run (≈300–800 lines of
+diff, ≤6 files, all `cargo test`-clean). Each phase ends green; later
+phases assume earlier phases shipped. **Do not bundle phases** — each must
+land as its own commit so review can happen incrementally.
+
+### Phase 0 — Prerequisite: embed `SystemView` in SYSTEM tab
+
+The SYSTEM tab today is field-editor only. The system context menu has no
+host without the widget.
+
+- Add a new collapsing section "In-system map" at the top of
+  [system.rs](../builder/src/builder/panels/system.rs) (above `show_identity_section`).
+- Render `gui_core::system_view::SystemView { system: sys, selected: SystemSelection::None, side: 480.0 }`.
+- Wire `SystemClick::World(idx)` → `state.selected_world_id = Some(world_id)`
+  and `SystemClick::Star` → no-op (scrolls Star header into view via the
+  new `scroll_target` field).
+- Add `pub scroll_target: Option<&'static str>` to `BuilderState` and apply
+  it in `system::show` via `ui.scroll_to_rect` once.
+- Tests: `system_view_renders_when_no_worlds`, `world_click_updates_selected_world_id`.
+
+**Acceptance:** opening the SYSTEM tab on a system with worlds shows the
+in-system disk; clicking a planet updates the existing world picker.
+
+**Scope guard:** no menu work yet. Stop here, commit, ship.
+
+### Phase 1 — Core menu plumbing (sector, no items yet)
+
+- Add `SectorContextMenu` + `SectorMenuTarget` to
+  [types.rs](../builder/src/builder/state/types.rs).
+- Add `sector_context_menu: Option<SectorContextMenu>` to `BuilderState`
+  (init `None`).
+- In [map.rs](../builder/src/builder/panels/map.rs)`::show_hex_map`:
+  - On `secondary_clicked` (and not `RegionPaint` mode, and not dragging),
+    resolve the target via a new `resolve_sector_context(state, geom, pos)`
+    and store the menu.
+  - Add a `show_sector_context_menu(ctx, state)` rendered after the map
+    canvas, that draws an empty `egui::Area` + frame + a single
+    placeholder item `CLOSE` for now.
+  - Dismiss on Escape / focus-loss / outside click.
+- Add `paint_system_rings` overlay highlighting the context system in
+  yellow.
+
+**Tests:** `secondary_click_on_system_opens_menu`,
+`secondary_click_dismissed_during_drag`,
+`escape_closes_menu`.
+
+**Acceptance:** right-clicking on the map opens an empty menu; clicking
+away closes it. No real items yet.
+
+### Phase 2 — Sector menu items for existing commands only
+
+Wire the items in **§6.1 (empty hex)** and **§6.2 (single system)** that
+correspond to **existing** `BuilderCommand` variants and helpers. Skip
+anything marked "new" — those land in Phase 5.
+
+Specifically include:
+- empty hex: `PLACE SYSTEM HERE…`, `PAINT REGION HERE`, `ERASE REGION HERE`, `COPY COORD`
+- system: `FOCUS SYSTEM`, `RENAME…`, `DELETE`, `ADD ROUTE FROM HERE…`,
+  `ADD WORLD`, `REGENERATE SYSTEM`, `TOGGLE PIN`, `Open in ▸` submenu,
+  `COPY ID`, `COPY COORD`
+
+For each item, on activation: run command (or set pending dialog), then
+`state.sector_context_menu = None`.
+
+**Tests:** one per item — assert the right `BuilderCommand` lands on
+`state.command_log` (or the right pending field is set) after simulated
+activation. Reuse the test scaffolding from `map.rs` tests.
+
+**Acceptance:** the most common map workflows are available without
+leaving the MAP tab.
+
+### Phase 3 — Multi-selection menu (§6.3)
+
+- Detect multi-selection context in `resolve_sector_context`.
+- Promote `apply_bulk_*` helpers in [system.rs:1030-1110](../builder/src/builder/panels/system.rs#L1030-L1110)
+  to `pub(crate)` (no behaviour change) so map.rs can call them.
+- Add the inline "Confirm? [Yes] [No]" submenu pattern for `DELETE ALL` —
+  do **not** use a global modal (would lose menu context).
+- Submenus for `ASSIGN PRIMARY FACTION ▸` and `FLIP CONTROL STATE ▸`.
+
+**Tests:** bulk delete confirms before running; submenus disabled when no
+factions exist.
+
+### Phase 4 — Partial-regen anchor (§6.1 "START PARTIAL REGEN HERE")
+
+Reuses the existing §G5 partial-regen flow. Adds a transient anchor field:
+
+- `pub partial_regen_anchor: Option<HexCoord>` on `BuilderState`.
+- When set, the GENERATION tab shows a "Use anchor + drag rect on map"
+  hint that completes the existing `PartialRegenRect`.
+- Map secondary-click sets the anchor; subsequent left-drag with the
+  GENERATION tab's "Partial regen" tool armed completes the rect.
+
+**Tests:** anchor round-trips through serialisation skip-list (it is
+in-memory only and must not be persisted to `project.toml`).
+
+### Phase 5 — Route + region context (new commands)
+
+This phase introduces new `BuilderCommand` variants. Keep them minimal —
+each has a single `before`/`after` field and is undoable.
+
+- New geometry helper `pick_geom.hit_route(&sector, pos) -> Option<RouteId>`
+  (point-to-segment, threshold `hex_size * 0.18`). Add unit test.
+- Extend `SectorMapCache` with `region_for_hex(coord) -> Option<&str>`.
+- New `BuilderCommand` variants:
+  - `SetRouteType { id, before, after }`
+  - `SetRouteStability { id, before, after }`
+  - `SetRegionColor { region, before, after }`
+  - `RenameRegion { id, before, after }`
+- Wire §6.4 (route) and §6.5 (region hex) menus.
+
+**Tests:** each new command round-trips through `undo`/`redo`; route
+hit-test picks the nearest segment.
+
+### Phase 6 — In-system menu (§6.6 – §6.9)
+
+Requires Phase 0.
+
+- Extract a small `system_pick(pos) -> SystemMenuTarget` helper next to
+  the embedded `SystemView` widget. Test it like `pick_hex`.
+- New `BuilderCommand` variants:
+  - `SetStar { system, before, after: Option<GeneratedStar> }`
+  - `SetStarSpectral { system, before, after }`
+  - `RenameWorld { system, world, before, after }`
+  - `SetWorldOrbit { system, world, before, after }`
+- Wire the four context schemas.
+- `DERIVE ORBITAL ASSETS` reuses
+  [orbital.rs:55-60](../builder/src/builder/panels/orbital.rs#L55-L60)
+  by extracting its derive-and-dispatch pair into a `pub(crate)` helper.
+
+**Tests:** orbit-cycle wraps correctly; remove-star clears spectral
+type; duplicate-world produces unique id.
+
+### Phase 7 — Polish
+
+- Hover-ring overlay (`paint_system_rings`) while menu open.
+- Menu clamping to viewport (flip-anchor when overflowing).
+- Disabled-item tooltips (`on_hover_text` explaining why).
+- Visual divider style matching existing tab headers.
+- Keyboard arrow-nav within open menu (`Up`/`Down`/`Enter`/`Escape`) —
+  use egui's built-in focus chain.
+- Telemetry hook (optional): log menu-item activations via the existing
+  `log_*progress` channel for the status bar.
+
+**Tests:** snapshot test of menu render at three cursor positions.
+
+### Phase 8 — Documentation
+
+- Update [GUIDE.md](../GUIDE.md) with a "Right-click on the map" section
+  in the MAP and SYSTEM chapters.
+- Update the file index in [CLAUDE.md](../CLAUDE.md) with the new helpers
+  (per-file `Purpose` lines).
+- Add the §CTX1 / §CTX2 markers to [BUILDER_REQS.txt](BUILDER_REQS.txt)
+  so future requirement passes can pick them up.
+
+---
+
+## 8. Scope guard checklist per phase
+
+Before opening a PR, the agent must verify:
+
+1. `cargo fmt --all -- --check` passes.
+2. `cargo check --workspace --all-targets` passes.
+3. `cargo test --workspace` passes.
+4. No `unwrap` / `expect` introduced on `state.run` failure paths — every
+   error must funnel into `ModalKind::Message`.
+5. Diff stays under the file count in the phase header (Phase 0–4: ≤4
+   files; Phase 5–7: ≤6 files; Phase 8: docs only).
+6. No new dependencies in `Cargo.toml`.
+7. No changes outside `builder/` and `docs/` except Phase 5/6 which may
+   add a helper to `gui-core/` (geometry hit-tests). Viewer/CLI untouched.
+8. Manual smoke: launch `cargo run -p sectorforge-builder`, open a sample
+   project, right-click on (a) empty hex, (b) a system, (c) a selection,
+   (d) — for Phase 6 — a planet. Confirm the menu opens, items work, and
+   the menu dismisses on Escape and outside click.
+
+If a phase grows past these limits, **stop and split it** rather than
+bundling. Splits keep the review surface small.
+
+---
+
+## 9. Testing strategy
+
+| Phase | Test suite | What to cover |
+|-------|-----------|---------------|
+| 0 | `system::tests::system_view_*` | widget mount, world click → selection |
+| 1 | `map::tests::ctx_menu_lifecycle_*` | open / dismiss / drag-suppress |
+| 2 | `map::tests::ctx_menu_item_*` | one test per item — assert command or pending field |
+| 3 | `map::tests::ctx_menu_multi_*` | bulk dispatch + confirmation gate |
+| 4 | `state::tests::partial_regen_anchor_*` | anchor not serialised |
+| 5 | `gui_core::sector_view::tests::hit_route_*`, `command::tests::*_undo_redo` | hit-test + command round-trip |
+| 6 | `system::tests::ctx_menu_world_*`, `command::tests::set_world_orbit_*` | orbit cycle + duplicate |
+| 7 | `map::tests::menu_clamps_to_viewport`, `system::tests::menu_clamps_to_viewport` | placement edge cases |
+
+Every new `BuilderCommand` variant needs **at least** an `apply` round-trip
+test and an `undo` test. Use the existing `command::tests` patterns at
+[builder/src/builder/command.rs:700+](../builder/src/builder/command.rs#L700).
+
+---
+
+## 10. Edge cases
+
+| Case | Handling |
+|------|----------|
+| Right-click on a hex outside sector bounds | No menu. `pick_hex` returns None → bail. |
+| Right-click during `RegionPaint` (existing erase binding) | Default: paint-erase wins (matches current behaviour). With `Ctrl`: menu opens instead. |
+| Sector has 0 systems | Empty-hex menu only; system items never appear. |
+| Sector has 0 factions | `ASSIGN PRIMARY FACTION ▸` submenu disabled, tooltip explains. |
+| Multi-select rect mid-drag | Suppress menu — `rect_select.is_some()` guard. |
+| Pinned system | `REGENERATE SYSTEM` disabled, tooltip: "Unpin first (§S3)". |
+| Route hit-test ambiguity (two routes overlap) | Pick the shorter segment-distance; tie → lower `RouteId` lex. |
+| Two systems on the same hex (collision dialog already open) | Suppress menu until `pending_collision` clears. |
+| Menu open + tab switched via keyboard | Dismiss menu in `BuilderTab::set` (already a single funnel). |
+| Menu open + project closed / reloaded | Dismiss on `BuilderState::replace_sector`. |
+| Undo while menu open | Menu stays open but its target may be stale; on next render, re-resolve and dismiss if target no longer exists. |
+| Right-click on an in-flight ADD-ROUTE pending start | Show only `CANCEL ROUTE` + `Open in ROUTES`. |
+
+---
+
+## 11. Accessibility
+
+- All menu items must be reachable via keyboard: `Tab` to enter the
+  menu, arrows to traverse, `Enter` to activate, `Escape` to dismiss.
+  egui's default focus chain handles this if items are real
+  `selectable_label`s; verify with a manual keyboard-only pass.
+- Disabled items must communicate **why** via `on_hover_text`. Do not
+  silently hide items unless they would be nonsensical (e.g. "Add star"
+  on a system that already has one).
+- Colour is never the only signal — use both colour and a leading symbol
+  (`✕` for destructive, `▸` for submenu, `…` for "opens dialog").
+
+---
+
+## 12. Persistence + invariants
+
+- Neither `SectorContextMenu` nor `SystemContextMenu` is serialised. Both
+  fields are `#[serde(skip)]` if any serde derive is added in the future.
+- `partial_regen_anchor` (Phase 4) is also `#[serde(skip)]`.
+- Menu opening cannot move the sector into an invalid state — only item
+  activation can, and that goes through `state.run` which already debounces
+  validation.
+
+---
+
+## 13. Telemetry / logging
+
+Optional for v1. If added, route through the existing `log_*progress`
+helpers in [cli/common.rs](../src/cli/common.rs) — do **not** introduce
+`println!`. A single-line event per activation: `ctx_menu: <schema> :: <item>`.
+
+---
+
+## 14. Open questions (resolve before Phase 5)
+
+1. Should `CYCLE ROUTE TYPE` be one menu item that rotates through all
+   variants, or a submenu with one item per variant? Default: **submenu**
+   (better discoverability). Confirm with the user before implementing.
+2. Region colour palette — is there an existing palette enum, or do we
+   need to extend the regions module? Audit
+   [src/regions.rs](../src/regions.rs) before Phase 5.
+3. Is there demand for a "Copy as TOML snippet" item on systems and
+   routes? Cheap to add once clipboard plumbing is in. Default: defer to
+   v2.
+4. Should the menu inherit the `theme` setting (`gui_core::palette`) or
+   use egui's default popup style? Default: theme-aware (use
+   `palette::menu_frame()` if it exists, else fall back to
+   `egui::Frame::menu(ui.style())`).
+
+---
+
+## 15. Future work (post-v1)
+
+- Global command palette (`Ctrl+Shift+P`) reusing the same item registry.
+- User-defined keybindings for the top-N most-used menu items.
+- "Recently used" section at the top of every menu.
+- Drag-to-rearrange items (per-user customisation).
+- Right-click on the legend / heatmap chip → quick-toggle overlays.
+- Right-click on the subsector label → "Set capital here", "Rename
+  subsector", "Recluster around this system".
+
+---
+
+## 16. Quick file map for the implementer
+
+| Need to… | Touch… |
+|----------|--------|
+| Add menu state | [builder/src/builder/state/types.rs](../builder/src/builder/state/types.rs), [builder/src/builder/state/mod.rs](../builder/src/builder/state/mod.rs) |
+| Resolve sector context | [builder/src/builder/panels/map.rs](../builder/src/builder/panels/map.rs) (new private fn) |
+| Render sector menu | same file (new private fn under transient-dialogs region) |
+| Embed SystemView | [builder/src/builder/panels/system.rs](../builder/src/builder/panels/system.rs) (new top section) |
+| Resolve system context | new module `[builder/src/builder/panels/system_map.rs](../builder/src/builder/panels/system_map.rs)` |
+| Add hit-test helpers | [gui-core/src/sector_view.rs](../gui-core/src/sector_view.rs) (`hit_route`), [gui-core/src/system_view.rs](../gui-core/src/system_view.rs) (`pick_world`) |
+| New commands | [builder/src/builder/command.rs](../builder/src/builder/command.rs) |
+| Update doc index | [CLAUDE.md](../CLAUDE.md), [GUIDE.md](../GUIDE.md), [docs/BUILDER_REQS.txt](BUILDER_REQS.txt) |
+
+End of CONTEXT_MENU.

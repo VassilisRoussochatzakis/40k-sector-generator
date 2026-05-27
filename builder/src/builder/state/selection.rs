@@ -31,6 +31,19 @@ impl BuilderState {
         }
     }
 
+    /// §CTX1 §10 — switch the active tab and dismiss any open context menu so
+    /// the menu does not linger off-tab. Use this in place of a direct
+    /// `state.active_tab = ...` write whenever the source of truth is a user
+    /// action (tab-bar click, focus-entity, keyboard shortcut). Tests may still
+    /// poke the field directly.
+    pub fn set_active_tab(&mut self, tab: BuilderTab) {
+        if self.active_tab != tab {
+            self.sector_context_menu = None;
+            self.system_context_menu = None;
+        }
+        self.active_tab = tab;
+    }
+
     /// §LINK2 — navigate to an entity: switch tabs and populate the matching
     /// selection field. Idempotent. Pushes prior focus onto `nav_back_stack`
     /// (capped at 64) and clears `nav_forward_stack`.
@@ -136,6 +149,6 @@ impl BuilderState {
             }
             EntityRef::Tab(_) => {}
         }
-        self.active_tab = target.target_tab();
+        self.set_active_tab(target.target_tab());
     }
 }

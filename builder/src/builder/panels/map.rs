@@ -561,6 +561,10 @@ pub(super) enum SectorMenuAction {
     RenameRegionOpen {
         region: String,
     },
+    /// §10 #12 — abort an in-flight ADD-ROUTE: clears
+    /// `pending_route_start` and disarms the `MapTool::AddRoute` tool. Exposed
+    /// from the §6.2 system menu when a half-route is already armed.
+    CancelRoute,
     // Clipboard side-effects belong on `ui.ctx()`, so the render path handles
     // COPY COORD / COPY ID inline rather than threading them through this
     // enum.
@@ -611,6 +615,7 @@ pub(super) fn sector_menu_action_label(action: &SectorMenuAction) -> &'static st
         SectorMenuAction::EraseRegionHex { .. } => "region :: ERASE HEX",
         SectorMenuAction::SetRegionKind { .. } => "region :: RECOLOR",
         SectorMenuAction::RenameRegionOpen { .. } => "region :: RENAME",
+        SectorMenuAction::CancelRoute => "route :: CANCEL",
     }
 }
 
@@ -879,6 +884,10 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
                 .unwrap_or_default();
             state.pending_region_rename = Some(PendingRegionRename { region, text });
         }
+        SectorMenuAction::CancelRoute => {
+            state.pending_route_start = None;
+            state.map_tool = MapTool::Select;
+        }
     }
     true
 }
@@ -954,6 +963,28 @@ fn render_system_menu(
     id: SystemId,
     coord: HexCoord,
 ) -> bool {
+    // §CTX1 §10 row 12 — while ADD-ROUTE is half-armed, the system menu
+    // collapses to "CANCEL ROUTE" + "Open in ROUTES" so the user can't
+    // accidentally start a second pending route or run a destructive item
+    // (DELETE / REGENERATE) that would also tear down the half-route.
+    if state.pending_route_start.is_some() {
+        let mut close = false;
+        if ui.selectable_label(false, "CANCEL ROUTE").clicked() {
+            close |= apply_sector_menu_action(state, SectorMenuAction::CancelRoute);
+        }
+        if ui.selectable_label(false, "Open in ROUTES").clicked() {
+            close |= apply_sector_menu_action(
+                state,
+                SectorMenuAction::OpenIn {
+                    id,
+                    target: OpenInTarget::Routes,
+                },
+            );
+        }
+        let _ = coord;
+        return close;
+    }
+
     let mut close = false;
 
     if ui.selectable_label(false, "FOCUS SYSTEM").clicked() {
@@ -1404,6 +1435,27 @@ fn should_dismiss_sector_context_menu(
     esc_pressed || !focused || primary_click_outside
 }
 
+/// §CTX1 §10 — returns `true` when the target referenced by an open menu no
+/// longer exists in `state.sector`. The renderer calls this each frame so an
+/// undo / redo / replace_sector that removes the referenced entity drops the
+/// menu instead of acting on a vanished id. Pure helper so unit tests can
+/// exercise the System / Route / RegionHex / MultiSelection cases without an
+/// egui context. `EmptyHex` and `SubsectorBorder` are inert — staleness only
+/// makes sense for entity-backed variants.
+pub(super) fn sector_menu_target_is_stale(state: &BuilderState, target: &SectorMenuTarget) -> bool {
+    match target {
+        SectorMenuTarget::System { id, .. } => !state.sector.systems.iter().any(|s| &s.id == id),
+        SectorMenuTarget::Route { id, .. } => !state.sector.routes.iter().any(|r| &r.id == id),
+        SectorMenuTarget::RegionHex { region, .. } => {
+            !state.sector.regions.iter().any(|r| r.id == *region)
+        }
+        SectorMenuTarget::MultiSelection { ids } => ids
+            .iter()
+            .all(|id| !state.sector.systems.iter().any(|s| &s.id == id)),
+        SectorMenuTarget::EmptyHex { .. } | SectorMenuTarget::SubsectorBorder { .. } => false,
+    }
+}
+
 /// §CTX1 — Phase 7 polish: pick the [`Align2`] pivot that should anchor a
 /// floating right-click menu at `cursor`, so the menu opens *away from* the
 /// nearer screen edge. Combined with `Area::constrain(true)` this keeps the
@@ -1437,6 +1489,13 @@ fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
     let Some(menu) = state.sector_context_menu.as_ref() else {
         return;
     };
+    // §CTX1 §10 — re-resolve target validity on every render so an undo/redo
+    // that removed the referenced system/route/region drops the now-stale menu
+    // instead of dispatching actions against a vanished id.
+    if sector_menu_target_is_stale(state, &menu.target) {
+        state.sector_context_menu = None;
+        return;
+    }
     let screen_pos = menu.screen_pos;
     let target = menu.target.clone();
     let mut close = false;
@@ -3084,5 +3143,199 @@ mod tests {
         let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
         let restored = file.into_state();
         assert!(restored.last_menu_action.is_none());
+    }
+
+    // ── §CTX1 §10 edge-case tests ─────────────────────────────────────────
+
+    #[test]
+    fn ctx_resolve_returns_none_outside_sector_bounds() {
+        // §10 row 1: right-clicking outside the hex grid yields no menu —
+        // `pick_hex` returns None and `resolve_sector_context` falls through.
+        let state = blank(4, 4);
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        // Position well outside any hex centre (negative quadrant + far enough
+        // that no hex is within the 0.95 * hex_size inscribed radius).
+        let outside = Pos2::new(-10_000.0, -10_000.0);
+        assert!(resolve_sector_context(&state, &geom, outside, 4, 4, false).is_none());
+    }
+
+    #[test]
+    fn ctx_resolve_suppressed_when_pending_collision() {
+        // §10 row 8: while the §S6 collision dialog is armed, the menu must
+        // not open (a second modal layered on top would steal focus).
+        let mut state = blank(8, 8);
+        let a = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "A")
+            .unwrap();
+        let b = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "B")
+            .unwrap();
+        state.pending_collision = Some(PendingCollision {
+            dragging: a,
+            target: HexCoord { q: 2, r: 2 },
+            occupant: b,
+        });
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(2, 2);
+        assert!(resolve_sector_context(&state, &geom, centre, 8, 8, false).is_none());
+    }
+
+    #[test]
+    fn sector_menu_target_stale_when_system_removed() {
+        // §10 row 11: an undo that removes the targeted system drops the menu
+        // next render. Pure helper drives the dismiss path.
+        let mut state = blank(4, 4);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "Alpha")
+            .unwrap();
+        let target = SectorMenuTarget::System {
+            id: id.clone(),
+            coord: HexCoord { q: 1, r: 1 },
+        };
+        assert!(!sector_menu_target_is_stale(&state, &target));
+        state.sector.systems.retain(|s| s.id != id);
+        assert!(sector_menu_target_is_stale(&state, &target));
+    }
+
+    #[test]
+    fn sector_menu_target_stale_when_route_removed() {
+        let mut state = blank(8, 8);
+        let route_id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 4, r: 0 });
+        let target = SectorMenuTarget::Route {
+            id: route_id,
+            near_coord: HexCoord { q: 0, r: 0 },
+        };
+        assert!(!sector_menu_target_is_stale(&state, &target));
+        state.sector.routes.clear();
+        assert!(sector_menu_target_is_stale(&state, &target));
+    }
+
+    #[test]
+    fn sector_menu_target_stale_when_region_removed() {
+        let mut state = blank(4, 4);
+        add_region(&mut state, "reg-x", HexCoord { q: 0, r: 0 });
+        let target = SectorMenuTarget::RegionHex {
+            region: "reg-x".into(),
+            coord: HexCoord { q: 0, r: 0 },
+        };
+        assert!(!sector_menu_target_is_stale(&state, &target));
+        state.sector.regions = std::sync::Arc::new(vec![]);
+        assert!(sector_menu_target_is_stale(&state, &target));
+    }
+
+    #[test]
+    fn sector_menu_target_not_stale_for_empty_hex_or_subsector_border() {
+        // EmptyHex / SubsectorBorder don't reference an entity id, so they're
+        // never stale — they survive an undo that, say, removes nearby systems.
+        let state = blank(4, 4);
+        assert!(!sector_menu_target_is_stale(
+            &state,
+            &SectorMenuTarget::EmptyHex {
+                coord: HexCoord { q: 1, r: 1 }
+            }
+        ));
+        assert!(!sector_menu_target_is_stale(
+            &state,
+            &SectorMenuTarget::SubsectorBorder {
+                subsector: "sub-A".into(),
+                coord: HexCoord { q: 1, r: 1 },
+            }
+        ));
+    }
+
+    #[test]
+    fn sector_menu_target_stale_when_every_multi_id_removed() {
+        let mut state = blank(4, 4);
+        let a = state
+            .sector
+            .add_system(HexCoord { q: 0, r: 0 }, "A")
+            .unwrap();
+        let b = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "B")
+            .unwrap();
+        let target = SectorMenuTarget::MultiSelection {
+            ids: vec![a.clone(), b.clone()],
+        };
+        assert!(!sector_menu_target_is_stale(&state, &target));
+        // Removing only one of the two leaves the multi-selection non-stale —
+        // the menu still has *something* to act on.
+        state.sector.systems.retain(|s| s.id != a);
+        assert!(!sector_menu_target_is_stale(&state, &target));
+        // Remove both — now every referenced id is gone.
+        state.sector.systems.clear();
+        assert!(sector_menu_target_is_stale(&state, &target));
+    }
+
+    #[test]
+    fn set_active_tab_drops_sector_context_menu() {
+        // §10 row 9: switching tabs while a menu is open must drop it so the
+        // ghost menu doesn't reappear when the user returns to MAP.
+        let mut state = blank(4, 4);
+        state.active_tab = BuilderTab::Map;
+        state.sector_context_menu = Some(SectorContextMenu {
+            screen_pos: Pos2::ZERO,
+            target: SectorMenuTarget::EmptyHex {
+                coord: HexCoord { q: 0, r: 0 },
+            },
+            bulk_delete_confirm: false,
+        });
+        state.set_active_tab(BuilderTab::Routes);
+        assert!(state.sector_context_menu.is_none());
+        assert_eq!(state.active_tab, BuilderTab::Routes);
+    }
+
+    #[test]
+    fn set_active_tab_keeps_menu_when_tab_unchanged() {
+        // Setting the same tab is idempotent — no spurious menu dismissal.
+        let mut state = blank(4, 4);
+        state.active_tab = BuilderTab::Map;
+        state.sector_context_menu = Some(SectorContextMenu {
+            screen_pos: Pos2::ZERO,
+            target: SectorMenuTarget::EmptyHex {
+                coord: HexCoord { q: 0, r: 0 },
+            },
+            bulk_delete_confirm: false,
+        });
+        state.set_active_tab(BuilderTab::Map);
+        assert!(state.sector_context_menu.is_some());
+    }
+
+    #[test]
+    fn ctx_action_cancel_route_clears_pending_start_and_disarms_tool() {
+        // §10 row 12: with ADD-ROUTE half-armed, the `CANCEL ROUTE` action
+        // resets `pending_route_start` and drops the `MapTool::AddRoute` arm.
+        let mut state = blank(8, 8);
+        let a = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "A")
+            .unwrap();
+        state.map_tool = MapTool::AddRoute;
+        state.pending_route_start = Some(a);
+        let closed = apply_sector_menu_action(&mut state, SectorMenuAction::CancelRoute);
+        assert!(closed);
+        assert!(state.pending_route_start.is_none());
+        assert_eq!(state.map_tool, MapTool::Select);
+        assert_eq!(state.last_menu_action.as_deref(), Some("route :: CANCEL"));
+    }
+
+    #[test]
+    fn ctx_menu_dropped_through_session_round_trip() {
+        // §10 row 10: project close/reload must dismiss an open menu — the
+        // session file is the funnel and `SectorContextMenu` is in-memory only.
+        let mut state = blank(4, 4);
+        state.sector_context_menu = Some(SectorContextMenu {
+            screen_pos: Pos2::ZERO,
+            target: SectorMenuTarget::EmptyHex {
+                coord: HexCoord { q: 0, r: 0 },
+            },
+            bulk_delete_confirm: false,
+        });
+        let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
+        let restored = file.into_state();
+        assert!(restored.sector_context_menu.is_none());
     }
 }

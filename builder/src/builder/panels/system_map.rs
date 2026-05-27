@@ -367,6 +367,26 @@ pub(super) fn menu_selection_override(
     }
 }
 
+/// §CTX1 §10 — returns `true` when the target referenced by an open in-system
+/// menu no longer exists. The host system may have been removed (any variant),
+/// or the planet behind a `World` variant may have been deleted, mid-render.
+/// `EmptyOrbit` / `Background` only need the host system to still exist.
+pub(super) fn system_menu_target_is_stale(state: &BuilderState, target: &SystemMenuTarget) -> bool {
+    let host = match target {
+        SystemMenuTarget::Star { system }
+        | SystemMenuTarget::EmptyOrbit { system, .. }
+        | SystemMenuTarget::Background { system }
+        | SystemMenuTarget::World { system, .. } => system,
+    };
+    let Some(sys) = state.sector.systems.iter().find(|s| &s.id == host) else {
+        return true;
+    };
+    if let SystemMenuTarget::World { world, .. } = target {
+        return !sys.worlds.iter().any(|w| &w.id == world);
+    }
+    false
+}
+
 /// §CTX1 Phase 6 — secondary-click entry point. Reads the screen position and
 /// the widget rect's origin, computes the [`SystemPick`] via [`pick_world`],
 /// resolves the [`SystemMenuTarget`], and arms `system_context_menu`. Pure
@@ -396,6 +416,13 @@ pub(super) fn show_system_context_menu(ctx: &egui::Context, state: &mut BuilderS
     let Some(menu) = state.system_context_menu.as_ref() else {
         return;
     };
+    // §CTX1 §10 — re-resolve target validity. An undo/redo that removed the
+    // host system (or the planet referenced by a `World` variant) drops the
+    // menu instead of dispatching against a vanished id.
+    if system_menu_target_is_stale(state, &menu.target) {
+        state.system_context_menu = None;
+        return;
+    }
     let screen_pos = menu.screen_pos;
     let target = menu.target.clone();
     let mut close = false;
@@ -970,5 +997,90 @@ mod tests {
         ] {
             assert_eq!(system_menu_action_label(&action), label);
         }
+    }
+
+    // ── §CTX1 §10 edge-case tests ─────────────────────────────────────────
+
+    #[test]
+    fn system_menu_target_stale_when_host_system_removed() {
+        // §10 row 11: an undo that removes the host system drops the
+        // in-system menu on the next render.
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        let target = SystemMenuTarget::Star {
+            system: sys.clone(),
+        };
+        assert!(!system_menu_target_is_stale(&state, &target));
+        state.sector.systems.retain(|s| s.id != sys);
+        assert!(system_menu_target_is_stale(&state, &target));
+    }
+
+    #[test]
+    fn system_menu_target_stale_when_world_removed() {
+        // A `World` variant stale-checks both the host system and the planet
+        // id — removing only the planet (while the host stays) is enough.
+        let mut state = blank();
+        let (sys, wid) = add_sys_world(&mut state);
+        let orbit = state.sector.systems[0].worlds[0].orbit;
+        let target = SystemMenuTarget::World {
+            system: sys.clone(),
+            world: wid.clone(),
+            orbit,
+        };
+        assert!(!system_menu_target_is_stale(&state, &target));
+        state.sector.systems[0].worlds.retain(|w| w.id != wid);
+        assert!(system_menu_target_is_stale(&state, &target));
+    }
+
+    #[test]
+    fn system_menu_empty_orbit_stale_only_when_host_gone() {
+        // `EmptyOrbit` / `Background` only care about the host system —
+        // they survive any world-list churn.
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        let empty_orbit = SystemMenuTarget::EmptyOrbit {
+            system: sys.clone(),
+            orbit: 7,
+        };
+        let background = SystemMenuTarget::Background {
+            system: sys.clone(),
+        };
+        assert!(!system_menu_target_is_stale(&state, &empty_orbit));
+        assert!(!system_menu_target_is_stale(&state, &background));
+        state.sector.systems[0].worlds.clear();
+        assert!(!system_menu_target_is_stale(&state, &empty_orbit));
+        state.sector.systems.retain(|s| s.id != sys);
+        assert!(system_menu_target_is_stale(&state, &empty_orbit));
+        assert!(system_menu_target_is_stale(&state, &background));
+    }
+
+    #[test]
+    fn set_active_tab_drops_system_context_menu() {
+        // §10 row 9 — same dismiss policy as the sector menu, for the
+        // in-system surface.
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        state.active_tab = crate::builder::state::BuilderTab::System;
+        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+            screen_pos: egui::Pos2::ZERO,
+            target: SystemMenuTarget::Star { system: sys },
+        });
+        state.set_active_tab(crate::builder::state::BuilderTab::Map);
+        assert!(state.system_context_menu.is_none());
+    }
+
+    #[test]
+    fn system_context_menu_dropped_through_session_round_trip() {
+        // §10 row 10 — closing/reopening the project drops any open in-system
+        // menu, mirroring the sector-menu invariant.
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+            screen_pos: egui::Pos2::ZERO,
+            target: SystemMenuTarget::Star { system: sys },
+        });
+        let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
+        let restored = file.into_state();
+        assert!(restored.system_context_menu.is_none());
     }
 }

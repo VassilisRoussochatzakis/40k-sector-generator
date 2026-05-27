@@ -719,6 +719,82 @@ Implementation deviations vs. the original draft:
   requirement passes can pick them up. The new §CTX1.8 entry points back
   at this Phase-8 block.
 
+### Phase 9 — §10 edge-case pass  [DONE]
+
+Polish pass that closes the remaining §10 edge cases. Files touched:
+`builder/src/builder/panels/{map,system_map,nav}.rs`,
+`builder/src/builder/state/selection.rs`, `GUIDE.md`,
+`docs/CONTEXT_MENU.txt` (this entry). Under the §CTX1 Phase 5–7 ≤6-file
+budget; no new deps; no changes outside `builder/` and `docs/`.
+
+- **§10 row 9 — tab-switch dismiss.** New
+  `BuilderState::set_active_tab(BuilderTab)` in
+  [builder/src/builder/state/selection.rs](../builder/src/builder/state/selection.rs)
+  drops both `sector_context_menu` and `system_context_menu` when the
+  tab actually changes (no-op when the user re-selects the current tab).
+  Wired into the tab-bar click in
+  [panels/nav.rs](../builder/src/builder/panels/nav.rs) and into
+  `focus_entity` via `apply_focus` so every cross-tab nav path funnels
+  through the same dismiss policy.
+- **§10 row 10 — project close/reload dismiss.** Verified directly with
+  new round-trip tests (`ctx_menu_dropped_through_session_round_trip` /
+  `system_context_menu_dropped_through_session_round_trip`); the
+  `session::SessionFile::into_state` path already zeroed both menus, the
+  tests pin the invariant.
+- **§10 row 11 — undo-stale dismiss.** New pure helpers
+  `panels/map::sector_menu_target_is_stale` and
+  `panels/system_map::system_menu_target_is_stale` re-resolve the
+  open-menu target on every render. `show_sector_context_menu` /
+  `show_system_context_menu` call them at the top and drop the menu
+  before paint when the System / Route / Region / World / host-system
+  id no longer exists. `EmptyHex` / `SubsectorBorder` / `EmptyOrbit` /
+  `Background` only check the host entity (or are inert) because they
+  don't reference a deletable id directly.
+- **§10 row 12 — ADD-ROUTE in-flight schema.** New
+  `SectorMenuAction::CancelRoute` clears `pending_route_start` and
+  disarms `MapTool::AddRoute` in one shot. `render_system_menu` now
+  short-circuits to `CANCEL ROUTE` + `Open in ROUTES` whenever
+  `pending_route_start.is_some()`, matching the §10 row-12 spec — the
+  destructive system rows (`DELETE`, `REGENERATE`, `ADD ROUTE FROM
+  HERE…`, etc.) are hidden so a stray click can't tear down the
+  half-armed route.
+
+Tests added under the same `mod tests`:
+
+- `builder::panels::map::tests::ctx_resolve_returns_none_outside_sector_bounds`
+  (row 1 — `pick_hex` falls through)
+- `builder::panels::map::tests::ctx_resolve_suppressed_when_pending_collision`
+  (row 8 — collision dialog gate)
+- `builder::panels::map::tests::sector_menu_target_stale_when_system_removed`
+- `builder::panels::map::tests::sector_menu_target_stale_when_route_removed`
+- `builder::panels::map::tests::sector_menu_target_stale_when_region_removed`
+- `builder::panels::map::tests::sector_menu_target_not_stale_for_empty_hex_or_subsector_border`
+- `builder::panels::map::tests::sector_menu_target_stale_when_every_multi_id_removed`
+- `builder::panels::map::tests::set_active_tab_drops_sector_context_menu`
+- `builder::panels::map::tests::set_active_tab_keeps_menu_when_tab_unchanged`
+- `builder::panels::map::tests::ctx_menu_dropped_through_session_round_trip`
+- `builder::panels::map::tests::ctx_action_cancel_route_clears_pending_start_and_disarms_tool`
+- `builder::panels::system_map::tests::system_menu_target_stale_when_host_system_removed`
+- `builder::panels::system_map::tests::system_menu_target_stale_when_world_removed`
+- `builder::panels::system_map::tests::system_menu_empty_orbit_stale_only_when_host_gone`
+- `builder::panels::system_map::tests::set_active_tab_drops_system_context_menu`
+- `builder::panels::system_map::tests::system_context_menu_dropped_through_session_round_trip`
+
+Implementation deviations vs. the original draft:
+
+- The spec said "Dismiss menu in `BuilderTab::set` (already a single
+  funnel)." There was no `BuilderTab::set` — `active_tab` was a public
+  field mutated directly by `panels/nav.rs` and by
+  `selection::apply_focus`. Phase 9 adds the missing funnel
+  (`BuilderState::set_active_tab`) instead of inventing a setter on the
+  enum, and updates both call sites. The field stays `pub` so tests
+  that poke it directly still work.
+- Row 12's "Show only CANCEL ROUTE + Open in ROUTES" is implemented by
+  branching at the top of `render_system_menu` rather than by adding a
+  new `SectorMenuTarget` variant. The resolver still returns
+  `SectorMenuTarget::System` — the in-flight check happens in the
+  renderer where it can read `state.pending_route_start` cheaply.
+
 ---
 
 ## 8. Scope guard checklist per phase

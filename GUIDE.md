@@ -2125,6 +2125,17 @@ by `session::SessionFile` round-trip.
   first", "Pick a region in the REGIONS tab first.", "Sector has no
   factions — add one in the FACTIONS tab.", "System has no star — add
   one first.").
+- Switching tabs while a menu is open dismisses it. The funnel is
+  `BuilderState::set_active_tab` (used by the tab bar and by
+  `focus_entity`), so the menu can never linger off its host tab.
+- An undo or redo that removes the targeted system / route / region
+  drops the menu on the next render — `sector_menu_target_is_stale` /
+  `system_menu_target_is_stale` re-check the target every frame.
+- While the ADD-ROUTE tool is half-armed (a start system was picked
+  but no endpoint yet), right-clicking any system collapses the menu
+  to `CANCEL ROUTE` + `Open in ROUTES` so a stray destructive item
+  (DELETE / REGENERATE) can't tear down the half-route. `CANCEL ROUTE`
+  drops `pending_route_start` and disarms the tool.
 
 #### W1–W7 world panel (DONE)
 

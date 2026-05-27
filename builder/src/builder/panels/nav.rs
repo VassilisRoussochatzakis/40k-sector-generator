@@ -47,7 +47,7 @@ pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
         for tab in BuilderTab::ALL {
             let selected = state.active_tab == *tab;
             if ui.selectable_label(selected, tab.label()).clicked() {
-                state.active_tab = *tab;
+                state.set_active_tab(*tab);
             }
         }
     });

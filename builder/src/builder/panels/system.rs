@@ -525,14 +525,23 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     egui::CollapsingHeader::new("Worlds (§8)")
         .default_open(false)
         .show(ui, |ui| {
-            let (sys_id, world_ids, world_count) = {
+            let (sys_id, sys_name, world_ids, world_count, next_orbit, next_index) = {
                 let sys = &state.sector.systems[sys_idx];
                 let ids: Vec<_> = sys
                     .worlds
                     .iter()
                     .map(|w| (w.id.clone(), w.name.to_string()))
                     .collect();
-                (sys.id.clone(), ids, sys.worlds.len())
+                let max_orbit = sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(0);
+                let max_index = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0);
+                (
+                    sys.id.clone(),
+                    sys.name.to_string(),
+                    ids,
+                    sys.worlds.len(),
+                    max_orbit.saturating_add(1),
+                    max_index + 1,
+                )
             };
             ui.horizontal(|ui| {
                 ui.label(format!("{world_count} world(s)"));
@@ -541,24 +550,52 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     .on_hover_text("Append a blank world to this system")
                     .clicked()
                 {
-                    let name = format!("World-{}", world_count + 1);
+                    let name = format!(
+                        "{sys_name} {}",
+                        sectorforge::names::roman_numeral(next_orbit as usize)
+                    );
                     let cmd = BuilderCommand::AddWorld {
                         system: sys_id.clone(),
                         name,
                         result_id: None,
                     };
-                    if let Err(e) = state.run(cmd) {
-                        state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+                    match state.run(cmd) {
+                        Err(e) => {
+                            state.modal =
+                                Some(ModalKind::Message(format!("Add world failed: {e}")));
+                        }
+                        Ok(()) => {
+                            if let Some(sys) =
+                                state.sector.systems.iter_mut().find(|s| s.id == sys_id)
+                            {
+                                if let Some(w) =
+                                    sys.worlds.iter_mut().find(|w| w.index == next_index)
+                                {
+                                    w.orbit = next_orbit;
+                                }
+                            }
+                            state.dirty = true;
+                            state.mark_validation_dirty();
+                        }
                     }
                 }
             });
             for (wid, name) in world_ids {
-                if sectorforge_gui_core::entity_link(ui, format!("{wid} {name}"), true).clicked() {
-                    state.focus_entity(EntityRef::World {
-                        system: sys_id.clone(),
-                        world: wid,
-                    });
-                }
+                ui.horizontal(|ui| {
+                    let clicked = sectorforge_gui_core::entity_link(ui, name, true).clicked();
+                    ui.label(
+                        RichText::new(wid.to_string())
+                            .color(Color32::GRAY)
+                            .monospace()
+                            .small(),
+                    );
+                    if clicked {
+                        state.focus_entity(EntityRef::World {
+                            system: sys_id.clone(),
+                            world: wid,
+                        });
+                    }
+                });
             }
         });
 }

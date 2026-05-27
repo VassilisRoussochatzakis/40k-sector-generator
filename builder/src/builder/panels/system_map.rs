@@ -319,16 +319,25 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
 /// reason as [`duplicate_world`]: the AddWorld bus entry is the single source
 /// of truth.
 fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
-    let next_index = state
+    let (next_index, sys_name) = state
         .sector
         .systems
         .iter()
         .find(|s| s.id == system)
-        .map(|s| s.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1)
-        .unwrap_or(1);
+        .map(|s| {
+            (
+                s.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1,
+                s.name.to_string(),
+            )
+        })
+        .unwrap_or((1, String::new()));
+    let name = format!(
+        "{sys_name} {}",
+        sectorforge::names::roman_numeral(orbit as usize)
+    );
     let cmd = BuilderCommand::AddWorld {
         system: system.clone(),
-        name: format!("World-{next_index}"),
+        name,
         result_id: None,
     };
     if let Err(e) = state.run(cmd) {

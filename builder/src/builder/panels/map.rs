@@ -13,8 +13,8 @@
 
 use egui::{Pos2, RichText, Sense, Ui};
 
-use sectorforge::ids::{self, SystemId};
-use sectorforge::sector_model::HexCoord;
+use sectorforge::ids::{self, FactionId, SystemId};
+use sectorforge::sector_model::{HexCoord, SystemState};
 use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 
 use sectorforge_gui_core::sector_view::{
@@ -24,8 +24,8 @@ use sectorforge_gui_core::sector_view::{
 use crate::builder::command::BuilderCommand;
 use crate::builder::derivation_cache::digest_input;
 use crate::builder::state::{
-    BuilderTab, EntityRef, MapTool, MapViewCache, PendingCollision, PendingPlace, PendingRename,
-    SectorContextMenu, SectorMenuTarget,
+    BuilderTab, EntityRef, MapTool, MapViewCache, PendingBulkRename, PendingCollision,
+    PendingPlace, PendingRename, SectorContextMenu, SectorMenuTarget,
 };
 use crate::builder::{BuilderState, ModalKind};
 use sectorforge_gui_core::palette::TEXT_DIM;
@@ -63,6 +63,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     // to learn new ModalKind variants for §S1 / §S6.
     show_place_dialog(ui.ctx(), state);
     show_rename_dialog(ui.ctx(), state);
+    show_bulk_rename_dialog(ui.ctx(), state);
     show_collision_dialog(ui.ctx(), state);
 }
 
@@ -342,6 +343,7 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
                 state.sector_context_menu = Some(SectorContextMenu {
                     screen_pos: pos,
                     target,
+                    bulk_delete_confirm: false,
                 });
             }
         }
@@ -401,17 +403,66 @@ fn resolve_sector_context(
 /// lets unit tests assert state mutations without standing up an egui context.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum SectorMenuAction {
-    PlaceSystem { coord: HexCoord },
-    PaintRegion { coord: HexCoord },
-    EraseRegion { coord: HexCoord },
-    FocusSystem { id: SystemId },
-    RenameSystem { id: SystemId },
-    DeleteSystem { id: SystemId },
-    AddRouteFrom { id: SystemId },
-    AddWorld { id: SystemId },
-    RegenerateSystem { id: SystemId, coord: HexCoord },
-    TogglePin { id: SystemId },
-    OpenIn { id: SystemId, target: OpenInTarget },
+    PlaceSystem {
+        coord: HexCoord,
+    },
+    PaintRegion {
+        coord: HexCoord,
+    },
+    EraseRegion {
+        coord: HexCoord,
+    },
+    FocusSystem {
+        id: SystemId,
+    },
+    RenameSystem {
+        id: SystemId,
+    },
+    DeleteSystem {
+        id: SystemId,
+    },
+    AddRouteFrom {
+        id: SystemId,
+    },
+    AddWorld {
+        id: SystemId,
+    },
+    RegenerateSystem {
+        id: SystemId,
+        coord: HexCoord,
+    },
+    TogglePin {
+        id: SystemId,
+    },
+    OpenIn {
+        id: SystemId,
+        target: OpenInTarget,
+    },
+    // ── §CTX1 Phase 3 — §6.3 multi-selection items ────────────────────────
+    /// Focus the first id in `selected_systems` ordering.
+    MultiFocusFirst,
+    /// Arm the BULK RENAME dialog with a `Sys-{n}` default pattern.
+    MultiBulkRenameOpen,
+    /// Pin every selected system (idempotent).
+    MultiPinAll,
+    /// Unpin every selected system (idempotent).
+    MultiUnpinAll,
+    /// Confirmed bulk delete — only dispatched after the inline
+    /// `Confirm? [Yes]` branch. Clears `selected_systems` on completion.
+    MultiDeleteAllConfirmed,
+    /// Assign one primary faction to every selected system.
+    MultiAssignPrimaryFaction {
+        fid: FactionId,
+    },
+    /// Flip the control state on every selected system. `value = None`
+    /// clears the flag (matches §6.3 "(none)").
+    MultiFlipControlState {
+        value: Option<SystemState>,
+    },
+    /// Re-run `generate_system_here` for every non-pinned selected system.
+    MultiReseedWorlds,
+    /// Drop `selected_systems` back to empty.
+    MultiClearSelection,
     // Clipboard side-effects belong on `ui.ctx()`, so the render path handles
     // COPY COORD / COPY ID inline rather than threading them through this
     // enum.
@@ -544,6 +595,60 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
                 state.focus_entity(EntityRef::Tab(BuilderTab::Routes));
             }
         },
+        // ── §CTX1 Phase 3 — multi-selection branches ──────────────────────
+        SectorMenuAction::MultiFocusFirst => {
+            if let Some(first) = state.selected_systems.iter().next().cloned() {
+                state.focus_entity(EntityRef::System(first));
+            }
+        }
+        SectorMenuAction::MultiBulkRenameOpen => {
+            state.pending_bulk_rename = Some(PendingBulkRename {
+                pattern: "Sys-{n}".to_string(),
+            });
+        }
+        SectorMenuAction::MultiPinAll => {
+            let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+            for id in ids {
+                state.pinned_systems.insert(id);
+            }
+        }
+        SectorMenuAction::MultiUnpinAll => {
+            let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+            for id in ids {
+                state.pinned_systems.remove(&id);
+            }
+        }
+        SectorMenuAction::MultiDeleteAllConfirmed => {
+            let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
+            for id in ids {
+                let cmd = BuilderCommand::RemoveSystem {
+                    id: id.clone(),
+                    before: None,
+                    removed_routes: Vec::new(),
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.modal = Some(ModalKind::Message(format!(
+                        "Bulk delete failed at {id}: {e}"
+                    )));
+                    break;
+                }
+            }
+            state.selected_systems.clear();
+            state.selected_system_id = None;
+        }
+        SectorMenuAction::MultiAssignPrimaryFaction { fid } => {
+            crate::builder::panels::system::apply_bulk_primary_faction(state, fid);
+        }
+        SectorMenuAction::MultiFlipControlState { value } => {
+            crate::builder::panels::system::apply_bulk_control_state(state, value);
+        }
+        SectorMenuAction::MultiReseedWorlds => {
+            crate::builder::panels::system::apply_bulk_reseed(state);
+        }
+        SectorMenuAction::MultiClearSelection => {
+            state.selected_systems.clear();
+            state.selected_system_id = None;
+        }
     }
     true
 }
@@ -719,6 +824,155 @@ fn render_system_menu(
     close
 }
 
+/// §CTX1 — Phase 3 §6.3: render the multi-selection schema. Returns `true`
+/// when any item activated. The `DELETE ALL` row uses an in-place confirm
+/// gate (`bulk_delete_confirm` on the open [`SectorContextMenu`]) so the
+/// confirmation lives inside the menu instead of a global modal (§7 Phase 3
+/// spec — see [docs/CONTEXT_MENU.txt]).
+fn render_multi_selection_menu(
+    ui: &mut egui::Ui,
+    state: &mut BuilderState,
+    ids: &[SystemId],
+) -> bool {
+    let mut close = false;
+    ui.label(format!("{} systems selected", ids.len()));
+    ui.separator();
+
+    if ui.selectable_label(false, "FOCUS FIRST").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::MultiFocusFirst);
+    }
+    if ui.selectable_label(false, "BULK RENAME…").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::MultiBulkRenameOpen);
+    }
+
+    let any_unpinned = ids.iter().any(|id| !state.pinned_systems.contains(id));
+    let any_pinned = ids.iter().any(|id| state.pinned_systems.contains(id));
+    let pin_resp = ui.add_enabled(any_unpinned, egui::SelectableLabel::new(false, "PIN ALL"));
+    if pin_resp.clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::MultiPinAll);
+    }
+    if !any_unpinned {
+        pin_resp.on_hover_text("Every selected system is already pinned.");
+    }
+    let unpin_resp = ui.add_enabled(any_pinned, egui::SelectableLabel::new(false, "UNPIN ALL"));
+    if unpin_resp.clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::MultiUnpinAll);
+    }
+    if !any_pinned {
+        unpin_resp.on_hover_text("Nothing in the selection is pinned.");
+    }
+
+    ui.separator();
+
+    // §CTX1 Phase 3 — inline DELETE ALL confirm. First click flips the
+    // `bulk_delete_confirm` flag on the live menu state and keeps the menu
+    // open; the second pass swaps the row out for "Confirm? [Yes] [No]".
+    let confirming = state
+        .sector_context_menu
+        .as_ref()
+        .map(|m| m.bulk_delete_confirm)
+        .unwrap_or(false);
+    if confirming {
+        ui.horizontal(|ui| {
+            ui.label(egui::RichText::new("Confirm DELETE ALL?").strong());
+            if ui.button("Yes").clicked() {
+                close |= apply_sector_menu_action(state, SectorMenuAction::MultiDeleteAllConfirmed);
+            }
+            if ui.button("No").clicked() {
+                if let Some(menu) = state.sector_context_menu.as_mut() {
+                    menu.bulk_delete_confirm = false;
+                }
+            }
+        });
+    } else if ui
+        .selectable_label(false, format!("✕ DELETE ALL ({})", ids.len()))
+        .clicked()
+    {
+        if let Some(menu) = state.sector_context_menu.as_mut() {
+            menu.bulk_delete_confirm = true;
+        }
+    }
+
+    ui.separator();
+
+    // ASSIGN PRIMARY FACTION ▸ submenu — disabled (with tooltip) when no
+    // factions exist (§6.3 enabled-when).
+    let factions: Vec<(FactionId, String)> = state
+        .sector
+        .factions
+        .iter()
+        .map(|f| (f.id.clone(), f.name.to_string()))
+        .collect();
+    if factions.is_empty() {
+        ui.add_enabled(
+            false,
+            egui::SelectableLabel::new(false, "ASSIGN PRIMARY FACTION ▸"),
+        )
+        .on_disabled_hover_text("Sector has no factions — add one in the FACTIONS tab.");
+    } else {
+        ui.menu_button("ASSIGN PRIMARY FACTION ▸", |ui| {
+            for (fid, name) in &factions {
+                if ui
+                    .selectable_label(false, format!("→ {name} ({fid})"))
+                    .clicked()
+                {
+                    close |= apply_sector_menu_action(
+                        state,
+                        SectorMenuAction::MultiAssignPrimaryFaction { fid: fid.clone() },
+                    );
+                    ui.close_menu();
+                }
+            }
+        });
+    }
+
+    // FLIP CONTROL STATE ▸ submenu — always enabled, includes "(none)" clear.
+    ui.menu_button("FLIP CONTROL STATE ▸", |ui| {
+        for value in [
+            None,
+            Some(SystemState::Pacified),
+            Some(SystemState::Fragmented),
+            Some(SystemState::Blockaded),
+            Some(SystemState::Warzone),
+            Some(SystemState::Infiltrated),
+            Some(SystemState::Quarantined),
+            Some(SystemState::Uncharted),
+        ] {
+            let label = match value {
+                None => "(none)".to_string(),
+                Some(v) => format!("{v:?}"),
+            };
+            if ui.selectable_label(false, label).clicked() {
+                close |= apply_sector_menu_action(
+                    state,
+                    SectorMenuAction::MultiFlipControlState { value },
+                );
+                ui.close_menu();
+            }
+        }
+    });
+
+    let reseed_enabled = ids.iter().any(|id| !state.pinned_systems.contains(id));
+    let reseed_resp = ui.add_enabled(
+        reseed_enabled,
+        egui::SelectableLabel::new(false, "RESEED WORLDS"),
+    );
+    if reseed_resp.clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::MultiReseedWorlds);
+    }
+    if !reseed_enabled {
+        reseed_resp.on_hover_text("All selected systems are pinned — unpin first (§S3).");
+    }
+
+    ui.separator();
+
+    if ui.selectable_label(false, "CLEAR SELECTION").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::MultiClearSelection);
+    }
+
+    close
+}
+
 /// §CTX1 — Phase 1: pure dismiss predicate. Factored out of
 /// [`show_sector_context_menu`] so unit tests can verify the Escape /
 /// focus-loss / outside-click rules without standing up an egui context.
@@ -755,12 +1009,14 @@ fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
                     SectorMenuTarget::System { id, coord } => {
                         close |= render_system_menu(ui, state, id.clone(), *coord);
                     }
-                    SectorMenuTarget::MultiSelection { .. }
-                    | SectorMenuTarget::Route { .. }
+                    SectorMenuTarget::MultiSelection { ids } => {
+                        close |= render_multi_selection_menu(ui, state, ids);
+                    }
+                    SectorMenuTarget::Route { .. }
                     | SectorMenuTarget::RegionHex { .. }
                     | SectorMenuTarget::SubsectorBorder { .. } => {
-                        // Phase 3 (multi) / Phase 5 (route + region) / future
-                        // (subsector border) replace this placeholder.
+                        // Phase 5 (route + region) / future (subsector
+                        // border) replace this placeholder.
                         if ui.selectable_label(false, "CLOSE").clicked() {
                             close = true;
                         }
@@ -1131,6 +1387,46 @@ fn show_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
             id: pending.id,
             text,
         });
+    }
+}
+
+/// §CTX1 Phase 3 — BULK RENAME pattern dialog opened from the MAP tab's
+/// right-click multi-selection menu. Pattern tokens (`{n}`, `{id}`,
+/// `{name}`) match the §S4 bulk-ops dialog and dispatch through
+/// [`crate::builder::panels::system::apply_bulk_rename`] on commit.
+fn show_bulk_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
+    let Some(pending) = state.pending_bulk_rename.clone() else {
+        return;
+    };
+    let n = state.selected_systems.len();
+    let mut pattern = pending.pattern.clone();
+    let mut commit = false;
+    let mut close = false;
+    egui::Window::new("Bulk rename selection")
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .show(ctx, |ui| {
+            ui.label(format!("{n} system(s) selected"));
+            ui.label("Pattern — `{n}` = sequence, `{id}` = system id, `{name}` = current name");
+            ui.text_edit_singleline(&mut pattern);
+            ui.horizontal(|ui| {
+                if ui.button("Rename").clicked() {
+                    commit = true;
+                    close = true;
+                }
+                if ui.button("Cancel").clicked() {
+                    close = true;
+                }
+            });
+        });
+    if commit {
+        crate::builder::panels::system::apply_bulk_rename(state, &pattern);
+    }
+    if close {
+        state.pending_bulk_rename = None;
+    } else {
+        state.pending_bulk_rename = Some(PendingBulkRename { pattern });
     }
 }
 
@@ -1695,6 +1991,170 @@ mod tests {
         assert_eq!(state.active_tab, BuilderTab::World);
         assert_eq!(state.selected_system_id, Some(id));
         assert_eq!(state.selected_world_id, Some(first_world));
+    }
+
+    // ── §CTX1 Phase 3 tests — multi-selection menu ────────────────────────
+
+    fn multi_state(width: u32, height: u32) -> (BuilderState, SystemId, SystemId) {
+        let mut state = blank(width, height);
+        let a = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "A")
+            .unwrap();
+        let b = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "B")
+            .unwrap();
+        state.selected_systems.insert(a.clone());
+        state.selected_systems.insert(b.clone());
+        // Mirror the live click path: the menu is opened with the
+        // MultiSelection target the resolver hands out.
+        state.sector_context_menu = Some(SectorContextMenu {
+            screen_pos: Pos2::ZERO,
+            target: SectorMenuTarget::MultiSelection {
+                ids: vec![a.clone(), b.clone()],
+            },
+            bulk_delete_confirm: false,
+        });
+        (state, a, b)
+    }
+
+    #[test]
+    fn ctx_multi_focus_first_focuses_first_id() {
+        let (mut state, a, _b) = multi_state(8, 8);
+        state.active_tab = BuilderTab::Map;
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiFocusFirst);
+        assert_eq!(state.selected_system_id, Some(a));
+        assert_eq!(state.active_tab, BuilderTab::System);
+    }
+
+    #[test]
+    fn ctx_multi_bulk_rename_open_arms_pending_dialog() {
+        let (mut state, _a, _b) = multi_state(8, 8);
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiBulkRenameOpen);
+        let pending = state.pending_bulk_rename.expect("dialog armed");
+        assert_eq!(pending.pattern, "Sys-{n}");
+    }
+
+    #[test]
+    fn ctx_multi_pin_all_pins_every_selection() {
+        let (mut state, a, b) = multi_state(8, 8);
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiPinAll);
+        assert!(state.pinned_systems.contains(&a));
+        assert!(state.pinned_systems.contains(&b));
+    }
+
+    #[test]
+    fn ctx_multi_unpin_all_clears_every_selection() {
+        let (mut state, a, b) = multi_state(8, 8);
+        state.pinned_systems.insert(a.clone());
+        state.pinned_systems.insert(b.clone());
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiUnpinAll);
+        assert!(!state.pinned_systems.contains(&a));
+        assert!(!state.pinned_systems.contains(&b));
+    }
+
+    #[test]
+    fn ctx_multi_delete_all_confirmed_removes_and_clears_selection() {
+        let (mut state, a, b) = multi_state(8, 8);
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiDeleteAllConfirmed);
+        assert!(state.sector.systems.iter().all(|s| s.id != a && s.id != b));
+        assert!(state.selected_systems.is_empty());
+        assert!(state.selected_system_id.is_none());
+    }
+
+    #[test]
+    fn ctx_multi_delete_requires_confirm_gate() {
+        // Simulates the inline confirm flow: an unarmed menu must not
+        // dispatch DELETE on a stray first click. The render path only
+        // flips `bulk_delete_confirm`; the apply path is only reached on
+        // the second [Yes] click.
+        let (mut state, a, b) = multi_state(8, 8);
+        let confirming = state
+            .sector_context_menu
+            .as_ref()
+            .map(|m| m.bulk_delete_confirm)
+            .unwrap();
+        assert!(!confirming, "fresh menu starts with confirm unarmed");
+        // First click on DELETE ALL just flips the flag (mirrored here).
+        state
+            .sector_context_menu
+            .as_mut()
+            .unwrap()
+            .bulk_delete_confirm = true;
+        // Systems must still exist until the [Yes] branch runs.
+        assert!(state.sector.systems.iter().any(|s| s.id == a));
+        assert!(state.sector.systems.iter().any(|s| s.id == b));
+        // Second click ([Yes]) finally dispatches.
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiDeleteAllConfirmed);
+        assert!(state.sector.systems.iter().all(|s| s.id != a && s.id != b));
+    }
+
+    #[test]
+    fn ctx_multi_assign_primary_faction_writes_each() {
+        let (mut state, a, b) = multi_state(8, 8);
+        // Inject a faction directly into the sector — the menu's submenu
+        // is only enabled when at least one faction exists.
+        let fid = sectorforge::ids::FactionId::from("imperium");
+        state
+            .sector
+            .factions
+            .push(sectorforge::sector_model::GeneratedFaction {
+                id: fid.clone(),
+                name: std::sync::Arc::from("Imperium"),
+                kind: std::sync::Arc::from("Imperium"),
+                disposition: std::sync::Arc::from("Order"),
+                subfactions: Vec::new(),
+                system_presence: Vec::new(),
+                world_presence: Vec::new(),
+                power: Default::default(),
+            });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::MultiAssignPrimaryFaction { fid: fid.clone() },
+        );
+        for id in [&a, &b] {
+            let sys = state.sector.systems.iter().find(|s| s.id == **id).unwrap();
+            assert!(
+                sys.primary_factions.contains(&fid),
+                "{id} should carry the new primary faction"
+            );
+        }
+    }
+
+    #[test]
+    fn ctx_multi_flip_control_state_writes_each() {
+        let (mut state, a, b) = multi_state(8, 8);
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::MultiFlipControlState {
+                value: Some(SystemState::Warzone),
+            },
+        );
+        for id in [&a, &b] {
+            let sys = state.sector.systems.iter().find(|s| s.id == **id).unwrap();
+            assert_eq!(sys.control.state, Some(SystemState::Warzone));
+        }
+    }
+
+    #[test]
+    fn ctx_multi_clear_selection_drops_selected_systems() {
+        let (mut state, _a, _b) = multi_state(8, 8);
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiClearSelection);
+        assert!(state.selected_systems.is_empty());
+        assert!(state.selected_system_id.is_none());
+    }
+
+    #[test]
+    fn ctx_multi_reseed_skips_when_all_pinned() {
+        // RESEED ignores pinned systems — when every selection is pinned,
+        // it becomes a no-op (matches the render path's disabled state).
+        let (mut state, a, b) = multi_state(8, 8);
+        state.pinned_systems.insert(a.clone());
+        state.pinned_systems.insert(b.clone());
+        let before_modal = state.modal.is_some();
+        apply_sector_menu_action(&mut state, SectorMenuAction::MultiReseedWorlds);
+        assert_eq!(state.modal.is_some(), before_modal);
     }
 
     #[test]

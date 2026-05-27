@@ -2674,7 +2674,14 @@ CTX0. [DONE] Phase 0 — Embed `SystemView` in the SYSTEM tab. New
 CTX1. Phase 1+ — see docs/CONTEXT_MENU.txt §5–§7 for the menu state types
        (`SectorContextMenu`, `SectorMenuTarget`, `SystemContextMenu`,
        `SystemMenuTarget`), menu schemas, and per-phase implementation
-       plan.
+       plan. [DONE Phase 1/2/3] — sector right-click plumbing (Phase 1),
+       empty-hex + single-system items (Phase 2), and multi-selection
+       items including the inline DELETE-ALL confirm gate, ASSIGN PRIMARY
+       FACTION + FLIP CONTROL STATE submenus, BULK RENAME pattern dialog,
+       PIN/UNPIN/RESEED bulk dispatch, and CLEAR SELECTION (Phase 3) are
+       shipped. The `apply_bulk_*` helpers in
+       `builder/src/builder/panels/system.rs` are `pub(crate)` so map.rs
+       reuses the same code path as the §S4 bulk-ops dialog.
 
 CTX2. Phase 6 — System-view context menus require CTX0. See
        docs/CONTEXT_MENU.txt §6.6–§6.9.

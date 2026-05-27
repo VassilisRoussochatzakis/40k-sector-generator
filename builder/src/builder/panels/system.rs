@@ -1098,7 +1098,10 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
         });
 }
 
-fn apply_bulk_rename(state: &mut BuilderState, pattern: &str) {
+/// §CTX1 Phase 3 — promoted to `pub(crate)` so the MAP tab right-click
+/// multi-selection menu can dispatch the same bulk-rename helper. Pattern
+/// tokens (`{n}`/`{id}`/`{name}`) match the §S4 bulk-ops dialog.
+pub(crate) fn apply_bulk_rename(state: &mut BuilderState, pattern: &str) {
     let selection: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
     for (n, id) in selection.into_iter().enumerate() {
         let from = match state.sector.systems.iter().find(|s| s.id == id) {
@@ -1124,7 +1127,12 @@ fn apply_bulk_rename(state: &mut BuilderState, pattern: &str) {
     }
 }
 
-fn apply_bulk_primary_faction(state: &mut BuilderState, fid: sectorforge::ids::FactionId) {
+/// §CTX1 Phase 3 — promoted to `pub(crate)` so the MAP tab right-click
+/// multi-selection menu can dispatch the same primary-faction assignment.
+pub(crate) fn apply_bulk_primary_faction(
+    state: &mut BuilderState,
+    fid: sectorforge::ids::FactionId,
+) {
     let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
     for id in ids {
         if let Some(sys) = state.sector.systems.iter_mut().find(|s| s.id == id) {
@@ -1137,7 +1145,9 @@ fn apply_bulk_primary_faction(state: &mut BuilderState, fid: sectorforge::ids::F
     state.mark_validation_dirty();
 }
 
-fn apply_bulk_clear_factions(state: &mut BuilderState) {
+/// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click
+/// multi-selection menu.
+pub(crate) fn apply_bulk_clear_factions(state: &mut BuilderState) {
     let ids: BTreeSet<SystemId> = state.selected_systems.clone();
     for sys in &mut state.sector.systems {
         if ids.contains(&sys.id) {
@@ -1148,7 +1158,9 @@ fn apply_bulk_clear_factions(state: &mut BuilderState) {
     state.mark_validation_dirty();
 }
 
-fn apply_bulk_control_state(state: &mut BuilderState, value: Option<SystemState>) {
+/// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click
+/// multi-selection menu. `value = None` clears the control flag.
+pub(crate) fn apply_bulk_control_state(state: &mut BuilderState, value: Option<SystemState>) {
     let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
     for id in ids {
         if let Err(e) = state.sector.set_system_control_state(&id, value) {
@@ -1160,7 +1172,9 @@ fn apply_bulk_control_state(state: &mut BuilderState, value: Option<SystemState>
     state.mark_validation_dirty();
 }
 
-fn apply_bulk_reseed(state: &mut BuilderState) {
+/// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click
+/// multi-selection menu. Pinned systems are skipped (§S3).
+pub(crate) fn apply_bulk_reseed(state: &mut BuilderState) {
     let targets: Vec<(SystemId, HexCoord, usize)> = state
         .selected_systems
         .iter()

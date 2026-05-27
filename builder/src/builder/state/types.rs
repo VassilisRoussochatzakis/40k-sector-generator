@@ -288,6 +288,16 @@ pub struct PendingCollision {
     pub occupant: SystemId,
 }
 
+/// §CTX1 Phase 3 — pending BULK RENAME pattern, surfaced by the MAP tab's
+/// right-click multi-selection menu. `pattern` is the editable buffer; the
+/// dialog reuses the [`PendingRename`] modal pattern and dispatches through
+/// [`super::super::panels::system::apply_bulk_rename`] on commit. Transient —
+/// never serialised.
+#[derive(Debug, Clone)]
+pub struct PendingBulkRename {
+    pub pattern: String,
+}
+
 /// §CF5: scope of a single `tick_log` entry — system-level summary or per-world
 /// detail.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -386,6 +396,11 @@ pub struct SectorContextMenu {
     pub screen_pos: egui::Pos2,
     /// The entity (or empty hex) under the cursor when the click landed.
     pub target: SectorMenuTarget,
+    /// §CTX1 Phase 3 — flips to `true` after the first DELETE ALL click on a
+    /// `MultiSelection` target. The row re-renders as "Confirm? [Yes] [No]"
+    /// and only the [Yes] branch dispatches the bulk delete. Cleared with the
+    /// menu so a re-open starts unarmed.
+    pub bulk_delete_confirm: bool,
 }
 
 /// §CTX1 — what the right-click on the sector hex map resolved to. Phase 1

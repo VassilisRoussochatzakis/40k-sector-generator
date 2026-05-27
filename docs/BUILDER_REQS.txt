@@ -2674,25 +2674,54 @@ CTX0. [DONE] Phase 0 — Embed `SystemView` in the SYSTEM tab. New
 CTX1. Phase 1+ — see docs/CONTEXT_MENU.txt §5–§7 for the menu state types
        (`SectorContextMenu`, `SectorMenuTarget`, `SystemContextMenu`,
        `SystemMenuTarget`), menu schemas, and per-phase implementation
-       plan. [DONE Phase 1/2/3/4] — sector right-click plumbing (Phase 1),
-       empty-hex + single-system items (Phase 2), multi-selection items
-       including the inline DELETE-ALL confirm gate, ASSIGN PRIMARY
-       FACTION + FLIP CONTROL STATE submenus, BULK RENAME pattern dialog,
-       PIN/UNPIN/RESEED bulk dispatch, and CLEAR SELECTION (Phase 3), and
-       the partial-regen anchor flow (Phase 4) are shipped. The
-       `apply_bulk_*` helpers in `builder/src/builder/panels/system.rs`
-       are `pub(crate)` so map.rs reuses the same code path as the §S4
-       bulk-ops dialog. Phase 4 adds the empty-hex menu's
-       `START PARTIAL REGEN HERE` item, the new
-       `BuilderState::partial_regen_anchor: Option<HexCoord>` (in-memory
-       only — dropped by `session::SessionFile` round-trip), the MAP
-       toolbox chip + "cancel anchor" button, the GENERATION tab hint
-       above the §G5 rect editor, and `apply_partial_regen_anchor_click`
-       in `panels/map.rs` which consumes the next primary click to
-       normalise a `PartialRegenRect` from anchor → click coord.
+       plan. [DONE Phase 1/2/3/4/5] — sector right-click plumbing (Phase
+       1), empty-hex + single-system items (Phase 2), multi-selection
+       items including the inline DELETE-ALL confirm gate, ASSIGN
+       PRIMARY FACTION + FLIP CONTROL STATE submenus, BULK RENAME
+       pattern dialog, PIN/UNPIN/RESEED bulk dispatch, and CLEAR
+       SELECTION (Phase 3), the partial-regen anchor flow (Phase 4),
+       and the §6.4 route + §6.5 region-hex schemas (Phase 5) are
+       shipped. The `apply_bulk_*` helpers in
+       `builder/src/builder/panels/system.rs` are `pub(crate)` so map.rs
+       reuses the same code path as the §S4 bulk-ops dialog. Phase 4
+       adds the empty-hex menu's `START PARTIAL REGEN HERE` item, the
+       new `BuilderState::partial_regen_anchor: Option<HexCoord>`
+       (in-memory only — dropped by `session::SessionFile` round-trip),
+       the MAP toolbox chip + "cancel anchor" button, the GENERATION
+       tab hint above the §G5 rect editor, and
+       `apply_partial_regen_anchor_click` in `panels/map.rs` which
+       consumes the next primary click to normalise a
+       `PartialRegenRect` from anchor → click coord. Phase 5 adds the
+       gui-core hit-test helpers (`SectorGeom::hit_route`,
+       `SectorMapCache::region_for_hex`), four new `BuilderCommand`
+       variants (`SetRouteType`, `SetRouteStability`, `SetRegionKind`,
+       `RenameRegion`), and the
+       `BuilderState::pending_region_rename: Option<PendingRegionRename>`
+       transient dialog driving `panels/map.rs::show_region_rename_dialog`.
 
-CTX2. Phase 6 — System-view context menus require CTX0. See
-       docs/CONTEXT_MENU.txt §6.6–§6.9.
+CTX2. [DONE] Phase 6 — System-view context menus (require CTX0). See
+       docs/CONTEXT_MENU.txt §6.6–§6.9. The resolver / render / dispatch
+       surface lives in the new
+       `builder/src/builder/panels/system_map.rs` module;
+       `panels/system.rs::show_system_map_section` arms the menu on
+       `Response::secondary_clicked` from the embedded `SystemView`. New
+       gui-core helpers: `sectorforge_gui_core::system_view::pick_world`
+       returning a `SystemPick` enum (Star / World(idx) / EmptyOrbit(u8)
+       / Background) plus the public `SystemGeom` struct.
+       `BuilderState::system_context_menu: Option<SystemContextMenu>`
+       carries the open-menu payload;
+       `BuilderState::pending_world_rename: Option<PendingWorldRename>`
+       drives the `RENAME…` dialog. Both fields are in-memory only and
+       dropped by `session::SessionFile` round-trip. Four new
+       `BuilderCommand` variants — `SetStar`, `SetStarSpectral`,
+       `RenameWorld`, `SetWorldOrbit` — each apply/revert via the bus.
+       `DERIVE ORBITAL ASSETS` reuses the new
+       `panels::orbital::derive_and_apply_orbital_assets(state, system)`
+       `pub(crate)` helper that wraps the same
+       `SetOrbitalAssets`+`SetBlockadeReport` dispatch the panel's
+       "Derive now" button takes. `Open in ORBITAL section` is deferred
+       to Phase 7 polish (the SYSTEM tab already renders the orbital
+       section inline below the in-system map widget).
 
 ================================================================================
 END OF BUILDER_REQS.txt

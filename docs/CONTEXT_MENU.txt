@@ -501,24 +501,86 @@ marked with a leading bullet.
 - `builder::panels::map::tests::ctx_action_erase_region_hex_drops_hex`
 - `builder::panels::map::tests::ctx_action_rename_region_open_arms_dialog`
 
-### Phase 6 — In-system menu (§6.6 – §6.9)
+### Phase 6 — In-system menu (§6.6 – §6.9)  [DONE]
 
 Requires Phase 0.
 
-- Extract a small `system_pick(pos) -> SystemMenuTarget` helper next to
-  the embedded `SystemView` widget. Test it like `pick_hex`.
-- New `BuilderCommand` variants:
-  - `SetStar { system, before, after: Option<GeneratedStar> }`
-  - `SetStarSpectral { system, before, after }`
-  - `RenameWorld { system, world, before, after }`
-  - `SetWorldOrbit { system, world, before, after }`
-- Wire the four context schemas.
-- `DERIVE ORBITAL ASSETS` reuses
-  [orbital.rs:55-60](../builder/src/builder/panels/orbital.rs#L55-L60)
-  by extracting its derive-and-dispatch pair into a `pub(crate)` helper.
+Implementation deviation vs. the original draft:
 
-**Tests:** orbit-cycle wraps correctly; remove-star clears spectral
-type; duplicate-world produces unique id.
+- The hit-test helper lives next to [`SystemView`] as `pub fn pick_world(side,
+  system, local_pos) -> SystemPick` (instead of `system_pick`) returning a
+  4-variant `SystemPick` enum (`Star` / `World(idx)` / `EmptyOrbit(u8)` /
+  `Background`). The widget's pre-existing `Geom` struct was promoted to
+  `pub struct SystemGeom` so the pick fn can mirror the on-screen layout
+  exactly. See [gui-core/src/system_view.rs](../gui-core/src/system_view.rs).
+- The resolver / render / dispatch surface lives in a new
+  [builder/src/builder/panels/system_map.rs](../builder/src/builder/panels/system_map.rs)
+  module. `panels/system.rs::show_system_map_section` calls
+  `system_map::arm_system_context_menu` on `secondary_clicked` and the rest
+  of the menu (`show_system_context_menu` + `show_world_rename_dialog`) is
+  rendered immediately after the embedded `SystemView`.
+- The four new `BuilderCommand` variants are flat (no `before: Option<Box<…>>`)
+  and follow the §6.4/§6.5 Phase-5 convention of writing `before` from inside
+  `apply`:
+  - `SetStar { system, before: Option<GeneratedStar>, after: Option<GeneratedStar> }`
+  - `SetStarSpectral { system, before: Option<Arc<str>>, after: Option<Arc<str>> }`
+  - `RenameWorld { world, before, after }`
+  - `SetWorldOrbit { world, before, after }`
+- `CYCLE SPECTRAL CLASS` cycles through the deterministic
+  `["O","B","A","F","G","K","M"]` sequence keyed off the first letter of the
+  current spectral string. `ADD STAR` seeds a `G2V` yellow main-sequence so
+  the user has something to cycle from. `REMOVE STAR` issues `SetStar { after:
+  None }` which by construction also drops the spectral type (covered by the
+  `remove_star_clears_spectral` test).
+- `DUPLICATE WORLD` is a compound action: it dispatches
+  `BuilderCommand::AddWorld` (so undo deterministically removes the
+  duplicate) and then mirrors the source world's `WorldDto`/`features`/
+  `tags`/`orbit` onto the new entry through a direct mutation + `state.dirty
+  = true`. The new world keeps the freshly-minted `world_id`/`index` so
+  invariants stay clean.
+- `DERIVE ORBITAL ASSETS` calls a new
+  `pub(crate) panels::orbital::derive_and_apply_orbital_assets(state,
+  &system)` helper that wraps the existing `SetOrbitalAssets` +
+  `SetBlockadeReport` dispatch pair. Same-value short-circuits keep the
+  command log clean.
+- `Open in ORBITAL section` (§6.9) was deferred — the SYSTEM tab already
+  renders the orbital section inline below the map widget, so an additional
+  scroll-anchor jump did not justify a new `scroll_target` slot. Tracked for
+  Phase 7 polish.
+
+State additions (`§D5` on `BuilderState`):
+
+- `system_context_menu: Option<SystemContextMenu>` — armed by the
+  resolver; cleared on Escape / focus-loss / outside primary click / item
+  activation. Mirrors the lifecycle of `sector_context_menu`.
+- `pending_world_rename: Option<PendingWorldRename>` — armed by the
+  `RENAME…` row; rendered by `show_world_rename_dialog`; dispatches
+  `BuilderCommand::RenameWorld` on commit. Same in-memory-only invariant as
+  every other transient dialog (dropped by `SessionFile::into_state`).
+
+**Tests:**
+
+- `sectorforge_gui_core::system_view::tests::pick_world_returns_star_at_center`
+- `sectorforge_gui_core::system_view::tests::pick_world_returns_background_at_corner`
+- `sectorforge_gui_core::system_view::tests::pick_world_returns_world_when_on_planet`
+- `sectorforge_gui_core::system_view::tests::pick_world_returns_empty_orbit_on_ring_without_planet`
+- `builder::command::tests::set_star_round_trip`
+- `builder::command::tests::remove_star_clears_spectral`
+- `builder::command::tests::set_star_spectral_round_trip`
+- `builder::command::tests::set_star_spectral_errors_when_no_star`
+- `builder::command::tests::rename_world_round_trip`
+- `builder::command::tests::set_world_orbit_round_trip`
+- `builder::panels::system_map::tests::resolve_star_pick_returns_star_target`
+- `builder::panels::system_map::tests::resolve_world_pick_uses_world_index`
+- `builder::panels::system_map::tests::add_star_then_remove_round_trips_through_bus`
+- `builder::panels::system_map::tests::cycle_spectral_class_wraps_to_first_when_unknown`
+- `builder::panels::system_map::tests::set_world_orbit_dispatches_command_when_changed`
+- `builder::panels::system_map::tests::set_world_orbit_noop_when_unchanged`
+- `builder::panels::system_map::tests::duplicate_world_produces_unique_id`
+- `builder::panels::system_map::tests::add_world_at_orbit_sets_orbit`
+- `builder::panels::system_map::tests::remove_world_drops_world`
+- `builder::panels::system_map::tests::rename_world_open_arms_dialog`
+- `builder::panels::system_map::tests::focus_star_details_arms_scroll_target`
 
 ### Phase 7 — Polish
 

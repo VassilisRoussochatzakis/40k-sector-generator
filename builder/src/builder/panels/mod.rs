@@ -64,4 +64,5 @@ pub mod sites;
 pub mod subsectors;
 pub mod surface_regions;
 pub mod system;
+pub mod system_map;
 pub mod world;

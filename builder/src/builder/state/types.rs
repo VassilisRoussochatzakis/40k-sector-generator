@@ -298,6 +298,18 @@ pub struct PendingRegionRename {
     pub text: String,
 }
 
+/// §CTX1 Phase 6 — pending WORLD RENAME input — world id and editable buffer.
+/// Surfaced by the SYSTEM tab's in-system right-click menu (`§6.7
+/// RENAME…`). Dispatches through `BuilderCommand::RenameWorld` on commit. The
+/// `system` field is cached so the dialog can re-locate the world if the
+/// underlying selection moves before the user clicks Rename.
+#[derive(Debug, Clone)]
+pub struct PendingWorldRename {
+    pub system: SystemId,
+    pub world: WorldId,
+    pub text: String,
+}
+
 /// §CTX1 Phase 3 — pending BULK RENAME pattern, surfaced by the MAP tab's
 /// right-click multi-selection menu. `pattern` is the editable buffer; the
 /// dialog reuses the [`PendingRename`] modal pattern and dispatches through
@@ -411,6 +423,37 @@ pub struct SectorContextMenu {
     /// and only the [Yes] branch dispatches the bulk delete. Cleared with the
     /// menu so a re-open starts unarmed.
     pub bulk_delete_confirm: bool,
+}
+
+/// §CTX1 Phase 6 — open right-click context menu on the in-system map
+/// embedded under the SYSTEM tab (`§6.6`..`§6.9`). `None` on
+/// [`super::BuilderState::system_context_menu`] means no menu is open.
+/// Transient — never serialised.
+#[derive(Debug, Clone)]
+pub struct SystemContextMenu {
+    /// Screen-space anchor for the floating `egui::Area`.
+    pub screen_pos: egui::Pos2,
+    /// The disk, ring, planet, or background the click resolved to.
+    pub target: SystemMenuTarget,
+}
+
+/// §CTX1 Phase 6 — what a right-click on the in-system map resolved to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SystemMenuTarget {
+    /// Click landed on (or near) the central star disk.
+    Star { system: SystemId },
+    /// Click landed on a planet/world disk.
+    World {
+        system: SystemId,
+        world: WorldId,
+        orbit: u8,
+    },
+    /// Click landed on an orbit ring but not on any planet currently on that
+    /// ring.
+    EmptyOrbit { system: SystemId, orbit: u8 },
+    /// Click landed on empty space inside the widget (no star, no ring, no
+    /// planet).
+    Background { system: SystemId },
 }
 
 /// §CTX1 — what the right-click on the sector hex map resolved to. Phase 1

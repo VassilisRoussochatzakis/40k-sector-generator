@@ -232,6 +232,8 @@ impl SessionFile {
             scroll_target: None,
             sector_context_menu: None,
             partial_regen_anchor: None,
+            system_context_menu: None,
+            pending_world_rename: None,
         }
     }
 }

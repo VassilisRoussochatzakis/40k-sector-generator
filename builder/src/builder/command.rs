@@ -15,11 +15,12 @@ use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
 use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
-    GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
-    RouteStability, RouteType,
+    GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem,
+    GeneratedWorld, HexCoord, RouteStability, RouteType,
 };
 use sectorforge::stability::StabilityState;
 use sectorforge::surface_region::SurfaceRegion;
+use std::sync::Arc;
 
 /// §AR3: per-axis enable mask for `BuilderCommand::AutoAssignArchetypes`. A
 /// disabled axis is reset to its default after `sectorforge::archetypes::
@@ -246,6 +247,40 @@ pub enum BuilderCommand {
         region: String,
         before: String,
         after: String,
+    },
+    /// §CTX1 Phase 6 (§6.6): overwrite a system's `star` field. `before` is
+    /// captured on apply so revert restores the prior state exactly (including
+    /// the no-star case). Setting `after = None` matches the `REMOVE STAR`
+    /// menu row; `Some(GeneratedStar { ... })` covers `ADD STAR` / future
+    /// star-replacement flows.
+    SetStar {
+        system: SystemId,
+        before: Option<GeneratedStar>,
+        after: Option<GeneratedStar>,
+    },
+    /// §CTX1 Phase 6 (§6.6): cycle/replace a star's `spectral_type` while
+    /// leaving the rest of the [`GeneratedStar`] untouched. Errors out via
+    /// `MutationError::SystemNotFound` when the system has no star — the menu
+    /// hides the row in that case (`CYCLE SPECTRAL CLASS` is gated on
+    /// `star.is_some()`).
+    SetStarSpectral {
+        system: SystemId,
+        before: Option<Arc<str>>,
+        after: Option<Arc<str>>,
+    },
+    /// §CTX1 Phase 6 (§6.7): rename a world. Mirrors [`Self::RenameSystem`].
+    RenameWorld {
+        world: WorldId,
+        before: String,
+        after: String,
+    },
+    /// §CTX1 Phase 6 (§6.7): move a world to a different orbit. `MOVE ORBIT ▸`
+    /// dispatches one of these per orbit row (1..=max). `before` is captured
+    /// on apply so revert is exact.
+    SetWorldOrbit {
+        world: WorldId,
+        before: u8,
+        after: u8,
     },
     /// §CF4: run `sectorforge::conflict::advance_sector` for `ticks` ticks.
     /// `before_world` / `before_system` snapshot per-entity conflict state so
@@ -550,6 +585,68 @@ impl BuilderCommand {
                 sector.regions = std::sync::Arc::new(regions);
                 Ok(())
             }
+            Self::SetStar {
+                system,
+                before,
+                after,
+            } => {
+                let sys = sector
+                    .systems
+                    .iter_mut()
+                    .find(|s| s.id == *system)
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                *before = sys.star.clone();
+                sys.star = after.clone();
+                Ok(())
+            }
+            Self::SetStarSpectral {
+                system,
+                before,
+                after,
+            } => {
+                let sys = sector
+                    .systems
+                    .iter_mut()
+                    .find(|s| s.id == *system)
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let star = sys
+                    .star
+                    .as_mut()
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                *before = star.spectral_type.clone();
+                star.spectral_type = after.clone();
+                Ok(())
+            }
+            Self::RenameWorld {
+                world,
+                before,
+                after,
+            } => {
+                let w = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                *before = w.name.to_string();
+                w.name = Arc::from(after.as_str());
+                Ok(())
+            }
+            Self::SetWorldOrbit {
+                world,
+                before,
+                after,
+            } => {
+                let w = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                *before = w.orbit;
+                w.orbit = *after;
+                Ok(())
+            }
             Self::AdvanceConflictTicks {
                 ticks,
                 before_world,
@@ -766,6 +863,42 @@ impl BuilderCommand {
                 if let Some(reg) = regions.iter_mut().find(|r| r.id == *region) {
                     reg.name = before.clone();
                     sector.regions = std::sync::Arc::new(regions);
+                }
+                Ok(())
+            }
+            Self::SetStar { system, before, .. } => {
+                if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
+                    sys.star = before.clone();
+                }
+                Ok(())
+            }
+            Self::SetStarSpectral { system, before, .. } => {
+                if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
+                    if let Some(star) = sys.star.as_mut() {
+                        star.spectral_type = before.clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::RenameWorld { world, before, .. } => {
+                if let Some(w) = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                {
+                    w.name = Arc::from(before.as_str());
+                }
+                Ok(())
+            }
+            Self::SetWorldOrbit { world, before, .. } => {
+                if let Some(w) = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                {
+                    w.orbit = *before;
                 }
                 Ok(())
             }
@@ -1162,6 +1295,158 @@ mod tests {
         assert!(matches!(
             cmd.apply(&mut s),
             Err(MutationError::RouteNotFound(_))
+        ));
+    }
+
+    #[test]
+    fn set_star_round_trip() {
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let new_star = GeneratedStar {
+            colour_code: Arc::from("G"),
+            colour_name: Arc::from("Yellow"),
+            spectral_type: Some(Arc::from("G2V")),
+            source_row_index: None,
+        };
+        let mut cmd = BuilderCommand::SetStar {
+            system: id.clone(),
+            before: None,
+            after: Some(new_star.clone()),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert!(s
+            .systems
+            .iter()
+            .find(|x| x.id == id)
+            .unwrap()
+            .star
+            .as_ref()
+            .map(|st| &*st.colour_code == "G")
+            .unwrap_or(false));
+        cmd.revert(&mut s).unwrap();
+        assert!(s
+            .systems
+            .iter()
+            .find(|x| x.id == id)
+            .unwrap()
+            .star
+            .is_none());
+    }
+
+    #[test]
+    fn remove_star_clears_spectral() {
+        // §CTX1 Phase 6 — REMOVE STAR drops the entire GeneratedStar payload,
+        // which by construction takes the spectral_type with it.
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        if let Some(sys) = s.systems.iter_mut().find(|x| x.id == id) {
+            sys.star = Some(GeneratedStar {
+                colour_code: Arc::from("G"),
+                colour_name: Arc::from("Yellow"),
+                spectral_type: Some(Arc::from("G2V")),
+                source_row_index: None,
+            });
+        }
+        let mut cmd = BuilderCommand::SetStar {
+            system: id.clone(),
+            before: None,
+            after: None,
+        };
+        cmd.apply(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert!(sys.star.is_none());
+        cmd.revert(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(
+            sys.star.as_ref().unwrap().spectral_type.as_deref(),
+            Some("G2V")
+        );
+    }
+
+    #[test]
+    fn set_star_spectral_round_trip() {
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        if let Some(sys) = s.systems.iter_mut().find(|x| x.id == id) {
+            sys.star = Some(GeneratedStar {
+                colour_code: Arc::from("G"),
+                colour_name: Arc::from("Yellow"),
+                spectral_type: Some(Arc::from("G2V")),
+                source_row_index: None,
+            });
+        }
+        let mut cmd = BuilderCommand::SetStarSpectral {
+            system: id.clone(),
+            before: None,
+            after: Some(Arc::from("M5V")),
+        };
+        cmd.apply(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(
+            sys.star.as_ref().unwrap().spectral_type.as_deref(),
+            Some("M5V")
+        );
+        cmd.revert(&mut s).unwrap();
+        let sys = s.systems.iter().find(|x| x.id == id).unwrap();
+        assert_eq!(
+            sys.star.as_ref().unwrap().spectral_type.as_deref(),
+            Some("G2V")
+        );
+    }
+
+    #[test]
+    fn rename_world_round_trip() {
+        let mut s = empty();
+        let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let wid = s.add_world_to_system(&sys, "Original").unwrap();
+        let mut cmd = BuilderCommand::RenameWorld {
+            world: wid.clone(),
+            before: String::new(),
+            after: "Patched".into(),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            &*s.all_worlds().find(|w| w.id == wid).unwrap().name,
+            "Patched"
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            &*s.all_worlds().find(|w| w.id == wid).unwrap().name,
+            "Original"
+        );
+    }
+
+    #[test]
+    fn set_world_orbit_round_trip() {
+        let mut s = empty();
+        let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let wid = s.add_world_to_system(&sys, "W").unwrap();
+        let before = s.all_worlds().find(|w| w.id == wid).unwrap().orbit;
+        let mut cmd = BuilderCommand::SetWorldOrbit {
+            world: wid.clone(),
+            before: 0,
+            after: 7,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(s.all_worlds().find(|w| w.id == wid).unwrap().orbit, 7);
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(s.all_worlds().find(|w| w.id == wid).unwrap().orbit, before);
+    }
+
+    #[test]
+    fn set_star_spectral_errors_when_no_star() {
+        // §CTX1 Phase 6 — CYCLE SPECTRAL CLASS must hide when no star is
+        // present; the command itself errors out as a defence-in-depth check.
+        let mut s = empty();
+        let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let mut cmd = BuilderCommand::SetStarSpectral {
+            system: id,
+            before: None,
+            after: Some(Arc::from("G2V")),
+        };
+        assert!(matches!(
+            cmd.apply(&mut s),
+            Err(MutationError::SystemNotFound(_))
         ));
     }
 

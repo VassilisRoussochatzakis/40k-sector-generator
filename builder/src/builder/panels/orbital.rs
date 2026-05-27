@@ -10,7 +10,7 @@
 
 use egui::{Color32, Ui};
 
-use sectorforge::ids::FactionId;
+use sectorforge::ids::{FactionId, SystemId};
 use sectorforge::orbital_assets::{
     derive_orbital_assets, BlockadeReport, OrbitalAsset, OrbitalAssetKind, ShipStock,
 };
@@ -18,6 +18,48 @@ use sectorforge::orbital_assets::{
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
+
+/// §CTX1 Phase 6 (§6.9) — derive-and-dispatch helper extracted so the
+/// SYSTEM-tab right-click `DERIVE ORBITAL ASSETS` row can reuse the same
+/// command path the panel's "Derive now" button takes. Skips the dispatch
+/// when the derived value equals the current one so the command log stays
+/// clean; surfaces errors through [`ModalKind::Message`] like the panel does.
+pub(crate) fn derive_and_apply_orbital_assets(state: &mut BuilderState, system: &SystemId) {
+    let Some(sys) = state.sector.systems.iter().find(|s| &s.id == system) else {
+        return;
+    };
+    let (assets, report) = derive_orbital_assets(sys);
+    if assets != sys.orbital_assets {
+        let cmd = BuilderCommand::SetOrbitalAssets {
+            system: system.clone(),
+            before: None,
+            after: assets,
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!(
+                "Orbital asset derive failed: {e}"
+            )));
+            return;
+        }
+    }
+    let prior = state
+        .sector
+        .systems
+        .iter()
+        .find(|s| &s.id == system)
+        .map(|s| s.blockade.clone())
+        .unwrap_or_default();
+    if report != prior {
+        let cmd = BuilderCommand::SetBlockadeReport {
+            system: system.clone(),
+            before: None,
+            after: report,
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!("Blockade derive failed: {e}")));
+        }
+    }
+}
 
 pub fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     egui::CollapsingHeader::new("§O1 / §O2 — Orbital assets + blockade (§31)")

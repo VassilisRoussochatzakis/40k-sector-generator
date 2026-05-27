@@ -68,8 +68,9 @@ pub use nav::EntityRef;
 pub use types::{
     BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState, JobHandle,
     MapTool, MapViewCache, ModalKind, PartialRegenRect, PendingBulkRename, PendingCollision,
-    PendingPlace, PendingRegionRename, PendingRename, SectorContextMenu, SectorMenuTarget,
-    TickLogEntry, TickLogScope, DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
+    PendingPlace, PendingRegionRename, PendingRename, PendingWorldRename, SectorContextMenu,
+    SectorMenuTarget, SystemContextMenu, SystemMenuTarget, TickLogEntry, TickLogScope,
+    DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
 pub struct BuilderState {
@@ -486,6 +487,16 @@ pub struct BuilderState {
     /// anchor is live and offers a "Cancel anchor" button. In-memory only —
     /// never serialised to `project.toml`.
     pub partial_regen_anchor: Option<sectorforge::sector_model::HexCoord>,
+    /// §CTX1 — Phase 6 of `docs/CONTEXT_MENU.txt`: open right-click menu on the
+    /// in-system map embedded under the SYSTEM tab. `None` when no menu is
+    /// open. Set by `panels/system_map.rs` on `secondary_clicked`; cleared on
+    /// Escape / outside-click / focus-loss / item activation. In-memory only —
+    /// never serialised.
+    pub system_context_menu: Option<SystemContextMenu>,
+    /// §CTX1 Phase 6: pending WORLD RENAME dialog armed from the SYSTEM tab's
+    /// in-system right-click menu (`§6.7`). `None` when no dialog is open.
+    /// Dispatches through `BuilderCommand::RenameWorld` on commit.
+    pub pending_world_rename: Option<PendingWorldRename>,
 }
 
 impl BuilderState {
@@ -625,6 +636,8 @@ impl BuilderState {
             scroll_target: None,
             sector_context_menu: None,
             partial_regen_anchor: None,
+            system_context_menu: None,
+            pending_world_rename: None,
         }
     }
 }

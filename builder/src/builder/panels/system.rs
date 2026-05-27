@@ -25,7 +25,16 @@ use crate::builder::BuilderState;
 /// §CTX0 — scroll-anchor id used by [`show_star_section`] when
 /// [`BuilderState::scroll_target`] points at the Star header. Mirrors the
 /// literal passed to the inner `egui::Grid::new` so both sides stay in sync.
+///
+/// §CTX1 Phase 6 — `panels/system_map.rs` mirrors this constant so the
+/// in-system right-click menu's `FOCUS STAR DETAILS` row arms the same anchor.
 const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
+
+/// §CTX1 Phase 6 — pixel side length of the embedded [`SystemView`] widget.
+/// Shared so the right-click handler can pass the same value to
+/// [`sectorforge_gui_core::system_view::pick_world`] that `show_system_map_section`
+/// hands to `SystemView::show`.
+const SYSTEM_VIEW_SIDE: f32 = 480.0;
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
@@ -172,16 +181,31 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     .unwrap_or(SystemSelection::None),
                 None => SystemSelection::None,
             };
-            let (_resp, click) = SystemView {
+            let (resp, click) = SystemView {
                 system: sys,
                 selected,
-                side: 480.0,
+                side: SYSTEM_VIEW_SIDE,
             }
             .show(ui);
             if let Some(c) = click {
                 handle_system_view_click(state, sys_idx, c);
             }
+            // §CTX1 Phase 6 — secondary-click → open in-system menu. Resolver
+            // + render live in `panels/system_map.rs`.
+            if resp.secondary_clicked() {
+                if let Some(pos) = resp.interact_pointer_pos() {
+                    crate::builder::panels::system_map::arm_system_context_menu(
+                        state,
+                        sys_idx,
+                        SYSTEM_VIEW_SIDE,
+                        pos,
+                        resp.rect.min,
+                    );
+                }
+            }
         });
+    crate::builder::panels::system_map::show_system_context_menu(ui.ctx(), state);
+    crate::builder::panels::system_map::show_world_rename_dialog(ui.ctx(), state);
 }
 
 /// Side-effect-free routing of a [`SystemClick`] to the corresponding builder

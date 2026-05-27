@@ -375,6 +375,59 @@ impl ControlOverlay {
     }
 }
 
+/// §CTX1 — Phase 1 of `docs/CONTEXT_MENU.txt`: open right-click context menu
+/// payload on the MAP tab. `None` on [`super::BuilderState::sector_context_menu`]
+/// means no menu is open. Transient — never serialised.
+#[derive(Debug, Clone)]
+pub struct SectorContextMenu {
+    /// Screen-space anchor for the floating `egui::Area`. Captured at the
+    /// moment of the secondary click so the menu does not drift if the canvas
+    /// scrolls underneath it.
+    pub screen_pos: egui::Pos2,
+    /// The entity (or empty hex) under the cursor when the click landed.
+    pub target: SectorMenuTarget,
+}
+
+/// §CTX1 — what the right-click on the sector hex map resolved to. Phase 1
+/// only constructs `EmptyHex`, `System`, and `MultiSelection`; the remaining
+/// variants are declared here so later phases can wire them without churning
+/// the enum.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SectorMenuTarget {
+    /// Click landed on a hex inside sector bounds that does not host a system.
+    EmptyHex {
+        coord: sectorforge::sector_model::HexCoord,
+    },
+    /// Click hit the disk of a single system (and the system is not part of an
+    /// active multi-selection).
+    System {
+        id: SystemId,
+        coord: sectorforge::sector_model::HexCoord,
+    },
+    /// Click hit a route line — populated by Phase 5 once the hit-test helper
+    /// is in place.
+    Route {
+        id: RouteId,
+        near_coord: sectorforge::sector_model::HexCoord,
+    },
+    /// Click hit a hex that belongs to a region — populated by Phase 5 once
+    /// the region lookup is in the [`MapViewCache`].
+    RegionHex {
+        region: String,
+        coord: sectorforge::sector_model::HexCoord,
+    },
+    /// Click hit a subsector border edge — reserved for the future
+    /// "subsector right-click" workflow (Phase 8+).
+    SubsectorBorder {
+        subsector: String,
+        coord: sectorforge::sector_model::HexCoord,
+    },
+    /// Click landed inside the live rect-select box or on a system already in
+    /// [`super::BuilderState::selected_systems`] with `len >= 2`. Phase 3
+    /// reads this to surface bulk actions.
+    MultiSelection { ids: Vec<SystemId> },
+}
+
 /// §G5: inclusive rectangle of hex coordinates that
 /// [`super::BuilderState::regenerate_partial`] operates over.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

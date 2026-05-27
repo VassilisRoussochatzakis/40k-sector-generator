@@ -23,7 +23,10 @@ use sectorforge_gui_core::sector_view::{
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::derivation_cache::digest_input;
-use crate::builder::state::{MapTool, MapViewCache, PendingCollision, PendingPlace, PendingRename};
+use crate::builder::state::{
+    MapTool, MapViewCache, PendingCollision, PendingPlace, PendingRename, SectorContextMenu,
+    SectorMenuTarget,
+};
 use crate::builder::{BuilderState, ModalKind};
 use sectorforge_gui_core::palette::TEXT_DIM;
 
@@ -50,6 +53,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     egui::ScrollArea::both().show(ui, |ui| {
         show_hex_map(ui, state);
     });
+
+    // §CTX1 — Phase 1: floating right-click menu rendered as a free-standing
+    // `egui::Area`. Sits above the canvas; dismissed on Escape / focus-loss /
+    // outside primary click / item activation.
+    show_sector_context_menu(ui.ctx(), state);
 
     // Transient dialogs — kept inside the panel so the host shell does not need
     // to learn new ModalKind variants for §S1 / §S6.
@@ -198,8 +206,24 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         });
     }
 
+    // §CTX1 — Phase 1: yellow ring around the right-click target system while
+    // the floating menu is open, so the user can confirm the click hit the
+    // intended disk. EmptyHex / Route / Region targets skip this overlay.
+    if let Some(menu) = state.sector_context_menu.as_ref() {
+        if let SectorMenuTarget::System { id, .. } = &menu.target {
+            let yellow = egui::Color32::from_rgb(240, 220, 90);
+            let stroke = egui::Stroke::new(2.0, yellow);
+            let ring_geom = SectorGeom::new(state.hex_size, origin);
+            let target_id = id.clone();
+            paint_system_rings(ui, rect, &ring_geom, &state.sector, 0.75, stroke, |sid| {
+                sid == &target_id
+            });
+        }
+    }
+
     // ── interaction ─────────────────────────────────────────────────────────
     let pick_geom = SectorGeom::new(state.hex_size, origin);
+    let ctrl_down = ui.ctx().input(|i| i.modifiers.ctrl);
 
     // double-click → rename
     if response.double_clicked() && state.map_tool != MapTool::AddRoute {
@@ -282,8 +306,10 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     // §REG2: secondary-click + drag erase / paint on the region brush.
+    // §CTX1: hold Ctrl to bypass the paint-erase binding and open the
+    // right-click menu instead (see the secondary_clicked handler below).
     if state.map_tool == MapTool::RegionPaint {
-        if response.secondary_clicked() {
+        if response.secondary_clicked() && !ctrl_down {
             if let Some(pos) = pointer {
                 if let Some(c) = pick_geom.pick_hex(pos, sector_w, sector_h) {
                     paint_region_at(state, c, true);
@@ -303,6 +329,120 @@ fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
                 }
             }
         }
+    }
+
+    // §CTX1 — Phase 1: secondary-click → resolve target and open the floating
+    // menu. Guards live inside `resolve_sector_context`. A second secondary
+    // click overrides the prior open menu (§4.1 single-menu invariant).
+    if response.secondary_clicked() {
+        if let Some(pos) = pointer {
+            if let Some(target) =
+                resolve_sector_context(state, &pick_geom, pos, sector_w, sector_h, ctrl_down)
+            {
+                state.sector_context_menu = Some(SectorContextMenu {
+                    screen_pos: pos,
+                    target,
+                });
+            }
+        }
+    }
+}
+
+/// §CTX1 — Phase 1: resolve what the right-click landed on. Pure read of
+/// `state`, so unit tests can call it directly with a synthesised
+/// [`SectorGeom`] + screen position. Returns `None` when the click should be
+/// ignored (drag in progress / rect-select live / collision dialog already
+/// open / RegionPaint mode without Ctrl).
+///
+/// Phase 1 only constructs `System` / `MultiSelection` / `EmptyHex`. Route +
+/// region hex targets land in Phase 5; star / world targets land in Phase 6.
+fn resolve_sector_context(
+    state: &BuilderState,
+    geom: &SectorGeom,
+    pos: Pos2,
+    sector_w: u32,
+    sector_h: u32,
+    ctrl_down: bool,
+) -> Option<SectorMenuTarget> {
+    // Suppression guards (§4.1).
+    if state.drag_system.is_some() || state.rect_select.is_some() {
+        return None;
+    }
+    if state.pending_collision.is_some() {
+        return None;
+    }
+    if state.map_tool == MapTool::RegionPaint && !ctrl_down {
+        return None;
+    }
+
+    if let Some(id) = geom.hit_system(&state.sector, pos) {
+        let coord = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| s.coord)?;
+        if state.selected_systems.contains(&id) && state.selected_systems.len() >= 2 {
+            return Some(SectorMenuTarget::MultiSelection {
+                ids: state.selected_systems.iter().cloned().collect(),
+            });
+        }
+        return Some(SectorMenuTarget::System { id, coord });
+    }
+
+    if let Some(coord) = geom.pick_hex(pos, sector_w, sector_h) {
+        return Some(SectorMenuTarget::EmptyHex { coord });
+    }
+    None
+}
+
+/// §CTX1 — Phase 1: pure dismiss predicate. Factored out of
+/// [`show_sector_context_menu`] so unit tests can verify the Escape /
+/// focus-loss / outside-click rules without standing up an egui context.
+fn should_dismiss_sector_context_menu(
+    esc_pressed: bool,
+    focused: bool,
+    primary_click_outside: bool,
+) -> bool {
+    esc_pressed || !focused || primary_click_outside
+}
+
+/// §CTX1 — Phase 1: render the floating right-click menu. Anchored at
+/// `menu.screen_pos`; one placeholder `CLOSE` item until Phase 2 wires real
+/// schemas. Dismissed on Escape / focus-loss / primary click outside the area
+/// / item activation.
+fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
+    let Some(menu) = state.sector_context_menu.as_ref() else {
+        return;
+    };
+    let screen_pos = menu.screen_pos;
+    let mut close = false;
+    let area_resp = egui::Area::new(egui::Id::new("sector_context_menu"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(screen_pos)
+        .show(ctx, |ui| {
+            egui::Frame::menu(ui.style()).show(ui, |ui| {
+                ui.set_min_width(140.0);
+                // Phase 2 replaces this placeholder with the real schemas
+                // (§6.1 / §6.2 / §6.3).
+                if ui.selectable_label(false, "CLOSE").clicked() {
+                    close = true;
+                }
+            });
+        });
+
+    let esc = ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    let focused = ctx.input(|i| i.focused);
+    let area_rect = area_resp.response.rect;
+    let primary_click_outside = ctx.input(|i| {
+        i.pointer.primary_clicked()
+            && i.pointer
+                .interact_pos()
+                .is_some_and(|p| !area_rect.contains(p))
+    });
+
+    if close || should_dismiss_sector_context_menu(esc, focused, primary_click_outside) {
+        state.sector_context_menu = None;
     }
 }
 
@@ -852,6 +992,130 @@ mod tests {
             state.sector.systems.len(),
             "lookup table contains every system"
         );
+    }
+
+    // ── §CTX1 Phase 1 tests ────────────────────────────────────────────────
+
+    #[test]
+    fn secondary_click_on_system_opens_menu() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(2, 2);
+        let target = resolve_sector_context(&state, &geom, centre, 8, 8, false)
+            .expect("right-click on a system resolves");
+        match target {
+            SectorMenuTarget::System {
+                id: hit_id,
+                coord: hit_coord,
+            } => {
+                assert_eq!(hit_id, id);
+                assert_eq!(hit_coord, HexCoord { q: 2, r: 2 });
+            }
+            other => panic!("expected System target, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn secondary_click_on_empty_hex_returns_empty_hex_target() {
+        let state = blank(8, 8);
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(3, 3);
+        let target = resolve_sector_context(&state, &geom, centre, 8, 8, false)
+            .expect("right-click inside sector resolves");
+        assert!(matches!(
+            target,
+            SectorMenuTarget::EmptyHex { coord } if coord == HexCoord { q: 3, r: 3 }
+        ));
+    }
+
+    #[test]
+    fn secondary_click_dismissed_during_drag() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        state.drag_system = Some(id);
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(2, 2);
+        assert!(
+            resolve_sector_context(&state, &geom, centre, 8, 8, false).is_none(),
+            "drag in progress suppresses the menu"
+        );
+    }
+
+    #[test]
+    fn secondary_click_dismissed_during_rect_select() {
+        let mut state = blank(8, 8);
+        state.rect_select = Some((HexCoord { q: 0, r: 0 }, HexCoord { q: 4, r: 4 }));
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(2, 2);
+        assert!(resolve_sector_context(&state, &geom, centre, 8, 8, false).is_none());
+    }
+
+    #[test]
+    fn secondary_click_in_region_paint_needs_ctrl() {
+        let mut state = blank(8, 8);
+        state.map_tool = MapTool::RegionPaint;
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(1, 1);
+        assert!(
+            resolve_sector_context(&state, &geom, centre, 8, 8, false).is_none(),
+            "RegionPaint without Ctrl yields to paint-erase"
+        );
+        assert!(
+            resolve_sector_context(&state, &geom, centre, 8, 8, true).is_some(),
+            "Ctrl modifier opens the menu even in RegionPaint mode"
+        );
+    }
+
+    #[test]
+    fn multi_selection_target_when_two_selected() {
+        let mut state = blank(8, 8);
+        let a = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "A")
+            .unwrap();
+        let b = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "B")
+            .unwrap();
+        state.selected_systems.insert(a.clone());
+        state.selected_systems.insert(b.clone());
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(1, 1);
+        let target = resolve_sector_context(&state, &geom, centre, 8, 8, false).unwrap();
+        match target {
+            SectorMenuTarget::MultiSelection { ids } => {
+                assert!(ids.contains(&a) && ids.contains(&b));
+                assert_eq!(ids.len(), 2);
+            }
+            other => panic!("expected MultiSelection, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn escape_closes_menu() {
+        assert!(should_dismiss_sector_context_menu(true, true, false));
+        assert!(
+            should_dismiss_sector_context_menu(false, false, false),
+            "focus loss dismisses"
+        );
+        assert!(
+            should_dismiss_sector_context_menu(false, true, true),
+            "outside primary click dismisses"
+        );
+        assert!(!should_dismiss_sector_context_menu(false, true, false));
+    }
+
+    #[test]
+    fn context_menu_field_default_none() {
+        let state = blank(4, 4);
+        assert!(state.sector_context_menu.is_none());
     }
 
     #[test]

@@ -68,8 +68,8 @@ pub use nav::EntityRef;
 pub use types::{
     BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState, JobHandle,
     MapTool, MapViewCache, ModalKind, PartialRegenRect, PendingCollision, PendingPlace,
-    PendingRename, TickLogEntry, TickLogScope, DEFAULT_COMMAND_LOG_CAPACITY,
-    DEFAULT_VALIDATION_DEBOUNCE_MS,
+    PendingRename, SectorContextMenu, SectorMenuTarget, TickLogEntry, TickLogScope,
+    DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
 pub struct BuilderState {
@@ -466,6 +466,11 @@ pub struct BuilderState {
     /// id matches the literal passed to `egui::Grid::new` (e.g.
     /// `"sys_star_grid"`). In-memory only — never serialised.
     pub scroll_target: Option<&'static str>,
+    /// §CTX1 — Phase 1 of `docs/CONTEXT_MENU.txt`: open right-click menu on the
+    /// MAP tab. `None` when no menu is open. Set by `panels/map.rs` on
+    /// `secondary_clicked`; cleared on Escape / outside-click / focus-loss /
+    /// item activation. In-memory only — never serialised.
+    pub sector_context_menu: Option<SectorContextMenu>,
 }
 
 impl BuilderState {
@@ -601,6 +606,7 @@ impl BuilderState {
             interestingness_custom_overrides: BTreeMap::new(),
             interestingness_custom_pick: String::new(),
             scroll_target: None,
+            sector_context_menu: None,
         }
     }
 }

@@ -682,7 +682,7 @@ violation surfaces when a storm splits the sector into multiple
 components.
 
 ### `sectorforge economy` (§12 old/DONE.md / §4 NEW2.md)
-
+ 
 Trade & resource economy snapshot. Each world declares a signed
 production/consumption vector over six categories (ore, promethium,
 foodstuffs, manufactured goods, archeotech, recruits) keyed by

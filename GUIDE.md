@@ -2045,6 +2045,87 @@ Tests:
 * `bulk_rename_applies_pattern`, `bulk_control_state_flips_selection`, `bulk_pin_unpin_round_trip`, `apply_coord_move_rejects_out_of_bounds`, `system_view_renders_when_no_worlds`, `world_click_updates_selected_world_id` in [builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs).
 * §CTX1 Phase 6: `pick_world_returns_{star_at_center, background_at_corner, world_when_on_planet, empty_orbit_on_ring_without_planet}` in [gui-core/src/system_view.rs](gui-core/src/system_view.rs); `set_star_round_trip`, `remove_star_clears_spectral`, `set_star_spectral_round_trip`, `set_star_spectral_errors_when_no_star`, `rename_world_round_trip`, `set_world_orbit_round_trip` in [builder/src/builder/command.rs](builder/src/builder/command.rs); `resolve_star_pick_returns_star_target`, `resolve_world_pick_uses_world_index`, `add_star_then_remove_round_trips_through_bus`, `cycle_spectral_class_wraps_to_first_when_unknown`, `set_world_orbit_dispatches_command_when_changed`, `set_world_orbit_noop_when_unchanged`, `duplicate_world_produces_unique_id`, `add_world_at_orbit_sets_orbit`, `remove_world_drops_world`, `rename_world_open_arms_dialog`, `focus_star_details_arms_scroll_target` in [builder/src/builder/panels/system_map.rs](builder/src/builder/panels/system_map.rs).
 
+##### Right-click on the map (§CTX1 / §CTX2 — user-facing summary)
+
+Phase 8 of [docs/CONTEXT_MENU.txt](docs/CONTEXT_MENU.txt). Every common
+follow-up action on the MAP tab and the SYSTEM tab is reachable in-place via a
+right-click menu so the user does not have to swap tabs and scroll a
+collapsing header to reach it. Every mutation routes through the
+`BuilderCommand` bus, so undo / redo and auto-save behave identically to
+clicking the same action from the inspector tabs.
+
+**MAP tab — right-click on…**
+
+- **a system** → `FOCUS SYSTEM`, `RENAME…`, `DELETE`, `ADD ROUTE FROM HERE…`,
+  `ADD WORLD`, `REGENERATE SYSTEM` (disabled when pinned, tooltip explains),
+  `TOGGLE PIN`, `Open in ▸` submenu (System / World / Routes), `COPY ID`,
+  `COPY COORD`.
+- **a route line** → `FOCUS ROUTE`, `REMOVE ROUTE`, `CYCLE ROUTE TYPE ▸`
+  submenu (active variant bullet-marked), `CYCLE STABILITY ▸` submenu,
+  `Open in ROUTES ▸`. Same-value cycles short-circuit so undo log stays
+  clean.
+- **a region hex** → `FOCUS REGION`, `ERASE FROM REGION`, `RECOLOR ▸` submenu
+  over every `RegionConditionKind`, `RENAME REGION…` (inline dialog).
+- **an empty hex** → `PLACE SYSTEM HERE…`, `PAINT REGION HERE` (gated on a
+  region pre-selected in the REGIONS tab), `ERASE REGION HERE` (gated on
+  hex belonging to a region), `START PARTIAL REGEN HERE` (arms a coloured
+  chip in the MAP toolbox + a matching hint above the §G5 rect editor; next
+  primary click on any sector hex completes the partial-regen rect),
+  `COPY COORD`.
+- **a multi-selection** (right-click on a system already in the selection,
+  or inside the live rect-select box with ≥2 systems) → `FOCUS FIRST`,
+  `BULK RENAME…` (re-uses the `{n}` / `{id}` / `{name}` token grammar),
+  `PIN ALL` / `UNPIN ALL` (disabled when nothing-to-flip, tooltip
+  explains), `✕ DELETE ALL (N)` (inline two-step confirm — no global
+  modal), `ASSIGN PRIMARY FACTION ▸` submenu, `FLIP CONTROL STATE ▸`
+  submenu, `RESEED WORLDS` (disabled when every selection is pinned),
+  `CLEAR SELECTION`.
+
+**SYSTEM tab — right-click on the embedded in-system map…**
+
+- **the star** → `FOCUS STAR DETAILS` (scrolls the Star section into view),
+  `CYCLE SPECTRAL CLASS` (steps O→B→A→F→G→K→M), `REMOVE STAR`, or
+  `ADD STAR` (seeded `G2V` so the user has something to cycle from).
+- **a planet** → `FOCUS WORLD`, `RENAME…` (inline dialog), `MOVE ORBIT ▸`
+  submenu (active orbit bullet-marked, range covers existing orbits + a
+  few extra rings), `DUPLICATE WORLD` (mirrors features / tags / orbit
+  onto a fresh `WorldId`), `✕ REMOVE WORLD`, `Open in WORLD tab`,
+  `COPY ID`.
+- **an empty orbit ring** → `ADD WORLD AT ORBIT N` (lands the new world
+  pinned at the clicked orbit).
+- **background** (anywhere inside the in-system disc that is not the star,
+  a planet, or an orbit ring) → `ADD WORLD` (lands at `max_orbit + 1`),
+  `REGENERATE SYSTEM` (disabled when pinned), `DERIVE ORBITAL ASSETS`
+  (re-runs the same `SetOrbitalAssets` + `SetBlockadeReport` dispatch the
+  ORBITAL tab's "Derive now" button takes).
+
+**Dismiss, viewport clamping, and telemetry.** Click outside the menu,
+press `Escape`, or activate any item to dismiss. The menu's anchor pivot
+flips automatically based on which quadrant of the viewport the cursor
+sits in (`panels/map::menu_anchor_pivot`) so it never grows past the
+nearer screen edge; egui's `.constrain(true)` is the final clamp. While a
+menu is open the MAP tab paints a yellow ring around the context system
+and the SYSTEM tab re-uses the SELECTION ring on the contextual planet /
+star — so the user can confirm the click hit the intended target. The
+last activated row is logged in the status bar as
+`ctx_menu: <schema> :: <item>` ([panels/status.rs](builder/src/builder/panels/status.rs))
+to make it obvious which row the menu just dispatched. All right-click
+state (`sector_context_menu`, `system_context_menu`, `pending_*_rename`,
+`partial_regen_anchor`, `last_menu_action`) is in-memory only — dropped
+by `session::SessionFile` round-trip.
+
+**Edge cases worth knowing.**
+
+- `MapTool::RegionPaint` keeps its existing secondary-click paint-erase
+  binding — hold `Ctrl` while right-clicking to open the menu instead.
+- An open collision dialog, an active drag, or a live rect-select all
+  suppress the menu entirely until cleared.
+- Right-clicks on hexes outside the sector bounds do nothing (no menu).
+- Disabled rows surface their reason via `on_hover_text` (e.g. "Unpin
+  first", "Pick a region in the REGIONS tab first.", "Sector has no
+  factions — add one in the FACTIONS tab.", "System has no star — add
+  one first.").
+
 #### W1–W7 world panel (DONE)
 
 Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) is the per-world inspector — every `GeneratedWorld` field reachable, enum pickers driven by the canonical `*::VARIANTS` lists in [src/worlds.rs](src/worlds.rs), pinning side-table (Q1), single-world re-roll, weighted features picker, inline coupling warnings, and a claims chip-row.

@@ -681,14 +681,43 @@ Implementation deviations vs. the original draft:
   instead of the CLI `log_*progress` channel because the builder
   has no stderr surface — see [panels/status.rs](../builder/src/builder/panels/status.rs).
 
-### Phase 8 — Documentation
+### Phase 8 — Documentation  [DONE]
 
-- Update [GUIDE.md](../GUIDE.md) with a "Right-click on the map" section
-  in the MAP and SYSTEM chapters.
-- Update the file index in [CLAUDE.md](../CLAUDE.md) with the new helpers
-  (per-file `Purpose` lines).
-- Add the §CTX1 / §CTX2 markers to [BUILDER_REQS.txt](BUILDER_REQS.txt)
-  so future requirement passes can pick them up.
+- [GUIDE.md](../GUIDE.md) now carries a `##### Right-click on the map`
+  user-facing summary nested under §8.2 Builder's S1–S6 system-panel
+  block. It covers every MAP-tab schema (system / route / region hex /
+  empty hex / multi-selection), every SYSTEM-tab schema (star / planet /
+  empty orbit / background), dismissal rules (click outside / Escape /
+  item activation), viewport clamping via `menu_anchor_pivot`,
+  hover-ring re-use, the `ctx_menu: <schema> :: <item>` telemetry tail,
+  the `Ctrl + right-click` override while `RegionPaint` is armed, the
+  suppression rules during drag / rect-select / open collision dialog,
+  the out-of-bounds no-op, and the disabled-row tooltips for the gated
+  rows.
+- [CLAUDE.md](../CLAUDE.md) file index now lists `Purpose` lines for the
+  heavy §CTX hosts:
+  - [builder/src/builder/panels/map.rs](../builder/src/builder/panels/map.rs)
+    — §S1 + §R2 MAP tab plus the §CTX1 sector right-click surface
+    (`resolve_sector_context`, `apply_sector_menu_action`, the
+    `render_*_menu` family, `show_*_dialog`, `apply_partial_regen_anchor_click`,
+    `menu_anchor_pivot`, `sector_menu_action_label`).
+  - [builder/src/builder/panels/system.rs](../builder/src/builder/panels/system.rs)
+    — §S2 inspector + §CTX0 `show_system_map_section` + host of the
+    `apply_bulk_*` `pub(crate)` helpers re-used by the multi-selection
+    right-click menu.
+  - [builder/src/builder/panels/status.rs](../builder/src/builder/panels/status.rs)
+    — §N4 status bar + the Phase 7 `ctx_menu: <schema> :: <item>`
+    telemetry tail.
+  The pre-existing rows for
+  [panels/system_map.rs](../builder/src/builder/panels/system_map.rs),
+  [panels/orbital.rs](../builder/src/builder/panels/orbital.rs),
+  [gui-core/src/sector_view.rs](../gui-core/src/sector_view.rs), and
+  [gui-core/src/system_view.rs](../gui-core/src/system_view.rs) already
+  call out the §CTX0..§CTX1 helpers they expose.
+- [docs/BUILDER_REQS.txt](BUILDER_REQS.txt) carries §CTX0 / §CTX1 /
+  §CTX1.7 / §CTX1.8 / §CTX2 markers under the §CTX section so future
+  requirement passes can pick them up. The new §CTX1.8 entry points back
+  at this Phase-8 block.
 
 ---
 

@@ -2730,6 +2730,18 @@ CTX1.7 [DONE] Phase 7 polish — viewport clamping + flip-anchor, hover-ring
        panel instead of the CLI `log_*progress` channel because the
        builder has no stderr surface.
 
+CTX1.8 [DONE] Phase 8 — Documentation. "Right-click on the map" user-facing
+       section landed in GUIDE.md under §8.2 Builder (alongside the
+       existing S1–S6 / CTX0..CTX1 dev-reference rows) covering every
+       MAP-tab and SYSTEM-tab menu schema, dismissal rules, viewport
+       clamping + telemetry tail, and the disabled-row tooltips. CLAUDE.md
+       file index now lists per-Purpose lines for the heavy CTX hosts
+       `builder/src/builder/panels/{map,system,status}.rs` and (already
+       present) `panels/system_map.rs` + `panels/orbital.rs` +
+       `gui-core/src/sector_view.rs` + `gui-core/src/system_view.rs`. The
+       §CTX0 / §CTX1 / §CTX1.7 / §CTX2 markers in this file are the entry
+       points for future requirement passes.
+
 CTX2. [DONE] Phase 6 — System-view context menus (require CTX0). See
        docs/CONTEXT_MENU.txt §6.6–§6.9. The resolver / render / dispatch
        surface lives in the new

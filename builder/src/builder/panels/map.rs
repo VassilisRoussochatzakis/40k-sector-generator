@@ -13,8 +13,9 @@
 
 use egui::{Pos2, RichText, Sense, Ui};
 
-use sectorforge::ids::{self, FactionId, SystemId};
-use sectorforge::sector_model::{HexCoord, SystemState};
+use sectorforge::ids::{self, FactionId, RouteId, SystemId};
+use sectorforge::regions::RegionConditionKind;
+use sectorforge::sector_model::{HexCoord, RouteStability, RouteType, SystemState};
 use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 
 use sectorforge_gui_core::sector_view::{
@@ -25,7 +26,7 @@ use crate::builder::command::BuilderCommand;
 use crate::builder::derivation_cache::digest_input;
 use crate::builder::state::{
     BuilderTab, EntityRef, MapTool, MapViewCache, PendingBulkRename, PendingCollision,
-    PendingPlace, PendingRename, SectorContextMenu, SectorMenuTarget,
+    PendingPlace, PendingRegionRename, PendingRename, SectorContextMenu, SectorMenuTarget,
 };
 use crate::builder::{BuilderState, ModalKind};
 use sectorforge_gui_core::palette::TEXT_DIM;
@@ -75,6 +76,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     show_place_dialog(ui.ctx(), state);
     show_rename_dialog(ui.ctx(), state);
     show_bulk_rename_dialog(ui.ctx(), state);
+    show_region_rename_dialog(ui.ctx(), state);
     show_collision_dialog(ui.ctx(), state);
 }
 
@@ -412,7 +414,32 @@ fn resolve_sector_context(
         return Some(SectorMenuTarget::System { id, coord });
     }
 
+    // §CTX1 Phase 5 — route line hit-test runs before the hex pick so a
+    // right-click on a route segment in an otherwise-empty hex opens the
+    // route schema rather than the empty-hex one.
+    if let Some(route_id) = geom.hit_route(&state.sector, pos) {
+        let near_coord = geom
+            .pick_hex(pos, sector_w, sector_h)
+            .unwrap_or(HexCoord { q: 0, r: 0 });
+        return Some(SectorMenuTarget::Route {
+            id: route_id,
+            near_coord,
+        });
+    }
+
     if let Some(coord) = geom.pick_hex(pos, sector_w, sector_h) {
+        // §CTX1 Phase 5 — region-hex lookup goes through the cache so unrelated
+        // pickers (PLACE / PAINT) keep using the same source of truth (§REG2).
+        if let Some(region) = state
+            .map_view_cache
+            .as_ref()
+            .and_then(|c| c.lookup.region_for_hex(coord))
+        {
+            return Some(SectorMenuTarget::RegionHex {
+                region: region.to_string(),
+                coord,
+            });
+        }
         return Some(SectorMenuTarget::EmptyHex { coord });
     }
     None
@@ -489,6 +516,51 @@ pub(super) enum SectorMenuAction {
     MultiReseedWorlds,
     /// Drop `selected_systems` back to empty.
     MultiClearSelection,
+    // ── §CTX1 Phase 5 — §6.4 route items ───────────────────────────────────
+    /// Cross-tab focus on a route (also lights it up in the MAP overlay).
+    FocusRoute {
+        id: RouteId,
+    },
+    /// Hard delete a route via the command bus.
+    RemoveRoute {
+        id: RouteId,
+    },
+    /// Replace `route_type` outright. Used by the `RECOLOR ▸` style submenu so
+    /// each variant gets a deterministic 1-click action (Q14.1 spec deferral
+    /// — submenu over single-cycle for discoverability).
+    SetRouteType {
+        id: RouteId,
+        value: RouteType,
+    },
+    /// Replace `stability` outright (same pattern as [`Self::SetRouteType`]).
+    SetRouteStability {
+        id: RouteId,
+        value: RouteStability,
+    },
+    // ── §CTX1 Phase 5 — §6.5 region-hex items ──────────────────────────────
+    /// Cross-tab focus on a region.
+    FocusRegion {
+        region: String,
+    },
+    /// Erase one hex from a region via the existing overlay path
+    /// ([`super::super::state::BuilderState::erase_region_hex`]). Different
+    /// from [`Self::EraseRegion`] because we already know which region owns
+    /// the hex (the resolver gives us the id directly).
+    EraseRegionHex {
+        region: String,
+        coord: HexCoord,
+    },
+    /// Replace a region's `kind` (drives the overlay colour — the menu label
+    /// is "RECOLOR" even though the model field is `kind`).
+    SetRegionKind {
+        region: String,
+        value: RegionConditionKind,
+    },
+    /// Open the rename dialog. Commit goes through the command bus on
+    /// `show_region_rename_dialog`.
+    RenameRegionOpen {
+        region: String,
+    },
     // Clipboard side-effects belong on `ui.ctx()`, so the render path handles
     // COPY COORD / COPY ID inline rather than threading them through this
     // enum.
@@ -677,6 +749,95 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
         SectorMenuAction::MultiClearSelection => {
             state.selected_systems.clear();
             state.selected_system_id = None;
+        }
+        // ── §CTX1 Phase 5 — §6.4 route branches ────────────────────────────
+        SectorMenuAction::FocusRoute { id } => {
+            state.focus_entity(EntityRef::Route(id));
+        }
+        SectorMenuAction::RemoveRoute { id } => {
+            let cmd = BuilderCommand::RemoveRoute { id, before: None };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Remove route failed: {e}")));
+            }
+        }
+        SectorMenuAction::SetRouteType { id, value } => {
+            let before = state
+                .sector
+                .routes
+                .iter()
+                .find(|r| r.id == id)
+                .map(|r| r.route_type);
+            let Some(before) = before else { return true };
+            if before == value {
+                return true;
+            }
+            let cmd = BuilderCommand::SetRouteType {
+                id,
+                before,
+                after: value,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Set route type failed: {e}")));
+            }
+        }
+        SectorMenuAction::SetRouteStability { id, value } => {
+            let before = state
+                .sector
+                .routes
+                .iter()
+                .find(|r| r.id == id)
+                .map(|r| r.stability);
+            let Some(before) = before else { return true };
+            if before == value {
+                return true;
+            }
+            let cmd = BuilderCommand::SetRouteStability {
+                id,
+                before,
+                after: value,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Set stability failed: {e}")));
+            }
+        }
+        // ── §CTX1 Phase 5 — §6.5 region branches ───────────────────────────
+        SectorMenuAction::FocusRegion { region } => {
+            state.focus_entity(EntityRef::Region(region));
+        }
+        SectorMenuAction::EraseRegionHex { region, coord } => {
+            if let Err(e) = state.erase_region_hex(&region, coord) {
+                state.modal = Some(ModalKind::Message(format!("Region erase failed: {e}")));
+            }
+        }
+        SectorMenuAction::SetRegionKind { region, value } => {
+            let before = state
+                .sector
+                .regions
+                .iter()
+                .find(|r| r.id == region)
+                .map(|r| r.kind);
+            let Some(before) = before else { return true };
+            if before == value {
+                return true;
+            }
+            let cmd = BuilderCommand::SetRegionKind {
+                region,
+                before,
+                after: value,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Recolor region failed: {e}")));
+            }
+        }
+        SectorMenuAction::RenameRegionOpen { region } => {
+            let text = state
+                .sector
+                .regions
+                .iter()
+                .find(|r| r.id == region)
+                .map(|r| r.name.clone())
+                .unwrap_or_default();
+            state.pending_region_rename = Some(PendingRegionRename { region, text });
         }
     }
     true
@@ -1013,6 +1174,185 @@ fn render_multi_selection_menu(
     close
 }
 
+/// §CTX1 Phase 5: human-readable label for a [`RouteStability`]. Local copy of
+/// the helper in [`super::routes::stability_label`] — that one is private to
+/// the ROUTES panel and we don't want to plumb a `pub(super)` re-export for
+/// two call sites.
+fn stability_label(value: RouteStability) -> &'static str {
+    match value {
+        RouteStability::Stable => "stable",
+        RouteStability::Unstable => "unstable",
+        RouteStability::Hazardous => "hazardous",
+        RouteStability::Perilous => "perilous",
+    }
+}
+
+/// §CTX1 — Phase 5 §6.4: render the route schema. Returns `true` when any
+/// item activated. RECOLOR / CYCLE STABILITY are rendered as nested submenus
+/// so each variant gets a deterministic 1-click action (resolves Q14.1 in
+/// favour of submenu over single-cycle for discoverability).
+fn render_route_menu(ui: &mut egui::Ui, state: &mut BuilderState, id: RouteId) -> bool {
+    let mut close = false;
+    let route_summary = state
+        .sector
+        .routes
+        .iter()
+        .find(|r| r.id == id)
+        .map(|r| (r.route_type, r.stability));
+    let Some((cur_type, cur_stab)) = route_summary else {
+        if ui.selectable_label(false, "CLOSE").clicked() {
+            close = true;
+        }
+        return close;
+    };
+
+    ui.label(
+        egui::RichText::new(format!(
+            "ROUTE {id} — {} / {}",
+            cur_type.editor_label(),
+            stability_label(cur_stab)
+        ))
+        .italics(),
+    );
+    ui.separator();
+
+    if ui.selectable_label(false, "FOCUS ROUTE").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::FocusRoute { id: id.clone() });
+    }
+    if ui.selectable_label(false, "✕ REMOVE ROUTE").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::RemoveRoute { id: id.clone() });
+    }
+
+    ui.menu_button("CYCLE ROUTE TYPE ▸", |ui| {
+        for value in RouteType::ALL {
+            let label = if value == cur_type {
+                format!("• {}", value.editor_label())
+            } else {
+                value.editor_label().to_string()
+            };
+            if ui.selectable_label(false, label).clicked() {
+                close |= apply_sector_menu_action(
+                    state,
+                    SectorMenuAction::SetRouteType {
+                        id: id.clone(),
+                        value,
+                    },
+                );
+                ui.close_menu();
+            }
+        }
+    });
+
+    ui.menu_button("CYCLE STABILITY ▸", |ui| {
+        for value in [
+            RouteStability::Stable,
+            RouteStability::Unstable,
+            RouteStability::Hazardous,
+            RouteStability::Perilous,
+        ] {
+            let label = if value == cur_stab {
+                format!("• {}", stability_label(value))
+            } else {
+                stability_label(value).to_string()
+            };
+            if ui.selectable_label(false, label).clicked() {
+                close |= apply_sector_menu_action(
+                    state,
+                    SectorMenuAction::SetRouteStability {
+                        id: id.clone(),
+                        value,
+                    },
+                );
+                ui.close_menu();
+            }
+        }
+    });
+
+    ui.separator();
+    if ui.selectable_label(false, "Open in ROUTES ▸").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::FocusRoute { id });
+    }
+
+    close
+}
+
+/// §CTX1 — Phase 5 §6.5: render the region-hex schema. The hex was already
+/// resolved to its owning region in `resolve_sector_context`.
+fn render_region_hex_menu(
+    ui: &mut egui::Ui,
+    state: &mut BuilderState,
+    region: &str,
+    coord: HexCoord,
+) -> bool {
+    let mut close = false;
+    let summary = state
+        .sector
+        .regions
+        .iter()
+        .find(|r| r.id == region)
+        .map(|r| (r.name.clone(), r.kind));
+    let Some((name, cur_kind)) = summary else {
+        if ui.selectable_label(false, "CLOSE").clicked() {
+            close = true;
+        }
+        return close;
+    };
+
+    ui.label(
+        egui::RichText::new(format!("REGION {region} — {name} [{}]", cur_kind.label())).italics(),
+    );
+    ui.separator();
+
+    if ui.selectable_label(false, "FOCUS REGION").clicked() {
+        close |= apply_sector_menu_action(
+            state,
+            SectorMenuAction::FocusRegion {
+                region: region.to_string(),
+            },
+        );
+    }
+    if ui.selectable_label(false, "ERASE FROM REGION").clicked() {
+        close |= apply_sector_menu_action(
+            state,
+            SectorMenuAction::EraseRegionHex {
+                region: region.to_string(),
+                coord,
+            },
+        );
+    }
+
+    ui.menu_button("RECOLOR ▸", |ui| {
+        for value in RegionConditionKind::ALL.iter().copied() {
+            let label = if value == cur_kind {
+                format!("• {} {}", value.glyph(), value.label())
+            } else {
+                format!("  {} {}", value.glyph(), value.label())
+            };
+            if ui.selectable_label(false, label).clicked() {
+                close |= apply_sector_menu_action(
+                    state,
+                    SectorMenuAction::SetRegionKind {
+                        region: region.to_string(),
+                        value,
+                    },
+                );
+                ui.close_menu();
+            }
+        }
+    });
+
+    if ui.selectable_label(false, "RENAME REGION…").clicked() {
+        close |= apply_sector_menu_action(
+            state,
+            SectorMenuAction::RenameRegionOpen {
+                region: region.to_string(),
+            },
+        );
+    }
+
+    close
+}
+
 /// §CTX1 — Phase 1: pure dismiss predicate. Factored out of
 /// [`show_sector_context_menu`] so unit tests can verify the Escape /
 /// focus-loss / outside-click rules without standing up an egui context.
@@ -1052,11 +1392,14 @@ fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
                     SectorMenuTarget::MultiSelection { ids } => {
                         close |= render_multi_selection_menu(ui, state, ids);
                     }
-                    SectorMenuTarget::Route { .. }
-                    | SectorMenuTarget::RegionHex { .. }
-                    | SectorMenuTarget::SubsectorBorder { .. } => {
-                        // Phase 5 (route + region) / future (subsector
-                        // border) replace this placeholder.
+                    SectorMenuTarget::Route { id, .. } => {
+                        close |= render_route_menu(ui, state, id.clone());
+                    }
+                    SectorMenuTarget::RegionHex { region, coord } => {
+                        close |= render_region_hex_menu(ui, state, region, *coord);
+                    }
+                    SectorMenuTarget::SubsectorBorder { .. } => {
+                        // Future (subsector border) replaces this placeholder.
                         if ui.selectable_label(false, "CLOSE").clicked() {
                             close = true;
                         }
@@ -1488,6 +1831,63 @@ fn show_bulk_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
         state.pending_bulk_rename = None;
     } else {
         state.pending_bulk_rename = Some(PendingBulkRename { pattern });
+    }
+}
+
+/// §CTX1 Phase 5 — modal rename dialog for the §6.5 "RENAME REGION…" entry.
+/// Commits through [`BuilderCommand::RenameRegion`] so the change is undoable.
+fn show_region_rename_dialog(ctx: &egui::Context, state: &mut BuilderState) {
+    let Some(pending) = state.pending_region_rename.clone() else {
+        return;
+    };
+    let before = state
+        .sector
+        .regions
+        .iter()
+        .find(|r| r.id == pending.region)
+        .map(|r| r.name.clone())
+        .unwrap_or_default();
+    let mut text = pending.text.clone();
+    let mut commit = false;
+    let mut close = false;
+    egui::Window::new("Rename region")
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .show(ctx, |ui| {
+            ui.label(format!("region: {} — current: {}", pending.region, before));
+            ui.text_edit_singleline(&mut text);
+            ui.horizontal(|ui| {
+                let enabled = !text.trim().is_empty() && text != before;
+                if ui
+                    .add_enabled(enabled, egui::Button::new("Rename"))
+                    .clicked()
+                {
+                    commit = true;
+                    close = true;
+                }
+                if ui.button("Cancel").clicked() {
+                    close = true;
+                }
+            });
+        });
+    if commit {
+        let cmd = BuilderCommand::RenameRegion {
+            region: pending.region.clone(),
+            before: before.clone(),
+            after: text.clone(),
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!("Rename region failed: {e}")));
+        }
+    }
+    if close {
+        state.pending_region_rename = None;
+    } else {
+        state.pending_region_rename = Some(PendingRegionRename {
+            region: pending.region,
+            text,
+        });
     }
 }
 
@@ -2272,6 +2672,215 @@ mod tests {
         let file = SessionFile::from_state(&state, Vec::new());
         let round_tripped = file.into_state();
         assert!(round_tripped.partial_regen_anchor.is_none());
+    }
+
+    // ── §CTX1 Phase 5 tests — route + region-hex menus ───────────────────
+
+    fn add_route(state: &mut BuilderState, a: HexCoord, b: HexCoord) -> sectorforge::ids::RouteId {
+        let sa = state.sector.add_system(a, "A").unwrap();
+        let sb = state.sector.add_system(b, "B").unwrap();
+        state
+            .sector
+            .add_route(&sa, &sb, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap()
+    }
+
+    #[test]
+    fn resolve_returns_route_target_when_clicking_segment() {
+        let mut state = blank(8, 8);
+        let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 4, r: 0 });
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let a = geom.hex_center(0, 0);
+        let b = geom.hex_center(4, 0);
+        let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
+        let target = resolve_sector_context(&state, &geom, mid, 8, 8, false)
+            .expect("midpoint resolves to route");
+        assert!(matches!(
+            target,
+            SectorMenuTarget::Route { id: hit, .. } if hit == id
+        ));
+    }
+
+    #[test]
+    fn resolve_returns_region_hex_when_cache_has_region() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-z", HexCoord { q: 3, r: 4 });
+        refresh_map_cache(&mut state);
+        let geom = SectorGeom::new(28.0, Pos2::ZERO);
+        let centre = geom.hex_center(3, 4);
+        let target = resolve_sector_context(&state, &geom, centre, 8, 8, false).unwrap();
+        assert!(matches!(
+            target,
+            SectorMenuTarget::RegionHex { ref region, coord }
+                if region == "reg-z" && coord == HexCoord { q: 3, r: 4 }
+        ));
+    }
+
+    #[test]
+    fn ctx_action_set_route_type_runs_command_and_undoes() {
+        let mut state = blank(8, 8);
+        let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::SetRouteType {
+                id: id.clone(),
+                value: RouteType::SmugglingLane,
+            },
+        );
+        assert_eq!(
+            state
+                .sector
+                .routes
+                .iter()
+                .find(|r| r.id == id)
+                .unwrap()
+                .route_type,
+            RouteType::SmugglingLane
+        );
+        state.undo().unwrap();
+        assert_eq!(
+            state
+                .sector
+                .routes
+                .iter()
+                .find(|r| r.id == id)
+                .unwrap()
+                .route_type,
+            RouteType::StableWarpLane
+        );
+    }
+
+    #[test]
+    fn ctx_action_set_route_stability_runs_command() {
+        let mut state = blank(8, 8);
+        let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::SetRouteStability {
+                id: id.clone(),
+                value: RouteStability::Perilous,
+            },
+        );
+        assert_eq!(
+            state
+                .sector
+                .routes
+                .iter()
+                .find(|r| r.id == id)
+                .unwrap()
+                .stability,
+            RouteStability::Perilous
+        );
+    }
+
+    #[test]
+    fn ctx_action_remove_route_drops_route() {
+        let mut state = blank(8, 8);
+        let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
+        apply_sector_menu_action(&mut state, SectorMenuAction::RemoveRoute { id: id.clone() });
+        assert!(state.sector.routes.iter().all(|r| r.id != id));
+    }
+
+    #[test]
+    fn ctx_action_set_route_type_noop_when_unchanged() {
+        let mut state = blank(8, 8);
+        let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
+        let log_before = state.command_log.len();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::SetRouteType {
+                id,
+                value: RouteType::StableWarpLane,
+            },
+        );
+        assert_eq!(
+            state.command_log.len(),
+            log_before,
+            "same-value cycle should not push a command"
+        );
+    }
+
+    #[test]
+    fn ctx_action_focus_route_switches_to_routes_tab() {
+        let mut state = blank(8, 8);
+        let id = add_route(&mut state, HexCoord { q: 0, r: 0 }, HexCoord { q: 1, r: 0 });
+        state.active_tab = BuilderTab::Map;
+        apply_sector_menu_action(&mut state, SectorMenuAction::FocusRoute { id: id.clone() });
+        assert_eq!(state.selected_route_id, Some(id));
+        assert_eq!(state.active_tab, BuilderTab::Routes);
+    }
+
+    #[test]
+    fn ctx_action_set_region_kind_runs_command() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-x", HexCoord { q: 2, r: 2 });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::SetRegionKind {
+                region: "reg-x".into(),
+                value: RegionConditionKind::CalmCorridor,
+            },
+        );
+        assert_eq!(
+            state
+                .sector
+                .regions
+                .iter()
+                .find(|r| r.id == "reg-x")
+                .unwrap()
+                .kind,
+            RegionConditionKind::CalmCorridor
+        );
+    }
+
+    #[test]
+    fn ctx_action_focus_region_switches_tab() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-x", HexCoord { q: 2, r: 2 });
+        state.active_tab = BuilderTab::Map;
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::FocusRegion {
+                region: "reg-x".into(),
+            },
+        );
+        assert_eq!(state.selected_region_id.as_deref(), Some("reg-x"));
+        assert_eq!(state.active_tab, BuilderTab::Regions);
+    }
+
+    #[test]
+    fn ctx_action_erase_region_hex_drops_hex() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-x", HexCoord { q: 2, r: 2 });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::EraseRegionHex {
+                region: "reg-x".into(),
+                coord: HexCoord { q: 2, r: 2 },
+            },
+        );
+        let region = state
+            .sector
+            .regions
+            .iter()
+            .find(|r| r.id == "reg-x")
+            .unwrap();
+        assert!(!region.hexes.contains(&HexCoord { q: 2, r: 2 }));
+    }
+
+    #[test]
+    fn ctx_action_rename_region_open_arms_dialog() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-x", HexCoord { q: 0, r: 0 });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::RenameRegionOpen {
+                region: "reg-x".into(),
+            },
+        );
+        let pending = state.pending_region_rename.expect("dialog armed");
+        assert_eq!(pending.region, "reg-x");
+        assert_eq!(pending.text, "Region reg-x");
     }
 
     #[test]

@@ -144,6 +144,7 @@ impl SessionFile {
             pending_rename: None,
             pending_collision: None,
             pending_bulk_rename: None,
+            pending_region_rename: None,
             rect_select: None,
             hex_size: 28.0,
             map_view_cache: None,

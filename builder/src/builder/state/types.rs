@@ -288,6 +288,16 @@ pub struct PendingCollision {
     pub occupant: SystemId,
 }
 
+/// §CTX1 Phase 5 — pending REGION RENAME input — region id and editable
+/// buffer. Surfaced by the MAP tab's right-click region-hex menu (`§6.5`)
+/// and the REGIONS-tab rename row. Dispatches through
+/// `BuilderCommand::RenameRegion` on commit.
+#[derive(Debug, Clone)]
+pub struct PendingRegionRename {
+    pub region: String,
+    pub text: String,
+}
+
 /// §CTX1 Phase 3 — pending BULK RENAME pattern, surfaced by the MAP tab's
 /// right-click multi-selection menu. `pattern` is the editable buffer; the
 /// dialog reuses the [`PendingRename`] modal pattern and dispatches through

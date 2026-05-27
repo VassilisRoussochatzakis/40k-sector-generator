@@ -68,8 +68,8 @@ pub use nav::EntityRef;
 pub use types::{
     BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState, JobHandle,
     MapTool, MapViewCache, ModalKind, PartialRegenRect, PendingBulkRename, PendingCollision,
-    PendingPlace, PendingRename, SectorContextMenu, SectorMenuTarget, TickLogEntry, TickLogScope,
-    DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
+    PendingPlace, PendingRegionRename, PendingRename, SectorContextMenu, SectorMenuTarget,
+    TickLogEntry, TickLogScope, DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
 pub struct BuilderState {
@@ -166,6 +166,10 @@ pub struct BuilderState {
     /// §CTX1 Phase 3: BULK RENAME pattern dialog armed from the MAP tab
     /// right-click multi-selection menu. `None` when no dialog is open.
     pub pending_bulk_rename: Option<PendingBulkRename>,
+    /// §CTX1 Phase 5: region RENAME dialog armed from the MAP tab right-click
+    /// region-hex menu (`§6.5`). `None` when no dialog is open. Dispatches
+    /// through `BuilderCommand::RenameRegion` on commit.
+    pub pending_region_rename: Option<PendingRegionRename>,
     /// §S4: in-progress rect-select on the map (`(start, current)` corners).
     pub rect_select: Option<(
         sectorforge::sector_model::HexCoord,
@@ -533,6 +537,7 @@ impl BuilderState {
             pending_rename: None,
             pending_collision: None,
             pending_bulk_rename: None,
+            pending_region_rename: None,
             rect_select: None,
             hex_size: 28.0,
             map_view_cache: None,

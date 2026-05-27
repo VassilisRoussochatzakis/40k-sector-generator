@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
-use sectorforge::ids::SystemId;
+use sectorforge::ids::{RouteId, SystemId};
 use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
 
 use sectorforge::subsectors::Subsector;
@@ -76,6 +76,16 @@ impl SectorMapCache {
             hex_region,
             region_centroids,
         }
+    }
+
+    /// §CTX1 Phase 5 — region id containing `coord`, if any. O(1) lookup over
+    /// the precomputed `hex_region` table. Used by `panels/map.rs` to surface
+    /// the §6.5 region-hex context menu.
+    #[must_use]
+    pub fn region_for_hex(&self, coord: HexCoord) -> Option<&str> {
+        self.hex_region
+            .get(&(coord.q, coord.r))
+            .map(|(id, _)| id.as_str())
     }
 }
 
@@ -965,6 +975,61 @@ impl SectorGeom {
             })
             .map(|s| s.id.clone())
     }
+
+    /// §CTX1 Phase 5 — route hit-test. Picks the route whose poly-line passes
+    /// closest to `screen_pos` within `hex_size * 0.18`. Ties on segment-distance
+    /// resolve to the lexicographically smaller `RouteId` (matches §10 edge-case
+    /// rule for overlapping routes). Routes whose endpoints don't both resolve
+    /// in `sector.systems` are skipped.
+    #[must_use]
+    pub fn hit_route(&self, sector: &GeneratedSector, screen_pos: Pos2) -> Option<RouteId> {
+        let threshold = self.hex_size * 0.18;
+        let coord_of = |id: &str| -> Option<Pos2> {
+            sector
+                .systems
+                .iter()
+                .find(|s| s.id.as_str() == id)
+                .map(|s| self.hex_center(s.coord.q, s.coord.r))
+        };
+        let mut best: Option<(RouteId, f32)> = None;
+        for route in &sector.routes {
+            let (Some(a), Some(b)) = (
+                coord_of(route.from_system_id.as_str()),
+                coord_of(route.to_system_id.as_str()),
+            ) else {
+                continue;
+            };
+            let d = point_segment_distance(screen_pos, a, b);
+            if d > threshold {
+                continue;
+            }
+            match &best {
+                None => best = Some((route.id.clone(), d)),
+                Some((cur_id, cur_d)) => {
+                    if d < *cur_d || (d == *cur_d && route.id.as_str() < cur_id.as_str()) {
+                        best = Some((route.id.clone(), d));
+                    }
+                }
+            }
+        }
+        best.map(|(id, _)| id)
+    }
+}
+
+/// Shortest distance from `p` to the line segment `a`→`b`. Used by
+/// [`SectorGeom::hit_route`]; standalone so it can be unit-tested without
+/// constructing a sector.
+#[must_use]
+pub(crate) fn point_segment_distance(p: Pos2, a: Pos2, b: Pos2) -> f32 {
+    let ab = b - a;
+    let len_sq = ab.x * ab.x + ab.y * ab.y;
+    if len_sq <= f32::EPSILON {
+        return (p - a).length();
+    }
+    let ap = p - a;
+    let t = ((ap.x * ab.x + ap.y * ab.y) / len_sq).clamp(0.0, 1.0);
+    let proj = a + ab * t;
+    (p - proj).length()
 }
 
 /// Paint a stroked circle around every system whose id satisfies `include`.
@@ -1269,5 +1334,114 @@ fn draw_hex_outline_only(
     let pts = hex_vertices(c, size);
     for i in 0..6 {
         painter.line_segment([pts[i], pts[(i + 1) % 6]], Stroke::new(thickness, color));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sectorforge::sector_model::{GeneratedSector, RouteStability, RouteType};
+
+    fn geom() -> SectorGeom {
+        SectorGeom::new(20.0, Pos2::ZERO)
+    }
+
+    fn sector_with_two_routes() -> GeneratedSector {
+        let mut s = GeneratedSector::empty("t", "T", "seed", 8, 8);
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 4, r: 0 }, "B").unwrap();
+        let c = s.add_system(HexCoord { q: 0, r: 4 }, "C").unwrap();
+        s.add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        s.add_route(&a, &c, RouteType::ChartedPassage, RouteStability::Hazardous)
+            .unwrap();
+        s
+    }
+
+    #[test]
+    fn hit_route_picks_nearest_segment() {
+        let g = geom();
+        let sector = sector_with_two_routes();
+        let a = g.hex_center(0, 0);
+        let b = g.hex_center(4, 0);
+        let mid = Pos2::new((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
+        let hit = g.hit_route(&sector, mid).expect("midpoint should hit a-b");
+        // Route id is built from sorted endpoints; assert by checking the
+        // matching route's endpoints contain coord (0,0) ↔ (4,0).
+        let route = sector.routes.iter().find(|r| r.id == hit).unwrap();
+        let coords: Vec<(i32, i32)> = sector
+            .systems
+            .iter()
+            .filter(|s| s.id == route.from_system_id || s.id == route.to_system_id)
+            .map(|s| (s.coord.q, s.coord.r))
+            .collect();
+        assert!(coords.contains(&(0, 0)));
+        assert!(coords.contains(&(4, 0)));
+    }
+
+    #[test]
+    fn hit_route_returns_none_outside_threshold() {
+        let g = geom();
+        let sector = sector_with_two_routes();
+        // Far above the horizontal route — well outside hex_size * 0.18 = 3.6 px.
+        let a = g.hex_center(0, 0);
+        let probe = Pos2::new(a.x + 40.0, a.y - 80.0);
+        assert!(g.hit_route(&sector, probe).is_none());
+    }
+
+    #[test]
+    fn hit_route_resolves_ambiguous_by_route_id_lex() {
+        // Two routes that pass through the exact same point: A-B and B-C are
+        // collinear when A, B, C share a row. The probe at the shared endpoint
+        // is equidistant from both segments (distance 0). The lex-smaller id
+        // wins.
+        let g = geom();
+        let mut s = GeneratedSector::empty("t", "T", "seed", 12, 8);
+        let a = s.add_system(HexCoord { q: 0, r: 2 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 4, r: 2 }, "B").unwrap();
+        let c = s.add_system(HexCoord { q: 8, r: 2 }, "C").unwrap();
+        let r_ab = s
+            .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let r_bc = s
+            .add_route(&b, &c, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let probe = g.hex_center(4, 2);
+        let hit = g.hit_route(&s, probe).expect("midpoint at B hits a route");
+        let expected = if r_ab.as_str() < r_bc.as_str() {
+            r_ab.clone()
+        } else {
+            r_bc.clone()
+        };
+        assert_eq!(hit, expected);
+    }
+
+    #[test]
+    fn point_segment_distance_basic() {
+        let p = Pos2::new(0.0, 5.0);
+        let a = Pos2::new(-10.0, 0.0);
+        let b = Pos2::new(10.0, 0.0);
+        assert!((point_segment_distance(p, a, b) - 5.0).abs() < 1e-4);
+        // Beyond the segment endpoint clamps to the nearer end.
+        let q = Pos2::new(20.0, 0.0);
+        assert!((point_segment_distance(q, a, b) - 10.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn region_for_hex_returns_id_or_none() {
+        use sectorforge::regions::RegionConditionKind;
+        let mut s = GeneratedSector::empty("t", "T", "seed", 8, 8);
+        s.add_region(
+            "reg-0001",
+            "Sealed Veil",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 2, r: 3 },
+        );
+        let cache = SectorMapCache::new(&s, &[]);
+        assert_eq!(
+            cache.region_for_hex(HexCoord { q: 2, r: 3 }),
+            Some("reg-0001")
+        );
+        assert_eq!(cache.region_for_hex(HexCoord { q: 5, r: 5 }), None);
     }
 }

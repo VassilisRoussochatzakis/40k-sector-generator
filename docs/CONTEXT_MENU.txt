@@ -264,7 +264,7 @@ Resolved via `MapViewCache.lookup.region_for_hex(coord)` (add to
 |------|--------------|--------|
 | `FOCUS REGION` | always | `focus_entity(EntityRef::Region(region))` |
 | `ERASE FROM REGION` | always | `state.erase_region_hex(&region, coord)` |
-| `RECOLOR ▸` | always | submenu of palette entries → `BuilderCommand::SetRegionColor { … }` (new — Phase 5) |
+| `RECOLOR ▸` | always | submenu over `RegionConditionKind::ALL` → `BuilderCommand::SetRegionKind { … }` (new — Phase 5; the model field is `kind`, the overlay colour derives from it). |
 | `RENAME REGION…` | always | inline dialog → `BuilderCommand::RenameRegion { … }` (new — Phase 5) |
 
 ### 6.6 System view — star
@@ -431,23 +431,75 @@ under `mod tests`):
   `SessionFile::{from_state, into_state}` and asserts the anchor is
   dropped, satisfying the §12 in-memory-only invariant.
 
-### Phase 5 — Route + region context (new commands)
+### Phase 5 — Route + region context (new commands)  [DONE]
 
 This phase introduces new `BuilderCommand` variants. Keep them minimal —
 each has a single `before`/`after` field and is undoable.
 
-- New geometry helper `pick_geom.hit_route(&sector, pos) -> Option<RouteId>`
-  (point-to-segment, threshold `hex_size * 0.18`). Add unit test.
-- Extend `SectorMapCache` with `region_for_hex(coord) -> Option<&str>`.
-- New `BuilderCommand` variants:
+- New geometry helper `SectorGeom::hit_route(&sector, screen_pos) ->
+  Option<RouteId>` in
+  [gui-core/src/sector_view.rs](../gui-core/src/sector_view.rs) (point-to-
+  segment via the standalone `point_segment_distance(p, a, b)` helper,
+  threshold `hex_size * 0.18`). Tie-break on equal segment-distance picks
+  the lex-smaller `RouteId` so the §10 ambiguity rule is deterministic.
+- `SectorMapCache::region_for_hex(coord) -> Option<&str>` reads the
+  existing `hex_region` table. O(1).
+- New `BuilderCommand` variants (in
+  [builder/src/builder/command.rs](../builder/src/builder/command.rs)):
   - `SetRouteType { id, before, after }`
   - `SetRouteStability { id, before, after }`
-  - `SetRegionColor { region, before, after }`
-  - `RenameRegion { id, before, after }`
-- Wire §6.4 (route) and §6.5 (region hex) menus.
+  - `SetRegionKind { region, before, after }` — renamed from
+    `SetRegionColor` because `WarpRegion` has no `color` field; the
+    overlay colour is derived from `kind`. The menu label is still
+    "RECOLOR ▸".
+  - `RenameRegion { region, before, after }` — `region` is the `String`
+    id (no dedicated id newtype for regions yet).
+- New menu actions (in
+  [builder/src/builder/panels/map.rs](../builder/src/builder/panels/map.rs)
+  `SectorMenuAction`):
+  - `FocusRoute { id }` / `RemoveRoute { id }` /
+    `SetRouteType { id, value }` / `SetRouteStability { id, value }` —
+    same-value cycles short-circuit so the command log stays clean.
+  - `FocusRegion { region }` / `EraseRegionHex { region, coord }` /
+    `SetRegionKind { region, value }` / `RenameRegionOpen { region }`.
+- `resolve_sector_context` now hit-tests routes before falling through to
+  the hex pick, and consults `MapViewCache.lookup.region_for_hex` so the
+  empty-hex schema only fires on hexes that aren't owned by any region.
+- `RenameRegionOpen` arms a new `pending_region_rename:
+  Option<PendingRegionRename>` field on `BuilderState`; the modal lives
+  in `show_region_rename_dialog` and dispatches
+  `BuilderCommand::RenameRegion`. Same in-memory-only invariant as the
+  other transient dialogs — no `SessionFile` plumbing.
 
-**Tests:** each new command round-trips through `undo`/`redo`; route
-hit-test picks the nearest segment.
+Implementation deviation: §6.4 originally specified "`CYCLE ROUTE TYPE`
+as one menu item that rotates" with a Q14.1 follow-up. We resolved Q14.1
+in favour of the submenu (the spec default), so the menu surfaces every
+variant as a 1-click row under a `CYCLE ROUTE TYPE ▸` nested menu. Same
+pattern for `CYCLE STABILITY ▸` and `RECOLOR ▸`. The active variant is
+marked with a leading bullet.
+
+**Tests:**
+- `gui_core::sector_view::tests::hit_route_picks_nearest_segment`
+- `gui_core::sector_view::tests::hit_route_returns_none_outside_threshold`
+- `gui_core::sector_view::tests::hit_route_resolves_ambiguous_by_route_id_lex`
+- `gui_core::sector_view::tests::point_segment_distance_basic`
+- `gui_core::sector_view::tests::region_for_hex_returns_id_or_none`
+- `builder::command::tests::set_route_type_round_trip`
+- `builder::command::tests::set_route_stability_round_trip`
+- `builder::command::tests::set_region_kind_round_trip`
+- `builder::command::tests::rename_region_round_trip`
+- `builder::command::tests::set_route_type_unknown_route_errors`
+- `builder::panels::map::tests::resolve_returns_route_target_when_clicking_segment`
+- `builder::panels::map::tests::resolve_returns_region_hex_when_cache_has_region`
+- `builder::panels::map::tests::ctx_action_set_route_type_runs_command_and_undoes`
+- `builder::panels::map::tests::ctx_action_set_route_stability_runs_command`
+- `builder::panels::map::tests::ctx_action_remove_route_drops_route`
+- `builder::panels::map::tests::ctx_action_set_route_type_noop_when_unchanged`
+- `builder::panels::map::tests::ctx_action_focus_route_switches_to_routes_tab`
+- `builder::panels::map::tests::ctx_action_set_region_kind_runs_command`
+- `builder::panels::map::tests::ctx_action_focus_region_switches_tab`
+- `builder::panels::map::tests::ctx_action_erase_region_hex_drops_hex`
+- `builder::panels::map::tests::ctx_action_rename_region_open_arms_dialog`
 
 ### Phase 6 — In-system menu (§6.6 – §6.9)
 
@@ -589,12 +641,18 @@ helpers in [cli/common.rs](../src/cli/common.rs) — do **not** introduce
 
 ## 14. Open questions (resolve before Phase 5)
 
-1. Should `CYCLE ROUTE TYPE` be one menu item that rotates through all
-   variants, or a submenu with one item per variant? Default: **submenu**
-   (better discoverability). Confirm with the user before implementing.
-2. Region colour palette — is there an existing palette enum, or do we
-   need to extend the regions module? Audit
-   [src/regions.rs](../src/regions.rs) before Phase 5.
+1. ~~Should `CYCLE ROUTE TYPE` be one menu item that rotates through all
+   variants, or a submenu with one item per variant?~~ **Resolved
+   2026-05-27 — submenu.** Phase 5 ships `CYCLE ROUTE TYPE ▸` /
+   `CYCLE STABILITY ▸` / `RECOLOR ▸` as nested menus with the active
+   variant bullet-marked.
+2. ~~Region colour palette — is there an existing palette enum, or do we
+   need to extend the regions module?~~ **Resolved 2026-05-27 — reuses
+   `regions::RegionConditionKind::ALL`.** `WarpRegion` has no `color`
+   field; the overlay colour is derived from `kind`. The new
+   `BuilderCommand::SetRegionKind` carries the `before` / `after` kind
+   and the renderer picks the colour through
+   `MapRegionOverlay::from_condition`.
 3. Is there demand for a "Copy as TOML snippet" item on systems and
    routes? Cheap to add once clipboard plumbing is in. Default: defer to
    v2.

@@ -12,6 +12,7 @@ use sectorforge::archetypes::ArchetypeState;
 use sectorforge::conflict::ConflictState;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
+use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, HexCoord,
@@ -214,6 +215,37 @@ pub enum BuilderCommand {
         world: WorldId,
         before: Option<Box<StabilityState>>,
         after: StabilityState,
+    },
+    /// §CTX1 Phase 5 (§6.4): retype an existing route. `before`/`after` are
+    /// the prior + new [`RouteType`] so the bus can replay/undo without
+    /// re-deriving anything else on the route.
+    SetRouteType {
+        id: RouteId,
+        before: RouteType,
+        after: RouteType,
+    },
+    /// §CTX1 Phase 5 (§6.4): change a route's stability tier. Pattern matches
+    /// [`Self::SetRouteType`].
+    SetRouteStability {
+        id: RouteId,
+        before: RouteStability,
+        after: RouteStability,
+    },
+    /// §CTX1 Phase 5 (§6.5): switch a region's [`RegionConditionKind`] — the
+    /// map renderer derives the region overlay colour from `kind`, so the menu
+    /// label is "RECOLOR ▸" but the mutation is on `kind`. `before` snapshots
+    /// the prior kind so revert is exact.
+    SetRegionKind {
+        region: String,
+        before: RegionConditionKind,
+        after: RegionConditionKind,
+    },
+    /// §CTX1 Phase 5 (§6.5): rename an existing region. `before`/`after` hold
+    /// the prior + new `name` string so undo restores the label exactly.
+    RenameRegion {
+        region: String,
+        before: String,
+        after: String,
     },
     /// §CF4: run `sectorforge::conflict::advance_sector` for `ticks` ticks.
     /// `before_world` / `before_system` snapshot per-entity conflict state so
@@ -468,6 +500,56 @@ impl BuilderCommand {
                 w.stability = after.clone();
                 Ok(())
             }
+            Self::SetRouteType { id, before, after } => {
+                let route = sector
+                    .routes
+                    .iter_mut()
+                    .find(|r| r.id == *id)
+                    .ok_or_else(|| MutationError::RouteNotFound(id.to_string()))?;
+                *before = route.route_type;
+                route.route_type = *after;
+                Ok(())
+            }
+            Self::SetRouteStability { id, before, after } => {
+                let route = sector
+                    .routes
+                    .iter_mut()
+                    .find(|r| r.id == *id)
+                    .ok_or_else(|| MutationError::RouteNotFound(id.to_string()))?;
+                *before = route.stability;
+                route.stability = *after;
+                Ok(())
+            }
+            Self::SetRegionKind {
+                region,
+                before,
+                after,
+            } => {
+                let mut regions = (*sector.regions).clone();
+                let reg = regions
+                    .iter_mut()
+                    .find(|r| r.id == *region)
+                    .ok_or_else(|| MutationError::RegionNotFound(region.clone()))?;
+                *before = reg.kind;
+                reg.kind = *after;
+                sector.regions = std::sync::Arc::new(regions);
+                Ok(())
+            }
+            Self::RenameRegion {
+                region,
+                before,
+                after,
+            } => {
+                let mut regions = (*sector.regions).clone();
+                let reg = regions
+                    .iter_mut()
+                    .find(|r| r.id == *region)
+                    .ok_or_else(|| MutationError::RegionNotFound(region.clone()))?;
+                *before = reg.name.clone();
+                reg.name = after.clone();
+                sector.regions = std::sync::Arc::new(regions);
+                Ok(())
+            }
             Self::AdvanceConflictTicks {
                 ticks,
                 before_world,
@@ -656,6 +738,34 @@ impl BuilderCommand {
                     {
                         w.stability = (**prev).clone();
                     }
+                }
+                Ok(())
+            }
+            Self::SetRouteType { id, before, .. } => {
+                if let Some(r) = sector.routes.iter_mut().find(|r| r.id == *id) {
+                    r.route_type = *before;
+                }
+                Ok(())
+            }
+            Self::SetRouteStability { id, before, .. } => {
+                if let Some(r) = sector.routes.iter_mut().find(|r| r.id == *id) {
+                    r.stability = *before;
+                }
+                Ok(())
+            }
+            Self::SetRegionKind { region, before, .. } => {
+                let mut regions = (*sector.regions).clone();
+                if let Some(reg) = regions.iter_mut().find(|r| r.id == *region) {
+                    reg.kind = *before;
+                    sector.regions = std::sync::Arc::new(regions);
+                }
+                Ok(())
+            }
+            Self::RenameRegion { region, before, .. } => {
+                let mut regions = (*sector.regions).clone();
+                if let Some(reg) = regions.iter_mut().find(|r| r.id == *region) {
+                    reg.name = before.clone();
+                    sector.regions = std::sync::Arc::new(regions);
                 }
                 Ok(())
             }
@@ -934,6 +1044,125 @@ mod tests {
             .find(|w| w.id == world_id)
             .unwrap();
         assert!(w.regions.is_empty());
+    }
+
+    #[test]
+    fn set_route_type_round_trip() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        let id = s
+            .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let mut cmd = BuilderCommand::SetRouteType {
+            id: id.clone(),
+            before: RouteType::StableWarpLane,
+            after: RouteType::SmugglingLane,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            s.routes.iter().find(|r| r.id == id).unwrap().route_type,
+            RouteType::SmugglingLane
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            s.routes.iter().find(|r| r.id == id).unwrap().route_type,
+            RouteType::StableWarpLane
+        );
+    }
+
+    #[test]
+    fn set_route_stability_round_trip() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        let id = s
+            .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        let mut cmd = BuilderCommand::SetRouteStability {
+            id: id.clone(),
+            before: RouteStability::Stable,
+            after: RouteStability::Perilous,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            s.routes.iter().find(|r| r.id == id).unwrap().stability,
+            RouteStability::Perilous
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            s.routes.iter().find(|r| r.id == id).unwrap().stability,
+            RouteStability::Stable
+        );
+    }
+
+    #[test]
+    fn set_region_kind_round_trip() {
+        let mut s = empty();
+        s.add_region(
+            "reg-0001",
+            "Veil",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 1, r: 1 },
+        );
+        let mut cmd = BuilderCommand::SetRegionKind {
+            region: "reg-0001".into(),
+            before: RegionConditionKind::Blackout,
+            after: RegionConditionKind::WarpStorm,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().kind,
+            RegionConditionKind::WarpStorm
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().kind,
+            RegionConditionKind::Blackout
+        );
+    }
+
+    #[test]
+    fn rename_region_round_trip() {
+        let mut s = empty();
+        s.add_region(
+            "reg-0001",
+            "Veil",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 1, r: 1 },
+        );
+        let mut cmd = BuilderCommand::RenameRegion {
+            region: "reg-0001".into(),
+            before: String::new(),
+            after: "Sealed Mirror".into(),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().name,
+            "Sealed Mirror"
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().name,
+            "Veil"
+        );
+    }
+
+    #[test]
+    fn set_route_type_unknown_route_errors() {
+        let mut s = empty();
+        let mut cmd = BuilderCommand::SetRouteType {
+            id: sectorforge::ids::route_id(
+                &sectorforge::ids::system_id(1),
+                &sectorforge::ids::system_id(2),
+            ),
+            before: RouteType::StableWarpLane,
+            after: RouteType::Webway,
+        };
+        assert!(matches!(
+            cmd.apply(&mut s),
+            Err(MutationError::RouteNotFound(_))
+        ));
     }
 
     /// R8 determinism: a fixed command sequence applied to a blank sector

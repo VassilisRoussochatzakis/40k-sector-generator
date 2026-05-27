@@ -12,7 +12,7 @@ use crate::sector_model::{GeneratedSector, RouteStability, RouteType};
 use super::colors::{darken, rgba, route_thickness, short, stability_color};
 use super::geom::Geom;
 use super::primitives::{draw_line_thick, draw_rect_outline, draw_text, fill_circle, fill_rect};
-use super::routes::{draw_route_line_thick, ControlKind, RouteLineParams};
+use super::routes::{draw_route_pattern_legend, ControlKind};
 use super::RenderOptions;
 
 pub(super) fn legend_height(sector: &GeneratedSector, g: &Geom, opts: &RenderOptions) -> i32 {
@@ -138,16 +138,16 @@ pub(super) fn draw_legend(
     match opts.route_view_mode {
         crate::sector_model::RouteViewMode::Detailed => {
             for rtype in RouteType::ALL {
-                draw_route_line_thick(RouteLineParams {
+                draw_route_pattern_legend(
                     img,
                     x0,
-                    y0: y + 8 * g.scale,
-                    x1: x0 + 30 * g.scale,
-                    y1: y + 8 * g.scale,
-                    color: opts.theme.route_type,
-                    thickness: 3 * g.scale,
-                    pattern: rtype.pattern(opts.route_view_mode),
-                });
+                    y + 8 * g.scale,
+                    x0 + 30 * g.scale,
+                    y + 8 * g.scale,
+                    opts.theme.route_type,
+                    3 * g.scale,
+                    rtype.pattern(opts.route_view_mode),
+                );
                 draw_text(
                     img,
                     x0 + 38 * g.scale,
@@ -161,16 +161,16 @@ pub(super) fn draw_legend(
         }
         crate::sector_model::RouteViewMode::TopLevel => {
             for kind in crate::sector_model::RouteKind::ALL {
-                draw_route_line_thick(RouteLineParams {
+                draw_route_pattern_legend(
                     img,
                     x0,
-                    y0: y + 8 * g.scale,
-                    x1: x0 + 30 * g.scale,
-                    y1: y + 8 * g.scale,
-                    color: opts.theme.route_type,
-                    thickness: 3 * g.scale,
-                    pattern: kind.patterns()[0],
-                });
+                    y + 8 * g.scale,
+                    x0 + 30 * g.scale,
+                    y + 8 * g.scale,
+                    opts.theme.route_type,
+                    3 * g.scale,
+                    kind.patterns()[0],
+                );
                 draw_text(
                     img,
                     x0 + 38 * g.scale,

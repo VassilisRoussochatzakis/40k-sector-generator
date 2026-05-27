@@ -33,12 +33,3 @@ pub(super) fn hex_center(q: i32, r: i32) -> (f32, f32) {
     let y = MARGIN + vert_step * r as f32 + HEX_SIZE;
     (x, y)
 }
-
-pub(super) fn hex_vertices(cx: f32, cy: f32, size: f32) -> [(f32, f32); 6] {
-    let mut out = [(0.0f32, 0.0f32); 6];
-    for (i, slot) in out.iter_mut().enumerate() {
-        let angle = std::f32::consts::PI / 180.0 * 60.0f32.mul_add(i as f32, -30.0);
-        *slot = (size.mul_add(angle.cos(), cx), size.mul_add(angle.sin(), cy));
-    }
-    out
-}

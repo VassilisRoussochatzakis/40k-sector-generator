@@ -34,7 +34,15 @@ fn r_thick(v: f32) -> i32 {
 
 impl Canvas for BitmapCanvas<'_> {
     fn line(&mut self, x0: f32, y0: f32, x1: f32, y1: f32, color: Rgba<u8>, thickness: f32) {
-        draw_line_thick(self.img, r(x0), r(y0), r(x1), r(y1), color, r_thick(thickness));
+        draw_line_thick(
+            self.img,
+            r(x0),
+            r(y0),
+            r(x1),
+            r(y1),
+            color,
+            r_thick(thickness),
+        );
     }
 
     fn circle(
@@ -58,15 +66,7 @@ impl Canvas for BitmapCanvas<'_> {
         }
     }
 
-    fn rect(
-        &mut self,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        fill: Rgba<u8>,
-        stroke: Option<Rgba<u8>>,
-    ) {
+    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba<u8>, stroke: Option<Rgba<u8>>) {
         let xi = r(x);
         let yi = r(y);
         let wi = r(w);

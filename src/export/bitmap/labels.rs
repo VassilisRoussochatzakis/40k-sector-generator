@@ -1,6 +1,6 @@
-//! System name labels, subsector borders, and subsector label placement.
+//! System name labels + subsector label placement.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use image::RgbaImage;
 
@@ -8,8 +8,8 @@ use crate::map_theme::{LabelDensity, MapTheme};
 use crate::sector_model::{offset_r_neighbors, GeneratedSector};
 use crate::subsectors::Subsector;
 
-use super::geom::{hex_center, hex_vertices, map_bounds, Geom, MapBounds, Rect};
-use super::primitives::{draw_text, fill_circle, fill_rect, text_size, GLYPH_H};
+use super::geom::{hex_center, map_bounds, Geom, MapBounds, Rect};
+use super::primitives::{draw_text, fill_rect, text_size, GLYPH_H};
 use super::routes::star_radius_ratio;
 use super::RenderOptions;
 
@@ -73,57 +73,6 @@ fn system_label_visible(
                 || subsectors.iter().any(|s| {
                     s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
                 })
-        }
-    }
-}
-
-pub(super) fn draw_subsector_borders(
-    img: &mut RgbaImage,
-    sector: &GeneratedSector,
-    subsectors: &[Subsector],
-    g: &Geom,
-    theme: &MapTheme,
-) {
-    let mut owner: HashMap<(i32, i32), &str> = HashMap::new();
-    for s in subsectors {
-        for &(q, r) in &s.hex_cells {
-            owner.insert((q as i32, r as i32), s.id.as_ref());
-        }
-    }
-    if owner.is_empty() {
-        return;
-    }
-    let border_thick = (g.hex_size * 0.10).max(2.5);
-    let dot_radius = ((border_thick * 0.8).max(2.0)).round() as i32;
-    let spacing = dot_radius as f32 * 2.5;
-    for r in 0..sector.height as i32 {
-        let deltas = offset_r_neighbors(r);
-        for q in 0..sector.width as i32 {
-            let Some(here_id) = owner.get(&(q, r)).copied() else {
-                continue;
-            };
-            let (cx, cy) = hex_center(q, r, g);
-            let v = hex_vertices(cx, cy, g.hex_size);
-            for (i, (dq, dr)) in deltas.iter().enumerate() {
-                let other = owner.get(&(q + dq, r + dr)).copied();
-                let differs = match other {
-                    Some(id) => id != here_id,
-                    None => true,
-                };
-                if !differs {
-                    continue;
-                }
-                let a = v[i];
-                let b = v[(i + 1) % 6];
-                let edge_len = ((b.0 - a.0) as f32).hypot((b.1 - a.1) as f32);
-                let segments = (edge_len / spacing).ceil() as usize;
-                for j in 0..=segments {
-                    let t = j as f32 / segments as f32;
-                    let mx = ((b.0 - a.0) as f32).mul_add(t, a.0 as f32).round() as i32;
-                    let my = ((b.1 - a.1) as f32).mul_add(t, a.1 as f32).round() as i32;
-                    fill_circle(img, mx, my, dot_radius, theme.subsector_border);
-                }
-            }
         }
     }
 }

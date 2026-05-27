@@ -22,6 +22,7 @@ use crate::map_theme::{LabelDensity, LegendStyle};
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
+mod canvas;
 mod colors;
 mod geom;
 mod grid;
@@ -34,16 +35,12 @@ mod systems;
 
 use geom::{map_bounds, Geom, MapBounds};
 
-pub use routes::RouteLineParams;
-
 pub(crate) use colors::{darken, short, star_color, tint_against};
 #[allow(unused_imports)]
 pub(crate) use primitives::{
     draw_circle, draw_line, draw_line_thick, draw_rect_outline, draw_ring, draw_text, fill_circle,
     fill_rect, text_size, GLYPH_H,
 };
-#[allow(unused_imports)]
-pub(crate) use routes::draw_route_line_thick;
 
 /// Per-render options independent of the project config. Backwards-compat
 /// re-export: the type now lives in [`super::render_core::options`] (Task 3
@@ -179,7 +176,7 @@ fn render(
 
     grid::draw_hex_grid(&mut img, sector, &g, &sys_tints, &opts.theme);
     if draw_subsectors {
-        labels::draw_subsector_borders(&mut img, sector, subs, &g, &opts.theme);
+        grid::draw_subsector_borders(&mut img, sector, subs, &g, &opts.theme);
     }
     routes::draw_routes(&mut img, sector, &g, &opts);
     regions::draw_region_labels(&mut img, sector, &g, &opts.theme);

@@ -19,6 +19,7 @@ use crate::map_theme::{LabelDensity, LegendStyle, MapTheme};
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
+mod canvas;
 mod colors;
 mod geom;
 mod grid;

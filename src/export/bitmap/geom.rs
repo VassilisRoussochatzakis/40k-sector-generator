@@ -1,11 +1,7 @@
 //! Scaled geometry + hex math for the bitmap renderer.
 
-use image::{Rgba, RgbaImage};
-
 use crate::map_theme::{LegendStyle, MapTheme};
 use crate::sector_model::GeneratedSector;
-
-use super::primitives::{draw_line, fill_polygon};
 
 /// Scaled geometry for the sector map. All pixel sizes are derived from
 /// `scale` so callers can opt into higher resolution renders.
@@ -72,34 +68,6 @@ pub(super) fn hex_center(q: i32, r: i32, g: &Geom) -> (i32, i32) {
     let x = horiz_step.mul_add(q as f32 + row_shift, g.margin as f32) + horiz_step / 2.0;
     let y = g.margin as f32 + vert_step * r as f32 + g.hex_size;
     (x.round() as i32, y.round() as i32)
-}
-
-pub(super) fn hex_vertices(cx: i32, cy: i32, size: f32) -> [(i32, i32); 6] {
-    let mut out = [(0i32, 0i32); 6];
-    for (i, slot) in out.iter_mut().enumerate() {
-        let angle = std::f32::consts::PI / 180.0 * 60.0f32.mul_add(i as f32, -30.0);
-        let x = size.mul_add(angle.cos(), cx as f32);
-        let y = size.mul_add(angle.sin(), cy as f32);
-        *slot = (x.round() as i32, y.round() as i32);
-    }
-    out
-}
-
-pub(super) fn draw_hex(
-    img: &mut RgbaImage,
-    cx: i32,
-    cy: i32,
-    size: f32,
-    fill: Rgba<u8>,
-    outline: Rgba<u8>,
-) {
-    let pts = hex_vertices(cx, cy, size);
-    fill_polygon(img, &pts, fill);
-    for i in 0..6 {
-        let (ax, ay) = pts[i];
-        let (bx, by) = pts[(i + 1) % 6];
-        draw_line(img, ax, ay, bx, by, outline);
-    }
 }
 
 /// Axis-aligned rect in pixel space. Used for collision tests when placing

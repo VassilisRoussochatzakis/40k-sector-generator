@@ -1,4 +1,8 @@
-//! Hex-grid fill: per-system tints, region tints, and the grid itself.
+//! Hex-grid fill + subsector borders + per-system tints.
+//!
+//! Tint computation stays here (it joins backend-agnostic theme math with
+//! `Rgba` types that both backends already share). The hex polygon walk
+//! and subsector border drawing call into [`crate::export::render_core::grid`].
 
 use std::collections::HashMap;
 
@@ -9,13 +13,13 @@ use crate::heatmap::{self, HeatCellRgb, HeatmapMode};
 use crate::map_theme::MapTheme;
 use crate::regions::RegionConditionKind;
 use crate::sector_model::GeneratedSector;
+use crate::subsectors::Subsector;
 
+use super::canvas::BitmapCanvas;
 use super::colors::{rgba, tint_against};
-use super::geom::{draw_hex, hex_center, Geom};
+use super::geom::{hex_center, Geom};
 use super::RenderOptions;
 
-/// One hex tint per (q, r) where the system has a dominant faction (§8) or a
-/// heatmap intensity > 0 (§10). Empty hexes stay at the theme's base fill.
 pub(super) fn compute_system_tints(
     sector: &GeneratedSector,
     opts: &RenderOptions,
@@ -24,9 +28,6 @@ pub(super) fn compute_system_tints(
     let mut out = HashMap::new();
     for sys in sector.systems.iter() {
         let key = (sys.coord.q, sys.coord.r);
-        // Heatmap overrides faction fill for non-Control modes. For Control
-        // mode the underlying score already drives `faction_style.fill`, so
-        // both paths agree.
         if !matches!(opts.heatmap, HeatmapMode::Off) {
             if let Some(cell) = heat.get(&sys.id) {
                 let strength = cell
@@ -72,20 +73,41 @@ pub(super) fn draw_hex_grid(
     sys_tints: &HashMap<(i32, i32), Rgba<u8>>,
     theme: &MapTheme,
 ) {
-    // §5 NEW.md: region tints underneath the system tint so the overlay reads
-    // as background colour rather than overwriting faction fill.
     let region_tints = compute_region_tints(sector, theme);
-    for r in 0..sector.height as i32 {
-        for q in 0..sector.width as i32 {
-            let (cx, cy) = hex_center(q, r, g);
-            let base = region_tints
-                .get(&(q, r))
-                .copied()
-                .unwrap_or(theme.hex_empty);
-            let fill = sys_tints.get(&(q, r)).copied().unwrap_or(base);
-            draw_hex(img, cx, cy, g.hex_size, fill, theme.hex_outline);
-        }
-    }
+    let mut canvas = BitmapCanvas::new(img);
+    crate::export::render_core::grid::draw_hex_grid(
+        &mut canvas,
+        sector,
+        sys_tints,
+        &region_tints,
+        theme,
+        g.hex_size,
+        |q, r| {
+            let (x, y) = hex_center(q, r, g);
+            (x as f32, y as f32)
+        },
+    );
+}
+
+pub(super) fn draw_subsector_borders(
+    img: &mut RgbaImage,
+    sector: &GeneratedSector,
+    subsectors: &[Subsector],
+    g: &Geom,
+    theme: &MapTheme,
+) {
+    let mut canvas = BitmapCanvas::new(img);
+    crate::export::render_core::grid::draw_subsector_borders(
+        &mut canvas,
+        sector,
+        subsectors,
+        theme,
+        g.hex_size,
+        |q, r| {
+            let (x, y) = hex_center(q, r, g);
+            (x as f32, y as f32)
+        },
+    );
 }
 
 fn compute_region_tints(

@@ -25,15 +25,7 @@ pub(crate) trait Canvas {
         stroke: Option<Rgba<u8>>,
         stroke_w: f32,
     );
-    fn rect(
-        &mut self,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        fill: Rgba<u8>,
-        stroke: Option<Rgba<u8>>,
-    );
+    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba<u8>, stroke: Option<Rgba<u8>>);
     fn polygon(
         &mut self,
         pts: &[(f32, f32)],

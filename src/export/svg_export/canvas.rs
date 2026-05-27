@@ -33,15 +33,7 @@ impl Canvas for SvgCanvas<'_> {
         circle(self.out, cx, cy, radius, fill, stroke, stroke_w);
     }
 
-    fn rect(
-        &mut self,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
-        fill: Rgba<u8>,
-        stroke: Option<Rgba<u8>>,
-    ) {
+    fn rect(&mut self, x: f32, y: f32, w: f32, h: f32, fill: Rgba<u8>, stroke: Option<Rgba<u8>>) {
         rect(self.out, x, y, w, h, fill, stroke);
     }
 

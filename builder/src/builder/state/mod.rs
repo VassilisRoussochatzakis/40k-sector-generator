@@ -505,6 +505,16 @@ pub struct BuilderState {
     /// has no UI for). `None` until the first activation; cleared on session
     /// load — in-memory only.
     pub last_menu_action: Option<String>,
+    /// Visual layout for the SYSTEM tab's embedded
+    /// [`sectorforge_gui_core::system_view::SystemView`]. Defaults to
+    /// [`SystemLayout::Horizontal`] — planets to the right of the star in
+    /// orbit order. In-memory only; never serialised.
+    pub system_layout: sectorforge_gui_core::system_view::SystemLayout,
+    /// Pixel side length of the SYSTEM tab's embedded
+    /// [`sectorforge_gui_core::system_view::SystemView`]. Drives `star_r` /
+    /// `planet_r` / `orbit_step` proportionally — bumping the slider grows
+    /// the whole widget. In-memory only.
+    pub system_view_side: f32,
 }
 
 impl BuilderState {
@@ -647,6 +657,8 @@ impl BuilderState {
             system_context_menu: None,
             pending_world_rename: None,
             last_menu_action: None,
+            system_layout: sectorforge_gui_core::system_view::SystemLayout::default(),
+            system_view_side: 720.0,
         }
     }
 }

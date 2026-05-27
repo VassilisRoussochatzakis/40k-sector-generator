@@ -13,6 +13,7 @@ pub struct SystemView<'a> {
     pub system: &'a GeneratedSystem,
     pub selected: SystemSelection,
     pub side: f32,
+    pub layout: SystemLayout,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +21,19 @@ pub enum SystemSelection {
     None,
     Star,
     World(usize),
+}
+
+/// Visual arrangement for [`SystemView`]. [`SystemLayout::Horizontal`] is the
+/// default — star anchored at the left, planets arrayed rightward in orbit
+/// order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SystemLayout {
+    /// Concentric orbit rings. Planet angle derived from `(orbit, index)`.
+    Orbital,
+    /// Star at the left, planets aligned horizontally to its right in orbit
+    /// order. Empty orbits leave a slot tick on the axis.
+    #[default]
+    Horizontal,
 }
 
 pub enum SystemClick {
@@ -53,19 +67,23 @@ pub enum SystemPick {
 /// for primary clicks. Pure read of `system` so unit tests can call it without
 /// an egui context.
 #[must_use]
-pub fn pick_world(side: f32, system: &GeneratedSystem, local_pos: Pos2) -> SystemPick {
-    let g = SystemGeom::new(side, system);
-    let center = Pos2::new(side / 2.0, side / 2.0);
+pub fn pick_world(
+    side: f32,
+    system: &GeneratedSystem,
+    layout: SystemLayout,
+    local_pos: Pos2,
+) -> SystemPick {
+    let g = SystemGeom::new(side, system, layout);
+    let center = layout_center(side);
+    let star = star_anchor(&g, center, layout);
 
     // 1. Planet hit (nearest within 1.25 * planet_r).
     let mut best: Option<(usize, f32)> = None;
     for w in &system.worlds {
         let orbit = i32::from(w.orbit.max(1));
-        let r = g.orbit_base + (orbit - 1) as f32 * g.orbit_step;
-        let a = orbit_angle(w.index, orbit).to_radians();
-        let p = Pos2::new(center.x + r * a.cos(), center.y + r * a.sin());
+        let p = world_anchor(&g, star, layout, orbit, w.index);
         let d = (p - local_pos).length();
-        if d <= g.planet_r * 1.25 && best.map_or(true, |(_, bd)| d < bd) {
+        if d <= g.planet_r * 1.25 && best.is_none_or(|(_, bd)| d < bd) {
             best = Some((w.index, d));
         }
     }
@@ -74,14 +92,14 @@ pub fn pick_world(side: f32, system: &GeneratedSystem, local_pos: Pos2) -> Syste
     }
 
     // 2. Star hit.
-    let star_d = (center - local_pos).length();
+    let star_d = (star - local_pos).length();
     if star_d <= g.star_r * 1.2 {
         return SystemPick::Star;
     }
 
-    // 3. Empty-orbit ring hit. Probe every potential orbit (1..=max+1) so the
-    //    user can right-click an empty ring beyond the current max to add a
-    //    planet there. Tolerance is `planet_r * 0.9` either side of the ring
+    // 3. Empty-orbit slot hit. Probe every potential orbit (1..=max+1) so the
+    //    user can right-click an empty slot beyond the current max to add a
+    //    planet there. Tolerance is `planet_r * 0.9` either side of the slot
     //    so the band is comfortable but does not overlap with the star halo.
     let max_orbit = system
         .worlds
@@ -91,11 +109,26 @@ pub fn pick_world(side: f32, system: &GeneratedSystem, local_pos: Pos2) -> Syste
         .unwrap_or(0)
         .max(1);
     let probe = max_orbit.saturating_add(1);
-    let dist_to_center = (local_pos - center).length();
-    for o in 1..=probe {
-        let ring_r = g.orbit_base + (o as f32 - 1.0) * g.orbit_step;
-        if (dist_to_center - ring_r).abs() <= g.planet_r * 0.9 {
-            return SystemPick::EmptyOrbit(o);
+    match layout {
+        SystemLayout::Orbital => {
+            let dist_to_center = (local_pos - star).length();
+            for o in 1..=probe {
+                let ring_r = g.orbit_base + (o as f32 - 1.0) * g.orbit_step;
+                if (dist_to_center - ring_r).abs() <= g.planet_r * 0.9 {
+                    return SystemPick::EmptyOrbit(o);
+                }
+            }
+        }
+        SystemLayout::Horizontal => {
+            // Slot column tolerance: planet_r * 0.9 in x, planet_r * 1.5 in y.
+            for o in 1..=probe {
+                let slot_x = star.x + f32::from(o) * g.orbit_step;
+                let dx = (local_pos.x - slot_x).abs();
+                let dy = (local_pos.y - star.y).abs();
+                if dx <= g.planet_r * 0.9 && dy <= g.planet_r * 1.5 {
+                    return SystemPick::EmptyOrbit(o);
+                }
+            }
         }
     }
 
@@ -104,15 +137,16 @@ pub fn pick_world(side: f32, system: &GeneratedSystem, local_pos: Pos2) -> Syste
 
 impl<'a> SystemView<'a> {
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SystemClick>) {
-        let g = SystemGeom::new(self.side, self.system);
+        let g = SystemGeom::new(self.side, self.system, self.layout);
         let (rect, response) = ui.allocate_exact_size(Vec2::new(g.side, g.side), Sense::click());
         let painter = ui.painter_at(rect);
         let origin = rect.min;
         let center = Pos2::new(origin.x + g.side / 2.0, origin.y + g.side / 2.0);
+        let star = star_anchor(&g, center, self.layout);
 
         painter.rect_filled(rect, 0.0, palette::BG);
 
-        // Orbit rings.
+        // Orbit guides.
         let max_orbit = i32::from(
             self.system
                 .worlds
@@ -121,28 +155,45 @@ impl<'a> SystemView<'a> {
                 .max()
                 .unwrap_or(0),
         );
-        for o in 1..=max_orbit.max(1) {
-            let r = g.orbit_base + (o - 1) as f32 * g.orbit_step;
-            painter.circle_stroke(center, r, Stroke::new(1.0, ORBIT_RING));
+        match self.layout {
+            SystemLayout::Orbital => {
+                for o in 1..=max_orbit.max(1) {
+                    let r = g.orbit_base + (o - 1) as f32 * g.orbit_step;
+                    painter.circle_stroke(star, r, Stroke::new(1.0, ORBIT_RING));
+                }
+            }
+            SystemLayout::Horizontal => {
+                let last_orbit = max_orbit.max(1) as f32;
+                let axis_end = Pos2::new(star.x + last_orbit * g.orbit_step, star.y);
+                painter.line_segment([star, axis_end], Stroke::new(1.0, ORBIT_RING));
+                for o in 1..=max_orbit.max(1) {
+                    let x = star.x + o as f32 * g.orbit_step;
+                    let tick = g.planet_r * 0.8;
+                    painter.line_segment(
+                        [Pos2::new(x, star.y - tick), Pos2::new(x, star.y + tick)],
+                        Stroke::new(1.0, ORBIT_RING),
+                    );
+                }
+            }
         }
 
         // Star / Center.
         if let Some(star_data) = &self.system.star {
-            let star = star_color(&star_data.colour_code);
-            painter.circle_filled(center, g.star_r + 4.0, tint(star, 0.55));
-            painter.circle_filled(center, g.star_r, star);
-            painter.circle_stroke(center, g.star_r, Stroke::new(1.5, darken(star, 0.55)));
+            let star_color = star_color(&star_data.colour_code);
+            painter.circle_filled(star, g.star_r + 4.0, tint(star_color, 0.55));
+            painter.circle_filled(star, g.star_r, star_color);
+            painter.circle_stroke(star, g.star_r, Stroke::new(1.5, darken(star_color, 0.55)));
             if self.selected == SystemSelection::Star {
-                painter.circle_stroke(center, g.star_r + 8.0, Stroke::new(2.0, SELECTION));
+                painter.circle_stroke(star, g.star_r + 8.0, Stroke::new(2.0, SELECTION));
             }
         } else {
             // Special location marker.
             let r = g.star_r * 1.5;
             let pts = vec![
-                Pos2::new(center.x, center.y - r),
-                Pos2::new(center.x + r, center.y),
-                Pos2::new(center.x, center.y + r),
-                Pos2::new(center.x - r, center.y),
+                Pos2::new(star.x, star.y - r),
+                Pos2::new(star.x + r, star.y),
+                Pos2::new(star.x, star.y + r),
+                Pos2::new(star.x - r, star.y),
             ];
             painter.add(egui::Shape::convex_polygon(
                 pts.clone(),
@@ -151,7 +202,7 @@ impl<'a> SystemView<'a> {
             ));
             if self.selected == SystemSelection::Star {
                 painter.add(egui::Shape::convex_polygon(
-                    pts.iter().map(|p| *p + (*p - center) * 0.5).collect(),
+                    pts.iter().map(|p| *p + (*p - star) * 0.5).collect(),
                     Color32::TRANSPARENT,
                     Stroke::new(2.0, SELECTION),
                 ));
@@ -162,9 +213,7 @@ impl<'a> SystemView<'a> {
         let mut planet_positions: Vec<(usize, Pos2, f32)> = Vec::new();
         for w in &self.system.worlds {
             let orbit = i32::from(w.orbit.max(1));
-            let r = g.orbit_base + (orbit - 1) as f32 * g.orbit_step;
-            let a = orbit_angle(w.index, orbit).to_radians();
-            let p = Pos2::new(center.x + r * a.cos(), center.y + r * a.sin());
+            let p = world_anchor(&g, star, self.layout, orbit, w.index);
             let color = world_type_color(&w.world.world_type);
             if self.selected == SystemSelection::World(w.index) {
                 painter.circle_stroke(p, g.planet_r + 6.0, Stroke::new(2.0, SELECTION));
@@ -196,7 +245,7 @@ impl<'a> SystemView<'a> {
         let mut click = None;
         if response.clicked() {
             if let Some(pos) = response.interact_pointer_pos() {
-                let star_d = (center - pos).length();
+                let star_d = (star - pos).length();
                 let planet_hit = planet_positions
                     .iter()
                     .map(|(idx, p, r)| (*idx, (*p - pos).length(), *r))
@@ -215,7 +264,13 @@ impl<'a> SystemView<'a> {
 }
 
 /// §CTX1 Phase 6 — public so [`pick_world`] (and any future external hit-test)
-/// can reproduce the layout used by [`SystemView::show`].
+/// can reproduce the layout used by [`SystemView::show`]. Field semantics depend
+/// on [`SystemLayout`]:
+/// - `Orbital`: `orbit_base` is the radius of orbit 1, `orbit_step` is the
+///   radial spacing between consecutive orbits.
+/// - `Horizontal`: `orbit_base` is the star's x-offset from the left edge of
+///   the widget, `orbit_step` is the horizontal spacing between consecutive
+///   orbits along the axis.
 pub struct SystemGeom {
     pub side: f32,
     pub star_r: f32,
@@ -225,18 +280,64 @@ pub struct SystemGeom {
 }
 
 impl SystemGeom {
-    pub fn new(side: f32, sys: &GeneratedSystem) -> Self {
+    pub fn new(side: f32, sys: &GeneratedSystem, layout: SystemLayout) -> Self {
         let max_orbit = f32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(1).max(1));
-        let usable = side * 0.45;
-        let orbit_base = side * 0.13;
-        let orbit_step = ((usable - orbit_base) / max_orbit).max(20.0);
+        let star_r = side * 0.065;
+        let planet_r = (side * 0.04).max(16.0);
+        let (orbit_base, orbit_step) = match layout {
+            SystemLayout::Orbital => {
+                let usable = side * 0.45;
+                let base = side * 0.13;
+                let step = ((usable - base) / max_orbit).max(20.0);
+                (base, step)
+            }
+            SystemLayout::Horizontal => {
+                // Left pad covers the no-star diamond marker (r = star_r*1.5)
+                // and a small breathing gap. Right pad reserves room for the
+                // outermost planet disc + its name label.
+                let left_pad = star_r * 1.5 + 8.0;
+                let right_pad = planet_r * 1.8 + 8.0;
+                let star_x = left_pad;
+                let usable = (side - left_pad - right_pad).max(planet_r * 2.5);
+                let step = (usable / max_orbit).max(planet_r * 2.5);
+                (star_x, step)
+            }
+        };
         Self {
             side,
-            star_r: side * 0.055,
+            star_r,
             orbit_base,
             orbit_step,
-            planet_r: (side * 0.03).max(12.0),
+            planet_r,
         }
+    }
+}
+
+fn layout_center(side: f32) -> Pos2 {
+    Pos2::new(side / 2.0, side / 2.0)
+}
+
+fn star_anchor(g: &SystemGeom, center: Pos2, layout: SystemLayout) -> Pos2 {
+    match layout {
+        SystemLayout::Orbital => center,
+        SystemLayout::Horizontal => Pos2::new(center.x - g.side / 2.0 + g.orbit_base, center.y),
+    }
+}
+
+fn world_anchor(
+    g: &SystemGeom,
+    star: Pos2,
+    layout: SystemLayout,
+    orbit: i32,
+    index: usize,
+) -> Pos2 {
+    match layout {
+        SystemLayout::Orbital => {
+            let r = g.orbit_base + (orbit - 1) as f32 * g.orbit_step;
+            let a = orbit_angle(index, orbit).to_radians();
+            Pos2::new(star.x + r * a.cos(), star.y + r * a.sin())
+        }
+        SystemLayout::Horizontal => Pos2::new(star.x + orbit as f32 * g.orbit_step, star.y),
     }
 }
 
@@ -281,43 +382,99 @@ mod tests {
     }
 
     #[test]
-    fn pick_world_returns_star_at_center() {
+    fn pick_world_orbital_returns_star_at_center() {
         let sys = sys_with_world(2);
         let side = 480.0;
-        let pick = pick_world(side, &sys, Pos2::new(side / 2.0, side / 2.0));
+        let pick = pick_world(
+            side,
+            &sys,
+            SystemLayout::Orbital,
+            Pos2::new(side / 2.0, side / 2.0),
+        );
         assert_eq!(pick, SystemPick::Star);
     }
 
     #[test]
-    fn pick_world_returns_background_at_corner() {
+    fn pick_world_orbital_returns_background_at_corner() {
         let sys = sys_with_world(2);
-        let pick = pick_world(480.0, &sys, Pos2::new(2.0, 2.0));
+        let pick = pick_world(480.0, &sys, SystemLayout::Orbital, Pos2::new(2.0, 2.0));
         assert_eq!(pick, SystemPick::Background);
     }
 
     #[test]
-    fn pick_world_returns_world_when_on_planet() {
+    fn pick_world_orbital_returns_world_when_on_planet() {
         let sys = sys_with_world(3);
-        let g = SystemGeom::new(480.0, &sys);
+        let g = SystemGeom::new(480.0, &sys, SystemLayout::Orbital);
         let center = Pos2::new(240.0, 240.0);
         let orbit = 3_i32;
         let r = g.orbit_base + (orbit - 1) as f32 * g.orbit_step;
         let a = orbit_angle(1, orbit).to_radians();
         let p = Pos2::new(center.x + r * a.cos(), center.y + r * a.sin());
-        let pick = pick_world(480.0, &sys, p);
+        let pick = pick_world(480.0, &sys, SystemLayout::Orbital, p);
         assert_eq!(pick, SystemPick::World(1));
     }
 
     #[test]
-    fn pick_world_returns_empty_orbit_on_ring_without_planet() {
+    fn pick_world_orbital_returns_empty_orbit_on_ring_without_planet() {
         // Place world on orbit 1 — probe orbit 2's ring on the *opposite* angle
         // so there is no planet there.
         let sys = sys_with_world(1);
-        let g = SystemGeom::new(480.0, &sys);
+        let g = SystemGeom::new(480.0, &sys, SystemLayout::Orbital);
         let center = Pos2::new(240.0, 240.0);
         let r = g.orbit_base + g.orbit_step;
         let p = Pos2::new(center.x + r, center.y);
-        let pick = pick_world(480.0, &sys, p);
+        let pick = pick_world(480.0, &sys, SystemLayout::Orbital, p);
         assert_eq!(pick, SystemPick::EmptyOrbit(2));
+    }
+
+    #[test]
+    fn pick_world_horizontal_returns_star_at_left_anchor() {
+        let sys = sys_with_world(2);
+        let side = 480.0;
+        let g = SystemGeom::new(side, &sys, SystemLayout::Horizontal);
+        let pick = pick_world(
+            side,
+            &sys,
+            SystemLayout::Horizontal,
+            Pos2::new(g.orbit_base, side / 2.0),
+        );
+        assert_eq!(pick, SystemPick::Star);
+    }
+
+    #[test]
+    fn pick_world_horizontal_returns_world_on_axis() {
+        let sys = sys_with_world(3);
+        let side = 480.0;
+        let g = SystemGeom::new(side, &sys, SystemLayout::Horizontal);
+        let star_x = g.orbit_base;
+        let star_y = side / 2.0;
+        let p = Pos2::new(star_x + 3.0 * g.orbit_step, star_y);
+        let pick = pick_world(side, &sys, SystemLayout::Horizontal, p);
+        assert_eq!(pick, SystemPick::World(1));
+    }
+
+    #[test]
+    fn pick_world_horizontal_returns_empty_orbit_on_axis_gap() {
+        // World on orbit 1, probe orbit 2's slot on axis.
+        let sys = sys_with_world(1);
+        let side = 480.0;
+        let g = SystemGeom::new(side, &sys, SystemLayout::Horizontal);
+        let star_x = g.orbit_base;
+        let star_y = side / 2.0;
+        let p = Pos2::new(star_x + 2.0 * g.orbit_step, star_y);
+        let pick = pick_world(side, &sys, SystemLayout::Horizontal, p);
+        assert_eq!(pick, SystemPick::EmptyOrbit(2));
+    }
+
+    #[test]
+    fn pick_world_horizontal_returns_background_far_from_axis() {
+        let sys = sys_with_world(2);
+        let pick = pick_world(
+            480.0,
+            &sys,
+            SystemLayout::Horizontal,
+            Pos2::new(240.0, 10.0),
+        );
+        assert_eq!(pick, SystemPick::Background);
     }
 }

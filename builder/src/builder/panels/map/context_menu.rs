@@ -287,20 +287,46 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
             state.pending_route_start = Some(id);
         }
         SectorMenuAction::AddWorld { id } => {
-            let n = state
+            let (sys_name, next_orbit, next_index) = state
                 .sector
                 .systems
                 .iter()
                 .find(|s| s.id == id)
-                .map(|s| s.worlds.len() + 1)
-                .unwrap_or(1);
+                .map(|s| {
+                    (
+                        s.name.to_string(),
+                        s.worlds
+                            .iter()
+                            .map(|w| w.orbit)
+                            .max()
+                            .unwrap_or(0)
+                            .saturating_add(1),
+                        s.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1,
+                    )
+                })
+                .unwrap_or((String::new(), 1, 1));
+            let name = format!(
+                "{sys_name} {}",
+                sectorforge::names::roman_numeral(next_orbit as usize)
+            );
             let cmd = BuilderCommand::AddWorld {
-                system: id,
-                name: format!("World-{n}"),
+                system: id.clone(),
+                name,
                 result_id: None,
             };
-            if let Err(e) = state.run(cmd) {
-                state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+            match state.run(cmd) {
+                Err(e) => {
+                    state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+                }
+                Ok(()) => {
+                    if let Some(sys) = state.sector.systems.iter_mut().find(|s| s.id == id) {
+                        if let Some(w) = sys.worlds.iter_mut().find(|w| w.index == next_index) {
+                            w.orbit = next_orbit;
+                        }
+                    }
+                    state.dirty = true;
+                    state.mark_validation_dirty();
+                }
             }
         }
         SectorMenuAction::RegenerateSystem { id, coord } => {

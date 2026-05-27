@@ -37,6 +37,27 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
 
     ui.heading("New project");
     ui.add_space(4.0);
+    let tutorial_match = name == "tutorial-sector"
+        && title == "Tutorial Sector"
+        && seed == "walkthrough-1"
+        && width == 8
+        && height == 6;
+    let mut tutorial = tutorial_match;
+    if ui
+        .checkbox(
+            &mut tutorial,
+            "Tutorial (fill BUILDER.md walkthrough values)",
+        )
+        .changed()
+        && tutorial
+    {
+        name = "tutorial-sector".to_string();
+        title = "Tutorial Sector".to_string();
+        seed = "walkthrough-1".to_string();
+        width = 8;
+        height = 6;
+    }
+    ui.add_space(4.0);
     egui::Grid::new("new_project_grid")
         .num_columns(2)
         .show(ui, |ui| {

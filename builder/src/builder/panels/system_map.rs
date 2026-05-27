@@ -319,16 +319,25 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
 /// reason as [`duplicate_world`]: the AddWorld bus entry is the single source
 /// of truth.
 fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
-    let next_index = state
+    let (next_index, sys_name) = state
         .sector
         .systems
         .iter()
         .find(|s| s.id == system)
-        .map(|s| s.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1)
-        .unwrap_or(1);
+        .map(|s| {
+            (
+                s.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1,
+                s.name.to_string(),
+            )
+        })
+        .unwrap_or((1, String::new()));
+    let name = format!(
+        "{sys_name} {}",
+        sectorforge::names::roman_numeral(orbit as usize)
+    );
     let cmd = BuilderCommand::AddWorld {
         system: system.clone(),
-        name: format!("World-{next_index}"),
+        name,
         result_id: None,
     };
     if let Err(e) = state.run(cmd) {
@@ -399,11 +408,12 @@ pub(super) fn arm_system_context_menu(
     rect_origin: Pos2,
 ) {
     let local = Pos2::new(screen_pos.x - rect_origin.x, screen_pos.y - rect_origin.y);
+    let layout = state.system_layout;
     let sys = match state.sector.systems.get(sys_idx) {
         Some(s) => s,
         None => return,
     };
-    let pick = pick_world(side, sys, local);
+    let pick = pick_world(side, sys, layout, local);
     if let Some(target) = resolve_system_context(state, sys_idx, pick) {
         state.system_context_menu = Some(SystemContextMenu { screen_pos, target });
     }

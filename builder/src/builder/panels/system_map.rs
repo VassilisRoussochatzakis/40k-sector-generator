@@ -408,11 +408,12 @@ pub(super) fn arm_system_context_menu(
     rect_origin: Pos2,
 ) {
     let local = Pos2::new(screen_pos.x - rect_origin.x, screen_pos.y - rect_origin.y);
+    let layout = state.system_layout;
     let sys = match state.sector.systems.get(sys_idx) {
         Some(s) => s,
         None => return,
     };
-    let pick = pick_world(side, sys, local);
+    let pick = pick_world(side, sys, layout, local);
     if let Some(target) = resolve_system_context(state, sys_idx, pick) {
         state.system_context_menu = Some(SystemContextMenu { screen_pos, target });
     }

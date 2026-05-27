@@ -16,7 +16,7 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
-use sectorforge_gui_core::system_view::{SystemClick, SystemSelection, SystemView};
+use sectorforge_gui_core::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
@@ -30,11 +30,9 @@ use crate::builder::BuilderState;
 /// in-system right-click menu's `FOCUS STAR DETAILS` row arms the same anchor.
 const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
 
-/// §CTX1 Phase 6 — pixel side length of the embedded [`SystemView`] widget.
-/// Shared so the right-click handler can pass the same value to
-/// [`sectorforge_gui_core::system_view::pick_world`] that `show_system_map_section`
-/// hands to `SystemView::show`.
-const SYSTEM_VIEW_SIDE: f32 = 480.0;
+/// Slider clamp for the SYSTEM-tab embedded `SystemView` size.
+const SYSTEM_VIEW_SIDE_MIN: f32 = 400.0;
+const SYSTEM_VIEW_SIDE_MAX: f32 = 1400.0;
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
@@ -171,6 +169,42 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
     egui::CollapsingHeader::new("In-system map")
         .default_open(true)
         .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Layout:");
+                let mut horiz = matches!(state.system_layout, SystemLayout::Horizontal);
+                if ui
+                    .selectable_label(horiz, "Horizontal")
+                    .on_hover_text("Star left, planets arrayed right in orbit order")
+                    .clicked()
+                {
+                    horiz = true;
+                }
+                if ui
+                    .selectable_label(!horiz, "Orbital")
+                    .on_hover_text("Concentric orbit rings")
+                    .clicked()
+                {
+                    horiz = false;
+                }
+                state.system_layout = if horiz {
+                    SystemLayout::Horizontal
+                } else {
+                    SystemLayout::Orbital
+                };
+                ui.separator();
+                ui.label("Size:");
+                ui.add(
+                    egui::Slider::new(
+                        &mut state.system_view_side,
+                        SYSTEM_VIEW_SIDE_MIN..=SYSTEM_VIEW_SIDE_MAX,
+                    )
+                    .show_value(false),
+                );
+            });
+            let layout = state.system_layout;
+            let side = state
+                .system_view_side
+                .clamp(SYSTEM_VIEW_SIDE_MIN, SYSTEM_VIEW_SIDE_MAX);
             let sys = &state.sector.systems[sys_idx];
             // §CTX1 Phase 7 — while the in-system right-click menu is open,
             // override the `selected` rendering so the SystemView highlights
@@ -191,7 +225,8 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
             let (resp, click) = SystemView {
                 system: sys,
                 selected,
-                side: SYSTEM_VIEW_SIDE,
+                side,
+                layout,
             }
             .show(ui);
             if let Some(c) = click {
@@ -204,7 +239,7 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     crate::builder::panels::system_map::arm_system_context_menu(
                         state,
                         sys_idx,
-                        SYSTEM_VIEW_SIDE,
+                        side,
                         pos,
                         resp.rect.min,
                     );

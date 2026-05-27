@@ -6,7 +6,7 @@ use sectorforge::ids::SystemId;
 
 use super::{editor, info_panel, palette, App, PendingExport, View, TEXT_DIM};
 use crate::editor::state::SectorEditTool;
-use crate::system_view::{SystemClick, SystemSelection, SystemView};
+use crate::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
 
 impl App {
     pub(super) fn draw_system_layout(
@@ -76,6 +76,28 @@ impl App {
                     ui.add(
                         egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),
                     );
+                    ui.separator();
+                    ui.label(RichText::new("LAYOUT").color(TEXT_DIM).monospace());
+                    let mut horiz = matches!(self.system_layout, SystemLayout::Horizontal);
+                    if ui
+                        .selectable_label(horiz, RichText::new("HORIZ").monospace())
+                        .on_hover_text("star left, planets arrayed right in orbit order")
+                        .clicked()
+                    {
+                        horiz = true;
+                    }
+                    if ui
+                        .selectable_label(!horiz, RichText::new("ORBITAL").monospace())
+                        .on_hover_text("concentric orbit rings")
+                        .clicked()
+                    {
+                        horiz = false;
+                    }
+                    self.system_layout = if horiz {
+                        SystemLayout::Horizontal
+                    } else {
+                        SystemLayout::Orbital
+                    };
                     if ui
                         .button(RichText::new("EXPORT MAP PNG").monospace())
                         .on_hover_text("export this system's map to a PNG")
@@ -136,6 +158,7 @@ impl App {
                 system: &sys,
                 selected: selection,
                 side: self.system_side,
+                layout: self.system_layout,
             }
             .show(ui);
             if let Some(c) = click {

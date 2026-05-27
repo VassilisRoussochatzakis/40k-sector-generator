@@ -24,8 +24,8 @@ use sectorforge_gui_core::sector_view::{
 use crate::builder::command::BuilderCommand;
 use crate::builder::derivation_cache::digest_input;
 use crate::builder::state::{
-    MapTool, MapViewCache, PendingCollision, PendingPlace, PendingRename, SectorContextMenu,
-    SectorMenuTarget,
+    BuilderTab, EntityRef, MapTool, MapViewCache, PendingCollision, PendingPlace, PendingRename,
+    SectorContextMenu, SectorMenuTarget,
 };
 use crate::builder::{BuilderState, ModalKind};
 use sectorforge_gui_core::palette::TEXT_DIM;
@@ -396,6 +396,329 @@ fn resolve_sector_context(
     None
 }
 
+/// §CTX1 — Phase 2: per-item action types. Each variant maps 1:1 to a menu
+/// row in the §6.1 / §6.2 schemas. Splitting the actions from the render path
+/// lets unit tests assert state mutations without standing up an egui context.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum SectorMenuAction {
+    PlaceSystem { coord: HexCoord },
+    PaintRegion { coord: HexCoord },
+    EraseRegion { coord: HexCoord },
+    FocusSystem { id: SystemId },
+    RenameSystem { id: SystemId },
+    DeleteSystem { id: SystemId },
+    AddRouteFrom { id: SystemId },
+    AddWorld { id: SystemId },
+    RegenerateSystem { id: SystemId, coord: HexCoord },
+    TogglePin { id: SystemId },
+    OpenIn { id: SystemId, target: OpenInTarget },
+    // Clipboard side-effects belong on `ui.ctx()`, so the render path handles
+    // COPY COORD / COPY ID inline rather than threading them through this
+    // enum.
+}
+
+/// §CTX1 — Phase 2 "Open in ▸" targets wired in Phase 2. Conflict / Orbital /
+/// Archetype / Intel are deferred until the SYSTEM tab grows per-section
+/// scroll anchors (a polish-phase refactor across conflict.rs / orbital.rs /
+/// intel.rs).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum OpenInTarget {
+    System,
+    World,
+    Routes,
+}
+
+/// §CTX1 — apply one menu item. Returns the menu's close intent (always
+/// `true`: every action dismisses the menu).
+pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorMenuAction) -> bool {
+    match action {
+        SectorMenuAction::PlaceSystem { coord } => {
+            let default_name = format!("Sys-{}", state.sector.systems.len() + 1);
+            state.pending_place = Some(PendingPlace {
+                coord,
+                name: default_name,
+            });
+        }
+        SectorMenuAction::PaintRegion { coord } => {
+            paint_region_at(state, coord, false);
+        }
+        SectorMenuAction::EraseRegion { coord } => {
+            let owning = state
+                .sector
+                .regions
+                .iter()
+                .find(|r| r.hexes.iter().any(|h| *h == coord))
+                .map(|r| r.id.clone());
+            if let Some(rid) = owning {
+                if let Err(e) = state.erase_region_hex(&rid, coord) {
+                    state.modal = Some(ModalKind::Message(format!("Region erase failed: {e}")));
+                }
+            }
+        }
+        SectorMenuAction::FocusSystem { id } => {
+            state.focus_entity(EntityRef::System(id));
+        }
+        SectorMenuAction::RenameSystem { id } => {
+            let name = state
+                .sector
+                .systems
+                .iter()
+                .find(|s| s.id == id)
+                .map(|s| s.name.to_string())
+                .unwrap_or_default();
+            state.pending_rename = Some(PendingRename { id, text: name });
+        }
+        SectorMenuAction::DeleteSystem { id } => {
+            let cmd = BuilderCommand::RemoveSystem {
+                id,
+                before: None,
+                removed_routes: Vec::new(),
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Delete failed: {e}")));
+            }
+        }
+        SectorMenuAction::AddRouteFrom { id } => {
+            state.map_tool = MapTool::AddRoute;
+            state.pending_route_start = Some(id);
+        }
+        SectorMenuAction::AddWorld { id } => {
+            let n = state
+                .sector
+                .systems
+                .iter()
+                .find(|s| s.id == id)
+                .map(|s| s.worlds.len() + 1)
+                .unwrap_or(1);
+            let cmd = BuilderCommand::AddWorld {
+                system: id,
+                name: format!("World-{n}"),
+                result_id: None,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
+            }
+        }
+        SectorMenuAction::RegenerateSystem { id, coord } => {
+            if state.pinned_systems.contains(&id) {
+                return true;
+            }
+            let index = state
+                .sector
+                .systems
+                .iter()
+                .find(|s| s.id == id)
+                .map(|s| s.index)
+                .unwrap_or(0);
+            match state.generate_system_here(coord, index, None) {
+                Ok(new_id) => state.focus_system(new_id),
+                Err(e) => {
+                    state.modal = Some(ModalKind::Message(format!("Regen failed: {e}")));
+                }
+            }
+        }
+        SectorMenuAction::TogglePin { id } => {
+            if state.pinned_systems.contains(&id) {
+                state.pinned_systems.remove(&id);
+            } else {
+                state.pinned_systems.insert(id);
+            }
+        }
+        SectorMenuAction::OpenIn { id, target } => match target {
+            OpenInTarget::System => {
+                state.focus_entity(EntityRef::System(id));
+            }
+            OpenInTarget::World => {
+                let first_world = state
+                    .sector
+                    .systems
+                    .iter()
+                    .find(|s| s.id == id)
+                    .and_then(|s| s.worlds.first().map(|w| w.id.clone()));
+                if let Some(world) = first_world {
+                    state.focus_entity(EntityRef::World { system: id, world });
+                }
+            }
+            OpenInTarget::Routes => {
+                state.selected_system_id = Some(id);
+                state.focus_entity(EntityRef::Tab(BuilderTab::Routes));
+            }
+        },
+    }
+    true
+}
+
+/// §CTX1 — Phase 2 §6.1: render the empty-hex schema. Returns `true` when
+/// any item activated, so the caller dismisses the menu. Side effects funnel
+/// through `state` only — no global modal is opened here (PLACE / RENAME
+/// dialogs hook through the existing pending fields).
+fn render_empty_hex_menu(ui: &mut egui::Ui, state: &mut BuilderState, coord: HexCoord) -> bool {
+    let mut close = false;
+
+    if ui.selectable_label(false, "PLACE SYSTEM HERE…").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::PlaceSystem { coord });
+    }
+
+    let paint_enabled = state.selected_region_id.is_some();
+    let paint_resp = ui.add_enabled(
+        paint_enabled,
+        egui::SelectableLabel::new(false, "PAINT REGION HERE"),
+    );
+    if paint_resp.clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::PaintRegion { coord });
+    }
+    if !paint_enabled {
+        paint_resp.on_hover_text("Pick a region in the REGIONS tab first.");
+    }
+
+    let erase_enabled = state
+        .sector
+        .regions
+        .iter()
+        .any(|r| r.hexes.iter().any(|h| *h == coord));
+    let erase_resp = ui.add_enabled(
+        erase_enabled,
+        egui::SelectableLabel::new(false, "ERASE REGION HERE"),
+    );
+    if erase_resp.clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::EraseRegion { coord });
+    }
+    if !erase_enabled {
+        erase_resp.on_hover_text("Hex is not part of any region.");
+    }
+
+    ui.separator();
+
+    let label = format!("COPY COORD ({},{})", coord.q, coord.r);
+    if ui.selectable_label(false, label).clicked() {
+        ui.output_mut(|o| o.copied_text = format!("{},{}", coord.q, coord.r));
+        close = true;
+    }
+
+    close
+}
+
+/// §CTX1 — Phase 2 §6.2: render the single-system schema. Returns `true`
+/// when any item activated. The "Open in ▸" submenu is rendered as flat
+/// indented buttons in Phase 2 — Phase 7 polish lifts them into a nested
+/// menu with a proper `▸` indicator.
+fn render_system_menu(
+    ui: &mut egui::Ui,
+    state: &mut BuilderState,
+    id: SystemId,
+    coord: HexCoord,
+) -> bool {
+    let mut close = false;
+
+    if ui.selectable_label(false, "FOCUS SYSTEM").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::FocusSystem { id: id.clone() });
+    }
+    if ui.selectable_label(false, "RENAME…").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::RenameSystem { id: id.clone() });
+    }
+    if ui.selectable_label(false, "DELETE").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::DeleteSystem { id: id.clone() });
+    }
+
+    ui.separator();
+
+    if ui.selectable_label(false, "ADD ROUTE FROM HERE…").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::AddRouteFrom { id: id.clone() });
+    }
+    if ui.selectable_label(false, "ADD WORLD").clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::AddWorld { id: id.clone() });
+    }
+
+    let pinned = state.pinned_systems.contains(&id);
+    let regen_resp = ui.add_enabled(
+        !pinned,
+        egui::SelectableLabel::new(false, "REGENERATE SYSTEM"),
+    );
+    if regen_resp.clicked() {
+        close |= apply_sector_menu_action(
+            state,
+            SectorMenuAction::RegenerateSystem {
+                id: id.clone(),
+                coord,
+            },
+        );
+    }
+    if pinned {
+        regen_resp.on_hover_text("Unpin first (§S3).");
+    }
+
+    let pin_label = if pinned { "UNPIN" } else { "TOGGLE PIN" };
+    if ui.selectable_label(false, pin_label).clicked() {
+        close |= apply_sector_menu_action(state, SectorMenuAction::TogglePin { id: id.clone() });
+    }
+
+    ui.separator();
+
+    // "Open in ▸" — flat indented buttons in Phase 2; Phase 7 polish wraps
+    // them in a proper nested submenu.
+    ui.label(egui::RichText::new("Open in").italics());
+    ui.indent("open_in_indent", |ui| {
+        if ui.selectable_label(false, "SYSTEM").clicked() {
+            close |= apply_sector_menu_action(
+                state,
+                SectorMenuAction::OpenIn {
+                    id: id.clone(),
+                    target: OpenInTarget::System,
+                },
+            );
+        }
+
+        let has_world = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .map(|s| !s.worlds.is_empty())
+            .unwrap_or(false);
+        let world_resp = ui.add_enabled(has_world, egui::SelectableLabel::new(false, "WORLD"));
+        if world_resp.clicked() {
+            close |= apply_sector_menu_action(
+                state,
+                SectorMenuAction::OpenIn {
+                    id: id.clone(),
+                    target: OpenInTarget::World,
+                },
+            );
+        } else if !has_world {
+            world_resp.on_hover_text("System has no worlds.");
+        }
+
+        if ui.selectable_label(false, "ROUTES").clicked() {
+            close |= apply_sector_menu_action(
+                state,
+                SectorMenuAction::OpenIn {
+                    id: id.clone(),
+                    target: OpenInTarget::Routes,
+                },
+            );
+        }
+    });
+
+    ui.separator();
+
+    if ui
+        .selectable_label(false, format!("COPY ID ({id})"))
+        .clicked()
+    {
+        ui.output_mut(|o| o.copied_text = id.to_string());
+        close = true;
+    }
+    if ui
+        .selectable_label(false, format!("COPY COORD ({},{})", coord.q, coord.r))
+        .clicked()
+    {
+        ui.output_mut(|o| o.copied_text = format!("{},{}", coord.q, coord.r));
+        close = true;
+    }
+
+    close
+}
+
 /// §CTX1 — Phase 1: pure dismiss predicate. Factored out of
 /// [`show_sector_context_menu`] so unit tests can verify the Escape /
 /// focus-loss / outside-click rules without standing up an egui context.
@@ -407,26 +730,41 @@ fn should_dismiss_sector_context_menu(
     esc_pressed || !focused || primary_click_outside
 }
 
-/// §CTX1 — Phase 1: render the floating right-click menu. Anchored at
-/// `menu.screen_pos`; one placeholder `CLOSE` item until Phase 2 wires real
-/// schemas. Dismissed on Escape / focus-loss / primary click outside the area
-/// / item activation.
+/// §CTX1 — render the floating right-click menu. Anchored at
+/// `menu.screen_pos`. Phase 2 wires the §6.1 (empty hex) and §6.2 (single
+/// system) schemas; multi-selection, route, region-hex, and subsector-border
+/// targets keep the Phase 1 placeholder until Phases 3/5 land. Dismissed on
+/// Escape / focus-loss / primary click outside the area / item activation.
 fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
     let Some(menu) = state.sector_context_menu.as_ref() else {
         return;
     };
     let screen_pos = menu.screen_pos;
+    let target = menu.target.clone();
     let mut close = false;
     let area_resp = egui::Area::new(egui::Id::new("sector_context_menu"))
         .order(egui::Order::Foreground)
         .fixed_pos(screen_pos)
         .show(ctx, |ui| {
             egui::Frame::menu(ui.style()).show(ui, |ui| {
-                ui.set_min_width(140.0);
-                // Phase 2 replaces this placeholder with the real schemas
-                // (§6.1 / §6.2 / §6.3).
-                if ui.selectable_label(false, "CLOSE").clicked() {
-                    close = true;
+                ui.set_min_width(180.0);
+                match &target {
+                    SectorMenuTarget::EmptyHex { coord } => {
+                        close |= render_empty_hex_menu(ui, state, *coord);
+                    }
+                    SectorMenuTarget::System { id, coord } => {
+                        close |= render_system_menu(ui, state, id.clone(), *coord);
+                    }
+                    SectorMenuTarget::MultiSelection { .. }
+                    | SectorMenuTarget::Route { .. }
+                    | SectorMenuTarget::RegionHex { .. }
+                    | SectorMenuTarget::SubsectorBorder { .. } => {
+                        // Phase 3 (multi) / Phase 5 (route + region) / future
+                        // (subsector border) replace this placeholder.
+                        if ui.selectable_label(false, "CLOSE").clicked() {
+                            close = true;
+                        }
+                    }
                 }
             });
         });
@@ -1116,6 +1454,247 @@ mod tests {
     fn context_menu_field_default_none() {
         let state = blank(4, 4);
         assert!(state.sector_context_menu.is_none());
+    }
+
+    // ── §CTX1 Phase 2 tests — per-item action assertions ──────────────────
+
+    fn add_region(state: &mut BuilderState, id: &str, hex: HexCoord) {
+        let mut regions = (*state.sector.regions).clone();
+        regions.push(sectorforge::regions::WarpRegion {
+            id: id.to_string(),
+            kind: sectorforge::regions::RegionConditionKind::WarpStorm,
+            name: format!("Region {id}"),
+            hexes: vec![hex],
+            centre: hex,
+        });
+        state.sector.regions = std::sync::Arc::new(regions);
+    }
+
+    #[test]
+    fn ctx_action_place_system_arms_pending_place() {
+        let mut state = blank(8, 8);
+        let closed = apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::PlaceSystem {
+                coord: HexCoord { q: 2, r: 3 },
+            },
+        );
+        assert!(closed);
+        let pending = state.pending_place.expect("pending_place armed");
+        assert_eq!(pending.coord, HexCoord { q: 2, r: 3 });
+        assert!(pending.name.starts_with("Sys-"));
+    }
+
+    #[test]
+    fn ctx_action_paint_region_paints_when_region_selected() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-a", HexCoord { q: 0, r: 0 });
+        state.selected_region_id = Some("reg-a".into());
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::PaintRegion {
+                coord: HexCoord { q: 4, r: 4 },
+            },
+        );
+        let region = state
+            .sector
+            .regions
+            .iter()
+            .find(|r| r.id == "reg-a")
+            .unwrap();
+        assert!(region.hexes.contains(&HexCoord { q: 4, r: 4 }));
+    }
+
+    #[test]
+    fn ctx_action_erase_region_removes_hex() {
+        let mut state = blank(8, 8);
+        add_region(&mut state, "reg-a", HexCoord { q: 1, r: 1 });
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::EraseRegion {
+                coord: HexCoord { q: 1, r: 1 },
+            },
+        );
+        let region = state
+            .sector
+            .regions
+            .iter()
+            .find(|r| r.id == "reg-a")
+            .unwrap();
+        assert!(!region.hexes.contains(&HexCoord { q: 1, r: 1 }));
+    }
+
+    #[test]
+    fn ctx_action_focus_system_switches_tab_and_selection() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        state.active_tab = BuilderTab::Map;
+        apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id: id.clone() });
+        assert_eq!(state.selected_system_id, Some(id));
+        assert_eq!(state.active_tab, BuilderTab::System);
+    }
+
+    #[test]
+    fn ctx_action_rename_arms_pending_rename_with_current_name() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::RenameSystem { id: id.clone() },
+        );
+        let pending = state.pending_rename.expect("rename armed");
+        assert_eq!(pending.id, id);
+        assert_eq!(pending.text, "Alpha");
+    }
+
+    #[test]
+    fn ctx_action_delete_removes_system() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::DeleteSystem { id: id.clone() },
+        );
+        assert!(state.sector.systems.iter().all(|s| s.id != id));
+    }
+
+    #[test]
+    fn ctx_action_add_route_from_arms_tool() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::AddRouteFrom { id: id.clone() },
+        );
+        assert_eq!(state.map_tool, MapTool::AddRoute);
+        assert_eq!(state.pending_route_start, Some(id));
+    }
+
+    #[test]
+    fn ctx_action_add_world_appends_world() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        let before = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .unwrap()
+            .worlds
+            .len();
+        apply_sector_menu_action(&mut state, SectorMenuAction::AddWorld { id: id.clone() });
+        let after = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .unwrap()
+            .worlds
+            .len();
+        assert_eq!(after, before + 1);
+    }
+
+    #[test]
+    fn ctx_action_regenerate_pinned_is_noop() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        state.pinned_systems.insert(id.clone());
+        let before_modal = state.modal.is_some();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::RegenerateSystem {
+                id,
+                coord: HexCoord { q: 2, r: 2 },
+            },
+        );
+        // Pinned guard returns early — no modal, no command in log.
+        assert_eq!(state.modal.is_some(), before_modal);
+    }
+
+    #[test]
+    fn ctx_action_toggle_pin_flips_membership() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        assert!(!state.pinned_systems.contains(&id));
+        apply_sector_menu_action(&mut state, SectorMenuAction::TogglePin { id: id.clone() });
+        assert!(state.pinned_systems.contains(&id));
+        apply_sector_menu_action(&mut state, SectorMenuAction::TogglePin { id: id.clone() });
+        assert!(!state.pinned_systems.contains(&id));
+    }
+
+    #[test]
+    fn ctx_action_open_in_routes_switches_to_routes_tab() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::OpenIn {
+                id: id.clone(),
+                target: OpenInTarget::Routes,
+            },
+        );
+        assert_eq!(state.active_tab, BuilderTab::Routes);
+        assert_eq!(state.selected_system_id, Some(id));
+    }
+
+    #[test]
+    fn ctx_action_open_in_world_selects_first_world() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 2, r: 2 }, "Alpha")
+            .unwrap();
+        let cmd = BuilderCommand::AddWorld {
+            system: id.clone(),
+            name: "World-1".into(),
+            result_id: None,
+        };
+        state.run(cmd).unwrap();
+        let first_world = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .unwrap()
+            .worlds
+            .first()
+            .unwrap()
+            .id
+            .clone();
+        apply_sector_menu_action(
+            &mut state,
+            SectorMenuAction::OpenIn {
+                id: id.clone(),
+                target: OpenInTarget::World,
+            },
+        );
+        assert_eq!(state.active_tab, BuilderTab::World);
+        assert_eq!(state.selected_system_id, Some(id));
+        assert_eq!(state.selected_world_id, Some(first_world));
     }
 
     #[test]

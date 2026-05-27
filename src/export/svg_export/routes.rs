@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use image::Rgba;
 
-use crate::bitmap::RenderOptions;
+use crate::export::render_core::RenderOptions;
 use crate::faction_style::faction_style_rgb_by_id;
 use crate::map_theme::{MapTheme, SymbolSet};
 use crate::sector_model::{GeneratedRoute, GeneratedSector, RoutePattern};

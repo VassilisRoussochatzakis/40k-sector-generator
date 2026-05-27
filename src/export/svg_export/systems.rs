@@ -2,7 +2,7 @@
 
 use image::Rgba;
 
-use crate::bitmap::RenderOptions;
+use crate::export::render_core::RenderOptions;
 use crate::map_theme::{MapTheme, SymbolSet};
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;

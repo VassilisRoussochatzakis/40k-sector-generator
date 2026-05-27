@@ -12,8 +12,8 @@ use std::fmt::Write as _;
 
 use camino::Utf8Path;
 
-use crate::bitmap::RenderOptions;
 use crate::errors::SectorError;
+use crate::export::render_core::RenderOptions;
 use crate::heatmap::{self, HeatmapMode};
 use crate::map_theme::{LabelDensity, LegendStyle, MapTheme};
 use crate::sector_model::GeneratedSector;

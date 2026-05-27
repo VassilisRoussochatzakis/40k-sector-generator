@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use crate::bitmap::RenderOptions;
+use crate::export::render_core::RenderOptions;
 use crate::map_theme::{LabelDensity, MapTheme};
 use crate::sector_model::{offset_r_neighbors, GeneratedSector, GeneratedSystem};
 use crate::subsectors::Subsector;

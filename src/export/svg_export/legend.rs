@@ -2,7 +2,7 @@
 
 use image::Rgba;
 
-use crate::bitmap::RenderOptions;
+use crate::export::render_core::RenderOptions;
 use crate::heatmap::HeatmapMode;
 use crate::map_theme::LegendStyle;
 use crate::sector_model::{GeneratedSector, RouteStability, RouteType};

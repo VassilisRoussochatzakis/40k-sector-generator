@@ -18,7 +18,7 @@ use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::{ExtendedColorType, ImageEncoder, RgbaImage};
 
 use crate::errors::SectorError;
-use crate::map_theme::{LabelDensity, LegendStyle, MapTheme};
+use crate::map_theme::{LabelDensity, LegendStyle};
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
@@ -45,30 +45,11 @@ pub(crate) use primitives::{
 #[allow(unused_imports)]
 pub(crate) use routes::draw_route_line_thick;
 
-/// Per-render options independent of the project config. Mirrors the relevant
-/// bits of [`crate::config::BitmapConfig`] so callers (CLI, GUI export, tests)
-/// can override without touching the project's TOML.
-#[derive(Debug, Clone)]
-pub struct RenderOptions {
-    /// Tint each system's hex by the dominant faction (§8).
-    pub faction_fill: bool,
-    /// Overlay a heatmap tint per system (§10). `Off` disables it.
-    pub heatmap: crate::heatmap::HeatmapMode,
-    /// §13 NEW2.md: presentation-only map theme.
-    pub theme: MapTheme,
-    pub route_view_mode: crate::sector_model::RouteViewMode,
-}
-
-impl Default for RenderOptions {
-    fn default() -> Self {
-        Self {
-            faction_fill: true,
-            heatmap: crate::heatmap::HeatmapMode::Off,
-            theme: MapTheme::gm_dark(),
-            route_view_mode: crate::sector_model::RouteViewMode::default(),
-        }
-    }
-}
+/// Per-render options independent of the project config. Backwards-compat
+/// re-export: the type now lives in [`super::render_core::options`] (Task 3
+/// Pass B) so both `bitmap` and `svg_export` can share it without one
+/// reaching into the other.
+pub use super::render_core::RenderOptions;
 
 /// Save an RGBA image as PNG using fast (low-CPU) deflate. Lossless.
 pub(crate) fn save_png_fast(img: &RgbaImage, path: &Utf8Path) -> Result<(), SectorError> {

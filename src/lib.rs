@@ -5,6 +5,30 @@
 //! around it: candidate pools, deterministic placement, systems, worlds,
 //! routes, factions, validation, and export.
 //!
+//! # Architecture
+//!
+//! The crate is organised into the following parent modules — each one a
+//! visible layer that the IDE outline and a new reader can use as a map:
+//!
+//! - [`model`] — sector output DTOs, IDs, top-level error type, RNG, taxonomy.
+//! - [`loading`] — project loading + serialisation (`input`, `config`,
+//!   `presets`, `sector_save`).
+//! - [`gen`] — deterministic sector generation pipeline.
+//! - [`analysis`] — pure read-only derivations over a built sector.
+//! - [`export`] — output writers + render backends.
+//! - [`validate`] — pre-generation validation, post-generation invariants,
+//!   structural diff.
+//! - [`cli`] — `sectorforge` binary command dispatcher (binary-only).
+//!
+//! [`worlds`] and [`worlds_toml`] stay at the crate root because they are the
+//! foundational world taxonomy the rest of the crate hangs off.
+//!
+//! The original flat `pub mod foo;` paths are preserved at the crate root via
+//! `pub use parent::foo;` aliases below, so every existing
+//! `sectorforge::foo::Item` and `crate::foo::Item` path continues to resolve
+//! unchanged. Downstream crates (`builder`, `viewer`, `gui-core`) need no
+//! changes.
+//!
 //! # Quick start
 //!
 //! ```no_run
@@ -31,60 +55,83 @@ pub mod worlds_toml;
 pub(crate) type FxMap<K, V> = rustc_hash::FxHashMap<K, V>;
 pub(crate) type FxSet<T> = rustc_hash::FxHashSet<T>;
 
-pub mod analytics;
-pub mod archetypes;
-pub mod bitmap;
-pub mod briefing;
-pub mod config;
-pub mod conflict;
-pub mod control;
-pub mod diff;
-pub mod economy;
-pub mod errors;
+// ── Parent modules ─────────────────────────────────────────────────────────
+
+pub mod analysis;
 pub mod export;
-pub mod faction_style;
-pub mod factions;
-pub mod generation;
-pub mod heatmap;
-pub mod hidden_routes;
-pub mod history;
-pub mod hooks;
-pub mod html_export;
-pub mod ids;
-pub mod importance;
-pub mod influence_field;
-pub mod input;
-pub mod intel;
-pub mod interestingness;
-pub mod invariants;
-pub mod map_theme;
-pub mod missions;
-pub mod names;
-pub mod orbital_assets;
-pub mod personae;
-pub mod power_projection;
-pub mod presets;
-pub mod prose;
-pub mod regions;
-pub mod relations;
-pub mod render;
-pub mod rng;
-pub mod route_control;
-pub mod routes;
-pub mod search;
-pub mod sector_model;
-pub mod sector_save;
-pub mod segmentum;
-pub mod sites;
-pub mod stability;
-pub mod subsectors;
-pub mod surface_region;
-pub mod svg_export;
-pub mod system_map;
-pub mod taxonomy;
-pub mod validation;
-pub mod world_ecs;
-pub mod world_pool;
+pub mod gen;
+pub mod loading;
+pub mod model;
+pub mod validate;
+
+// ── Compatibility aliases ──────────────────────────────────────────────────
+// Keep every original `crate::foo` / `sectorforge::foo` path resolving by
+// aliasing the moved modules back at the crate root. Adding or removing a
+// module under a parent automatically requires touching this list, which is
+// intentional — it makes the parent layout the single source of truth.
+
+pub use model::errors;
+pub use model::ids;
+pub use model::rng;
+pub use model::sector_model;
+pub use model::taxonomy;
+
+pub use loading::config;
+pub use loading::input;
+pub use loading::presets;
+pub use loading::sector_save;
+
+pub use gen::archetypes;
+pub use gen::faction_style;
+pub use gen::factions;
+pub use gen::generation;
+pub use gen::hidden_routes;
+pub use gen::names;
+pub use gen::orbital_assets;
+pub use gen::regions;
+pub use gen::routes;
+pub use gen::sites;
+pub use gen::surface_region;
+pub use gen::world_ecs;
+pub use gen::world_pool;
+
+pub use analysis::analytics;
+pub use analysis::briefing;
+pub use analysis::conflict;
+pub use analysis::control;
+pub use analysis::economy;
+pub use analysis::history;
+pub use analysis::hooks;
+pub use analysis::importance;
+pub use analysis::influence_field;
+pub use analysis::intel;
+pub use analysis::interestingness;
+pub use analysis::missions;
+pub use analysis::personae;
+pub use analysis::power_projection;
+pub use analysis::prose;
+pub use analysis::relations;
+pub use analysis::route_control;
+pub use analysis::search;
+pub use analysis::stability;
+
+pub use export::bitmap;
+pub use export::heatmap;
+pub use export::html_export;
+pub use export::map_theme;
+pub use export::render;
+pub use export::segmentum;
+pub use export::subsectors;
+pub use export::svg_export;
+pub use export::system_map;
+// `crate::export` already resolves to the parent module of the same name; its
+// `pub use writers::*` hoist preserves `crate::export::export_all` etc.
+
+pub use validate::diff;
+pub use validate::invariants;
+pub use validate::validation;
+
+// ── Public item re-exports (unchanged paths) ───────────────────────────────
 
 pub use config::AppConfig;
 pub use conflict::{advance_sector, ConflictState, HYSTERESIS_TICKS};
@@ -479,9 +526,6 @@ pub fn write_analysis(
 /// `wishes.search.budget` candidates derived from `wishes.search.base_seed`
 /// (defaulting to the project's configured seed) and returns the first
 /// candidate that satisfies every constraint, or a near-miss report.
-///
-/// The project is used as a template only; the generator is not modified.
-/// Same project + same wishes ⇒ same winning seed.
 ///
 /// # Errors
 ///

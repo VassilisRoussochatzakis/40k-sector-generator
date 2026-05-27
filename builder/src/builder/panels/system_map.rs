@@ -13,7 +13,7 @@ use egui::{Pos2, Vec2};
 use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::sector_model::GeneratedStar;
 
-use sectorforge_gui_core::system_view::{pick_world, SystemPick};
+use sectorforge_gui_core::system_view::{pick_world, SystemPick, SystemSelection};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{
@@ -81,8 +81,33 @@ pub(super) fn resolve_system_context(
     }
 }
 
+/// §CTX1 Phase 7 polish — short human label for the telemetry tail rendered
+/// in the status bar. Mirrors the `super::map::sector_menu_action_label`
+/// surface so both menus feed one tail.
+pub(super) fn system_menu_action_label(action: &SystemMenuAction) -> &'static str {
+    match action {
+        SystemMenuAction::FocusStarDetails => "star :: FOCUS DETAILS",
+        SystemMenuAction::CycleSpectralClass { .. } => "star :: CYCLE SPECTRAL",
+        SystemMenuAction::RemoveStar { .. } => "star :: REMOVE",
+        SystemMenuAction::AddStar { .. } => "star :: ADD",
+        SystemMenuAction::FocusWorld { .. } => "world :: FOCUS",
+        SystemMenuAction::RenameWorldOpen { .. } => "world :: RENAME",
+        SystemMenuAction::SetWorldOrbit { .. } => "world :: SET ORBIT",
+        SystemMenuAction::DuplicateWorld { .. } => "world :: DUPLICATE",
+        SystemMenuAction::RemoveWorld { .. } => "world :: REMOVE",
+        SystemMenuAction::OpenWorldTab { .. } => "world :: OPEN TAB",
+        SystemMenuAction::AddWorldAtOrbit { .. } => "orbit :: ADD WORLD",
+        SystemMenuAction::AddWorldDefault { .. } => "background :: ADD WORLD",
+        SystemMenuAction::RegenerateSystem { .. } => "background :: REGEN SYSTEM",
+        SystemMenuAction::DeriveOrbitalAssets { .. } => "background :: DERIVE ORBITAL",
+    }
+}
+
 /// Run one menu item. Returns `true` so callers can dismiss the menu.
 pub(super) fn apply_system_menu_action(state: &mut BuilderState, action: SystemMenuAction) -> bool {
+    // §CTX1 Phase 7 — capture activation in the telemetry tail before
+    // dispatching so the status bar reflects the click even on errors.
+    state.last_menu_action = Some(system_menu_action_label(&action).to_string());
     match action {
         SystemMenuAction::FocusStarDetails => {
             state.scroll_target = Some(SYS_STAR_GRID_ANCHOR);
@@ -319,6 +344,29 @@ fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
     state.mark_validation_dirty();
 }
 
+/// §CTX1 Phase 7 — when the in-system right-click menu is open and targets
+/// the system currently rendered (`sys_idx`), return a [`SystemSelection`]
+/// that highlights the contextual star / world so the user can confirm what
+/// the menu is acting on. Returns `None` when no menu is open, when the menu
+/// targets a different system, or for `EmptyOrbit` / `Background` targets
+/// (no specific disk to ring).
+pub(super) fn menu_selection_override(
+    state: &BuilderState,
+    sys_idx: usize,
+) -> Option<SystemSelection> {
+    let menu = state.system_context_menu.as_ref()?;
+    let sys = state.sector.systems.get(sys_idx)?;
+    match &menu.target {
+        SystemMenuTarget::Star { system } if system == &sys.id => Some(SystemSelection::Star),
+        SystemMenuTarget::World { system, world, .. } if system == &sys.id => sys
+            .worlds
+            .iter()
+            .find(|w| &w.id == world)
+            .map(|w| SystemSelection::World(w.index)),
+        _ => None,
+    }
+}
+
 /// §CTX1 Phase 6 — secondary-click entry point. Reads the screen position and
 /// the widget rect's origin, computes the [`SystemPick`] via [`pick_world`],
 /// resolves the [`SystemMenuTarget`], and arms `system_context_menu`. Pure
@@ -351,9 +399,16 @@ pub(super) fn show_system_context_menu(ctx: &egui::Context, state: &mut BuilderS
     let screen_pos = menu.screen_pos;
     let target = menu.target.clone();
     let mut close = false;
+    // §CTX1 Phase 7 — pivot + constrain so the menu can never extend past the
+    // viewport. Reuses the helper in `super::map` so both menus share one
+    // policy (and one test surface).
+    let screen_rect = ctx.input(|i| i.screen_rect());
+    let pivot = super::map::menu_anchor_pivot(screen_pos, screen_rect);
     let area_resp = egui::Area::new(egui::Id::new("system_context_menu"))
         .order(egui::Order::Foreground)
+        .pivot(pivot)
         .fixed_pos(screen_pos)
+        .constrain(true)
         .show(ctx, |ui| {
             egui::Frame::menu(ui.style()).show(ui, |ui| {
                 ui.set_min_width(180.0);
@@ -832,5 +887,88 @@ mod tests {
         let _ = add_sys_world(&mut state);
         apply_system_menu_action(&mut state, SystemMenuAction::FocusStarDetails);
         assert_eq!(state.scroll_target, Some(SYS_STAR_GRID_ANCHOR));
+    }
+
+    // ── §CTX1 Phase 7 polish tests ────────────────────────────────────────
+
+    #[test]
+    fn menu_selection_override_none_when_no_menu_open() {
+        let mut state = blank();
+        let _ = add_sys_world(&mut state);
+        assert!(menu_selection_override(&state, 0).is_none());
+    }
+
+    #[test]
+    fn menu_selection_override_returns_star_for_star_target() {
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+            screen_pos: egui::Pos2::ZERO,
+            target: SystemMenuTarget::Star { system: sys },
+        });
+        assert_eq!(
+            menu_selection_override(&state, 0),
+            Some(SystemSelection::Star)
+        );
+    }
+
+    #[test]
+    fn menu_selection_override_returns_world_index() {
+        let mut state = blank();
+        let (sys, wid) = add_sys_world(&mut state);
+        let idx = state.sector.systems[0].worlds[0].index;
+        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+            screen_pos: egui::Pos2::ZERO,
+            target: SystemMenuTarget::World {
+                system: sys,
+                world: wid,
+                orbit: 1,
+            },
+        });
+        assert_eq!(
+            menu_selection_override(&state, 0),
+            Some(SystemSelection::World(idx)),
+        );
+    }
+
+    #[test]
+    fn menu_selection_override_none_for_background_target() {
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        state.system_context_menu = Some(crate::builder::state::SystemContextMenu {
+            screen_pos: egui::Pos2::ZERO,
+            target: SystemMenuTarget::Background { system: sys },
+        });
+        assert!(menu_selection_override(&state, 0).is_none());
+    }
+
+    #[test]
+    fn ctx_menu_telemetry_records_system_action() {
+        let mut state = blank();
+        let (sys, _) = add_sys_world(&mut state);
+        apply_system_menu_action(&mut state, SystemMenuAction::AddStar { system: sys });
+        assert_eq!(state.last_menu_action.as_deref(), Some("star :: ADD"));
+    }
+
+    #[test]
+    fn ctx_menu_telemetry_label_covers_system_groups() {
+        for (action, label) in [
+            (SystemMenuAction::FocusStarDetails, "star :: FOCUS DETAILS"),
+            (
+                SystemMenuAction::AddWorldAtOrbit {
+                    system: sectorforge::ids::system_id(1),
+                    orbit: 3,
+                },
+                "orbit :: ADD WORLD",
+            ),
+            (
+                SystemMenuAction::DeriveOrbitalAssets {
+                    system: sectorforge::ids::system_id(1),
+                },
+                "background :: DERIVE ORBITAL",
+            ),
+        ] {
+            assert_eq!(system_menu_action_label(&action), label);
+        }
     }
 }

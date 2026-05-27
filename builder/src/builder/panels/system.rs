@@ -172,15 +172,22 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
         .default_open(true)
         .show(ui, |ui| {
             let sys = &state.sector.systems[sys_idx];
-            let selected = match state.selected_world_id.as_ref() {
-                Some(wid) => sys
-                    .worlds
-                    .iter()
-                    .find(|w| &w.id == wid)
-                    .map(|w| SystemSelection::World(w.index))
-                    .unwrap_or(SystemSelection::None),
-                None => SystemSelection::None,
-            };
+            // §CTX1 Phase 7 — while the in-system right-click menu is open,
+            // override the `selected` rendering so the SystemView highlights
+            // the menu's contextual entity (star / world). Reuses the existing
+            // SELECTION ring so we don't need to allocate a separate painter
+            // overlay. Falls back to `selected_world_id` when no menu is open.
+            let selected =
+                crate::builder::panels::system_map::menu_selection_override(state, sys_idx)
+                    .unwrap_or_else(|| match state.selected_world_id.as_ref() {
+                        Some(wid) => sys
+                            .worlds
+                            .iter()
+                            .find(|w| &w.id == wid)
+                            .map(|w| SystemSelection::World(w.index))
+                            .unwrap_or(SystemSelection::None),
+                        None => SystemSelection::None,
+                    });
             let (resp, click) = SystemView {
                 system: sys,
                 selected,

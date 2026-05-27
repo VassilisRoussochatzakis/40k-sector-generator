@@ -497,6 +497,14 @@ pub struct BuilderState {
     /// in-system right-click menu (`§6.7`). `None` when no dialog is open.
     /// Dispatches through `BuilderCommand::RenameWorld` on commit.
     pub pending_world_rename: Option<PendingWorldRename>,
+    /// §CTX1 Phase 7 polish — last right-click menu item activated (sector or
+    /// in-system), surfaced as a short string on the status bar so the user
+    /// gets a single-line trail of what the menu just dispatched. Replaces
+    /// the optional `log_*progress` telemetry hook from the spec (the CLI
+    /// `log_progress` channel only writes to `eprintln!`, which the builder
+    /// has no UI for). `None` until the first activation; cleared on session
+    /// load — in-memory only.
+    pub last_menu_action: Option<String>,
 }
 
 impl BuilderState {
@@ -638,6 +646,7 @@ impl BuilderState {
             partial_regen_anchor: None,
             system_context_menu: None,
             pending_world_rename: None,
+            last_menu_action: None,
         }
     }
 }

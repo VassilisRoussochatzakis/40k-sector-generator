@@ -577,9 +577,49 @@ pub(super) enum OpenInTarget {
     Routes,
 }
 
+/// §CTX1 Phase 7 polish — short human label for the telemetry tail rendered
+/// in the status bar. Mirrors the spec's "ctx_menu: <schema> :: <item>"
+/// format. Pure mapping; tested by `ctx_menu_telemetry_label_covers_*`.
+pub(super) fn sector_menu_action_label(action: &SectorMenuAction) -> &'static str {
+    match action {
+        SectorMenuAction::PlaceSystem { .. } => "sector :: PLACE SYSTEM",
+        SectorMenuAction::PaintRegion { .. } => "sector :: PAINT REGION",
+        SectorMenuAction::EraseRegion { .. } => "sector :: ERASE REGION",
+        SectorMenuAction::FocusSystem { .. } => "sector :: FOCUS SYSTEM",
+        SectorMenuAction::RenameSystem { .. } => "sector :: RENAME",
+        SectorMenuAction::DeleteSystem { .. } => "sector :: DELETE",
+        SectorMenuAction::AddRouteFrom { .. } => "sector :: ADD ROUTE FROM",
+        SectorMenuAction::AddWorld { .. } => "sector :: ADD WORLD",
+        SectorMenuAction::RegenerateSystem { .. } => "sector :: REGENERATE SYSTEM",
+        SectorMenuAction::TogglePin { .. } => "sector :: TOGGLE PIN",
+        SectorMenuAction::OpenIn { .. } => "sector :: OPEN IN",
+        SectorMenuAction::StartPartialRegen { .. } => "sector :: START PARTIAL REGEN",
+        SectorMenuAction::MultiFocusFirst => "multi :: FOCUS FIRST",
+        SectorMenuAction::MultiBulkRenameOpen => "multi :: BULK RENAME",
+        SectorMenuAction::MultiPinAll => "multi :: PIN ALL",
+        SectorMenuAction::MultiUnpinAll => "multi :: UNPIN ALL",
+        SectorMenuAction::MultiDeleteAllConfirmed => "multi :: DELETE ALL",
+        SectorMenuAction::MultiAssignPrimaryFaction { .. } => "multi :: ASSIGN PRIMARY FACTION",
+        SectorMenuAction::MultiFlipControlState { .. } => "multi :: FLIP CONTROL STATE",
+        SectorMenuAction::MultiReseedWorlds => "multi :: RESEED WORLDS",
+        SectorMenuAction::MultiClearSelection => "multi :: CLEAR SELECTION",
+        SectorMenuAction::FocusRoute { .. } => "route :: FOCUS",
+        SectorMenuAction::RemoveRoute { .. } => "route :: REMOVE",
+        SectorMenuAction::SetRouteType { .. } => "route :: SET TYPE",
+        SectorMenuAction::SetRouteStability { .. } => "route :: SET STABILITY",
+        SectorMenuAction::FocusRegion { .. } => "region :: FOCUS",
+        SectorMenuAction::EraseRegionHex { .. } => "region :: ERASE HEX",
+        SectorMenuAction::SetRegionKind { .. } => "region :: RECOLOR",
+        SectorMenuAction::RenameRegionOpen { .. } => "region :: RENAME",
+    }
+}
+
 /// §CTX1 — apply one menu item. Returns the menu's close intent (always
 /// `true`: every action dismisses the menu).
 pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorMenuAction) -> bool {
+    // §CTX1 Phase 7 — capture the activation label up-front so we record
+    // *what* the user clicked even when the action errors out below.
+    state.last_menu_action = Some(sector_menu_action_label(&action).to_string());
     match action {
         SectorMenuAction::PlaceSystem { coord } => {
             let default_name = format!("Sys-{}", state.sector.systems.len() + 1);
@@ -1364,6 +1404,30 @@ fn should_dismiss_sector_context_menu(
     esc_pressed || !focused || primary_click_outside
 }
 
+/// §CTX1 — Phase 7 polish: pick the [`Align2`] pivot that should anchor a
+/// floating right-click menu at `cursor`, so the menu opens *away from* the
+/// nearer screen edge. Combined with `Area::constrain(true)` this keeps the
+/// menu fully on-screen even at the corners.
+///
+/// The pivot is the corner of the menu that `Area::fixed_pos(cursor)` refers
+/// to; for example `RIGHT_TOP` makes the menu grow leftwards / downwards
+/// from the cursor, which is what we want when the cursor sits on the right
+/// half of the viewport.
+///
+/// Pure helper so unit tests can exercise the four quadrant cases without an
+/// egui context.
+pub(super) fn menu_anchor_pivot(cursor: egui::Pos2, screen: egui::Rect) -> egui::Align2 {
+    let centre = screen.center();
+    let right = cursor.x > centre.x;
+    let bottom = cursor.y > centre.y;
+    match (right, bottom) {
+        (false, false) => egui::Align2::LEFT_TOP,
+        (true, false) => egui::Align2::RIGHT_TOP,
+        (false, true) => egui::Align2::LEFT_BOTTOM,
+        (true, true) => egui::Align2::RIGHT_BOTTOM,
+    }
+}
+
 /// §CTX1 — render the floating right-click menu. Anchored at
 /// `menu.screen_pos`. Phase 2 wires the §6.1 (empty hex) and §6.2 (single
 /// system) schemas; multi-selection, route, region-hex, and subsector-border
@@ -1376,9 +1440,16 @@ fn show_sector_context_menu(ctx: &egui::Context, state: &mut BuilderState) {
     let screen_pos = menu.screen_pos;
     let target = menu.target.clone();
     let mut close = false;
+    // §CTX1 Phase 7 — flip the anchor pivot based on cursor quadrant so the
+    // menu grows away from the nearer screen edge. `constrain(true)` is the
+    // final safety net for any remaining overflow.
+    let screen_rect = ctx.input(|i| i.screen_rect());
+    let pivot = menu_anchor_pivot(screen_pos, screen_rect);
     let area_resp = egui::Area::new(egui::Id::new("sector_context_menu"))
         .order(egui::Order::Foreground)
+        .pivot(pivot)
         .fixed_pos(screen_pos)
+        .constrain(true)
         .show(ctx, |ui| {
             egui::Frame::menu(ui.style()).show(ui, |ui| {
                 ui.set_min_width(180.0);
@@ -2902,5 +2973,116 @@ mod tests {
             state.map_view_cache.as_ref().unwrap().digest,
             "digest unchanged when sector slice unchanged"
         );
+    }
+
+    // ── §CTX1 Phase 7 polish tests ────────────────────────────────────────
+
+    fn screen() -> egui::Rect {
+        egui::Rect::from_min_size(Pos2::ZERO, egui::Vec2::new(1000.0, 800.0))
+    }
+
+    #[test]
+    fn menu_anchor_pivot_top_left_when_cursor_top_left() {
+        // Cursor on the left/top half → menu grows down-right from cursor.
+        assert_eq!(
+            menu_anchor_pivot(Pos2::new(100.0, 100.0), screen()),
+            egui::Align2::LEFT_TOP,
+        );
+    }
+
+    #[test]
+    fn menu_anchor_pivot_flips_horizontally_on_right_half() {
+        // Cursor near the right edge → pivot at the menu's right edge, so the
+        // menu unfurls to the *left* of the cursor.
+        assert_eq!(
+            menu_anchor_pivot(Pos2::new(950.0, 100.0), screen()),
+            egui::Align2::RIGHT_TOP,
+        );
+    }
+
+    #[test]
+    fn menu_anchor_pivot_flips_vertically_on_bottom_half() {
+        // Cursor near the bottom edge → pivot at the menu's bottom edge, so
+        // the menu unfurls *upwards*.
+        assert_eq!(
+            menu_anchor_pivot(Pos2::new(100.0, 780.0), screen()),
+            egui::Align2::LEFT_BOTTOM,
+        );
+    }
+
+    #[test]
+    fn menu_anchor_pivot_clamps_to_viewport_in_corner() {
+        // Bottom-right corner → both axes flip.
+        assert_eq!(
+            menu_anchor_pivot(Pos2::new(990.0, 790.0), screen()),
+            egui::Align2::RIGHT_BOTTOM,
+        );
+    }
+
+    #[test]
+    fn ctx_menu_telemetry_records_last_action_label() {
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "Alpha")
+            .unwrap();
+        assert!(state.last_menu_action.is_none());
+        apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id });
+        assert_eq!(
+            state.last_menu_action.as_deref(),
+            Some("sector :: FOCUS SYSTEM"),
+        );
+    }
+
+    #[test]
+    fn ctx_menu_telemetry_label_covers_every_sector_variant() {
+        // Spot-check one variant per schema group. The labels themselves are
+        // exhaustively matched in `sector_menu_action_label` so the compiler
+        // will block any future variant from being missed.
+        for (action, label) in [
+            (
+                SectorMenuAction::PlaceSystem {
+                    coord: HexCoord { q: 0, r: 0 },
+                },
+                "sector :: PLACE SYSTEM",
+            ),
+            (
+                SectorMenuAction::MultiClearSelection,
+                "multi :: CLEAR SELECTION",
+            ),
+            (
+                SectorMenuAction::FocusRoute {
+                    id: sectorforge::ids::route_id(
+                        &sectorforge::ids::system_id(1),
+                        &sectorforge::ids::system_id(2),
+                    ),
+                },
+                "route :: FOCUS",
+            ),
+            (
+                SectorMenuAction::FocusRegion {
+                    region: "reg-a".into(),
+                },
+                "region :: FOCUS",
+            ),
+        ] {
+            assert_eq!(sector_menu_action_label(&action), label);
+        }
+    }
+
+    #[test]
+    fn ctx_menu_telemetry_resets_through_session_round_trip() {
+        // The telemetry tail is in-memory only — a session save/load must
+        // drop it so the status bar starts clean after reopen.
+        let mut state = blank(8, 8);
+        let id = state
+            .sector
+            .add_system(HexCoord { q: 1, r: 1 }, "Alpha")
+            .unwrap();
+        apply_sector_menu_action(&mut state, SectorMenuAction::FocusSystem { id });
+        assert!(state.last_menu_action.is_some());
+        let file = crate::builder::session::SessionFile::from_state(&state, Vec::new());
+        let restored = file.into_state();
+        assert!(restored.last_menu_action.is_none());
     }
 }

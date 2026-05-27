@@ -2699,6 +2699,37 @@ CTX1. Phase 1+ — see docs/CONTEXT_MENU.txt §5–§7 for the menu state types
        `BuilderState::pending_region_rename: Option<PendingRegionRename>`
        transient dialog driving `panels/map.rs::show_region_rename_dialog`.
 
+CTX1.7 [DONE] Phase 7 polish — viewport clamping + flip-anchor, hover-ring
+       overlay reuse on the SYSTEM tab, telemetry tail in the status bar.
+       New pure helper `panels/map::menu_anchor_pivot(cursor, screen) ->
+       Align2` returns `LEFT_TOP` / `RIGHT_TOP` / `LEFT_BOTTOM` /
+       `RIGHT_BOTTOM` keyed off cursor quadrant so the menu grows away
+       from the nearer viewport edge; both `show_sector_context_menu` and
+       `show_system_context_menu` build their `egui::Area` with
+       `.pivot(menu_anchor_pivot(pos, screen)).fixed_pos(pos).constrain(true)`,
+       guaranteeing the menu never extends past the viewport. The SYSTEM
+       tab's hover ring is implemented by
+       `panels/system_map::menu_selection_override(state, sys_idx)`,
+       which returns `Some(SystemSelection::Star)` /
+       `Some(SystemSelection::World(idx))` for the matching
+       `SystemMenuTarget` so `SystemView::show` paints the existing
+       SELECTION ring around the contextual entity (no new painter
+       overlay needed). New `BuilderState::last_menu_action:
+       Option<String>` field is populated by `apply_sector_menu_action`
+       and `apply_system_menu_action` via the new
+       `panels/map::sector_menu_action_label` /
+       `panels/system_map::system_menu_action_label` helpers, then
+       rendered by `panels/status.rs::show` as `ctx_menu: <schema> ::
+       <item>`. In-memory only — dropped by `session::SessionFile`
+       round-trip (verified by
+       `ctx_menu_telemetry_resets_through_session_round_trip`).
+       Deviations vs. CONTEXT_MENU.txt Phase 7 draft: arrow-key
+       traversal stays as future work (egui 0.29's focus chain handles
+       Tab/Enter/Escape natively but does not implement arrow-step on
+       `SelectableLabel`s), and telemetry routes through the status
+       panel instead of the CLI `log_*progress` channel because the
+       builder has no stderr surface.
+
 CTX2. [DONE] Phase 6 — System-view context menus (require CTX0). See
        docs/CONTEXT_MENU.txt §6.6–§6.9. The resolver / render / dispatch
        surface lives in the new

@@ -234,6 +234,7 @@ impl SessionFile {
             partial_regen_anchor: None,
             system_context_menu: None,
             pending_world_rename: None,
+            last_menu_action: None,
         }
     }
 }

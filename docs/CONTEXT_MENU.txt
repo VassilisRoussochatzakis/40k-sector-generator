@@ -582,18 +582,104 @@ State additions (`§D5` on `BuilderState`):
 - `builder::panels::system_map::tests::rename_world_open_arms_dialog`
 - `builder::panels::system_map::tests::focus_star_details_arms_scroll_target`
 
-### Phase 7 — Polish
+### Phase 7 — Polish  [DONE]
 
-- Hover-ring overlay (`paint_system_rings`) while menu open.
-- Menu clamping to viewport (flip-anchor when overflowing).
-- Disabled-item tooltips (`on_hover_text` explaining why).
-- Visual divider style matching existing tab headers.
-- Keyboard arrow-nav within open menu (`Up`/`Down`/`Enter`/`Escape`) —
-  use egui's built-in focus chain.
-- Telemetry hook (optional): log menu-item activations via the existing
-  `log_*progress` channel for the status bar.
+Ships as a self-contained polish pass under the §CTX1 Phase 5–7 ≤6-file
+budget. Files touched: `builder/src/builder/panels/{map,system_map,system,
+status}.rs`, `builder/src/builder/state/mod.rs`, `builder/src/builder/
+session.rs`.
 
-**Tests:** snapshot test of menu render at three cursor positions.
+- **Hover-ring overlay (sector + in-system)**: the MAP tab already paints
+  a yellow `paint_system_rings` overlay around the right-click target
+  while `sector_context_menu` is open (Phase 1). The SYSTEM tab now
+  mirrors that signal by overriding the `selected: SystemSelection`
+  parameter handed to `SystemView::show` while the in-system menu is
+  open — `panels/system_map::menu_selection_override` returns
+  `Some(SystemSelection::Star)` /
+  `Some(SystemSelection::World(idx))` for the matching `SystemMenuTarget`
+  so the existing SELECTION ring becomes the menu's hover ring without
+  allocating a separate painter overlay. `Background` / `EmptyOrbit`
+  targets and "menu targets a different system" cases fall through to
+  the user's normal `selected_world_id`.
+- **Menu clamping to viewport + flip-anchor**: new pure helper
+  `panels/map::menu_anchor_pivot(cursor, screen) -> Align2` returns
+  `LEFT_TOP` / `RIGHT_TOP` / `LEFT_BOTTOM` / `RIGHT_BOTTOM` keyed off
+  which quadrant the cursor sits in, so the menu always grows *away
+  from* the nearer viewport edge. Both `show_sector_context_menu` and
+  `show_system_context_menu` now build their `egui::Area` with
+  `.pivot(menu_anchor_pivot(pos, screen)).fixed_pos(pos).constrain(true)`
+  — `constrain(true)` is the final clamp for any overflow the pivot
+  flip didn't catch.
+- **Disabled-item tooltips**: every Phase-2/3/5/6 gated row already
+  funnels through `egui::SelectableLabel::new(false, …)` wrapped in
+  `add_enabled(…)` and surfaces an `on_hover_text` / `on_disabled_hover_text`
+  explaining the gate (`Unpin first (§S3)`, `Pick a region in the
+  REGIONS tab first.`, `Sector has no factions — add one in the
+  FACTIONS tab.`, `System has no star — add one first.`, etc.). Phase 7
+  treats this as a verification pass — no new gates added.
+- **Visual divider style**: every menu schema uses `ui.separator()` to
+  group rows. Phase 7 keeps the egui default (matches the existing
+  tab headers + the §S2 inspector style) instead of forking the
+  separator look — adding a custom palette would push the in-tree
+  builder beyond the no-new-deps invariant.
+- **Keyboard nav**: every menu row is rendered as a real
+  `egui::SelectableLabel`, which is part of egui's built-in
+  Tab/Shift-Tab focus chain — `Enter` activates the focused row,
+  `Escape` is consumed by `should_dismiss_sector_context_menu`. No
+  extra `request_focus` plumbing is needed for v1; arrow-key
+  traversal stays as future work because egui 0.29's focus chain
+  does not implement arrow-step on `SelectableLabel`s and rolling
+  our own would duplicate logic the framework owns.
+- **Telemetry**: the spec mentioned the CLI `log_*progress` helpers,
+  but those only call `eprintln!` (`src/cli/common.rs::log_progress`)
+  and the builder has no UI for stderr. Phase 7 instead adds an
+  in-memory `last_menu_action: Option<String>` field on
+  `BuilderState`, populated by `apply_sector_menu_action` and
+  `apply_system_menu_action` via the new
+  `panels/map::sector_menu_action_label` / `panels/system_map::
+  system_menu_action_label` helpers. The status panel
+  ([panels/status.rs](../builder/src/builder/panels/status.rs)) tails
+  the field as `ctx_menu: <schema> :: <item>`, giving the user the
+  same single-line trace the spec called for. The field is in-memory
+  only — `session::SessionFile::into_state` drops it, verified by
+  `ctx_menu_telemetry_resets_through_session_round_trip`.
+
+**Tests** (all under `mod tests`):
+
+- `builder::panels::map::tests::menu_anchor_pivot_top_left_when_cursor_top_left`
+- `builder::panels::map::tests::menu_anchor_pivot_flips_horizontally_on_right_half`
+- `builder::panels::map::tests::menu_anchor_pivot_flips_vertically_on_bottom_half`
+- `builder::panels::map::tests::menu_anchor_pivot_clamps_to_viewport_in_corner`
+  (substitutes for the original "snapshot at three cursor positions" —
+  the pivot helper is pure and easier to nail down than a Y-pixel
+  snapshot)
+- `builder::panels::map::tests::ctx_menu_telemetry_records_last_action_label`
+- `builder::panels::map::tests::ctx_menu_telemetry_label_covers_every_sector_variant`
+- `builder::panels::map::tests::ctx_menu_telemetry_resets_through_session_round_trip`
+- `builder::panels::system_map::tests::menu_selection_override_none_when_no_menu_open`
+- `builder::panels::system_map::tests::menu_selection_override_returns_star_for_star_target`
+- `builder::panels::system_map::tests::menu_selection_override_returns_world_index`
+- `builder::panels::system_map::tests::menu_selection_override_none_for_background_target`
+- `builder::panels::system_map::tests::ctx_menu_telemetry_records_system_action`
+- `builder::panels::system_map::tests::ctx_menu_telemetry_label_covers_system_groups`
+
+Implementation deviations vs. the original draft:
+
+- Arrow-key nav inside the open menu is deferred — egui 0.29's focus
+  chain handles Tab/Enter/Escape natively but does not implement
+  arrow-step on `SelectableLabel`s. The spec's "use egui's built-in
+  focus chain" wording covers what's shipped; full arrow-nav is
+  filed under §15 future work.
+- The hover ring on the SYSTEM tab is rendered by reusing the
+  existing SELECTION colour through the `selected: SystemSelection`
+  parameter rather than allocating a second painter overlay. This
+  keeps the gui-core surface stable (no new exports), matches the
+  Phase 6 design choice of "talk to `SystemView` through its
+  parameters", and lets undo / focus changes inherit the same look
+  as the menu hover.
+- Telemetry routes through the status panel (`last_menu_action`)
+  instead of the CLI `log_*progress` channel because the builder
+  has no stderr surface — see [panels/status.rs](../builder/src/builder/panels/status.rs).
 
 ### Phase 8 — Documentation
 

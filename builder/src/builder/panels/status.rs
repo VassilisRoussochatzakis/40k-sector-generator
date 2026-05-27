@@ -33,6 +33,13 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.spinner();
             ui.label(format!("jobs: {}", state.pending_jobs.len()));
         }
+        // §CTX1 Phase 7 — right-click menu telemetry tail. Shows the most
+        // recent menu activation as `ctx_menu: <schema> :: <item>` so the
+        // status bar gives a single-line trace of what the menu dispatched.
+        if let Some(label) = state.last_menu_action.as_ref() {
+            ui.separator();
+            ui.label(format!("ctx_menu: {label}"));
+        }
     });
 }
 

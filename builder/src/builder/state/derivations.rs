@@ -279,6 +279,23 @@ impl BuilderState {
         self.mark_validation_dirty();
     }
 
+    /// §PR1..§PR4 — rebuild [`sectorforge::prose::ProseReport`] from the live
+    /// sector + the in-memory `data_catalogs.prose` (falling back to defaults
+    /// when no catalog is loaded). The result is stashed on
+    /// [`Self::prose_report`] so the PROSE tab can render without re-running
+    /// the derivation each frame.
+    ///
+    /// Manual overrides embedded in the catalog (`ProseConfig::overrides`)
+    /// are applied by `derive_with` itself after the deterministic
+    /// derivation, so the recompute path automatically preserves them across
+    /// regenerates.
+    pub fn recompute_prose(&mut self) {
+        let cfg = self.data_catalogs.prose.clone().unwrap_or_default();
+        let report = sectorforge::prose::derive_with(&self.sector, &cfg);
+        self.prose_report = Some(report);
+        self.mark_validation_dirty();
+    }
+
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed
     /// since the last mutation, build a synthetic [`ProjectInput`] from the
     /// in-memory catalogs and run [`validate`] against it. Returns `true`
@@ -339,6 +356,7 @@ impl BuilderState {
             sites: self.data_catalogs.sites.clone().unwrap_or_default(),
             hooks: self.data_catalogs.hooks.clone().unwrap_or_default(),
             missions: self.data_catalogs.missions.clone().unwrap_or_default(),
+            prose: self.data_catalogs.prose.clone().unwrap_or_default(),
             input_digests: BTreeMap::new(),
         })
     }

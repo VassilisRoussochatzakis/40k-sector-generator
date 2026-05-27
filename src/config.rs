@@ -82,6 +82,11 @@ pub struct InputConfig {
     /// knobs and `[[manual]]` mission seeds that survive "Auto-derive missions".
     #[serde(default)]
     pub missions: Option<String>,
+    /// §PR1..§PR4 BUILDER_REQS: optional `prose.toml` with `ProseConfig` knobs
+    /// and `overrides` (per-sector overview + per-system text replacements)
+    /// that survive "Regenerate prose".
+    #[serde(default)]
+    pub prose: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

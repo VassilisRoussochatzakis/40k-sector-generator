@@ -9,6 +9,7 @@ use sectorforge::hooks::HooksConfig;
 use sectorforge::missions::MissionsConfig;
 use sectorforge::names::NameTables;
 use sectorforge::personae::PersonaeConfig;
+use sectorforge::prose::ProseConfig;
 use sectorforge::regions::RegionsConfig;
 use sectorforge::relations::RelationsConfig;
 use sectorforge::routes::RouteRules;
@@ -45,6 +46,12 @@ pub struct DataCatalogs {
     /// `recompute_missions` re-runs `missions::derive_with` against whatever
     /// lives here (falling back to defaults when `None`).
     pub missions: Option<MissionsConfig>,
+    /// §PR1..§PR4: `ProseConfig` (tone + include flags + overrides). Mirrors
+    /// `data/prose.toml` on disk. The PROSE tab edits this in-place;
+    /// `recompute_prose` re-runs `prose::derive_with` against whatever lives
+    /// here (falling back to defaults when `None`). Overrides survive every
+    /// "Regenerate prose" pass because they live inside the config itself.
+    pub prose: Option<ProseConfig>,
 }
 
 impl DataCatalogs {

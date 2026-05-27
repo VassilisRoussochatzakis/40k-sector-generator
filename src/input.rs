@@ -43,6 +43,9 @@ pub struct ProjectInput {
     /// §M1..§M5 BUILDER_REQS: parsed missions config, default knobs/manual
     /// when unset.
     pub missions: crate::missions::MissionsConfig,
+    /// §PR1..§PR4 BUILDER_REQS: parsed prose config, default tone +
+    /// no-overrides when unset.
+    pub prose: crate::prose::ProseConfig,
     /// Project-relative path -> "blake3:<hex>" digest of input file bytes.
     pub input_digests: BTreeMap<String, String>,
 }
@@ -193,6 +196,13 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         crate::missions::MissionsConfig::default()
     };
 
+    let prose = if let Some(rel) = &config.inputs.prose {
+        let text = read_relative(&root_dir, rel, &mut digests)?;
+        toml::from_str(&text).map_err(|e| SectorError::config_parse(rel.clone(), e.to_string()))?
+    } else {
+        crate::prose::ProseConfig::default()
+    };
+
     Ok(ProjectInput {
         root_dir,
         config,
@@ -210,6 +220,7 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
         sites,
         hooks,
         missions,
+        prose,
         input_digests: digests,
     })
 }

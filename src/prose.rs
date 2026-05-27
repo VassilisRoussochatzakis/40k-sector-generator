@@ -17,6 +17,7 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::SectorError;
+use crate::ids::SystemId;
 use crate::rng::stage_rng;
 use crate::sector_model::{GeneratedSector, GeneratedSystem, SystemState};
 
@@ -33,6 +34,10 @@ pub struct ProseConfig {
     /// Include per-system gazetteer entries.
     #[serde(default = "default_true")]
     pub include_per_system: bool,
+    /// §PR1 / §PR2 manual overrides — survive every "Regenerate prose" pass.
+    /// When set, the override text replaces the derived paragraph(s).
+    #[serde(default)]
+    pub overrides: ProseOverrides,
 }
 
 impl Default for ProseConfig {
@@ -41,8 +46,26 @@ impl Default for ProseConfig {
             tone: default_tone(),
             include_overview: true,
             include_per_system: true,
+            overrides: ProseOverrides::default(),
         }
     }
+}
+
+/// §PR1 / §PR2 — per-sector / per-system prose overrides. Empty by default.
+/// Presence of a system id in [`Self::systems`] (or of `Some(_)` on
+/// [`Self::overview`]) means the override is active for that anchor; the
+/// derivation pass treats the stored string as the replacement prose. Removing
+/// the entry restores the derived text on the next recompute.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ProseOverrides {
+    /// Sector overview replacement. `None` keeps the derived overview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overview: Option<String>,
+    /// Per-system replacement paragraphs. Key = `SystemId`; value = the full
+    /// override prose body (rendered as a single paragraph, replacing every
+    /// derived paragraph for that system).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub systems: BTreeMap<SystemId, String>,
 }
 
 fn default_tone() -> ProseTone {
@@ -67,14 +90,28 @@ pub struct ProseReport {
     pub seed: String,
     pub tone: String,
     pub overview: String,
+    /// §PR2 — true when [`ProseOverrides::overview`] supplied the text above.
+    #[serde(default)]
+    pub overview_is_override: bool,
     pub system_entries: Vec<SystemProse>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemProse {
-    pub system_id: crate::ids::SystemId,
+    pub system_id: SystemId,
     pub name: String,
     pub paragraphs: Vec<String>,
+    /// §PR1 — true when [`ProseOverrides::systems`] supplied the paragraphs
+    /// above. The renderer keeps the derived paragraphs cached on
+    /// [`Self::derived_paragraphs`] so a one-click "Revert" can restore them
+    /// without re-running derivation.
+    #[serde(default)]
+    pub is_override: bool,
+    /// §PR1 — derived paragraphs preserved alongside an active override so the
+    /// editor can re-seed the override text-edit when toggled back on. Empty
+    /// when there is no override.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub derived_paragraphs: Vec<String>,
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────────
@@ -91,16 +128,37 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
         .iter()
         .map(|f| (f.id.as_str(), f.name.as_ref()))
         .collect();
-    let overview = if cfg.include_overview {
-        sector_overview(sector, cfg, &faction_names)
+    let (overview, overview_is_override) = if cfg.include_overview {
+        let derived = sector_overview(sector, cfg, &faction_names);
+        if let Some(over) = cfg
+            .overrides
+            .overview
+            .as_ref()
+            .filter(|t| !t.trim().is_empty())
+        {
+            (over.clone(), true)
+        } else {
+            (derived, false)
+        }
     } else {
-        String::new()
+        (String::new(), false)
     };
 
     let mut entries: Vec<SystemProse> = Vec::new();
     if cfg.include_per_system {
         for sys in &sector.systems {
-            entries.push(system_prose(sys, sector, cfg, &faction_names));
+            let mut entry = system_prose(sys, sector, cfg, &faction_names);
+            if let Some(text) = cfg
+                .overrides
+                .systems
+                .get(&sys.id)
+                .filter(|t| !t.trim().is_empty())
+            {
+                entry.derived_paragraphs = std::mem::take(&mut entry.paragraphs);
+                entry.paragraphs = vec![text.clone()];
+                entry.is_override = true;
+            }
+            entries.push(entry);
         }
     }
 
@@ -109,6 +167,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
         seed: sector.seed.to_string(),
         tone: format!("{:?}", cfg.tone),
         overview,
+        overview_is_override,
         system_entries: entries,
     }
 }
@@ -288,6 +347,8 @@ fn system_prose(
         system_id: sys.id.clone(),
         name: sys.name.to_string(),
         paragraphs,
+        is_override: false,
+        derived_paragraphs: Vec::new(),
     }
 }
 
@@ -410,5 +471,61 @@ mod tests {
         );
         assert!(!a.system_entries.is_empty());
         assert!(!a.overview.is_empty());
+        assert!(!a.overview_is_override);
+        assert!(a.system_entries.iter().all(|e| !e.is_override));
+    }
+
+    #[test]
+    fn overview_override_replaces_derived_text() {
+        let mut sec = empty_sector();
+        sec.systems.push(system("sys-0001"));
+        let cfg = ProseConfig {
+            overrides: ProseOverrides {
+                overview: Some("Authored overview text.".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let report = derive_with(&sec, &cfg);
+        assert!(report.overview_is_override);
+        assert_eq!(report.overview, "Authored overview text.");
+    }
+
+    #[test]
+    fn system_override_replaces_paragraphs_and_caches_derived() {
+        let mut sec = empty_sector();
+        sec.systems.push(system("sys-0001"));
+        let mut systems = BTreeMap::new();
+        systems.insert(SystemId::new("sys-0001"), "Authored system text.".into());
+        let cfg = ProseConfig {
+            overrides: ProseOverrides {
+                systems,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let report = derive_with(&sec, &cfg);
+        let entry = &report.system_entries[0];
+        assert!(entry.is_override);
+        assert_eq!(entry.paragraphs, vec!["Authored system text.".to_string()]);
+        assert!(!entry.derived_paragraphs.is_empty());
+    }
+
+    #[test]
+    fn blank_override_falls_back_to_derived() {
+        let mut sec = empty_sector();
+        sec.systems.push(system("sys-0001"));
+        let mut systems = BTreeMap::new();
+        systems.insert(SystemId::new("sys-0001"), "\n\n".into());
+        let cfg = ProseConfig {
+            overrides: ProseOverrides {
+                overview: Some("   ".into()),
+                systems,
+            },
+            ..Default::default()
+        };
+        let report = derive_with(&sec, &cfg);
+        assert!(!report.overview_is_override);
+        assert!(!report.system_entries[0].is_override);
     }
 }

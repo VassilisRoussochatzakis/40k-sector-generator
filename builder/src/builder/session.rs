@@ -214,6 +214,9 @@ impl SessionFile {
             missions_filter_kind: None,
             selected_mission_id: None,
             missions_edit_target: None,
+            prose_report: None,
+            prose_auto_recompute: true,
+            selected_prose_system_id: None,
         }
     }
 }

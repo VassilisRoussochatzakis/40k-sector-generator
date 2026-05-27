@@ -13,14 +13,29 @@ pub fn run_prose(
     json: bool,
     dispatch: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
-    let sec = load_or_regenerate(project.cloned(), sector.cloned())?;
+    // §PR1..§PR4: when a project is supplied, honour any `[inputs].prose`
+    // entry so per-sector / per-system overrides authored via the builder
+    // survive on the CLI path too. Falls back to defaults when no project is
+    // available or when the project leaves `inputs.prose` unset.
+    let (sec, base_cfg) = match project.cloned() {
+        Some(project_dir) => {
+            let input = sectorforge::load_project(&project_dir)?;
+            let cfg = input.prose.clone();
+            let sec = sectorforge::generate_sector(input)?;
+            (sec, cfg)
+        }
+        None => (
+            load_or_regenerate(None, sector.cloned())?,
+            sectorforge::prose::ProseConfig::default(),
+        ),
+    };
     let cfg = sectorforge::prose::ProseConfig {
         tone: if dispatch {
             sectorforge::prose::ProseTone::Dispatch
         } else {
             sectorforge::prose::ProseTone::Gazetteer
         },
-        ..Default::default()
+        ..base_cfg
     };
     let report = sectorforge::derive_prose_with(&sec, &cfg);
     if let Some(dir) = out {

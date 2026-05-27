@@ -1233,14 +1233,59 @@ M5.   [DONE] Click-to-highlight. Every list row's "highlight" button,
 22. PROSE (GAZETTEER)
 ================================================================================
 
-PR1.  Per-system prose editor: derived prose displayed, "Override"
+PR1.  [DONE] Per-system prose editor: derived prose displayed, "Override"
       toggle replaces with manual text.
+      ([builder/src/builder/panels/prose.rs](../builder/src/builder/panels/prose.rs)
+      `show_system_editor` — system picker (`ComboBox` seeded from the SYSTEM
+      tab's selection via `selected_prose_system_id`, falling through to
+      `selected_system_id` on first focus) plus an "Override" checkbox that
+      flips `ProseConfig::overrides::systems` for the chosen `SystemId`. The
+      first toggle seeds the override with `entry.paragraphs.join("\n\n")`
+      so the user edits in place; "Revert to derived" removes the entry. The
+      derived paragraphs stay cached on
+      [`SystemProse::derived_paragraphs`](../src/prose.rs) inside the active
+      report so the "Derived paragraphs (read-only)" collapsing block can
+      restore the original text without re-running derivation. Overrides
+      survive every "Regenerate prose" because they live inside
+      `data_catalogs.prose` and `prose::derive_with` re-applies them after
+      the deterministic derivation.)
 
-PR2.  Per-sector overview prose editor (same pattern).
+PR2.  [DONE] Per-sector overview prose editor (same pattern).
+      (`show_overview_editor` mirrors §PR1 against
+      `ProseConfig::overrides::overview`. `ProseReport::overview_is_override`
+      reflects the toggle state so the panel surfaces an "AUTHORED" badge
+      next to the override; blank / whitespace-only overrides fall back to
+      the derived overview at derive time.)
 
-PR3.  Tone preset selector: Florid | Administratum Dispatch.
+PR3.  [DONE] Tone preset selector: Florid | Administratum Dispatch.
+      (`show_tone_section` exposes a `ComboBox` over
+      [`ProseTone::Gazetteer`] / [`ProseTone::Dispatch`] bound to
+      `ProseConfig::tone`, plus include-overview / include-per-system
+      checkboxes that mirror the CLI knobs. Changing the tone rewrites the
+      derived paragraphs on the next recompute; overrides are untouched
+      because they store the manual text verbatim.)
 
-PR4.  "Regenerate prose" runs `src/prose.rs`. Manual overrides survive.
+PR4.  [DONE] "Regenerate prose" runs `src/prose.rs`. Manual overrides
+      survive. (`show_header_actions` exposes the "Regenerate prose" button
+      which calls `BuilderState::recompute_prose` — added in
+      [builder/src/builder/state/derivations.rs](../builder/src/builder/state/derivations.rs).
+      The button runs [`prose::derive_with`](../src/prose.rs) against the
+      live sector + `data_catalogs.prose`, then publishes the
+      [`ProseReport`](../src/prose.rs) onto `BuilderState::prose_report`. A
+      `prose_auto_recompute` toggle (default `true`) re-runs the derivation
+      on every catalog edit through `on_catalog_edited`. Manual overrides
+      survive because `prose::derive_with` re-applies the
+      [`ProseOverrides`](../src/prose.rs) block after the deterministic
+      derivation pass — see the four tests in `src/prose.rs` and the four
+      tests in `builder/src/builder/panels/prose.rs`. Project I/O wired in
+      `project_io::catalogs_from_input` / `save_project_as` /
+      `reload_catalog` so `data/prose.toml` round-trips alongside the other
+      catalogs; `[inputs].prose` added to `src/config.rs::InputConfig` and
+      `src/input.rs` parses the file into `ProjectInput::prose`;
+      `synthesize_project_input` feeds `data_catalogs.prose` to validation
+      / regeneration instead of defaulting. The `sectorforge prose` CLI now
+      honours `[inputs].prose` when `--project` is supplied so authored
+      overrides survive both the builder and the CLI path.)
 
 ================================================================================
 23. BRIEFING
@@ -1820,10 +1865,10 @@ N2.   [DONE] Each tab corresponds to a panel module under
           [ ] panels/briefing.rs        §BR1..§BR5  briefing editor
           [x] panels/hooks.rs           §HK1..§HK6  hook editor
           [ ] panels/interestingness.rs §INT1..§INT4 scorer
-          [ ] panels/missions.rs        §M1..§M5    mission editor
+          [x] panels/missions.rs        §M1..§M5    mission editor
           [x] panels/personae.rs        §PER1..§PER5 persona editor
-          [ ] panels/prose.rs           §PR1..§PR4  prose editor
-          [ ] panels/sites.rs           §ST1..§ST4  site editor
+          [x] panels/prose.rs           §PR1..§PR4  prose editor
+          [x] panels/sites.rs           §ST1..§ST4  site editor
 
         Phase E
           [ ] panels/analytics.rs       §A1..§A4    analytics dashboard
@@ -2176,7 +2221,53 @@ Phase D — Derivations + GM tools
                    `synthesize_project_input` now feeds
                    `data_catalogs.missions` to validation / regeneration
                    instead of defaulting.)
-  PR1..PR4,   (§22 prose)
+  PR1..PR4 - DONE (§22 prose — panel
+                   `builder/src/builder/panels/prose.rs`:
+                   §PR1 per-system editor over the cached
+                   `BuilderState::prose_report` published by
+                   `BuilderState::recompute_prose` (added in
+                   `state/derivations.rs`); system picker (`ComboBox`
+                   seeded from `selected_prose_system_id`, falling
+                   through to `selected_system_id` on first focus)
+                   plus an "Override" checkbox that flips
+                   `ProseConfig::overrides::systems`. The first toggle
+                   seeds the override with
+                   `entry.paragraphs.join("\n\n")` so the user edits in
+                   place; "Revert to derived" removes the entry. The
+                   derived paragraphs stay cached on
+                   `SystemProse::derived_paragraphs` so the "Derived
+                   paragraphs (read-only)" collapsing block can restore
+                   them without re-running derivation;
+                   §PR2 `show_overview_editor` mirrors §PR1 against
+                   `ProseConfig::overrides::overview`;
+                   `ProseReport::overview_is_override` drives the
+                   "AUTHORED" badge. Blank / whitespace-only overrides
+                   fall back to the derived overview at derive time;
+                   §PR3 `show_tone_section` exposes a `ComboBox` over
+                   `ProseTone::Gazetteer` / `ProseTone::Dispatch` bound
+                   to `ProseConfig::tone`, plus include-overview /
+                   include-per-system checkboxes that mirror the CLI
+                   knobs;
+                   §PR4 "Regenerate prose" runs
+                   `BuilderState::recompute_prose` which calls
+                   `prose::derive_with`. Manual overrides survive
+                   because the derivation re-applies the
+                   `ProseOverrides` block after the deterministic
+                   derivation pass. A `prose_auto_recompute` toggle
+                   (default `true`) re-runs the derivation on every
+                   catalog edit through `on_catalog_edited`. Project
+                   I/O wired in `project_io::catalogs_from_input` /
+                   `save_project_as` / `reload_catalog` so
+                   `data/prose.toml` round-trips alongside the other
+                   catalogs; `[inputs].prose` added to
+                   `src/config.rs::InputConfig` and `src/input.rs`
+                   parses the file into `ProjectInput::prose`;
+                   `synthesize_project_input` now feeds
+                   `data_catalogs.prose` to validation / regeneration
+                   instead of defaulting. The `sectorforge prose` CLI
+                   also honours `[inputs].prose` when `--project` is
+                   supplied so authored overrides survive on the CLI
+                   path.)
   BR1..BR5,   (§23 briefing)
   INT1..INT4. (§24 interestingness)
 

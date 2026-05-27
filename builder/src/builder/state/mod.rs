@@ -394,6 +394,20 @@ pub struct BuilderState {
     pub selected_mission_id: Option<String>,
     /// §M1: id of the mission currently expanded in the panel detail view.
     pub missions_edit_target: Option<String>,
+    /// §PR1..§PR4: latest gazetteer prose overlay. Prose is not part of
+    /// `GeneratedSector`, so the builder caches the most recent
+    /// `prose::derive_with` result here. Rebuilt by
+    /// [`Self::recompute_prose`].
+    pub prose_report: Option<sectorforge::prose::ProseReport>,
+    /// §PR4: when true, mutations that touch the prose catalog trigger an
+    /// immediate [`Self::recompute_prose`] pass. Defaults to `true` — the
+    /// derivation is cheap.
+    pub prose_auto_recompute: bool,
+    /// §PR1: id of the system currently expanded in the per-system prose
+    /// editor. Mirrors [`Self::selected_system_id`] on first focus so the
+    /// PROSE tab inherits the SYSTEM tab's selection; a per-tab pick may
+    /// then diverge.
+    pub selected_prose_system_id: Option<SystemId>,
 }
 
 impl BuilderState {
@@ -515,6 +529,9 @@ impl BuilderState {
             missions_filter_kind: None,
             selected_mission_id: None,
             missions_edit_target: None,
+            prose_report: None,
+            prose_auto_recompute: true,
+            selected_prose_system_id: None,
         }
     }
 }
@@ -546,6 +563,7 @@ fn default_config(id: &str, title: &str, seed: &str, width: u32, height: u32) ->
             sites: None,
             hooks: None,
             missions: None,
+            prose: None,
         },
         generation: GenerationConfig {
             seed: seed.to_string(),

@@ -562,6 +562,14 @@ no fact appears that isn't in the JSON — and the variation between
 adjacent systems is keyed by id so the gazetteer never reads
 copy-pasted.
 
+When `--project` is supplied the CLI honours `[inputs].prose` and
+applies any authored overrides (sector-overview replacement +
+per-system replacements) from `data/prose.toml` — the same overrides the
+builder's PROSE tab edits (see [PROSE tab — §PR1..§PR4](#prose-tab--pr1pr4)).
+Overrides survive every "Regenerate prose" pass because they live
+inside `ProseConfig::overrides` and `prose::derive_with` re-applies them
+after the deterministic derivation.
+
 ### `sectorforge relations` (§5 NEW2.md/DONE)
 
 Inter-faction diplomacy matrix. For every unordered pair of factions
@@ -2364,6 +2372,19 @@ BUILDER_REQS §21 (M1..M5). Mission seeds are a pure overlay over the finished s
 | M5 click-to-highlight location | Every "highlight" button on the list, the detail card's primary / secondary location links, and the route id links route through `focus_primary_location` → `BuilderState::focus_entity` with the matching `EntityRef::System` / `EntityRef::World` / `EntityRef::Route`. The helper parses the mission's `primary_location` string (`sys` or `sys/world`); when the string is empty it falls back to the first route id (when present) or `EntityRef::Tab(BuilderTab::Map)`. |
 
 `BuilderState` adds six missions fields: `missions_report: Option<MissionsReport>`, `missions_auto_recompute: bool`, `missions_player_edition: bool`, `missions_filter_kind: Option<MissionKind>`, `selected_mission_id: Option<String>`, `missions_edit_target: Option<String>`. Defaults: `None` / `true` / `false` / `None` / `None` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::missions: Option<MissionsConfig>` mirrors the on-disk file; the new `MissionsConfig::manual` field on [src/missions.rs](src/missions.rs) is appended after derivation and survives "Auto-derive missions". `[inputs].missions` was added to `src/config.rs::InputConfig` and `src/input.rs` parses the file into `ProjectInput::missions`; `synthesize_project_input` now feeds `data_catalogs.missions` to validation / regeneration instead of `MissionsConfig::default()`.
+
+### PROSE tab — §PR1..§PR4
+
+BUILDER_REQS §22 (PR1..PR4). The gazetteer prose is a pure overlay over the finished sector — it lives nowhere on `GeneratedSector`, so the builder caches the most recent [`ProseReport`](src/prose.rs) on `BuilderState::prose_report` and rebuilds it via `BuilderState::recompute_prose` (added in [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs)). Catalog edits land in [`data_catalogs.prose`](builder/src/builder/data_catalogs.rs) and round-trip to `data/prose.toml` through `project_io::save_project_as` / `reload_catalog`.
+
+| Piece | Where it lives |
+|---|---|
+| PR1 per-system prose editor + override toggle | [builder/src/builder/panels/prose.rs](builder/src/builder/panels/prose.rs) `show_system_editor` — system picker (`ComboBox` seeded from `BuilderState::selected_prose_system_id`, falling through to `BuilderState::selected_system_id` on first focus) plus an "Override" checkbox that flips `ProseConfig::overrides::systems` for the chosen `SystemId`. The first toggle seeds the override with `entry.paragraphs.join("\n\n")` so the user edits in place; "Revert to derived" removes the entry. The derived paragraphs stay cached on [`SystemProse::derived_paragraphs`](src/prose.rs) inside the active report so the "Derived paragraphs (read-only)" collapsing block can restore them without re-running derivation. Overrides survive every "Regenerate prose" because they live inside `data_catalogs.prose` and `prose::derive_with` re-applies them after the deterministic derivation pass. A `→ system tab` link beside the picker fires `BuilderState::focus_entity(EntityRef::System(_))` so authors can flip to the SYSTEM tab while drafting prose. |
+| PR2 per-sector overview editor | `show_overview_editor` mirrors §PR1 against `ProseConfig::overrides::overview`. `ProseReport::overview_is_override` reflects the toggle state so the panel surfaces an "AUTHORED" badge next to the override; blank / whitespace-only overrides fall back to the derived overview at derive time. |
+| PR3 tone preset selector | `show_tone_section` exposes a `ComboBox` over [`ProseTone::Gazetteer`] / [`ProseTone::Dispatch`] bound to `ProseConfig::tone`, plus include-overview / include-per-system checkboxes that mirror the CLI knobs. Changing the tone rewrites the derived paragraphs on the next recompute; overrides are untouched because they store the manual text verbatim. |
+| PR4 regenerate + auto-recompute + manual survive | `show_header_actions` exposes the "Regenerate prose" button (calls `BuilderState::recompute_prose`) and a `prose_auto_recompute` toggle that mirrors §PER3 / §HK4 / §ST2 / §M3 — when on, every catalog edit triggers an immediate recompute through `on_catalog_edited`. Manual overrides survive every regenerate because `prose::derive_with` re-applies the [`ProseOverrides`](src/prose.rs) block after the deterministic derivation. `show_save_row` writes `data/prose.toml` through `project_io::save_project` (`[inputs].prose` defaults to `data/prose.toml` and is filled in lazily by `ensure_prose_catalog` on first edit). The `sectorforge prose` CLI also honours `[inputs].prose` when `--project` is supplied — overrides survive on the CLI path too. |
+
+`BuilderState` adds three prose fields: `prose_report: Option<ProseReport>`, `prose_auto_recompute: bool`, and `selected_prose_system_id: Option<SystemId>`. Defaults: `None` / `true` / `None` in both `new_blank` and the `.sgforge` session loader. `DataCatalogs::prose: Option<ProseConfig>` mirrors the on-disk file. `ProseConfig` (in [src/prose.rs](src/prose.rs)) grew a new `overrides: ProseOverrides` field — `overview: Option<String>` + `systems: BTreeMap<SystemId, String>` — which is applied after derivation and survives "Regenerate prose"; the `ProseReport` and per-system `SystemProse` rows surface `overview_is_override` / `is_override` / `derived_paragraphs` so the panel can flag authored rows and keep the original derivation reachable. `[inputs].prose` was added to `src/config.rs::InputConfig` and `src/input.rs` parses the file into `ProjectInput::prose`; `synthesize_project_input` now feeds `data_catalogs.prose` to validation / regeneration instead of `ProseConfig::default()`.
 
 ---
 

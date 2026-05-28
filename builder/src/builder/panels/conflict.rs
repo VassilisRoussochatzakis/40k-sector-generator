@@ -167,7 +167,8 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
             if !override_on {
                 // Aggregate-from-worlds view: keep `sys.conflict` in sync with
                 // the world rollup so the read-only display matches what
-                // `advance_sector` would write next tick.
+                // `advance_sector` would write next tick. Only dispatch when
+                // the rollup actually drifts from `sys.conflict`.
                 let sys = &state.sector.systems[sys_idx];
                 let derived = derive_system_conflict(sys);
                 if derived != sys.conflict {
@@ -176,7 +177,9 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                         before: None,
                         after: derived,
                     };
-                    let _ = state.run(cmd);
+                    if let Err(e) = state.run(cmd) {
+                        state.last_command_error = Some(format!("aggregate sync: {e}"));
+                    }
                 }
                 let sys = &state.sector.systems[sys_idx];
                 show_conflict_readout(ui, &sys.conflict);

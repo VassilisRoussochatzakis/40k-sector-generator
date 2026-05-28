@@ -593,6 +593,7 @@ fn link_table(
                     sectorforge::sector_model::RouteViewMode::TopLevel => {
                         l.route_type.kind().label()
                     }
+                    _ => l.route_type.label(),
                 };
                 ui.label(RichText::new(type_label).monospace());
                 ui.label(
@@ -644,6 +645,9 @@ fn link_detail(
         }
         sectorforge::sector_model::RouteViewMode::TopLevel => {
             kv(ui, "type", link.route_type.kind().label());
+        }
+        _ => {
+            kv(ui, "type", link.route_type.label());
         }
     }
     kv(
@@ -754,6 +758,7 @@ fn orientation_label(o: BorderOrientation) -> &'static str {
     match o {
         BorderOrientation::EastWest => "E-W",
         BorderOrientation::NorthSouth => "N-S",
+        _ => "UNKNOWN",
     }
 }
 

@@ -505,6 +505,9 @@ pub struct BuilderState {
     /// has no UI for). `None` until the first activation; cleared on session
     /// load — in-memory only.
     pub last_menu_action: Option<String>,
+    /// Last command-bus dispatch error surfaced from a panel; cleared by the
+    /// next successful `run`. In-memory only.
+    pub last_command_error: Option<String>,
     /// Visual layout for the SYSTEM tab's embedded
     /// [`sectorforge_gui_core::system_view::SystemView`]. Defaults to
     /// [`SystemLayout::Horizontal`] — planets to the right of the star in
@@ -657,6 +660,7 @@ impl BuilderState {
             system_context_menu: None,
             pending_world_rename: None,
             last_menu_action: None,
+            last_command_error: None,
             system_layout: sectorforge_gui_core::system_view::SystemLayout::default(),
             system_view_side: 720.0,
         }

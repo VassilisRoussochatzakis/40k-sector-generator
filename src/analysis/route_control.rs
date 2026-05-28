@@ -139,7 +139,20 @@ fn derive_one(
         kind,
         "inquisition" | "deathwatch" | "grey_knights" | "necron"
     );
-    let pirate = matches!(kind, "chaos" | "criminal" | "drukhari" | "ork" | "rebel");
+    let pirate = matches!(
+        kind,
+        "chaos"
+            | "criminal"
+            | "drukhari"
+            | "ork"
+            | "rebel"
+            | "chaos_space_marine"
+            | "chaos_knight"
+            | "traitor_guard"
+            | "traitor_titan_legion"
+            | "daemon"
+            | "cult"
+    );
     let stealth = matches!(
         kind,
         "aeldari" | "harlequin" | "drukhari" | "cult" | "genestealer_cult"

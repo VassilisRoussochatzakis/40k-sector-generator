@@ -451,7 +451,7 @@ fn diff_systems(
                     changed.push(d);
                 }
             }
-            (None, None) => unreachable!(),
+            (None, None) => continue,
         }
     }
     out.systems_added = added;
@@ -546,7 +546,7 @@ fn diff_worlds(
                     changed.push(d);
                 }
             }
-            (None, None) => unreachable!(),
+            (None, None) => continue,
         }
     }
     (added, removed, changed)
@@ -702,7 +702,7 @@ fn diff_routes(before: &GeneratedSector, after: &GeneratedSector, out: &mut Sect
                     });
                 }
             }
-            (None, None) => unreachable!(),
+            (None, None) => continue,
         }
     }
 }
@@ -771,8 +771,7 @@ fn compute_faction_deltas(
     deltas.sort_by(|a, b| {
         b.delta
             .abs()
-            .partial_cmp(&a.delta.abs())
-            .unwrap_or(std::cmp::Ordering::Equal)
+            .total_cmp(&a.delta.abs())
             .then_with(|| a.faction_id.cmp(&b.faction_id))
     });
     deltas

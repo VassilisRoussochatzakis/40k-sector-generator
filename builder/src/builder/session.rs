@@ -235,6 +235,7 @@ impl SessionFile {
             system_context_menu: None,
             pending_world_rename: None,
             last_menu_action: None,
+            last_command_error: None,
             system_layout: sectorforge_gui_core::system_view::SystemLayout::default(),
             system_view_side: 720.0,
         }

@@ -18,6 +18,7 @@ pub struct SystemView<'a> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SystemSelection {
     None,
     Star,
@@ -28,6 +29,7 @@ pub enum SystemSelection {
 /// default — star anchored at the left, planets arrayed rightward in orbit
 /// order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum SystemLayout {
     /// Concentric orbit rings. Planet angle derived from `(orbit, index)`.
     Orbital,
@@ -37,6 +39,7 @@ pub enum SystemLayout {
     Horizontal,
 }
 
+#[non_exhaustive]
 pub enum SystemClick {
     Star,
     World(usize),
@@ -47,6 +50,7 @@ pub enum SystemClick {
 /// hits in `show()`) so the SYSTEM-tab right-click menu can distinguish
 /// EMPTY-ORBIT and BACKGROUND clicks for the `§6.8`/`§6.9` schemas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SystemPick {
     /// Click landed on the central star disk (or the special-location marker
     /// when the system has no star).

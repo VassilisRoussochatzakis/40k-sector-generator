@@ -11,6 +11,7 @@ use sectorforge::sector_model::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum MapSystemGlyph {
     Star,
     UncataloguedStar,
@@ -59,11 +60,13 @@ impl MapSystemGlyph {
                     Self::SpaceStation
                 }
             }
+            _ => Self::UncataloguedStar,
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum MapRouteVisual {
     StableWarpLane,
     ChartedPassage,
@@ -86,6 +89,7 @@ impl MapRouteVisual {
                 RouteType::Webway => Self::Webway,
                 RouteType::BlackShip => Self::BlackShip,
                 RouteType::SmugglingLane => Self::SmugglingLane,
+                _ => Self::ChartedPassage,
             },
             RouteViewMode::TopLevel => match route_type {
                 RouteType::Webway => Self::WebwayThread,
@@ -94,7 +98,9 @@ impl MapRouteVisual {
                 | RouteType::SecretPassage
                 | RouteType::BlackShip
                 | RouteType::SmugglingLane => Self::WarpRoute,
+                _ => Self::WarpRoute,
             },
+            _ => Self::WarpRoute,
         }
     }
 
@@ -112,6 +118,7 @@ impl MapRouteVisual {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum MapRegionOverlay {
     WarpStorm,
     Turbulence,
@@ -135,6 +142,7 @@ impl MapRegionOverlay {
             RegionConditionKind::NecropolisDrift => Self::NecropolisDrift,
             RegionConditionKind::BeaconChain => Self::BeaconChain,
             RegionConditionKind::EmpyricBleed => Self::EmpyricBleed,
+            _ => Self::Anomaly,
         }
     }
 }

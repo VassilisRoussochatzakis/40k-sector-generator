@@ -33,6 +33,7 @@ use crate::sector_model::{
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RegionConditionKind {
     /// Routes crossing become Perilous unless that would isolate the navigable
     /// route graph; bridge lanes are capped at Hazardous.
@@ -487,6 +488,7 @@ pub struct RegionRouteEffectsSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum RegionRouteEffectsProgress {
     Started {
         regions: usize,

@@ -21,6 +21,7 @@ pub const DEFAULT_DISPLAY_CAP: usize = 6;
 /// faction; `Aggregated` rolls up several low-importance factions belonging
 /// to the same kind-group.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum DisplayBucket {
     Faction {
         id: crate::ids::FactionId,
@@ -51,7 +52,8 @@ impl DisplayBucket {
 }
 
 /// Coarse kind grouping used to pick an aggregation label.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[non_exhaustive]
 pub enum KindGroup {
     Imperial,
     Mechanicus,
@@ -136,8 +138,8 @@ pub fn compute_display_buckets(
     let cutoff = (max_imp * minor_fraction).max(0.0);
 
     let mut visible: Vec<DisplayBucket> = Vec::new();
-    let mut groups: std::collections::HashMap<KindGroup, AggregateAcc> =
-        std::collections::HashMap::new();
+    let mut groups: std::collections::BTreeMap<KindGroup, AggregateAcc> =
+        std::collections::BTreeMap::new();
 
     for (rank, (idx, importance)) in ranked.iter().enumerate() {
         let f = &sector.factions[*idx];
@@ -176,10 +178,21 @@ pub fn compute_display_buckets(
         b.importance()
             .partial_cmp(&a.importance())
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| aggregate_label_cmp(a, b))
     });
 
     visible.extend(aggregates);
     visible
+}
+
+fn aggregate_label_cmp(a: &DisplayBucket, b: &DisplayBucket) -> std::cmp::Ordering {
+    let label = |b: &DisplayBucket| -> String {
+        match b {
+            DisplayBucket::Aggregated { label, .. } => label.clone(),
+            DisplayBucket::Faction { name, .. } => name.clone(),
+        }
+    };
+    label(a).cmp(&label(b))
 }
 
 #[derive(Default)]

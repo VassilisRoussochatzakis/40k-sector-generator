@@ -183,6 +183,9 @@ pub fn draw_route_line(
         RoutePattern::March => {
             draw_chevrons(painter, geom, color, thickness, geom.unit * 5.5);
         }
+        _ => {
+            painter.line_segment([a, b], Stroke::new(thickness, color));
+        }
     }
 }
 
@@ -190,6 +193,7 @@ pub fn draw_route_line(
 /// in-app sector view shows the same midpoint shapes (Patrol disc, Toll
 /// square, Interdiction crossbar, Piracy X) as the PNG export.
 #[derive(Clone, Copy)]
+#[non_exhaustive]
 pub enum RouteControlKind {
     Patrol,
     Toll,
@@ -599,6 +603,7 @@ pub fn stability_color(s: RouteStability) -> Color32 {
         RouteStability::Unstable => Color32::from_rgb(240, 200, 90),
         RouteStability::Hazardous => Color32::from_rgb(235, 90, 90),
         RouteStability::Perilous => Color32::from_rgb(165, 100, 215),
+        _ => Color32::from_rgb(150, 150, 150),
     }
 }
 
@@ -748,6 +753,9 @@ pub fn draw_faction_chip_sized(
         }
         FactionBorder::Thin => {
             painter.rect_stroke(rect, rounding, Stroke::new(0.8, style.accent));
+        }
+        _ => {
+            painter.rect_stroke(rect, rounding, Stroke::new(1.0, style.accent));
         }
     }
     painter.text(

@@ -9,6 +9,7 @@ use crate::sector_model::GeneratedFaction;
 
 /// Border behaviour driven by faction disposition (§8).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum FactionBorder {
     /// Crisp solid line — `lawful`, `insular`.
     Clean,

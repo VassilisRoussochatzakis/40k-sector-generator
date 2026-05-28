@@ -19,6 +19,7 @@ use crate::sector_model::{
 use super::GeneratedSector;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum MutationError {
     #[error("system not found: {0}")]
     SystemNotFound(String),

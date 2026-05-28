@@ -34,6 +34,7 @@ use crate::sector_model::{GeneratedFaction, GeneratedSector};
     Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Stance {
     Allied,
     Aligned,
@@ -248,6 +249,7 @@ pub struct FactionRelation {
     Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RelationAttitude {
     Allied,
     Friendly,
@@ -311,6 +313,7 @@ impl RelationAttitude {
     Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
 )]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum TreatyStatus {
     #[default]
     None,

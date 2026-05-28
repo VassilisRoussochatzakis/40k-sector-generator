@@ -1071,6 +1071,7 @@ fn entities_from_anchor(anchor: &HistoryAnchor) -> Vec<HistoryEntityRef> {
             id: region_id.clone(),
             role: Some("anchor".into()),
         }],
+        _ => vec![],
     }
 }
 
@@ -1232,6 +1233,7 @@ fn focus_anchor(state: &mut BuilderState, event_idx: usize) {
         HistoryAnchor::Route { route_id, .. } => EntityRef::Route(route_id),
         HistoryAnchor::Subsector { subsector_id } => EntityRef::Subsector(subsector_id),
         HistoryAnchor::Region { region_id } => EntityRef::Region(region_id),
+        _ => EntityRef::Tab(BuilderTab::Map),
     };
     state.focus_entity(target);
 }
@@ -1286,6 +1288,7 @@ pub(crate) fn kind_label(k: EventKind) -> &'static str {
         EventKind::TauContact => "TauContact",
         EventKind::AeldariActivity => "AeldariActivity",
         EventKind::ChaosIncursion => "ChaosIncursion",
+        _ => "UNKNOWN",
     }
 }
 
@@ -1312,6 +1315,7 @@ fn kind_slug(k: EventKind) -> &'static str {
         EventKind::TauContact => "tau",
         EventKind::AeldariActivity => "aeldari",
         EventKind::ChaosIncursion => "chaos",
+        _ => "unknown",
     }
 }
 
@@ -1377,6 +1381,7 @@ fn system_state_label(s: SystemState) -> &'static str {
         SystemState::Infiltrated => "Infiltrated",
         SystemState::Quarantined => "Quarantined",
         SystemState::Uncharted => "Uncharted",
+        _ => "Unknown",
     }
 }
 
@@ -1389,6 +1394,7 @@ fn system_state_key(s: SystemState) -> &'static str {
         SystemState::Infiltrated => "infiltrated",
         SystemState::Quarantined => "quarantined",
         SystemState::Uncharted => "uncharted",
+        _ => "unknown",
     }
 }
 
@@ -1403,15 +1409,13 @@ fn anchor_label(a: &HistoryAnchor) -> String {
         HistoryAnchor::Route { route_id, .. } => format!("route:{route_id}"),
         HistoryAnchor::Subsector { subsector_id } => format!("subsector:{subsector_id}"),
         HistoryAnchor::Region { region_id } => format!("region:{region_id}"),
+        _ => "unknown".into(),
     }
 }
 
 fn hash_str(s: &str) -> u64 {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut h = DefaultHasher::new();
-    s.hash(&mut h);
-    h.finish()
+    let seed = sectorforge::rng::derive_stage_seed("", "chronicle", s);
+    u64::from_le_bytes(seed[..8].try_into().expect("blake3 returns 32 bytes"))
 }
 
 // ── §H8 helpers (consumed by panels/world.rs) ───────────────────────────────

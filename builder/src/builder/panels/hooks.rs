@@ -444,6 +444,7 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                     }
                     ui.end_row();
                 }
+                _ => {}
             }
             ui.label("title");
             changed |= ui.text_edit_singleline(&mut h.title).changed();
@@ -508,6 +509,7 @@ fn anchor_scope(a: &HookAnchor) -> AnchorScope {
         HookAnchor::System { .. } => AnchorScope::System,
         HookAnchor::World { .. } => AnchorScope::World,
         HookAnchor::Route { .. } => AnchorScope::Route,
+        _ => AnchorScope::System,
     }
 }
 
@@ -566,6 +568,7 @@ fn focus_anchor(state: &mut BuilderState, a: &HookAnchor) {
                 EntityRef::Route(route_id.clone())
             }
         }
+        _ => EntityRef::Tab(BuilderTab::Map),
     };
     state.focus_entity(target);
 }
@@ -578,6 +581,7 @@ fn anchor_label(a: &HookAnchor) -> String {
             world_id,
         } => format!("world {system_id}/{world_id}"),
         HookAnchor::Route { route_id } => format!("route {route_id}"),
+        _ => "unknown".into(),
     }
 }
 
@@ -597,6 +601,7 @@ fn kind_label(k: HookKind) -> &'static str {
         HookKind::SuccessionDispute => "Succession dispute",
         HookKind::StarvingWorld => "Starving world",
         HookKind::LifelineLane => "Lifeline lane",
+        _ => "Unknown",
     }
 }
 

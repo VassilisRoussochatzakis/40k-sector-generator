@@ -208,7 +208,8 @@ fn rewrite_seed(text: &str, new_seed: &str) -> String {
             let indent_len = line.len() - trimmed.len();
             let indent = &line[..indent_len];
             out.push_str(indent);
-            out.push_str(&format!("seed = \"{new_seed}\"\n"));
+            let encoded = toml::Value::String(new_seed.to_string()).to_string();
+            out.push_str(&format!("seed = {encoded}\n"));
             replaced = true;
             continue;
         }

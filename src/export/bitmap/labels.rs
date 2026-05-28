@@ -234,23 +234,24 @@ pub(super) fn draw_subsector_labels(
 
         // Fallback: anchor = cell nearest centroid (occupied or not), above,
         // clamped to map bounds. Visual overlap acceptable as last resort.
-        let (block_min_x, block_top_y) = chosen.unwrap_or_else(|| {
-            let &(q0, r0) = s
-                .hex_cells
-                .iter()
-                .min_by_key(|&&(q, r)| {
+        let (block_min_x, block_top_y) = match chosen {
+            Some(p) => p,
+            None => {
+                let Some(&(q0, r0)) = s.hex_cells.iter().min_by_key(|&&(q, r)| {
                     let (cx, cy) = hex_center(q as i32, r as i32, g);
                     let dx = (cx - cen_x) as i64;
                     let dy = (cy - cen_y) as i64;
                     dx * dx + dy * dy
-                })
-                .expect("non-empty");
-            let (cx, cy) = hex_center(q0 as i32, r0 as i32, g);
-            let bt = cy - g.hex_size as i32 - block_h - 2 * g.scale;
-            let bmx = (cx - block_w / 2).max(pad_x).min(map_w - block_w - pad_x);
-            let bty = bt.max(pad_y).min(map_h - block_h - pad_y);
-            (bmx, bty)
-        });
+                }) else {
+                    continue;
+                };
+                let (cx, cy) = hex_center(q0 as i32, r0 as i32, g);
+                let bt = cy - g.hex_size as i32 - block_h - 2 * g.scale;
+                let bmx = (cx - block_w / 2).max(pad_x).min(map_w - block_w - pad_x);
+                let bty = bt.max(pad_y).min(map_h - block_h - pad_y);
+                (bmx, bty)
+            }
+        };
 
         fill_rect(
             img,

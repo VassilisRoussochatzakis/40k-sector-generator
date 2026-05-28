@@ -208,10 +208,19 @@ impl eframe::App for App {
                 if self.editor.auto_save {
                     if let Some(path_str) = &self.editor.loaded_from {
                         let path = PathBuf::from(path_str);
-                        let text = serde_json::to_string_pretty(sec).unwrap();
-                        if fs::write(path, text).is_ok() {
-                            self.editor.dirty = false;
-                            self.live_dirty = false;
+                        match serde_json::to_string_pretty(sec) {
+                            Ok(text) => match fs::write(&path, text) {
+                                Ok(()) => {
+                                    self.editor.dirty = false;
+                                    self.live_dirty = false;
+                                }
+                                Err(e) => {
+                                    self.export_status = format!("auto-save failed: {e}");
+                                }
+                            },
+                            Err(e) => {
+                                self.export_status = format!("auto-save serialize failed: {e}");
+                            }
                         }
                     }
                 }
@@ -234,7 +243,13 @@ impl App {
             dialog = dialog.set_directory(dir);
         }
         if let Some(path) = dialog.pick_file() {
-            let utf8_path = Utf8PathBuf::from_path_buf(path.clone()).unwrap();
+            let utf8_path = match Utf8PathBuf::from_path_buf(path.clone()) {
+                Ok(p) => p,
+                Err(orig) => {
+                    self.export_status = format!("path is not UTF-8: {}", orig.display());
+                    return;
+                }
+            };
             match sectorforge::load_sector_json(&utf8_path) {
                 Ok(sector) => {
                     self.set_loaded_sector(sector, Some(path.to_string_lossy().to_string()));

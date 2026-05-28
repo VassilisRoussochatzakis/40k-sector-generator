@@ -74,6 +74,7 @@ fn default_per_system() -> u32 {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum DominanceTier {
     Presence,
     Influence,
@@ -145,6 +146,7 @@ pub struct Persona {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "scope", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum PersonaAnchor {
     System {
         system_id: crate::ids::SystemId,
@@ -158,6 +160,7 @@ pub enum PersonaAnchor {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SystemSlot {
     Sovereign,
     OrbitalController,

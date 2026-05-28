@@ -12,6 +12,7 @@ use crate::sector_model::{GeneratedSector, GeneratedSystem};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HeatmapMode {
     #[default]
     Off,

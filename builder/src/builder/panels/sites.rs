@@ -662,6 +662,7 @@ fn kind_label(k: SiteKind) -> &'static str {
         SiteKind::ForgeReactor => "forge reactor",
         SiteKind::TombComplex => "tomb complex",
         SiteKind::NavalAnchorage => "naval anchorage",
+        _ => "unknown",
     }
 }
 

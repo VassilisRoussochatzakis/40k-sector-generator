@@ -71,6 +71,7 @@ impl ArchetypeState {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum NecronPhase {
     #[default]
     None,
@@ -81,6 +82,7 @@ pub enum NecronPhase {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum TyranidStage {
     #[default]
     None,
@@ -91,6 +93,7 @@ pub enum TyranidStage {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum GscStage {
     #[default]
     None,
@@ -104,6 +107,7 @@ pub enum GscStage {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum TauSphereBand {
     #[default]
     None,

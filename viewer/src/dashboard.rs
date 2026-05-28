@@ -229,11 +229,13 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
                 FlagSeverity::Error => Color32::from_rgb(235, 90, 90),
                 FlagSeverity::Warning => Color32::from_rgb(240, 200, 90),
                 FlagSeverity::Info => TEXT_DIM,
+                _ => TEXT_DIM,
             };
             let tag = match f.severity {
                 FlagSeverity::Error => "ERROR",
                 FlagSeverity::Warning => "WARN",
                 FlagSeverity::Info => "INFO",
+                _ => "UNKNOWN",
             };
             ui.label(
                 RichText::new(format!("[{tag}] {} — {}", f.code, f.message))

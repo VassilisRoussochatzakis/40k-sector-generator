@@ -15,6 +15,21 @@ use crate::sector_model::{
     WorldControlSummary,
 };
 
+/// Tie-break helper: higher score wins; on equal scores, the lexicographically
+/// smaller id wins. Used by `derive_world_control` and `derive_system_control`
+/// for deterministic, direction-consistent picks.
+fn score_then_id(
+    a_score: f32,
+    a_id: &FactionId,
+    b_score: f32,
+    b_id: &FactionId,
+) -> std::cmp::Ordering {
+    a_score
+        .partial_cmp(&b_score)
+        .unwrap_or(std::cmp::Ordering::Equal)
+        .then_with(|| b_id.cmp(a_id))
+}
+
 /// Derive multi-dimensional presence scores for a single (kind, disposition,
 /// influence, world) combination. All output components are clamped to 0..=100.
 #[must_use]
@@ -324,9 +339,6 @@ fn claim_for(faction_id: &str, p: &crate::sector_model::WorldFactionPresence) ->
         return ClaimType::MilitaryOccupation;
     }
     if id.starts_with("imperial") || id.contains("administratum") || id.contains("guard") {
-        if disposition == "lawful" {
-            return ClaimType::ImperialMandate;
-        }
         return ClaimType::ImperialMandate;
     }
     match disposition {
@@ -374,12 +386,7 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
     let pick_dim = |f: fn(&PresenceDimensions) -> f32| -> Option<FactionId> {
         scored
             .iter()
-            .max_by(|a, b| {
-                f(&a.2)
-                    .partial_cmp(&f(&b.2))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then_with(|| a.0.cmp(&b.0))
-            })
+            .max_by(|a, b| score_then_id(f(&a.2), &a.0, f(&b.2), &b.0))
             .filter(|x| f(&x.2) >= 15.0)
             .map(|x| x.0.clone())
     };
@@ -392,12 +399,7 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
     let hidden_master = scored
         .iter()
         .filter(|x| x.2.covert >= 30.0 && x.2.visibility <= 35.0)
-        .max_by(|a, b| {
-            a.2.covert
-                .partial_cmp(&b.2.covert)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| a.0.cmp(&b.0))
-        })
+        .max_by(|a, b| score_then_id(a.2.covert, &a.0, b.2.covert, &b.0))
         .map(|x| x.0.clone());
 
     let control_score = scored.first().map(|x| x.1).unwrap_or(0.0);
@@ -473,11 +475,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     let pick = |m: &BTreeMap<FactionId, f32>, threshold: f32| -> Option<FactionId> {
         m.iter()
             .filter(|(_, v)| **v >= threshold)
-            .max_by(|a, b| {
-                a.1.partial_cmp(b.1)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then(b.0.cmp(a.0))
-            })
+            .max_by(|a, b| score_then_id(*a.1, a.0, *b.1, b.0))
             .map(|(k, _)| k.clone())
     };
 
@@ -490,11 +488,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
         .filter(|(id, cov)| {
             **cov >= 25.0 && visibility_sum.get(*id).copied().unwrap_or(0.0) < **cov * 0.7
         })
-        .max_by(|a, b| {
-            a.1.partial_cmp(b.1)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then(b.0.cmp(a.0))
-        })
+        .max_by(|a, b| score_then_id(*a.1, a.0, *b.1, b.0))
         .map(|(k, _)| k.clone());
 
     let mut top: Vec<ScoredFaction> = score_sum

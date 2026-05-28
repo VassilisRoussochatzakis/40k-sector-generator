@@ -1102,6 +1102,7 @@ fn claim_chip_colours(kind: ClaimType) -> (Color32, Color32) {
         ClaimType::HuntingGround => (Color32::from_rgb(60, 50, 30), Color32::LIGHT_YELLOW),
         ClaimType::CovertWrit => (Color32::from_rgb(30, 30, 60), Color32::LIGHT_BLUE),
         ClaimType::Rebellion => (Color32::from_rgb(120, 30, 30), Color32::LIGHT_RED),
+        _ => (Color32::from_rgb(50, 50, 60), Color32::LIGHT_GRAY),
     }
 }
 
@@ -1228,7 +1229,7 @@ fn build_dimension_overlay(
                 }
             }
         }
-        if let Some(&m) = by_fac.values().max_by(|a, b| a.partial_cmp(b).unwrap()) {
+        if let Some(&m) = by_fac.values().max_by(|a, b| a.total_cmp(b)) {
             global_max = global_max.max(m);
         }
         per_sys.push((sys.id.clone(), by_fac));
@@ -1237,7 +1238,7 @@ fn build_dimension_overlay(
     for (sid, by_fac) in per_sys {
         let Some((fid, score)) = by_fac
             .iter()
-            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .max_by(|a, b| a.1.total_cmp(b.1))
             .map(|(f, s)| (f.clone(), *s))
         else {
             continue;

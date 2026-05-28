@@ -53,6 +53,7 @@ use crate::worlds::{GenerationRow, KeyTables, NotableFeature, StarColour, WorldE
 pub const DEFAULT_FILENAME: &str = "worlds.toml";
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum WorldsTomlError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

@@ -148,6 +148,7 @@ impl Default for PlacementConfig {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum PlacementMode {
     UniformGrid,
     WeightedGrid,
@@ -193,6 +194,7 @@ impl Default for WorldSelectionConfig {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum WorldSelectionMode {
     WeightedRows,
 }
@@ -336,6 +338,7 @@ fn default_scale() -> u32 {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum OutputFormat {
     Json,
     Markdown,
@@ -402,6 +405,7 @@ impl Default for HtmlConfig {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HtmlTheme {
     /// Dark background, matches the GUI / PNG palette.
     Dark,

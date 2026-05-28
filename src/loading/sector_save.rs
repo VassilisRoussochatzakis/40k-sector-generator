@@ -143,6 +143,7 @@ pub fn merge(sector: &mut GeneratedSector, save: SectorSave) -> Result<(), Merge
 }
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum MergeError {
     #[error("sector id mismatch: catalog={catalog} save={save}")]
     SectorIdMismatch { catalog: String, save: String },

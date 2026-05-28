@@ -724,6 +724,7 @@ fn default_one() -> f32 {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum TitheStatus {
     Surplus,
     #[default]
@@ -736,6 +737,7 @@ pub enum TitheStatus {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SupplyRisk {
     #[default]
     Stable,
@@ -746,6 +748,7 @@ pub enum SupplyRisk {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum StrategicPriority {
     #[default]
     Low,
@@ -910,11 +913,9 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
     // system on that resource exists.
     let mut stranded_world_idx: Vec<usize> = Vec::with_capacity(worlds.len());
     for (idx, we) in worlds.iter().enumerate() {
-        let sys = by_sys.get(we.system_id.as_str()).copied();
-        if sys.is_none() {
+        let Some(sys) = by_sys.get(we.system_id.as_str()).copied() else {
             continue;
-        }
-        let sys = sys.unwrap();
+        };
         // Resources where the system itself is in deficit.
         let resource_deficits: Vec<&str> = RESOURCE_KEYS
             .iter()
@@ -1114,7 +1115,7 @@ fn derive_dependency_edges(
         }
     }
 
-    let mut out = Vec::with_capacity(systems.len());
+    let mut out = Vec::with_capacity(systems.len() * 4);
 
     for consumer in systems {
         let Some(consumer_sys_ref) = system_refs.get(consumer.system_id.as_str()) else {

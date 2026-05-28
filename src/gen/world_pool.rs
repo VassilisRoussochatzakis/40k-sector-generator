@@ -57,6 +57,7 @@ pub struct ExcludedRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ExclusionReason {
     MissingWeight,
     NonPositiveWeight,

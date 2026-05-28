@@ -936,6 +936,7 @@ fn claim_chip_colours(kind: ClaimType) -> (Color32, Color32) {
         ClaimType::HuntingGround => (Color32::from_rgb(60, 50, 30), Color32::LIGHT_YELLOW),
         ClaimType::CovertWrit => (Color32::from_rgb(30, 30, 60), Color32::LIGHT_BLUE),
         ClaimType::Rebellion => (Color32::from_rgb(120, 30, 30), Color32::LIGHT_RED),
+        _ => (Color32::from_rgb(50, 50, 60), Color32::LIGHT_GRAY),
     }
 }
 

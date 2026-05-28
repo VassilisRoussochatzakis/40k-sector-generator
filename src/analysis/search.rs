@@ -84,6 +84,7 @@ fn default_report_top() -> u32 {
 /// variants don't break older configs.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Constraint {
     /// `share` is a fraction of total faction projection power (0.0..=1.0).
     FactionShareMin {
@@ -205,6 +206,7 @@ pub enum Constraint {
 /// §4 NEW.md mirror of [`crate::relations::Stance`].
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum StanceName {
     Allied,
     Aligned,
@@ -242,6 +244,7 @@ impl StanceName {
 /// §5 NEW.md mirror of [`crate::regions::RegionConditionKind`].
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RegionKindName {
     WarpStorm,
     Turbulence,
@@ -280,6 +283,7 @@ fn default_one() -> u32 {
 /// Serializable mirror of [`SystemState`] for use inside constraint files.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SystemStateName {
     Pacified,
     Fragmented,
@@ -306,6 +310,7 @@ impl SystemStateFilter {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "PascalCase")]
+#[non_exhaustive]
 pub enum PresenceName {
     Hidden,
     Minor,
@@ -844,7 +849,7 @@ fn evaluate(
             let n = analysis.connectivity.component_count;
             let passed = n == 1;
             // Miss = extra components.
-            let miss = if passed { 0.0 } else { (n - 1) as f32 };
+            let miss = if passed { 0.0 } else { n.saturating_sub(1) as f32 };
             ConstraintReport {
                 label: "route_graph_connected".to_string(),
                 passed,

@@ -2730,7 +2730,6 @@ name = "sectorforge-gui-core"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "eframe",
  "egui",
  "image",
  "sector-generator",
@@ -2744,14 +2743,11 @@ dependencies = [
  "clap",
  "eframe",
  "egui",
- "image",
- "rand 0.8.6",
  "rfd",
  "sector-generator",
  "sectorforge-gui-core",
  "serde",
  "serde_json",
- "tempfile",
  "thiserror 1.0.69",
  "toml",
 ]

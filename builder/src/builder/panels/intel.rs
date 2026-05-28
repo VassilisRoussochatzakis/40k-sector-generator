@@ -436,6 +436,7 @@ fn propaganda_label(v: PropagandaState) -> &'static str {
         PropagandaState::OfficialContested => "official_contested",
         PropagandaState::OfficialLost => "official_lost",
         PropagandaState::Counterfactual => "counterfactual",
+        _ => "unknown",
     }
 }
 
@@ -445,6 +446,7 @@ fn classified_label(v: ClassifiedState) -> &'static str {
         ClassifiedState::CodexRedactus => "codex_redactus",
         ClassifiedState::PurgatusSigillum => "purgatus_sigillum",
         ClassifiedState::ExterminatusFlag => "exterminatus_flag",
+        _ => "unknown",
     }
 }
 
@@ -455,6 +457,7 @@ fn source_label(v: IntelSource) -> &'static str {
         IntelSource::InquisitorialAnalysis => "inquisitorial_analysis",
         IntelSource::Rumor => "rumor",
         IntelSource::ImaginedDeduction => "imagined_deduction",
+        _ => "unknown",
     }
 }
 

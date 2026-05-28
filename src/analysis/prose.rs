@@ -77,6 +77,7 @@ fn default_true() -> bool {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum ProseTone {
     Gazetteer,
     Dispatch,

@@ -133,6 +133,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         | crate::sector_view::SectorClick::EmptyHex(_),
                     )
                     | None => {}
+                    Some(_) => {}
                 }
             });
         });

@@ -479,6 +479,7 @@ impl App {
                 }
                 Some(SectorClick::EmptyHex(_)) => {}
                 None => {}
+                Some(_) => {}
             }
         });
     }

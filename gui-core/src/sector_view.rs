@@ -139,6 +139,7 @@ pub struct SectorView<'a> {
     pub show_hover_coord: bool,
 }
 
+#[non_exhaustive]
 pub enum SectorClick {
     System(sectorforge::ids::SystemId),
     Route(sectorforge::ids::RouteId),
@@ -707,26 +708,27 @@ impl<'a> SectorView<'a> {
                     }
 
                     // Fallback: nearest-centroid cell, above, clamped inside rect.
-                    let (block_min_x, block_top_y) = chosen.unwrap_or_else(|| {
-                        let &(q0, r0) = s
-                            .hex_cells
-                            .iter()
-                            .min_by(|&&(q1, r1), &&(q2, r2)| {
+                    let (block_min_x, block_top_y) = match chosen {
+                        Some(p) => p,
+                        None => {
+                            let Some(&(q0, r0)) = s.hex_cells.iter().min_by(|&&(q1, r1), &&(q2, r2)| {
                                 let d1 = (q1 as f32 - aq).powi(2) + (r1 as f32 - ar).powi(2);
                                 let d2 = (q2 as f32 - aq).powi(2) + (r2 as f32 - ar).powi(2);
                                 d1.total_cmp(&d2)
-                            })
-                            .expect("non-empty");
-                        let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
-                        let bt = anchor.y - g.hex_size - block_h - 2.0;
-                        let bmx = (anchor.x - block_w / 2.0)
-                            .max(rect.left() + pad.x)
-                            .min(rect.right() - block_w - pad.x);
-                        let bty = bt
-                            .max(rect.top() + pad.y)
-                            .min(rect.bottom() - block_h - pad.y);
-                        (bmx, bty)
-                    });
+                            }) else {
+                                continue;
+                            };
+                            let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
+                            let bt = anchor.y - g.hex_size - block_h - 2.0;
+                            let bmx = (anchor.x - block_w / 2.0)
+                                .max(rect.left() + pad.x)
+                                .min(rect.right() - block_w - pad.x);
+                            let bty = bt
+                                .max(rect.top() + pad.y)
+                                .min(rect.bottom() - block_h - pad.y);
+                            (bmx, bty)
+                        }
+                    };
 
                     let block_min = Pos2::new(block_min_x, block_top_y);
                     let bg_rect = egui::Rect::from_min_size(

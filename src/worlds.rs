@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum WorldError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
@@ -17,6 +18,7 @@ pub enum WorldError {
 // ── Key-tab enum types ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum StarColour {
     BlueHypergiant, // O
     BlueWhite,      // B
@@ -54,6 +56,7 @@ impl StarColour {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum WorldType {
     AgriWorld,
     Asteroid,
@@ -82,6 +85,7 @@ pub enum WorldType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Atmosphere {
     Airless,
     Breathable,
@@ -93,6 +97,7 @@ pub enum Atmosphere {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Temperature {
     Freezing,
     Cold,
@@ -102,6 +107,7 @@ pub enum Temperature {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Biosphere {
     Nonexistent,
     Minimal,
@@ -112,6 +118,7 @@ pub enum Biosphere {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Population {
     Uninhabited,
     Minimal,
@@ -122,6 +129,7 @@ pub enum Population {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum TechLevel {
     Primitive,
     Low,
@@ -132,6 +140,7 @@ pub enum TechLevel {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Government {
     BalkanizedLocalFactions,
     ChaosCult,
@@ -166,6 +175,7 @@ pub enum Government {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum NotableFeature {
     Abhumans,
     AlteredHumans,

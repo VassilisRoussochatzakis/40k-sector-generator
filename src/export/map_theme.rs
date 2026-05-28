@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum MapThemeError {
     #[error("unknown map theme '{0}' (expected one of: {})", BUILTIN_THEME_NAMES.join(", "))]
     UnknownTheme(String),
@@ -146,6 +147,7 @@ pub struct MapThemeFile {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RouteLineMode {
     Standard,
     HazardWeighted,
@@ -153,6 +155,7 @@ pub enum RouteLineMode {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum LabelDensity {
     All,
     ImportantOnly,
@@ -161,6 +164,7 @@ pub enum LabelDensity {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum LegendStyle {
     Full,
     Compact,
@@ -169,6 +173,7 @@ pub enum LegendStyle {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SymbolSet {
     Standard,
     Tactical,
@@ -514,6 +519,12 @@ pub fn normalize_name(name: &str) -> String {
 fn parse_color(s: &str, field: &str) -> Result<Rgba<u8>, MapThemeError> {
     let raw = s.trim();
     let hex = raw.strip_prefix('#').unwrap_or(raw);
+    if !hex.is_ascii() {
+        return Err(MapThemeError::InvalidColor {
+            field: field.to_string(),
+            value: s.to_string(),
+        });
+    }
     let parse_pair = |idx: usize| -> Result<u8, MapThemeError> {
         u8::from_str_radix(&hex[idx..idx + 2], 16).map_err(|_| MapThemeError::InvalidColor {
             field: field.to_string(),

@@ -265,6 +265,7 @@ fn show_anchor_link(ui: &mut Ui, state: &mut BuilderState, p: &Persona) {
                 });
             }
         }
+        _ => {}
     }
 }
 
@@ -274,6 +275,7 @@ fn slot_label(slot: SystemSlot) -> &'static str {
         SystemSlot::OrbitalController => "orbital",
         SystemSlot::EconomicHegemon => "economic",
         SystemSlot::HiddenMaster => "hidden",
+        _ => "unknown",
     }
 }
 
@@ -286,6 +288,7 @@ fn anchor_label(a: &PersonaAnchor) -> String {
             system_id,
             world_id,
         } => format!("world {system_id}/{world_id}"),
+        _ => "unknown".into(),
     }
 }
 

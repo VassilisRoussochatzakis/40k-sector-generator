@@ -18,7 +18,7 @@ pub(crate) struct Geom {
 
 impl Geom {
     pub(super) fn new(scale: u32, theme: &MapTheme) -> Self {
-        let s = scale.max(1) as i32;
+        let s = scale.max(1).min(i32::MAX as u32) as i32;
         let legend_width = match theme.legend {
             LegendStyle::Hidden => 0,
             LegendStyle::Compact => 220 * s,

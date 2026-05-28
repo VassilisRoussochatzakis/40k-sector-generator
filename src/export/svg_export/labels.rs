@@ -226,26 +226,27 @@ pub(super) fn draw_subsector_labels(
             }
         }
 
-        let (block_min_x, block_top_y) = chosen.unwrap_or_else(|| {
-            let &(q0, r0) = sub
-                .hex_cells
-                .iter()
-                .min_by(|&&(q1, r1), &&(q2, r2)| {
+        let (block_min_x, block_top_y) = match chosen {
+            Some(p) => p,
+            None => {
+                let Some(&(q0, r0)) = sub.hex_cells.iter().min_by(|&&(q1, r1), &&(q2, r2)| {
                     let (cx1, cy1) = hex_center(q1 as i32, r1 as i32);
                     let (cx2, cy2) = hex_center(q2 as i32, r2 as i32);
                     let d1 = (cy1 - cen_y).mul_add(cy1 - cen_y, (cx1 - cen_x).powi(2));
                     let d2 = (cy2 - cen_y).mul_add(cy2 - cen_y, (cx2 - cen_x).powi(2));
                     d1.partial_cmp(&d2).unwrap_or(std::cmp::Ordering::Equal)
-                })
-                .expect("non-empty");
-            let (cx, cy) = hex_center(q0 as i32, r0 as i32);
-            let bt = cy - HEX_SIZE - block_h - 2.0;
-            let bmx = (cx - block_w * 0.5)
-                .max(pad_x)
-                .min(bounds.w - block_w - pad_x);
-            let bty = bt.max(pad_y).min(bounds.h - block_h - pad_y);
-            (bmx, bty)
-        });
+                }) else {
+                    continue;
+                };
+                let (cx, cy) = hex_center(q0 as i32, r0 as i32);
+                let bt = cy - HEX_SIZE - block_h - 2.0;
+                let bmx = (cx - block_w * 0.5)
+                    .max(pad_x)
+                    .min(bounds.w - block_w - pad_x);
+                let bty = bt.max(pad_y).min(bounds.h - block_h - pad_y);
+                (bmx, bty)
+            }
+        };
 
         rect(
             s,

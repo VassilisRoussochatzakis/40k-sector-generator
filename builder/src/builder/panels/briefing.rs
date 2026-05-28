@@ -179,6 +179,9 @@ fn preset_apply(preset: AudiencePreset, profile: &mut BriefingProfile) {
         | AudiencePreset::PublicAtlas => profile
             .minimum_intel_confidence
             .max(baseline.minimum_intel_confidence),
+        _ => profile
+            .minimum_intel_confidence
+            .max(baseline.minimum_intel_confidence),
     };
 }
 
@@ -312,6 +315,7 @@ fn preset_label(p: AudiencePreset) -> &'static str {
         AudiencePreset::RogueTrader => "Rogue Trader",
         AudiencePreset::LocalGovernor => "Local Governor",
         AudiencePreset::PublicAtlas => "Public Atlas",
+        _ => "UNKNOWN",
     }
 }
 
@@ -323,6 +327,7 @@ fn preset_blurb(p: AudiencePreset) -> &'static str {
         AudiencePreset::RogueTrader => "trade-oriented, hidden routes hidden",
         AudiencePreset::LocalGovernor => "own faction only, no orbital detail",
         AudiencePreset::PublicAtlas => "unknown factions + claims + archetype state stripped",
+        _ => "",
     }
 }
 

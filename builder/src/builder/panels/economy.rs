@@ -787,6 +787,7 @@ fn tithe_label(t: TitheStatus) -> &'static str {
         TitheStatus::Delinquent => "Delinquent",
         TitheStatus::Failed => "Failed",
         TitheStatus::Falsified => "Falsified",
+        _ => "UNKNOWN",
     }
 }
 
@@ -796,6 +797,7 @@ fn supply_label(r: SupplyRisk) -> &'static str {
         SupplyRisk::Vulnerable => "Vulnerable",
         SupplyRisk::Disrupted => "Disrupted",
         SupplyRisk::Collapsing => "Collapsing",
+        _ => "UNKNOWN",
     }
 }
 
@@ -806,6 +808,7 @@ fn priority_label(p: StrategicPriority) -> &'static str {
         StrategicPriority::Subsector => "Subsector",
         StrategicPriority::Sector => "Sector",
         StrategicPriority::CrusadeLevel => "Crusade",
+        _ => "UNKNOWN",
     }
 }
 

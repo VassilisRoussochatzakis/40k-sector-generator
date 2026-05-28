@@ -92,6 +92,7 @@ fn every_persona_references_real_faction_and_anchor() {
                     world_id
                 );
             }
+            _ => {}
         }
     }
 }
@@ -137,6 +138,7 @@ fn max_per_world_and_per_system_caps_honoured() {
             PersonaAnchor::System { system_id, .. } => {
                 *per_system_slots.entry(system_id.to_string()).or_default() += 1;
             }
+            _ => {}
         }
     }
     for (k, n) in &per_world {

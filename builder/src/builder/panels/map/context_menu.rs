@@ -863,6 +863,7 @@ fn stability_label(value: RouteStability) -> &'static str {
         RouteStability::Unstable => "unstable",
         RouteStability::Hazardous => "hazardous",
         RouteStability::Perilous => "perilous",
+        _ => "unknown",
     }
 }
 

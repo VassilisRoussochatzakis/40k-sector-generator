@@ -57,6 +57,7 @@ pub struct HistoryEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "scope", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HistoryAnchor {
     Sector,
     System {
@@ -81,6 +82,7 @@ pub enum HistoryAnchor {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum EventKind {
     #[serde(alias = "Founding", alias = "founding")]
     Foundation,
@@ -113,6 +115,7 @@ pub enum EventKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HistoryEntityKind {
     Sector,
     System,
@@ -134,6 +137,7 @@ pub struct HistoryEntityRef {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HistoryConsequenceKind {
     WorldSettled,
     ClaimEstablished,

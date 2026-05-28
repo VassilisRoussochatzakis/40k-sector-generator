@@ -292,6 +292,7 @@ fn handle_system_view_click(state: &mut BuilderState, sys_idx: usize, click: Sys
                 state.selected_world_id = Some(w.id.clone());
             }
         }
+        _ => {}
     }
 }
 

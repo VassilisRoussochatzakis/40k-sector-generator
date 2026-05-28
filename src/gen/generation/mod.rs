@@ -28,6 +28,7 @@ pub use world_placement::regenerate_world_payload;
 /// Progress events emitted by sector generation when a caller opts in through
 /// [`generate_with_progress`].
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SectorProgress {
     WorldPoolBuilt {
         rows: usize,

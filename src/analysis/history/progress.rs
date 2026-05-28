@@ -1,6 +1,7 @@
 //! Streaming progress events emitted by [`derive_with_progress`].
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum HistoryProgress {
     Started {
         systems: usize,

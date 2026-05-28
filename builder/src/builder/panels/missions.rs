@@ -715,6 +715,7 @@ fn kind_label(k: MissionKind) -> &'static str {
         MissionKind::Recovery => "recovery",
         MissionKind::Defense => "defense",
         MissionKind::Exploration => "exploration",
+        _ => "unknown",
     }
 }
 

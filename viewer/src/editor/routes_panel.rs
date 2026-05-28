@@ -168,6 +168,7 @@ fn route_stab_str(rs: RouteStability) -> &'static str {
         RouteStability::Unstable => "unstable",
         RouteStability::Hazardous => "hazardous",
         RouteStability::Perilous => "perilous",
+        _ => "UNKNOWN",
     }
 }
 

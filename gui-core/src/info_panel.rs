@@ -112,6 +112,7 @@ pub fn sector_overview_with_buckets(
                 legend_route_row(ui, TEXT, kind.patterns()[0], kind.label());
             }
         }
+        _ => {}
     }
     legend_route_row(ui, PATH_HIGHLIGHT, RoutePattern::Solid, "PLANNED PATH");
     ui.add_space(8.0);
@@ -185,6 +186,7 @@ pub fn sector_overview_with_buckets(
                         ),
                     );
                 }
+                _ => {}
             }
         }
         ui.add_space(8.0);
@@ -311,6 +313,7 @@ pub fn route_summary(
         sectorforge::sector_model::RouteViewMode::TopLevel => {
             kv(ui, "TYPE", route.route_type.kind().label());
         }
+        _ => {}
     }
     kv(
         ui,
@@ -326,6 +329,7 @@ pub fn route_summary(
         match mode {
             sectorforge::sector_model::RouteViewMode::Detailed => route.route_type.label(),
             sectorforge::sector_model::RouteViewMode::TopLevel => route.route_type.kind().label(),
+            _ => route.route_type.label(),
         },
     );
 

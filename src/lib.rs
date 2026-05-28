@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! sectorforge — deterministic Warhammer 40k star sector generator.
 //!
 //! [`worlds`] owns the canonical world taxonomy; [`worlds_toml`] loads it

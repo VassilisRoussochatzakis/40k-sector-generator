@@ -230,7 +230,18 @@ fn read_relative(
     rel: &str,
     digests: &mut BTreeMap<String, String>,
 ) -> Result<String, SectorError> {
-    let abs = root.join(rel);
+    let rel_path = Utf8Path::new(rel);
+    if rel_path.is_absolute()
+        || rel_path
+            .components()
+            .any(|c| matches!(c, camino::Utf8Component::ParentDir))
+    {
+        return Err(SectorError::config_parse(
+            "input.rel",
+            format!("path escapes project root: {rel}"),
+        ));
+    }
+    let abs = root.join(rel_path);
     let text = fs::read_to_string(&abs).map_err(|e| SectorError::io(abs.as_str(), e))?;
     digests.insert(rel.to_string(), blake3_of(&text));
     Ok(text)

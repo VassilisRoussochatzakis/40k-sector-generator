@@ -114,6 +114,7 @@ pub struct SubsectorConfig {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ControlDenominator {
     AllSystems,
     InhabitedSystems,
@@ -133,6 +134,7 @@ impl Default for SubsectorConfig {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum SubsectorBuildError {
     #[error("invalid sector dimensions: width={width} height={height}")]
     InvalidSectorDimensions { width: u32, height: u32 },

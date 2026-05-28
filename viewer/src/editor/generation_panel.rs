@@ -5,6 +5,18 @@ use egui::Ui;
 use super::state::EditorState;
 use super::ui_helpers::{dim, label, section};
 
+fn random_seed_str() -> String {
+    use std::time::SystemTime;
+    let nanos = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let seed =
+        sectorforge::rng::derive_stage_seed(&nanos.to_string(), "viewer_reroll", "session");
+    let v = u64::from_le_bytes(seed[..8].try_into().expect("blake3 returns 32 bytes"));
+    format!("{v:016x}")
+}
+
 pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
     let Some(input) = state.project_input.as_mut() else {
         ui.vertical_centered(|ui| {
@@ -27,7 +39,7 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
         ui.checkbox(&mut state.auto_generate, "AUTO-GENERATE");
         ui.add_space(10.0);
         if ui.button("🎲").on_hover_text("Randomize seed").clicked() {
-            input.config.generation.seed = f64::to_string(&rand::random::<f64>());
+            input.config.generation.seed = random_seed_str();
             changed = true;
         }
     });
@@ -256,7 +268,7 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
                 .clicked()
             {
                 if let Some(input) = state.project_input.as_mut() {
-                    input.config.generation.seed = f64::to_string(&rand::random::<f64>());
+                    input.config.generation.seed = random_seed_str();
                 }
                 changed = true;
             }

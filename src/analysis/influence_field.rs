@@ -54,6 +54,7 @@ pub struct TerritoryBand {
 const MAX_INFLUENCE_RADIUS: u32 = 6;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum InfluenceFieldProgress {
     Started {
         systems: usize,

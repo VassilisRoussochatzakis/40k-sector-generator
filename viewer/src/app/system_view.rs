@@ -42,6 +42,7 @@ impl App {
                                 ui.add_space(10.0);
                             }
                             SystemSelection::None => {}
+                            _ => {}
                         }
                         ui.separator();
                         info_panel::system_summary(ui, sys, sector);
@@ -126,6 +127,7 @@ impl App {
                         let selected_world = match selection {
                             SystemSelection::World(idx) => Some(idx),
                             SystemSelection::None | SystemSelection::Star => None,
+                            _ => None,
                         };
                         if ui
                             .add_enabled(
@@ -166,6 +168,7 @@ impl App {
                 let new_sel = match c {
                     SystemClick::Star => SystemSelection::Star,
                     SystemClick::World(i) => SystemSelection::World(i),
+                    _ => SystemSelection::None,
                 };
                 self.view = View::System {
                     system_id: system_id.clone(),

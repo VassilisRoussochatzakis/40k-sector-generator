@@ -108,6 +108,7 @@ fn severity_tag(s: Severity) -> &'static str {
         Severity::Error => "ERROR",
         Severity::Warning => "WARN",
         Severity::Info => "INFO",
+        _ => "UNKNOWN",
     }
 }
 
@@ -231,6 +232,7 @@ pub fn log_segmentum_progress(event: SegmentumProgress) {
         } => log_progress(format_args!(
             "segmentum: compose complete ({children} children, {links} links, {systems} systems, {worlds} worlds, {routes} routes)"
         )),
+        _ => {}
     }
 }
 
@@ -467,6 +469,7 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
         SectorProgress::StageElapsed { stage, millis } => {
             log_progress(format_args!("{prefix}: stage `{stage}` took {millis} ms"));
         }
+        _ => {}
     }
 }
 

@@ -182,6 +182,7 @@ fn hidden_suffix(kind: RouteType) -> &'static str {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum HiddenRoutesProgress {
     LayerStarted {
         layer: &'static str,

@@ -44,6 +44,7 @@ fn default_profile() -> ProfileId {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum ProfileId {
     /// Balanced multi-faction with several contested worlds + connectivity.
     PoliticalSandbox,

@@ -86,6 +86,7 @@ pub struct WorldSite {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SiteKind {
     GovernorsPalace,
     CathedralSpire,
@@ -112,6 +113,7 @@ pub enum SiteKind {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SiteStatus {
     Active,
     Restricted,

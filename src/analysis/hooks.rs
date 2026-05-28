@@ -90,6 +90,7 @@ pub struct Hook {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "scope", rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HookAnchor {
     System {
         system_id: crate::ids::SystemId,
@@ -105,6 +106,7 @@ pub enum HookAnchor {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum HookKind {
     CounterInfiltration,
     Reconquest,

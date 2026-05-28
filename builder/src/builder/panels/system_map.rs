@@ -78,6 +78,7 @@ pub(super) fn resolve_system_context(
         }
         SystemPick::EmptyOrbit(orbit) => Some(SystemMenuTarget::EmptyOrbit { system, orbit }),
         SystemPick::Background => Some(SystemMenuTarget::Background { system }),
+        _ => None,
     }
 }
 

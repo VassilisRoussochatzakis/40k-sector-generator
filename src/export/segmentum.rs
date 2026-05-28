@@ -64,6 +64,7 @@ pub struct SegmentumConfig {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum FactionMode {
     #[default]
     Shared,
@@ -191,6 +192,7 @@ pub struct InterSectorLink {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum BorderOrientation {
     /// Children share a vertical edge — the left child's east border meets
     /// the right child's west border (columns differ by 1, rows equal).
@@ -225,6 +227,7 @@ pub struct SegmentumManifest {
 /// Progress events emitted by segmentum composition when a caller opts in
 /// through [`compose_with_progress`].
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SegmentumProgress {
     Started {
         children: usize,

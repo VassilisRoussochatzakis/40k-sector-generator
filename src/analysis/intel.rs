@@ -54,6 +54,7 @@ pub struct SuspectedPresence {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum IntelSource {
     #[default]
     DirectObservation,
@@ -65,6 +66,7 @@ pub enum IntelSource {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum PropagandaState {
     #[default]
     None,
@@ -76,6 +78,7 @@ pub enum PropagandaState {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum ClassifiedState {
     #[default]
     Public,
@@ -210,7 +213,7 @@ fn derive_world_suspected(w: &GeneratedWorld, observer: &str) -> Vec<SuspectedPr
         // Observer "sees" another faction as a function of that faction's
         // own visibility * observer's local visibility.
         let raw_conf = (p.dimensions.visibility * observer_visibility) / 100.0;
-        if raw_conf < 5.0 {
+        if !raw_conf.is_finite() || raw_conf < 5.0 {
             continue;
         }
         let source = match raw_conf as u32 {

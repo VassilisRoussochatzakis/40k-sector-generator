@@ -162,10 +162,14 @@ fn render(
     let MapBounds { w: map_w, h: map_h } = map_bounds(sector, &g);
 
     let legend_h = legend::legend_height(sector, &g, &opts);
-    let total_w = map_w + g.legend_width;
+    let total_w = map_w.saturating_add(g.legend_width);
     let total_h = map_h.max(legend_h);
 
-    let mut img = RgbaImage::from_pixel(total_w as u32, total_h as u32, opts.theme.bg);
+    let mut img = RgbaImage::from_pixel(
+        total_w.max(0) as u32,
+        total_h.max(0) as u32,
+        opts.theme.bg,
+    );
 
     let subs = subsectors.unwrap_or(&[]);
     let draw_subsectors = !subs.is_empty() && opts.theme.show_subsector_borders;

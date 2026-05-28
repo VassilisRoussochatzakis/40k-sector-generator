@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! GUI module: egui-based viewer for generated sectors. Modular by entity:
 //! `palette` owns colors, `sector_view` / `system_view` are pure render widgets,
 //! `info_panel` formats text, `app` wires everything together.

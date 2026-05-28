@@ -95,6 +95,7 @@ fn every_hook_anchors_to_a_real_target_and_id_is_unique() {
                     route_id
                 );
             }
+            _ => {}
         }
     }
 }

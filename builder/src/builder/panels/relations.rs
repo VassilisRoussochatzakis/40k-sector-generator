@@ -241,6 +241,7 @@ fn attitude_color(a: RelationAttitude) -> Color32 {
         RelationAttitude::Suspicious => Color32::from_rgb(220, 200, 110),
         RelationAttitude::Hostile => Color32::from_rgb(230, 140, 90),
         RelationAttitude::ExistentialEnemy => Color32::from_rgb(230, 90, 90),
+        _ => Color32::GRAY,
     }
 }
 

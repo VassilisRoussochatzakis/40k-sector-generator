@@ -66,20 +66,18 @@ pub fn derive_world_conflict(w: &GeneratedWorld) -> ConflictState {
     if w.factions.is_empty() {
         return ConflictState::default();
     }
-    let top = w
+    let mut ranked: Vec<(&str, f32)> = w
         .factions
         .iter()
         .map(|p| (p.faction_id.as_str(), p.dimensions.local_control_score()))
-        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-    let second = w
-        .factions
-        .iter()
-        .map(|p| (p.faction_id.as_str(), p.dimensions.local_control_score()))
-        .fold(None::<(&str, f32)>, |acc, x| match acc {
-            None => Some(x),
-            Some(b) if b.1 < x.1 && top.map(|t| t.0) != Some(x.0) => Some(x),
-            other => other,
-        });
+        .collect();
+    ranked.sort_by(|a, b| {
+        b.1.partial_cmp(&a.1)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(b.0))
+    });
+    let top = ranked.first().copied();
+    let second = ranked.get(1).copied();
 
     let (defender, top_score) = top
         .map(|(id, s)| (Some(crate::ids::FactionId::new(id)), s))

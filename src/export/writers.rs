@@ -13,6 +13,7 @@ use crate::sector_model::GeneratedSector;
 /// How to render JSON. Replaces positional `pretty: bool` arguments so call
 /// sites read self-documenting (`JsonFormat::Pretty` instead of `true`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum JsonFormat {
     Pretty,
     Compact,

@@ -299,6 +299,7 @@ fn influence_rank(i: sectorforge::sector_model::FactionInfluence) -> u8 {
         FactionInfluence::Significant => 2,
         FactionInfluence::Minor => 1,
         FactionInfluence::Hidden => 0,
+        _ => 0,
     }
 }
 

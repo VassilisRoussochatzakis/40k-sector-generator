@@ -98,6 +98,7 @@ pub struct MissionSeed {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum MissionKind {
     Investigate,
     Escort,
@@ -111,6 +112,7 @@ pub enum MissionKind {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum MissionScale {
     OneShot,
     ShortArc,
@@ -119,6 +121,7 @@ pub enum MissionScale {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum MissionVisibility {
     Public,
     Restricted,

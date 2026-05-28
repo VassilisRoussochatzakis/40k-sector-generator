@@ -57,6 +57,7 @@ pub struct GeneratedSector {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SystemKind {
     #[default]
     Star,
@@ -400,6 +401,7 @@ impl GeneratedRoute {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RouteType {
     StableWarpLane,
     #[serde(alias = "dangerous_passage", alias = "DangerousPassage")]
@@ -418,6 +420,7 @@ pub enum RouteType {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RouteKind {
     Warp,
     Webway,
@@ -445,6 +448,7 @@ impl RouteKind {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RouteViewMode {
     #[default]
     Detailed,
@@ -614,6 +618,7 @@ impl RouteType {
 
 /// Visual line pattern used to encode route type plus per-route variety.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum RoutePattern {
     Solid,
     Dashed,
@@ -690,6 +695,7 @@ impl RoutePattern {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RouteStability {
     Stable,
     Unstable,
@@ -789,6 +795,7 @@ fn is_default_intel_confidence(v: &u8) -> bool {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum FactionInfluence {
     Hidden,
     Minor,
@@ -925,6 +932,7 @@ impl PresenceDimensions {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum DominanceState {
     #[default]
     Rumored,
@@ -960,6 +968,7 @@ impl DominanceState {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum ClaimType {
     LegalSovereignty,
     ImperialMandate,
@@ -1019,6 +1028,7 @@ pub struct WorldControlSummary {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum SystemState {
     Pacified,
     Fragmented,

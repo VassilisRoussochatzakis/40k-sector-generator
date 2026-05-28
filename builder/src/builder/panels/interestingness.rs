@@ -445,6 +445,7 @@ fn profile_label(p: ProfileId) -> &'static str {
         ProfileId::Mercantile => "Mercantile",
         ProfileId::Villainous => "Villainous",
         ProfileId::Frontier => "Frontier",
+        _ => "Unknown",
     }
 }
 
@@ -457,6 +458,7 @@ fn profile_blurb(p: ProfileId) -> &'static str {
         ProfileId::Mercantile => "Trade-heavy: high connectivity, low warzone count.",
         ProfileId::Villainous => "One dominant villain: extreme Gini, low contested ratio.",
         ProfileId::Frontier => "Sparse pioneers: isolated systems, few factions.",
+        _ => "",
     }
 }
 
@@ -467,6 +469,7 @@ fn profile_key(p: ProfileId) -> &'static str {
         ProfileId::Mercantile => "mercantile",
         ProfileId::Villainous => "villainous",
         ProfileId::Frontier => "frontier",
+        _ => "unknown",
     }
 }
 

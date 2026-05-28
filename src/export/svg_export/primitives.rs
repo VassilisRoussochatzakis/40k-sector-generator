@@ -147,6 +147,7 @@ fn escape_xml_into(out: &mut String, body: &str) {
             '&' => out.push_str("&amp;"),
             '"' => out.push_str("&quot;"),
             '\'' => out.push_str("&apos;"),
+            c if (c as u32) < 0x20 && !matches!(c, '\t' | '\n' | '\r') => out.push('\u{FFFD}'),
             _ => out.push(c),
         }
     }

@@ -438,6 +438,7 @@ fn tone_label(t: ProseTone) -> &'static str {
     match t {
         ProseTone::Gazetteer => "Florid (Gazetteer)",
         ProseTone::Dispatch => "Administratum Dispatch",
+        _ => "Unknown",
     }
 }
 

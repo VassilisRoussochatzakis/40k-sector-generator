@@ -1,91 +1,137 @@
 # Codebase Review — sectorforge (40k-sector-generator)
 
-Prepared per `REVIEW.md`. Evidence-based, LLM-optimized: every finding cites `path:line`. No invented files. Severity follows the rubric (§11 of `REVIEW.md`).
+Prepared per [`REVIEW.md`](REVIEW.md). Evidence-based, LLM-optimized: every finding cites `path:line`. No invented files. Severity follows the rubric (`REVIEW.md` §11).
 
-> **Scope.** Single-repo Rust workspace: library crate `sectorforge` + binaries (`sectorforge`, `sectorforge-builder`, `sectorforge-viewer`) + shared crate `sectorforge-gui-core`. Tested on commit `d8b7554` (branch `main`). The `old/` directory was excluded by explicit project instruction.
+> **Scope.** Single-repo Rust workspace: library crate `sectorforge` + binaries (`sectorforge`, `sectorforge-builder`, `sectorforge-viewer`) + shared crate `sectorforge-gui-core`. Tested on commit `4dbd5b7` (branch `main`, `git log -1 --format=%s` → "system view"). The `old/` directory was excluded by explicit project instruction (`CLAUDE.md:5`).
 
-> **Toolchain status snapshot.** Captured during review.
+> **Comparison to previous review.** The previous CODEBASE_REVIEW.md (commit `d8b7554`) is partially obsolete:
+> - **Resolved:** `src/` parent-module layout landed (`src/lib.rs:48-66`, `docs/MAP.md:1-22`) — addresses prior §5.1 in spirit. `builder/src/builder/panels/map.rs` is now split into `panels/map/{mod,cache,context_menu,dialogs,interactions}.rs` (prior §4.1).
+> - **Regressed:** `cargo fmt --all -- --check` is now red (it was clean). `cargo test --workspace` now has a failing golden (it was green).
+> - **Still open:** clippy `-D warnings` red (different lints now), `MutationError` duplication, hand-rolled base64, one-line README, no CI, `chronicle` still un-`Arc`'d, `eprintln!` in library, `BuilderState` God Object.
 
-| Command | Exit | Notes |
+> **Toolchain status snapshot.** Captured this session on commit `4dbd5b7`.
+
+| Command | Real exit | Notes |
 |---|---:|---|
-| `cargo fmt --all -- --check` | 0 | Clean. |
+| `cargo fmt --all -- --check` | **1** | 2 files need reformatting: `gui-core/src/system_view.rs` (multiple hunks) — regression. |
 | `cargo check --workspace --all-targets` | 0 | Clean. |
-| `cargo clippy --workspace --all-targets -- -D warnings` | **101** | 3 lints: `neg_cmp_op_on_partial_ord` × 2, `module_inception` × 1. **Blocks any clippy-gated CI.** |
-| `cargo test --workspace` | 0 | Aggregate: **519 unit/integration tests pass, 5 ignored, 0 failed**, plus 6 doctests. Wall time ≈ 39s (one suite dominates at ≈ 36.7s). |
+| `cargo clippy --workspace --all-targets -- -D warnings` | **101** | 17 lint errors across 5 files. Categories: `clone_on_copy` ×5, `unnecessary_map_or` ×4, `field_reassign_with_default` ×3, `format_collect` / `iter_any_eq` ×2, `module_inception` ×1 (same site as before — `src/export/svg_export/tests.rs:2`), `single_char_add_str` ×1, `too_many_arguments` ×1. |
+| `cargo test --workspace` | **non-zero** | **1 test fails**: `gui-core/tests/map_snapshots.rs:354` — `map_snapshots_match_goldens` hash mismatch on `system_glyphs.png`. All other suites green: 165 lib unit, 249 builder unit, 21 gui-core unit, 3 viewer unit, 84 integration (5 ignored), 6 doctests = **528 pass, 5 ignored, 1 failed**. |
 
 ---
 
 ## 1. Executive Summary
 
-**Overall assessment.** A large, ambitious, deterministic generator with a *very* broad public surface (402 `pub fn`, 292 `pub struct`/`pub enum`, 120 `.rs` files in `src/`, ≈93k LOC across the workspace excluding `old/`). The core domain model in `src/sector_model/` is clean: serializable DTOs, `Arc<str>`-backed strings, a dedicated mutation API behind `GeneratedSector::*`, typed IDs (`SystemId`/`WorldId`/`RouteId`/`FactionId`). Determinism is taken seriously — stage-keyed RNG via `blake3` (`src/rng.rs`), `BTreeMap`/`BTreeSet` everywhere for byte-stable output, `FxMap`/`FxSet` aliased and explicitly *forbidden* in output paths (`src/lib.rs:27-32`). Tests are extensive in count and run green.
+**Overall assessment.** Large deterministic generator + GUI workspace (≈ **93,958 LOC** across **275 `.rs` files**, excluding `target/` and `old/`). Library crate `sectorforge` was reorganised since the previous review into seven parent modules (`model`, `loading`, `gen`, `analysis`, `export`, `validate`, `cli`) with `src/lib.rs:48-173` re-exporting the original flat paths so downstream crates were not perturbed — a measurable architectural improvement. Determinism discipline still holds: stage-keyed RNG via `blake3` (`src/model/rng.rs`), `BTreeMap`/`BTreeSet` for output, `FxMap`/`FxSet` aliased and restricted to internal lookup (`src/lib.rs:54-55`). The mutation API in `src/model/sector_model/mutation.rs` is still the only structural-write seam. Tests are extensive and 99.8% green.
 
 **Main risks.**
-1. **Clippy is broken under `-D warnings`** — 3 lints; the workspace pins `disallowed_types`/`disallowed_methods` but the upstream Cargo workspace does not enforce a clippy gate. (Finding 2.1)
-2. **No CI** — no `.github/workflows/`, no `cargo-deny`, no `cargo audit`. (Finding 2.2)
-3. **Severe file/module bloat in the builder UI layer.** `builder/src/builder/panels/map.rs` is **3,341 lines**; `command.rs` is **1,486**; the panel directory holds many 700-1,500-line files. The shared `BuilderState` struct (`builder/src/builder/state/mod.rs`) has dozens of pub fields — a textbook God Object. (Findings 4.1–4.4)
-4. **Domain library has very wide `pub mod` surface** — almost the entire crate is `pub mod`, with two file-level error types (`SectorError`, `MutationError`) duplicated across `src/errors.rs` and `src/sector_model/mutation.rs`. (Finding 5.1, 6.1)
-5. **Empty README + no environment/setup docs** at repo root. (Finding 13.1)
+1. **CI gates would fail today.** `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` all return non-zero — three of the four standard gates. (Findings 2.1, 2.2, 2.3)
+2. **One golden test fails.** `gui-core/tests/map_snapshots.rs::map_snapshots_match_goldens` — `system_glyphs.png` hash diverged from goldens (`b35f9bd…` vs expected `b75f25e…`). The last commit is titled "system view" — likely an un-blessed snapshot. (Finding 9.1)
+3. **No CI.** No `.github/workflows/`, no `deny.toml`, no `clippy.toml`, no `rust-toolchain.toml`. (Finding 2.4)
+4. **`BuilderState` is still a God Object.** `builder/src/builder/state/mod.rs:76-731` declares **137 `pub` fields** in one struct, growing with each phase. (Finding 4.4)
+5. **Two `MutationError` enums still coexist.** `src/model/errors.rs:43` vs `src/model/sector_model/mutation.rs:22`. The first one has zero observed external consumers but is still `pub`. (Finding 5.2)
+6. **README is still one line.** (Finding 13.1)
 
 **Best qualities.**
-- Determinism discipline + manifest hashing (`src/rng.rs`, `src/sector_model::GenerationManifest`).
-- Typed IDs end-to-end; the `FxMap` aliases come with an explicit *output-determinism* comment in `src/lib.rs:27-32`.
-- `thiserror`-based domain errors with structured fields (`src/errors.rs`, `src/sector_model/mutation.rs:21-43`).
-- Aggressive sub-module decomposition in *some* areas (`src/history/`, `src/bitmap/`, `src/svg_export/`, `src/generation/`), used as a model for what the over-large files should look like.
-- Doctest coverage of the top-level API (`src/lib.rs`).
-- No runtime `unwrap`/`expect` panics in production hot paths — every match found via `rg` was test code, `From`-impls for stable enums, or single-pass deterministic helpers.
+- Determinism + manifest hashing (`src/model/rng.rs`, `GenerationManifest`).
+- Typed IDs end-to-end (`SystemId`/`WorldId`/`RouteId`/`FactionId`).
+- Library has no async runtime, no `thread_rng`, no leaks of `eframe`/`egui` into `src/` (verified: `rg 'tokio|async fn|\.await' src/` → 0; `rg 'thread_rng' src/` → 0; `rg 'eframe' src/` → 0).
+- Per-stage determinism tests, round-trip JSON tests on every overlay, golden PNG tests for bitmap export.
+- Parent-module split (`src/lib.rs:48-173`) preserves all original paths via `pub use`.
+- Aggressive sub-module decomposition is the established pattern (`src/export/bitmap/`, `src/export/svg_export/`, `src/gen/`, `src/analysis/history/`, `builder/src/builder/state/`, `builder/src/builder/panels/map/`).
 
-**Highest-priority recommendation.** Fix the three clippy errors (Finding 2.1), then add a minimum-viable CI workflow (fmt + clippy + test) (Finding 2.2). After that, tackle `builder/src/builder/panels/map.rs` (Finding 4.1) before it gets any larger.
+**Highest-priority recommendation.** Fix the broken gates in this order — bless or revert the golden (Finding 9.1) → `cargo fmt --all` (Finding 2.1) → fix the 17 clippy lints (Finding 2.2) → add a minimum-viable CI workflow (Finding 2.4). After that, address the `BuilderState` God Object (Finding 4.4) and the lingering `MutationError` duplication (Finding 5.2).
 
 ---
 
 ## 2. Build/CI/Release Audit
 
-### Finding 2.1 — `cargo clippy -D warnings` fails (3 errors)
+### Finding 2.1 — `cargo fmt --all -- --check` fails (regression)
 
 - **Severity:** High
 - **Category:** Build/CI
-- **Evidence:**
-  - `src/bitmap/routes.rs:417` — `if !(spacing > 0.0)` flagged as `clippy::neg_cmp_op_on_partial_ord`.
-  - `src/svg_export/routes.rs:183` — same lint.
-  - `src/svg_export/tests.rs:2` — `mod tests { ... }` inside file already named `tests.rs` flagged as `clippy::module_inception`.
+- **Evidence:** `cargo fmt --all -- --check` exits 1. The diff is concentrated in `gui-core/src/system_view.rs` — at least two hunks: an `allocate_exact_size` call missing a destructure, and a `pick_world` call argument wrap. 57 lines of `Diff in …` output total.
 
-**What I found.** All three are mechanical fixes, but they make any clippy-gated CI red.
+**What I found.** A recent commit (`4dbd5b7` "system view") introduced rendering changes in `gui-core/src/system_view.rs` without running `cargo fmt`.
 
-**Why it matters.** The two `panels/Cargo.toml` files (`builder/Cargo.toml:22-24`, `viewer/Cargo.toml:24-26`) already enforce `disallowed_types = "deny"` / `disallowed_methods = "deny"` — the project is *moving toward* strict clippy. Leaving 3 lints live now means adding the gate is blocked until they are fixed.
+**Why it matters.** The previous review captured this gate as clean. The project is moving toward strict gates (the two GUI crates pin `disallowed_types = "deny"` and `disallowed_methods = "deny"` in `builder/Cargo.toml:22-24` and `viewer/Cargo.toml:24-26`). Any CI gating on `cargo fmt` will reject the current `main`.
 
-**Recommended fix.**
+**Recommended fix.** `cargo fmt --all`. One commit, no behavioural change.
 
-```rust
-// src/bitmap/routes.rs:417
-if !(spacing > 0.0)
-// →
-if !spacing.is_finite() || spacing <= 0.0
-```
+**Validation.** `cargo fmt --all -- --check` returns 0.
 
-```rust
-// src/svg_export/routes.rs:183 — same rewrite
-```
-
-```rust
-// src/svg_export/tests.rs — drop the `mod tests` wrapper; the file is already a tests module under `mod tests;` declared in src/svg_export/mod.rs.
-#[cfg(test)]
-use super::*;
-// ... tests as free functions
-```
-
-**Validation.** `cargo clippy --workspace --all-targets -- -D warnings` should exit 0.
-
-**Risk of change.** Low — `spacing` is already validated by the `n.is_finite() && n > 0.0` check on the next line of `float_loop_steps`.
+**Risk of change.** Zero.
 
 ---
 
-### Finding 2.2 — No CI configuration
+### Finding 2.2 — `cargo clippy -- -D warnings` fails with 17 errors across 5 files
 
 - **Severity:** High
 - **Category:** Build/CI
-- **Evidence:** `ls -la .github` → not present. `ls .github/workflows` → not present. No `deny.toml`, no `clippy.toml`, no `rust-toolchain.toml`.
+- **Evidence:** `cargo clippy --workspace --all-targets -- -D warnings` exits 101. Distinct lint categories (counts):
 
-**Why it matters.** All four invariants the README-style cluster of docs talks about (determinism, clippy hygiene, fmt, tests) depend on local discipline. A single bad commit can silently break clippy (Finding 2.1 is exactly this scenario).
+| Count | Lint | Sample location |
+|---:|---|---|
+| 5 | `clippy::clone_on_copy` (`StabilityState`) | `builder/src/builder/command.rs:534`, `:535`, `:836`; `panels/map/context_menu.rs:254`, `:553` |
+| 4 | `clippy::unnecessary_map_or` | `builder/src/builder/panels/hooks.rs:158`, `panels/missions.rs:200`, `panels/sites.rs:203`, `panels/conflict.rs` |
+| 3 | `clippy::field_reassign_with_default` | `builder/src/builder/command.rs:1052,1077`, `panels/history.rs:1182,1491` |
+| 2 | `clippy::iter_any_eq` (`contains()` over `iter().any()`) | `builder/src/builder/panels/conflict.rs:88,91` |
+| 1 | `clippy::module_inception` | `src/export/svg_export/tests.rs:2` (same site as prior review §2.1) |
+| 1 | `clippy::single_char_add_str` | `builder/src/builder/project_io.rs:278` (`push_str` of one char) |
+| 1 | `clippy::too_many_arguments` (8/7) | `builder/src/builder/panels/system.rs:84` |
+
+(Reproduce: `cargo clippy --workspace --all-targets -- -D warnings 2>&1 | grep -E "^\s+--> " | sort -u`.)
+
+**What I found.** All 17 are mechanical. The exact lints differ from the prior review — the previously listed `neg_cmp_op_on_partial_ord` lints (`src/bitmap/routes.rs:417`, `src/svg_export/routes.rs:183`) appear to have been silently resolved by the export refactor; new lints replaced them.
+
+**Why it matters.** Same as 2.1 — gating CI is blocked.
+
+**Recommended fix.** One PR per category, ordered by edit footprint:
+1. `clone_on_copy` on `StabilityState` — verify `StabilityState` is `Copy` (`rg 'impl.*Copy.*for.*StabilityState' src/`); replace `.clone()` with implicit copy on those five sites.
+2. `field_reassign_with_default` — rewrite as struct-literal with `..Default::default()` per the lint suggestion at `builder/src/builder/command.rs:1077`.
+3. `unnecessary_map_or` — `x.map_or(false, |v| v == y)` → `x == Some(y)` (or `is_some_and`).
+4. `iter_any_eq` — `v.iter().any(|x| x == &target)` → `v.contains(&target)`.
+5. `module_inception` — drop the outer `mod tests { ... }` wrapper in `src/export/svg_export/tests.rs:1-83`. Inside `tests.rs` the file *is* the module — re-nesting `mod tests` doubles the name. (Same pattern was applied successfully to `src/export/bitmap/tests.rs` already — note `src/export/bitmap/mod.rs:205-206` declares `mod tests;` and `src/export/bitmap/tests.rs` uses bare free-functions; only `svg_export/tests.rs` is still wrapped.)
+6. `single_char_add_str` — replace `s.push_str("c")` with `s.push('c')`.
+7. `too_many_arguments` in `panels/system.rs:84` — group related params into a struct (or apply `#[allow]` with a justification comment).
+
+**Validation.** `cargo clippy --workspace --all-targets -- -D warnings` exits 0.
+
+**Risk of change.** Low — none of these lint fixes change semantics.
+
+---
+
+### Finding 2.3 — Test suite is red (golden snapshot)
+
+- **Severity:** High
+- **Category:** Build/CI / Testing
+- **Evidence:** `cargo test --workspace` fails 1 test: `gui-core/tests/map_snapshots.rs:354` — `map_snapshots_match_goldens` panics with:
+```
+assertion `left == right` failed: map snapshot system_glyphs changed; inspect /Users/.../target/map_snapshots/current/system_glyphs.png then run `UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet` to bless
+  left: "b35f9bd40b5f6566516c52f9637283ea772e6b906798ccc6d434a4f4baab2d72"
+ right: "b75f25e66f1c45699e6166b86c57478b57f790dacf4d16790ea01c09badd8482"
+```
+The diverging artefact is the `system_glyphs` snapshot. HEAD commit subject is "system view" — likely a missed bless.
+
+**Why it matters.** A red test on `main` undermines any test-as-gate posture and risks normalising failure. See also Finding 9.1.
+
+**Recommended fix.** Either:
+- Roll back the rendering change if unintentional, OR
+- Inspect `target/map_snapshots/current/system_glyphs.png` against `gui-core/tests/goldens/`, confirm the new visual is intended, then `UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet` and commit the new golden.
+
+**Validation.** `cargo test --workspace` exits 0.
+
+**Risk of change.** Medium — golden goldens encode visual contracts; only bless if the change is *intended*.
+
+---
+
+### Finding 2.4 — No CI configuration (unchanged)
+
+- **Severity:** High
+- **Category:** Build/CI
+- **Evidence:** `ls -la .github` → no such directory. No `deny.toml`, `clippy.toml`, `rust-toolchain.toml`.
+
+**Why it matters.** Findings 2.1–2.3 are all states the prior review noted would be caught by CI. They were not. The cost of three independent breakages on a green-trending main is exactly what a 30-line workflow prevents.
 
 **Recommended fix.** Add `.github/workflows/ci.yml`:
 
@@ -104,17 +150,19 @@ jobs:
       - run: cargo test --workspace
 ```
 
-**Risk of change.** Low. Add `cargo audit` / `cargo deny check` as separate non-blocking jobs once a `deny.toml` exists.
+Optionally add `cargo audit` / `cargo deny check` as separate non-blocking jobs once a `deny.toml` exists.
+
+**Risk of change.** Low.
 
 ---
 
-### Finding 2.3 — Optional dev tools absent
+### Finding 2.5 — Optional dev tools absent (unchanged)
 
 - **Severity:** Low
 - **Category:** Build/CI
-- **Evidence:** No `deny.toml`, `clippy.toml`, no `cargo-machete`/`cargo-udeps` artifacts.
+- **Evidence:** No `deny.toml`, no `clippy.toml`, no `cargo-machete`/`cargo-udeps` artefacts.
 
-**Recommended fix.** After CI lands, drop in a minimal `deny.toml` and run `cargo machete` once to inventory unused deps. The workspace has 9 root crates and 3 sub-crates — a `cargo tree -d` audit is worth one pass.
+**Recommended fix.** After CI lands, drop in a minimal `deny.toml` and run `cargo machete` once to inventory unused deps.
 
 ---
 
@@ -125,250 +173,249 @@ jobs:
 ```
 sector-generator (lib + sectorforge bin + dhat-profile bin) — src/
 ├── sectorforge-gui-core  — gui-core/          // shared egui widgets
-├── sectorforge-viewer    — viewer/            // viewer/editor binary
-└── sectorforge-builder   — builder/           // builder binary
+├── sectorforge-viewer    — viewer/            // read-only viewer binary
+└── sectorforge-builder   — builder/           // editor binary + command bus
 ```
 
-Dependency direction (read top→down, no cycles observed):
+Dependency direction (top → down, no cycles observed):
 
 ```
 sectorforge (lib, headless domain + IO)
    ▲                         ▲
    │                         │
-sectorforge-gui-core   sectorforge-viewer ── consumes lib + gui-core
+sectorforge-gui-core   sectorforge-viewer  ── consumes lib + gui-core
    ▲
 sectorforge-builder ── consumes lib + gui-core
 ```
 
-**Assessment.** Sensible split. Domain logic is in the library, not in the GUI. `gui-core` is the right placement for the read-only `SectorView` widget reused by builder and viewer (`gui-core/src/sector_view.rs:1`). The `eframe`/`egui` dependency is correctly isolated to the GUI crates and never leaks into the library (verified via `rg eframe src/` — no hits).
+**Library layout.** `src/lib.rs:48-66` declares **seven** parent modules; each was a flat `pub mod foo` at the root in the prior review. Compatibility re-exports at `src/lib.rs:73-133` preserve every original `sectorforge::foo` path.
+
+```
+src/
+├── model/        → DTOs, IDs, RNG, error types, taxonomy
+│   └── sector_model/  (1242 + 866 LOC — mod.rs + mutation.rs)
+├── loading/      → project / config / presets / sector_save
+├── gen/          → generation pipeline (regions, routes, factions, hidden_routes, sites, …)
+├── analysis/     → pure read-only derivations (history, prose, hooks, missions, economy, …)
+├── export/       → bitmap, svg_export, html_export, render, segmentum, subsectors, system_map
+├── validate/     → diff, invariants, validation
+├── cli/          → binary command dispatcher
+├── bin/          → dhat_profile.rs (heap profiling, gated behind `dhat-heap` feature)
+├── worlds.rs, worlds_toml.rs  (foundational taxonomy at crate root)
+├── lib.rs, main.rs
+```
+
+**Assessment.** Sensible split. Domain logic stays in the library; GUI dependencies (`eframe`, `egui`, `rfd`) are isolated to the three downstream crates and never leak into `src/` (verified: `rg eframe src/ → 0`, `rg egui src/ → 0`, `rg rfd src/ → 0`).
 
 ### Layer Assessment
 
 | Layer | State | Evidence |
 |---|---|---|
-| CLI parse + dispatch | **Clear** | `src/main.rs` (18 LOC) just delegates; `src/cli/mod.rs` is a flat dispatch over per-subcommand modules. |
-| Project IO / config | **Clear** | `src/input.rs`, `src/config.rs`, per-feature `load_*_file` in each domain module. |
-| Domain DTOs | **Clear** | `src/sector_model/mod.rs` defines `Generated*` + IDs. |
-| Mutation API | **Clear (but big)** | `src/sector_model/mutation.rs` (866 LOC) owns every structural mutation; `BuilderCommand::apply` is the only caller (`builder/src/builder/command.rs`). |
-| Derivations (history, prose, hooks, missions, etc.) | **Clear** | Each lives in its own module under `src/`; library `derive_*` / `derive_*_with` pairs in `src/lib.rs:549-848`. |
-| Export | **Clear, well-split** | `src/bitmap/`, `src/svg_export/`, `src/html_export.rs`, `src/render.rs`, `src/export.rs`. The bitmap + svg modules follow the pattern the rest of the codebase should aspire to. |
-| Builder state | **Leaky** | `BuilderState` (`builder/src/builder/state/mod.rs:76+`) bundles undo, derivation cache, file watcher, modal state, transient dialog state, drag state, region paint scratch, bulk-edit form state — see Finding 4.4. |
-| Builder panels | **Leaky** | Several 700-1500 line panel files mix tool dispatch, dialog rendering, command dispatch, and undocumented helpers — see Findings 4.1-4.3. |
-| Viewer | **Mixed** | `viewer/src/app/` is decomposed; `viewer/src/factions_overview.rs` (1,349 LOC) is not — review further. |
+| CLI parse + dispatch | **Clear** | `src/main.rs` delegates; `src/cli/mod.rs` is flat dispatch over per-subcommand modules. |
+| Project IO / config | **Clear** | `src/loading/{input,config,presets,sector_save}.rs`. |
+| Domain DTOs | **Clear** | `src/model/sector_model/mod.rs` (1,242 LOC — declarative + small impls). |
+| Mutation API | **Clear (large)** | `src/model/sector_model/mutation.rs` (866 LOC) owns every structural write. Only caller is `BuilderCommand::apply` (`builder/src/builder/command.rs:298+`). |
+| Derivations | **Clear** | Each derivation lives in its own module under `src/analysis/`; library `derive_*` / `derive_*_with` pairs in `src/lib.rs`. |
+| Export | **Clear, well-split** | `src/export/bitmap/`, `src/export/svg_export/`, `src/export/html_export/`, `src/export/render_core/`, etc. The export tree is the de-facto template for what oversized files should look like. |
+| Builder state | **Leaky (unchanged from prior review)** | `BuilderState` (`builder/src/builder/state/mod.rs:76-731`) — 137 `pub` fields. See Finding 4.4. |
+| Builder panels | **Mixed** | `panels/map/` split (good); `panels/system.rs` grew to 1,508 LOC; `panels/control.rs`, `panels/history.rs`, etc. still oversized. See Finding 4.3. |
+| Viewer | **Mixed** | `viewer/src/app/` is decomposed; `viewer/src/factions_overview.rs` (1,349 LOC) is not. |
 
 ---
 
 ## 4. File/Module Organization Audit
 
-### Top 15 longest `.rs` files (workspace, excluding `target/`, `old/`)
+### Top 25 longest `.rs` files (workspace, excluding `target/`, `old/`)
 
-| Rank | File | Lines | Cohesion | Split urgency |
-|---:|---|---:|---|---|
-| 1 | `builder/src/builder/panels/map.rs` | **3,341** | Mixed: render + tools + dialogs + ctx menu | **High** |
-| 2 | `src/economy.rs` | 1,743 | Mixed: config + resource model + derivation + markdown | Medium |
-| 3 | `src/relations.rs` | 1,628 | Mixed: enums + stance algebra + derivation + IO | Medium |
-| 4 | `builder/src/builder/panels/history.rs` | 1,557 | Wizard + table + filter | Medium |
-| 5 | `builder/src/builder/command.rs` | **1,486** | One enum with ~80 variants, all `apply` impls | High |
-| 6 | `gui-core/src/sector_view.rs` | 1,447 | One widget; mostly cohesive | Low/Medium |
-| 7 | `builder/src/builder/panels/control.rs` | 1,405 | Five overlays + control derivation | Medium |
-| 8 | `src/search.rs` | 1,367 | Constraint eval + report; rayon | Medium (cohesive) |
-| 9 | `src/worlds.rs` | 1,361 | Enums + tables for the taxonomy | Low (declarative) |
-| 10 | `builder/src/builder/panels/system.rs` | 1,356 | Inspector + bulk ops | Medium |
-| 11 | `viewer/src/factions_overview.rs` | 1,349 | Single view | Medium |
-| 12 | `src/diff.rs` | 1,308 | Diff algos + markdown | Medium |
-| 13 | `builder/src/builder/panels/world.rs` | 1,249 | One panel | Medium |
-| 14 | `src/sector_model/mod.rs` | 1,242 | DTO definitions + small impls | Low/Medium (cohesive) |
-| 15 | `builder/src/builder/panels/routes.rs` | 1,177 | Route inspector + bulk + hidden-route builder | Medium |
+| Rank | File | LOC | Notes |
+|---:|---|---:|---|
+| 1 | `src/analysis/economy.rs` | 1,743 | Config + resource model + derivation + markdown. Cohesive but at threshold. |
+| 2 | `src/analysis/relations.rs` | 1,628 | Enums + stance algebra + derivation + IO. |
+| 3 | `builder/src/builder/panels/history.rs` | 1,557 | Wizard + table + filter. Mixed concerns (multiple clippy hits at 1182, 1491). |
+| 4 | **`builder/src/builder/panels/system.rs`** | **1,508** | +152 LOC since prior review. Inspector + bulk ops + §CTX1 Phase 6 dispatch + clippy `too_many_arguments` at line 84. |
+| 5 | `builder/src/builder/command.rs` | 1,486 | Single enum with ~80 variants + `apply` arms. Same as prior review. |
+| 6 | `gui-core/src/sector_view.rs` | 1,480 | One widget; mostly cohesive. |
+| 7 | `builder/src/builder/panels/control.rs` | 1,405 | Five overlays + control derivation. |
+| 8 | `src/analysis/search.rs` | 1,367 | Constraint eval + report; uses `rayon`. Cohesive. |
+| 9 | `src/worlds.rs` | 1,361 | Taxonomy enums + tables. Declarative; acceptable. |
+| 10 | `viewer/src/factions_overview.rs` | 1,349 | Single view, not split. |
+| 11 | **`builder/src/builder/panels/map/mod.rs`** | 1,338 | Was a 3,341 LOC monolith last review. Split landed, but the `mod.rs` dispatcher is still oversized. |
+| 12 | `src/validate/diff.rs` | 1,308 | Diff algorithms + markdown. |
+| 13 | `builder/src/builder/panels/world.rs` | 1,249 | One panel. |
+| 14 | `src/model/sector_model/mod.rs` | 1,242 | DTOs + small impls. Cohesive. |
+| 15 | `builder/src/builder/panels/routes.rs` | 1,177 | Route inspector + bulk + hidden-route builder. |
+| 16 | `src/export/segmentum.rs` | 1,168 | Segmentum composition. |
+| 17 | `gui-core/src/info_panel.rs` | 1,142 | New widget (vs prior review). |
+| 18 | **`builder/src/builder/panels/map/context_menu.rs`** | 1,133 | Result of map.rs split. Still oversized. |
+| 19 | `builder/src/builder/panels/system_map.rs` | 1,097 | New panel since prior review. |
+| 20 | `src/analysis/personae.rs` | 1,078 | Derivation. |
+| 21 | `builder/src/builder/panels/relations.rs` | 1,076 | Inspector + matrix. |
+| 22 | `builder/src/builder/project_io.rs` | 1,053 | Project IO; clippy `single_char_add_str` at line 278. |
+| 23 | `src/analysis/analytics.rs` | 988 | Derivation. |
+| 24 | `src/export/subsectors/mod.rs` | 986 | Subsector composition. |
+| 25 | `builder/src/builder/panels/map/interactions.rs` | 460 | Result of map.rs split. Within budget. |
 
-Workspace totals: **257 `.rs` files**, **93,727 LOC** (excluding `old/`, `target/`).
+Workspace totals: **275 `.rs` files**, **93,958 LOC** (excluding `old/`, `target/`).
 
-### Finding 4.1 — `builder/src/builder/panels/map.rs` is 3,341 lines
+Bucketed: **44 files > 700 LOC**, **64 files > 500 LOC**, **117 files > 250 LOC**.
 
-- **Severity:** High
+### Finding 4.1 — `panels/map/mod.rs` (1,338) and `panels/map/context_menu.rs` (1,133) still oversized after the split
+
+- **Severity:** Medium
 - **Category:** Modularity
-- **Evidence:** `wc -l builder/src/builder/panels/map.rs` → 3,341. Comment header at line 1 lists *eight* responsibilities: hex render, tool dispatch, drag/drop, ADD ROUTE preview, rect-select, double-click rename, pinned/multi-select overlays, collision dialog, plus *§CTX1 Phase 1-7* right-click menu, transient dialogs, bulk rename, region rename, partial-regen anchor. `rg '^pub fn|^fn ' builder/src/builder/panels/map.rs` → 23 functions; many are >100 LOC each (see e.g. `handle_click`, `apply_sector_menu_action`).
-
-**What I found.** This file is the single most concentrated source of GUI complexity in the project and the most-cited target in `CLAUDE.md`'s instructions (`CLAUDE.md` lists the `§CTX1` Phase 1-7 surface as living here).
-
-**Why it matters.** Every right-click menu feature lands here, growing it further; the recently-added Phase 2-7 work is documented in `CLAUDE.md` as belonging to this file; this is by design but the design is wrong.
-
-**Recommended fix.** Split into a sibling submodule directory:
+- **Evidence:** The prior review's §4.1 recommended splitting the 3,341 LOC `panels/map.rs`. That landed:
 
 ```
 builder/src/builder/panels/map/
-  mod.rs            -- pub fn show; small dispatcher (≤ 250 LOC)
-  toolbox.rs        -- show_toolbox + MapTool plumbing
-  canvas.rs         -- show_hex_map + interaction loop
-  interaction.rs    -- handle_click / handle_drag / rect-select
-  context_menu.rs   -- §CTX1 menus (resolve_*, render_*, apply_*)
-  dialogs.rs        -- show_*_dialog (place / rename / bulk / region / collision)
-  partial_regen.rs  -- apply_partial_regen_anchor_click + arming UI
+  cache.rs            98 LOC
+  context_menu.rs   1,133 LOC
+  dialogs.rs          245 LOC
+  interactions.rs     460 LOC
+  mod.rs            1,338 LOC
 ```
 
-Each file ≤ ~500 LOC. Pattern follows `src/svg_export/` and `src/bitmap/` already-split modules — apply the same rule.
+Five clippy errors still land in `mod.rs` / `context_menu.rs` (`builder/src/builder/panels/map/context_menu.rs:254,553` — `clone_on_copy`).
 
-**Concrete steps.**
-1. Extract `show_sector_context_menu` + `resolve_sector_context` + `apply_sector_menu_action` + the 5 `render_*_menu` helpers into a new `context_menu.rs`. They are already grouped under §CTX1 comments and share only `SectorContextMenu` / `SectorMenuTarget` from `state::types`.
-2. Extract the 5 dialog functions (`show_place_dialog`, `show_rename_dialog`, `show_bulk_rename_dialog`, `show_region_rename_dialog`, `show_collision_dialog`) into `dialogs.rs`.
-3. Update `CLAUDE.md` source-layout table to match.
+**What I found.** The split moved out dialogs (correctly small at 245 LOC) and interactions (460 LOC, acceptable), but `mod.rs` retained both the canvas rendering loop and tool dispatch, and `context_menu.rs` retained all §CTX1 Phase 1-7 logic in a single file.
 
-**Risk of change.** Low — `pub(crate)` re-exports keep call sites stable. The `panel-as-free-function` contract documented in `builder/src/builder/panels/mod.rs:3-13` is preserved.
+**Why it matters.** The previously-flagged growth pressure didn't go away — every new right-click menu and tool still lands in two large files instead of one huge file.
 
-**Validation.** `cargo check --workspace`, `cargo test -p sectorforge-builder`, manual smoke of every right-click path.
+**Recommended fix.** Continue the split:
+- `mod.rs` → split into `mod.rs` (dispatcher ≤ 250 LOC) + `canvas.rs` (hex render + interaction loop) + `toolbox.rs` (`MapTool` plumbing).
+- `context_menu.rs` → split by menu target: `context_menu/{system,system_pinned,multi_select,region,sector_hex,route,world}.rs` mirroring the seven `§CTX1` phases. Re-export from `context_menu/mod.rs`.
+
+**Risk of change.** Low — `pub(crate)` re-exports keep callsites stable.
 
 ---
 
-### Finding 4.2 — `builder/src/builder/command.rs` is 1,486 lines
+### Finding 4.2 — `command.rs` is 1,486 lines (unchanged from prior review)
 
 - **Severity:** Medium
 - **Category:** Modularity
-- **Evidence:** `wc -l builder/src/builder/command.rs` → 1,486. The file declares `pub enum BuilderCommand { ... }` and the corresponding `impl BuilderCommand { pub fn apply(...) }` matching every variant. Per `CLAUDE.md` the variants span: system/world/route/faction/region/intel/conflict/archetype mutations, partial regen, bulk operations, derivations.
+- **Evidence:** `wc -l builder/src/builder/command.rs` → 1,486. Same as the prior review's count. The `clippy` `clone_on_copy` lints at lines 534, 535, 836 and `field_reassign_with_default` at 1052/1053/1077/1078 all land in this file.
 
-**Why it matters.** Every new mutation lands here. The `apply` match is the *only* call site for `sector_model::mutation::*`; growing both files in lockstep is unavoidable.
+**Recommended fix.** Same as the prior review's §4.2 — keep the `BuilderCommand` enum in one file (serde stability) but split the `impl` arms by resource into a `builder/src/builder/command/` directory.
 
-**Recommended fix.** Keep the enum in one place (so the command bus remains single-file dispatch), but split the `impl` arms by resource via free helpers:
-
-```
-builder/src/builder/command/
-  mod.rs                -- enum BuilderCommand; impl::apply dispatcher
-  apply_systems.rs      -- fn apply_add_system / apply_move_system / ...
-  apply_worlds.rs
-  apply_routes.rs
-  apply_factions.rs
-  apply_regions.rs
-  apply_overlays.rs     -- conflict / archetype / intel
-  apply_bulk.rs
-```
-
-The `apply` dispatcher then becomes a flat `match` calling `apply_systems::add(...)`, `apply_worlds::rename(...)`, etc.
-
-**Risk of change.** Low — internal-only refactor; `BuilderCommand` is `Serialize + Deserialize`, so as long as the enum lives in one file the on-disk session format is unchanged.
+**Risk of change.** Low — internal refactor; on-disk session format unchanged.
 
 ---
 
-### Finding 4.3 — Several other panels exceed 1,000 lines
+### Finding 4.3 — Other oversized panels (largely unchanged)
 
 - **Severity:** Medium
 - **Category:** Modularity
-- **Evidence:** `builder/src/builder/panels/{history,control,system,world,routes}.rs` are 1,557 / 1,405 / 1,356 / 1,249 / 1,177 lines respectively. `viewer/src/factions_overview.rs` is 1,349.
+- **Evidence:**
 
-**Recommended fix.** For each: identify the 2-4 conceptually-distinct sub-panels (e.g. `control.rs` has Co-Sovereign / Dominance / Primary / Heatmap / overlay-builder), extract each to a sibling file under a directory of the same name. Follow the model of `builder/src/builder/state/` which already split `mod.rs` cleanly into `selection.rs` / `undo.rs` / `derivations.rs` / `regions_ops.rs` / `generation_ops.rs` / `nav.rs` / `types.rs`.
+| Panel | LOC | Δ vs prior review |
+|---|---:|---|
+| `panels/history.rs` | 1,557 | unchanged |
+| `panels/system.rs` | 1,508 | **+152** |
+| `panels/control.rs` | 1,405 | unchanged |
+| `panels/world.rs` | 1,249 | unchanged |
+| `panels/routes.rs` | 1,177 | unchanged |
+| `panels/system_map.rs` | 1,097 | **new** |
+| `panels/relations.rs` | 1,076 | new |
 
-**Priority order** (highest churn first, per `CLAUDE.md` table):
-1. `panels/system.rs` — central inspector, hosts §CTX1 Phase 6 dispatch + system-map embedding.
-2. `panels/world.rs` — pulled in by §6.7 / §6.8 / §6.9.
-3. `panels/control.rs` — five overlays with five rebuild functions.
-4. `panels/history.rs` — wizard + filter + table are independent.
-5. `panels/routes.rs` — bulk + hidden-route builder are independent.
+**Recommended fix.** Priority order (highest churn first):
+1. `panels/system.rs` — `clippy::too_many_arguments` at line 84 suggests an unhealthy entry-point signature already; group the §CTX1 Phase 6 dispatch and bulk operations into siblings.
+2. `panels/history.rs` — wizard + filter + table are independent; clippy hits at 1182/1491 are inside the wizard sub-area.
+3. `panels/world.rs`, `panels/control.rs`, `panels/routes.rs` — follow the `builder/src/builder/state/` split model.
 
 ---
 
-### Finding 4.4 — `BuilderState` is a God Object
+### Finding 4.4 — `BuilderState` God Object (unchanged from prior review)
 
-- **Severity:** Medium → High (grows with each phase)
+- **Severity:** Medium → High (still growing)
 - **Category:** Architecture
-- **Evidence:** `builder/src/builder/state/mod.rs:76-…` — `pub struct BuilderState` has **dozens** of fields spanning: project IO + dirty tracking + command log + cursor + snapshots + capacity + pinned sets + derivation cache + file watcher state + validation debouncer + selection mailboxes (5 typed ids + 1 string) + active tab + map tool + preview + partial regen rect + drag state + 5 transient dialogs (`pending_*`) + rect select + zoom + cache + per-tab UI scratch (region paint, route bulk filters, hidden-route builder, dominance locks, primary-faction locks, control overlay, history wizard, tick log, scroll target, context menu, system context menu, last menu action…).
+- **Evidence:** `builder/src/builder/state/mod.rs:76-731`. Counted `^    pub ` lines → **137 `pub` fields**. File is 731 LOC. The struct mixes: project IO + dirty tracking + command log + cursor + snapshots + capacity + pinned sets + derivation cache + file watcher + validation debouncer + 5 selection mailboxes + active tab + map tool + preview + partial regen rect + drag state + 5+ `pending_*` dialog states + rect select + zoom + view cache + per-tab UI scratch (region paint, route bulk filters, hidden-route builder, history wizard, tick log, scroll target, two context menus, last menu action…).
 
-`CLAUDE.md`'s table for `state/mod.rs` runs to *seven* paragraphs of "Phase X adds Y" appendages. The file header at `builder/src/builder/state/mod.rs:24-36` admits the `impl` blocks are *already* split by concern — but the struct itself has not been.
-
-**Why it matters.** Every panel takes `state: &mut BuilderState` and so has free access to every other panel's UI scratch. Cross-panel coupling is not detectable by the compiler. New phases compound; the CLAUDE.md churn is the symptom, not the cause.
-
-**Recommended fix.** Group fields into sub-structs by concern, exposing them through borrowing helpers. Keep the outer `BuilderState` flat at the top level only for the things every panel needs (`sector`, `config`, `index`, `command_log`, `dirty`, `modal`). Example target:
+**Recommended fix.** Group fields into sub-structs by concern. Start with the smallest, safest win:
 
 ```rust
-pub struct BuilderState {
-    pub sector: GeneratedSector,
-    pub config: AppConfig,
-    pub project: ProjectIo,           // path / dirty / dirty_files / file_mtimes / file_watcher / auto_save
-    pub history: CommandHistory,      // command_log / cursor / capacity / snapshots
-    pub selection: Selection,         // selected_*_id, selected_systems, pinned_*
-    pub map: MapUiState,              // tool, zoom, drag, rect_select, pending_*, ctx menus, view cache
-    pub control: ControlUiState,
-    pub routes: RoutesUiState,
-    pub regions: RegionsUiScratch,
-    pub generation: GenerationUiState,
-    pub validation: ValidationState,  // report, debounce, dirty_since
-    pub derivation_cache: DerivationCache,
-    pub jobs: Vec<JobHandle>,
-    pub modal: Option<ModalKind>,
+// All the pending_* fields collapse into a single concern.
+pub struct DialogState {
+    pub pending_place: Option<PendingPlace>,
+    pub pending_rename: Option<PendingRename>,
+    pub pending_world_rename: Option<PendingWorldRename>,
+    pub pending_collision: Option<PendingCollision>,
+    pub pending_bulk_rename: Option<PendingBulkRename>,
+    pub pending_region_rename: Option<PendingRegionRename>,
+    pub sector_context_menu: Option<SectorContextMenu>,
+    pub system_context_menu: Option<SystemContextMenu>,
 }
 ```
 
-Each `*UiState` lives in `state/<concern>.rs`. Panels then take `&mut state.map` (or similar) rather than the whole world.
+Then `MapUiState`, `RoutesUiState`, `HistoryUiState`, etc. Each lives in `state/<concern>.rs`. Panels then take `&mut state.dialogs` / `&mut state.map` rather than `&mut state` whole.
 
-**Risk of change.** Medium — touches every panel. Can be done incrementally: introduce one sub-struct per PR and keep delegating fields temporarily.
-
-**Quick win first.** Move all `pending_*` fields and both context menus (`sector_context_menu`, `system_context_menu`) into a single `DialogState` sub-struct.
+**Risk of change.** Medium — touches every panel; do one sub-struct per PR.
 
 ---
 
-### Finding 4.5 — Inconsistent module style: nested `mod tests` inside `tests.rs`
+### Finding 4.5 — Inconsistent module style (regression)
 
-- **Severity:** Nit (also fires Clippy in 2.1)
+- **Severity:** Nit (also fires clippy in Finding 2.2)
 - **Category:** Modularity
-- **Evidence:** `src/svg_export/tests.rs:1-2` wraps the tests in `#[cfg(test)] mod tests { ... }` while the parent module already imports them as `mod tests;`. `src/bitmap/tests.rs` follows the same pattern. `src/history/tests.rs` does *not* — it uses bare `#[test] fn ...`.
+- **Evidence:** `src/export/svg_export/tests.rs:1-2` still wraps its tests in `#[cfg(test)] mod tests { ... }`. The sibling `src/export/bitmap/tests.rs` does *not* (uses bare free `#[test]` functions). Identical to the prior review's §4.5.
 
-**Recommended fix.** Standardize on the bare form (matches `history/tests.rs`); remove the outer `mod tests { ... }` in `svg_export/tests.rs` and `bitmap/tests.rs`. Resolves the clippy lint in 2.1.
+**Recommended fix.** Drop the outer `mod tests { ... }` wrapper in `src/export/svg_export/tests.rs`. The file is already included as `mod tests;` from `src/export/svg_export/mod.rs`. Resolves the `module_inception` clippy error.
 
 ---
 
 ## 5. Library Public Surface
 
-### Finding 5.1 — Almost every `src/*.rs` is `pub mod`
+### Finding 5.1 — Public surface is wide but now structured (partial improvement)
 
 - **Severity:** Medium
 - **Category:** API hygiene
-- **Evidence:** `src/lib.rs:24-87` declares 50+ `pub mod`. Only `pub(crate) type FxMap` / `FxSet` are restricted (`src/lib.rs:31-32`). `rg -c 'pub fn' src/` reports **402** `pub fn` and `rg -c 'pub struct |pub enum'` reports **292** definitions.
+- **Evidence:** `src/lib.rs:48-173` declares 7 parent `pub mod`s and ~50 `pub use` re-exports. Only `FxMap`/`FxSet` are `pub(crate)` (`src/lib.rs:54-55`). `rg -c 'pub fn' src/` counts 77 files with `pub fn`. The original concern — "almost every `src/*.rs` is `pub mod`" — is structurally addressed by the parent-module split, but the *re-export surface* is still wide enough that downstream crates can reach any internal type via `sectorforge::<module>::<type>`.
 
-**Why it matters.** Two consumers exist for the library: `sectorforge-builder` and `sectorforge-viewer`. Both need a narrow façade; today, anything inside the crate is reachable. That makes future internal refactors potentially breaking changes.
+**What I found.** The parent-module split is mostly cosmetic from a public-API perspective — the `pub use parent::foo;` block at `src/lib.rs:73-133` re-exports every parent's children. Demoting a child to `pub(crate)` requires both the parent and the re-export to agree.
 
-**Recommended fix.** Pass 1: identify modules whose only out-of-crate consumer is `sectorforge::` re-exports in `src/lib.rs`. Demote those to `pub(crate) mod`. Cross-reference call sites with `rg 'sectorforge::<modname>::' builder/ viewer/ gui-core/`.
+**Recommended fix.** Pass 1: cross-reference call sites: `rg 'sectorforge::<modname>::' builder/ viewer/ gui-core/`. For modules whose only external consumers are `sectorforge::` re-exports inside `lib.rs`, drop both `pub use` and demote the child `pub mod` to `pub(crate) mod`.
 
-For each module currently consumed externally, audit the `pub fn` list and drop unused public symbols to `pub(crate)`.
+For each module still externally consumed, audit the `pub fn` list and drop unused symbols to `pub(crate)`.
 
-Per `REVIEW.md` §6.4: "Are `pub mod` declarations necessary? Could some modules be private?" — currently the answer is *no, and yes* respectively.
-
-**Risk of change.** Low — these are internal-only crates.
+**Risk of change.** Low — internal-only crates.
 
 ---
 
-### Finding 5.2 — Two `MutationError` types coexist
+### Finding 5.2 — Two `MutationError` types still coexist (unchanged from prior review)
 
 - **Severity:** Medium
 - **Category:** Rust Idioms / API
 - **Evidence:**
-  - `src/errors.rs:41-52` — `pub enum MutationError { NotFound, Collision, InvalidCoord, InvalidState }` (`Serialize + Deserialize`, used externally).
-  - `src/sector_model/mutation.rs:21-43` — `pub enum MutationError { SystemNotFound, WorldNotFound, RouteNotFound, FactionNotFound, RegionNotFound, CoordOutOfBounds, CoordOccupied, DuplicateRoute, SelfRoute, EventNotFound }`.
+  - `src/model/errors.rs:43-52` — `pub enum MutationError { NotFound, Collision, InvalidCoord, InvalidState }` (`Serialize + Deserialize`).
+  - `src/model/sector_model/mutation.rs:22-43` — `pub enum MutationError { SystemNotFound, WorldNotFound, RouteNotFound, FactionNotFound, RegionNotFound, CoordOutOfBounds, CoordOccupied, DuplicateRoute, SelfRoute, EventNotFound }`.
 
-Both are *the* error type for mutations, both are named identically, both are `pub`. The first is referenced by `BuilderCommand` (`builder/src/builder/command.rs:14`); the second is the one the mutation API actually raises.
+External consumers (verified via `rg "errors::MutationError|model::errors::MutationError|use crate::errors::MutationError" -r --include='*.rs' . | grep -v target | grep -v old/`): **zero matches**. The only `MutationError` import outside `src/model/errors.rs` is the `sector_model::mutation::MutationError` one used by `builder/src/builder/command.rs:16` and `builder/src/builder/errors.rs:3`.
 
-**Why it matters.** Confusing for new readers and dangerous if the wrong one is imported. The variants do not overlap, so combining them is non-trivial.
+**What I found.** The `src/model/errors.rs::MutationError` enum appears to be **dead code**, kept `pub` and `Serialize + Deserialize` for no observed reason. It is structurally distinct from the live enum (different variant set).
 
-**Recommended fix.** Rename `src/errors.rs::MutationError` → `MutationErrorKind` (or remove if dead) and have callers import only `sector_model::mutation::MutationError`. If both are needed, give one a discriminator name that makes the difference obvious.
+**Recommended fix.**
+1. Confirm with `rg '\bMutationError\b' src/model/errors.rs` and follow the references: it's only defined and not used outside `errors.rs`.
+2. Remove it (or, if a future on-disk format wants it, rename to `MutationErrorKind` and document the role).
 
-**Validation.** `rg 'errors::MutationError' --glob '*.rs'` — confirm the public consumers and update them in one pass.
+**Validation.** `cargo check --workspace --all-targets` + `cargo test --workspace`.
+
+**Risk of change.** Low.
 
 ---
 
-### Finding 5.3 — `Result<Vec<u8>, String>` in production code
+### Finding 5.3 — `Result<Vec<u8>, String>` in production code (unchanged)
 
 - **Severity:** Low
 - **Category:** Rust Idioms
-- **Evidence:** `builder/src/builder/session.rs:305` — `pub fn decode_base64(input: &str) -> Result<Vec<u8>, String>`.
+- **Evidence:** `builder/src/builder/session.rs:307` — `pub fn decode_base64(input: &str) -> Result<Vec<u8>, String>`.
 
-**Why it matters.** Project standard everywhere else is `thiserror`. A string error obscures structure.
-
-**Recommended fix.** Use the `base64` crate (zero-cost, in everyone's tree already, brings its own error type) — *or* define `pub enum Base64DecodeError { ... }` with `thiserror`. The handcrafted decoder is ~50 LOC and has no test seam in `session.rs`.
+**Recommended fix.** Use the `base64` crate. Replaces ~50 LOC and switches `Result<_, String>` to a structured error. See Finding 14.1.
 
 ---
 
 ## 6. Error Handling
 
-### Finding 6.1 — Two error enums (`SectorError`, `MutationError`) duplicated across modules
+### Finding 6.1 — Two `MutationError` enums (covered by 5.2)
 
-Covered by Finding 5.2 above. No central error mapping module — most call sites build `SectorError` via the constructors in `src/errors.rs:54-75`, which is fine.
-
-### Finding 6.2 — Auto-save errors swallowed
+### Finding 6.2 — Auto-save errors swallowed (unchanged from prior review)
 
 - **Severity:** Medium
 - **Category:** Error Handling / Observability
@@ -384,36 +431,37 @@ pub fn trigger_auto_save(&mut self) {
 }
 ```
 
-The serialization failure and the write failure are both silent. `self.dirty = false` *not* being set is the only signal; nothing surfaces to the user.
+The serialisation failure and the write failure are both silent. `self.dirty = false` is *only* set on success; the failure path doesn't update any visible state.
 
-**Why it matters.** A user who saw "dirty marker cleared" can wrongly believe the project is saved. The fail-silent posture risks data loss exactly at the moment the user expects autosave to have run.
+Six call sites observed: `panels/history.rs:1263`, `state/regions_ops.rs:24,38,88`, `state/derivations.rs:159,178,207`.
 
-**Recommended fix.** Capture the error into a `last_auto_save_error: Option<String>` on `BuilderState`, surface it in `panels/status.rs` next to the dirty pip. The status bar already tails `last_menu_action` (per `CLAUDE.md`); add a sibling field.
+**Why it matters.** A user who saw "dirty marker cleared" after autosave can wrongly conclude the project is saved. With six call sites the failure modes are user-invisible across most of the editor surface.
+
+**Recommended fix.** Add `pub last_auto_save_error: Option<String>` (or a `thiserror` enum) to `BuilderState`. Surface it in `panels/status.rs` adjacent to the dirty pip; clear on the next successful save.
 
 **Risk of change.** Low.
 
 ---
 
-### Finding 6.3 — `eprintln!` for warnings in library code
+### Finding 6.3 — `eprintln!` in library code (unchanged from prior review)
 
 - **Severity:** Low
 - **Category:** Observability
 - **Evidence:**
-  - `src/html_export.rs:63-67` — emits "sectorforge: interactive HTML is N bytes (warn threshold M)" to stderr.
-  - `src/main.rs:14` — error path (acceptable; this is the CLI binary).
-  - `src/bin/dhat_profile.rs:43` — acceptable, profiling-only.
+  - `src/export/html_export.rs:63` — "sectorforge: interactive HTML is N bytes (warn threshold M)" warning to stderr from inside the library.
+  - `src/main.rs:14`, `src/cli/generate.rs:45,68,73,114,137,142`, `src/cli/search.rs:29`, `src/cli/common.rs:158`, `src/bin/dhat_profile.rs:43` — all CLI/binary contexts; acceptable.
 
-**Why it matters.** The library currently writes to stderr without a hook. Programmatic consumers (the GUI) cannot redirect this.
+**Recommended fix.** Move the html-export warning into a caller-supplied warning channel — e.g. add `warnings: Vec<String>` to the export return type, or accept a `&mut impl FnMut(&str)` warning sink. Programmatic GUI consumers cannot intercept `eprintln!`.
 
-**Recommended fix.** Either return the warning in a structured way (e.g. add `warnings: Vec<String>` to a result type) or accept an `&mut impl Write` for warnings. For just this single warning, the simplest fix is to push it into `cfg.warnings_callback: Option<Box<dyn Fn(&str)>>` on `HtmlConfig` and default to `eprintln!`-equivalent in the CLI binary.
+**Risk of change.** Low.
 
 ---
 
 ## 7. Async / Concurrency
 
-- **Severity:** N/A — no async runtime in use. `rg 'tokio|async fn|\.await' --glob '*.rs'` is empty in `src/` (only matches are in `docs/`).
-- The single concurrent primitive in the GUI is `Arc<Mutex<f32>>` for progress in `gui-core/src/jobs.rs:11,69` — used only for atomic float updates from background closures; cannot deadlock.
-- Parallelism is via `rayon` in `src/search.rs:1091-1099`. The use is order-preserving (`.collect()` into a `Vec`) — the comment at `Cargo.toml:35-37` explicitly calls out the determinism contract. ✓
+- **Severity:** N/A — no async runtime in use. `rg 'tokio|async fn|\.await' src/ --glob '*.rs'` → 0 hits.
+- Concurrency surface in the GUI is `Arc<Mutex<f32>>` for progress in `gui-core/src/jobs.rs` — atomic float updates only.
+- Parallelism is via `rayon` in `src/analysis/search.rs` (order-preserving `into_par_iter().collect()` per the determinism contract — `Cargo.toml:35-37`). ✓
 
 No findings.
 
@@ -421,30 +469,27 @@ No findings.
 
 ## 8. Security Review
 
-This is an offline content-generation tool with no network surface, no auth, no untrusted user input beyond local TOML/JSON files chosen by the operator. The threat model is therefore narrow.
+Offline content-generation tool. No network surface, no auth, no untrusted user input beyond local TOML/JSON chosen by the operator.
 
-### Finding 8.1 — User-controlled relative paths joined to project root
+### Finding 8.1 — User-controlled relative paths joined to project root (unchanged)
 
 - **Severity:** Low (informational)
 - **Category:** Security
 - **Evidence:**
-  - `src/input.rs:76` — `let data_dir = root_dir.join(&data_dir_rel);` where `data_dir_rel = config.inputs.world_data_dir` (operator-controlled TOML string).
-  - Same pattern at `src/input.rs:233` — `let abs = root.join(rel);`.
-  - `src/presets.rs:72,89,117,138` — preset-relative paths.
+  - `src/loading/input.rs:55` — `let config_path = root_dir.join("sectorforge.toml");`
+  - `src/loading/input.rs:75-77` — `let data_dir_rel = config.inputs.world_data_dir.clone(); let data_dir = root_dir.join(&data_dir_rel);`
+  - `src/loading/input.rs:233` — `let abs = root.join(rel);`
 
-**Why it matters.** The operator chooses both the project root *and* the TOML file, so this is not a privilege boundary in normal usage. If `sectorforge` is ever embedded as a multi-tenant service or invoked on untrusted projects (a shared CI step running PR-submitted projects), an attacker-controlled `world_data_dir = "../../etc/passwd"` would resolve outside the project root.
+**Why it matters.** The operator chooses both the project root *and* the TOML file. Not a privilege boundary in normal usage. If `sectorforge` is ever embedded in a multi-tenant context (a shared CI that runs PR-submitted projects), `world_data_dir = "../../etc/passwd"` would resolve outside the project root.
 
-**Recommended fix.** Normalize and assert containment when the use case requires it: `assert!(data_dir.starts_with(&root_dir));` after canonicalization. For now, document in `src/input.rs` that all relative paths in config are trusted to the same level as the binary that ran them.
-
-**Risk of change.** Low.
+**Recommended fix.** Document in `src/loading/input.rs` that all relative paths in config are trusted to the same level as the binary. If multi-tenant use ever arrives: canonicalise + `assert!(data_dir.starts_with(&root_dir))`.
 
 ---
 
-### Finding 8.2 — `examples/big_test`, `examples/m42_project`, etc. ship `data/` directories — check no secrets
+### Finding 8.2 — `examples/*/data/` ship `.toml` files — no secrets observed (unchanged)
 
 - **Severity:** Low (informational)
-- **Category:** Security
-- **Evidence:** Multiple `examples/*/data` and `examples/*/out` directories exist. `.gitignore:33` excludes `examples/*/out/` but not `examples/*/data/`. Spot-checked — these are toml data files, no secrets.
+- **Evidence:** `examples/big_test`, `examples/big_sparse_test`, `examples/huge_sparse_test`, `examples/llm_test`, `examples/m42_project`, `examples/segmentum_example.toml`. `.gitignore` excludes `examples/*/out/` but not `examples/*/data/`. Spot-checked: deterministic TOML inputs only.
 
 No fix needed; flagged for periodic re-check.
 
@@ -455,122 +500,101 @@ No fix needed; flagged for periodic re-check.
 ### Inventory
 
 ```
-running 165 tests   --> src/ unit tests
-running  84 tests   --> tests/it/* integration tests (5 ignored)
-running 249 tests   --> builder/src/ unit tests
-running  17 tests   --> sectorforge-gui-core unit tests
-running   1 test    --> gui-core/tests/map_snapshots.rs (golden)
-running   3 tests   --> sectorforge-viewer unit tests
-running   6 tests   --> doctests
+running 165 tests   → src/ lib unit tests
+running  84 tests   → tests/it/* integration tests (5 ignored)
+running 249 tests   → builder/src/ unit tests
+running  21 tests   → sectorforge-gui-core unit tests
+running   1 test    → gui-core/tests/map_snapshots.rs (golden)   FAILED
+running   3 tests   → sectorforge-viewer unit tests
+running   6 tests   → doctests
 ```
 
-**Total: 525 tests pass, 5 ignored, 0 failed.**
+**Aggregate: 528 pass, 5 ignored, 1 failed.**
 
-### Strengths
+### Strengths (unchanged from prior review)
 
-- Golden tests for the bitmap export: `tests/it/golden_png.rs` (11 `expect`s for fixture loading — acceptable test pattern).
+- Golden tests for the bitmap export: `tests/it/golden_png.rs`.
 - Property tests for invariants: `tests/it/invariants_proptest.rs`.
-- Round-trip JSON tests embedded in domain modules: `src/html_export.rs:445-487`, `src/diff.rs:1304-1305`, `src/ids.rs:213-215`, `src/prose.rs:469`, `src/sites.rs:812`, `src/interestingness.rs:507`. These guard the serialization contract that the GUI depends on.
-- Per-stage RNG determinism tests: `src/rng.rs:79-108`.
-- `tests/it/cli_gui_parity.rs` — explicit contract test between CLI and GUI derivations.
+- Round-trip JSON tests embedded in domain modules.
+- Per-stage RNG determinism tests: `src/model/rng.rs`.
+- CLI-vs-GUI parity test: `tests/it/cli_gui_parity.rs`.
 
-### Finding 9.1 — Slow test suite imbalance
+### Finding 9.1 — `map_snapshots_match_goldens` is red on `main` (new)
 
-- **Severity:** Low
+- **Severity:** High
 - **Category:** Testing
-- **Evidence:** One test runner takes ≈ 36.7s while every other runner finishes in ≤ 2.3s. Almost certainly an integration test (likely `tests/it/golden_*` or `tests/it/segmentum_tests.rs`).
+- **Evidence:** `gui-core/tests/map_snapshots.rs:354`. See Finding 2.3 for the exact failure. The recent commit ("system view", `4dbd5b7`) is the most likely cause — `gui-core/src/system_view.rs` is also the file where `cargo fmt` regressed.
 
-**Recommended fix.** Run with `cargo test -- --report-time` once to identify the slowest tests; consider gating the heaviest fixtures behind `#[cfg_attr(not(feature = "slow-tests"), ignore)]` or splitting into a separate `large` integration target.
+**Recommended fix.** Inspect the divergent artefact (`target/map_snapshots/current/system_glyphs.png`), then either bless (`UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet`) or roll back. Don't leave `main` red.
 
-**Risk of change.** Low — informational.
+**Risk of change.** Medium — goldens are the visual contract; only bless if the new render is intended.
 
 ---
 
-### Finding 9.2 — `expect("CARGO_MANIFEST_DIR")` pattern repeated across integration tests
+### Finding 9.2 — Slow test suite imbalance (unchanged)
+
+- **Severity:** Low
+- **Category:** Testing
+- **Evidence:** One runner dominates wall time (≈ 36s vs ≤ 2.3s elsewhere) per the prior review. Likely `tests/it/golden_*` or `tests/it/segmentum_tests.rs`.
+
+**Recommended fix.** Add `cargo test -- --report-time` to identify culprits; gate the heaviest behind `#[cfg_attr(not(feature = "slow-tests"), ignore)]`.
+
+---
+
+### Finding 9.3 — `expect("CARGO_MANIFEST_DIR")` pattern repeated across integration tests (unchanged)
 
 - **Severity:** Nit
 - **Category:** Testing
-- **Evidence:** `tests/it/segmentum_tests.rs:9`, `tests/it/analytics_and_presets.rs:6,11`, `tests/it/svg_export_tests.rs:6`, `tests/it/search_and_diff.rs:8`, `tests/it/golden_generation.rs:213`, `tests/it/invariants_tests.rs:306`, `tests/it/validation_tests.rs:51`.
+- **Evidence:** 7 copies across `tests/it/*.rs` per the prior review.
 
-**Recommended fix.** A single `tests/it/common/mod.rs` helper:
-
-```rust
-pub fn manifest_dir() -> camino::Utf8PathBuf {
-    camino::Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-}
-```
-
-Replaces 7 copies; switches `env::var` (runtime) to `env!` (compile-time) which is sufficient for `CARGO_MANIFEST_DIR`.
+**Recommended fix.** Single `tests/it/common/mod.rs` helper returning `Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR"))`.
 
 ---
 
 ## 10. Performance Review
 
-No live measurements taken (out of scope); audit by code reading only.
+No live measurements taken; static reading only.
 
-### Observations (no actionable smells found)
+### Observations (unchanged)
 
-- `src/rng.rs:33-68` `weighted_index` is O(n) per draw — acceptable for sub-million-element pools.
-- Output writers consistently sort by ID first via `BTreeMap` / `BTreeSet`, paying log(n) per insert but giving byte-stable output. Trade-off is intentional and called out in `src/lib.rs:27-32`.
-- `rayon` parallelism in `src/search.rs:1091-1099` is order-preserving (`into_par_iter().collect()` into `Vec`).
-- Heap profiling is wired behind `dhat-heap` feature (`Cargo.toml:38-46`, `src/bin/dhat_profile.rs`). Profiling profile is configured (`Cargo.toml:80-85`).
-- Release profile uses `lto = "fat"`, `codegen-units = 1`, `strip = "symbols"` (`Cargo.toml:67-71`).
+- `src/model/rng.rs::weighted_index` O(n) per draw — acceptable for sub-million pools.
+- Output writers consistently sort by ID first via `BTreeMap`/`BTreeSet` (determinism contract, `src/lib.rs:54-55`).
+- `rayon` parallelism in `src/analysis/search.rs` is order-preserving (`into_par_iter().collect()` → `Vec`).
+- Heap profiling wired behind `dhat-heap` feature (`Cargo.toml:38-46`, `src/bin/dhat_profile.rs`).
+- Release profile: `lto = "fat"`, `codegen-units = 1`, `strip = "symbols"`, `panic = "abort"` (`Cargo.toml:67-71`).
+- Profiling profile defined separately (`Cargo.toml:80-85`).
 
-### Finding 10.1 — `GeneratedSector::all_worlds` is O(systems × worlds)
+### Finding 10.1 — `GeneratedSector::all_worlds` / `get_world` linear (unchanged)
 
 - **Severity:** Nit
 - **Category:** Performance
-- **Evidence:** `src/sector_model/mod.rs:289-291`:
+- **Evidence:** `src/model/sector_model/mod.rs` — `get_world` is O(N×M).
 
-```rust
-pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
-    self.systems.iter().flat_map(|s| s.worlds.iter())
-}
-```
-
-Correct; this is the linear traversal. The lookup variant `get_world` (`mod.rs:274-283`) is also O(N×M):
-
-```rust
-pub fn get_world(&self, id: &WorldId) -> Option<&GeneratedWorld> {
-    for sys in &self.systems {
-        for w in &sys.worlds {
-            if w.id == *id { return Some(w); }
-        }
-    }
-    None
-}
-```
-
-For a typical 24-system sector this is fine. The builder has `BuilderIndex` (`builder/src/builder/index.rs`) which presumably maintains an `id → (system_idx, world_idx)` table; library-level callers fall back to the linear scan.
-
-**Recommended fix.** None for now — typical sectors are small. If profiling ever points here, expose a lazy `OnceCell<HashMap<WorldId, (usize, usize)>>` on the sector. Do *not* preemptively add this — typical N is 24 systems.
+**Recommended fix.** Don't preemptively add a lookup table; typical N is 24 systems. Add a lazy `OnceCell<HashMap<…>>` only if profiling ever points here.
 
 ---
 
 ## 11. Observability Review
 
-- No `tracing`, no structured logging.
-- `eprintln!` is used in the CLI binary (`src/main.rs:14`) and one library location (`src/html_export.rs:63`) — see Finding 6.3.
-- Progress events for generation are exposed structurally as `enum SectorProgress` (`src/generation/mod.rs:31-80+`). Caller-supplied closure pattern — clean.
-- Manifest hashing (`src/sector_model::GenerationManifest` — `seed_hash`, `input_digests`, `settings_digest`) gives reproducibility without runtime logging.
+- No `tracing`, no structured logging (`rg 'tracing::' src/ --glob '*.rs'` → 0 hits; no `log = ` dependency).
+- Library `eprintln!` at `src/export/html_export.rs:63` — see Finding 6.3.
+- Generation progress is structured (`SectorProgress` enum + caller-supplied closure) — clean.
+- Manifest hashing (`src/model/sector_model::GenerationManifest`: `seed_hash`, `input_digests`, `settings_digest`) gives reproducibility without runtime logging.
 
-### Finding 11.1 — No `tracing` / structured logging
+### Finding 11.1 — No `tracing` / structured logging (unchanged)
 
 - **Severity:** Low
 - **Category:** Observability
-- **Evidence:** `rg 'tracing::' src/ --glob '*.rs'` — no hits. No `log = ` in `Cargo.toml`.
 
-**Why it matters.** For a CLI-only single-shot generator, this is fine. For the builder (long-running GUI process), tracing would help debug user-reported "the regenerate panel hangs" / "history wizard skipped a step" issues that aren't reproducible from a save file.
-
-**Recommended fix.** Defer. If/when added, prefer `tracing` + `tracing-subscriber` + `tracing-tree` for builder. Library should accept a `tracing` span from the caller, not initialize its own subscriber.
+**Recommended fix.** Defer. If/when added, prefer `tracing` + `tracing-subscriber` for the builder; the library should accept a `tracing` span from the caller, never initialise a subscriber.
 
 ---
 
 ## 12. Configuration / Secrets
 
-- All config is TOML, parsed via the `toml` crate. Structured DTOs in `src/config.rs:5-…`.
-- No environment variables read in library code (only `CARGO_MANIFEST_DIR` in tests + `HOME` in `builder/src/builder/preferences.rs:28`).
-- No secrets stored anywhere — this is a tabletop content generator, no auth.
+- All config is TOML, parsed via the `toml` crate.
+- No environment variables read in library code (only `CARGO_MANIFEST_DIR` in tests + `HOME` in `builder/src/builder/preferences.rs`).
+- No secrets stored anywhere.
 
 No findings.
 
@@ -578,149 +602,114 @@ No findings.
 
 ## 13. Documentation & DX
 
-### Finding 13.1 — `README.md` is one line ("# 40k-sector-generator")
+### Finding 13.1 — `README.md` is one line (unchanged from prior review)
 
-- **Severity:** Medium (very low-effort fix, very high-effort consequence)
+- **Severity:** Medium
 - **Category:** Documentation
-- **Evidence:** `cat README.md` → `# 40k-sector-generator`. No build instructions, no examples, no "what is this", no link to `GUIDE.md` (which exists and is 257KB) or `OVERVIEW.md` (29KB) or `BUILDER.md` (35KB).
+- **Evidence:** `cat README.md` → `# 40k-sector-generator`. No build, no examples, no link to `GUIDE.md`/`OVERVIEW.md`/`BUILDER.md`/`docs/MAP.md` (all present).
 
-**Why it matters.** A new contributor or external reader cannot tell what to do. The project has *substantial* documentation in `GUIDE.md` + `OVERVIEW.md` + `BUILDER.md` but the entry point is empty.
-
-**Recommended fix.** ≤ 50-line `README.md`:
-
-```markdown
-# sectorforge — deterministic 40k sector generator
-
-A deterministic generator + interactive builder/viewer for Warhammer 40k star sectors.
-Pure Rust, no network calls, byte-stable output for any (seed, inputs) pair.
-
-## Build & run
-
-cargo build
-cargo run --bin sectorforge -- generate --project examples/m42_project --out out
-cargo run --bin sectorforge-viewer -- out/sector.json
-cargo run --bin sectorforge-builder -- --project examples/m42_project
-
-## Layout
-
-- `src/` — library (`sectorforge` crate). Headless generator + derivations.
-- `gui-core/` — shared egui widgets (read-only sector renderer, palette).
-- `viewer/` — viewer/editor binary.
-- `builder/` — builder binary (full editor + command bus + undo).
-
-## Docs
-- `GUIDE.md` — feature-by-feature reference.
-- `OVERVIEW.md` — domain model overview.
-- `BUILDER.md` — builder architecture.
-- `CLAUDE.md` — source layout map.
-
-## Test/lint
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings   # currently fails (see CODEBASE_REVIEW.md §2.1)
-```
+**Recommended fix.** ≤ 50-line `README.md` template (copy from the prior review §13.1).
 
 **Risk of change.** Zero.
 
 ---
 
-### Finding 13.2 — `CLAUDE.md` carries an outsized share of "current state" content
+### Finding 13.2 — `CLAUDE.md` carries "current state" content (unchanged)
 
 - **Severity:** Low
 - **Category:** Documentation
-- **Evidence:** `CLAUDE.md` is 20.5KB; the source-layout table contains paragraphs of "§CTX1 Phase X adds Y" appendages on individual file entries (e.g. the entry for `state/mod.rs` runs across seven sentences describing six phases). This is doubling as architectural changelog rather than a stable map.
+- **Evidence:** `CLAUDE.md` still describes the parent-module split with prose hooks. `docs/MAP.md` exists and carries the file-by-file map, which is the right place for it.
 
-**Why it matters.** `CLAUDE.md` is loaded into the LLM prompt; it should describe steady-state, not history. History belongs in commit messages.
-
-**Recommended fix.** Pass through `CLAUDE.md` and replace "Phase X adds Y" prose with declarative facts ("Holds `pending_world_rename` for the §6.7 rename dialog"). Drop references to specific phase numbers from the file table.
+**Recommended fix.** Continue moving steady-state architectural facts to `docs/MAP.md`; keep `CLAUDE.md` to invariants, agent routing rules, and pointers to deeper docs.
 
 ---
 
-### Finding 13.3 — `INPUT.md` doubles as instructions and as token-saving rules
+### Finding 13.3 — `INPUT.md` doubles as instructions and token-saving rules (unchanged)
 
 - **Severity:** Nit
 - **Category:** Documentation
-- **Evidence:** `INPUT.md:1-27` — agent-context optimization rules; referenced from `CLAUDE.md:3`.
+- **Evidence:** `INPUT.md` is agent-context optimisation rules; referenced from `CLAUDE.md`.
 
-This is fine but worth flagging as a non-standard convention. Document it in the README so future contributors know `INPUT.md` is *not* a feature spec.
+**Recommended fix.** Cross-reference from `README.md` once written so future contributors know `INPUT.md` is *not* a feature spec.
 
 ---
 
 ## 14. Dependencies
 
-| Crate | Used for | Notes |
-|---|---|---|
-| `clap` (4, derive) | CLI parsing | Standard. |
-| `serde` (1, derive, rc) | DTO derives, `Arc<str>` serde | `rc` feature enables `Arc`/`Rc` serde — correct for `Arc<str>` usage. |
-| `serde_json` | JSON IO | Standard. |
-| `toml` (0.8) | Config IO | Standard. |
-| `thiserror` (1) | Domain errors | Standard. |
-| `rand` (0.8) / `rand_chacha` (0.3) | Deterministic RNG | Pinned versions — correct, since `ChaCha8` output is part of the deterministic contract. |
-| `blake3` (1) | Stage-key derivation | `src/rng.rs:9-11`. |
-| `camino` (1, serde1) | UTF-8 paths | Consistent. |
-| `image` (0.25, png only) | Bitmap export | `default-features = false, features = ["png"]` — clean. |
-| `rustc-hash` (2) | `FxHashMap`/`FxHashSet` for internal lookups | Correctly *not* used in output paths. |
-| `rayon` (1) | Search parallelism | Order-preserving usage. |
-| `dhat` (0.3, optional) | Heap profile | Behind `dhat-heap` feature flag. |
-| `eframe` / `egui` (0.29) | GUI (workspace crates only) | Correctly absent from `sectorforge`. |
-| `rfd` (0.17) | File dialogs (builder/viewer) | Confined to GUI crates. |
-| `tempfile` (3, dev) | Test temp dirs | Standard. |
-| `proptest` (1, dev) | Property tests | Standard. |
-| `criterion` (0.5, dev) | Bench harness | Standard. |
+(Audited from `Cargo.toml`, `builder/Cargo.toml`, `viewer/Cargo.toml`, `gui-core/Cargo.toml`. No `Cargo.lock` inspection performed — out of scope for static review.)
 
-### Finding 14.1 — Hand-rolled base64 instead of `base64` crate
+| Crate | Version | Used for | Notes |
+|---|---|---|---|
+| `clap` | 4 (derive) | CLI parsing | Standard. |
+| `serde` | 1 (derive, rc) | DTOs, `Arc<str>` serde | `rc` feature enables `Arc`/`Rc` serde — correct for the `Arc<str>` usage. |
+| `serde_json` | 1 | JSON IO | Standard. |
+| `toml` | 0.8 | Config IO | Standard. |
+| `thiserror` | 1 | Domain errors | Standard. |
+| `rand` | 0.8 | RNG primitives | Pinned. |
+| `rand_chacha` | 0.3 | Deterministic ChaCha8 | Pinned — part of the determinism contract. |
+| `blake3` | 1 | Stage-key derivation | `src/model/rng.rs`. |
+| `camino` | 1 (serde1) | UTF-8 paths | Consistent. |
+| `image` | 0.25 (png only) | Bitmap export | `default-features = false, features = ["png"]` — clean. |
+| `rustc-hash` | 2 | `FxHashMap`/`FxHashSet` internal lookups | Correctly *not* used in output paths. |
+| `rayon` | 1 | Search parallelism | Order-preserving usage. |
+| `dhat` | 0.3 (optional) | Heap profile | Behind `dhat-heap` feature. |
+| `eframe` / `egui` | 0.29 | GUI (workspace crates only) | Absent from `sectorforge` — verified `rg eframe src/` → 0. |
+| `rfd` | 0.17 | File dialogs (builder/viewer) | Confined to GUI crates. |
+| `tempfile` | 3 (dev) | Test temp dirs | Standard. |
+| `proptest` | 1 (dev) | Property tests | Standard. |
+| `criterion` | 0.5 (dev) | Bench harness | Standard. |
+
+### Finding 14.1 — Hand-rolled base64 instead of `base64` crate (unchanged)
 
 - **Severity:** Low
 - **Category:** Dependencies
-- **Evidence:** `builder/src/builder/session.rs:305-…` — ~50 LOC manual base64 decoder with `Result<_, String>`.
+- **Evidence:** `builder/src/builder/session.rs:307` — ~50 LOC manual decoder, `Result<_, String>`.
 
-**Recommended fix.** Add `base64 = "0.22"` to `builder/Cargo.toml` and replace.
-
-**Risk of change.** Low. The session format itself doesn't change — base64 is base64.
+**Recommended fix.** `base64 = "0.22"` in `builder/Cargo.toml`; replace `decode_base64` with `base64::engine::general_purpose::STANDARD.decode(...)`.
 
 ---
 
-### Finding 14.2 — No `cargo-deny` or `cargo-audit` configuration
+### Finding 14.2 — No `cargo-deny` / `cargo-audit` configuration (unchanged)
 
 - **Severity:** Low
 - **Category:** Dependencies
-- **Evidence:** No `deny.toml`; CI absent (Finding 2.2).
 
-**Recommended fix.** Add as part of the CI workflow (Finding 2.2) once it lands.
+**Recommended fix.** Add once CI exists (Finding 2.4).
 
 ---
 
 ## 15. API / Shared-Type Contracts
 
-This is a single-process app — no front-end/back-end HTTP boundary in the `REVIEW.md` sense. The relevant boundary is **library DTOs ↔ on-disk JSON ↔ GUI consumers**.
+Single-process app — no HTTP boundary. Relevant boundary is **library DTOs ↔ on-disk JSON ↔ GUI consumers**.
 
 ### Assessment
 
-- All DTOs in `src/sector_model/mod.rs` derive both `Serialize` and `Deserialize`.
-- `Arc<str>` is used throughout (cheap clone, serde-compatible via `rc` feature).
-- IDs are newtypes: `SystemId`, `WorldId`, `RouteId`, `FactionId` from `src/ids.rs`.
-- Round-trip tests exist (Finding 9 above).
-- `skip_serializing_if` is consistently applied to default/empty fields, so the on-disk JSON stays compact and stable.
+- All DTOs in `src/model/sector_model/mod.rs` derive `Serialize` + `Deserialize`.
+- `Arc<str>` used for borrowed-cost strings (cheap clone, serde-compatible via `rc` feature).
+- IDs are newtypes (`SystemId`, `WorldId`, `RouteId`, `FactionId` in `src/model/ids.rs`).
+- Round-trip tests exist.
+- `skip_serializing_if` applied to default/empty fields → compact stable JSON.
 
-### Finding 15.1 — `chronicle` field is *not* under `Arc` while every other overlay is
+### Finding 15.1 — `chronicle` field is *not* under `Arc` while every other overlay is (unchanged)
 
 - **Severity:** Low
 - **Category:** API Contract
-- **Evidence:** `src/sector_model/mod.rs:25-55`:
+- **Evidence:** `src/model/sector_model/mod.rs:31-52`:
 
 ```rust
-pub influence_field:  Arc<crate::influence_field::InfluenceField>,
-pub power_projection: Arc<crate::power_projection::PowerProjectionMap>,
-pub relations:        Arc<crate::relations::RelationsMatrix>,
-pub regions:          Arc<Vec<crate::regions::WarpRegion>>,
-pub economy:          Arc<crate::economy::EconomyReport>,
+pub influence_field:  std::sync::Arc<crate::influence_field::InfluenceField>,
+pub power_projection: std::sync::Arc<crate::power_projection::PowerProjectionMap>,
+pub relations:        std::sync::Arc<crate::relations::RelationsMatrix>,
+pub regions:          std::sync::Arc<Vec<crate::regions::WarpRegion>>,
+pub economy:          std::sync::Arc<crate::economy::EconomyReport>,
 pub chronicle:        crate::history::SectorChronicle,        // <- not Arc
 ```
 
-**Why it matters.** Inconsistent clone cost. Every other derivation overlay is shared via `Arc`; `chronicle` clones in full whenever the sector is cloned (which the builder does for background jobs per `state/mod.rs:7-14`).
+**Why it matters.** Inconsistent clone cost. The builder clones `GeneratedSector` for background jobs (`state/mod.rs` snapshots); `chronicle` clones in full each time while every sibling is cheap-clone via `Arc`.
 
-**Recommended fix.** Wrap `chronicle` in `Arc` to match. Adjust callers in `src/lib.rs::derive_history` and `src/history/`.
+**Recommended fix.** Wrap `chronicle` in `Arc`. On-disk JSON shape unchanged. Adjust the few mutation sites with `Arc::make_mut` (search `rg 'sector\.chronicle' src/` and `rg 'chronicle =' src/`).
 
-**Risk of change.** Medium — `SectorChronicle` is `Serialize + Deserialize`, so the on-disk JSON shape is unchanged, but every place that mutates `chronicle` in-place needs `Arc::make_mut`. There appear to be only a couple of those (search `rg 'chronicle =' src/` and `rg 'sector.chronicle' src/`).
+**Risk of change.** Medium — touches every place that mutates `chronicle` in-place. Roughly the same number of touchpoints as `relations`, which was successfully `Arc`-wrapped.
 
 ---
 
@@ -728,102 +717,119 @@ pub chronicle:        crate::history::SectorChronicle,        // <- not Arc
 
 | # | Severity | Category | Location | Finding | Action |
 |---:|---|---|---|---|---|
-| 1 | High | Build/CI | `src/bitmap/routes.rs:417`, `src/svg_export/routes.rs:183`, `src/svg_export/tests.rs:2` | Clippy `-D warnings` fails (3 lints) | Fix lints + add CI gate (§2.1) |
-| 2 | High | Build/CI | repo root | No CI workflow | Add `.github/workflows/ci.yml` (§2.2) |
-| 3 | High | Modularity | `builder/src/builder/panels/map.rs` | 3,341-line panel mixing 8+ concerns | Split into `panels/map/` submodule (§4.1) |
-| 4 | Medium → High | Architecture | `builder/src/builder/state/mod.rs` | `BuilderState` God Object, grows every phase | Group fields by concern into sub-structs (§4.4) |
-| 5 | Medium | Modularity | `builder/src/builder/command.rs` | 1,486-line enum + apply | Split `impl` arms by resource (§4.2) |
-| 6 | Medium | Modularity | `builder/src/builder/panels/{history,control,system,world,routes}.rs`, `viewer/src/factions_overview.rs` | 1,000–1,557-line panels | Per-panel split (§4.3) |
-| 7 | Medium | API hygiene | `src/lib.rs:24-87` | 50+ `pub mod` — nothing private | Demote internal modules to `pub(crate)` (§5.1) |
-| 8 | Medium | Rust Idioms | `src/errors.rs:41`, `src/sector_model/mutation.rs:21` | Two `MutationError` enums | Rename + consolidate (§5.2) |
-| 9 | Medium | Error Handling | `builder/src/builder/state/undo.rs:68-78` | Auto-save errors silent | Capture + surface in status bar (§6.2) |
-| 10 | Medium | Documentation | `README.md` | One-line README | Write ≤ 50-line entry-point doc (§13.1) |
-| 11 | Low | Rust Idioms | `builder/src/builder/session.rs:305` | Hand-rolled base64, `Result<_, String>` | Use `base64` crate (§14.1) |
-| 12 | Low | API Contract | `src/sector_model/mod.rs:48-52` | `chronicle` not wrapped in `Arc` like sibling overlays | Wrap + audit mutate sites (§15.1) |
-| 13 | Low | Security | `src/input.rs:76,233`, `src/presets.rs` | Operator-controlled relative paths joined to project root | Document trust assumption (§8.1) |
-| 14 | Low | Observability | `src/html_export.rs:63` | `eprintln!` in library | Move to caller-supplied warning channel (§6.3) |
-| 15 | Low | Documentation | `CLAUDE.md` | Source layout doubles as phase changelog | Strip phase prose, keep facts (§13.2) |
-| 16 | Low | Testing | tests | One suite ≈ 36.7s vs ≤ 2.3s for others | Profile + isolate slow tests (§9.1) |
-| 17 | Low | Build/CI | repo root | No `deny.toml` / `cargo audit` | Add after CI lands (§2.3, §14.2) |
-| 18 | Nit | Modularity | `src/svg_export/tests.rs`, `src/bitmap/tests.rs` | `mod tests { ... }` inside `tests.rs` | Drop wrapper (§4.5) — also resolves a clippy lint |
-| 19 | Nit | Testing | `tests/it/*.rs` (7 files) | `env::var("CARGO_MANIFEST_DIR").expect(..)` repeated | Single helper (§9.2) |
-| 20 | Nit | Documentation | `INPUT.md` | Doubles as agent rules + project doc | Cross-reference in README (§13.3) |
+| 1 | High | Build/CI | `gui-core/src/system_view.rs` | `cargo fmt` red (regression) | `cargo fmt --all` (§2.1) |
+| 2 | High | Build/CI | 5 files | `cargo clippy -D warnings` red — 17 errors in 7 categories | Fix lints one category per PR (§2.2) |
+| 3 | High | Testing | `gui-core/tests/map_snapshots.rs:354` | `map_snapshots_match_goldens` fails on `system_glyphs.png` | Bless or revert (§2.3, §9.1) |
+| 4 | High | Build/CI | repo root | No CI workflow | Add `.github/workflows/ci.yml` (§2.4) |
+| 5 | Medium → High | Architecture | `builder/src/builder/state/mod.rs:76-731` | `BuilderState` God Object — 137 `pub` fields | Group fields into sub-structs (§4.4) |
+| 6 | Medium | Modularity | `builder/src/builder/panels/map/{mod,context_menu}.rs` | Two files still > 1,000 LOC after the prior split | Continue the split (§4.1) |
+| 7 | Medium | Modularity | `builder/src/builder/command.rs` | 1,486 LOC; clippy hits at 8 lines | Split impl arms by resource (§4.2) |
+| 8 | Medium | Modularity | `builder/src/builder/panels/{history,system,control,world,routes,system_map,relations}.rs`, `viewer/src/factions_overview.rs`, `gui-core/src/{sector_view,info_panel}.rs` | 9 files > 1,000 LOC | Per-panel split (§4.3) |
+| 9 | Medium | API hygiene | `src/lib.rs:48-173` | Wide `pub mod` + `pub use` surface | Demote externally-unused children to `pub(crate)` (§5.1) |
+| 10 | Medium | Rust Idioms | `src/model/errors.rs:43` | `MutationError` enum here is **dead** (zero external consumers) | Delete or rename (§5.2) |
+| 11 | Medium | Error Handling | `builder/src/builder/state/undo.rs:68-78` | Auto-save errors silent across 6 call sites | Capture + surface in status bar (§6.2) |
+| 12 | Medium | Documentation | `README.md` | One-line README | Write ≤ 50-line entry-point doc (§13.1) |
+| 13 | Low | Rust Idioms | `builder/src/builder/session.rs:307` | Hand-rolled base64; `Result<_, String>` | Use `base64` crate (§14.1) |
+| 14 | Low | API Contract | `src/model/sector_model/mod.rs:52` | `chronicle` not `Arc`-wrapped like siblings | Wrap + audit mutate sites (§15.1) |
+| 15 | Low | Security | `src/loading/input.rs:55,75-77,233` | Operator-controlled relative paths joined to project root | Document trust assumption (§8.1) |
+| 16 | Low | Observability | `src/export/html_export.rs:63` | `eprintln!` in library code | Move to caller-supplied warning channel (§6.3) |
+| 17 | Low | Documentation | `CLAUDE.md` | Some "current state" content lingering | Move steady-state facts to `docs/MAP.md` (§13.2) |
+| 18 | Low | Testing | tests | One integration suite dominates wall time | Profile + isolate slow tests (§9.2) |
+| 19 | Low | Build/CI | repo root | No `deny.toml` / `cargo audit` | Add after CI lands (§2.5, §14.2) |
+| 20 | Nit | Modularity | `src/export/svg_export/tests.rs` | `mod tests { ... }` wrapper triggers `module_inception` | Drop wrapper (§4.5) — resolves one clippy error |
+| 21 | Nit | Testing | `tests/it/*.rs` (7 files) | `env::var("CARGO_MANIFEST_DIR").expect(..)` repeated | Single helper (§9.3) |
+| 22 | Nit | Documentation | `INPUT.md` | Doubles as agent rules + project doc | Cross-reference in README (§13.3) |
 
 ---
 
 ## 17. Refactoring Roadmap
 
-### Stage 0 — Safety net (≤ 1 day)
-1. Fix the 3 clippy lints (§2.1).
-2. Add CI workflow with fmt + clippy + test gates (§2.2).
-3. Write the README (§13.1).
-4. Add `last_auto_save_error` and surface it (§6.2).
+### Stage 0 — Restore green (≤ half a day)
 
-**Exit criteria.** Clippy green; CI green; new contributor can `cargo run` from the README.
+1. **Bless or revert the golden** (§9.1). Don't leave `main` red.
+2. `cargo fmt --all` (§2.1).
+3. Fix the 17 clippy lints (§2.2). One PR per category recommended; the whole set is mechanical.
+4. Add `.github/workflows/ci.yml` (§2.4) — locks in the gates so this doesn't recur.
 
-### Stage 1 — Module hygiene (≤ 1 week)
-1. Consolidate `MutationError` (§5.2).
-2. Audit `pub mod` → `pub(crate) mod` in `src/lib.rs` (§5.1). One PR per module group.
-3. Drop the `mod tests` wrapper in `tests.rs` files (§4.5).
-4. Replace handcrafted base64 (§14.1).
-5. Wrap `chronicle` in `Arc` (§15.1).
+**Exit criteria.** `cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` all exit 0 on `main`.
 
-**Exit criteria.** No external behavior change; `cargo doc` shows a narrower public surface.
+### Stage 1 — Quick hygiene (≤ 1 day total, parallelisable)
 
-### Stage 2 — Builder file splits (≤ 2 weeks, parallelizable)
-1. Split `builder/src/builder/panels/map.rs` (§4.1).
-2. Split `builder/src/builder/command.rs` (§4.2).
-3. Split `builder/src/builder/state/mod.rs` God Object incrementally (§4.4) — one sub-struct per PR, start with `DialogState`.
-4. Split panels in priority order: `system.rs` → `world.rs` → `control.rs` → `history.rs` → `routes.rs` (§4.3).
+1. Write the README (§13.1).
+2. Delete dead `MutationError` in `src/model/errors.rs:43` (§5.2).
+3. Add `last_auto_save_error` to `BuilderState`; surface in status bar (§6.2).
+4. Drop the `mod tests` wrapper in `src/export/svg_export/tests.rs` (§4.5) — also resolves a clippy lint, so do it as part of Stage 0 if convenient.
+5. Replace hand-rolled base64 (§14.1).
+6. Wrap `chronicle` in `Arc` (§15.1).
+7. Add a `tests/it/common/mod.rs` helper for `CARGO_MANIFEST_DIR` (§9.3).
+
+**Exit criteria.** No external behavior change. `cargo doc --workspace --no-deps` shows a narrower public surface (after Findings 5.1, 5.2).
+
+### Stage 2 — Builder file splits (≤ 2 weeks, parallelisable)
+
+1. Continue splitting `builder/src/builder/panels/map/mod.rs` (§4.1) → `canvas.rs` + slimmer `mod.rs`.
+2. Split `panels/map/context_menu.rs` by phase (§4.1).
+3. Split `builder/src/builder/command.rs` impl arms by resource (§4.2).
+4. Group `BuilderState` fields into sub-structs (§4.4) — start with `DialogState` as the smallest, safest win, one sub-struct per PR.
+5. Split panels in priority order: `panels/system.rs` → `panels/history.rs` → `panels/control.rs` → `panels/world.rs` → `panels/routes.rs` → `panels/system_map.rs` → `panels/relations.rs` (§4.3).
 
 **Exit criteria.** No file over ~700 LOC in `builder/src/builder/panels/`. `cargo test -p sectorforge-builder` still green.
 
 ### Stage 3 — Observability + DX (≤ 1 week)
+
 1. Replace `eprintln!` in library with caller-supplied warning channel (§6.3).
-2. Update `CLAUDE.md` to drop phase prose (§13.2).
+2. Migrate "current state" lingering in `CLAUDE.md` into `docs/MAP.md` (§13.2).
 3. Optional: add `tracing` to the builder (§11.1).
-4. Optional: profile + isolate slow tests (§9.1).
+4. Optional: profile + isolate slow tests (§9.2).
+5. Optional: `deny.toml` + `cargo audit` jobs (§2.5, §14.2).
 
 ---
 
 ## 18. Quick Wins (≤ 1 day each)
 
-1. **Fix the 3 clippy lints.** §2.1 — three two-line edits.
-2. **Write `README.md`.** §13.1 — template given above.
-3. **Add `.github/workflows/ci.yml`.** §2.2 — template given above.
-4. **Add `last_auto_save_error` to `BuilderState` and tail it in the status bar.** §6.2 — one new `Option<String>` field + 4 lines in `status.rs`.
-5. **Drop `mod tests { ... }` wrapper in `src/svg_export/tests.rs` + `src/bitmap/tests.rs`.** §4.5 — also clears one clippy lint.
-6. **Replace hand-rolled base64 with `base64` crate.** §14.1 — drops ~50 LOC.
-7. **Add a tests helper for `CARGO_MANIFEST_DIR`.** §9.2 — removes 7 copies.
-8. **Wrap `chronicle` in `Arc` to match sibling overlays.** §15.1 — small consistency fix.
+1. **`cargo fmt --all`.** §2.1 — zero-risk format.
+2. **Bless or revert the failing golden.** §2.3 — required to restore green.
+3. **Drop `mod tests { ... }` wrapper in `src/export/svg_export/tests.rs`.** §4.5 — resolves one clippy error and a style nit at the same time.
+4. **Fix `clippy::clone_on_copy` (5 sites).** §2.2 — `rg "\.clone\(\)" builder/src/builder/{command,panels/map/context_menu}.rs` + remove on `StabilityState`.
+5. **Fix `clippy::field_reassign_with_default` (3 sites).** §2.2 — clippy gives the exact suggestion at each line.
+6. **Write `README.md`.** §13.1 — template in the prior review.
+7. **Add `.github/workflows/ci.yml`.** §2.4 — template above.
+8. **Delete dead `MutationError` in `src/model/errors.rs`.** §5.2 — zero external consumers.
+9. **Add `last_auto_save_error` + tail it in `panels/status.rs`.** §6.2.
+10. **Wrap `chronicle` in `Arc`.** §15.1 — small consistency fix.
 
 ---
 
-## 19. Validation Checklist (for the maintainer applying these fixes)
+## 19. Validation Checklist
 
 ```bash
 # After each change set:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-cargo doc --workspace --no-deps   # confirms public surface shrinks as expected
+cargo doc --workspace --no-deps   # confirms public surface shrinks when expected
 ```
 
 For Stage 2 split PRs additionally:
-- Smoke-test every context menu schema in the builder (`§CTX1` Phase 1-7).
+- Smoke-test every context-menu schema in the builder (§CTX1 Phase 1-7).
 - Confirm session round-trip via "open project → make a change → save → reopen".
-- Re-generate `examples/m42_project` and diff against the pre-refactor JSON.
+- Re-generate `examples/m42_project` and `diff` against pre-refactor JSON.
+
+For golden updates:
+- `UPDATE_MAP_SNAPSHOTS=1 cargo test -p sectorforge-gui-core map_snapshots_match_goldens --quiet`
+- Then commit both the updated golden PNG and the test file.
 
 ---
 
 ## 20. Open Questions
 
-These are *not* blocking the review — each is a clarification that would make follow-up work more precise.
+These do *not* block the review.
 
-1. **Is the workspace ever expected to grow a network surface?** The current architecture assumes single-process. If yes, the audit findings in §8 become higher-severity.
-2. **Are external consumers of the `sectorforge` library expected (outside this workspace)?** If yes, the `pub mod` audit (§5.1) is mandatory and the version pinning policy needs to be decided.
-3. **Is there a target deletion plan for `old/`?** It is excluded by `CLAUDE.md` instruction and `.gitignore`, but it sits in working tree.
-4. **Is `docs/CONTEXT_MENU.txt` the canonical spec for the `§CTX1` series?** That would let me cross-check `panels/map.rs` against the spec to see *which* responsibilities legitimately belong together.
+1. **Is the test failure in `system_glyphs.png` intentional?** The "system view" commit landed without blessing the golden — was this a missed step, or was the visual change unintended?
+2. **Is the workspace ever expected to grow a network surface?** §8 findings sharpen if so.
+3. **Are external consumers of the `sectorforge` library expected (outside this workspace)?** If yes, the `pub mod` / `pub use` audit (§5.1) becomes mandatory.
+4. **Is there a target deletion plan for `old/`?** It is excluded by `CLAUDE.md` and `.gitignore` but still sits in the working tree.
+5. **Is `docs/CONTEXT_MENU.txt` the canonical spec for the `§CTX1` series?** Confirms the §4.1 split boundaries.
 
 ---
 
@@ -832,9 +838,10 @@ These are *not* blocking the review — each is a clarification that would make 
 - [x] Every finding cites a file path; most cite line numbers.
 - [x] Facts, inferences, and recommendations are separated within each finding.
 - [x] Severity assigned per the `REVIEW.md` rubric.
-- [x] No invented files, symbols, or behaviors.
+- [x] No invented files, symbols, or behaviours.
 - [x] Both library (`src/`) and GUI crates (`builder/`, `viewer/`, `gui-core/`) reviewed.
 - [x] Shared/contract boundary (DTOs + JSON) reviewed in §15.
+- [x] Compared to the previous review on commit `d8b7554` — resolved/regressed/still-open status given for every prior finding.
 - [x] Quick wins separated from stage roadmap.
 - [x] Validation commands provided.
-- [x] Reviewer noted what was *not* measured (perf, security beyond static review).
+- [x] Real exit codes verified (the prior baseline table mis-captured a clippy failure as `EXIT=0`; this review captured `EXIT=101` correctly).

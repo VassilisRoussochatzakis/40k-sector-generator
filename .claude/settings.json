@@ -16,7 +16,15 @@
       "Bash(bash /tmp/check_refs.sh)",
       "Bash(cat > *)",
       "Bash(bash /tmp/fast_check.sh)",
-      "Bash(bash /tmp/find_single.sh)"
+      "Bash(bash /tmp/find_single.sh)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(awk '$1 > 700 {n++} END{print n \" files > 700 LOC\"}')",
+      "Bash(awk '$1 > 500 {n++} END{print n \" files > 500 LOC\"}')",
+      "Bash(awk '$1 > 250 {n++} END{print n \" files > 250 LOC\"}')",
+      "Bash(awk '/^running/ {print; getline; while\\(NR<NR+2 && $0!~/test result/\\) {getline}} /test result/ {print}' /private/tmp/claude-501/-Users-vassilis-Documents-40k-sector-generator/557c5cfc-d30d-4597-8dcb-1d0b563f4428/tasks/b4xbcrkiq.output)",
+      "Bash(awk '/#\\\\[cfg\\\\\\(test\\\\\\)\\\\]/{intests=1} intests==0 && /unwrap\\\\\\(\\\\\\)|expect\\\\\\(/ {print FILENAME\":\"NR\":\"$0}' builder/src/builder/*.rs)",
+      "Bash(awk 'BEGIN{intests=0} /#\\\\[cfg\\\\\\(test\\\\\\)\\\\]/{intests=1; next} /\\\\}\\\\s*$/{} intests==0 && /unwrap\\\\\\(\\\\\\)|expect\\\\\\(/ {print FILENAME\":\"NR\":\"$0}' builder/src/builder/state/mod.rs builder/src/builder/state/undo.rs builder/src/builder/state/derivations.rs builder/src/builder/command.rs)",
+      "Bash(awk 'BEGIN{intests=0} /#\\\\[cfg\\\\\\(test\\\\\\)\\\\]/{intests=1} /unwrap\\\\\\(\\\\\\)|expect\\\\\\(/{ if\\(!intests\\) print FILENAME\":\"NR\":\"$0}' builder/src/builder/panels/*.rs builder/src/builder/panels/map/*.rs)"
     ],
     "additionalDirectories": [
       "\\tmp"

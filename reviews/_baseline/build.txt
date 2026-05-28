@@ -1,0 +1,5 @@
+   Compiling sector-generator v0.1.0 (/Users/vassilis/Documents/40k-sector-generator)
+   Compiling sectorforge-viewer v0.1.0 (/Users/vassilis/Documents/40k-sector-generator/viewer)
+   Compiling sectorforge-builder v0.1.0 (/Users/vassilis/Documents/40k-sector-generator/builder)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.51s
+exit=0

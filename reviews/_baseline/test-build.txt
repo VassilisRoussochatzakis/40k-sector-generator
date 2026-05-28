@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+  Executable unittests src/lib.rs (target/debug/deps/sectorforge-3bc53ad3ae1557e8)
+  Executable unittests src/main.rs (target/debug/deps/sectorforge-58e057f80f495df9)
+  Executable tests/it.rs (target/debug/deps/it-d6fadb25aaa60576)
+  Executable unittests src/lib.rs (target/debug/deps/sectorforge_builder-540c8c0e9b024472)
+  Executable unittests src/main.rs (target/debug/deps/sectorforge_builder-e3c6e304a05bb141)
+  Executable unittests src/lib.rs (target/debug/deps/sectorforge_gui_core-b1230e12ac9883a6)
+  Executable tests/map_snapshots.rs (target/debug/deps/map_snapshots-2011ada29c312c24)
+  Executable unittests src/lib.rs (target/debug/deps/sectorforge_viewer-d95505a4d1bc70ce)
+  Executable unittests src/main.rs (target/debug/deps/sectorforge_viewer-cbbab97da91388ac)
+exit=0

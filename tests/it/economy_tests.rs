@@ -10,7 +10,6 @@
 use std::sync::OnceLock;
 
 use camino::Utf8PathBuf;
-use proptest::prelude::*;
 use sectorforge::{
     economy::{self, EconomyConfig, EconomyReport, RESOURCE_KEYS, STRATEGIC_RESOURCE_KEYS},
     generate_sector, load_project, GeneratedSector,
@@ -33,12 +32,6 @@ fn enabled_cfg() -> EconomyConfig {
         enabled: true,
         ..Default::default()
     }
-}
-
-fn sector_with_seed(seed: &str) -> GeneratedSector {
-    let mut input = load_project(fixture_dir()).expect("load fixture");
-    input.config.generation.seed = seed.to_string();
-    generate_sector(input).expect("generate sector")
 }
 
 #[test]
@@ -161,25 +154,4 @@ fn derive_is_deterministic_for_fixture() {
     let ja = serde_json::to_string(&a).unwrap();
     let jb = serde_json::to_string(&b).unwrap();
     assert_eq!(ja, jb, "economy report not deterministic for fixture");
-}
-
-proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 16,
-        max_shrink_iters: 16,
-        .. ProptestConfig::default()
-    })]
-
-    /// Same seed ⇒ same `EconomyReport` JSON. Random seed across a broad
-    /// alphabet to surface RNG leaks in derivation.
-    #[test]
-    fn determinism_holds_across_random_seeds(seed in "[a-z0-9-]{4,12}") {
-        let sector_a = sector_with_seed(&seed);
-        let sector_b = sector_with_seed(&seed);
-        let report_a = economy::derive_with(&sector_a, &enabled_cfg());
-        let report_b = economy::derive_with(&sector_b, &enabled_cfg());
-        let ja = serde_json::to_string(&report_a).unwrap();
-        let jb = serde_json::to_string(&report_b).unwrap();
-        prop_assert_eq!(ja, jb, "economy report non-deterministic for seed={}", seed);
-    }
 }

@@ -1,6 +1,7 @@
 //! Sector export: JSON, Markdown, manifest. All file-creating code lives here.
 
 use std::fs;
+use std::io::{BufWriter, Write as _};
 
 use camino::Utf8Path;
 use serde::Serialize;
@@ -52,9 +53,13 @@ pub(crate) fn write_md_and_json<T: Serialize>(
     let md_path = output_dir.join(format!("{base_name}.md"));
     fs::write(&md_path, md).map_err(|e| SectorError::io(md_path.as_str(), e))?;
     let json_path = output_dir.join(format!("{base_name}.json"));
-    let json = serde_json::to_string_pretty(json_payload)
+    let file = fs::File::create(&json_path).map_err(|e| SectorError::io(json_path.as_str(), e))?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(&mut writer, json_payload)
         .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))
+    writer
+        .flush()
+        .map_err(|e| SectorError::io(json_path.as_str(), e))
 }
 
 pub fn export_all(

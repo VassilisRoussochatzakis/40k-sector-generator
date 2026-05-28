@@ -113,6 +113,8 @@ impl SessionFile {
             derivation_cache: DerivationCache::new(),
             dirty: false,
             auto_save_path: None,
+            last_save_error: None,
+            last_catalog_error: None,
             validation_report: None,
             invariant_report: None,
             modal: None,

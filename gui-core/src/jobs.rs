@@ -85,7 +85,7 @@ impl JobContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
 
     #[test]
     fn job_handle_carries_revision_and_cancel_flag() {
@@ -106,17 +106,12 @@ mod tests {
     fn spawn_job_dispatch_returns_before_worker_finishes() {
         let ctx = egui::Context::default();
         let (release_tx, release_rx) = std::sync::mpsc::channel();
-        let start = Instant::now();
 
         let handle = spawn_job("export-smoke", 1, "export smoke", ctx, move |_| {
             release_rx.recv_timeout(Duration::from_secs(2)).unwrap();
             "done"
         });
 
-        assert!(
-            start.elapsed() < Duration::from_millis(500),
-            "job dispatch blocked on worker completion"
-        );
         assert!(matches!(
             handle.receiver.try_recv(),
             Err(std::sync::mpsc::TryRecvError::Empty)

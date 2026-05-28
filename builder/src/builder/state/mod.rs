@@ -95,6 +95,14 @@ pub struct BuilderState {
     pub derivation_cache: DerivationCache,
     pub dirty: bool,
     pub auto_save_path: Option<Utf8PathBuf>,
+    /// Last error encountered by [`Self::trigger_auto_save`], or `None` if
+    /// the most recent attempt succeeded. Rendered in the status bar.
+    pub last_save_error: Option<String>,
+    /// Last error encountered when reloading a catalog from disk (e.g. when
+    /// the file watcher fired after an edit on disk). Rendered in the status
+    /// bar so silent TOML parse failures no longer leave the editor showing
+    /// stale state without warning. Cleared on the next successful reload.
+    pub last_catalog_error: Option<String>,
     pub validation_report: Option<ValidationReport>,
     pub invariant_report: Option<InvariantReport>,
     pub modal: Option<ModalKind>,
@@ -521,6 +529,25 @@ pub struct BuilderState {
 }
 
 impl BuilderState {
+    /// O(log n) lookup of a system by id. Backed by [`BuilderIndex::systems`].
+    /// Prefer this over `state.sector.systems.iter().find(|s| s.id == ...)`.
+    #[must_use]
+    pub fn system_by_id(
+        &self,
+        id: &sectorforge::ids::SystemId,
+    ) -> Option<&sectorforge::sector_model::GeneratedSystem> {
+        self.index
+            .systems
+            .get(id)
+            .and_then(|&i| self.sector.systems.get(i))
+    }
+
+    /// O(log n) lookup of the slice index for a system id.
+    #[must_use]
+    pub fn system_index_by_id(&self, id: &sectorforge::ids::SystemId) -> Option<usize> {
+        self.index.systems.get(id).copied()
+    }
+
     /// Construct a brand-new blank builder session sized `width x height`.
     pub fn new_blank(id: &str, title: &str, seed: &str, width: u32, height: u32) -> Self {
         let sector = GeneratedSector::empty(id, title, seed, width, height);
@@ -540,6 +567,8 @@ impl BuilderState {
             derivation_cache: DerivationCache::new(),
             dirty: false,
             auto_save_path: None,
+            last_save_error: None,
+            last_catalog_error: None,
             validation_report: None,
             invariant_report: None,
             modal: None,

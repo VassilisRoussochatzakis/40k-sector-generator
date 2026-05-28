@@ -178,6 +178,7 @@ pub const GENERATOR_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::{BufWriter, Write as _};
 
 use camino::Utf8Path;
 
@@ -394,10 +395,17 @@ pub fn write_sector_json(
     path: impl AsRef<Utf8Path>,
     sector: &GeneratedSector,
 ) -> Result<(), SectorError> {
-    let p = path.as_ref();
-    let text = serde_json::to_string_pretty(sector)
+    write_json_pretty(path.as_ref(), sector)
+}
+
+/// Stream a serializable value to disk as pretty JSON via a [`BufWriter`].
+/// Avoids allocating the whole document as a `String` before writing.
+fn write_json_pretty<T: serde::Serialize>(p: &Utf8Path, value: &T) -> Result<(), SectorError> {
+    let file = fs::File::create(p).map_err(|e| SectorError::io(p.as_str(), e))?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(&mut writer, value)
         .map_err(|e| SectorError::export(p.as_str(), e.to_string()))?;
-    fs::write(p, text).map_err(|e| SectorError::io(p.as_str(), e))
+    writer.flush().map_err(|e| SectorError::io(p.as_str(), e))
 }
 
 /// Write a standalone [`GeneratedSystem`] to disk as pretty JSON.
@@ -409,10 +417,7 @@ pub fn write_system_json(
     path: impl AsRef<Utf8Path>,
     system: &GeneratedSystem,
 ) -> Result<(), SectorError> {
-    let p = path.as_ref();
-    let text = serde_json::to_string_pretty(system)
-        .map_err(|e| SectorError::export(p.as_str(), e.to_string()))?;
-    fs::write(p, text).map_err(|e| SectorError::io(p.as_str(), e))
+    write_json_pretty(path.as_ref(), system)
 }
 
 /// Spec §13 NEXT: write a [`SectorSave`] (IDs-only runtime state) to JSON.
@@ -422,10 +427,7 @@ pub fn write_system_json(
 /// Returns [`SectorError::ExportFailed`] when serialisation fails and
 /// [`SectorError::Io`] when the file cannot be written.
 pub fn write_sector_save(path: impl AsRef<Utf8Path>, save: &SectorSave) -> Result<(), SectorError> {
-    let p = path.as_ref();
-    let text = serde_json::to_string_pretty(save)
-        .map_err(|e| SectorError::export(p.as_str(), e.to_string()))?;
-    fs::write(p, text).map_err(|e| SectorError::io(p.as_str(), e))
+    write_json_pretty(path.as_ref(), save)
 }
 
 /// Spec §13 NEXT: load a [`SectorSave`] from disk.

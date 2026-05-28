@@ -27,7 +27,11 @@
       "Bash(awk 'BEGIN{intests=0} /#\\\\[cfg\\\\\\(test\\\\\\)\\\\]/{intests=1} /unwrap\\\\\\(\\\\\\)|expect\\\\\\(/{ if\\(!intests\\) print FILENAME\":\"NR\":\"$0}' builder/src/builder/panels/*.rs builder/src/builder/panels/map/*.rs)",
       "Bash(grep -c \"^#\\\\[non_exhaustive\\\\]$\" src/worlds_toml.rs src/worlds.rs src/model/errors.rs)",
       "Bash(awk 'NR==238,/^}$/' src/cli/common.rs)",
-      "Bash(grep \"disallowed_methods\\\\|note: \\\\`#\\\\[\")"
+      "Bash(grep \"disallowed_methods\\\\|note: \\\\`#\\\\[\")",
+      "Bash(rg -n '^pub \\(fn|struct|enum\\)' /Users/vassilis/Documents/40k-sector-generator/builder/src/builder/panels/*.rs)",
+      "Bash(bc)",
+      "Bash(xargs rg -l 'rewrite_seed')",
+      "Bash(rg -n 'Command::' /Users/vassilis/Documents/40k-sector-generator/tests/it/*.rs)"
     ],
     "additionalDirectories": [
       "\\tmp"

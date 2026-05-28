@@ -820,8 +820,41 @@ pub fn drain_watcher_events(state: &mut BuilderState) {
         let abs = root.join(&ev.rel_path);
         if let Ok(text) = fs::read_to_string(Path::new(abs.as_str())) {
             let rel = ev.rel_path.clone();
-            reload_catalog(state, &rel, &text);
+            match reload_catalog(state, &rel, &text) {
+                Ok(()) => {
+                    state.last_catalog_error = None;
+                }
+                Err(e) => {
+                    state.last_catalog_error = Some(e.to_string());
+                }
+            }
         }
+    }
+}
+
+/// Error returned by [`reload_catalog`] when an on-disk catalog edit
+/// triggered by the file watcher can no longer be parsed. Stored in
+/// [`BuilderState::last_catalog_error`] so the status bar surfaces it.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum CatalogReloadError {
+    #[error("parse {kind} from {rel}: {message}")]
+    Parse {
+        kind: &'static str,
+        rel: String,
+        message: String,
+    },
+}
+
+fn reload_err(
+    kind: &'static str,
+    rel: &str,
+    e: impl std::fmt::Display,
+) -> CatalogReloadError {
+    CatalogReloadError::Parse {
+        kind,
+        rel: rel.to_string(),
+        message: e.to_string(),
     }
 }
 
@@ -829,12 +862,20 @@ pub fn drain_watcher_events(state: &mut BuilderState) {
 /// against `state.config.inputs.<key>` so renames in `sectorforge.toml`
 /// are honoured. Public so the conflict-resolver panel can call it after
 /// the user picks "Reload from disk".
-pub fn reload_catalog(state: &mut BuilderState, rel: &str, text: &str) {
+///
+/// Returns `Ok(())` on success or when `rel` does not match any known
+/// catalog (the caller usually doesn't care). Returns `Err` with the
+/// underlying TOML parse message when the file *did* match a catalog but
+/// failed to parse — previously these errors were silently swallowed.
+pub fn reload_catalog(
+    state: &mut BuilderState,
+    rel: &str,
+    text: &str,
+) -> Result<(), CatalogReloadError> {
     if rel == "sectorforge.toml" {
-        if let Ok(cfg) = toml::from_str::<AppConfig>(text) {
-            state.config = cfg;
-        }
-        return;
+        state.config =
+            toml::from_str::<AppConfig>(text).map_err(|e| reload_err("AppConfig", rel, e))?;
+        return Ok(());
     }
     let worlds_rel = format!(
         "{}/{}",
@@ -842,85 +883,85 @@ pub fn reload_catalog(state: &mut BuilderState, rel: &str, text: &str) {
         sectorforge::worlds_toml::DEFAULT_FILENAME
     );
     if rel == worlds_rel {
-        if let Ok(cfg) = sectorforge::worlds_toml::WorldsConfig::from_str(text) {
-            state.data_catalogs.worlds = Some(cfg);
-        }
-        return;
+        let cfg = sectorforge::worlds_toml::WorldsConfig::from_str(text)
+            .map_err(|e| reload_err("WorldsConfig", rel, e))?;
+        state.data_catalogs.worlds = Some(cfg);
+        return Ok(());
     }
     if state.config.inputs.factions.as_deref() == Some(rel) {
-        if let Ok(file) = toml::from_str::<FactionsFile>(text) {
-            state.data_catalogs.factions = Some(file);
-        }
-        return;
+        let file = toml::from_str::<FactionsFile>(text)
+            .map_err(|e| reload_err("FactionsFile", rel, e))?;
+        state.data_catalogs.factions = Some(file);
+        return Ok(());
     }
     if state.config.inputs.route_rules.as_deref() == Some(rel) {
-        if let Ok(file) = toml::from_str::<RouteRulesFile>(text) {
-            state.data_catalogs.route_rules = Some(file.routes);
-        }
-        return;
+        let file = toml::from_str::<RouteRulesFile>(text)
+            .map_err(|e| reload_err("RouteRulesFile", rel, e))?;
+        state.data_catalogs.route_rules = Some(file.routes);
+        return Ok(());
     }
     if state.config.inputs.relations.as_deref() == Some(rel) {
-        if let Ok(file) = toml::from_str::<RelationsFile>(text) {
-            state.data_catalogs.relations = Some(file.relations);
-        }
-        return;
+        let file = toml::from_str::<RelationsFile>(text)
+            .map_err(|e| reload_err("RelationsFile", rel, e))?;
+        state.data_catalogs.relations = Some(file.relations);
+        return Ok(());
     }
     if state.config.inputs.regions.as_deref() == Some(rel) {
-        if let Ok(file) = toml::from_str::<RegionsFile>(text) {
-            state.data_catalogs.regions = Some(file.regions);
-        }
-        return;
+        let file = toml::from_str::<RegionsFile>(text)
+            .map_err(|e| reload_err("RegionsFile", rel, e))?;
+        state.data_catalogs.regions = Some(file.regions);
+        return Ok(());
     }
     if state.config.inputs.economy.as_deref() == Some(rel) {
-        if let Ok(file) = toml::from_str::<sectorforge::economy::EconomyFile>(text) {
-            state.data_catalogs.economy = Some(file.into_config());
-        }
-        return;
+        let file = toml::from_str::<sectorforge::economy::EconomyFile>(text)
+            .map_err(|e| reload_err("EconomyFile", rel, e))?;
+        state.data_catalogs.economy = Some(file.into_config());
+        return Ok(());
     }
     if state.config.inputs.history.as_deref() == Some(rel) {
-        if let Ok(file) = toml::from_str::<HistoryFile>(text) {
-            state.data_catalogs.history = Some(file.history);
-        }
-        return;
+        let file =
+            toml::from_str::<HistoryFile>(text).map_err(|e| reload_err("HistoryFile", rel, e))?;
+        state.data_catalogs.history = Some(file.history);
+        return Ok(());
     }
     if state.config.inputs.personae.as_deref() == Some(rel) {
-        if let Ok(cfg) = toml::from_str::<sectorforge::personae::PersonaeConfig>(text) {
-            state.data_catalogs.personae = Some(cfg);
-        }
-        return;
+        let cfg = toml::from_str::<sectorforge::personae::PersonaeConfig>(text)
+            .map_err(|e| reload_err("PersonaeConfig", rel, e))?;
+        state.data_catalogs.personae = Some(cfg);
+        return Ok(());
     }
     if state.config.inputs.hooks.as_deref() == Some(rel) {
-        if let Ok(cfg) = toml::from_str::<sectorforge::hooks::HooksConfig>(text) {
-            state.data_catalogs.hooks = Some(cfg);
-        }
-        return;
+        let cfg = toml::from_str::<sectorforge::hooks::HooksConfig>(text)
+            .map_err(|e| reload_err("HooksConfig", rel, e))?;
+        state.data_catalogs.hooks = Some(cfg);
+        return Ok(());
     }
     if state.config.inputs.sites.as_deref() == Some(rel) {
-        if let Ok(cfg) = toml::from_str::<sectorforge::sites::SitesConfig>(text) {
-            state.data_catalogs.sites = Some(cfg);
-        }
-        return;
+        let cfg = toml::from_str::<sectorforge::sites::SitesConfig>(text)
+            .map_err(|e| reload_err("SitesConfig", rel, e))?;
+        state.data_catalogs.sites = Some(cfg);
+        return Ok(());
     }
     if state.config.inputs.prose.as_deref() == Some(rel) {
-        if let Ok(cfg) = toml::from_str::<sectorforge::prose::ProseConfig>(text) {
-            state.data_catalogs.prose = Some(cfg);
-        }
-        return;
+        let cfg = toml::from_str::<sectorforge::prose::ProseConfig>(text)
+            .map_err(|e| reload_err("ProseConfig", rel, e))?;
+        state.data_catalogs.prose = Some(cfg);
+        return Ok(());
     }
     if state.config.inputs.missions.as_deref() == Some(rel) {
-        if let Ok(cfg) = toml::from_str::<sectorforge::missions::MissionsConfig>(text) {
-            state.data_catalogs.missions = Some(cfg);
-        }
-        return;
+        let cfg = toml::from_str::<sectorforge::missions::MissionsConfig>(text)
+            .map_err(|e| reload_err("MissionsConfig", rel, e))?;
+        state.data_catalogs.missions = Some(cfg);
+        return Ok(());
     }
-    // Names files share a single in-memory table — re-parse and overwrite.
     if state.config.inputs.system_names.as_deref() == Some(rel)
         || state.config.inputs.world_names.as_deref() == Some(rel)
     {
-        if let Ok(file) = toml::from_str::<sectorforge::names::NameTables>(text) {
-            state.data_catalogs.names = Some(file);
-        }
+        let file = toml::from_str::<sectorforge::names::NameTables>(text)
+            .map_err(|e| reload_err("NameTables", rel, e))?;
+        state.data_catalogs.names = Some(file);
     }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,6 +1,9 @@
 // Consolidated integration-test entry point. All `tests/it/*.rs` files compile
 // into this single test binary so the linker runs once instead of N times.
 
+#[path = "it/shared.rs"]
+mod shared;
+
 #[path = "it/analytics_and_presets.rs"]
 mod analytics_and_presets;
 #[path = "it/cli_gui_parity.rs"]

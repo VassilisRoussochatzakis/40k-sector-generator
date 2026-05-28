@@ -20,6 +20,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
+use std::io::{BufWriter, Write as _};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use rand::Rng;
@@ -900,15 +901,18 @@ pub fn write_report(output_dir: &Utf8Path, seg: &Segmentum) -> Result<(), Sector
     let md_path = output_dir.join("segmentum.md");
     fs::write(&md_path, render_markdown(seg)).map_err(|e| SectorError::io(md_path.as_str(), e))?;
     let json_path = output_dir.join("segmentum.json");
-    let json = serde_json::to_string_pretty(seg)
-        .map_err(|e| SectorError::export(json_path.as_str(), e.to_string()))?;
-    fs::write(&json_path, json).map_err(|e| SectorError::io(json_path.as_str(), e))?;
+    stream_pretty_json(&json_path, seg)?;
     let manifest_path = output_dir.join("super_manifest.json");
-    let manifest_json = serde_json::to_string_pretty(&seg.manifest)
-        .map_err(|e| SectorError::export(manifest_path.as_str(), e.to_string()))?;
-    fs::write(&manifest_path, manifest_json)
-        .map_err(|e| SectorError::io(manifest_path.as_str(), e))?;
+    stream_pretty_json(&manifest_path, &seg.manifest)?;
     Ok(())
+}
+
+fn stream_pretty_json<T: Serialize>(p: &Utf8Path, value: &T) -> Result<(), SectorError> {
+    let file = fs::File::create(p).map_err(|e| SectorError::io(p.as_str(), e))?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer_pretty(&mut writer, value)
+        .map_err(|e| SectorError::export(p.as_str(), e.to_string()))?;
+    writer.flush().map_err(|e| SectorError::io(p.as_str(), e))
 }
 
 #[cfg(test)]

@@ -163,17 +163,35 @@ mod tests {
 
     #[test]
     fn region_overlay_tokens_cover_all_conditions() {
-        for kind in [
-            RegionConditionKind::WarpStorm,
-            RegionConditionKind::Turbulence,
-            RegionConditionKind::CalmCorridor,
-            RegionConditionKind::Blackout,
-            RegionConditionKind::Anomaly,
-            RegionConditionKind::NecropolisDrift,
-            RegionConditionKind::BeaconChain,
-            RegionConditionKind::EmpyricBleed,
-        ] {
-            let _ = MapRegionOverlay::from_condition(kind);
+        let pairs: &[(RegionConditionKind, MapRegionOverlay)] = &[
+            (RegionConditionKind::WarpStorm, MapRegionOverlay::WarpStorm),
+            (RegionConditionKind::Turbulence, MapRegionOverlay::Turbulence),
+            (
+                RegionConditionKind::CalmCorridor,
+                MapRegionOverlay::CalmCorridor,
+            ),
+            (RegionConditionKind::Blackout, MapRegionOverlay::Blackout),
+            (RegionConditionKind::Anomaly, MapRegionOverlay::Anomaly),
+            (
+                RegionConditionKind::NecropolisDrift,
+                MapRegionOverlay::NecropolisDrift,
+            ),
+            (
+                RegionConditionKind::BeaconChain,
+                MapRegionOverlay::BeaconChain,
+            ),
+            (
+                RegionConditionKind::EmpyricBleed,
+                MapRegionOverlay::EmpyricBleed,
+            ),
+        ];
+        for (kind, expected) in pairs {
+            assert_eq!(
+                MapRegionOverlay::from_condition(*kind),
+                *expected,
+                "overlay mismatch for {:?}",
+                kind
+            );
         }
     }
 }

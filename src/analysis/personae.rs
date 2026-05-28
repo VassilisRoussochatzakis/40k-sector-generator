@@ -134,7 +134,7 @@ pub struct PersonaeReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Persona {
-    pub id: String,
+    pub id: crate::ids::PersonaId,
     pub faction_id: crate::ids::FactionId,
     pub faction_kind: String,
     pub anchor: PersonaAnchor,
@@ -326,7 +326,7 @@ fn build_persona(params: PersonaParams, used: &mut BTreeSet<String>) -> Persona 
 
     let pid = format!("persona-{}-{}", faction_id, anchor_id(&anchor));
     Persona {
-        id: pid,
+        id: pid.into(),
         faction_id: crate::ids::FactionId::new(faction_id),
         faction_kind: kind.to_string(),
         anchor,

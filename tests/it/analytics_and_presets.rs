@@ -2,10 +2,7 @@
 
 use camino::Utf8PathBuf;
 
-fn fixture_project() -> Utf8PathBuf {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
-    Utf8PathBuf::from(manifest_dir).join("examples/m42_project")
-}
+use crate::shared::fixture_sector;
 
 fn presets_dir() -> Utf8PathBuf {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
@@ -14,10 +11,8 @@ fn presets_dir() -> Utf8PathBuf {
 
 #[test]
 fn analyze_real_sector_produces_complete_report() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let analysis = sectorforge::analyze_sector(&sector);
+    let sector = fixture_sector();
+    let analysis = sectorforge::analyze_sector(sector);
     assert_eq!(analysis.sector_id, sector.id);
     assert_eq!(analysis.system_count, sector.systems.len());
     assert_eq!(analysis.route_count, sector.routes.len());
@@ -29,7 +24,6 @@ fn analyze_real_sector_produces_complete_report() {
         analysis.connectivity.component_count >= 1,
         "expected at least one connected component"
     );
-    // The Markdown render must be non-empty and start with the H1.
     let md = sectorforge::render_analysis_markdown(&analysis);
     assert!(md.starts_with("# Sector Analysis"));
     assert!(md.contains("Faction Balance"));
@@ -37,10 +31,8 @@ fn analyze_real_sector_produces_complete_report() {
 
 #[test]
 fn analyze_writers_emit_both_files() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let analysis = sectorforge::analyze_sector(&sector);
+    let sector = fixture_sector();
+    let analysis = sectorforge::analyze_sector(sector);
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
     sectorforge::write_analysis(&dir, &analysis).unwrap();
@@ -55,11 +47,9 @@ fn analyze_writers_emit_both_files() {
 
 #[test]
 fn analysis_is_deterministic_for_same_sector() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let a = sectorforge::analyze_sector(&sector);
-    let b = sectorforge::analyze_sector(&sector);
+    let sector = fixture_sector();
+    let a = sectorforge::analyze_sector(sector);
+    let b = sectorforge::analyze_sector(sector);
     let a_md = sectorforge::render_analysis_markdown(&a);
     let b_md = sectorforge::render_analysis_markdown(&b);
     assert_eq!(a_md, b_md);

@@ -315,3 +315,71 @@ fn fraction(current: usize, total: usize) -> f32 {
         current as f32 / total as f32
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{fraction, preview_progress};
+    use sectorforge::SectorProgress;
+
+    #[test]
+    fn fraction_zero_total_is_zero() {
+        assert_eq!(fraction(0, 0), 0.0);
+        assert_eq!(fraction(5, 0), 0.0);
+    }
+
+    #[test]
+    fn fraction_partial_is_ratio() {
+        assert_eq!(fraction(1, 2), 0.5);
+        assert_eq!(fraction(3, 4), 0.75);
+        assert_eq!(fraction(0, 4), 0.0);
+    }
+
+    #[test]
+    fn preview_progress_anchors_are_monotonic_at_known_points() {
+        let world_pool = preview_progress(&SectorProgress::WorldPoolBuilt {
+            rows: 0,
+            candidates: 0,
+            excluded: 0,
+        });
+        let systems = preview_progress(&SectorProgress::SystemsPlaced {
+            total: 0,
+            width: 0,
+            height: 0,
+        });
+        let regions = preview_progress(&SectorProgress::RegionsBuilt { count: 0 });
+        let routes = preview_progress(&SectorProgress::RoutesGenerated { routes: 0 });
+        let manifest = preview_progress(&SectorProgress::ManifestBuilt {
+            systems: 0,
+            worlds: 0,
+            routes: 0,
+        });
+        let complete = preview_progress(&SectorProgress::Complete {
+            systems: 0,
+            worlds: 0,
+            routes: 0,
+        });
+
+        assert!(world_pool < systems);
+        assert!(systems < regions);
+        assert!(regions < routes);
+        assert!(routes < manifest);
+        assert!(manifest < complete);
+        assert_eq!(complete, 1.0);
+    }
+
+    #[test]
+    fn preview_progress_system_built_scales_with_fraction() {
+        let mid = preview_progress(&SectorProgress::SystemBuilt {
+            current: 5,
+            total: 10,
+            worlds: 1,
+        });
+        let full = preview_progress(&SectorProgress::SystemBuilt {
+            current: 10,
+            total: 10,
+            worlds: 1,
+        });
+        assert!(mid < full);
+        assert!(mid > 0.12);
+    }
+}

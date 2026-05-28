@@ -208,7 +208,7 @@ fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
                             .selectable_label(is_selected, p.faction_id.to_string())
                             .clicked()
                         {
-                            state.selected_persona_id = Some(p.id.clone());
+                            state.selected_persona_id = Some(p.id.to_string());
                             state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
                         }
                         ui.label(if p.faction_kind.is_empty() {
@@ -235,8 +235,8 @@ fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
                             anchor_label(&p.anchor),
                         ));
                         if ui.button("edit").clicked() {
-                            state.selected_persona_id = Some(p.id.clone());
-                            state.personae_edit_target = Some(p.id.clone());
+                            state.selected_persona_id = Some(p.id.to_string());
+                            state.personae_edit_target = Some(p.id.to_string());
                         }
                         ui.end_row();
                     }
@@ -329,7 +329,11 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui.end_row();
 
                 for (idx, p) in cfg.manual.iter_mut().enumerate() {
-                    changed |= ui.text_edit_singleline(&mut p.id).changed();
+                    let mut id_buf = p.id.to_string();
+                    if ui.text_edit_singleline(&mut id_buf).changed() {
+                        p.id = id_buf.into();
+                        changed = true;
+                    }
                     let mut fac = p.faction_id.to_string();
                     if ui.text_edit_singleline(&mut fac).changed() {
                         p.faction_id = sectorforge::ids::FactionId::new(fac.as_str());
@@ -366,7 +370,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
 
 fn blank_manual_persona(seq: usize) -> Persona {
     Persona {
-        id: format!("persona-manual-{seq:04}"),
+        id: format!("persona-manual-{seq:04}").into(),
         faction_id: sectorforge::ids::FactionId::new(""),
         faction_kind: String::new(),
         anchor: PersonaAnchor::System {

@@ -108,7 +108,10 @@ pub fn run_generate(
     let report = sectorforge::validate_project(&input)?;
     if !report.ok {
         print_validation_report(&report);
-        return Ok(ExitCode::from(1));
+        return Err(sectorforge::SectorError::ValidationFailed {
+            error_count: report.errors.len(),
+            warning_count: report.warnings.len(),
+        });
     }
     if !allow_warnings && !report.warnings.is_empty() {
         eprintln!(
@@ -116,7 +119,10 @@ pub fn run_generate(
             report.warnings.len()
         );
         print_validation_report(&report);
-        return Ok(ExitCode::from(1));
+        return Err(sectorforge::SectorError::ValidationFailed {
+            error_count: 0,
+            warning_count: report.warnings.len(),
+        });
     }
     log_progress(format_args!(
         "sector: validation OK ({} warning(s), {} usable world candidates)",
@@ -141,7 +147,10 @@ pub fn run_generate(
         for v in &inv.violations {
             eprintln!("  {} {}", v.code, v.message);
         }
-        return Ok(ExitCode::from(1));
+        return Err(sectorforge::SectorError::ValidationFailed {
+            error_count: inv.violations.len(),
+            warning_count: 0,
+        });
     }
 
     log_progress(format_args!("sector: exporting to {output_dir}"));

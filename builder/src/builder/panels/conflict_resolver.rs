@@ -29,7 +29,10 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
             if let Some(root) = state.project_path.clone() {
                 let abs = root.join(&rel_path);
                 if let Ok(text) = fs::read_to_string(Path::new(abs.as_str())) {
-                    crate::builder::project_io::reload_catalog(state, &rel_path, &text);
+                    match crate::builder::project_io::reload_catalog(state, &rel_path, &text) {
+                        Ok(()) => state.last_catalog_error = None,
+                        Err(e) => state.last_catalog_error = Some(e.to_string()),
+                    }
                     state.dirty_files.remove(&rel_path);
                 }
             }

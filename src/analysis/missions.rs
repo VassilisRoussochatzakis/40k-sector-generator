@@ -77,7 +77,7 @@ pub struct MissionsReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionSeed {
-    pub id: String,
+    pub id: crate::ids::MissionId,
     pub kind: MissionKind,
     pub title: String,
     pub patron: Option<crate::ids::FactionId>,
@@ -208,7 +208,7 @@ fn emit_world_missions(
             .clone()
             .or_else(|| sys.primary_factions.first().cloned());
         out.push(MissionSeed {
-            id: format!("mission-{}-{}-investigate", sys.id, w.id),
+            id: format!("mission-{}-{}-investigate", sys.id, w.id).into(),
             kind: MissionKind::Investigate,
             title: format!("Whispers Beneath {}", w.name),
             patron: patron.clone(),
@@ -255,7 +255,7 @@ fn emit_world_missions(
     if let (Some(occ), Some(legit)) = (occupier, legitimate) {
         if occ.faction_id != legit.faction_id {
             out.push(MissionSeed {
-                id: format!("mission-{}-{}-sabotage", sys.id, w.id),
+                id: format!("mission-{}-{}-sabotage", sys.id, w.id).into(),
                 kind: MissionKind::Sabotage,
                 title: format!("Strike at {}'s Hold", occ.faction_id),
                 patron: Some(legit.faction_id.clone()),
@@ -293,7 +293,7 @@ fn emit_world_missions(
             .map(|fp| fp.faction_id.clone())
             .find(|id| defender.as_deref() != Some(id.as_str()));
         out.push(MissionSeed {
-            id: format!("mission-{}-{}-defense", sys.id, w.id),
+            id: format!("mission-{}-{}-defense", sys.id, w.id).into(),
             kind: MissionKind::Defense,
             title: format!("Hold {}", w.name),
             patron: defender.clone(),
@@ -321,7 +321,7 @@ fn emit_world_missions(
         let _ = sector;
         let id_words: Vec<&str> = ids.iter().map(|id| id.as_str()).collect();
         out.push(MissionSeed {
-            id: format!("mission-{}-{}-diplomacy", sys.id, w.id),
+            id: format!("mission-{}-{}-diplomacy", sys.id, w.id).into(),
             kind: MissionKind::Diplomacy,
             title: format!("Treaty of {}", w.name),
             patron: ids.first().cloned(),
@@ -363,7 +363,7 @@ fn emit_system_missions(
                 .map(|w| format!("{}/{}", sys.id, w.id))
                 .unwrap_or_else(|| sys.id.as_str().to_string());
             out.push(MissionSeed {
-                id: format!("mission-{}-assassination", sys.id),
+                id: format!("mission-{}-assassination", sys.id).into(),
                 kind: MissionKind::Assassination,
                 title: format!("Decapitate the {} Squadron", ctrl),
                 patron: Some(sov.clone()),
@@ -399,7 +399,7 @@ fn emit_system_missions(
         Some(crate::sector_model::SystemState::Uncharted)
     ) {
         out.push(MissionSeed {
-            id: format!("mission-{}-explore", sys.id),
+            id: format!("mission-{}-explore", sys.id).into(),
             kind: MissionKind::Exploration,
             title: format!("Survey of {}", sys.name),
             patron: None,
@@ -453,7 +453,7 @@ fn emit_route_missions(
         && !to_worlds.is_empty()
     {
         out.push(MissionSeed {
-            id: format!("mission-{}-escort", r.id),
+            id: format!("mission-{}-escort", r.id).into(),
             kind: MissionKind::Escort,
             title: format!("Tithe-Convoy: {} → {}", from.name, to.name),
             patron: sector
@@ -500,7 +500,7 @@ fn emit_route_missions(
     ) || r.route_type.is_hidden()
     {
         out.push(MissionSeed {
-            id: format!("mission-{}-recovery", r.id),
+            id: format!("mission-{}-recovery", r.id).into(),
             kind: MissionKind::Recovery,
             title: format!("Salvage: {} — {}", from.name, to.name),
             patron: None,

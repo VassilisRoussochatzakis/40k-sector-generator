@@ -219,7 +219,7 @@ fn invalidate_preview(state: &mut BuilderState) {
 fn build_profile(state: &BuilderState) -> BriefingProfile {
     let mut profile = briefing::preset(state.briefing_preset);
     profile.minimum_intel_confidence = state.briefing_min_confidence;
-    profile.observer_faction = state.briefing_observer.as_ref().map(|id| id.to_string());
+    profile.observer_faction = state.briefing_observer.clone();
     profile
 }
 

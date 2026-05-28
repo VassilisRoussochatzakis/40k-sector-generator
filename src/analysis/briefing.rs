@@ -43,7 +43,7 @@ pub struct BriefingProfile {
     /// `vis * observer.vis / 100 < minimum_intel_confidence` is dropped, and
     /// every other faction's intel sub-record on systems is hidden.
     #[serde(default)]
-    pub observer_faction: Option<String>,
+    pub observer_faction: Option<crate::ids::FactionId>,
     /// Cutoff for the redaction helper. 0 keeps everything visible; 100 keeps
     /// only directly-observable presences.
     #[serde(default = "default_min_conf")]
@@ -64,7 +64,7 @@ pub struct BriefingProfile {
     /// When set, only routes / worlds touching these faction ids survive.
     /// Empty = no faction-presence filter.
     #[serde(default)]
-    pub restrict_to_factions: Vec<String>,
+    pub restrict_to_factions: Vec<crate::ids::FactionId>,
     /// When true, factions absent from the observer's known world set are
     /// stripped from the top-level `factions` list. Useful for the public
     /// atlas profile so unknown xenos don't appear.
@@ -243,7 +243,11 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
 
     // Faction-restrict filter.
     if !p.restrict_to_factions.is_empty() {
-        let keep: BTreeSet<&str> = p.restrict_to_factions.iter().map(String::as_str).collect();
+        let keep: BTreeSet<&str> = p
+            .restrict_to_factions
+            .iter()
+            .map(|id| id.as_str())
+            .collect();
         for sys in &mut out.systems {
             for w in &mut sys.worlds {
                 w.factions

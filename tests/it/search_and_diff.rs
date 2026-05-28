@@ -4,10 +4,7 @@ use camino::Utf8PathBuf;
 use sectorforge::diff::DiffConfig;
 use sectorforge::search::{Constraint, SearchConfig, WishesFile};
 
-fn fixture_project() -> Utf8PathBuf {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
-    Utf8PathBuf::from(manifest_dir).join("examples/m42_project")
-}
+use crate::shared::{fixture_dir as fixture_project, fixture_sector};
 
 // ── §2 SEARCH ──────────────────────────────────────────────────────────────────
 
@@ -150,10 +147,8 @@ fn candidate_seeds_are_distinct_and_stable() {
 
 #[test]
 fn diff_identical_sectors_is_empty() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let d = sectorforge::diff_sectors(&sector, &sector);
+    let sector = fixture_sector();
+    let d = sectorforge::diff_sectors(sector, sector);
     assert!(d.systems_added.is_empty());
     assert!(d.systems_removed.is_empty());
     assert!(d.systems_changed.is_empty());
@@ -180,10 +175,8 @@ fn diff_after_ticks_reports_changes_when_conflict_state_evolves() {
 
 #[test]
 fn diff_writers_emit_both_files() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let d = sectorforge::diff_sectors(&sector, &sector);
+    let sector = fixture_sector();
+    let d = sectorforge::diff_sectors(sector, sector);
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
     sectorforge::write_diff(&dir, &d).unwrap();
@@ -216,13 +209,11 @@ fn diff_distinct_seeds_produces_changes() {
 
 #[test]
 fn diff_is_deterministic_for_same_inputs() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
+    let sector = fixture_sector();
     let mut after = sector.clone();
     sectorforge::advance_sector(&mut after);
-    let d1 = sectorforge::diff_sectors(&sector, &after);
-    let d2 = sectorforge::diff_sectors(&sector, &after);
+    let d1 = sectorforge::diff_sectors(sector, &after);
+    let d2 = sectorforge::diff_sectors(sector, &after);
     let j1 = serde_json::to_string_pretty(&d1).unwrap();
     let j2 = serde_json::to_string_pretty(&d2).unwrap();
     assert_eq!(j1, j2);

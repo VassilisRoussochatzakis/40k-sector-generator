@@ -74,7 +74,7 @@ pub struct HooksReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hook {
-    pub id: String,
+    pub id: crate::ids::HookId,
     pub kind: HookKind,
     pub anchor: HookAnchor,
     pub title: String,
@@ -224,7 +224,7 @@ fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Ve
             .cloned()
             .unwrap_or_else(|| "supply".to_string());
         out.push(Hook {
-            id: format!("hook-{}-{}-starving", sys.id, w.id),
+            id: format!("hook-{}-{}-starving", sys.id, w.id).into(),
             kind: HookKind::StarvingWorld,
             anchor: HookAnchor::World {
                 system_id: sys.id.clone(),
@@ -254,6 +254,34 @@ fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Ve
         .iter()
         .map(|s| (s.system_id.as_str(), s))
         .collect();
+    // Pre-bucket: how many non-perilous routes serve each (consumer_endpoint, crit)
+    // pair as a supplier (i.e. the other end has surplus of the crit). Drops the
+    // inner O(R) `.count()` walk to a single O(1) lookup.
+    let supplier_count: BTreeMap<(&str, &str), usize> = {
+        let mut m: BTreeMap<(&str, &str), usize> = BTreeMap::new();
+        for x in &sector.routes {
+            if matches!(x.stability, crate::sector_model::RouteStability::Perilous) {
+                continue;
+            }
+            let from = x.from_system_id.as_str();
+            let to = x.to_system_id.as_str();
+            for crit in ["foodstuffs", "promethium", "manufactured"] {
+                let from_surplus = sys_econ
+                    .get(from)
+                    .is_some_and(|e| e.surplus_resources.iter().any(|s| s == crit));
+                let to_surplus = sys_econ
+                    .get(to)
+                    .is_some_and(|e| e.surplus_resources.iter().any(|s| s == crit));
+                if from_surplus {
+                    *m.entry((to, crit)).or_insert(0) += 1;
+                }
+                if to_surplus {
+                    *m.entry((from, crit)).or_insert(0) += 1;
+                }
+            }
+        }
+        m
+    };
     for r in &sector.routes {
         if matches!(r.stability, crate::sector_model::RouteStability::Perilous) {
             continue;
@@ -277,25 +305,7 @@ fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Ve
                 if !other_econ.surplus_resources.iter().any(|s| s == crit) {
                     continue;
                 }
-                let count = sector
-                    .routes
-                    .iter()
-                    .filter(|x| {
-                        !matches!(x.stability, crate::sector_model::RouteStability::Perilous)
-                            && (x.from_system_id == endpoint || x.to_system_id == endpoint)
-                    })
-                    .filter(|x| {
-                        let o = if x.from_system_id == endpoint {
-                            x.to_system_id.as_str()
-                        } else {
-                            x.from_system_id.as_str()
-                        };
-                        sys_econ
-                            .get(o)
-                            .map(|e| e.surplus_resources.iter().any(|s| s == crit))
-                            .unwrap_or(false)
-                    })
-                    .count();
+                let count = supplier_count.get(&(endpoint, crit)).copied().unwrap_or(0);
                 if count != 1 {
                     continue;
                 }
@@ -304,7 +314,7 @@ fn emit_economy_hooks(sector: &GeneratedSector, _cfg: &HooksConfig, out: &mut Ve
                     .map(|s| s.name.to_string())
                     .unwrap_or_else(|| endpoint.to_string());
                 out.push(Hook {
-                    id: format!("hook-{}-lifeline-{}-{}", r.id, crit, endpoint),
+                    id: format!("hook-{}-lifeline-{}-{}", r.id, crit, endpoint).into(),
                     kind: HookKind::LifelineLane,
                     anchor: HookAnchor::Route {
                         route_id: r.id.clone(),
@@ -348,7 +358,7 @@ fn emit_world_hooks(
             && sys.archetype.gsc_stage != GscStage::default()
         {
             out.push(Hook {
-                id: format!("hook-{}-{}-counter_infiltration", sys.id, w.id),
+                id: format!("hook-{}-{}-counter_infiltration", sys.id, w.id).into(),
                 kind: HookKind::CounterInfiltration,
                 anchor: anchor.clone(),
                 title: format!("Counter-infiltration on {}", w.name),
@@ -383,7 +393,7 @@ fn emit_world_hooks(
     if let (Some(occ), Some(legit)) = (occupier_claim, legitimate_claim) {
         if occ.faction_id != legit.faction_id {
             out.push(Hook {
-                id: format!("hook-{}-{}-reconquest", sys.id, w.id),
+                id: format!("hook-{}-{}-reconquest", sys.id, w.id).into(),
                 kind: HookKind::Reconquest,
                 anchor: anchor.clone(),
                 title: format!("Liberation of {}", w.name),
@@ -410,7 +420,7 @@ fn emit_world_hooks(
         .find(|c| c.claim_type == ClaimType::Rebellion)
     {
         out.push(Hook {
-            id: format!("hook-{}-{}-crush_uprising", sys.id, w.id),
+            id: format!("hook-{}-{}-crush_uprising", sys.id, w.id).into(),
             kind: HookKind::CrushUprising,
             anchor: anchor.clone(),
             title: format!("Uprising on {}", w.name),
@@ -432,7 +442,7 @@ fn emit_world_hooks(
     // Cult purge — chaos corruption on the system.
     if sys.archetype.chaos_corruption >= 30 && !w.factions.is_empty() {
         out.push(Hook {
-            id: format!("hook-{}-{}-cult_purge", sys.id, w.id),
+            id: format!("hook-{}-{}-cult_purge", sys.id, w.id).into(),
             kind: HookKind::CultPurge,
             anchor: anchor.clone(),
             title: format!("Cult Purge on {}", w.name),
@@ -454,7 +464,7 @@ fn emit_world_hooks(
     // Hold the line — Tyranid contact.
     if sys.archetype.tyranid_stage != TyranidStage::None {
         out.push(Hook {
-            id: format!("hook-{}-{}-hold_the_line", sys.id, w.id),
+            id: format!("hook-{}-{}-hold_the_line", sys.id, w.id).into(),
             kind: HookKind::HoldTheLine,
             anchor: anchor.clone(),
             title: format!("Hold the Line at {}", w.name),
@@ -483,7 +493,7 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
     if let Some(state) = sys.control.state {
         match state {
             SystemState::Quarantined => out.push(Hook {
-                id: format!("hook-{}-sealed_system", sys.id),
+                id: format!("hook-{}-sealed_system", sys.id).into(),
                 kind: HookKind::SealedSystem,
                 anchor: anchor.clone(),
                 title: format!("Breach the Quarantine of {}", sys.name),
@@ -501,7 +511,7 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
                 gm_only: false,
             }),
             SystemState::Blockaded if sys.blockade.under_blockade => out.push(Hook {
-                id: format!("hook-{}-blockade_run", sys.id),
+                id: format!("hook-{}-blockade_run", sys.id).into(),
                 kind: HookKind::BlockadeRun,
                 anchor: anchor.clone(),
                 title: format!("Run the Blockade of {}", sys.name),
@@ -524,7 +534,7 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
             }),
             SystemState::Blockaded => {}
             SystemState::Warzone => out.push(Hook {
-                id: format!("hook-{}-warzone", sys.id),
+                id: format!("hook-{}-warzone", sys.id).into(),
                 kind: HookKind::Reconquest,
                 anchor: anchor.clone(),
                 title: format!("Front lines of {}", sys.name),
@@ -545,7 +555,7 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
         && sys.archetype.necron_phase != NecronPhase::default()
     {
         out.push(Hook {
-            id: format!("hook-{}-sealed_tombs", sys.id),
+            id: format!("hook-{}-sealed_tombs", sys.id).into(),
             kind: HookKind::SealedTombs,
             anchor: anchor.clone(),
             title: format!("Sealed Tombs beneath {}", sys.name),
@@ -565,7 +575,7 @@ fn emit_system_hooks(sys: &GeneratedSystem, _cfg: &HooksConfig, out: &mut Vec<Ho
     }
     if sys.control.top_factions.len() >= 3 {
         out.push(Hook {
-            id: format!("hook-{}-succession", sys.id),
+            id: format!("hook-{}-succession", sys.id).into(),
             kind: HookKind::SuccessionDispute,
             anchor,
             title: format!("Three-way contest in {}", sys.name),
@@ -598,7 +608,7 @@ fn emit_route_hooks(
 ) {
     if r.stability == RouteStability::Perilous {
         out.push(Hook {
-            id: format!("hook-{}-lost_passage", r.id),
+            id: format!("hook-{}-lost_passage", r.id).into(),
             kind: HookKind::LostPassage,
             anchor: HookAnchor::Route {
                 route_id: r.id.clone(),
@@ -624,7 +634,7 @@ fn emit_route_hooks(
     if let Some(c) = convoy_target {
         if pirated {
             out.push(Hook {
-                id: format!("hook-{}-convoy", r.id),
+                id: format!("hook-{}-convoy", r.id).into(),
                 kind: HookKind::ConvoyEscort,
                 anchor: HookAnchor::Route {
                     route_id: r.id.clone(),

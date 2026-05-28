@@ -186,8 +186,8 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
                             .selectable_label(is_selected, kind_label(h.kind))
                             .clicked()
                         {
-                            state.selected_hook_id = Some(h.id.clone());
-                            state.hooks_edit_target = Some(h.id.clone());
+                            state.selected_hook_id = Some(h.id.to_string());
+                            state.hooks_edit_target = Some(h.id.to_string());
                         }
                         ui.label(format!("{}", h.weight));
                         show_anchor_link(ui, state, &h.anchor);
@@ -198,8 +198,8 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
                             ui.label("");
                         }
                         if ui.button("highlight").clicked() {
-                            state.selected_hook_id = Some(h.id.clone());
-                            state.hooks_edit_target = Some(h.id.clone());
+                            state.selected_hook_id = Some(h.id.to_string());
+                            state.hooks_edit_target = Some(h.id.to_string());
                             focus_anchor(state, &h.anchor);
                         }
                         ui.end_row();
@@ -351,7 +351,11 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
         .num_columns(2)
         .show(ui, |ui| {
             ui.label("id");
-            changed |= ui.text_edit_singleline(&mut h.id).changed();
+            let mut id_buf = h.id.to_string();
+            if ui.text_edit_singleline(&mut id_buf).changed() {
+                h.id = id_buf.into();
+                changed = true;
+            }
             ui.end_row();
             ui.label("kind");
             egui::ComboBox::from_id_salt(format!("hk_manual_kind_{idx}"))
@@ -515,7 +519,7 @@ fn anchor_scope(a: &HookAnchor) -> AnchorScope {
 
 fn blank_manual_hook(seq: usize) -> Hook {
     Hook {
-        id: format!("hook-manual-{seq:04}"),
+        id: format!("hook-manual-{seq:04}").into(),
         kind: HookKind::DiplomaticCrisis,
         anchor: HookAnchor::System {
             system_id: SystemId::new(""),

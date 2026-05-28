@@ -163,6 +163,18 @@ define_id!(
     /// Identifier for a `GeneratedRoute` ("route-<a>-<b>").
     RouteId
 );
+define_id!(
+    /// Identifier for a derived `Persona`.
+    PersonaId
+);
+define_id!(
+    /// Identifier for a derived `Hook`.
+    HookId
+);
+define_id!(
+    /// Identifier for a derived `MissionSeed`.
+    MissionId
+);
 
 #[must_use]
 pub fn system_id(index: usize) -> SystemId {

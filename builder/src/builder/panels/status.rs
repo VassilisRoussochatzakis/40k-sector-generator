@@ -40,6 +40,14 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.separator();
             ui.label(format!("ctx_menu: {label}"));
         }
+        if let Some(err) = state.last_save_error.as_ref() {
+            ui.separator();
+            ui.colored_label(egui::Color32::RED, format!("save: {err}"));
+        }
+        if let Some(err) = state.last_catalog_error.as_ref() {
+            ui.separator();
+            ui.colored_label(egui::Color32::RED, format!("reload: {err}"));
+        }
     });
 }
 

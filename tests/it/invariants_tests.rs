@@ -4,12 +4,12 @@ use camino::Utf8PathBuf;
 
 use sectorforge::sector_model::{HexCoord, RouteStability, RouteType};
 
+use crate::shared::{fixture_dir as fixture_project, fixture_sector};
+
 #[test]
 fn generated_sector_passes_invariants() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let report = sectorforge::validate_sector(&sector);
+    let sector = fixture_sector();
+    let report = sectorforge::validate_sector(sector);
     assert!(
         report.ok,
         "expected invariants to pass; violations: {:?}",
@@ -19,10 +19,8 @@ fn generated_sector_passes_invariants() {
 
 #[test]
 fn sector_round_trips_through_json() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
-    let text = serde_json::to_string(&sector).unwrap();
+    let sector = fixture_sector();
+    let text = serde_json::to_string(sector).unwrap();
     let parsed: sectorforge::GeneratedSector = serde_json::from_str(&text).unwrap();
     assert_eq!(parsed.id, sector.id);
     assert_eq!(parsed.systems.len(), sector.systems.len());
@@ -32,9 +30,7 @@ fn sector_round_trips_through_json() {
 
 #[test]
 fn invariants_detect_route_distance_tamper() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let mut sector = sectorforge::generate_sector(input).unwrap();
+    let mut sector = fixture_sector().clone();
     if let Some(r) = sector.routes.first_mut() {
         r.distance = r.distance.saturating_add(99);
     } else {
@@ -50,9 +46,7 @@ fn invariants_detect_route_distance_tamper() {
 
 #[test]
 fn invariants_detect_manifest_count_tamper() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let mut sector = sectorforge::generate_sector(input).unwrap();
+    let mut sector = fixture_sector().clone();
     sector.manifest.system_count += 1;
     let report = sectorforge::validate_sector(&sector);
     assert!(!report.ok);
@@ -65,9 +59,7 @@ fn invariants_detect_manifest_count_tamper() {
 #[test]
 fn invariants_detect_unknown_faction_in_world() {
     use sectorforge::sector_model::{FactionInfluence, WorldFactionPresence};
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let mut sector = sectorforge::generate_sector(input).unwrap();
+    let mut sector = fixture_sector().clone();
     if let Some(sys) = sector.systems.first_mut() {
         if let Some(world) = sys.worlds.first_mut() {
             world.factions.push(WorldFactionPresence {
@@ -170,16 +162,14 @@ fn generate_system_standalone_different_index_differs() {
 
 #[test]
 fn render_markdown_round_trips_from_loaded_sector() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
+    let sector = fixture_sector();
     let tmp = tempfile::tempdir().unwrap();
     let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
     let json_path = tmp_path.join("sector.json");
-    sectorforge::write_sector_json(&json_path, &sector).unwrap();
+    sectorforge::write_sector_json(&json_path, sector).unwrap();
 
     let reloaded = sectorforge::load_sector_json(&json_path).unwrap();
-    let md_a = sectorforge::render_sector_markdown(&sector);
+    let md_a = sectorforge::render_sector_markdown(sector);
     let md_b = sectorforge::render_sector_markdown(&reloaded);
     assert_eq!(md_a, md_b, "markdown rendering must round-trip via JSON");
     assert!(md_a.contains("## Sector map"));
@@ -189,9 +179,7 @@ fn render_markdown_round_trips_from_loaded_sector() {
 
 #[test]
 fn world_factions_are_sorted_by_influence() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
+    let sector = fixture_sector();
     for sys in &sector.systems {
         for w in &sys.worlds {
             for pair in w.factions.windows(2) {
@@ -210,9 +198,7 @@ fn world_factions_are_sorted_by_influence() {
 
 #[test]
 fn primary_factions_capped_at_three() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
+    let sector = fixture_sector();
     for sys in &sector.systems {
         assert!(
             sys.primary_factions.len() <= 3,
@@ -278,9 +264,7 @@ fn generated_factions_are_top_groups_with_subfactions_and_forces() {
 
 #[test]
 fn routes_have_known_types() {
-    let project = fixture_project();
-    let input = sectorforge::load_project(project).unwrap();
-    let sector = sectorforge::generate_sector(input).unwrap();
+    let sector = fixture_sector();
     for r in &sector.routes {
         // Smoke check on enum variants — also confirms Deserialize chain works.
         let json = serde_json::to_string(&r.route_type).unwrap();
@@ -303,7 +287,3 @@ fn influence_rank(i: sectorforge::sector_model::FactionInfluence) -> u8 {
     }
 }
 
-fn fixture_project() -> Utf8PathBuf {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
-    Utf8PathBuf::from(manifest_dir).join("examples/m42_project")
-}

@@ -1085,24 +1085,34 @@ pub fn run_search(
         });
     }
 
-    // FIX.txt §13: data-parallel candidate enumeration. Each iteration is
-    // independent (clone_project_with_seed copies the template by value;
-    // generation's RNG is seeded from `seed` per-candidate). Order is preserved
-    // via collect, then the lowest-n passing report is selected — matching the
-    // sequential break-on-first-pass winner exactly, so byte-deterministic
-    // outputs are unchanged. The full budget is always processed; reported
-    // `candidates_evaluated` is normalised below to mimic the sequential
-    // semantics ("we'd have stopped at winner.n + 1").
+    // FIX.txt §13 + TF-P-2: data-parallel candidate enumeration with a shared
+    // "lowest winning n" guard. Once any worker has produced a passing
+    // candidate at index `k`, every other worker skips work for `n > k` —
+    // the final result only ever surfaces the lowest passing `n`, so higher
+    // candidates can never be returned as `winning`. Determinism preserved:
+    // the winner is still the lowest n in `(0..budget)` whose candidate
+    // passes (since we always finish n=0).
     use rayon::prelude::*;
+    use std::sync::atomic::{AtomicU32, Ordering};
 
     enum Slot {
         Skipped,
         Report(Box<CandidateReport>),
     }
 
+    let lowest_winner = AtomicU32::new(u32::MAX);
+
     let slots: Vec<Slot> = (0..budget)
         .into_par_iter()
         .map(|n| {
+            // Short-circuit: if a passing candidate at a lower n already exists,
+            // this n can only contribute to `near_misses`. The cost of full
+            // sector generation is two orders of magnitude above the
+            // `near_misses` evaluation, so skipping here is the main win.
+            if n >= lowest_winner.load(Ordering::Relaxed) {
+                return Slot::Skipped;
+            }
+
             let seed = derive_candidate_seed(&base_seed, n);
             let mut input = clone_project_with_seed(project_template, &seed);
             input.config.generation.seed = seed.clone();
@@ -1117,13 +1127,11 @@ pub fn run_search(
                 Err(_) => return Slot::Skipped,
             };
             let analysis = analytics::analyze(&sector);
-            Slot::Report(Box::new(evaluate_all(
-                &sector,
-                &analysis,
-                &wishes.constraints,
-                n,
-                &seed,
-            )))
+            let report = evaluate_all(&sector, &analysis, &wishes.constraints, n, &seed);
+            if report.passed {
+                lowest_winner.fetch_min(n, Ordering::Relaxed);
+            }
+            Slot::Report(Box::new(report))
         })
         .collect();
 

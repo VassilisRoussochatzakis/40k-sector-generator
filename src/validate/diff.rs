@@ -801,66 +801,72 @@ pub fn diff_after_ticks(
 
 // ── Markdown render ────────────────────────────────────────────────────────────
 
+macro_rules! wln {
+    ($($arg:tt)*) => {{
+        writeln!($($arg)*).expect("writeln to String is infallible");
+    }};
+}
+
 #[must_use]
 pub fn render_markdown(d: &SectorDiff) -> String {
     let mut s = String::new();
-    let _ = writeln!(s, "# Sector Diff");
-    let _ = writeln!(
+    wln!(s, "# Sector Diff");
+    wln!(
         s,
         "\n- Before: sector `{}` seed `{}` v{}",
         d.before_id, d.before_seed, d.before_version
     );
-    let _ = writeln!(
+    wln!(
         s,
         "- After:  sector `{}` seed `{}` v{}",
         d.after_id, d.after_seed, d.after_version
     );
-    let _ = writeln!(
+    wln!(
         s,
         "- Catalog compatible: **{}**",
         if d.catalog_compatible { "yes" } else { "no" }
     );
     if !d.schema_warnings.is_empty() {
-        let _ = writeln!(s, "\n## Schema Warnings");
+        wln!(s, "\n## Schema Warnings");
         for w in &d.schema_warnings {
-            let _ = writeln!(s, "- {w}");
+            wln!(s, "- {w}");
         }
     }
-    let _ = writeln!(
+    wln!(
         s,
         "\n- Systems: {} → {}  ·  Routes: {} → {}",
         d.system_count_before, d.system_count_after, d.route_count_before, d.route_count_after
     );
 
     // Systems.
-    let _ = writeln!(s, "\n## Systems");
+    wln!(s, "\n## Systems");
     if d.systems_added.is_empty() && d.systems_removed.is_empty() && d.systems_changed.is_empty() {
-        let _ = writeln!(s, "\nNo system-level changes.");
+        wln!(s, "\nNo system-level changes.");
     } else {
         if !d.systems_added.is_empty() {
-            let _ = writeln!(s, "\n### Added");
+            wln!(s, "\n### Added");
             for r in &d.systems_added {
-                let _ = writeln!(s, "- `{}` {}", r.id, r.name);
+                wln!(s, "- `{}` {}", r.id, r.name);
             }
         }
         if !d.systems_removed.is_empty() {
-            let _ = writeln!(s, "\n### Removed");
+            wln!(s, "\n### Removed");
             for r in &d.systems_removed {
-                let _ = writeln!(s, "- `{}` {}", r.id, r.name);
+                wln!(s, "- `{}` {}", r.id, r.name);
             }
         }
         if !d.systems_changed.is_empty() {
-            let _ = writeln!(s, "\n### Changed");
+            wln!(s, "\n### Changed");
             for sd in &d.systems_changed {
-                let _ = writeln!(s, "\n- **`{}` {}**", sd.id, sd.name_after);
+                wln!(s, "\n- **`{}` {}**", sd.id, sd.name_after);
                 if sd.renamed {
-                    let _ = writeln!(s, "  - Renamed: `{}` → `{}`", sd.name_before, sd.name_after);
+                    wln!(s, "  - Renamed: `{}` → `{}`", sd.name_before, sd.name_after);
                 }
                 if sd.state_before != sd.state_after {
-                    let _ = writeln!(s, "  - State: {:?} → {:?}", sd.state_before, sd.state_after);
+                    wln!(s, "  - State: {:?} → {:?}", sd.state_before, sd.state_after);
                 }
                 if sd.dominant_before != sd.dominant_after {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Dominant: {} → {}",
                         opt(&sd.dominant_before),
@@ -868,7 +874,7 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                     );
                 }
                 if sd.sovereign_before != sd.sovereign_after {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Sovereign: {} → {}",
                         opt(&sd.sovereign_before),
@@ -876,7 +882,7 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                     );
                 }
                 if sd.occupier_before != sd.occupier_after {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Orbital controller: {} → {}",
                         opt(&sd.occupier_before),
@@ -884,21 +890,21 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                     );
                 }
                 if !sd.primary_factions_added.is_empty() {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Primary factions added: {}",
                         join_ids(&sd.primary_factions_added)
                     );
                 }
                 if !sd.primary_factions_removed.is_empty() {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Primary factions removed: {}",
                         join_ids(&sd.primary_factions_removed)
                     );
                 }
                 if !sd.worlds_added.is_empty() {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Worlds added: {}",
                         sd.worlds_added
@@ -909,7 +915,7 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                     );
                 }
                 if !sd.worlds_removed.is_empty() {
-                    let _ = writeln!(
+                    wln!(
                         s,
                         "  - Worlds removed: {}",
                         sd.worlds_removed
@@ -927,14 +933,14 @@ pub fn render_markdown(d: &SectorDiff) -> String {
     }
 
     // Routes.
-    let _ = writeln!(s, "\n## Routes");
+    wln!(s, "\n## Routes");
     if d.routes_added.is_empty() && d.routes_removed.is_empty() && d.routes_changed.is_empty() {
-        let _ = writeln!(s, "\nNo route-level changes.");
+        wln!(s, "\nNo route-level changes.");
     } else {
         if !d.routes_added.is_empty() {
-            let _ = writeln!(s, "\n### Added");
+            wln!(s, "\n### Added");
             for r in &d.routes_added {
-                let _ = writeln!(
+                wln!(
                     s,
                     "- `{}` ({} → {})",
                     r.id, r.from_system_id, r.to_system_id
@@ -942,9 +948,9 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             }
         }
         if !d.routes_removed.is_empty() {
-            let _ = writeln!(s, "\n### Removed");
+            wln!(s, "\n### Removed");
             for r in &d.routes_removed {
-                let _ = writeln!(
+                wln!(
                     s,
                     "- `{}` ({} → {})",
                     r.id, r.from_system_id, r.to_system_id
@@ -952,9 +958,9 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             }
         }
         if !d.routes_changed.is_empty() {
-            let _ = writeln!(s, "\n### Changed");
+            wln!(s, "\n### Changed");
             for r in &d.routes_changed {
-                let _ = writeln!(
+                wln!(
                     s,
                     "- `{}` ({} → {}): {:?} → {:?}, {:?} → {:?}",
                     r.id,
@@ -970,20 +976,20 @@ pub fn render_markdown(d: &SectorDiff) -> String {
     }
 
     // Factions.
-    let _ = writeln!(s, "\n## Faction Power Deltas");
+    wln!(s, "\n## Faction Power Deltas");
     if d.faction_deltas.is_empty() {
-        let _ = writeln!(
+        wln!(
             s,
             "\nNo faction power changes above the configured threshold."
         );
     } else {
-        let _ = writeln!(
+        wln!(
             s,
             "\n| Faction | Δ Projection | Before | After | Worlds Δ | Systems Δ |"
         );
-        let _ = writeln!(s, "|---|---:|---:|---:|---:|---:|");
+        wln!(s, "|---|---:|---:|---:|---:|---:|");
         for f in &d.faction_deltas {
-            let _ = writeln!(
+            wln!(
                 s,
                 "| {} (`{}`) | {:+.2} | {:.2} | {:.2} | {:+} | {:+} |",
                 f.name,
@@ -998,27 +1004,27 @@ pub fn render_markdown(d: &SectorDiff) -> String {
     }
 
     if !d.stance_changes.is_empty() {
-        let _ = writeln!(s, "\n## Diplomacy changes (§4)");
-        let _ = writeln!(s, "\n| A | B | Before | After |\n|---|---|---|---|");
+        wln!(s, "\n## Diplomacy changes (§4)");
+        wln!(s, "\n| A | B | Before | After |\n|---|---|---|---|");
         for c in &d.stance_changes {
-            let _ = writeln!(s, "| {} | {} | {:?} | {:?} |", c.a, c.b, c.before, c.after);
+            wln!(s, "| {} | {} | {:?} | {:?} |", c.a, c.b, c.before, c.after);
         }
     }
     if !(d.regions_added.is_empty() && d.regions_removed.is_empty() && d.regions_changed.is_empty())
     {
-        let _ = writeln!(s, "\n## Warp regions (§5)");
+        wln!(s, "\n## Warp regions (§5)");
         for r in &d.regions_added {
-            let _ = writeln!(s, "- ADDED `{}` {:?} ({} hexes)", r.id, r.kind, r.hex_count);
+            wln!(s, "- ADDED `{}` {:?} ({} hexes)", r.id, r.kind, r.hex_count);
         }
         for r in &d.regions_removed {
-            let _ = writeln!(
+            wln!(
                 s,
                 "- REMOVED `{}` {:?} ({} hexes)",
                 r.id, r.kind, r.hex_count
             );
         }
         for r in &d.regions_changed {
-            let _ = writeln!(
+            wln!(
                 s,
                 "- CHANGED `{}` {:?}→{:?} hexes {}→{}",
                 r.id, r.kind_before, r.kind_after, r.hex_count_before, r.hex_count_after
@@ -1029,14 +1035,14 @@ pub fn render_markdown(d: &SectorDiff) -> String {
         && d.stranded_added.is_empty()
         && d.stranded_removed.is_empty())
     {
-        let _ = writeln!(s, "\n## Economy (§12)");
+        wln!(s, "\n## Economy (§12)");
         if !d.economy_balance_changes.is_empty() {
-            let _ = writeln!(
+            wln!(
                 s,
                 "\n| Resource | Before | After | Δ |\n|---|---:|---:|---:|"
             );
             for c in &d.economy_balance_changes {
-                let _ = writeln!(
+                wln!(
                     s,
                     "| {} | {:.1} | {:.1} | {:+.1} |",
                     c.resource, c.before, c.after, c.delta
@@ -1044,30 +1050,30 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             }
         }
         if !d.stranded_added.is_empty() {
-            let _ = writeln!(
+            wln!(
                 s,
                 "\nNewly stranded worlds: {}",
                 join_ids(&d.stranded_added)
             );
         }
         if !d.stranded_removed.is_empty() {
-            let _ = writeln!(s, "\nNo longer stranded: {}", join_ids(&d.stranded_removed));
+            wln!(s, "\nNo longer stranded: {}", join_ids(&d.stranded_removed));
         }
     }
     s
 }
 
 fn render_world_change(s: &mut String, wd: &WorldDiff) {
-    let _ = writeln!(s, "  - World `{}` {}", wd.id, wd.name_after);
+    wln!(s, "  - World `{}` {}", wd.id, wd.name_after);
     if wd.renamed {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Renamed: `{}` → `{}`",
             wd.name_before, wd.name_after
         );
     }
     if wd.dominant_before != wd.dominant_after {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Dominant: {} → {}",
             opt(&wd.dominant_before),
@@ -1075,7 +1081,7 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if wd.sovereign_before != wd.sovereign_after {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Sovereign: {} → {}",
             opt(&wd.sovereign_before),
@@ -1083,7 +1089,7 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if wd.occupier_before != wd.occupier_after {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Occupier: {} → {}",
             opt(&wd.occupier_before),
@@ -1091,7 +1097,7 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if wd.hidden_master_before != wd.hidden_master_after {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Hidden master: {} → {}",
             opt(&wd.hidden_master_before),
@@ -1099,14 +1105,14 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if wd.contested_before != wd.contested_after {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Contested: {} → {}",
             wd.contested_before, wd.contested_after
         );
     }
     if !wd.claims_added.is_empty() {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Claims added: {}",
             wd.claims_added
@@ -1120,7 +1126,7 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if !wd.claims_removed.is_empty() {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Claims removed: {}",
             wd.claims_removed
@@ -1134,7 +1140,7 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if !wd.claim_strength_changes.is_empty() {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Claim strength: {}",
             wd.claim_strength_changes
@@ -1148,14 +1154,14 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         );
     }
     if !wd.presences_added.is_empty() {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Presences added: {}",
             join_ids(&wd.presences_added)
         );
     }
     if !wd.presences_removed.is_empty() {
-        let _ = writeln!(
+        wln!(
             s,
             "    - Presences removed: {}",
             join_ids(&wd.presences_removed)

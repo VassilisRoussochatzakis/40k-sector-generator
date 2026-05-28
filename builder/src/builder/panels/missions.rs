@@ -459,7 +459,11 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
         .num_columns(2)
         .show(ui, |ui| {
             ui.label("id");
-            changed |= ui.text_edit_singleline(&mut m.id).changed();
+            let mut id_buf = m.id.to_string();
+            if ui.text_edit_singleline(&mut id_buf).changed() {
+                m.id = id_buf.into();
+                changed = true;
+            }
             ui.end_row();
             ui.label("kind");
             egui::ComboBox::from_id_salt(format!("m_manual_kind_{idx}"))
@@ -599,7 +603,7 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
 
 fn blank_manual_mission(seq: usize) -> MissionSeed {
     MissionSeed {
-        id: format!("mission-manual-{seq:04}"),
+        id: format!("mission-manual-{seq:04}").into(),
         kind: MissionKind::Investigate,
         title: String::new(),
         patron: None,
@@ -677,8 +681,8 @@ fn on_catalog_edited(state: &mut BuilderState) {
 }
 
 fn select_mission(state: &mut BuilderState, m: &MissionSeed) {
-    state.selected_mission_id = Some(m.id.clone());
-    state.missions_edit_target = Some(m.id.clone());
+    state.selected_mission_id = Some(m.id.to_string());
+    state.missions_edit_target = Some(m.id.to_string());
 }
 
 /// §M5 — resolve a mission location string into an [`EntityRef`] and call

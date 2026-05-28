@@ -22,7 +22,7 @@ pub fn run_briefing(
     })?;
     let mut profile = sectorforge::briefing::preset(audience);
     if let Some(obs) = observer {
-        profile.observer_faction = Some(obs);
+        profile.observer_faction = Some(obs.into());
     }
     if let Some(m) = min_confidence {
         profile.minimum_intel_confidence = m;

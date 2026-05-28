@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand};
 mod analyze;
 mod briefing;
 mod common;
+pub mod exit_code;
 mod compose;
 mod diff;
 mod economy;

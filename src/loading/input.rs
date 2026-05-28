@@ -80,10 +80,10 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     let bytes = fs::read(&toml_path).map_err(|e| SectorError::io(toml_path.as_str(), e))?;
     digests.insert(toml_rel, blake3_of_bytes(&bytes));
 
-    let worlds_load = crate::worlds::load_worlds_data(data_dir.as_std_path()).map_err(|e| {
+    let worlds_load = crate::worlds::load_worlds_data(data_dir.as_std_path()).map_err(|source| {
         SectorError::WorldDataLoad {
             path: data_dir.to_string(),
-            message: e.to_string(),
+            source,
         }
     })?;
     let crate::worlds::WorldsLoad {

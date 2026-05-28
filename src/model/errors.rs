@@ -13,8 +13,12 @@ pub enum SectorError {
     #[error("failed to parse config at {path}: {message}")]
     ConfigParse { path: String, message: String },
 
-    #[error("failed to load world data at {path}: {message}")]
-    WorldDataLoad { path: String, message: String },
+    #[error("failed to load world data at {path}: {source}")]
+    WorldDataLoad {
+        path: String,
+        #[source]
+        source: crate::worlds::WorldError,
+    },
 
     #[error("validation failed: {error_count} error(s), {warning_count} warning(s)")]
     ValidationFailed {

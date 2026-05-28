@@ -199,7 +199,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     for (idx, f) in input.factions.iter().enumerate() {
         if !faction_ids.insert(f.id.clone()) {
             errors.push(ValidationIssue {
-                code: "FACTION_DUPLICATE_ID".to_string(),
+                code: ValidationCode::FactionDuplicateId.as_slug().to_string(),
                 message: format!("duplicate faction id '{}'", f.id),
                 path: Some(format!("factions[{idx}]")),
                 row: None,
@@ -208,7 +208,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         }
         if !(f.weight.is_finite() && f.weight > 0.0) {
             errors.push(ValidationIssue {
-                code: "FACTION_BAD_WEIGHT".to_string(),
+                code: ValidationCode::FactionBadWeight.as_slug().to_string(),
                 message: format!("faction '{}' has non-positive or non-finite weight", f.id),
                 path: Some(format!("factions[{idx}]")),
                 row: None,
@@ -218,7 +218,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_world_types {
             if taxonomy::parse_world_type_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: "FACTION_UNKNOWN_WORLD_TYPE".to_string(),
+                    code: ValidationCode::FactionUnknownWorldType.as_slug().to_string(),
                     message: format!("faction '{}' references unknown world type '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_world_types")),
                     row: None,
@@ -229,7 +229,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_governments {
             if taxonomy::parse_government_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: "FACTION_UNKNOWN_GOVERNMENT".to_string(),
+                    code: ValidationCode::FactionUnknownGovernment.as_slug().to_string(),
                     message: format!("faction '{}' references unknown government '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_governments")),
                     row: None,
@@ -240,7 +240,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_notable_features {
             if taxonomy::parse_notable_feature_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: "FACTION_UNKNOWN_FEATURE".to_string(),
+                    code: ValidationCode::FactionUnknownFeature.as_slug().to_string(),
                     message: format!("faction '{}' references unknown feature '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_notable_features")),
                     row: None,
@@ -270,7 +270,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for (i, m) in r.modifiers.iter().enumerate() {
             if !(m.multiplier.is_finite() && m.multiplier > 0.0) {
                 errors.push(ValidationIssue {
-                    code: "ROUTE_BAD_MULTIPLIER".to_string(),
+                    code: ValidationCode::RouteBadMultiplier.as_slug().to_string(),
                     message: "route modifier multiplier must be positive and finite".to_string(),
                     path: Some(format!("routes.modifiers[{i}]")),
                     row: None,
@@ -280,7 +280,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             if let Some(s) = &m.when.notable_feature {
                 if taxonomy::parse_notable_feature_variant(s).is_none() {
                     warnings.push(ValidationIssue {
-                        code: "ROUTE_UNKNOWN_FEATURE".to_string(),
+                        code: ValidationCode::RouteUnknownFeature.as_slug().to_string(),
                         message: format!("route condition references unknown feature '{s}'"),
                         path: Some(format!("routes.modifiers[{i}].when.notable_feature")),
                         row: None,
@@ -291,7 +291,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             if let Some(s) = &m.when.world_type {
                 if taxonomy::parse_world_type_variant(s).is_none() {
                     warnings.push(ValidationIssue {
-                        code: "ROUTE_UNKNOWN_WORLD_TYPE".to_string(),
+                        code: ValidationCode::RouteUnknownWorldType.as_slug().to_string(),
                         message: format!("route condition references unknown world type '{s}'"),
                         path: Some(format!("routes.modifiers[{i}].when.world_type")),
                         row: None,
@@ -302,7 +302,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             if let Some(s) = &m.when.government {
                 if taxonomy::parse_government_variant(s).is_none() {
                     warnings.push(ValidationIssue {
-                        code: "ROUTE_UNKNOWN_GOVERNMENT".to_string(),
+                        code: ValidationCode::RouteUnknownGovernment.as_slug().to_string(),
                         message: format!("route condition references unknown government '{s}'"),
                         path: Some(format!("routes.modifiers[{i}].when.government")),
                         row: None,
@@ -313,7 +313,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             if let Some(s) = &m.when.route_type {
                 if crate::sector_model::RouteType::from_key(&taxonomy::to_snake_case(s)).is_none() {
                     warnings.push(ValidationIssue {
-                        code: "ROUTE_UNKNOWN_ROUTE_TYPE".to_string(),
+                        code: ValidationCode::RouteUnknownRouteType.as_slug().to_string(),
                         message: format!("route condition references unknown route type '{s}'"),
                         path: Some(format!("routes.modifiers[{i}].when.route_type")),
                         row: None,
@@ -376,7 +376,7 @@ fn validate_relations(
         for (i, r) in cfg.kind_rules.iter().enumerate() {
             if r.a.is_empty() || r.b.is_empty() {
                 warnings.push(ValidationIssue {
-                    code: "RELATIONS_KIND_RULE_EMPTY".into(),
+                    code: ValidationCode::RelationsKindRuleEmpty.as_slug().to_string(),
                     message: format!("relations.kind_rules[{i}] has empty kind id"),
                     path: Some(format!("relations.kind_rules[{i}]")),
                     row: None,
@@ -401,7 +401,7 @@ fn validate_relations(
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
                 errors.push(ValidationIssue {
-                    code: "RELATIONS_PAIR_UNKNOWN_FACTION".into(),
+                    code: ValidationCode::RelationsPairUnknownFaction.as_slug().to_string(),
                     message: format!(
                         "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
@@ -416,7 +416,7 @@ fn validate_relations(
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
                 errors.push(ValidationIssue {
-                    code: "RELATIONS_OVERRIDE_UNKNOWN_FACTION".into(),
+                    code: ValidationCode::RelationsOverrideUnknownFaction.as_slug().to_string(),
                     message: format!(
                         "relations.overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
@@ -430,7 +430,7 @@ fn validate_relations(
     for (i, r) in cfg.kind_rules.iter().enumerate() {
         if r.a.is_empty() || r.b.is_empty() {
             warnings.push(ValidationIssue {
-                code: "RELATIONS_KIND_RULE_EMPTY".into(),
+                code: ValidationCode::RelationsKindRuleEmpty.as_slug().to_string(),
                 message: format!("relations.kind_rules[{i}] has empty kind id"),
                 path: Some(format!("relations.kind_rules[{i}]")),
                 row: None,
@@ -479,7 +479,7 @@ fn validate_regions(
     for (i, c) in cfg.conditions.iter().enumerate() {
         if !c.weight.is_finite() || c.weight < 0.0 {
             errors.push(ValidationIssue {
-                code: "REGIONS_CONDITION_BAD_WEIGHT".into(),
+                code: ValidationCode::RegionsConditionBadWeight.as_slug().to_string(),
                 message: format!(
                     "regions.conditions[{i}].weight {} is not a finite non-negative number",
                     c.weight
@@ -504,7 +504,7 @@ fn validate_economy(
     for (k, v) in &cfg.by_tech_level {
         if !v.is_finite() || *v < 0.0 {
             errors.push(ValidationIssue {
-                code: "ECONOMY_TECH_MULTIPLIER_BAD".into(),
+                code: ValidationCode::EconomyTechMultiplierBad.as_slug().to_string(),
                 message: format!(
                     "economy.by_tech_level[{k}] = {v} is not a finite non-negative number"
                 ),
@@ -517,7 +517,7 @@ fn validate_economy(
     for (k, v) in &cfg.by_population {
         if !v.is_finite() || *v < 0.0 {
             errors.push(ValidationIssue {
-                code: "ECONOMY_POP_MULTIPLIER_BAD".into(),
+                code: ValidationCode::EconomyPopMultiplierBad.as_slug().to_string(),
                 message: format!(
                     "economy.by_population[{k}] = {v} is not a finite non-negative number"
                 ),
@@ -548,7 +548,7 @@ fn validate_resource_rule(
         if let Some(v) = value {
             if !v.is_finite() || !(0.0..=100.0).contains(&v) {
                 errors.push(ValidationIssue {
-                    code: "RESOURCE_SCORE_BAD".into(),
+                    code: ValidationCode::ResourceScoreBad.as_slug().to_string(),
                     message: format!("resources.{scope}.{name}.{field} = {v} is not 0..=100"),
                     path: Some(path(field)),
                     row: None,
@@ -570,7 +570,7 @@ fn validate_resource_rule(
     if let Some(v) = rule.trade_multiplier {
         if !v.is_finite() || v < 0.0 {
             errors.push(ValidationIssue {
-                code: "RESOURCE_TRADE_MULTIPLIER_BAD".into(),
+                code: ValidationCode::ResourceTradeMultiplierBad.as_slug().to_string(),
                 message: format!(
                     "resources.{scope}.{name}.trade_multiplier = {v} is not finite non-negative"
                 ),
@@ -583,7 +583,7 @@ fn validate_resource_rule(
     if let Some(v) = rule.supply_resilience {
         if !v.is_finite() || !(-100.0..=100.0).contains(&v) {
             errors.push(ValidationIssue {
-                code: "RESOURCE_SUPPLY_RESILIENCE_BAD".into(),
+                code: ValidationCode::ResourceSupplyResilienceBad.as_slug().to_string(),
                 message: format!(
                     "resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"
                 ),
@@ -602,5 +602,73 @@ fn issue(code: &str, message: &str, severity: Severity) -> ValidationIssue {
         path: None,
         row: None,
         severity,
+    }
+}
+
+/// Canonical set of validation `code` strings. Each variant maps to a stable
+/// SCREAMING_SNAKE_CASE slug via [`Self::as_slug`], which is what surfaces in
+/// the report JSON and the markdown render. Callers should prefer
+/// `ValidationCode::Foo.as_slug()` over inline string literals so that:
+///
+/// 1. Typos are caught at compile time.
+/// 2. The set of codes is centrally enumerable (e.g. for documentation or for
+///    a future `--list-codes` CLI flag).
+/// 3. Renaming a code is a single-site edit.
+///
+/// `#[non_exhaustive]` so adding a new code is not a SemVer break.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[non_exhaustive]
+pub enum ValidationCode {
+    FactionDuplicateId,
+    FactionBadWeight,
+    FactionUnknownWorldType,
+    FactionUnknownGovernment,
+    FactionUnknownFeature,
+    RouteBadMultiplier,
+    RouteUnknownFeature,
+    RouteUnknownWorldType,
+    RouteUnknownGovernment,
+    RouteUnknownRouteType,
+    RelationsKindRuleEmpty,
+    RelationsPairUnknownFaction,
+    RelationsOverrideUnknownFaction,
+    RegionsConditionBadWeight,
+    EconomyTechMultiplierBad,
+    EconomyPopMultiplierBad,
+    ResourceScoreBad,
+    ResourceTradeMultiplierBad,
+    ResourceSupplyResilienceBad,
+}
+
+impl ValidationCode {
+    #[must_use]
+    pub const fn as_slug(self) -> &'static str {
+        match self {
+            Self::FactionDuplicateId => "FACTION_DUPLICATE_ID",
+            Self::FactionBadWeight => "FACTION_BAD_WEIGHT",
+            Self::FactionUnknownWorldType => "FACTION_UNKNOWN_WORLD_TYPE",
+            Self::FactionUnknownGovernment => "FACTION_UNKNOWN_GOVERNMENT",
+            Self::FactionUnknownFeature => "FACTION_UNKNOWN_FEATURE",
+            Self::RouteBadMultiplier => "ROUTE_BAD_MULTIPLIER",
+            Self::RouteUnknownFeature => "ROUTE_UNKNOWN_FEATURE",
+            Self::RouteUnknownWorldType => "ROUTE_UNKNOWN_WORLD_TYPE",
+            Self::RouteUnknownGovernment => "ROUTE_UNKNOWN_GOVERNMENT",
+            Self::RouteUnknownRouteType => "ROUTE_UNKNOWN_ROUTE_TYPE",
+            Self::RelationsKindRuleEmpty => "RELATIONS_KIND_RULE_EMPTY",
+            Self::RelationsPairUnknownFaction => "RELATIONS_PAIR_UNKNOWN_FACTION",
+            Self::RelationsOverrideUnknownFaction => "RELATIONS_OVERRIDE_UNKNOWN_FACTION",
+            Self::RegionsConditionBadWeight => "REGIONS_CONDITION_BAD_WEIGHT",
+            Self::EconomyTechMultiplierBad => "ECONOMY_TECH_MULTIPLIER_BAD",
+            Self::EconomyPopMultiplierBad => "ECONOMY_POP_MULTIPLIER_BAD",
+            Self::ResourceScoreBad => "RESOURCE_SCORE_BAD",
+            Self::ResourceTradeMultiplierBad => "RESOURCE_TRADE_MULTIPLIER_BAD",
+            Self::ResourceSupplyResilienceBad => "RESOURCE_SUPPLY_RESILIENCE_BAD",
+        }
+    }
+}
+
+impl std::fmt::Display for ValidationCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_slug())
     }
 }

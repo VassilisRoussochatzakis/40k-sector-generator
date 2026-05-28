@@ -40,7 +40,7 @@ impl DashboardState {
 
 pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     state.ensure_for(sector);
-    let Some(a) = state.analysis.clone() else {
+    let Some(a) = state.analysis.as_ref() else {
         ui.label(
             RichText::new("analysis unavailable")
                 .color(TEXT_DIM)

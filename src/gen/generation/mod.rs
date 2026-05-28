@@ -270,6 +270,15 @@ where
 
     let ProjectInput {
         config,
+        catalogs,
+        input_digests,
+        root_dir: _,
+    } = project;
+    // §TF-P-1: catalogs live behind an `Arc`. Pull the immutable fields out by
+    // ref so we don't deep-clone the workbook just to read it. `try_unwrap`
+    // would consume the Arc when it's unique, but the seed-search loop holds
+    // its own clones — borrowing keeps both paths cheap.
+    let crate::loading::input::ProjectCatalogs {
         world_tables,
         world_rows,
         authored_features,
@@ -280,9 +289,8 @@ where
         regions: regions_cfg,
         economy: economy_cfg,
         history: history_cfg,
-        input_digests,
         ..
-    } = project;
+    } = &*catalogs;
 
     // docs/OPTIMIZE.txt G7: stage timings. Each `Instant::now()` is paired with a
     // `StageElapsed` emit; macro avoids the boilerplate.

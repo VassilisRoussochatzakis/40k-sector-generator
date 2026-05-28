@@ -12,7 +12,7 @@ pub fn run_regions(
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     let input = sectorforge::load_project(project)?;
-    let cfg = input.regions.clone();
+    let cfg = input.catalogs.regions.clone();
     let regs = sectorforge::build_regions(
         &input.config.generation.seed,
         input.config.generation.sector_width,

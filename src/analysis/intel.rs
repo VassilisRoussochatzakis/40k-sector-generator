@@ -64,6 +64,24 @@ pub enum IntelSource {
     ImaginedDeduction,
 }
 
+impl IntelSource {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::DirectObservation => "direct_observation",
+            Self::AstropathicReport => "astropathic_report",
+            Self::InquisitorialAnalysis => "inquisitorial_analysis",
+            Self::Rumor => "rumor",
+            Self::ImaginedDeduction => "imagined_deduction",
+        }
+    }
+}
+
+impl core::fmt::Display for IntelSource {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -76,6 +94,24 @@ pub enum PropagandaState {
     Counterfactual,
 }
 
+impl PropagandaState {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::OfficialPacified => "official_pacified",
+            Self::OfficialContested => "official_contested",
+            Self::OfficialLost => "official_lost",
+            Self::Counterfactual => "counterfactual",
+        }
+    }
+}
+
+impl core::fmt::Display for PropagandaState {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -85,6 +121,23 @@ pub enum ClassifiedState {
     CodexRedactus,
     PurgatusSigillum,
     ExterminatusFlag,
+}
+
+impl ClassifiedState {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Public => "public",
+            Self::CodexRedactus => "codex_redactus",
+            Self::PurgatusSigillum => "purgatus_sigillum",
+            Self::ExterminatusFlag => "exterminatus_flag",
+        }
+    }
+}
+
+impl core::fmt::Display for ClassifiedState {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 /// Build the default-observer intel record for a system. Records what

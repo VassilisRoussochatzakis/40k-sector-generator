@@ -492,6 +492,6 @@ mod tests {
         });
         state.recompute_prose();
         let report = state.prose_report.as_ref().unwrap();
-        assert!(report.tone.contains("Dispatch"));
+        assert!(report.tone.contains("dispatch"));
     }
 }

@@ -82,3 +82,74 @@ fn cli_and_library_produce_identical_sector_json() {
         "input digests must match — same project ⇒ same digests"
     );
 }
+
+/// TF-T-11: `validate` parity — the CLI's `--json` output should match the
+/// in-process `validate_project` report byte-for-byte.
+#[test]
+fn cli_and_library_validate_produce_identical_report() {
+    let bin = env!("CARGO_BIN_EXE_sectorforge");
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let project = Utf8PathBuf::from(manifest_dir).join("examples/m42_project");
+
+    let cli_out = Command::new(bin)
+        .args(["validate", "--project", project.as_str(), "--json"])
+        .output()
+        .expect("spawn sectorforge CLI validate");
+    assert!(
+        cli_out.status.success(),
+        "CLI validate exited non-zero: {:?}\nstderr: {}",
+        cli_out.status,
+        String::from_utf8_lossy(&cli_out.stderr)
+    );
+    let cli_value: serde_json::Value =
+        serde_json::from_slice(&cli_out.stdout).expect("parse CLI validation JSON");
+
+    let project_input = sectorforge::load_project(&project).expect("load_project");
+    let lib_report = sectorforge::validate_project(&project_input).expect("validate_project");
+    let lib_value: serde_json::Value =
+        serde_json::to_value(&lib_report).expect("ser lib report");
+
+    assert_eq!(
+        cli_value, lib_value,
+        "CLI and library validate paths must produce identical reports"
+    );
+    assert_eq!(
+        cli_value.get("ok").and_then(|v| v.as_bool()),
+        Some(lib_report.ok),
+        "ok flag mismatch"
+    );
+}
+
+/// TF-T-11: `analyze` parity — the CLI's `--json` output (from the same
+/// sector that `generate_sector` would produce) should match a fresh
+/// in-process `analyze` of that sector.
+#[test]
+fn cli_and_library_analyze_produce_identical_json() {
+    let bin = env!("CARGO_BIN_EXE_sectorforge");
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let project = Utf8PathBuf::from(manifest_dir).join("examples/m42_project");
+
+    let cli_out = Command::new(bin)
+        .args(["analyze", "--project", project.as_str(), "--json"])
+        .output()
+        .expect("spawn sectorforge CLI analyze");
+    assert!(
+        cli_out.status.success(),
+        "CLI analyze exited non-zero: {:?}\nstderr: {}",
+        cli_out.status,
+        String::from_utf8_lossy(&cli_out.stderr)
+    );
+    let cli_analysis: sectorforge::analytics::SectorAnalysis =
+        serde_json::from_slice(&cli_out.stdout).expect("parse CLI analyze JSON");
+
+    let project_input = sectorforge::load_project(&project).expect("load_project");
+    let lib_sector = sectorforge::generate_sector(project_input).expect("generate_sector");
+    let lib_analysis = sectorforge::analytics::analyze(&lib_sector);
+
+    let cli_json = serde_json::to_string(&cli_analysis).expect("ser cli analysis");
+    let lib_json = serde_json::to_string(&lib_analysis).expect("ser lib analysis");
+    assert_eq!(
+        cli_json, lib_json,
+        "CLI and library analyze paths must produce byte-identical JSON"
+    );
+}

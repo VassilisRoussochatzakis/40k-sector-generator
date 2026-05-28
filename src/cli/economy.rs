@@ -17,7 +17,7 @@ pub fn run_economy(
             let input = sectorforge::load_project(p)?;
             let cfg = sectorforge::economy::EconomyConfig {
                 enabled: true,
-                ..input.economy.clone()
+                ..input.catalogs.economy.clone()
             };
             (sectorforge::generate_sector(input)?, cfg)
         }

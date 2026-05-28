@@ -111,6 +111,40 @@ pub enum SiteKind {
     NavalAnchorage,
 }
 
+impl SiteKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::GovernorsPalace => "governors_palace",
+            Self::CathedralSpire => "cathedral_spire",
+            Self::Manufactorum => "manufactorum",
+            Self::UnderhiveSumpCity => "underhive_sump_city",
+            Self::VoidElevator => "void_elevator",
+            Self::StarFortDockyard => "star_fort_dockyard",
+            Self::QuarantineZone => "quarantine_zone",
+            Self::XenosRuin => "xenos_ruin",
+            Self::PilgrimNecropolis => "pilgrim_necropolis",
+            Self::AstropathicChoir => "astropathic_choir",
+            Self::ArbitesPrecinct => "arbites_precinct",
+            Self::DataVault => "data_vault",
+            Self::DisputedShrine => "disputed_shrine",
+            Self::PenalMine => "penal_mine",
+            Self::BlackMarketEnclave => "black_market_enclave",
+            Self::CultSafehouse => "cult_safehouse",
+            Self::CrashedVoidship => "crashed_voidship",
+            Self::AgriBeltGranary => "agri_belt_granary",
+            Self::ForgeReactor => "forge_reactor",
+            Self::TombComplex => "tomb_complex",
+            Self::NavalAnchorage => "naval_anchorage",
+        }
+    }
+}
+
+impl core::fmt::Display for SiteKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -122,6 +156,26 @@ pub enum SiteStatus {
     Sealed,
     Contested,
     UnderConstruction,
+}
+
+impl SiteStatus {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Restricted => "restricted",
+            Self::Abandoned => "abandoned",
+            Self::Quarantined => "quarantined",
+            Self::Sealed => "sealed",
+            Self::Contested => "contested",
+            Self::UnderConstruction => "under_construction",
+        }
+    }
+}
+
+impl core::fmt::Display for SiteStatus {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────────
@@ -626,7 +680,7 @@ pub fn render_markdown(report: &SitesReport, cfg: &SitesConfig) -> String {
         for site in group {
             let region = site
                 .region_kind
-                .map(|r| format!(" ({r:?})"))
+                .map(|r| format!(" ({r})"))
                 .unwrap_or_default();
             let owner = site.controlling_faction.as_deref().unwrap_or("(unowned)");
             let _ = writeln!(
@@ -636,7 +690,7 @@ pub fn render_markdown(report: &SitesReport, cfg: &SitesConfig) -> String {
                 site.kind,
                 site.public_status,
                 if !cfg.player_edition && site.public_status != site.actual_status {
-                    format!(" (actual: {:?})", site.actual_status)
+                    format!(" (actual: {})", site.actual_status)
                 } else {
                     String::new()
                 },

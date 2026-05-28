@@ -115,6 +115,8 @@ impl SessionFile {
             auto_save_path: None,
             last_save_error: None,
             last_catalog_error: None,
+            last_subsector_error: None,
+            feature_weights_cache: std::collections::BTreeMap::new(),
             validation_report: None,
             invariant_report: None,
             modal: None,

@@ -178,7 +178,7 @@ pub fn render_system_markdown(sys: &GeneratedSystem) -> String {
             star.spectral_type.as_deref().unwrap_or("?")
         ));
     } else {
-        s.push_str(&format!("- **Kind:** {:?}\n", sys.kind));
+        s.push_str(&format!("- **Kind:** {}\n", sys.kind));
     }
     if !sys.primary_factions.is_empty() {
         s.push_str(&format!(
@@ -324,7 +324,7 @@ fn format_faction_display_buckets(sector: &GeneratedSector) -> String {
                 faction_ids,
             } => (
                 format!("_{label}_"),
-                format!("{group:?}"),
+                format!("{group}"),
                 *system_count,
                 *world_count,
                 *importance,
@@ -583,7 +583,7 @@ fn format_system_section(
             star.spectral_type.as_deref().unwrap_or("?")
         ));
     } else {
-        s.push_str(&format!("- **Kind:** {:?}\n", sys.kind));
+        s.push_str(&format!("- **Kind:** {}\n", sys.kind));
     }
     if !sys.primary_factions.is_empty() {
         s.push_str(&format!(
@@ -620,7 +620,7 @@ fn format_system_control(sys: &GeneratedSystem) -> String {
     }
     let mut s = String::new();
     if let Some(state) = c.state {
-        s.push_str(&format!("- **System state:** {state:?}\n"));
+        s.push_str(&format!("- **System state:** {state}\n"));
     }
     let row = |label: &str, v: &Option<crate::ids::FactionId>| -> String {
         v.as_deref()
@@ -673,19 +673,19 @@ fn format_archetype_lines(sys: &GeneratedSystem) -> String {
         ));
     }
     if a.necron_phase != crate::archetypes::NecronPhase::default() {
-        s.push_str(&format!("- **Necron phase:** {:?}\n", a.necron_phase));
+        s.push_str(&format!("- **Necron phase:** {}\n", a.necron_phase));
     }
     if a.tyranid_stage != crate::archetypes::TyranidStage::default() {
-        s.push_str(&format!("- **Tyranid stage:** {:?}\n", a.tyranid_stage));
+        s.push_str(&format!("- **Tyranid stage:** {}\n", a.tyranid_stage));
     }
     if a.ork_waaagh > 0 {
         s.push_str(&format!("- **Ork Waaagh!:** {}\n", a.ork_waaagh));
     }
     if a.gsc_stage != crate::archetypes::GscStage::default() {
-        s.push_str(&format!("- **Genestealer stage:** {:?}\n", a.gsc_stage));
+        s.push_str(&format!("- **Genestealer stage:** {}\n", a.gsc_stage));
     }
     if a.tau_sphere != crate::archetypes::TauSphereBand::default() {
-        s.push_str(&format!("- **Tau sphere:** {:?}\n", a.tau_sphere));
+        s.push_str(&format!("- **Tau sphere:** {}\n", a.tau_sphere));
     }
     if a.aeldari_activity > 0 {
         s.push_str(&format!("- **Aeldari activity:** {}\n", a.aeldari_activity));

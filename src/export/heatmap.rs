@@ -99,6 +99,32 @@ impl HeatmapMode {
             _ => (28, 26, 38),
         }
     }
+
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Control => "control",
+            Self::Military => "military",
+            Self::Trade => "trade",
+            Self::Industrial => "industrial",
+            Self::Covert => "covert",
+            Self::Faith => "faith",
+            Self::Threat => "threat",
+            Self::Intel => "intel",
+            Self::Tension => "tension",
+            Self::TradeVolume => "trade_volume",
+            Self::FoodOutput => "food_output",
+            Self::TitheStress => "tithe_stress",
+            Self::SupplyVulnerability => "supply_vulnerability",
+            Self::ConflictIntensity => "conflict_intensity",
+        }
+    }
+}
+
+impl core::fmt::Display for HeatmapMode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 /// Per-system raw score + optional dominant faction id (for `Control` mode).

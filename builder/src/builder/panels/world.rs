@@ -368,6 +368,7 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .notable_features
         .len();
     let weights = feature_weights_for_world(state, sys_idx, w_idx);
+    let weights = &*weights;
     egui::CollapsingHeader::new(format!("§W5 — Notable features ({feature_count})"))
         .default_open(false)
         .show(ui, |ui| {
@@ -453,34 +454,80 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         });
 }
 
-/// §W5: build a feature → weight map blending per-world-type, per-star-colour,
-/// and global tiers from the in-memory pool. Returns an empty map when no
-/// worlds catalog is loaded.
+/// §W5 + TF-NT-3: cache-backed feature → weight map. The expensive path
+/// (`synthesize_project_input` → `build_pool` → `apply_authored_features`)
+/// only runs when the per-world input digest changes; same-frame and
+/// adjacent-frame reads return the cached `Arc` without rebuilding the pool.
 fn feature_weights_for_world(
-    state: &BuilderState,
+    state: &mut BuilderState,
     sys_idx: usize,
     w_idx: usize,
-) -> std::collections::BTreeMap<String, f64> {
+) -> std::sync::Arc<std::collections::BTreeMap<String, f64>> {
     use std::collections::BTreeMap;
-    let mut out: BTreeMap<String, f64> = BTreeMap::new();
+    use std::sync::Arc;
+
+    let world_type = state.sector.systems[sys_idx].worlds[w_idx]
+        .world
+        .world_type
+        .clone();
+    let star_colour = state.sector.systems[sys_idx]
+        .star
+        .as_ref()
+        .map(|s| s.colour_code.clone())
+        .unwrap_or_default();
+    let worlds_sig = state
+        .data_catalogs
+        .worlds
+        .as_ref()
+        .map(|w| {
+            crate::builder::derivation_cache::digest_input(&(
+                w.generation.len(),
+                w.features.global.len(),
+                w.features.by_world_type.len(),
+                w.features.by_star_colour.len(),
+            ))
+        })
+        .unwrap_or_default();
+    let digest = crate::builder::derivation_cache::digest_input(&(
+        world_type.as_ref(),
+        star_colour.as_ref(),
+        worlds_sig,
+    ));
+
+    let key = (sys_idx, w_idx);
+    if let Some(entry) = state.feature_weights_cache.get(&key) {
+        if entry.digest == digest {
+            return Arc::clone(&entry.weights);
+        }
+    }
+
     let Some(input) = state.synthesize_project_input() else {
-        return out;
+        let empty = Arc::new(BTreeMap::new());
+        state.feature_weights_cache.insert(
+            key,
+            crate::builder::state::FeatureWeightsCacheValue {
+                digest,
+                weights: Arc::clone(&empty),
+            },
+        );
+        return empty;
     };
     let mut pool = sectorforge::world_pool::build_pool(
-        &input.world_rows,
-        &input.world_tables,
+        &input.catalogs.world_rows,
+        &input.catalogs.world_tables,
         &input.config.generation.world_selection,
     );
-    if let Some(features) = &input.authored_features {
+    if let Some(features) = &input.catalogs.authored_features {
         sectorforge::world_pool::apply_authored_features(&mut pool, features);
     }
     let world = &state.sector.systems[sys_idx].worlds[w_idx];
     let wt: Option<WorldType> = world.world.world_type.as_ref().parse().ok();
     let sc: Option<StarColour> = world.world.star_colour_code.as_ref().parse().ok();
+    let mut out: BTreeMap<String, f64> = BTreeMap::new();
     let mut push = |list: &[sectorforge::world_pool::WeightedFeature]| {
         for wf in list {
-            let key = format!("{:?}", wf.feature);
-            let entry = out.entry(key).or_insert(0.0);
+            let k = format!("{:?}", wf.feature);
+            let entry = out.entry(k).or_insert(0.0);
             *entry += wf.weight;
         }
     };
@@ -495,7 +542,15 @@ fn feature_weights_for_world(
         }
     }
     push(&pool.feature_pool.global);
-    out
+    let arc = Arc::new(out);
+    state.feature_weights_cache.insert(
+        key,
+        crate::builder::state::FeatureWeightsCacheValue {
+            digest,
+            weights: Arc::clone(&arc),
+        },
+    );
+    arc
 }
 
 // ── coupling warnings (W6) ─────────────────────────────────────────────────
@@ -749,17 +804,17 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 }
             });
         egui::ComboBox::from_id_salt(("w_add_tier", world_id.as_str()))
-            .selected_text(format!("{:?}", buf.tier))
+            .selected_text(format!("{}", buf.tier))
             .show_ui(ui, |ui| {
                 for t in INFLUENCE_TIERS {
-                    ui.selectable_value(&mut buf.tier, *t, format!("{t:?}"));
+                    ui.selectable_value(&mut buf.tier, *t, format!("{t}"));
                 }
             });
         egui::ComboBox::from_id_salt(("w_add_dom", world_id.as_str()))
-            .selected_text(format!("{:?}", buf.dominance))
+            .selected_text(format!("{}", buf.dominance))
             .show_ui(ui, |ui| {
                 for d in DOMINANCE_STATES {
-                    ui.selectable_value(&mut buf.dominance, *d, format!("{d:?}"));
+                    ui.selectable_value(&mut buf.dominance, *d, format!("{d}"));
                 }
             });
         if ui.button("+ presence").clicked() {
@@ -804,7 +859,7 @@ fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 let label =
-                                    format!("{}  {:?}  {}", c.faction_id, c.claim_type, c.strength);
+                                    format!("{}  {}  {}", c.faction_id, c.claim_type, c.strength);
                                 let resp = ui.label(RichText::new(label).color(fg).monospace());
                                 if resp.clicked() {
                                     state.focus_entity(EntityRef::Faction(c.faction_id.clone()));
@@ -883,12 +938,12 @@ fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
             });
         egui::ComboBox::from_id_salt(("w_add_claim_kind", sys_idx, w_idx))
             .selected_text(format!(
-                "{:?}",
+                "{}",
                 buf.claim_type.unwrap_or(ClaimType::LegalSovereignty)
             ))
             .show_ui(ui, |ui| {
                 for c in CLAIM_TYPES {
-                    ui.selectable_value(&mut buf.claim_type, Some(*c), format!("{c:?}"));
+                    ui.selectable_value(&mut buf.claim_type, Some(*c), format!("{c}"));
                 }
             });
         ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));

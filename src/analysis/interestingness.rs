@@ -58,6 +58,24 @@ pub enum ProfileId {
     Frontier,
 }
 
+impl ProfileId {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::PoliticalSandbox => "political_sandbox",
+            Self::GrimCollapse => "grim_collapse",
+            Self::Mercantile => "mercantile",
+            Self::Villainous => "villainous",
+            Self::Frontier => "frontier",
+        }
+    }
+}
+
+impl core::fmt::Display for ProfileId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 /// One metric target band. `low..=high` defines the "ideal" range; outside it
 /// the fit decays linearly to 0 at `floor`/`ceil`.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
@@ -142,7 +160,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &InterestingnessConfig) -> Int
     InterestingnessReport {
         sector_id: sector.id.to_string(),
         seed: sector.seed.to_string(),
-        profile: format!("{:?}", cfg.profile),
+        profile: format!("{}", cfg.profile),
         overall,
         metric_scores: scores,
         strengths,

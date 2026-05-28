@@ -134,11 +134,11 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
     egui::Grid::new("per4_grid").num_columns(2).show(ui, |ui| {
         ui.label("min_world_dominance");
         egui::ComboBox::from_id_salt("per4_dom")
-            .selected_text(format!("{:?}", cfg.min_world_dominance))
+            .selected_text(format!("{}", cfg.min_world_dominance))
             .show_ui(ui, |ui| {
                 for tier in DOMINANCE_TIERS {
                     if ui
-                        .selectable_value(&mut cfg.min_world_dominance, *tier, format!("{tier:?}"))
+                        .selectable_value(&mut cfg.min_world_dominance, *tier, format!("{tier}"))
                         .changed()
                     {
                         changed = true;

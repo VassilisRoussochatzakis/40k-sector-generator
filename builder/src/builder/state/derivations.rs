@@ -337,26 +337,28 @@ impl BuilderState {
         Some(ProjectInput {
             root_dir,
             config: self.config.clone(),
-            world_tables,
-            world_rows,
-            authored_features,
-            names: self.data_catalogs.names.clone().unwrap_or_default(),
-            factions: self
-                .data_catalogs
-                .factions
-                .as_ref()
-                .map(|f| f.factions.clone())
-                .unwrap_or_default(),
-            route_rules: self.data_catalogs.route_rules.clone().unwrap_or_default(),
-            relations: self.data_catalogs.relations.clone().unwrap_or_default(),
-            regions: self.data_catalogs.regions.clone().unwrap_or_default(),
-            economy: self.data_catalogs.economy.clone().unwrap_or_default(),
-            history: self.data_catalogs.history.clone().unwrap_or_default(),
-            personae: self.data_catalogs.personae.clone().unwrap_or_default(),
-            sites: self.data_catalogs.sites.clone().unwrap_or_default(),
-            hooks: self.data_catalogs.hooks.clone().unwrap_or_default(),
-            missions: self.data_catalogs.missions.clone().unwrap_or_default(),
-            prose: self.data_catalogs.prose.clone().unwrap_or_default(),
+            catalogs: std::sync::Arc::new(sectorforge::ProjectCatalogs {
+                world_tables,
+                world_rows,
+                authored_features,
+                names: self.data_catalogs.names.clone().unwrap_or_default(),
+                factions: self
+                    .data_catalogs
+                    .factions
+                    .as_ref()
+                    .map(|f| f.factions.clone())
+                    .unwrap_or_default(),
+                route_rules: self.data_catalogs.route_rules.clone().unwrap_or_default(),
+                relations: self.data_catalogs.relations.clone().unwrap_or_default(),
+                regions: self.data_catalogs.regions.clone().unwrap_or_default(),
+                economy: self.data_catalogs.economy.clone().unwrap_or_default(),
+                history: self.data_catalogs.history.clone().unwrap_or_default(),
+                personae: self.data_catalogs.personae.clone().unwrap_or_default(),
+                sites: self.data_catalogs.sites.clone().unwrap_or_default(),
+                hooks: self.data_catalogs.hooks.clone().unwrap_or_default(),
+                missions: self.data_catalogs.missions.clone().unwrap_or_default(),
+                prose: self.data_catalogs.prose.clone().unwrap_or_default(),
+            }),
             input_digests: BTreeMap::new(),
         })
     }

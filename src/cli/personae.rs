@@ -15,7 +15,7 @@ pub fn run_personae(
     let (sec, cfg) = match (project, sector) {
         (Some(p), None) => {
             let input = sectorforge::load_project(p)?;
-            let cfg = input.personae.clone();
+            let cfg = input.catalogs.personae.clone();
             (sectorforge::generate_sector(input)?, cfg)
         }
         (None, Some(s)) => (

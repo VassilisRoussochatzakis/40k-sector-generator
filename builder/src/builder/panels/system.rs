@@ -365,7 +365,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     ui.end_row();
                     ui.label("kind");
                     egui::ComboBox::from_id_salt("sys_kind")
-                        .selected_text(format!("{:?}", kind_choice))
+                        .selected_text(format!("{}", kind_choice))
                         .show_ui(ui, |ui| {
                             for k in [
                                 SystemKind::Star,
@@ -374,7 +374,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                                 SystemKind::WarpAnomaly,
                                 SystemKind::SpaceStation,
                             ] {
-                                ui.selectable_value(&mut kind_choice, k, format!("{:?}", k));
+                                ui.selectable_value(&mut kind_choice, k, format!("{}", k));
                             }
                         });
                     ui.data_mut(|d| d.insert_temp(kind_choice_key, kind_choice));
@@ -751,7 +751,7 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             egui::ComboBox::from_id_salt("sys_control_state")
                 .selected_text(match current {
                     None => "(none)".into(),
-                    Some(s) => format!("{s:?}"),
+                    Some(s) => format!("{s}"),
                 })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut current, None, "(none)");
@@ -764,7 +764,7 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                         SystemState::Quarantined,
                         SystemState::Uncharted,
                     ] {
-                        ui.selectable_value(&mut current, Some(s), format!("{s:?}"));
+                        ui.selectable_value(&mut current, Some(s), format!("{s}"));
                     }
                 });
             if current != state.sector.systems[sys_idx].control.state {
@@ -880,7 +880,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
 
                     ui.label("necron phase");
                     egui::ComboBox::from_id_salt("arch_necron")
-                        .selected_text(format!("{:?}", working.necron_phase))
+                        .selected_text(format!("{}", working.necron_phase))
                         .show_ui(ui, |ui| {
                             for v in [
                                 NecronPhase::None,
@@ -888,14 +888,14 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                                 NecronPhase::Awakening,
                                 NecronPhase::Awake,
                             ] {
-                                ui.selectable_value(&mut working.necron_phase, v, format!("{v:?}"));
+                                ui.selectable_value(&mut working.necron_phase, v, format!("{v}"));
                             }
                         });
                     ui.end_row();
 
                     ui.label("tyranid stage");
                     egui::ComboBox::from_id_salt("arch_tyranid")
-                        .selected_text(format!("{:?}", working.tyranid_stage))
+                        .selected_text(format!("{}", working.tyranid_stage))
                         .show_ui(ui, |ui| {
                             for v in [
                                 TyranidStage::None,
@@ -906,7 +906,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                                 ui.selectable_value(
                                     &mut working.tyranid_stage,
                                     v,
-                                    format!("{v:?}"),
+                                    format!("{v}"),
                                 );
                             }
                         });
@@ -918,7 +918,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
 
                     ui.label("genestealer stage");
                     egui::ComboBox::from_id_salt("arch_gsc")
-                        .selected_text(format!("{:?}", working.gsc_stage))
+                        .selected_text(format!("{}", working.gsc_stage))
                         .show_ui(ui, |ui| {
                             for v in [
                                 GscStage::None,
@@ -929,14 +929,14 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                                 GscStage::Uprising,
                                 GscStage::PlanetarySeizure,
                             ] {
-                                ui.selectable_value(&mut working.gsc_stage, v, format!("{v:?}"));
+                                ui.selectable_value(&mut working.gsc_stage, v, format!("{v}"));
                             }
                         });
                     ui.end_row();
 
                     ui.label("tau sphere");
                     egui::ComboBox::from_id_salt("arch_tau")
-                        .selected_text(format!("{:?}", working.tau_sphere))
+                        .selected_text(format!("{}", working.tau_sphere))
                         .show_ui(ui, |ui| {
                             for v in [
                                 TauSphereBand::None,
@@ -945,7 +945,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                                 TauSphereBand::Client,
                                 TauSphereBand::Core,
                             ] {
-                                ui.selectable_value(&mut working.tau_sphere, v, format!("{v:?}"));
+                                ui.selectable_value(&mut working.tau_sphere, v, format!("{v}"));
                             }
                         });
                     ui.end_row();
@@ -1266,7 +1266,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 ] {
                     let label = match s {
                         None => "(none)".to_string(),
-                        Some(v) => format!("{v:?}"),
+                        Some(v) => format!("{v}"),
                     };
                     if ui.button(label).clicked() {
                         apply_bulk_control_state(state, s);

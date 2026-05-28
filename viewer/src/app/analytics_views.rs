@@ -110,7 +110,7 @@ impl App {
                             let selected = self.history_selected_event.clone();
                             for e in &sector.chronicle.events {
                                 let is_selected = selected.as_deref() == Some(e.id.as_str());
-                                let label = format!("{}  {:?}  {}", e.date, e.kind, e.summary);
+                                let label = format!("{}  {}  {}", e.date, e.kind, e.summary);
                                 if ui
                                     .selectable_label(
                                         is_selected,

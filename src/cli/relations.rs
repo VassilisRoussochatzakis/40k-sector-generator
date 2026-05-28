@@ -17,7 +17,7 @@ pub fn run_relations(
     let (sec, cfg) = match (project, sector) {
         (Some(p), None) => {
             let input = sectorforge::load_project(p)?;
-            let cfg = input.relations.clone();
+            let cfg = input.catalogs.relations.clone();
             (sectorforge::generate_sector(input)?, cfg)
         }
         (None, Some(s)) => (

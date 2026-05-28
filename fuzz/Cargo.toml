@@ -1,0 +1,44 @@
+[package]
+name = "sectorforge-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+# TF-T-10: fuzz crate is intentionally OUTSIDE the workspace
+# (root Cargo.toml's `[workspace]` lists only viewer/gui-core/builder). This
+# keeps `cargo build/test --workspace` from pulling in `libfuzzer-sys`, which
+# requires nightly. Run via:
+#   cargo +nightly fuzz run config_parse
+#   cargo +nightly fuzz run worlds_toml_parse
+#   cargo +nightly fuzz run presets_load
+#   cargo +nightly fuzz run map_theme_parse_color
+[dependencies]
+libfuzzer-sys = "0.4"
+sectorforge = { path = "..", package = "sector-generator" }
+
+[[bin]]
+name = "config_parse"
+path = "fuzz_targets/config_parse.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "worlds_toml_parse"
+path = "fuzz_targets/worlds_toml_parse.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "presets_load"
+path = "fuzz_targets/presets_load.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "map_theme_parse_color"
+path = "fuzz_targets/map_theme_parse_color.rs"
+test = false
+doc = false

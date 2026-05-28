@@ -295,7 +295,7 @@ fn draw_legend(
             img,
             x0,
             y,
-            &format!("{:?}", sys.kind).to_uppercase(),
+            &format!("{}", sys.kind).to_uppercase(),
             theme.text,
             body,
         );

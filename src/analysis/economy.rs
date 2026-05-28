@@ -735,6 +735,25 @@ pub enum TitheStatus {
     Falsified,
 }
 
+impl TitheStatus {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Surplus => "surplus",
+            Self::Adequate => "adequate",
+            Self::Strained => "strained",
+            Self::Delinquent => "delinquent",
+            Self::Failed => "failed",
+            Self::Falsified => "falsified",
+        }
+    }
+}
+
+impl core::fmt::Display for TitheStatus {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -744,6 +763,23 @@ pub enum SupplyRisk {
     Vulnerable,
     Disrupted,
     Collapsing,
+}
+
+impl SupplyRisk {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Stable => "stable",
+            Self::Vulnerable => "vulnerable",
+            Self::Disrupted => "disrupted",
+            Self::Collapsing => "collapsing",
+        }
+    }
+}
+
+impl core::fmt::Display for SupplyRisk {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -756,6 +792,24 @@ pub enum StrategicPriority {
     Subsector,
     Sector,
     CrusadeLevel,
+}
+
+impl StrategicPriority {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Local => "local",
+            Self::Subsector => "subsector",
+            Self::Sector => "sector",
+            Self::CrusadeLevel => "crusade_level",
+        }
+    }
+}
+
+impl core::fmt::Display for StrategicPriority {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -890,9 +944,9 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
         .iter()
         .map(|r| route_economy(r, &by_sys))
         .collect();
-    let dependency_edges = derive_dependency_edges(sector, &systems, &routes);
 
-    // Build a map of valid routes by system to speed up the stranded check
+    // TF-P-6: hoisted once and shared with both `derive_dependency_edges` and
+    // the stranded check below. Previously each rebuilt their own copy.
     let mut valid_routes_by_sys: BTreeMap<&str, Vec<&crate::sector_model::GeneratedRoute>> =
         BTreeMap::new();
     for r in &sector.routes {
@@ -907,6 +961,8 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 .push(r);
         }
     }
+    let dependency_edges =
+        derive_dependency_edges(sector, &systems, &routes, &by_sys, &valid_routes_by_sys);
 
     // Stranded check: a world is stranded if it has any deficit ≥ 20 and the
     // system also nets a deficit there *and* no inbound route from a surplus
@@ -1087,33 +1143,18 @@ fn strategic_needs_for_world(world_type: &str) -> &'static [&'static str] {
     }
 }
 
-fn derive_dependency_edges(
-    sector: &GeneratedSector,
-    systems: &[SystemEconomy],
-    routes: &[RouteEconomy],
+fn derive_dependency_edges<'a>(
+    sector: &'a GeneratedSector,
+    systems: &'a [SystemEconomy],
+    routes: &'a [RouteEconomy],
+    by_sys: &BTreeMap<&'a str, &'a SystemEconomy>,
+    valid_routes_by_sys: &BTreeMap<&'a str, Vec<&'a crate::sector_model::GeneratedRoute>>,
 ) -> Vec<DependencyEdge> {
-    let by_sys: BTreeMap<&str, &SystemEconomy> =
-        systems.iter().map(|s| (s.system_id.as_str(), s)).collect();
     let by_route: BTreeMap<&str, &RouteEconomy> =
         routes.iter().map(|r| (r.route_id.as_str(), r)).collect();
 
     let system_refs: BTreeMap<&str, &crate::sector_model::GeneratedSystem> =
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
-
-    let mut valid_routes_by_sys: BTreeMap<&str, Vec<&crate::sector_model::GeneratedRoute>> =
-        BTreeMap::new();
-    for r in &sector.routes {
-        if r.stability != RouteStability::Perilous {
-            valid_routes_by_sys
-                .entry(r.from_system_id.as_str())
-                .or_default()
-                .push(r);
-            valid_routes_by_sys
-                .entry(r.to_system_id.as_str())
-                .or_default()
-                .push(r);
-        }
-    }
 
     let mut out = Vec::with_capacity(systems.len() * 4);
 

@@ -91,7 +91,7 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui.horizontal(|ui| {
             label(ui, "KIND");
             // I'll skip a combo for Kind for now to keep it simple, but at least show it.
-            ui.label(RichText::new(format!("{:?}", sys.kind).to_uppercase()).font(mono(12.0)));
+            ui.label(RichText::new(format!("{}", sys.kind).to_uppercase()).font(mono(12.0)));
         });
     }
 

@@ -34,6 +34,22 @@ pub enum Severity {
     Info,
 }
 
+impl Severity {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Error => "error",
+            Self::Warning => "warning",
+            Self::Info => "info",
+        }
+    }
+}
+
+impl core::fmt::Display for Severity {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct WorldWorkbookValidation {
     pub row_count: usize,
@@ -114,15 +130,15 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
 
     // ── World workbook ──────────────────────────────────────────────────────
     let mut pool = world_pool::build_pool(
-        &input.world_rows,
-        &input.world_tables,
+        &input.catalogs.world_rows,
+        &input.catalogs.world_tables,
         &input.config.generation.world_selection,
     );
-    if let Some(features) = &input.authored_features {
+    if let Some(features) = &input.catalogs.authored_features {
         world_pool::apply_authored_features(&mut pool, features);
     }
 
-    let t = &input.world_tables;
+    let t = &input.catalogs.world_tables;
     let key_counts: BTreeMap<String, usize> = [
         ("star_colours", t.star_colours.len()),
         ("world_types", t.world_types.len()),
@@ -148,7 +164,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         }
     }
 
-    if input.world_rows.is_empty() {
+    if input.catalogs.world_rows.is_empty() {
         errors.push(issue(
             "WB_NO_ROWS",
             "Generator Template sheet had no rows",
@@ -196,7 +212,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
 
     // ── Factions ────────────────────────────────────────────────────────────
     let mut faction_ids: BTreeSet<crate::ids::FactionId> = BTreeSet::new();
-    for (idx, f) in input.factions.iter().enumerate() {
+    for (idx, f) in input.catalogs.factions.iter().enumerate() {
         if !faction_ids.insert(f.id.clone()) {
             errors.push(ValidationIssue {
                 code: ValidationCode::FactionDuplicateId.as_slug().to_string(),
@@ -252,7 +268,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
 
     // ── Route rules ─────────────────────────────────────────────────────────
     if input.config.generation.routes.enabled {
-        let r = &input.route_rules;
+        let r = &input.catalogs.route_rules;
         if !(r.default_weight.is_finite() && r.default_weight > 0.0) {
             errors.push(issue(
                 "ROUTE_BAD_DEFAULT_WEIGHT",
@@ -325,7 +341,7 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 
     // ── Name pools ──────────────────────────────────────────────────────────
-    let n = &input.names.system_names;
+    let n = &input.catalogs.names.system_names;
     if n.prefixes.is_empty() && n.suffixes.is_empty() && n.single_names.is_empty() {
         warnings.push(issue(
             "NAME_POOL_EMPTY",
@@ -335,25 +351,25 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
 
     validate_relations(
-        &input.relations,
-        &input.factions,
+        &input.catalogs.relations,
+        &input.catalogs.factions,
         &mut errors,
         &mut warnings,
     );
     validate_regions(
-        &input.regions,
+        &input.catalogs.regions,
         &input.config.generation,
         &mut errors,
         &mut warnings,
     );
-    validate_economy(&input.economy, &mut errors, &mut warnings);
+    validate_economy(&input.catalogs.economy, &mut errors, &mut warnings);
 
     ValidationReport {
         ok: errors.is_empty(),
         errors,
         warnings,
         world_workbook: WorldWorkbookValidation {
-            row_count: input.world_rows.len(),
+            row_count: input.catalogs.world_rows.len(),
             usable_candidate_count: pool.candidates.len(),
             excluded_row_count: pool.excluded_rows.len(),
             exclusion_reasons,

@@ -155,6 +155,22 @@ pub enum PlacementMode {
     Clustered,
 }
 
+impl PlacementMode {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::UniformGrid => "uniform_grid",
+            Self::WeightedGrid => "weighted_grid",
+            Self::Clustered => "clustered",
+        }
+    }
+}
+
+impl core::fmt::Display for PlacementMode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 fn default_placement_mode() -> PlacementMode {
     PlacementMode::UniformGrid
 }
@@ -197,6 +213,20 @@ impl Default for WorldSelectionConfig {
 #[non_exhaustive]
 pub enum WorldSelectionMode {
     WeightedRows,
+}
+
+impl WorldSelectionMode {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::WeightedRows => "weighted_rows",
+        }
+    }
+}
+
+impl core::fmt::Display for WorldSelectionMode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 fn default_selection_mode() -> WorldSelectionMode {
@@ -363,6 +393,22 @@ impl OutputFormat {
             _ => None,
         }
     }
+
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Json => "json",
+            Self::Markdown => "markdown",
+            Self::Bitmap => "bitmap",
+            Self::Svg => "svg",
+            Self::Html => "html",
+        }
+    }
+}
+
+impl core::fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 /// §11 NEW.md: interactive HTML exporter knobs. Theme picks the palette;
@@ -413,6 +459,22 @@ pub enum HtmlTheme {
     Parchment,
     /// Cool blue-tinted greyscale, monitor-glow aesthetic.
     Hololithic,
+}
+
+impl HtmlTheme {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Dark => "dark",
+            Self::Parchment => "parchment",
+            Self::Hololithic => "hololithic",
+        }
+    }
+}
+
+impl core::fmt::Display for HtmlTheme {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 fn default_html_theme() -> HtmlTheme {

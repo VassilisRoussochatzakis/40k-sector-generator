@@ -217,6 +217,25 @@ pub enum StanceName {
 }
 
 impl StanceName {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Allied => "allied",
+            Self::Aligned => "aligned",
+            Self::Neutral => "neutral",
+            Self::Rival => "rival",
+            Self::Hostile => "hostile",
+            Self::AtWar => "at_war",
+        }
+    }
+}
+
+impl core::fmt::Display for StanceName {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
+impl StanceName {
     fn matches(self, s: crate::relations::Stance) -> bool {
         use crate::relations::Stance as S;
         matches!(
@@ -251,6 +270,24 @@ pub enum RegionKindName {
     CalmCorridor,
     Blackout,
     Anomaly,
+}
+
+impl RegionKindName {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::WarpStorm => "warp_storm",
+            Self::Turbulence => "turbulence",
+            Self::CalmCorridor => "calm_corridor",
+            Self::Blackout => "blackout",
+            Self::Anomaly => "anomaly",
+        }
+    }
+}
+
+impl core::fmt::Display for RegionKindName {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 impl RegionKindName {
@@ -294,6 +331,26 @@ pub enum SystemStateName {
     Uncharted,
 }
 
+impl SystemStateName {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Pacified => "pacified",
+            Self::Fragmented => "fragmented",
+            Self::Blockaded => "blockaded",
+            Self::Warzone => "warzone",
+            Self::Infiltrated => "infiltrated",
+            Self::Quarantined => "quarantined",
+            Self::Uncharted => "uncharted",
+        }
+    }
+}
+
+impl core::fmt::Display for SystemStateName {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SystemStateFilter {
     pub system_state: SystemStateName,
@@ -316,6 +373,23 @@ pub enum PresenceName {
     Minor,
     Significant,
     Dominant,
+}
+
+impl PresenceName {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Hidden => "Hidden",
+            Self::Minor => "Minor",
+            Self::Significant => "Significant",
+            Self::Dominant => "Dominant",
+        }
+    }
+}
+
+impl core::fmt::Display for PresenceName {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 impl PresenceName {
@@ -437,6 +511,7 @@ pub fn derive_candidate_seed(base_seed: &str, n: u32) -> String {
 fn preflight(project: &ProjectInput, constraints: &[Constraint]) -> Vec<String> {
     let mut errors = Vec::new();
     let known_factions: std::collections::BTreeSet<&str> = project
+        .catalogs
         .factions
         .iter()
         .flat_map(|f| [f.id.as_str(), f.kind.as_str()])
@@ -1196,27 +1271,17 @@ fn insert_top_n(buf: &mut Vec<CandidateReport>, cand: CandidateReport, top: usiz
 /// Clone a project input + override the configured seed. Catalogs and parsed
 /// data files are reused (only the seed changes), so the search loop avoids
 /// re-reading disk for every candidate.
+///
+/// §TF-P-1: catalogs are shared via `Arc::clone` (one refcount bump) instead of
+/// 14 deep clones per candidate. The mutable `config` (seed is overwritten) and
+/// the small `root_dir` / `input_digests` still clone normally.
 fn clone_project_with_seed(template: &ProjectInput, seed: &str) -> ProjectInput {
     let mut config = template.config.clone();
     config.generation.seed = seed.to_string();
     ProjectInput {
         root_dir: template.root_dir.clone(),
         config,
-        world_tables: template.world_tables.clone(),
-        world_rows: template.world_rows.clone(),
-        authored_features: template.authored_features.clone(),
-        names: template.names.clone(),
-        factions: template.factions.clone(),
-        route_rules: template.route_rules.clone(),
-        relations: template.relations.clone(),
-        regions: template.regions.clone(),
-        economy: template.economy.clone(),
-        history: template.history.clone(),
-        personae: template.personae.clone(),
-        sites: template.sites.clone(),
-        hooks: template.hooks.clone(),
-        missions: template.missions.clone(),
-        prose: template.prose.clone(),
+        catalogs: std::sync::Arc::clone(&template.catalogs),
         input_digests: template.input_digests.clone(),
     }
 }

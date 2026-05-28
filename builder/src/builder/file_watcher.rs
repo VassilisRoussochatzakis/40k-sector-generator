@@ -83,6 +83,32 @@ impl Drop for FileWatcher {
     }
 }
 
+/// Pure pass over `baseline`: returns the files whose mtime advanced and
+/// updates `baseline` in-place with the new values. Side-effect-free w.r.t.
+/// any thread / channel state, so tests can drive it directly without sleeps.
+pub(crate) fn scan_once(
+    root: &Utf8Path,
+    baseline: &mut BTreeMap<String, SystemTime>,
+) -> Vec<FileChange> {
+    let mut out = Vec::new();
+    let snapshot: Vec<(String, SystemTime)> = baseline
+        .iter()
+        .map(|(k, v)| (k.clone(), *v))
+        .collect();
+    for (rel, last) in snapshot {
+        let abs = root.join(&rel);
+        let Ok(meta) = std::fs::metadata(Path::new(abs.as_str())) else {
+            continue;
+        };
+        let Ok(now) = meta.modified() else { continue };
+        if now > last {
+            baseline.insert(rel.clone(), now);
+            out.push(FileChange { rel_path: rel, mtime: now });
+        }
+    }
+    out
+}
+
 fn poll_loop(
     root: Utf8PathBuf,
     mut baseline: BTreeMap<String, SystemTime>,
@@ -90,28 +116,13 @@ fn poll_loop(
     cancel: Arc<AtomicBool>,
 ) {
     let tick = Duration::from_millis(1000);
-    let mut shutdown_check = Duration::from_millis(0);
     while !cancel.load(Ordering::Acquire) {
-        // Walk just the files we already know about. New files added on disk
-        // are picked up on the next reload (open_project rebuilds the map).
-        for (rel, last) in baseline.clone().iter() {
+        for ev in scan_once(&root, &mut baseline) {
             if cancel.load(Ordering::Acquire) {
                 return;
             }
-            let abs = root.join(rel);
-            let Ok(meta) = std::fs::metadata(Path::new(abs.as_str())) else {
-                continue;
-            };
-            let Ok(now) = meta.modified() else { continue };
-            if now > *last {
-                baseline.insert(rel.clone(), now);
-                let ev = FileChange {
-                    rel_path: rel.clone(),
-                    mtime: now,
-                };
-                if tx.send(ev).is_err() {
-                    return;
-                }
+            if tx.send(ev).is_err() {
+                return;
             }
         }
         // Sleep in small slices so cancel signals are honoured quickly.
@@ -120,7 +131,6 @@ fn poll_loop(
                 return;
             }
             thread::sleep(tick / 10);
-            shutdown_check += tick / 10;
         }
     }
 }
@@ -129,43 +139,41 @@ fn poll_loop(
 mod tests {
     use super::*;
     use std::fs;
-    use std::io::Write;
 
     #[test]
-    fn detects_mtime_bump() {
+    fn scan_once_reports_changed_file_and_advances_baseline() {
         let dir = tempfile::TempDir::new().unwrap();
         let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
         let target = root.join("sectorforge.toml");
         fs::write(target.as_std_path(), b"a = 1\n").unwrap();
-        let mtime = fs::metadata(target.as_std_path())
-            .unwrap()
-            .modified()
-            .unwrap();
+        // Baseline set to UNIX_EPOCH guarantees the on-disk mtime is newer
+        // without sleeping past filesystem mtime resolution.
         let mut baseline = BTreeMap::new();
-        baseline.insert("sectorforge.toml".to_string(), mtime);
+        baseline.insert("sectorforge.toml".to_string(), SystemTime::UNIX_EPOCH);
 
-        let watcher = FileWatcher::spawn(root.clone(), baseline);
-        // Sleep past the filesystem mtime resolution then rewrite.
-        thread::sleep(Duration::from_millis(1200));
-        let mut f = fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(target.as_std_path())
-            .unwrap();
-        writeln!(f, "a = 2").unwrap();
-        f.sync_all().unwrap();
-        drop(f);
+        let events = scan_once(&root, &mut baseline);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].rel_path, "sectorforge.toml");
+        // Second pass with the advanced baseline returns nothing.
+        let again = scan_once(&root, &mut baseline);
+        assert!(again.is_empty());
+    }
 
-        // Give the watcher a couple of ticks.
-        let mut seen = None;
-        for _ in 0..30 {
-            if let Some(ev) = watcher.try_recv() {
-                seen = Some(ev);
-                break;
-            }
-            thread::sleep(Duration::from_millis(200));
-        }
-        let ev = seen.expect("watcher should report a change");
-        assert_eq!(ev.rel_path, "sectorforge.toml");
+    #[test]
+    fn scan_once_skips_files_with_no_baseline_entry() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        fs::write(root.join("untracked.toml").as_std_path(), b"x = 1\n").unwrap();
+        let mut baseline: BTreeMap<String, SystemTime> = BTreeMap::new();
+        assert!(scan_once(&root, &mut baseline).is_empty());
+    }
+
+    #[test]
+    fn scan_once_skips_missing_files() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let mut baseline = BTreeMap::new();
+        baseline.insert("never_existed.toml".to_string(), SystemTime::UNIX_EPOCH);
+        assert!(scan_once(&root, &mut baseline).is_empty());
     }
 }

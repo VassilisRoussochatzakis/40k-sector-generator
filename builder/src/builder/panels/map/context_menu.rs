@@ -823,7 +823,7 @@ fn render_multi_selection_menu(
         ] {
             let label = match value {
                 None => "(none)".to_string(),
-                Some(v) => format!("{v:?}"),
+                Some(v) => format!("{v}"),
             };
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_sector_menu_action(

@@ -220,7 +220,7 @@ fn header(ui: &mut Ui, bundle: &SegmentumBundle) {
         chip(ui, &format!("seed {}", seg.stitch_seed), palette::PANEL_BG);
         chip(
             ui,
-            &format!("factions {:?}", seg.faction_mode),
+            &format!("factions {}", seg.faction_mode),
             palette::PANEL_BG,
         );
         chip(
@@ -597,7 +597,7 @@ fn link_table(
                 };
                 ui.label(RichText::new(type_label).monospace());
                 ui.label(
-                    RichText::new(format!("{:?}", l.stability))
+                    RichText::new(format!("{}", l.stability))
                         .color(stability_color(l.stability))
                         .monospace(),
                 );
@@ -653,7 +653,7 @@ fn link_detail(
     kv(
         ui,
         "stability",
-        &format!("{:?}", link.stability).to_uppercase(),
+        &format!("{}", link.stability).to_uppercase(),
     );
     ui.add_space(6.0);
 

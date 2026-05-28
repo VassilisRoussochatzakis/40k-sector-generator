@@ -84,6 +84,24 @@ pub enum DominanceTier {
 }
 
 impl DominanceTier {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Presence => "presence",
+            Self::Influence => "influence",
+            Self::Contested => "contested",
+            Self::Controlled => "controlled",
+            Self::Stronghold => "stronghold",
+        }
+    }
+}
+
+impl core::fmt::Display for DominanceTier {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
+impl DominanceTier {
     fn rank(self) -> u8 {
         match self {
             Self::Presence => 1,
@@ -166,6 +184,23 @@ pub enum SystemSlot {
     OrbitalController,
     EconomicHegemon,
     HiddenMaster,
+}
+
+impl SystemSlot {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Sovereign => "sovereign",
+            Self::OrbitalController => "orbital_controller",
+            Self::EconomicHegemon => "economic_hegemon",
+            Self::HiddenMaster => "hidden_master",
+        }
+    }
+}
+
+impl core::fmt::Display for SystemSlot {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────────

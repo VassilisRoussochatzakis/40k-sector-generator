@@ -80,6 +80,23 @@ pub enum NecronPhase {
     Awake,
 }
 
+impl NecronPhase {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Dormant => "dormant",
+            Self::Awakening => "awakening",
+            Self::Awake => "awake",
+        }
+    }
+}
+
+impl core::fmt::Display for NecronPhase {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -89,6 +106,23 @@ pub enum TyranidStage {
     Inhabited,
     Besieged,
     Consumed,
+}
+
+impl TyranidStage {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Inhabited => "inhabited",
+            Self::Besieged => "besieged",
+            Self::Consumed => "consumed",
+        }
+    }
+}
+
+impl core::fmt::Display for TyranidStage {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -105,6 +139,26 @@ pub enum GscStage {
     PlanetarySeizure,
 }
 
+impl GscStage {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Rumor => "rumor",
+            Self::HiddenCell => "hidden_cell",
+            Self::DistrictControl => "district_control",
+            Self::ParallelGovernment => "parallel_government",
+            Self::Uprising => "uprising",
+            Self::PlanetarySeizure => "planetary_seizure",
+        }
+    }
+}
+
+impl core::fmt::Display for GscStage {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -115,6 +169,24 @@ pub enum TauSphereBand {
     Fringe,
     Client,
     Core,
+}
+
+impl TauSphereBand {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Contact => "contact",
+            Self::Fringe => "fringe",
+            Self::Client => "client",
+            Self::Core => "core",
+        }
+    }
+}
+
+impl core::fmt::Display for TauSphereBand {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 /// Apply all archetype rules. Mutates `sector` in place.

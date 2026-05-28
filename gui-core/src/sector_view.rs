@@ -1,18 +1,20 @@
 //! Sector hex-grid widget: pointy-top hexes, routes, system disks. Clickable.
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::Arc;
 
 use egui::{Align2, Color32, FontId, Pos2, Response, Sense, Stroke, Ui, Vec2};
 
-use sectorforge::ids::{RouteId, SystemId};
+use sectorforge::ids::{FactionId, RouteId, SystemId};
 use sectorforge::sector_model::{self, GeneratedSector, HexCoord};
 
 use sectorforge::subsectors::Subsector;
 
 use super::heatmap::HeatCell;
-use super::map_theme::MapTheme;
+use super::map_theme::RenderMapTheme;
 use super::palette::{
-    darken, draw_route_control_glyph, draw_route_line, stability_color, star_color,
+    darken, draw_route_control_glyph, draw_route_line, faction_style_by_id, stability_color,
+    star_color, FactionStyle,
 };
 use super::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
 
@@ -25,6 +27,13 @@ pub struct SectorMapCache {
     pub hex_system: HashMap<(i32, i32), sectorforge::ids::SystemId>,
     pub hex_region: HashMap<(i32, i32), (String, MapRegionOverlay)>,
     pub region_centroids: HashMap<String, Pos2>,
+    /// TF-P-3: pre-uppercased label per system id. Hot in `info_panel`,
+    /// builds once per cache rebuild instead of every frame.
+    pub system_label_cache: BTreeMap<SystemId, Arc<str>>,
+    /// TF-P-4: per-faction style lookup built once per cache rebuild. Replaces
+    /// the O(N) `faction_style_by_id` scan that was firing per-route + per
+    /// system in info_panel / control panels.
+    pub faction_style_index: BTreeMap<FactionId, FactionStyle>,
 }
 
 impl SectorMapCache {
@@ -70,12 +79,38 @@ impl SectorMapCache {
             region_centroids.insert(id, Pos2::new(q, r));
         }
 
+        let mut system_label_cache: BTreeMap<SystemId, Arc<str>> = BTreeMap::new();
+        for sys in &sector.systems {
+            let label: Arc<str> = Arc::from(sys.name.to_uppercase());
+            system_label_cache.insert(sys.id.clone(), label);
+        }
+
+        let mut faction_style_index: BTreeMap<FactionId, FactionStyle> = BTreeMap::new();
+        for f in &sector.factions {
+            let style = faction_style_by_id(&sector.factions, f.id.as_ref());
+            faction_style_index.insert(f.id.clone(), style);
+        }
+
         Self {
             hex_subsector,
             hex_system,
             hex_region,
             region_centroids,
+            system_label_cache,
+            faction_style_index,
         }
+    }
+
+    /// O(log n) lookup for the pre-uppercased system display label.
+    #[must_use]
+    pub fn system_label(&self, id: &SystemId) -> Option<&Arc<str>> {
+        self.system_label_cache.get(id)
+    }
+
+    /// O(log n) lookup for a faction's pre-resolved style.
+    #[must_use]
+    pub fn faction_style(&self, id: &FactionId) -> Option<&FactionStyle> {
+        self.faction_style_index.get(id)
     }
 
     /// §CTX1 Phase 5 — region id containing `coord`, if any. O(1) lookup over
@@ -132,8 +167,8 @@ pub struct SectorView<'a> {
     /// the caller pick hits manually via [`SectorGeom`]. Builder uses this.
     pub disable_internal_click_dispatch: bool,
     /// Visual theme — colours + sizing tokens. `None` falls back to
-    /// [`MapTheme::default`] so existing call-sites compile unchanged.
-    pub theme: Option<&'a MapTheme>,
+    /// [`RenderMapTheme::default`] so existing call-sites compile unchanged.
+    pub theme: Option<&'a RenderMapTheme>,
     /// When true, paint a small chip to the left of the cursor showing the
     /// (q, r) coords of the hovered hex. Off for snapshot tests.
     pub show_hover_coord: bool,
@@ -155,8 +190,8 @@ impl<'a> SectorView<'a> {
         let painter = ui.painter_at(rect).with_clip_rect(rect);
         let origin = self.origin;
 
-        let default_theme = MapTheme::default();
-        let theme: &MapTheme = self.theme.unwrap_or(&default_theme);
+        let default_theme = RenderMapTheme::default();
+        let theme: &RenderMapTheme = self.theme.unwrap_or(&default_theme);
 
         painter.rect_filled(rect, 0.0, theme.bg);
 
@@ -1126,7 +1161,7 @@ fn draw_system_glyph(
     radius: f32,
     glyph: MapSystemGlyph,
     fill: Color32,
-    theme: &MapTheme,
+    theme: &RenderMapTheme,
 ) {
     match glyph {
         MapSystemGlyph::Star => {
@@ -1223,20 +1258,20 @@ fn label_intersects_rect(
     .intersects(rect)
 }
 
-fn system_label_font_px(theme: &MapTheme, hex_size: f32) -> Option<f32> {
+fn system_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
     // Names must shrink with zoom; a fixed UI-text floor overwhelms huge maps.
     let label_size = hex_size * theme.system_label_font.mul;
     (label_size >= SYSTEM_LABEL_MIN_VISIBLE_PX).then_some(label_size)
 }
 
-fn system_pip_metrics(theme: &MapTheme, hex_size: f32) -> Option<(f32, f32)> {
+fn system_pip_metrics(theme: &RenderMapTheme, hex_size: f32) -> Option<(f32, f32)> {
     // Pips follow labels: shrink with zoom, then vanish when unreadable.
     let font_size = hex_size * theme.pip_font.mul;
     let disc_r = hex_size * theme.pip_disc_radius.mul;
     (font_size >= SYSTEM_PIP_MIN_VISIBLE_PX).then_some((font_size, disc_r))
 }
 
-fn subsector_label_font_px(theme: &MapTheme, hex_size: f32) -> Option<f32> {
+fn subsector_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
     if hex_size >= 40.0 {
         return None;
     }
@@ -1244,7 +1279,7 @@ fn subsector_label_font_px(theme: &MapTheme, hex_size: f32) -> Option<f32> {
     (label_size >= SUBSECTOR_LABEL_MIN_VISIBLE_PX).then_some(label_size)
 }
 
-fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32, theme: &MapTheme) {
+fn draw_capital_marker(painter: &egui::Painter, c: Pos2, hex_size: f32, theme: &RenderMapTheme) {
     let r = theme.capital_marker_radius.px(hex_size);
     let cy = c.y - hex_size * 0.55;
     let pts = vec![
@@ -1287,7 +1322,7 @@ fn draw_region_labels(
     g: &SectorGeom,
     bounds: egui::Rect,
     cache: Option<&SectorMapCache>,
-    theme: &MapTheme,
+    theme: &RenderMapTheme,
 ) {
     if sector.regions.is_empty() {
         return;

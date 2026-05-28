@@ -46,6 +46,25 @@ pub enum Stance {
 }
 
 impl Stance {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Allied => "allied",
+            Self::Aligned => "aligned",
+            Self::Neutral => "neutral",
+            Self::Rival => "rival",
+            Self::Hostile => "hostile",
+            Self::AtWar => "at_war",
+        }
+    }
+}
+
+impl core::fmt::Display for Stance {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
+impl Stance {
     fn level(self) -> i32 {
         match self {
             Stance::Allied => -2,
@@ -261,6 +280,25 @@ pub enum RelationAttitude {
 }
 
 impl RelationAttitude {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Allied => "allied",
+            Self::Friendly => "friendly",
+            Self::Transactional => "transactional",
+            Self::Suspicious => "suspicious",
+            Self::Hostile => "hostile",
+            Self::ExistentialEnemy => "existential_enemy",
+        }
+    }
+}
+
+impl core::fmt::Display for RelationAttitude {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
+impl RelationAttitude {
     fn level(self) -> i32 {
         match self {
             Self::Allied => -2,
@@ -323,6 +361,26 @@ pub enum TreatyStatus {
     Charter,
     Nonaggression,
     Vendetta,
+}
+
+impl TreatyStatus {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Pact => "pact",
+            Self::Truce => "truce",
+            Self::Vassalage => "vassalage",
+            Self::Charter => "charter",
+            Self::Nonaggression => "nonaggression",
+            Self::Vendetta => "vendetta",
+        }
+    }
+}
+
+impl core::fmt::Display for TreatyStatus {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 impl TreatyStatus {

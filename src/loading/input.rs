@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
@@ -12,10 +13,11 @@ use crate::names::NameTables;
 use crate::rng;
 use crate::routes::{RouteRules, RouteRulesFile};
 
+/// §TF-P-1: immutable catalog data shared across project inputs. Held behind
+/// `Arc` so that `clone_project_with_seed` in the seed-search loop can reuse a
+/// single allocation per candidate instead of deep-cloning 14 fields.
 #[derive(Debug, Clone)]
-pub struct ProjectInput {
-    pub root_dir: Utf8PathBuf,
-    pub config: AppConfig,
+pub struct ProjectCatalogs {
     pub world_tables: crate::worlds::KeyTables,
     pub world_rows: Vec<crate::worlds::GenerationRow>,
     /// §45 WD3: structured feature pool authored in `worlds.toml`, when
@@ -46,6 +48,15 @@ pub struct ProjectInput {
     /// §PR1..§PR4 BUILDER_REQS: parsed prose config, default tone +
     /// no-overrides when unset.
     pub prose: crate::prose::ProseConfig,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProjectInput {
+    pub root_dir: Utf8PathBuf,
+    pub config: AppConfig,
+    /// §TF-P-1: immutable parsed catalogs (world tables, factions, etc.).
+    /// Wrapped in `Arc` so seed-search clones only bump a refcount.
+    pub catalogs: Arc<ProjectCatalogs>,
     /// Project-relative path -> "blake3:<hex>" digest of input file bytes.
     pub input_digests: BTreeMap<String, String>,
 }
@@ -206,21 +217,23 @@ pub fn load_project(project_dir: &Utf8Path) -> Result<ProjectInput, SectorError>
     Ok(ProjectInput {
         root_dir,
         config,
-        world_tables,
-        world_rows,
-        authored_features,
-        names,
-        factions,
-        route_rules,
-        relations,
-        regions,
-        economy,
-        history,
-        personae,
-        sites,
-        hooks,
-        missions,
-        prose,
+        catalogs: Arc::new(ProjectCatalogs {
+            world_tables,
+            world_rows,
+            authored_features,
+            names,
+            factions,
+            route_rules,
+            relations,
+            regions,
+            economy,
+            history,
+            personae,
+            sites,
+            hooks,
+            missions,
+            prose,
+        }),
         input_digests: digests,
     })
 }

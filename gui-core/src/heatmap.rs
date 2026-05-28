@@ -9,13 +9,23 @@ use egui::Color32;
 
 use sectorforge::sector_model::GeneratedSector;
 
-pub use sectorforge::heatmap::HeatmapMode;
+pub use sectorforge::heatmap::{HeatCellRgb, HeatmapMode};
 
 /// One per-hex sample: tint colour plus a 0..=1 intensity.
 #[derive(Debug, Clone, Copy)]
 pub struct HeatCell {
     pub color: Color32,
     pub intensity: f32,
+}
+
+impl From<HeatCellRgb> for HeatCell {
+    fn from(cell: HeatCellRgb) -> Self {
+        let (r, g, b) = cell.rgb;
+        Self {
+            color: Color32::from_rgb(r, g, b),
+            intensity: cell.intensity,
+        }
+    }
 }
 
 pub type HeatmapCells = HashMap<sectorforge::ids::SystemId, HeatCell>;
@@ -91,15 +101,7 @@ impl HeatmapCache {
 pub fn compute(sector: &GeneratedSector, mode: HeatmapMode) -> HeatmapCells {
     sectorforge::heatmap::compute_rgb(sector, mode)
         .into_iter()
-        .map(|(k, c)| {
-            (
-                k,
-                HeatCell {
-                    color: Color32::from_rgb(c.rgb.0, c.rgb.1, c.rgb.2),
-                    intensity: c.intensity,
-                },
-            )
-        })
+        .map(|(k, c)| (k, HeatCell::from(c)))
         .collect()
 }
 

@@ -209,13 +209,13 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                             ui.horizontal(|ui| {
                                 ui.label("tier:");
                                 egui::ComboBox::from_id_salt(("c1_tier", p.faction_id.as_str()))
-                                    .selected_text(format!("{:?}", edit.influence))
+                                    .selected_text(format!("{}", edit.influence))
                                     .show_ui(ui, |ui| {
                                         for t in INFLUENCE_TIERS {
                                             ui.selectable_value(
                                                 &mut edit.influence,
                                                 *t,
-                                                format!("{t:?}"),
+                                                format!("{t}"),
                                             );
                                         }
                                     });
@@ -263,13 +263,13 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                                     edit.dominance = derived;
                                 }
                                 egui::ComboBox::from_id_salt(("c3_dom", p.faction_id.as_str()))
-                                    .selected_text(format!("{:?}", edit.dominance))
+                                    .selected_text(format!("{}", edit.dominance))
                                     .show_ui(ui, |ui| {
                                         for d in DOMINANCE_STATES {
                                             if ui
                                                 .selectable_label(
                                                     edit.dominance == *d,
-                                                    format!("{d:?}"),
+                                                    format!("{d}"),
                                                 )
                                                 .clicked()
                                             {
@@ -285,7 +285,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 }
                                 ui.colored_label(
                                     Color32::DARK_GRAY,
-                                    format!("auto = {:?} (score {:.1})", derived, score),
+                                    format!("auto = {} (score {:.1})", derived, score),
                                 );
                             });
                         });
@@ -418,10 +418,10 @@ fn show_add_presence_row(
                 }
             });
         egui::ComboBox::from_id_salt(("c2_tier", world_id.as_str()))
-            .selected_text(format!("{:?}", buf.tier))
+            .selected_text(format!("{}", buf.tier))
             .show_ui(ui, |ui| {
                 for t in INFLUENCE_TIERS {
-                    ui.selectable_value(&mut buf.tier, *t, format!("{t:?}"));
+                    ui.selectable_value(&mut buf.tier, *t, format!("{t}"));
                 }
             });
         if ui.button("+ presence").clicked() {
@@ -483,7 +483,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                     ui.label("§C4 control_state:");
                     egui::ComboBox::from_id_salt(("c4_state", system_id.as_str()))
                         .selected_text(match current {
-                            Some(s) => format!("{s:?}"),
+                            Some(s) => format!("{s}"),
                             None => "(none)".to_string(),
                         })
                         .show_ui(ui, |ui| {
@@ -492,7 +492,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                             }
                             for s in SYSTEM_STATES {
                                 if ui
-                                    .selectable_label(current == Some(*s), format!("{s:?}"))
+                                    .selectable_label(current == Some(*s), format!("{s}"))
                                     .clicked()
                                 {
                                     new_state = Some(Some(*s));
@@ -796,18 +796,18 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
                     });
                 ui.label("claim X:");
                 egui::ComboBox::from_id_salt("cl4_from")
-                    .selected_text(format!("{:?}", buf.from))
+                    .selected_text(format!("{}", buf.from))
                     .show_ui(ui, |ui| {
                         for k in CLAIM_TYPES {
-                            ui.selectable_value(&mut buf.from, *k, format!("{k:?}"));
+                            ui.selectable_value(&mut buf.from, *k, format!("{k}"));
                         }
                     });
                 ui.label("→ Z:");
                 egui::ComboBox::from_id_salt("cl4_to")
-                    .selected_text(format!("{:?}", buf.to))
+                    .selected_text(format!("{}", buf.to))
                     .show_ui(ui, |ui| {
                         for k in CLAIM_TYPES {
-                            ui.selectable_value(&mut buf.to, *k, format!("{k:?}"));
+                            ui.selectable_value(&mut buf.to, *k, format!("{k}"));
                         }
                     });
             });
@@ -999,7 +999,7 @@ fn show_world_row(
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
                             let label =
-                                format!("{}  {:?}  {}", c.faction_id, c.claim_type, c.strength);
+                                format!("{}  {}  {}", c.faction_id, c.claim_type, c.strength);
                             ui.label(RichText::new(label).color(fg).monospace());
                             if ui.small_button("×").clicked() {
                                 remove = Some(i);
@@ -1067,10 +1067,10 @@ fn show_add_claim_row(
                 }
             });
         egui::ComboBox::from_id_salt(("cl_add_kind", wid.as_str()))
-            .selected_text(format!("{:?}", buf.claim_type))
+            .selected_text(format!("{}", buf.claim_type))
             .show_ui(ui, |ui| {
                 for k in CLAIM_TYPES {
-                    ui.selectable_value(&mut buf.claim_type, *k, format!("{k:?}"));
+                    ui.selectable_value(&mut buf.claim_type, *k, format!("{k}"));
                 }
             });
         ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));

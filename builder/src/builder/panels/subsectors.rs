@@ -110,18 +110,26 @@ pub fn apply_subsector_overrides(subs: &mut [Subsector], state: &BuilderState) {
 
 // ── §SUB1 helpers ───────────────────────────────────────────────────────────
 
-fn current_subsectors(state: &BuilderState) -> Vec<Subsector> {
+fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
     if let Some(cache) = state.map_view_cache.as_ref() {
         return cache.subsectors.clone();
     }
-    let mut subs = build_subsectors(
+    let mut subs = match build_subsectors(
         &state.sector,
         SubsectorConfig {
             target_systems_per_subsector: state.subsector_target_systems.max(1),
             ..SubsectorConfig::default()
         },
-    )
-    .unwrap_or_default();
+    ) {
+        Ok(v) => {
+            state.last_subsector_error = None;
+            v
+        }
+        Err(e) => {
+            state.last_subsector_error = Some(e.to_string());
+            Vec::new()
+        }
+    };
     apply_subsector_overrides(&mut subs, state);
     subs
 }

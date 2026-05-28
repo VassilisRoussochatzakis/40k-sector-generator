@@ -53,6 +53,21 @@ use super::index::BuilderIndex;
 use super::preview::PreviewState;
 use super::snapshot::Snapshot;
 
+/// TF-NT-3: identifies a cached `feature_weights_for_world` entry by
+/// `(sys_idx, w_idx)` plus the digest of the (world_type, star_colour,
+/// notable_features, worlds_catalog) slice it was computed from. The digest
+/// guarantees stale entries are ignored even when keys collide on indices.
+pub type FeatureWeightsCacheKey = (usize, usize);
+
+/// TF-NT-3: cached value; pair of (digest, weights) so the panel can verify
+/// freshness without re-running the expensive `synthesize_project_input` /
+/// `build_pool` pipeline on every frame.
+#[derive(Debug, Clone)]
+pub struct FeatureWeightsCacheValue {
+    pub digest: String,
+    pub weights: std::sync::Arc<BTreeMap<String, f64>>,
+}
+
 pub mod derivations;
 pub mod generation_ops;
 pub mod nav;
@@ -103,6 +118,15 @@ pub struct BuilderState {
     /// bar so silent TOML parse failures no longer leave the editor showing
     /// stale state without warning. Cleared on the next successful reload.
     pub last_catalog_error: Option<String>,
+    /// Last error from `build_subsectors`. Cleared on success. Rendered in
+    /// the status bar so a broken cluster doesn't silently produce an empty
+    /// subsector list.
+    pub last_subsector_error: Option<String>,
+    /// TF-NT-3: cached output of `feature_weights_for_world`. Keyed by
+    /// `(sys_idx, w_idx, input_digest)`. Stale entries are simply ignored
+    /// (digest mismatch) — the cache grows bounded by the number of worlds.
+    /// Cleared on project reload via [`Self::clear_feature_weights_cache`].
+    pub feature_weights_cache: BTreeMap<FeatureWeightsCacheKey, FeatureWeightsCacheValue>,
     pub validation_report: Option<ValidationReport>,
     pub invariant_report: Option<InvariantReport>,
     pub modal: Option<ModalKind>,
@@ -569,6 +593,8 @@ impl BuilderState {
             auto_save_path: None,
             last_save_error: None,
             last_catalog_error: None,
+            last_subsector_error: None,
+            feature_weights_cache: BTreeMap::new(),
             validation_report: None,
             invariant_report: None,
             modal: None,

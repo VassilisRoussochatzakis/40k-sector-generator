@@ -249,7 +249,7 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
                                 .unwrap_or_else(|| "—".to_string()),
                         );
                         ui.label(RichText::new(m.primary_location.clone()).monospace());
-                        ui.label(format!("{:?}", m.scale));
+                        ui.label(format!("{}", m.scale));
                         if show_hidden {
                             let gm = if m.gm_only {
                                 RichText::new("GM").color(Color32::from_rgb(220, 170, 80))
@@ -375,7 +375,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             ui.label(mission.if_ignored.clone());
             ui.end_row();
             ui.label("scale / visibility");
-            ui.label(format!("{:?} / {:?}", mission.scale, mission.visibility));
+            ui.label(format!("{} / {}", mission.scale, mission.visibility));
             ui.end_row();
             ui.label("weight");
             ui.label(mission.weight.to_string());
@@ -561,11 +561,11 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
             ui.end_row();
             ui.label("scale");
             egui::ComboBox::from_id_salt(format!("m_manual_scale_{idx}"))
-                .selected_text(format!("{:?}", m.scale))
+                .selected_text(format!("{}", m.scale))
                 .show_ui(ui, |ui| {
                     for v in SCALE_VARIANTS {
                         if ui
-                            .selectable_value(&mut m.scale, *v, format!("{v:?}"))
+                            .selectable_value(&mut m.scale, *v, format!("{v}"))
                             .changed()
                         {
                             changed = true;
@@ -575,11 +575,11 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
             ui.end_row();
             ui.label("visibility");
             egui::ComboBox::from_id_salt(format!("m_manual_vis_{idx}"))
-                .selected_text(format!("{:?}", m.visibility))
+                .selected_text(format!("{}", m.visibility))
                 .show_ui(ui, |ui| {
                     for v in VISIBILITY_VARIANTS {
                         if ui
-                            .selectable_value(&mut m.visibility, *v, format!("{v:?}"))
+                            .selectable_value(&mut m.visibility, *v, format!("{v}"))
                             .changed()
                         {
                             changed = true;

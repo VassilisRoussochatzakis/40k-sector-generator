@@ -113,6 +113,40 @@ pub enum EventKind {
     ChaosIncursion,
 }
 
+impl EventKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Foundation => "foundation",
+            Self::Discovery => "discovery",
+            Self::Annexation => "annexation",
+            Self::ImperialMandateGranted => "imperial_mandate_granted",
+            Self::Consecration => "consecration",
+            Self::CommercialCharter => "commercial_charter",
+            Self::DynasticClaim => "dynastic_claim",
+            Self::Secession => "secession",
+            Self::Uprising => "uprising",
+            Self::Reconquest => "reconquest",
+            Self::Purge => "purge",
+            Self::CultExposed => "cult_exposed",
+            Self::NecronAwakening => "necron_awakening",
+            Self::TyranidContact => "tyranid_contact",
+            Self::OrkWaaagh => "ork_waaagh",
+            Self::QuarantineDeclared => "quarantine_declared",
+            Self::Blockade => "blockade",
+            Self::WarpStormSurge => "warp_storm_surge",
+            Self::TauContact => "tau_contact",
+            Self::AeldariActivity => "aeldari_activity",
+            Self::ChaosIncursion => "chaos_incursion",
+        }
+    }
+}
+
+impl core::fmt::Display for EventKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -125,6 +159,27 @@ pub enum HistoryEntityKind {
     Claim,
     Subsector,
     Region,
+}
+
+impl HistoryEntityKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Sector => "sector",
+            Self::System => "system",
+            Self::World => "world",
+            Self::Route => "route",
+            Self::Faction => "faction",
+            Self::Claim => "claim",
+            Self::Subsector => "subsector",
+            Self::Region => "region",
+        }
+    }
+}
+
+impl core::fmt::Display for HistoryEntityKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -149,6 +204,29 @@ pub enum HistoryConsequenceKind {
     FactionMemory,
     SubsectorCapitalNamed,
     RegionRecorded,
+}
+
+impl HistoryConsequenceKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::WorldSettled => "world_settled",
+            Self::ClaimEstablished => "claim_established",
+            Self::ControlShift => "control_shift",
+            Self::ConflictEscalated => "conflict_escalated",
+            Self::RouteHazard => "route_hazard",
+            Self::BlockadeCreated => "blockade_created",
+            Self::QuarantineDeclared => "quarantine_declared",
+            Self::FactionMemory => "faction_memory",
+            Self::SubsectorCapitalNamed => "subsector_capital_named",
+            Self::RegionRecorded => "region_recorded",
+        }
+    }
+}
+
+impl core::fmt::Display for HistoryConsequenceKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

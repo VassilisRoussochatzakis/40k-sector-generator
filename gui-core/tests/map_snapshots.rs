@@ -12,7 +12,7 @@ use sectorforge::sector_model::{
     RouteViewMode, SystemKind,
 };
 use sectorforge::subsectors::{Subsector, SubsectorBounds, SubsectorSummary};
-use sectorforge_gui_core::map_theme::MapTheme;
+use sectorforge_gui_core::map_theme::RenderMapTheme;
 use sectorforge_gui_core::sector_view::{SectorGeom, SectorMapCache, SectorView};
 
 const UPDATE_ENV: &str = "UPDATE_MAP_SNAPSHOTS";
@@ -383,7 +383,7 @@ fn render_case(case: &SnapshotCase) -> RgbaImage {
     let width = size.x.ceil() as u32;
     let height = size.y.ceil() as u32;
     let cache = SectorMapCache::new(&case.sector, &case.subsectors);
-    let theme = MapTheme::default();
+    let theme = RenderMapTheme::default();
     let ctx = egui::Context::default();
     let raw = egui::RawInput {
         screen_rect: Some(Rect::from_min_size(

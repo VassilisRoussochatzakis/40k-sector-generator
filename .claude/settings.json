@@ -31,7 +31,15 @@
       "Bash(rg -n '^pub \\(fn|struct|enum\\)' /Users/vassilis/Documents/40k-sector-generator/builder/src/builder/panels/*.rs)",
       "Bash(bc)",
       "Bash(xargs rg -l 'rewrite_seed')",
-      "Bash(rg -n 'Command::' /Users/vassilis/Documents/40k-sector-generator/tests/it/*.rs)"
+      "Bash(rg -n 'Command::' /Users/vassilis/Documents/40k-sector-generator/tests/it/*.rs)",
+      "Bash(bash /tmp/task1.txt)",
+      "Bash(awk '-F\\\\t' '{ *)",
+      "Bash(awk '{ *)",
+      "Bash(rg -n --type rust '#\\\\[serde\\\\\\(rename_all = \"\\(?:snake_case|kebab-case|lowercase|SCREAMING_SNAKE_CASE\\)\"\\\\\\)\\\\].*\\\\npub enum' --glob '!old/**' --glob '!target/**' --glob '!reviews/**' --glob '!docs/**' src/ builder/src/ viewer/src/ gui-core/src/ tests/ --multiline)",
+      "Bash(sort -t: -k1,1 -k2,2n)",
+      "Bash(grep -n \"}$\" /Users/vassilis/Documents/40k-sector-generator/src/analysis/importance.rs)",
+      "Bash(UPDATE_GOLDEN_PNG=1 cargo test --test it -- golden_png)",
+      "Bash(grep -E \"^\\\\s+[A-Z][A-Za-z]+ \\\\{|^\\\\s+[A-Z][A-Za-z]+,|^\\\\s+[A-Z][A-Za-z]+\\\\\\(\" /Users/vassilis/Documents/40k-sector-generator/builder/src/builder/command.rs)"
     ],
     "additionalDirectories": [
       "\\tmp"

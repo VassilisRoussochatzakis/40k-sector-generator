@@ -215,7 +215,7 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
         }
     } else {
         section(ui, "KIND");
-        body(ui, &format!("{:?}", sys.kind).to_uppercase());
+        body(ui, &format!("{}", sys.kind).to_uppercase());
     }
     ui.add_space(8.0);
 
@@ -251,7 +251,7 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
         ui.add_space(8.0);
         section(ui, "CONTROL");
         if let Some(state) = c.state {
-            kv(ui, "STATE", &format!("{state:?}").to_uppercase());
+            kv(ui, "STATE", &format!("{state}").to_uppercase());
         }
         if let Some(v) = &c.dominant {
             kv(ui, "DOMINANT", &short(&v.to_uppercase(), 22));
@@ -318,7 +318,7 @@ pub fn route_summary(
     kv(
         ui,
         "STABILITY",
-        &format!("{:?}", route.stability).to_uppercase(),
+        &format!("{}", route.stability).to_uppercase(),
     );
     kv(ui, "DISTANCE", &route.distance.to_string());
     ui.add_space(8.0);
@@ -811,7 +811,7 @@ pub fn star_detail(ui: &mut Ui, sys: &GeneratedSystem) {
     } else {
         title(ui, &format!("LOCATION: {}", sys.id.to_uppercase()));
         ui.add_space(4.0);
-        kv(ui, "KIND", &format!("{:?}", sys.kind).to_uppercase());
+        kv(ui, "KIND", &format!("{}", sys.kind).to_uppercase());
     }
 }
 
@@ -962,24 +962,24 @@ fn archetype_block(ui: &mut Ui, sys: &GeneratedSystem) {
         kv(
             ui,
             "NECRON",
-            &format!("{:?}", a.necron_phase).to_uppercase(),
+            &format!("{}", a.necron_phase).to_uppercase(),
         );
     }
     if a.tyranid_stage != sectorforge::archetypes::TyranidStage::default() {
         kv(
             ui,
             "TYRANID",
-            &format!("{:?}", a.tyranid_stage).to_uppercase(),
+            &format!("{}", a.tyranid_stage).to_uppercase(),
         );
     }
     if a.ork_waaagh > 0 {
         kv(ui, "WAAAGH", &a.ork_waaagh.to_string());
     }
     if a.gsc_stage != sectorforge::archetypes::GscStage::default() {
-        kv(ui, "GSC", &format!("{:?}", a.gsc_stage).to_uppercase());
+        kv(ui, "GSC", &format!("{}", a.gsc_stage).to_uppercase());
     }
     if a.tau_sphere != sectorforge::archetypes::TauSphereBand::default() {
-        kv(ui, "TAU", &format!("{:?}", a.tau_sphere).to_uppercase());
+        kv(ui, "TAU", &format!("{}", a.tau_sphere).to_uppercase());
     }
     if a.aeldari_activity > 0 {
         kv(ui, "AELDARI", &a.aeldari_activity.to_string());

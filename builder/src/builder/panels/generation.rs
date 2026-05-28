@@ -233,7 +233,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
 fn placement_mode_combo(ui: &mut Ui, mode: &mut PlacementMode) -> bool {
     let mut changed = false;
     egui::ComboBox::from_id_salt("placement_mode_combo")
-        .selected_text(format!("{mode:?}"))
+        .selected_text(format!("{mode}"))
         .show_ui(ui, |ui| {
             for option in [
                 PlacementMode::UniformGrid,
@@ -241,7 +241,7 @@ fn placement_mode_combo(ui: &mut Ui, mode: &mut PlacementMode) -> bool {
                 PlacementMode::Clustered,
             ] {
                 if ui
-                    .selectable_label(*mode == option, format!("{option:?}"))
+                    .selectable_label(*mode == option, format!("{option}"))
                     .clicked()
                 {
                     *mode = option;
@@ -255,11 +255,11 @@ fn placement_mode_combo(ui: &mut Ui, mode: &mut PlacementMode) -> bool {
 fn world_selection_mode_combo(ui: &mut Ui, mode: &mut WorldSelectionMode) -> bool {
     let mut changed = false;
     egui::ComboBox::from_id_salt("world_selection_mode_combo")
-        .selected_text(format!("{mode:?}"))
+        .selected_text(format!("{mode}"))
         .show_ui(ui, |ui| {
             for option in [WorldSelectionMode::WeightedRows] {
                 if ui
-                    .selectable_label(*mode == option, format!("{option:?}"))
+                    .selectable_label(*mode == option, format!("{option}"))
                     .clicked()
                 {
                     *mode = option;

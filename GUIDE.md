@@ -1763,12 +1763,14 @@ and `sectorforge-viewer --project examples/m42_project`.
 
 Every map element — hex tile, route, system glyph, label, region tint, overlay
 ring — reads its colour and sizing from
-[`MapTheme`](gui-core/src/export/map_theme.rs). Apps either pass a customised theme via
+[`RenderMapTheme`](gui-core/src/map_theme.rs). Apps either pass a customised theme via
 `SectorView { theme: Some(&...), .. }` or leave it `None` to fall back to
-[`MapTheme::default`]. Sizing is expressed as `ScaledSize { mul, min }`, which
-the painter resolves with `hex_size * mul` floored at `min`. To restyle the map,
-edit one struct; the viewer, the editor MAP panel, and the builder MAP tab all
-follow.
+[`RenderMapTheme::default`]. Sizing is expressed as `ScaledSize { mul, min }`,
+which the painter resolves with `hex_size * mul` floored at `min`. To restyle
+the map, edit one struct; the viewer, the editor MAP panel, and the builder MAP
+tab all follow. Named `RenderMapTheme` to disambiguate from
+[`sectorforge::map_theme::MapTheme`](src/export/map_theme.rs) — the data-layer
+counterpart that PNG/SVG exports consume.
 
 When `SectorView::show_hover_coord` is `true`, the widget paints a small
 monospace `qq,rr` chip to the left of the cursor for the hovered hex (flips to
@@ -1782,7 +1784,7 @@ Semantic map tokens live in
 [`visual_tokens.rs`](gui-core/src/visual_tokens.rs): `MapSystemGlyph`,
 `MapRouteVisual`, and `MapRegionOverlay`. `SectorView` converts
 `SystemKind`, `RouteType`, and `RegionConditionKind` into those tokens before
-painting, then the renderer and `MapTheme` match on tokens only. When a new
+painting, then the renderer and `RenderMapTheme` match on tokens only. When a new
 system kind, route type, or region condition is added, the compiler points at
 the one token conversion / paint match that must be updated, keeping the
 viewer, editor MAP panel, and builder MAP tab from drifting.
@@ -2583,7 +2585,7 @@ Public surface:
 | `write_sector_save(path, &save)` / `load_sector_save(path)` | §13 NEXT — pretty-JSON save/load |
 | `build_entity_world(&sector)` | §12 NEXT — flat ECS-style entity view (`EntityWorld`) |
 
-Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `InvariantReport`,
+Re-exported types: `AppConfig`, `SectorError`, `ProjectInput`, `ProjectCatalogs`, `InvariantReport`,
 `InvariantViolation`, `GeneratedSector`, `GeneratedSystem`, `HexCoord`,
 `Subsector`, `SubsectorConfig`, `SubsectorBuildError`, `ControlDenominator`,
 `ConflictState`, `HYSTERESIS_TICKS`, `SectorSave`, `EntityWorld`,
@@ -2849,7 +2851,7 @@ across runs, so a regression check is a diff away.
 | [src/export/subsectors/summary.rs](src/export/subsectors/summary.rs) | Ownership resolution, faction-control tallies, capital selection |
 | [src/analysis/analytics.rs](src/analysis/analytics.rs) | §8 old/DONE.md analytics dashboard: faction balance + connectivity + flags |
 | [src/loading/presets.rs](src/loading/presets.rs) | §9 old/DONE.md preset library + scaffolder (`new`, `list-presets`) |
-| [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration) |
+| [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration). `clone_project_with_seed` per-candidate clones now `Arc::clone` the shared `ProjectCatalogs` (§TF-P-1) — one refcount bump replaces 14 deep clones of `world_tables` / `world_rows` / `factions` / etc., so seed search bandwidth scales with `config` + `input_digests` only. |
 | [src/validate/diff.rs](src/validate/diff.rs) | §10 old/DONE.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
 | [src/history.rs](src/history.rs) | §1 NEW2.md/DONE deterministic `SectorChronicle`: typed dated / era-labelled history events with entity refs, consequences, route/subsector/region anchors, and `M{epoch}.{ddd}` notation. |
 | [src/analysis/personae.rs](src/analysis/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |

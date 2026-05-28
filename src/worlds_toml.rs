@@ -268,4 +268,79 @@ mod tests {
         assert!(tables.world_types.contains_key("Hive World"));
         assert!(tables.star_colours.contains_key("G"));
     }
+
+    proptest::proptest! {
+        /// TF-T-9: any `WorldsConfig` value (within our bounded shape) must
+        /// round-trip through TOML emission/parsing. Catches escape bugs and
+        /// missing `#[serde(default)]` annotations on optional fields.
+        #[test]
+        fn worlds_config_toml_roundtrips(
+            seed in 0u64..1024,
+            n_rows in 0usize..6,
+            n_global in 0usize..6,
+        ) {
+            // Deterministic but proptest-driven instance: pick variants by seed
+            // so each shrink converges on a small failing case.
+            let pick_world = [
+                WorldType::HiveWorld,
+                WorldType::FeudalWorld,
+                WorldType::AgriWorld,
+                WorldType::ForgeWorld,
+            ];
+            let pick_star = [
+                StarColour::Yellow,
+                StarColour::RedDwarf,
+                StarColour::White,
+                StarColour::BlueWhite,
+            ];
+            let pick_feature = [
+                NotableFeature::PowerfulNobles,
+                NotableFeature::WarpPhenomena,
+                NotableFeature::PowerfulCriminals,
+                NotableFeature::ImportantShrine,
+            ];
+
+            let mut rows = Vec::new();
+            for i in 0..n_rows {
+                let s = (seed as usize + i) % pick_world.len();
+                rows.push(GenerationRow {
+                    star_colour: Some(pick_star[s % pick_star.len()].clone()),
+                    world_type: Some(pick_world[s].clone()),
+                    atmosphere: None,
+                    temperature: None,
+                    biosphere: None,
+                    population: None,
+                    tech: None,
+                    government: None,
+                    notable_feature: Some(pick_feature[s % pick_feature.len()].clone()),
+                    counter: None,
+                    weight: Some(1.0 + (s as f64) * 0.5),
+                });
+            }
+            let mut global = Vec::new();
+            for i in 0..n_global {
+                global.push(WeightedFeatureEntry {
+                    feature: pick_feature[(seed as usize + i) % pick_feature.len()].clone(),
+                    weight: 1.0 + (i as f64) * 0.25,
+                });
+            }
+            let cfg = WorldsConfig {
+                generation: rows,
+                features: FeaturePoolConfig {
+                    global,
+                    ..Default::default()
+                },
+            };
+
+            let s = cfg.to_toml_string().expect("emit");
+            let back = WorldsConfig::from_str(&s).expect("parse");
+
+            // Round-trip on the toml::Value layer keeps the comparison tolerant
+            // to harmless cosmetic differences (key ordering, integer vs float
+            // for whole-number weights) while still catching real corruption.
+            let lhs: toml::Value = toml::from_str(&s).unwrap();
+            let rhs: toml::Value = toml::from_str(&back.to_toml_string().unwrap()).unwrap();
+            proptest::prop_assert_eq!(lhs, rhs);
+        }
+    }
 }

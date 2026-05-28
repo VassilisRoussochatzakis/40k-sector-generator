@@ -110,6 +110,27 @@ pub enum MissionKind {
     Exploration,
 }
 
+impl MissionKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Investigate => "investigate",
+            Self::Escort => "escort",
+            Self::Sabotage => "sabotage",
+            Self::Diplomacy => "diplomacy",
+            Self::Assassination => "assassination",
+            Self::Recovery => "recovery",
+            Self::Defense => "defense",
+            Self::Exploration => "exploration",
+        }
+    }
+}
+
+impl core::fmt::Display for MissionKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -117,6 +138,22 @@ pub enum MissionScale {
     OneShot,
     ShortArc,
     CampaignArc,
+}
+
+impl MissionScale {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::OneShot => "one_shot",
+            Self::ShortArc => "short_arc",
+            Self::CampaignArc => "campaign_arc",
+        }
+    }
+}
+
+impl core::fmt::Display for MissionScale {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -127,6 +164,23 @@ pub enum MissionVisibility {
     Restricted,
     Secret,
     Misinformation,
+}
+
+impl MissionVisibility {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Public => "public",
+            Self::Restricted => "restricted",
+            Self::Secret => "secret",
+            Self::Misinformation => "misinformation",
+        }
+    }
+}
+
+impl core::fmt::Display for MissionVisibility {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────────

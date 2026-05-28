@@ -127,11 +127,11 @@ impl BuilderState {
                 message: "worlds catalog not loaded".into(),
             })?;
         let mut pool = sectorforge::world_pool::build_pool(
-            &input.world_rows,
-            &input.world_tables,
+            &input.catalogs.world_rows,
+            &input.catalogs.world_tables,
             &input.config.generation.world_selection,
         );
-        if let Some(features) = &input.authored_features {
+        if let Some(features) = &input.catalogs.authored_features {
             sectorforge::world_pool::apply_authored_features(&mut pool, features);
         }
         self.world_reroll_counter = self.world_reroll_counter.wrapping_add(1);

@@ -322,6 +322,31 @@ mod tests {
         assert!(out.contains("id = \"x\""));
     }
 
+    proptest::proptest! {
+        /// TF-T-9: for any seed string, `rewrite_seed` must produce a TOML
+        /// document that still parses and whose `[generation].seed` round-trips
+        /// to the input. Catches escaping bugs with quotes, backslashes, and
+        /// control characters.
+        #[test]
+        fn rewrite_seed_roundtrips_any_seed(
+            seed in r#"[^ -]{0,64}"#
+        ) {
+            let base = "[project]\nid = \"x\"\n[generation]\nseed = \"old\"\nworld_count = 3\n";
+            let out = rewrite_seed(base, &seed);
+            // Parse back and verify the [generation].seed matches `seed`.
+            let parsed: toml::Value = toml::from_str(&out).unwrap_or_else(|e| {
+                panic!("rewrite_seed produced invalid TOML for seed {seed:?}: {e}\n---\n{out}\n---")
+            });
+            let got = parsed
+                .get("generation")
+                .and_then(|g| g.get("seed"))
+                .and_then(|s| s.as_str())
+                .map(str::to_string)
+                .unwrap_or_default();
+            proptest::prop_assert_eq!(got, seed);
+        }
+    }
+
     #[test]
     fn list_returns_empty_when_missing() {
         let entries =

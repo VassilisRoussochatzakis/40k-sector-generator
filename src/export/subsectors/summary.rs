@@ -255,8 +255,8 @@ pub(super) fn populate_summary(params: SummaryParams) {
         let Some(&r) = route_by_id.get(rid.as_str()) else {
             continue;
         };
-        let rt_key = format!("{:?}", r.route_type);
-        let rs_key = format!("{:?}", r.stability);
+        let rt_key = format!("{}", r.route_type);
+        let rs_key = format!("{}", r.stability);
         *summary.route_type_counts.entry(rt_key.into()).or_default() += 1;
         *summary
             .route_stability_counts

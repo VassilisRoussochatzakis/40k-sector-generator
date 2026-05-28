@@ -153,6 +153,21 @@ pub enum RouteLineMode {
     HazardWeighted,
 }
 
+impl RouteLineMode {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Standard => "standard",
+            Self::HazardWeighted => "hazard_weighted",
+        }
+    }
+}
+
+impl core::fmt::Display for RouteLineMode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -160,6 +175,22 @@ pub enum LabelDensity {
     All,
     ImportantOnly,
     None,
+}
+
+impl LabelDensity {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::ImportantOnly => "important_only",
+            Self::None => "none",
+        }
+    }
+}
+
+impl core::fmt::Display for LabelDensity {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
@@ -171,6 +202,22 @@ pub enum LegendStyle {
     Hidden,
 }
 
+impl LegendStyle {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Full => "full",
+            Self::Compact => "compact",
+            Self::Hidden => "hidden",
+        }
+    }
+}
+
+impl core::fmt::Display for LegendStyle {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
@@ -178,6 +225,22 @@ pub enum SymbolSet {
     Standard,
     Tactical,
     Redacted,
+}
+
+impl SymbolSet {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Standard => "standard",
+            Self::Tactical => "tactical",
+            Self::Redacted => "redacted",
+        }
+    }
+}
+
+impl core::fmt::Display for SymbolSet {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone)]

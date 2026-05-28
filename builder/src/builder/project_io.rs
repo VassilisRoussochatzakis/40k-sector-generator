@@ -656,20 +656,20 @@ fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {
 
     DataCatalogs {
         worlds,
-        names: Some(input.names.clone()),
+        names: Some(input.catalogs.names.clone()),
         factions: Some(FactionsFile {
-            factions: input.factions.clone(),
+            factions: input.catalogs.factions.clone(),
         }),
-        relations: Some(input.relations.clone()),
-        route_rules: Some(input.route_rules.clone()),
-        regions: Some(input.regions.clone()),
-        economy: Some(input.economy.clone()),
-        history: Some(input.history.clone()),
-        personae: Some(input.personae.clone()),
-        hooks: Some(input.hooks.clone()),
-        sites: Some(input.sites.clone()),
-        missions: Some(input.missions.clone()),
-        prose: Some(input.prose.clone()),
+        relations: Some(input.catalogs.relations.clone()),
+        route_rules: Some(input.catalogs.route_rules.clone()),
+        regions: Some(input.catalogs.regions.clone()),
+        economy: Some(input.catalogs.economy.clone()),
+        history: Some(input.catalogs.history.clone()),
+        personae: Some(input.catalogs.personae.clone()),
+        hooks: Some(input.catalogs.hooks.clone()),
+        sites: Some(input.catalogs.sites.clone()),
+        missions: Some(input.catalogs.missions.clone()),
+        prose: Some(input.catalogs.prose.clone()),
     }
 }
 

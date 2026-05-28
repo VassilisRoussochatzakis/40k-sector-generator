@@ -38,6 +38,23 @@ pub enum EntityKind {
     Route,
 }
 
+impl EntityKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::System => "system",
+            Self::World => "world",
+            Self::Faction => "faction",
+            Self::Route => "route",
+        }
+    }
+}
+
+impl core::fmt::Display for EntityKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct EntityId(pub u32);
 

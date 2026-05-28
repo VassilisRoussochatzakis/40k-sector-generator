@@ -16,7 +16,7 @@ pub fn run_sites(
     let (sec, mut cfg) = match (project, sector) {
         (Some(p), None) => {
             let input = sectorforge::load_project(p)?;
-            let cfg = input.sites.clone();
+            let cfg = input.catalogs.sites.clone();
             (sectorforge::generate_sector(input)?, cfg)
         }
         (None, Some(s)) => (

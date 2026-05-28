@@ -99,9 +99,8 @@ pub fn show_world_conflict_section(
                     )
                     .clicked()
                 {
-                    let factions_full = state.sector.factions.clone();
                     let w = &state.sector.systems[sys_idx].worlds[w_idx];
-                    stab = derive_world_stability(w, &factions_full);
+                    stab = derive_world_stability(w, &state.sector.factions);
                 }
                 if ui.button("Clear stability").clicked() {
                     stab = StabilityState::default();

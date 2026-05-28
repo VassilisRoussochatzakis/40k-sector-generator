@@ -520,7 +520,7 @@ mod tests {
         rescore(&mut state);
         assert!(state.interestingness_report.is_some());
         let r = state.interestingness_report.as_ref().unwrap();
-        assert_eq!(r.profile, "PoliticalSandbox");
+        assert_eq!(r.profile, "political_sandbox");
     }
 
     #[test]

@@ -69,7 +69,7 @@ pub(super) fn emit_region_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>)
         let mut ev = build_event(ctx, anchor, kind, text, Vec::new(), weight, i);
         ev.consequences.push(HistoryConsequence {
             kind: HistoryConsequenceKind::RegionRecorded,
-            description: format!("{:?} effects entered the sector chronicle.", reg.kind),
+            description: format!("{} effects entered the sector chronicle.", reg.kind),
             severity: weight,
             entity_id: Some(reg.id.clone()),
         });

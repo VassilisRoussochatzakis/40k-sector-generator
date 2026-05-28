@@ -120,6 +120,25 @@ impl RegionConditionKind {
             _ => 0,
         }
     }
+
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::WarpStorm => "warp_storm",
+            Self::Turbulence => "turbulence",
+            Self::CalmCorridor => "calm_corridor",
+            Self::Blackout => "blackout",
+            Self::Anomaly => "anomaly",
+            Self::NecropolisDrift => "necropolis_drift",
+            Self::BeaconChain => "beacon_chain",
+            Self::EmpyricBleed => "empyric_bleed",
+        }
+    }
+}
+
+impl core::fmt::Display for RegionConditionKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────────

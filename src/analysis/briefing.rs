@@ -138,6 +138,25 @@ pub enum AudiencePreset {
 }
 
 impl AudiencePreset {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::GmFullTruth => "gm_full_truth",
+            Self::ImperialNavy => "imperial_navy",
+            Self::Inquisition => "inquisition",
+            Self::RogueTrader => "rogue_trader",
+            Self::LocalGovernor => "local_governor",
+            Self::PublicAtlas => "public_atlas",
+        }
+    }
+}
+
+impl core::fmt::Display for AudiencePreset {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
+impl AudiencePreset {
     fn apply(self, p: &mut BriefingProfile) {
         match self {
             Self::GmFullTruth => { /* defaults */ }
@@ -268,16 +287,32 @@ pub fn apply(sector: &GeneratedSector, profile: &BriefingProfile) -> BriefingPac
     if !p.show_relations {
         out.relations = Default::default();
     } else if !p.show_secret_relations {
-        let rels = std::sync::Arc::make_mut(&mut out.relations);
-        for rel in &mut rels.pairs {
-            rel.secret_attitude = rel.public_attitude;
-            rel.secret_stance = rel.public_stance;
-            rel.stance = rel.public_stance;
-            rel.a_to_b.secret_attitude = rel.a_to_b.public_attitude;
-            rel.a_to_b.secret_stance = rel.a_to_b.public_stance;
-            rel.b_to_a.secret_attitude = rel.b_to_a.public_attitude;
-            rel.b_to_a.secret_stance = rel.b_to_a.public_stance;
-        }
+        // TF-P-7: project a fresh `Vec<FactionRelation>` rather than
+        // `Arc::make_mut`-cloning the entire matrix. `make_mut` triggers a
+        // deep clone whenever the matrix Arc is shared (which it almost
+        // always is — analysis pipelines hand the same sector through
+        // multiple briefing applications); the projection below clones only
+        // the pairs slice and rebuilds the Arc in one go.
+        let projected: Vec<crate::relations::FactionRelation> = out
+            .relations
+            .pairs
+            .iter()
+            .map(|rel| {
+                let mut r = rel.clone();
+                r.secret_attitude = r.public_attitude;
+                r.secret_stance = r.public_stance;
+                r.stance = r.public_stance;
+                r.a_to_b.secret_attitude = r.a_to_b.public_attitude;
+                r.a_to_b.secret_stance = r.a_to_b.public_stance;
+                r.b_to_a.secret_attitude = r.b_to_a.public_attitude;
+                r.b_to_a.secret_stance = r.b_to_a.public_stance;
+                r
+            })
+            .collect();
+        out.relations = std::sync::Arc::new(crate::relations::RelationsMatrix {
+            pairs: projected,
+            feed_conflict: out.relations.feed_conflict,
+        });
     }
 
     // Drop unknown factions from top-level list.
@@ -338,7 +373,7 @@ fn redact_world_presences(
 #[must_use]
 pub fn preset(id: AudiencePreset) -> BriefingProfile {
     let mut p = BriefingProfile {
-        id: format!("{id:?}").to_lowercase(),
+        id: format!("{id}").to_lowercase(),
         label: Some(label_for(id).to_string()),
         preset: Some(id),
         ..Default::default()
@@ -449,7 +484,7 @@ pub fn render_markdown(pack: &BriefingPack, profile: &BriefingProfile) -> String
                     " — claims: {}",
                     w.claims
                         .iter()
-                        .map(|c| format!("{:?}({})", c.claim_type, c.faction_id))
+                        .map(|c| format!("{}({})", c.claim_type, c.faction_id))
                         .collect::<Vec<_>>()
                         .join(", ")
                 )

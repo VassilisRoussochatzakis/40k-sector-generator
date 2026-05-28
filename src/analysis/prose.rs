@@ -83,6 +83,21 @@ pub enum ProseTone {
     Dispatch,
 }
 
+impl ProseTone {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Gazetteer => "gazetteer",
+            Self::Dispatch => "dispatch",
+        }
+    }
+}
+
+impl core::fmt::Display for ProseTone {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 // ── Output DTOs ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -166,7 +181,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &ProseConfig) -> ProseReport {
     ProseReport {
         sector_id: sector.id.to_string(),
         seed: sector.seed.to_string(),
-        tone: format!("{:?}", cfg.tone),
+        tone: format!("{}", cfg.tone),
         overview,
         overview_is_override,
         system_entries: entries,
@@ -256,7 +271,7 @@ fn system_prose(
             context = if sys.star.is_some() {
                 format!("circles a {} star", star_desc.to_ascii_lowercase())
             } else {
-                format!("is a {:?}", sys.kind).to_ascii_lowercase()
+                format!("is a {}", sys.kind).to_ascii_lowercase()
             },
             pop_word = pop_word,
             n = n_worlds,
@@ -323,16 +338,16 @@ fn system_prose(
         ));
     }
     if a.necron_phase != crate::archetypes::NecronPhase::default() {
-        colour.push(format!("Necron phase: {:?}.", a.necron_phase));
+        colour.push(format!("Necron phase: {}.", a.necron_phase));
     }
     if a.tyranid_stage != crate::archetypes::TyranidStage::default() {
-        colour.push(format!("Tyranid pressure: {:?}.", a.tyranid_stage));
+        colour.push(format!("Tyranid pressure: {}.", a.tyranid_stage));
     }
     if a.ork_waaagh >= 30 {
         colour.push(format!("Waaagh! intensity {}.", a.ork_waaagh));
     }
     if a.gsc_stage != crate::archetypes::GscStage::default() {
-        colour.push(format!("Cultist stage: {:?}.", a.gsc_stage));
+        colour.push(format!("Cultist stage: {}.", a.gsc_stage));
     }
     if sys.conflict.intensity >= 30 {
         colour.push(format!(

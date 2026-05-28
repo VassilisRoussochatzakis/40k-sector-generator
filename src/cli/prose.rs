@@ -20,7 +20,7 @@ pub fn run_prose(
     let (sec, base_cfg) = match project.cloned() {
         Some(project_dir) => {
             let input = sectorforge::load_project(&project_dir)?;
-            let cfg = input.prose.clone();
+            let cfg = input.catalogs.prose.clone();
             let sec = sectorforge::generate_sector(input)?;
             (sec, cfg)
         }

@@ -34,6 +34,23 @@ pub enum OrbitalAssetKind {
     BlockadeFleet,
 }
 
+impl OrbitalAssetKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Station => "station",
+            Self::Shipyard => "shipyard",
+            Self::DefensePlatform => "defense_platform",
+            Self::BlockadeFleet => "blockade_fleet",
+        }
+    }
+}
+
+impl core::fmt::Display for OrbitalAssetKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OrbitalAsset {
     pub id: String,

@@ -15,7 +15,7 @@ pub fn run_history(
     let (sec, mut cfg) = match (project, sector) {
         (Some(project), None) => {
             let input = sectorforge::load_project(project)?;
-            let cfg = input.history.clone();
+            let cfg = input.catalogs.history.clone();
             (sectorforge::generate_sector(input)?, cfg)
         }
         (None, Some(sector)) => (

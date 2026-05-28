@@ -72,6 +72,21 @@ pub enum FactionMode {
     Independent,
 }
 
+impl FactionMode {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Shared => "shared",
+            Self::Independent => "independent",
+        }
+    }
+}
+
+impl core::fmt::Display for FactionMode {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StitchConfig {
     /// Maximum inter-sector warp links emitted for each adjacent child pair.
@@ -202,6 +217,21 @@ pub enum BorderOrientation {
     /// meets the lower child's north border (rows differ by 1, columns
     /// equal).
     NorthSouth,
+}
+
+impl BorderOrientation {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::EastWest => "east_west",
+            Self::NorthSouth => "north_south",
+        }
+    }
+}
+
+impl core::fmt::Display for BorderOrientation {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

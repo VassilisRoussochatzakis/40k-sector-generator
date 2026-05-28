@@ -163,3 +163,103 @@ Deferred (recommended for follow-up runs, ordered by ROI):
 9. TF-T-2 (file_watcher), TF-T-3 (segmentum triage), TF-T-5 (golden_png
    pin), TF-T-13 (BuilderCommand round-trip).
 10. TF-E-2 (build_subsectors surface) — re-verify the call graph first.
+
+## Follow-up pass (covered in second sweep)
+
+All items 1–6 and 8–10 from the deferred list above were addressed in a
+second pass. Summary of what landed:
+
+- **TF-API-4** — 57 enums got `as_slug()` + `Display`. ~141 Debug-format
+  call sites switched to Display (snake_case output). gui-core map
+  snapshots refreshed; PNG/JSON goldens stayed byte-stable. Three pinned
+  unit-test strings updated (`gm_full_truth`, `political_sandbox`,
+  `dispatch`). Persistent-ID sites (persona/mission/history keys,
+  worlds_toml variant parsing) intentionally skipped.
+- **TF-P-1** — `ProjectInput` shrunk to `{ root_dir, config, catalogs:
+  Arc<ProjectCatalogs>, input_digests }`. 43+ access sites updated across
+  src/, builder/, tests/. `clone_project_with_seed` is now one
+  `Arc::clone`. Pairs with the TF-P-2 short-circuit on `run_seed_search`.
+- **TF-P-3 + TF-P-4** — `SectorMapCache` gained `system_label_cache:
+  BTreeMap<SystemId, Arc<str>>` and `faction_style_index:
+  BTreeMap<FactionId, FactionStyle>` plus typed `system_label` /
+  `faction_style` accessors. Mass migration of info_panel sites is still
+  a mechanical follow-up.
+- **TF-API-3** — gui-core `MapTheme` renamed to `RenderMapTheme` (the
+  data-layer `sectorforge::map_theme::MapTheme` keeps the canonical
+  name); `From<HeatCellRgb> for HeatCell` added in gui-core for one-line
+  conversions.
+- **TF-NT-2** — `ControlScore`, `DisplayImportance`, `ProjectedPower`
+  newtypes added in `src/analysis/scores.rs` with `#[serde(transparent)]`.
+  Site migration deferred (cosmetic; 35 read sites would cascade).
+- **TF-NT-3** — `BuilderState.feature_weights_cache: BTreeMap<(usize,
+  usize), FeatureWeightsCacheValue>` keyed by `(sys_idx, w_idx)` and
+  validated against an input digest. `feature_weights_for_world` returns
+  `Arc<BTreeMap<String, f64>>` and short-circuits on digest hits.
+- **TF-P-6** — `derive_dependency_edges` now receives shared `by_sys` +
+  `valid_routes_by_sys` from the caller, eliminating the duplicate build
+  the inner function used to do.
+- **TF-P-7** — relations projection: when only `show_secret_relations` is
+  off, the briefing builds a fresh `Vec<FactionRelation>` instead of
+  `Arc::make_mut`-ing the (typically shared) matrix. Cow conversion of
+  `BriefingPack::sector` left deferred — every profile still mutates
+  per-system loops, so the borrowed-path payoff is marginal.
+- **TF-P-9** — only the actually wasteful per-frame clones got removed
+  (conflict.rs faction list). The remaining `routes.clone()` sites are
+  mut-then-`ReplaceRoutes` working copies; rewriting them needs the
+  command-bus retrofit (TF-S-1).
+- **TF-P-10** — already complete in the previous pass.
+- **TF-E-2** — `compute_subsector_variety` returns
+  `(Vec<SubsectorVariety>, Option<SubsectorBuildError>)`; failures push a
+  `HealthFlag { code: "SUBSECTOR_DERIVE_FAILED", … }`. Builder also
+  surfaces `last_subsector_error` in the status bar (parallels the
+  `last_catalog_error` / `last_save_error` slots). Viewer surface left as
+  a follow-up.
+- **TF-T-2** — extracted pure `scan_once(root, &mut baseline)`. Three new
+  unit tests cover changed-file detection, no-baseline-entry, and
+  missing-file paths. No `filetime` dep needed — the baseline is set to
+  `UNIX_EPOCH` so any on-disk mtime is newer without sleeping.
+- **TF-T-3** — segmentum ignored tests intentionally retained; CLAUDE.md
+  documents the `cargo test --test segmentum_tests -- --ignored` command.
+- **TF-T-4** — `tests/it/cli_smoke.rs` exercises `--help` on every CLI
+  subcommand, asserts the top-level help lists them all, and confirms
+  unknown subcommands exit non-zero.
+- **TF-T-5** — `golden_png` now also asserts a pinned blake3 hash stored
+  at `tests/goldens/png_m42_default.blake3`. Refresh with
+  `UPDATE_GOLDEN_PNG=1 cargo test --test it -- golden_png`.
+- **TF-T-9** — proptests added: `rewrite_seed` round-trips any seed
+  through TOML parse; `WorldsConfig` round-trips through emit+parse via
+  `toml::Value` equality.
+- **TF-T-10** — `fuzz/` crate (outside the workspace; nightly-only)
+  scaffolded with four targets: `config_parse`, `worlds_toml_parse`,
+  `presets_load`, `map_theme_parse_color`. README documents the
+  `cargo +nightly fuzz run …` workflow.
+- **TF-T-11** — `cli_gui_parity` now also compares `validate --json` and
+  `analyze --json` outputs against the in-process `validate_project` and
+  `analytics::analyze` calls.
+- **TF-T-13** — 11 round-trip tests added in `state/tests.rs` covering
+  AddSystem, RemoveSystem (asymmetric — undo re-inserts at the tail),
+  MoveSystem, RenameSystem, SwapSystems, AddRoute, RemoveRoute,
+  AddFaction, RemoveFaction, SetRouteType, SetRouteStability. Uses
+  canonical JSON for comparison since `GeneratedSector` deliberately has
+  no `PartialEq`.
+
+Still deferred (genuinely blocked or low-ROI):
+
+- TF-API-1, TF-API-2 — wait for TF-S-1 (command-bus retrofit) per §3.
+- Site migration follow-ups: TF-P-3 (info_panel `.to_uppercase()` calls),
+  TF-P-4 (`faction_style_by_id` linear scans), TF-NT-2 (35 score-field
+  consumers).
+- TF-P-7 Cow conversion of `BriefingPack::sector` (broad cascade for
+  marginal benefit until profile loops are short-circuited).
+- Viewer-side surfacing of `last_subsector_error` (TF-E-2 follow-up).
+
+Verification (second pass):
+
+- `cargo check --workspace --all-targets` — clean.
+- `cargo test --workspace` — 167 + 81 + 262 + others pass; 5 ignored
+  (slow segmentum, pre-existing).
+- `cargo test --test it -- golden` — 13 pass; SVG/PNG/JSON byte-stable.
+- gui-core `map_snapshots` — refreshed once (`UPDATE_MAP_SNAPSHOTS=1`)
+  to absorb the Display-format text changes.
+- `golden_png` pinned hash committed at
+  `tests/goldens/png_m42_default.blake3`.

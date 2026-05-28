@@ -1,10 +1,15 @@
 //! Visual tokens for the sector map renderer.
 //!
-//! `MapTheme` is the single source of truth for every colour and sizing
+//! `RenderMapTheme` is the single source of truth for every colour and sizing
 //! constant that [`crate::sector_view::SectorView`] paints. Apps either pass a
-//! customised theme or use [`MapTheme::default`]; the viewer, the editor's MAP
-//! panel, and the builder's MAP tab all read the same theme, so adding a new
-//! map element is a one-place change.
+//! customised theme or use [`RenderMapTheme::default`]; the viewer, the
+//! editor's MAP panel, and the builder's MAP tab all read the same theme, so
+//! adding a new map element is a one-place change.
+//!
+//! Named `RenderMapTheme` to disambiguate from
+//! [`sectorforge::map_theme::MapTheme`], which is the data-layer
+//! representation parsed from user TOML and consumed by PNG/SVG exporters.
+//! This type is the rendering-layer counterpart used by the egui paint code.
 //!
 //! Sizing is expressed as [`ScaledSize`] — a `(multiplier, min_px)` pair the
 //! painter resolves with `hex_size * mul`, floored at `min_px` so icons stay
@@ -32,7 +37,7 @@ impl ScaledSize {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct MapTheme {
+pub struct RenderMapTheme {
     // -- core colours -------------------------------------------------------
     pub bg: Color32,
     pub hex_empty: Color32,
@@ -96,7 +101,7 @@ pub struct MapTheme {
     pub pending_route_preview_min: f32,
 }
 
-impl MapTheme {
+impl RenderMapTheme {
     pub fn region_color(&self, kind: MapRegionOverlay) -> Color32 {
         match kind {
             MapRegionOverlay::WarpStorm => self.region_warp_storm,
@@ -111,7 +116,7 @@ impl MapTheme {
     }
 }
 
-impl Default for MapTheme {
+impl Default for RenderMapTheme {
     fn default() -> Self {
         Self {
             bg: palette::BG,

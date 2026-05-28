@@ -164,7 +164,7 @@ fn show_assets_editor(
 
                         ui.label("kind");
                         egui::ComboBox::from_id_salt(format!("orb_kind_{i}"))
-                            .selected_text(format!("{:?}", asset.kind))
+                            .selected_text(format!("{}", asset.kind))
                             .show_ui(ui, |ui| {
                                 for k in [
                                     OrbitalAssetKind::Station,
@@ -172,7 +172,7 @@ fn show_assets_editor(
                                     OrbitalAssetKind::DefensePlatform,
                                     OrbitalAssetKind::BlockadeFleet,
                                 ] {
-                                    ui.selectable_value(&mut asset.kind, k, format!("{:?}", k));
+                                    ui.selectable_value(&mut asset.kind, k, format!("{}", k));
                                 }
                             });
                         ui.end_row();

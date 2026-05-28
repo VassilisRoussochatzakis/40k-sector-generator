@@ -386,7 +386,7 @@ mod tests {
         assert!(state.briefing_preview_md.is_some());
         assert!(state.briefing_preview_pack.is_some());
         let pack = state.briefing_preview_pack.as_ref().unwrap();
-        assert_eq!(pack.profile_id, "gmfulltruth");
+        assert_eq!(pack.profile_id, "gm_full_truth");
     }
 
     #[test]

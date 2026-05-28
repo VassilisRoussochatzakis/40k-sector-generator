@@ -23,14 +23,22 @@ pub(super) fn refresh_map_cache(state: &mut BuilderState) {
     if !stale {
         return;
     }
-    let mut subsectors = build_subsectors(
+    let mut subsectors = match build_subsectors(
         &state.sector,
         SubsectorConfig {
             target_systems_per_subsector: state.subsector_target_systems.max(1),
             ..SubsectorConfig::default()
         },
-    )
-    .unwrap_or_default();
+    ) {
+        Ok(v) => {
+            state.last_subsector_error = None;
+            v
+        }
+        Err(e) => {
+            state.last_subsector_error = Some(e.to_string());
+            Vec::new()
+        }
+    };
     crate::builder::panels::subsectors::apply_subsector_overrides(&mut subsectors, state);
     let lookup = SectorMapCache::new(&state.sector, &subsectors);
     state.map_view_cache = Some(MapViewCache {

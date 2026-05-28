@@ -147,6 +147,22 @@ pub enum FlagSeverity {
     Error,
 }
 
+impl FlagSeverity {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Info => "info",
+            Self::Warning => "warning",
+            Self::Error => "error",
+        }
+    }
+}
+
+impl core::fmt::Display for FlagSeverity {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 // ── Entry point ────────────────────────────────────────────────────────────────
 
 /// Pure derivation. Never fails.
@@ -201,7 +217,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.route_type_distribution = sector
         .routes
         .iter()
-        .map(|r| format!("{:?}", r.route_type).into())
+        .map(|r| format!("{}", r.route_type).into())
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
@@ -209,15 +225,23 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.route_stability_distribution = sector
         .routes
         .iter()
-        .map(|r| format!("{:?}", r.stability).into())
+        .map(|r| format!("{}", r.stability).into())
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
         });
     a.connectivity = compute_connectivity(sector);
-    a.subsector_variety = compute_subsector_variety(sector);
+    let (variety, subsector_err) = compute_subsector_variety(sector);
+    a.subsector_variety = variety;
     a.low_confidence = sector.systems.len() < cfg.tiny_sector_threshold;
     a.health_flags = evaluate_flags(&a, cfg);
+    if let Some(err) = subsector_err {
+        a.health_flags.push(HealthFlag {
+            severity: FlagSeverity::Error,
+            code: Arc::from("SUBSECTOR_DERIVE_FAILED"),
+            message: Arc::from(err.to_string()),
+        });
+    }
     a
 }
 
@@ -308,11 +332,11 @@ fn compute_world_stats(sector: &GeneratedSector) -> WorldStats {
             }
             total_claims += w.claims.len() as u32;
             for c in &w.claims {
-                let key: Arc<str> = format!("{:?}", c.claim_type).into();
+                let key: Arc<str> = format!("{}", c.claim_type).into();
                 *claim_counts.entry(key).or_insert(0) += 1;
             }
             for p in &w.factions {
-                let key: Arc<str> = format!("{:?}", p.dominance).into();
+                let key: Arc<str> = format!("{}", p.dominance).into();
                 *dominance_counts.entry(key).or_insert(0) += 1;
             }
         }
@@ -330,7 +354,7 @@ fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<Arc<str>, u
     let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
         if let Some(state) = sys.control.state {
-            let key: Arc<str> = format!("{:?}", state).into();
+            let key: Arc<str> = format!("{}", state).into();
             *out.entry(key).or_insert(0) += 1;
         }
     }
@@ -511,17 +535,20 @@ fn articulation_points(adj: &[Vec<usize>]) -> Vec<usize> {
 
 // ── Subsector political variety ────────────────────────────────────────────────
 
-fn compute_subsector_variety(sector: &GeneratedSector) -> Vec<SubsectorVariety> {
+fn compute_subsector_variety(
+    sector: &GeneratedSector,
+) -> (Vec<SubsectorVariety>, Option<crate::subsectors::SubsectorBuildError>) {
     if sector.systems.is_empty() {
-        return Vec::new();
+        return (Vec::new(), None);
     }
     let subs = match build_subsectors(sector, SubsectorConfig::default()) {
         Ok(v) => v,
-        Err(_) => return Vec::new(),
+        Err(e) => return (Vec::new(), Some(e)),
     };
     let sys_by_id: BTreeMap<&str, &GeneratedSystem> =
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
-    subs.iter()
+    let variety: Vec<SubsectorVariety> = subs
+        .iter()
         .map(|sub: &Subsector| {
             let mut dominants: BTreeSet<FactionId> = BTreeSet::new();
             let mut contested_count = 0u32;
@@ -547,7 +574,8 @@ fn compute_subsector_variety(sector: &GeneratedSector) -> Vec<SubsectorVariety> 
                 contested_count,
             }
         })
-        .collect()
+        .collect();
+    (variety, None)
 }
 
 // ── Health flags ───────────────────────────────────────────────────────────────

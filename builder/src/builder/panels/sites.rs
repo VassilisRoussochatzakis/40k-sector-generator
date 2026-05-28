@@ -251,7 +251,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                                 .unwrap_or_else(|| "—".to_string()),
                         );
                         let public_diff = s.public_status != s.actual_status;
-                        let public_text = RichText::new(format!("{:?}", s.public_status));
+                        let public_text = RichText::new(format!("{}", s.public_status));
                         let public_text = if public_diff && show_actual {
                             public_text.color(Color32::from_rgb(220, 170, 80))
                         } else {
@@ -259,7 +259,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                         };
                         ui.label(public_text);
                         if show_actual {
-                            ui.label(format!("{:?}", s.actual_status));
+                            ui.label(format!("{}", s.actual_status));
                         }
                         if ui.button("highlight").clicked() {
                             state.selected_site_id = Some(s.id.clone());
@@ -323,7 +323,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             ui.label("region");
             ui.label(
                 site.region_kind
-                    .map(|r| format!("{r:?}"))
+                    .map(|r| format!("{r}"))
                     .unwrap_or_else(|| "—".to_string()),
             );
             ui.end_row();
@@ -340,11 +340,11 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             }
             ui.end_row();
             ui.label("public status");
-            ui.label(format!("{:?}", site.public_status));
+            ui.label(format!("{}", site.public_status));
             ui.end_row();
             if show_actual {
                 ui.label("actual status");
-                let txt = RichText::new(format!("{:?}", site.actual_status));
+                let txt = RichText::new(format!("{}", site.actual_status));
                 let txt = if site.public_status != site.actual_status {
                     txt.color(Color32::from_rgb(220, 170, 80))
                 } else {
@@ -503,11 +503,11 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
             ui.end_row();
             ui.label("public status");
             egui::ComboBox::from_id_salt(format!("st_manual_pub_{idx}"))
-                .selected_text(format!("{:?}", s.public_status))
+                .selected_text(format!("{}", s.public_status))
                 .show_ui(ui, |ui| {
                     for v in STATUS_VARIANTS {
                         if ui
-                            .selectable_value(&mut s.public_status, *v, format!("{v:?}"))
+                            .selectable_value(&mut s.public_status, *v, format!("{v}"))
                             .changed()
                         {
                             changed = true;
@@ -517,11 +517,11 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
             ui.end_row();
             ui.label("actual status");
             egui::ComboBox::from_id_salt(format!("st_manual_act_{idx}"))
-                .selected_text(format!("{:?}", s.actual_status))
+                .selected_text(format!("{}", s.actual_status))
                 .show_ui(ui, |ui| {
                     for v in STATUS_VARIANTS {
                         if ui
-                            .selectable_value(&mut s.actual_status, *v, format!("{v:?}"))
+                            .selectable_value(&mut s.actual_status, *v, format!("{v}"))
                             .changed()
                         {
                             changed = true;

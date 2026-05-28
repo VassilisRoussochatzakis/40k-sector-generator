@@ -147,7 +147,7 @@ pub use history::{
     HistoryConfig, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind, HistoryEntityRef,
     HistoryEra, HistoryEvent, HistoryEventRule, HistoryFile, HistoryReport, SectorChronicle,
 };
-pub use input::ProjectInput;
+pub use input::{ProjectCatalogs, ProjectInput};
 pub use invariants::{InvariantReport, InvariantViolation};
 pub use map_theme::{
     resolve_map_theme, LabelDensity, LegendStyle, MapTheme, MapThemeConfig, RouteLineMode,
@@ -312,11 +312,11 @@ pub fn generate_system_standalone(
         ));
     }
     let mut pool = world_pool::build_pool(
-        &project.world_rows,
-        &project.world_tables,
+        &project.catalogs.world_rows,
+        &project.catalogs.world_tables,
         &project.config.generation.world_selection,
     );
-    if let Some(features) = &project.authored_features {
+    if let Some(features) = &project.catalogs.authored_features {
         world_pool::apply_authored_features(&mut pool, features);
     }
     if pool.candidates.is_empty() {
@@ -326,7 +326,7 @@ pub fn generate_system_standalone(
     let mut sys = generation::build_system(
         &project.config,
         &pool,
-        &project.names,
+        &project.catalogs.names,
         index,
         coord,
         &mut used_names,
@@ -334,7 +334,7 @@ pub fn generate_system_standalone(
     let mut single = [sys.clone()];
     generation::assign_factions_for_systems(
         &mut single,
-        &project.factions,
+        &project.catalogs.factions,
         &project.config.generation.seed,
         &sys.id,
     );

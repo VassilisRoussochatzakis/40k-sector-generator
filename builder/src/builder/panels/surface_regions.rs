@@ -121,10 +121,10 @@ fn show_regions_editor(
 
                         ui.label("kind");
                         egui::ComboBox::from_id_salt(format!("sr_kind_{i}"))
-                            .selected_text(format!("{:?}", region.kind))
+                            .selected_text(format!("{}", region.kind))
                             .show_ui(ui, |ui| {
                                 for k in REGION_KINDS {
-                                    ui.selectable_value(&mut region.kind, k, format!("{:?}", k));
+                                    ui.selectable_value(&mut region.kind, k, format!("{}", k));
                                 }
                             });
                         ui.end_row();

@@ -1152,7 +1152,7 @@ fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
                     for (i, ev) in events.iter().enumerate() {
                         ui.horizontal_wrapped(|ui| {
                             ui.label(RichText::new(&ev.date).monospace().strong());
-                            ui.label(format!("{:?}", ev.kind));
+                            ui.label(format!("{}", ev.kind));
                             ui.colored_label(
                                 Color32::DARK_GRAY,
                                 format!("({})", anchor_label(&ev.anchor)),

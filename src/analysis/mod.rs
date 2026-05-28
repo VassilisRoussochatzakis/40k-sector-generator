@@ -26,5 +26,6 @@ pub mod power_projection;
 pub mod prose;
 pub mod relations;
 pub mod route_control;
+pub mod scores;
 pub mod search;
 pub mod stability;

@@ -9,13 +9,20 @@
 //!      same bytes; no HashMap iteration order leakage, no timestamp in the
 //!      PNG, no floating-point nondeterminism in coordinate rounding).
 //!
-//! A pinned hash is intentionally NOT baked in: any cosmetic theme tweak
-//! would force a hash bump and become busywork. The "two independent renders
-//! agree" property is the load-bearing one — it would catch the genuine
-//! determinism bugs the optimisation spec is concerned about.
+//! TF-T-5 also pins a blake3 hash to disk so unintended drift in the bitmap
+//! pipeline trips the test (the run-to-run check alone could not catch a
+//! deterministic-but-changed render). Pass `UPDATE_GOLDEN_PNG=1` to refresh.
+
+use std::path::PathBuf;
 
 use camino::Utf8PathBuf;
 use sectorforge::bitmap::{encode_png_bytes, render_sector_image, RenderOptions};
+
+const PIN_ENV: &str = "UPDATE_GOLDEN_PNG";
+
+fn pinned_hash_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens/png_m42_default.blake3")
+}
 
 #[test]
 fn png_export_is_deterministic_for_fixed_seed() {
@@ -73,5 +80,31 @@ fn png_export_changes_when_seed_changes() {
         blake3::hash(&png_a),
         blake3::hash(&png_b),
         "different seeds should produce different PNG output"
+    );
+}
+
+#[test]
+fn png_export_matches_pinned_blake3_hash() {
+    let project_dir = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project");
+    let proj = sectorforge::load_project(&project_dir).expect("load");
+    let sector = sectorforge::generate_sector(proj).expect("generate");
+    let img = render_sector_image(&sector, 2, None, RenderOptions::default());
+    let png = encode_png_bytes(&img).expect("encode");
+    let hash = blake3::hash(&png).to_hex().to_string();
+    let pin = pinned_hash_path();
+    if std::env::var_os(PIN_ENV).is_some() {
+        std::fs::create_dir_all(pin.parent().unwrap()).unwrap();
+        std::fs::write(&pin, format!("{hash}\n")).unwrap();
+        return;
+    }
+    let expected = std::fs::read_to_string(&pin).unwrap_or_else(|_| {
+        panic!(
+            "missing pinned hash; run `{PIN_ENV}=1 cargo test --test it -- golden_png` to bless"
+        )
+    });
+    assert_eq!(
+        expected.trim(),
+        hash,
+        "PNG bytes drifted from pinned hash; if intentional, rerun with `{PIN_ENV}=1` to refresh"
     );
 }

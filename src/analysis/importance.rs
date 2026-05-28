@@ -65,6 +65,18 @@ pub enum KindGroup {
 }
 
 impl KindGroup {
+    pub fn as_slug(self) -> &'static str {
+        match self {
+            Self::Imperial => "imperial",
+            Self::Mechanicus => "mechanicus",
+            Self::Chaos => "chaos",
+            Self::Aeldari => "aeldari",
+            Self::Xenos => "xenos",
+            Self::Criminal => "criminal",
+            Self::Other => "other",
+        }
+    }
+
     #[must_use]
     pub fn label(self) -> &'static str {
         match self {
@@ -104,6 +116,12 @@ impl KindGroup {
             "criminal" | "rebel" | "merchant" => KindGroup::Criminal,
             _ => KindGroup::Other,
         }
+    }
+}
+
+impl core::fmt::Display for KindGroup {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
     }
 }
 

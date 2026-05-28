@@ -214,6 +214,7 @@ fn generated_factions_are_top_groups_with_subfactions_and_forces() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
     let expected_factions: std::collections::BTreeSet<String> = input
+        .catalogs
         .factions
         .iter()
         .map(|f| f.top_faction_id().to_string())

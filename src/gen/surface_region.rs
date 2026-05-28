@@ -53,6 +53,31 @@ pub enum RegionKind {
     Other,
 }
 
+impl RegionKind {
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Capital => "capital",
+            Self::Hive => "hive",
+            Self::Underhive => "underhive",
+            Self::ForgeComplex => "forge_complex",
+            Self::ShrineContinent => "shrine_continent",
+            Self::AgriBelt => "agri_belt",
+            Self::CardinalSpire => "cardinal_spire",
+            Self::KnightHousehold => "knight_household",
+            Self::Wilderness => "wilderness",
+            Self::TombComplex => "tomb_complex",
+            Self::Hideout => "hideout",
+            Self::Other => "other",
+        }
+    }
+}
+
+impl core::fmt::Display for RegionKind {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 /// Build the per-world region list. Returns an empty Vec when the world
 /// type/population doesn't warrant a region split (e.g. uninhabited barren
 /// worlds).

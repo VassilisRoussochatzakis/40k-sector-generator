@@ -48,6 +48,10 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.separator();
             ui.colored_label(egui::Color32::RED, format!("reload: {err}"));
         }
+        if let Some(err) = state.last_subsector_error.as_ref() {
+            ui.separator();
+            ui.colored_label(egui::Color32::RED, format!("subsectors: {err}"));
+        }
     });
 }
 

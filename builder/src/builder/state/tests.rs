@@ -302,3 +302,235 @@ fn nav_back_on_empty_stack_is_noop() {
     s.nav_back();
     assert_eq!(s.active_tab, tab);
 }
+
+// ── TF-T-13: BuilderCommand round-trip coverage ──────────────────────────
+
+/// Build a tiny seeded sector with one system, one world on it, and a
+/// neighbouring system + route — enough for most command variants to operate
+/// against without each test reinventing the fixture.
+fn seeded() -> BuilderState {
+    let mut s = BuilderState::new_blank("t", "T", "seed", 16, 16);
+    s.run(BuilderCommand::AddSystem {
+        coord: HexCoord { q: 0, r: 0 },
+        name: "alpha".into(),
+        result_id: None,
+    })
+    .unwrap();
+    s.run(BuilderCommand::AddSystem {
+        coord: HexCoord { q: 1, r: 0 },
+        name: "beta".into(),
+        result_id: None,
+    })
+    .unwrap();
+    s
+}
+
+fn assert_round_trip(mut state: BuilderState, cmd: BuilderCommand) {
+    // GeneratedSector intentionally has no PartialEq derive (its leaf types
+    // include f32). Compare via canonical JSON instead — same byte-stability
+    // guarantee the golden tests rely on.
+    let snapshot = |s: &BuilderState| serde_json::to_string(&s.sector).unwrap();
+    let before = snapshot(&state);
+    state.run(cmd).unwrap();
+    let after = snapshot(&state);
+    assert_ne!(before, after, "command should produce a state change");
+    state.undo().unwrap();
+    assert_eq!(snapshot(&state), before, "undo should restore prior sector");
+    state.redo().unwrap();
+    assert_eq!(snapshot(&state), after, "redo should reapply the same change");
+}
+
+#[test]
+fn round_trip_add_system() {
+    let s = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    assert_round_trip(
+        s,
+        BuilderCommand::AddSystem {
+            coord: HexCoord { q: 2, r: 2 },
+            name: "gamma".into(),
+            result_id: None,
+        },
+    );
+}
+
+#[test]
+fn round_trip_remove_system() {
+    let mut s = seeded();
+    let id = s.sector.systems[0].id.clone();
+    let count = s.sector.systems.len();
+    s.run(BuilderCommand::RemoveSystem {
+        id: id.clone(),
+        before: None,
+        removed_routes: Vec::new(),
+    })
+    .unwrap();
+    assert_eq!(s.sector.systems.len(), count - 1);
+    assert!(s.sector.systems.iter().all(|x| x.id != id));
+    s.undo().unwrap();
+    // Restored set contains the removed id again (order may differ — undo
+    // re-inserts at the tail, not the original index).
+    assert_eq!(s.sector.systems.len(), count);
+    assert!(s.sector.systems.iter().any(|x| x.id == id));
+    s.redo().unwrap();
+    assert_eq!(s.sector.systems.len(), count - 1);
+    assert!(s.sector.systems.iter().all(|x| x.id != id));
+}
+
+#[test]
+fn round_trip_move_system() {
+    let s = seeded();
+    let id = s.sector.systems[0].id.clone();
+    let from_coord = s.sector.systems[0].coord;
+    assert_round_trip(
+        s,
+        BuilderCommand::MoveSystem {
+            id,
+            from: from_coord,
+            to: HexCoord { q: 4, r: 4 },
+        },
+    );
+}
+
+#[test]
+fn round_trip_rename_system() {
+    let s = seeded();
+    let id = s.sector.systems[0].id.clone();
+    let from = s.sector.systems[0].name.as_ref().to_string();
+    assert_round_trip(
+        s,
+        BuilderCommand::RenameSystem {
+            id,
+            from,
+            to: "alpha-renamed".into(),
+        },
+    );
+}
+
+#[test]
+fn round_trip_swap_systems() {
+    let s = seeded();
+    let a = s.sector.systems[0].id.clone();
+    let b = s.sector.systems[1].id.clone();
+    assert_round_trip(s, BuilderCommand::SwapSystems { a, b });
+}
+
+#[test]
+fn round_trip_add_route() {
+    let s = seeded();
+    let from = s.sector.systems[0].id.clone();
+    let to = s.sector.systems[1].id.clone();
+    assert_round_trip(
+        s,
+        BuilderCommand::AddRoute {
+            from,
+            to,
+            route_type: sectorforge::sector_model::RouteType::StableWarpLane,
+            stability: sectorforge::sector_model::RouteStability::Stable,
+            result_id: None,
+        },
+    );
+}
+
+#[test]
+fn round_trip_remove_route() {
+    let mut s = seeded();
+    let from = s.sector.systems[0].id.clone();
+    let to = s.sector.systems[1].id.clone();
+    s.run(BuilderCommand::AddRoute {
+        from,
+        to,
+        route_type: sectorforge::sector_model::RouteType::StableWarpLane,
+        stability: sectorforge::sector_model::RouteStability::Stable,
+        result_id: None,
+    })
+    .unwrap();
+    let route_id = s.sector.routes[0].id.clone();
+    assert_round_trip(
+        s,
+        BuilderCommand::RemoveRoute {
+            id: route_id,
+            before: None,
+        },
+    );
+}
+
+#[test]
+fn round_trip_add_faction() {
+    let s = seeded();
+    assert_round_trip(
+        s,
+        BuilderCommand::AddFaction {
+            id: FactionId::new("imperium"),
+            name: "Imperium".into(),
+            kind: "imperial".into(),
+        },
+    );
+}
+
+#[test]
+fn round_trip_remove_faction() {
+    let mut s = seeded();
+    s.run(BuilderCommand::AddFaction {
+        id: FactionId::new("imperium"),
+        name: "Imperium".into(),
+        kind: "imperial".into(),
+    })
+    .unwrap();
+    assert_round_trip(
+        s,
+        BuilderCommand::RemoveFaction {
+            id: FactionId::new("imperium"),
+            before: None,
+        },
+    );
+}
+
+#[test]
+fn round_trip_set_route_type() {
+    let mut s = seeded();
+    let from = s.sector.systems[0].id.clone();
+    let to = s.sector.systems[1].id.clone();
+    s.run(BuilderCommand::AddRoute {
+        from,
+        to,
+        route_type: sectorforge::sector_model::RouteType::StableWarpLane,
+        stability: sectorforge::sector_model::RouteStability::Stable,
+        result_id: None,
+    })
+    .unwrap();
+    let id = s.sector.routes[0].id.clone();
+    let before = s.sector.routes[0].route_type;
+    assert_round_trip(
+        s,
+        BuilderCommand::SetRouteType {
+            id,
+            before,
+            after: sectorforge::sector_model::RouteType::ChartedPassage,
+        },
+    );
+}
+
+#[test]
+fn round_trip_set_route_stability() {
+    let mut s = seeded();
+    let from = s.sector.systems[0].id.clone();
+    let to = s.sector.systems[1].id.clone();
+    s.run(BuilderCommand::AddRoute {
+        from,
+        to,
+        route_type: sectorforge::sector_model::RouteType::StableWarpLane,
+        stability: sectorforge::sector_model::RouteStability::Stable,
+        result_id: None,
+    })
+    .unwrap();
+    let id = s.sector.routes[0].id.clone();
+    let before = s.sector.routes[0].stability;
+    assert_round_trip(
+        s,
+        BuilderCommand::SetRouteStability {
+            id,
+            before,
+            after: sectorforge::sector_model::RouteStability::Hazardous,
+        },
+    );
+}

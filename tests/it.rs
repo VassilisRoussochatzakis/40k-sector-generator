@@ -8,6 +8,8 @@ mod shared;
 mod analytics_and_presets;
 #[path = "it/cli_gui_parity.rs"]
 mod cli_gui_parity;
+#[path = "it/cli_smoke.rs"]
+mod cli_smoke;
 #[path = "it/economy_tests.rs"]
 mod economy_tests;
 #[path = "it/golden_generation.rs"]

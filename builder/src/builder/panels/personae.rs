@@ -71,7 +71,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§PER1..§PER5 — kind pool editor, per-anchor personae, dominance tier, agenda derivation.",
+        "kind pool editor, per-anchor personae, dominance tier, agenda derivation.",
     );
     ui.separator();
 
@@ -125,7 +125,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PER4 dominance tier + per-anchor caps ──────────────────────────────────
 
 fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PER4 — dominance tier + per-anchor caps").strong());
+    ui.label(RichText::new("dominance tier + per-anchor caps").strong());
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
@@ -169,7 +169,7 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PER2 + §PER5 persona table ─────────────────────────────────────────────
 
 fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PER2 / §PER5 — derived personae").strong());
+    ui.label(RichText::new("derived personae").strong());
     let Some(report) = state.personae_report.clone() else {
         ui.colored_label(
             Color32::GRAY,
@@ -222,7 +222,7 @@ fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
                         ui.label(if p.traits.is_empty() {
                             RichText::new("—").color(Color32::DARK_GRAY)
                         } else {
-                            RichText::new(p.traits.join(", "))
+                            RichText::new(p.traits.join(","))
                         });
                         ui.label(p.agenda.clone()).on_hover_text(format!(
                             "Source: kind = {}\nfaction = {}\nanchor = {}",
@@ -295,7 +295,7 @@ fn anchor_label(a: &PersonaAnchor) -> String {
 // ── §PER2 manual entry editor ───────────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PER2 — manual personae").strong());
+    ui.label(RichText::new("manual personae").strong());
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
@@ -342,7 +342,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                     changed |= ui.text_edit_singleline(&mut p.faction_kind).changed();
                     changed |= ui.text_edit_singleline(&mut p.name).changed();
                     changed |= ui.text_edit_singleline(&mut p.title).changed();
-                    let mut traits_csv = p.traits.join(", ");
+                    let mut traits_csv = p.traits.join(",");
                     if ui.text_edit_singleline(&mut traits_csv).changed() {
                         p.traits = traits_csv
                             .split(',')
@@ -387,7 +387,7 @@ fn blank_manual_persona(seq: usize) -> Persona {
 // ── §PER1 kind pool editor ──────────────────────────────────────────────────
 
 fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PER1 — per-faction-kind pools").strong());
+    ui.label(RichText::new("per-faction-kind pools").strong());
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
@@ -463,7 +463,7 @@ fn pool_editor(ui: &mut Ui, kind: &str, pools: &mut KindPools) -> bool {
 
 fn csv_row(ui: &mut Ui, label: &str, values: &mut Vec<String>) -> bool {
     ui.label(label);
-    let mut csv = values.join(", ");
+    let mut csv = values.join(",");
     let resp = ui.text_edit_multiline(&mut csv);
     let changed = resp.changed();
     if changed {

@@ -39,7 +39,13 @@
       "Bash(sort -t: -k1,1 -k2,2n)",
       "Bash(grep -n \"}$\" /Users/vassilis/Documents/40k-sector-generator/src/analysis/importance.rs)",
       "Bash(UPDATE_GOLDEN_PNG=1 cargo test --test it -- golden_png)",
-      "Bash(grep -E \"^\\\\s+[A-Z][A-Za-z]+ \\\\{|^\\\\s+[A-Z][A-Za-z]+,|^\\\\s+[A-Z][A-Za-z]+\\\\\\(\" /Users/vassilis/Documents/40k-sector-generator/builder/src/builder/command.rs)"
+      "Bash(grep -E \"^\\\\s+[A-Z][A-Za-z]+ \\\\{|^\\\\s+[A-Z][A-Za-z]+,|^\\\\s+[A-Z][A-Za-z]+\\\\\\(\" /Users/vassilis/Documents/40k-sector-generator/builder/src/builder/command.rs)",
+      "Bash(grep -E \"^-[^-].*\\\\\"[^\\\\\"]*,[A-Za-z0-9{][^\\\\\"]*\\\\\"\")",
+      "Bash(grep -E \"\\\\{\\\\}, \\\\{\\\\}\")",
+      "Bash(grep -rln '\\\\\\(\\\\{\\\\}, \\\\{\\\\}\\\\\\)' builder/)",
+      "Bash(grep -rlE '\\\\{\\\\}, \\\\{\\\\}' builder/)",
+      "Bash(grep -E '\\\\{\\\\}, \\\\{\\\\}')",
+      "Bash(grep -rnE '\"[^\"]*\\(\\\\\\(— |— \\\\\\)|\\\\\\( \\\\\\)|—\\\\s*$|^\\\\s*—|in\\\\\\)|by\\\\\\)|see\\\\s*\\\\\\)\\)[^\"]*\"' builder/)"
     ],
     "additionalDirectories": [
       "\\tmp"

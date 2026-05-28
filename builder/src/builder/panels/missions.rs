@@ -70,7 +70,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§M1..§M5 — mission list, manual entries that survive auto-derive, player-edition toggle, click-to-highlight.",
+        "mission list, manual entries that survive auto-derive, player-edition toggle, click-to-highlight.",
     );
     ui.separator();
 
@@ -135,7 +135,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M3 config knobs ───────────────────────────────────────────────────────
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§M3 — missions.toml knobs").strong());
+    ui.label(RichText::new("missions.toml knobs").strong());
     ensure_missions_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.missions.as_mut() else {
         return;
@@ -166,7 +166,7 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§M1 — filter").strong());
+        ui.label(RichText::new("filter").strong());
         let label = match state.missions_filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
@@ -185,7 +185,7 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M1 ranked list ────────────────────────────────────────────────────────
 
 fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§M1 — mission list").strong());
+    ui.label(RichText::new("mission list").strong());
     let Some(report) = state.missions_report.clone() else {
         ui.colored_label(
             Color32::GRAY,
@@ -271,7 +271,7 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M1 detail card ────────────────────────────────────────────────────────
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§M1 — detail").strong());
+    ui.label(RichText::new("detail").strong());
     let target = state
         .missions_edit_target
         .clone()
@@ -397,7 +397,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M2 manual editor ──────────────────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§M2 — manual missions").strong());
+    ui.label(RichText::new("manual missions").strong());
     ensure_missions_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.missions.as_mut() else {
         return;
@@ -527,7 +527,7 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                 .iter()
                 .map(|r| r.to_string())
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",");
             if ui.text_edit_singleline(&mut csv).changed() {
                 m.route_ids = csv
                     .split(',')

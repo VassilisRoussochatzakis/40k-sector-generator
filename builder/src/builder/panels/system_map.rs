@@ -577,7 +577,7 @@ fn render_world_menu(
             let label = if o == cur_orbit {
                 format!("• orbit {o}")
             } else {
-                format!("  orbit {o}")
+                format!("orbit {o}")
             };
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_system_menu_action(
@@ -677,7 +677,7 @@ fn render_background_menu(ui: &mut egui::Ui, state: &mut BuilderState, system: S
         );
     }
     if pinned {
-        regen_resp.on_hover_text("Unpin first (§S3).");
+        regen_resp.on_hover_text("Unpin first.");
     }
 
     if ui

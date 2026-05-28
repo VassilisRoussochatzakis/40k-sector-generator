@@ -75,7 +75,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§INT1..§INT4 — profile picker, score, per-metric chart, per-profile threshold overrides.",
+        "profile picker, score, per-metric chart, per-profile threshold overrides.",
     );
     ui.separator();
 
@@ -97,7 +97,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§INT1 — profile").strong());
+        ui.label(RichText::new("profile").strong());
         let prev = state.interestingness_profile;
         egui::ComboBox::from_id_salt("int1_profile")
             .selected_text(profile_label(state.interestingness_profile))
@@ -179,7 +179,7 @@ fn build_config(state: &BuilderState) -> InterestingnessConfig {
 // ── §INT3 per-metric bar chart ────────────────────────────────────────────
 
 fn show_metrics_chart(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§INT3 — metric bands").strong());
+    ui.label(RichText::new("metric bands").strong());
     let Some(report) = state.interestingness_report.as_ref() else {
         ui.colored_label(
             Color32::GRAY,
@@ -256,7 +256,7 @@ fn lerp_x(rect: Rect, t: f32) -> f32 {
 // ── §INT4 custom profile editor ───────────────────────────────────────────
 
 fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§INT4 — threshold overrides for this profile").strong());
+    ui.label(RichText::new("threshold overrides for this profile").strong());
     ui.colored_label(
         Color32::DARK_GRAY,
         "Overrides survive switching profiles — each profile keeps its own table.",

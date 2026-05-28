@@ -62,7 +62,7 @@ pub(crate) fn derive_and_apply_orbital_assets(state: &mut BuilderState, system: 
 }
 
 pub fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("§O1 / §O2 — Orbital assets + blockade (§31)")
+    egui::CollapsingHeader::new("Orbital assets + blockade")
         .default_open(false)
         .show(ui, |ui| {
             let sys_id = state.sector.systems[sys_idx].id.clone();

@@ -68,7 +68,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§H1..§H8 — chronicle config, eras, rules, events, add wizard, regenerate, timeline.",
+        "chronicle config, eras, rules, events, add wizard, regenerate, timeline.",
     );
     ui.separator();
 
@@ -122,7 +122,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H1 config ──────────────────────────────────────────────────────────────
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§H1 — chronicle config").strong());
+    ui.label(RichText::new("chronicle config").strong());
     ensure_history_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.history.as_mut() else {
         return;
@@ -180,7 +180,7 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H2 eras editor ─────────────────────────────────────────────────────────
 
 fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§H2 — eras").strong())
+    egui::CollapsingHeader::new(RichText::new("eras").strong())
         .default_open(false)
         .show(ui, |ui| {
             ensure_history_catalog_if_needed(state);
@@ -288,7 +288,7 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H3 event rules editor ──────────────────────────────────────────────────
 
 fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§H3 — event rules").strong())
+    egui::CollapsingHeader::new(RichText::new("event rules").strong())
         .default_open(false)
         .show(ui, |ui| {
             ensure_history_catalog_if_needed(state);
@@ -407,13 +407,13 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H4 events editor ───────────────────────────────────────────────────────
 
 fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§H4 — events").strong())
+    egui::CollapsingHeader::new(RichText::new("events").strong())
         .default_open(true)
         .show(ui, |ui| {
             if state.sector.chronicle.events.is_empty() {
                 ui.colored_label(
                     Color32::GRAY,
-                    "No chronicle events. Click Regenerate chronicle above or use the §H5 wizard.",
+                    "No chronicle events. Click Regenerate chronicle above or use the wizard.",
                 );
                 return;
             }
@@ -650,7 +650,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H5 add-event wizard ────────────────────────────────────────────────────
 
 fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§H5 — add event").strong())
+    egui::CollapsingHeader::new(RichText::new("add event").strong())
         .default_open(false)
         .show(ui, |ui| {
             if state.history_wizard.is_none() {
@@ -1113,7 +1113,7 @@ fn preview_narrative(
     let actors = if factions.is_empty() {
         "Local authorities".to_string()
     } else {
-        factions.join(" and ")
+        factions.join("and")
     };
     format!(
         "{actors} entered the chronicle around {anchor_name} as a {} event.",
@@ -1137,7 +1137,7 @@ fn suggest_factions_for_wizard(
 // ── §H7 timeline ────────────────────────────────────────────────────────────
 
 fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§H7 — timeline").strong())
+    egui::CollapsingHeader::new(RichText::new("timeline").strong())
         .default_open(true)
         .show(ui, |ui| {
             if state.sector.chronicle.events.is_empty() {

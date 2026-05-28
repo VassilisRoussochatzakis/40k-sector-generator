@@ -5,5 +5,5 @@ use crate::builder::BuilderState;
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Segmentum");
-    super::placeholder::show(ui, state, "Phase E", "§SG1..§SG5");
+    super::placeholder::show(ui, state, "Phase E");
 }

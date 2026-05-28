@@ -35,7 +35,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§SUB1..§SUB5 — cluster list, recluster, manual reassignment, capital + colour overrides.",
+        "cluster list, recluster, manual reassignment, capital + colour overrides.",
     );
     ui.separator();
 
@@ -136,7 +136,6 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
 
 fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§SUB2").strong());
         ui.label("target systems / subsector:");
         let max = state.sector.systems.len().max(1) as u32;
         let mut value = state.subsector_target_systems.max(1);
@@ -180,12 +179,12 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
     });
     ui.colored_label(
         Color32::DARK_GRAY,
-        "Sets the target and clears the map-view cache; the §13 k-means / Lloyd pass re-runs on the next MAP-tab tick. Manual moves and capital overrides are reapplied on top.",
+        "Sets the target and clears the map-view cache; the k-means / Lloyd pass re-runs on the next MAP-tab tick. Manual moves and capital overrides are reapplied on top.",
     );
 }
 
 fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
-    ui.label(RichText::new("§SUB1 — clusters").strong());
+    ui.label(RichText::new("clusters").strong());
     if subs.is_empty() {
         ui.colored_label(Color32::GRAY, "No subsectors (sector empty).");
         return;
@@ -211,7 +210,7 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
                 }
                 let name_part = s
                     .name
-                    .strip_prefix("Subsector ")
+                    .strip_prefix("Subsector")
                     .unwrap_or_else(|| s.name.as_ref());
                 ui.label(name_part);
                 ui.label(capital_label(state, s));
@@ -219,16 +218,16 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
                 ui.label(dominant_label(s));
                 let mut flags = String::new();
                 if state.subsector_manual.contains(s.id.as_ref()) {
-                    flags.push_str("manual ");
+                    flags.push_str("manual");
                 }
                 if state
                     .subsector_capital_overrides
                     .contains_key(s.id.as_ref())
                 {
-                    flags.push_str("cap-override ");
+                    flags.push_str("cap-override");
                 }
                 if state.subsector_colour_overrides.contains_key(s.id.as_ref()) {
-                    flags.push_str("colour ");
+                    flags.push_str("colour");
                 }
                 ui.colored_label(Color32::DARK_GRAY, flags.trim_end());
                 ui.end_row();
@@ -304,7 +303,7 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
                 .collect();
             ui.colored_label(
                 Color32::DARK_GRAY,
-                format!("dominant: {}", chips.join(", ")),
+                format!("dominant: {}", chips.join(",")),
             );
         }
     });
@@ -318,7 +317,7 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
 }
 
 fn show_capital_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsector) {
-    ui.label(RichText::new("§SUB4 — capital override").strong());
+    ui.label(RichText::new("capital override").strong());
     let sub_id = target.id.to_string();
     let auto_cap = target.summary.subsector_capital_system_id.clone();
     let current = state
@@ -389,7 +388,7 @@ fn capital_text(sector: &GeneratedSector, sid: &SystemId) -> String {
 }
 
 fn show_colour_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsector) {
-    ui.label(RichText::new("§SUB5 — colour override").strong());
+    ui.label(RichText::new("colour override").strong());
     let sub_id = target.id.to_string();
     let default_rgb = default_subsector_colour(&state.sector, target);
     let has_override = state
@@ -442,7 +441,7 @@ fn show_manual_reassign(
     target: &Subsector,
     subs: &[Subsector],
 ) {
-    ui.label(RichText::new("§SUB3 — manual reassignment").strong());
+    ui.label(RichText::new("manual reassignment").strong());
     if subs.len() <= 1 {
         ui.colored_label(Color32::DARK_GRAY, "Need ≥2 clusters to reassign systems.");
         return;

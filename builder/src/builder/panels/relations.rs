@@ -67,7 +67,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§REL1..§REL9 — diplomacy matrix, per-pair overrides, kind / disposition rules.",
+        "diplomacy matrix, per-pair overrides, kind / disposition rules.",
     );
     ui.separator();
 
@@ -118,7 +118,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REL7 / §REL8 settings ──────────────────────────────────────────────────
 
 fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REL7 / §REL8 — settings").strong());
+    ui.label(RichText::new("settings").strong());
     let mut feed = state
         .data_catalogs
         .relations
@@ -168,7 +168,7 @@ fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REL1 matrix grid ───────────────────────────────────────────────────────
 
 fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REL1 — diplomacy matrix").strong());
+    ui.label(RichText::new("diplomacy matrix").strong());
     if state.sector.relations.pairs.is_empty() {
         ui.colored_label(
             Color32::GRAY,
@@ -272,7 +272,7 @@ fn metric_text(v: u8) -> RichText {
 // ── §REL1 + §REL2 + §REL6 cell editor ───────────────────────────────────────
 
 fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REL1 / §REL2 / §REL6 — pair editor").strong());
+    ui.label(RichText::new("pair editor").strong());
     let Some(pair) = state.relations_selected_pair.clone() else {
         ui.colored_label(Color32::GRAY, "Click a pair in the grid to edit.");
         return;
@@ -329,14 +329,14 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
 
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("Symmetric attitude / treaty (§REL1)").italics());
+        ui.label(RichText::new("Symmetric attitude / treaty").italics());
         changed |= attitude_combo(ui, "public_attitude", "rel_pub", &mut ov.public_attitude);
         changed |= attitude_combo(ui, "secret_attitude", "rel_sec", &mut ov.secret_attitude);
         changed |= treaty_combo(ui, "treaty_status", "rel_treaty", &mut ov.treaty_status);
     });
 
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("Directional view (§REL2)").italics());
+        ui.label(RichText::new("Directional view").italics());
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.label(format!("{} → {}", rel.a, rel.b));
@@ -375,7 +375,7 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
     egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.label(
             RichText::new(
-                "Dimensions (§REL1; trust / fear / rivalry / ideological / economic / military / covert)",
+                "Dimensions (trust / fear / rivalry / ideological / economic / military / covert)",
             )
             .italics(),
         );
@@ -613,7 +613,7 @@ fn u8_slider(ui: &mut Ui, label: &str, id_salt: &str, field: &mut Option<u8>, de
 // ── §REL5 legacy pair_overrides ─────────────────────────────────────────────
 
 fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REL5 — pair_overrides (legacy stance pin)").strong());
+    ui.label(RichText::new("pair_overrides (legacy stance pin)").strong());
     let factions: Vec<FactionId> = state.sector.factions.iter().map(|f| f.id.clone()).collect();
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
@@ -711,7 +711,7 @@ fn faction_combo(ui: &mut Ui, id_salt: &str, options: &[FactionId], value: &mut 
 // ── §REL3 kind_rules ────────────────────────────────────────────────────────
 
 fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REL3 — kind_rules (kind × kind → base stance)").strong());
+    ui.label(RichText::new("kind_rules (kind × kind → base stance)").strong());
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
 
@@ -791,7 +791,7 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(
-        RichText::new("§REL4 — disposition_rules (disposition × disposition → level delta)")
+        RichText::new("disposition_rules (disposition × disposition → level delta)")
             .strong(),
     );
     let mut changed = false;

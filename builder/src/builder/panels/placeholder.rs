@@ -5,9 +5,9 @@
 
 use crate::builder::BuilderState;
 
-pub fn show(ui: &mut egui::Ui, _state: &mut BuilderState, phase: &str, section: &str) {
+pub fn show(ui: &mut egui::Ui, _state: &mut BuilderState, phase: &str) {
     ui.colored_label(
         egui::Color32::GRAY,
-        format!("Placeholder — {phase} fills in this tab (see docs/BUILDER_REQS.txt {section})."),
+        format!("Placeholder — {phase} fills in this tab."),
     );
 }

@@ -644,7 +644,7 @@ fn render_system_menu(
         );
     }
     if pinned {
-        regen_resp.on_hover_text("Unpin first (§S3).");
+        regen_resp.on_hover_text("Unpin first.");
     }
 
     let pin_label = if pinned { "UNPIN" } else { "TOGGLE PIN" };
@@ -844,7 +844,7 @@ fn render_multi_selection_menu(
         close |= apply_sector_menu_action(state, SectorMenuAction::MultiReseedWorlds);
     }
     if !reseed_enabled {
-        reseed_resp.on_hover_text("All selected systems are pinned — unpin first (§S3).");
+        reseed_resp.on_hover_text("All selected systems are pinned — unpin first.");
     }
 
     ui.separator();
@@ -1002,7 +1002,7 @@ fn render_region_hex_menu(
             let label = if value == cur_kind {
                 format!("• {} {}", value.glyph(), value.label())
             } else {
-                format!("  {} {}", value.glyph(), value.label())
+                format!("{} {}", value.glyph(), value.label())
             };
             if ui.selectable_label(false, label).clicked() {
                 close |= apply_sector_menu_action(

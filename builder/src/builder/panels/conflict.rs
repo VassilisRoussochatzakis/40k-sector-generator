@@ -34,7 +34,7 @@ pub fn show_world_conflict_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("§CF1 / §CF3 — Conflict + stability (§28)")
+    egui::CollapsingHeader::new("Conflict + stability")
         .default_open(false)
         .show(ui, |ui| {
             let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
@@ -52,7 +52,7 @@ pub fn show_world_conflict_section(
             conflict_editor(ui, &format!("w_conf_{world_id}"), &mut working, &factions);
             ui.horizontal_wrapped(|ui| {
                 if ui
-                    .button("Re-derive from control (§CF1)")
+                    .button("Re-derive from control")
                     .on_hover_text(
                         "Calls sectorforge::conflict::derive_world_conflict for this world \
                          and replaces the conflict block with the seed-derived snapshot.",
@@ -92,7 +92,7 @@ pub fn show_world_conflict_section(
             stability_editor(ui, &format!("w_stab_{world_id}"), &mut stab);
             ui.horizontal_wrapped(|ui| {
                 if ui
-                    .button("Re-derive stability (§CF3)")
+                    .button("Re-derive stability")
                     .on_hover_text(
                         "Calls sectorforge::stability::derive_world_stability for this world \
                          using the live faction roster.",
@@ -129,7 +129,7 @@ pub fn show_world_conflict_section(
 // ── §CF2: per-system conflict view + override toggle ──────────────────────
 
 pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("§CF2 / §CF4 / §CF5 — Conflict (§28)")
+    egui::CollapsingHeader::new("Conflict")
         .default_open(false)
         .show(ui, |ui| {
             let sys_id = state.sector.systems[sys_idx].id.clone();
@@ -219,7 +219,7 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
 
 fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
     use sectorforge::heatmap::HeatmapMode;
-    ui.label(RichText::new("§CF6 — MAP conflict heatmap").strong());
+    ui.label(RichText::new("MAP conflict heatmap").strong());
     let mut on = matches!(state.map_heatmap_mode, HeatmapMode::ConflictIntensity);
     ui.horizontal_wrapped(|ui| {
         if ui
@@ -248,7 +248,7 @@ fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
 // ── §CF4 advance ticks + §CF5 tick log shared widgets ─────────────────────
 
 fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
-    ui.label(RichText::new("§CF4 — Advance ticks").strong());
+    ui.label(RichText::new("Advance ticks").strong());
     ui.horizontal(|ui| {
         ui.label("ticks:");
         ui.add(
@@ -275,7 +275,7 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
 }
 
 pub fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Option<&str>) {
-    ui.label(RichText::new("§CF5 — Tick log").strong());
+    ui.label(RichText::new("Tick log").strong());
     if state.tick_log.is_empty() {
         ui.colored_label(Color32::GRAY, "(empty — run Advance N ticks above)");
         return;
@@ -321,7 +321,7 @@ pub fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Optio
                         opt_id(&entry.visible_after),
                     ));
                 }
-                ui.monospace(format!("t{:>4}  {}", entry.tick_index, bits.join("  ")));
+                ui.monospace(format!("t{:>4}  {}", entry.tick_index, bits.join("")));
             }
         });
 }

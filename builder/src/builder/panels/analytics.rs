@@ -5,5 +5,5 @@ use crate::builder::BuilderState;
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Analytics");
-    super::placeholder::show(ui, state, "Phase E", "§A1..§A4");
+    super::placeholder::show(ui, state, "Phase E");
 }

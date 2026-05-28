@@ -350,12 +350,12 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                         ui.add(
                             egui::DragValue::new(&mut q)
                                 .range(0..=state.sector.width as i32 - 1)
-                                .prefix("q "),
+                                .prefix("q"),
                         );
                         ui.add(
                             egui::DragValue::new(&mut r)
                                 .range(0..=state.sector.height as i32 - 1)
-                                .prefix("r "),
+                                .prefix("r"),
                         );
                     });
                     ui.data_mut(|d| {
@@ -382,7 +382,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     ui.label("pinned");
                     let mut pinned = state.pinned_systems.contains(&id);
                     if ui
-                        .checkbox(&mut pinned, "(§S3 pin from generator)")
+                        .checkbox(&mut pinned, "(pin from generator)")
                         .changed()
                     {
                         if pinned {
@@ -569,7 +569,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",");
             let notes_src = state.sector.systems[sys_idx]
                 .notes
                 .iter()
@@ -612,7 +612,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
 // ── deep-links ──────────────────────────────────────────────────────────────
 
 fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Worlds (§8)")
+    egui::CollapsingHeader::new("Worlds")
         .default_open(false)
         .show(ui, |ui| {
             let (sys_id, sys_name, world_ids, world_count, next_orbit, next_index) = {
@@ -691,7 +691,7 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
 }
 
 fn show_routes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Routes (§9 — read-only here)")
+    egui::CollapsingHeader::new("Routes (read-only here)")
         .default_open(false)
         .show(ui, |ui| {
             let id = state.sector.systems[sys_idx].id.clone();
@@ -725,7 +725,7 @@ fn show_routes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
 }
 
 fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Primary factions (§10)")
+    egui::CollapsingHeader::new("Primary factions")
         .default_open(false)
         .show(ui, |ui| {
             let primary: Vec<_> = state.sector.systems[sys_idx].primary_factions.to_vec();
@@ -741,7 +741,7 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
 }
 
 fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Control (§11)")
+    egui::CollapsingHeader::new("Control")
         .default_open(false)
         .show(ui, |ui| {
             let id = state.sector.systems[sys_idx].id.clone();
@@ -787,16 +787,16 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
 }
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Overlays (§28..§32 — managed elsewhere)")
+    egui::CollapsingHeader::new("Overlays (managed elsewhere)")
         .default_open(false)
         .show(ui, |ui| {
             let sys = &state.sector.systems[sys_idx];
             ui.label(format!(
-                "orbital_assets: {} (edit below in §O1)",
+                "orbital_assets: {} (edit below)",
                 sys.orbital_assets.len()
             ));
             ui.label(format!(
-                "blockade present: {} (edit below in §O2)",
+                "blockade present: {} (edit below)",
                 !sectorforge::orbital_assets::BlockadeReport::is_default(&sys.blockade)
             ));
             ui.label(format!(
@@ -809,7 +809,7 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                 sectorforge::intel::SystemIntel::is_empty(&sys.intel)
             ));
             ui.label(format!(
-                "archetype default: {} (see §AR1 / §30 — Archetypes section)",
+                "archetype default: {} (see Archetypes section)",
                 sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype)
             ));
             ui.horizontal(|ui| {
@@ -831,7 +831,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
     let mut working = state.sector.systems[sys_idx].archetype.clone();
     let original = working.clone();
 
-    egui::CollapsingHeader::new("§AR1 — Archetypes (§30)")
+    egui::CollapsingHeader::new("Archetypes")
         .default_open(false)
         .show(ui, |ui| {
             ui.colored_label(
@@ -1001,7 +1001,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
 }
 
 fn show_archetype_auto_assign(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§AR2 — Auto-assign archetypes (sector-wide)")
+    egui::CollapsingHeader::new("Auto-assign archetypes (sector-wide)")
         .default_open(false)
         .show(ui, |ui| {
             ui.colored_label(
@@ -1023,7 +1023,7 @@ fn show_archetype_auto_assign(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn show_archetype_rules(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§AR3 — Archetype rules (builder-only defaults)")
+    egui::CollapsingHeader::new("Archetype rules (builder-only defaults)")
         .default_open(false)
         .show(ui, |ui| {
             ui.colored_label(
@@ -1033,14 +1033,14 @@ fn show_archetype_rules(ui: &mut Ui, state: &mut BuilderState) {
                  `sector.json`. Disabled axes are reset to defaults after §AR2.",
             );
             let flags = &mut state.archetype_flags;
-            ui.checkbox(&mut flags.imperial, "imperial governance stack (§16.1)");
-            ui.checkbox(&mut flags.necron, "necron phase (§16.9)");
-            ui.checkbox(&mut flags.tyranid, "tyranid front (§16.8)");
-            ui.checkbox(&mut flags.ork, "ork waaagh! (§16.7)");
-            ui.checkbox(&mut flags.gsc, "genestealer stages (§16.6)");
-            ui.checkbox(&mut flags.tau, "tau sphere (§16.11)");
-            ui.checkbox(&mut flags.aeldari, "aeldari intermittent (§16.10)");
-            ui.checkbox(&mut flags.chaos, "chaos corruption + daemon (§16.12)");
+            ui.checkbox(&mut flags.imperial, "imperial governance stack");
+            ui.checkbox(&mut flags.necron, "necron phase");
+            ui.checkbox(&mut flags.tyranid, "tyranid front");
+            ui.checkbox(&mut flags.ork, "ork waaagh!");
+            ui.checkbox(&mut flags.gsc, "genestealer stages");
+            ui.checkbox(&mut flags.tau, "tau sphere");
+            ui.checkbox(&mut flags.aeldari, "aeldari intermittent");
+            ui.checkbox(&mut flags.chaos, "chaos corruption + daemon");
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 if ui.button("Enable all").clicked() {
@@ -1065,7 +1065,7 @@ fn show_archetype_rules(ui: &mut Ui, state: &mut BuilderState) {
 // ── S5 regen ────────────────────────────────────────────────────────────────
 
 fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("§S5 — Generate one system here")
+    egui::CollapsingHeader::new("Generate one system here")
         .default_open(false)
         .show(ui, |ui| {
             let sys = &state.sector.systems[sys_idx];
@@ -1098,12 +1098,12 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                         ui.add(
                             egui::DragValue::new(&mut q)
                                 .range(0..=state.sector.width as i32 - 1)
-                                .prefix("q "),
+                                .prefix("q"),
                         );
                         ui.add(
                             egui::DragValue::new(&mut r)
                                 .range(0..=state.sector.height as i32 - 1)
-                                .prefix("r "),
+                                .prefix("r"),
                         );
                     });
                     ui.end_row();
@@ -1182,7 +1182,7 @@ fn run_regen(state: &mut BuilderState, coord: HexCoord, index: usize, seed: &str
 // ── S4 bulk ops ─────────────────────────────────────────────────────────────
 
 fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§S4 — Bulk operations")
+    egui::CollapsingHeader::new("Bulk operations")
         .default_open(false)
         .show(ui, |ui| {
             let n = state.selected_systems.len();
@@ -1275,7 +1275,7 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
             });
 
             ui.separator();
-            ui.label("Reseed worlds (drops + re-runs §S5)");
+            ui.label("Reseed worlds (drops + re-runs)");
             if ui.button("Reseed worlds for selection").clicked() {
                 apply_bulk_reseed(state);
             }

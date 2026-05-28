@@ -30,7 +30,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§REG1..§REG7 — region table, paint, grow, live route preview, glyph map, config.",
+        "region table, paint, grow, live route preview, glyph map, config.",
     );
     ui.separator();
 
@@ -92,12 +92,12 @@ fn show_invariants(ui: &mut Ui, state: &BuilderState) {
         .filter(|v| codes.contains(&v.code.as_str()))
         .collect();
     if hits.is_empty() {
-        ui.colored_label(Color32::DARK_GREEN, "§REG6 invariants: clean.");
+        ui.colored_label(Color32::DARK_GREEN, "invariants: clean.");
         return;
     }
     ui.colored_label(
         Color32::LIGHT_RED,
-        format!("§REG6 — {} region invariant(s):", hits.len()),
+        format!("{} region invariant(s):", hits.len()),
     );
     for v in hits {
         ui.label(RichText::new(format!("• {} — {}", v.code, v.message)).color(Color32::LIGHT_RED));
@@ -214,7 +214,7 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                 .take(20)
                 .map(|h| format!("({},{})", h.q, h.r))
                 .collect::<Vec<_>>()
-                .join(" ");
+                .join("");
             ui.label(RichText::new(preview).monospace().color(Color32::DARK_GRAY));
             if region.hexes.len() > 20 {
                 ui.label(format!("(+{} more)", region.hexes.len() - 20));
@@ -243,7 +243,7 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
 // ── §REG3 grow seeded region ────────────────────────────────────────────────
 
 fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REG3 — grow seeded region").strong());
+    ui.label(RichText::new("grow seeded region").strong());
     let w = state.sector.width.saturating_sub(1) as i32;
     let h = state.sector.height.saturating_sub(1) as i32;
     let seed_state = state
@@ -319,7 +319,7 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REG4 live route effects ────────────────────────────────────────────────
 
 fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REG4 — route effect preview").strong());
+    ui.label(RichText::new("route effect preview").strong());
     let regions: Vec<WarpRegion> = state.sector.regions.iter().cloned().collect();
     let systems = &state.sector.systems;
     let coord_by_id: BTreeMap<&str, HexCoord> =
@@ -380,7 +380,7 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REG2 paint hint ────────────────────────────────────────────────────────
 
 fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REG2 — paint tool").strong());
+    ui.label(RichText::new("paint tool").strong());
     ui.horizontal_wrapped(|ui| {
         let active = state.map_tool == MapTool::RegionPaint;
         if ui
@@ -401,7 +401,7 @@ fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REG7 ASCII glyph preview ───────────────────────────────────────────────
 
 fn show_glyph_preview(ui: &mut Ui, state: &BuilderState) {
-    ui.label(RichText::new("§REG7 — glyph preview").strong());
+    ui.label(RichText::new("glyph preview").strong());
     let w = state.sector.width as usize;
     let h = state.sector.height as usize;
     if w == 0 || h == 0 {
@@ -454,7 +454,7 @@ fn show_glyph_preview(ui: &mut Ui, state: &BuilderState) {
 // ── §REG5 regions.toml editor ───────────────────────────────────────────────
 
 fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§REG5 — regions.toml editor").strong());
+    ui.label(RichText::new("regions.toml editor").strong());
     if state.data_catalogs.regions.is_none() {
         ui.horizontal(|ui| {
             ui.colored_label(Color32::DARK_GRAY, "No regions catalog loaded.");

@@ -37,7 +37,7 @@ pub fn show_surface_regions_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("§SU1 / §SU2 — Surface regions (§32)")
+    egui::CollapsingHeader::new("Surface regions")
         .default_open(false)
         .show(ui, |ui| {
             let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
@@ -55,7 +55,7 @@ pub fn show_surface_regions_section(
             ui.add_space(6.0);
             ui.horizontal_wrapped(|ui| {
                 if ui
-                    .button("Auto-seed (§SU2)")
+                    .button("Auto-seed")
                     .on_hover_text(
                         "Calls sectorforge::surface_region::derive_regions for this world \
                          and replaces the regions list with the derived split.",

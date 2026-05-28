@@ -49,7 +49,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
     egui::CollapsingHeader::new("Generation parameters")
         .default_open(true)
         .show(ui, |ui| {
-            ui.label("§G1 — `[generation]` parity");
+            ui.label("`[generation]` parity");
             ui.separator();
             let gen = &mut state.config.generation;
             egui::Grid::new("gen_basic_grid")
@@ -273,7 +273,7 @@ fn world_selection_mode_combo(ui: &mut Ui, mode: &mut WorldSelectionMode) -> boo
 // ── G2 ──────────────────────────────────────────────────────────────────────
 
 fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Seed (§G2)")
+    egui::CollapsingHeader::new("Seed")
         .default_open(true)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -304,7 +304,7 @@ fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
 // ── G3 / G4 ─────────────────────────────────────────────────────────────────
 
 fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Live preview (§G3) + Apply (§G4)")
+    egui::CollapsingHeader::new("Live preview + Apply")
         .default_open(true)
         .show(ui, |ui| {
             if state.data_catalogs.worlds.is_none() {
@@ -341,7 +341,7 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
                 );
                 if ui
                     .add(
-                        egui::Button::new("Apply preview (§G4)")
+                        egui::Button::new("Apply preview")
                             .fill(egui::Color32::from_rgb(0, 100, 0)),
                     )
                     .clicked()
@@ -372,7 +372,7 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
 // ── G5 ──────────────────────────────────────────────────────────────────────
 
 fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Partial regeneration (§G5)")
+    egui::CollapsingHeader::new("Partial regeneration")
         .default_open(false)
         .show(ui, |ui| {
             // §CTX1 Phase 4 — hint shown when the MAP tab's right-click
@@ -382,7 +382,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                 ui.colored_label(
                     egui::Color32::from_rgb(120, 200, 240),
                     format!(
-                        "Anchor armed at ({}, {}) — click an opposite corner on the map to complete the rect.",
+                        "Anchor armed at ({},{}) — click an opposite corner on the map to complete the rect.",
                         anchor.q, anchor.r
                     ),
                 );
@@ -458,7 +458,7 @@ fn show_g6_new_from_preset(
     state: &mut BuilderState,
     mut workspace: Option<&mut BuilderWorkspace>,
 ) {
-    egui::CollapsingHeader::new("New sector from preset (§G6)")
+    egui::CollapsingHeader::new("New sector from preset")
         .default_open(false)
         .show(ui, |ui| {
             if workspace.is_none() {

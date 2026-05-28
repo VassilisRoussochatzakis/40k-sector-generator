@@ -54,11 +54,11 @@ pub fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
         ui.separator();
-        ui.label("§I5 cutoff:");
+        ui.label("cutoff:");
         ui.add(egui::Slider::new(&mut state.intel_player_min_confidence, 0..=100).text("min conf"));
         ui.separator();
         if ui
-            .button("§I3 Generate baseline intel")
+            .button("Generate baseline intel")
             .on_hover_text("Walks every system + world and overwrites their intel records with derive_intel(observer_ids = sector factions).")
             .clicked()
         {
@@ -91,7 +91,7 @@ pub fn run_baseline_intel(state: &mut BuilderState) {
 /// add / edit / remove observer views, plus their nested
 /// suspected-presence rows.
 pub fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("§I1 — Intel / fog of war")
+    egui::CollapsingHeader::new("Intel / fog of war")
         .default_open(false)
         .show(ui, |ui| {
             show_baseline_row(ui, state);
@@ -120,7 +120,7 @@ pub fn show_world_intel_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("§I2 — Intel / fog of war")
+    egui::CollapsingHeader::new("Intel / fog of war")
         .default_open(false)
         .show(ui, |ui| {
             show_baseline_row(ui, state);
@@ -153,7 +153,7 @@ pub fn show_world_intel_section(
 fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         if ui
-            .button("§I3 Generate baseline intel")
+            .button("Generate baseline intel")
             .on_hover_text("Overwrites every system + world intel record from the live sector.")
             .clicked()
         {
@@ -162,14 +162,14 @@ fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
         if let Some(obs) = state.intel_observer.clone() {
             ui.colored_label(
                 Color32::from_rgb(150, 200, 255),
-                format!("§I4 observer lens: {obs}"),
+                format!("observer lens: {obs}"),
             );
         } else {
-            ui.colored_label(Color32::GRAY, "§I4 lens: (omniscient)");
+            ui.colored_label(Color32::GRAY, "lens: (omniscient)");
         }
         ui.colored_label(
             Color32::GRAY,
-            format!("§I5 cutoff: {}", state.intel_player_min_confidence),
+            format!("cutoff: {}", state.intel_player_min_confidence),
         );
     });
 }
@@ -184,7 +184,7 @@ fn show_observer_editor(
     if intel.by_observer.is_empty() {
         ui.colored_label(
             Color32::GRAY,
-            "No observer records — run §I3 above or add one below.",
+            "No observer records — run above or add one below.",
         );
     }
     let observers: Vec<String> = intel.by_observer.keys().cloned().collect();
@@ -471,7 +471,7 @@ fn show_world_redaction_preview(
     cutoff: u8,
 ) {
     let observer_str = observer.map(|f| f.as_str()).unwrap_or("");
-    ui.label(RichText::new("§I4 redacted view").strong());
+    ui.label(RichText::new("redacted view").strong());
     if observer_str.is_empty() {
         ui.colored_label(
             Color32::GRAY,
@@ -486,7 +486,7 @@ fn show_world_redaction_preview(
     }
     for p in kept {
         ui.label(format!(
-            "  {} ({:?}, vis {}, intel {})",
+            "{} ({:?}, vis {}, intel {})",
             p.faction_id, p.influence, p.dimensions.visibility as i32, p.intel_confidence
         ));
     }

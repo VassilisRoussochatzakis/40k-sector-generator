@@ -93,7 +93,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .unwrap_or(false);
         ui.label(format!(
             "systems: {systems}  (system overrides: {overrides_count}{})",
-            if overview_override { " + overview" } else { "" },
+            if overview_override { "+ overview" } else { "" },
         ));
         if state.data_catalogs.prose.is_none() {
             ui.colored_label(
@@ -107,7 +107,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR3 tone preset ──────────────────────────────────────────────────────
 
 fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PR3 — tone preset").strong());
+    ui.label(RichText::new("tone preset").strong());
     ensure_prose_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.prose.as_mut() else {
         return;
@@ -147,7 +147,7 @@ fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR2 sector overview editor ───────────────────────────────────────────
 
 fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PR2 — sector overview").strong());
+    ui.label(RichText::new("sector overview").strong());
     ensure_prose_catalog_if_needed(state);
     let report = state.prose_report.clone();
     let Some(cfg) = state.data_catalogs.prose.as_mut() else {
@@ -217,7 +217,7 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR1 per-system editor ────────────────────────────────────────────────
 
 fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§PR1 — per-system prose").strong());
+    ui.label(RichText::new("per-system prose").strong());
     ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
         ui.colored_label(

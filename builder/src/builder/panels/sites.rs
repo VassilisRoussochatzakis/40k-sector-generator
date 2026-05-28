@@ -76,7 +76,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§ST1..§ST4 — per-world site editor, auto-derive + manual survive, player-edition toggle, sites.toml round-trip.",
+        "per-world site editor, auto-derive + manual survive, player-edition toggle, sites.toml round-trip.",
     );
     ui.separator();
 
@@ -138,7 +138,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST4 config knobs ──────────────────────────────────────────────────────
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§ST4 — sites.toml knobs").strong());
+    ui.label(RichText::new("sites.toml knobs").strong());
     ensure_sites_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.sites.as_mut() else {
         return;
@@ -169,7 +169,7 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§ST1 — filter").strong());
+        ui.label(RichText::new("filter").strong());
         let label = match state.sites_filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
@@ -188,7 +188,7 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST1 ranked list grouped by world ──────────────────────────────────────
 
 fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§ST1 — per-world sites").strong());
+    ui.label(RichText::new("per-world sites").strong());
     let Some(report) = state.sites_report.clone() else {
         ui.colored_label(
             Color32::GRAY,
@@ -278,7 +278,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST1 detail card ───────────────────────────────────────────────────────
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§ST1 — detail").strong());
+    ui.label(RichText::new("detail").strong());
     let target = state
         .sites_edit_target
         .clone()
@@ -362,7 +362,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
                         .iter()
                         .map(|f| f.to_string())
                         .collect::<Vec<_>>()
-                        .join(", "),
+                        .join(","),
                 );
             }
             ui.end_row();
@@ -370,7 +370,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             if site.tags.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
-                ui.label(site.tags.join(", "));
+                ui.label(site.tags.join(","));
             }
             ui.end_row();
             ui.label("hook");
@@ -390,7 +390,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST1 / §ST2 manual entry editor ────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§ST1 / §ST2 — manual sites").strong());
+    ui.label(RichText::new("manual sites").strong());
     ensure_sites_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.sites.as_mut() else {
         return;
@@ -535,7 +535,7 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
                 .iter()
                 .map(|f| f.to_string())
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",");
             if ui.text_edit_singleline(&mut csv).changed() {
                 s.known_to = csv
                     .split(',')
@@ -547,7 +547,7 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
             }
             ui.end_row();
             ui.label("tags (comma)");
-            let mut tags = s.tags.join(", ");
+            let mut tags = s.tags.join(",");
             if ui.text_edit_singleline(&mut tags).changed() {
                 s.tags = tags
                     .split(',')

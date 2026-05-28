@@ -183,7 +183,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                     ui.label("pinned");
                     let mut pinned = state.pinned_worlds.contains(&wid);
                     if ui
-                        .checkbox(&mut pinned, "(§W3 pin from regen/preview)")
+                        .checkbox(&mut pinned, "(pin from regen/preview)")
                         .changed()
                     {
                         if pinned {
@@ -369,7 +369,7 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .len();
     let weights = feature_weights_for_world(state, sys_idx, w_idx);
     let weights = &*weights;
-    egui::CollapsingHeader::new(format!("§W5 — Notable features ({feature_count})"))
+    egui::CollapsingHeader::new(format!("Notable features ({feature_count})"))
         .default_open(false)
         .show(ui, |ui| {
             let mut remove: Option<usize> = None;
@@ -560,7 +560,7 @@ fn show_coupling_warnings(ui: &mut Ui, state: &BuilderState, sys_idx: usize, w_i
     if warnings.is_empty() {
         return;
     }
-    egui::CollapsingHeader::new(format!("§W6 — Coupling warnings ({})", warnings.len()))
+    egui::CollapsingHeader::new(format!("Coupling warnings ({})", warnings.len()))
         .default_open(true)
         .show(ui, |ui| {
             for msg in warnings {
@@ -635,7 +635,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",");
             let notes_src = state.sector.systems[sys_idx].worlds[w_idx]
                 .notes
                 .iter()
@@ -678,7 +678,7 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
 // ── factions ──────────────────────────────────────────────────────────────
 
 fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Faction presence (§10)")
+    egui::CollapsingHeader::new("Faction presence")
         .default_open(false)
         .show(ui, |ui| {
             let presences = state.sector.systems[sys_idx].worlds[w_idx].factions.clone();
@@ -843,7 +843,7 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
 
 fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
     let claim_count = state.sector.systems[sys_idx].worlds[w_idx].claims.len();
-    egui::CollapsingHeader::new(format!("§W7 — Claims ({claim_count})"))
+    egui::CollapsingHeader::new(format!("Claims ({claim_count})"))
         .default_open(true)
         .show(ui, |ui| {
             let claims = state.sector.systems[sys_idx].worlds[w_idx].claims.clone();
@@ -998,7 +998,7 @@ fn claim_chip_colours(kind: ClaimType) -> (Color32, Color32) {
 // ── control summary ────────────────────────────────────────────────────────
 
 fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Control summary (§11 — read-only)")
+    egui::CollapsingHeader::new("Control summary (read-only)")
         .default_open(false)
         .show(ui, |ui| {
             let c = state.sector.systems[sys_idx].worlds[w_idx].control.clone();
@@ -1018,12 +1018,12 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
 // ── overlays read-only ─────────────────────────────────────────────────────
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Overlays (§28 / §32 summary)")
+    egui::CollapsingHeader::new("Overlays (summary)")
         .default_open(false)
         .show(ui, |ui| {
             let w = &state.sector.systems[sys_idx].worlds[w_idx];
             ui.label(format!(
-                "surface_regions: {} (edit in §SU1 below)",
+                "surface_regions: {} (edit below)",
                 w.regions.len()
             ));
             ui.label(format!(
@@ -1060,7 +1060,7 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
             .collect()
     };
     let count = rows.len();
-    egui::CollapsingHeader::new(format!("§H8 — Chronicle snippets ({count})"))
+    egui::CollapsingHeader::new(format!("Chronicle snippets ({count})"))
         .default_open(false)
         .show(ui, |ui| {
             if rows.is_empty() {
@@ -1097,7 +1097,7 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
 // ── W4 regen ───────────────────────────────────────────────────────────────
 
 fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("§W4 — Re-roll from candidate pool")
+    egui::CollapsingHeader::new("Re-roll from candidate pool")
         .default_open(false)
         .show(ui, |ui| {
             let pinned = state

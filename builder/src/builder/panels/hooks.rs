@@ -63,7 +63,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§HK1..§HK6 — ranked hook list, manual hooks, player-edition toggle, click-to-highlight anchor.",
+        "ranked hook list, manual hooks, player-edition toggle, click-to-highlight anchor.",
     );
     ui.separator();
 
@@ -124,7 +124,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§HK1 — filter").strong());
+        ui.label(RichText::new("filter").strong());
         let label = match state.hooks_filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
@@ -143,7 +143,7 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
 // ── §HK1 / §HK2 ranked list ────────────────────────────────────────────────
 
 fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§HK1 / §HK2 — ranked hooks").strong());
+    ui.label(RichText::new("ranked hooks").strong());
     let Some(report) = state.hooks_report.clone() else {
         ui.colored_label(
             Color32::GRAY,
@@ -211,7 +211,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §HK2 / §HK6 detail card ────────────────────────────────────────────────
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§HK2 — detail").strong());
+    ui.label(RichText::new("detail").strong());
     let target = state
         .hooks_edit_target
         .clone()
@@ -268,7 +268,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
                         .iter()
                         .map(|f| f.to_string())
                         .collect::<Vec<_>>()
-                        .join(", "),
+                        .join(","),
                 );
             }
             ui.end_row();
@@ -290,7 +290,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
 // ── §HK3 manual entry editor ───────────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§HK3 — manual hooks").strong());
+    ui.label(RichText::new("manual hooks").strong());
     ensure_hooks_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.hooks.as_mut() else {
         return;
@@ -475,7 +475,7 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                 .iter()
                 .map(|f| f.to_string())
                 .collect::<Vec<_>>()
-                .join(", ");
+                .join(",");
             if ui.text_edit_singleline(&mut csv).changed() {
                 h.factions = csv
                     .split(',')

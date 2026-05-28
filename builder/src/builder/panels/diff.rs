@@ -5,5 +5,5 @@ use crate::builder::BuilderState;
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Diff");
-    super::placeholder::show(ui, state, "Phase E", "§DF1..§DF5");
+    super::placeholder::show(ui, state, "Phase E");
 }

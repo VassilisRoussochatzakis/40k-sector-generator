@@ -50,7 +50,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§BR1..§BR5 — audience preset, observer faction, confidence floor, redacted preview, .md/.json export.",
+        "audience preset, observer faction, confidence floor, redacted preview, .md/.json export.",
     );
     ui.separator();
 
@@ -76,7 +76,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_preset_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§BR1 — preset").strong());
+        ui.label(RichText::new("preset").strong());
         let label = preset_label(state.briefing_preset);
         let prev = state.briefing_preset;
         egui::ComboBox::from_id_salt("br1_preset")
@@ -97,7 +97,7 @@ fn show_preset_row(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_observer_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§BR2 — observer").strong());
+        ui.label(RichText::new("observer").strong());
         let selected_text = state
             .briefing_observer
             .as_ref()
@@ -134,7 +134,7 @@ fn observer_label(state: &BuilderState, id: &FactionId) -> String {
 
 fn show_confidence_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("§BR3 — min confidence").strong());
+        ui.label(RichText::new("min confidence").strong());
         let prev = state.briefing_min_confidence;
         ui.add(
             egui::Slider::new(&mut state.briefing_min_confidence, 0..=100)
@@ -284,7 +284,7 @@ fn export_pack(state: &mut BuilderState) {
 // ── §BR4 preview pane ─────────────────────────────────────────────────────
 
 fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§BR4 — redacted preview").strong());
+    ui.label(RichText::new("redacted preview").strong());
     let Some(md) = state.briefing_preview_md.as_ref() else {
         ui.colored_label(
             Color32::GRAY,

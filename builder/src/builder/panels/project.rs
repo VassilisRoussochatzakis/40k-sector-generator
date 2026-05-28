@@ -34,7 +34,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             egui::CollapsingHeader::new("Tree")
                 .default_open(true)
                 .show(ui, |ui| project_tree::show(ui, state));
-            egui::CollapsingHeader::new("Generation (§6)")
+            egui::CollapsingHeader::new("Generation")
                 .default_open(false)
                 .show(ui, |ui| generation::show(ui, state, None));
             egui::CollapsingHeader::new("Snapshots")

@@ -66,7 +66,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§E1..§E7 — per-world / per-system overrides, economy.toml editor, lifelines, heatmaps.",
+        "per-world / per-system overrides, economy.toml editor, lifelines, heatmaps.",
     );
     ui.separator();
 
@@ -163,7 +163,7 @@ fn strategic_badge(key: &str, value: f32) -> RichText {
 // ── §E1 / §E2 per-world editor ──────────────────────────────────────────────
 
 fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§E1 / §E2 — per-world overrides").strong());
+    ui.label(RichText::new("per-world overrides").strong());
     if state.sector.economy.worlds.is_empty() {
         ui.colored_label(
             Color32::GRAY,
@@ -233,7 +233,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     // §E1 row.
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("§E1 — resource vector (ore / promethium / foodstuffs / manufactured / archeotech / recruits)").italics());
+        ui.label(RichText::new("resource vector (ore / promethium / foodstuffs / manufactured / archeotech / recruits)").italics());
         let pinned = state.world_economy_overrides.contains_key(&world_id);
         let mut vector = state
             .world_economy_overrides
@@ -277,14 +277,14 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
         if entry.stranded {
             ui.colored_label(
                 Color32::LIGHT_RED,
-                format!("STRANDED — shortages: {}", entry.shortages.join(", ")),
+                format!("STRANDED — shortages: {}", entry.shortages.join(",")),
             );
         }
     });
 
     // §E2 row.
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("§E2 — strategic output (food, ore, manufacturing, arms, ships, pilgrimage, psyker_tithe, manpower, knowledge, xenos_value)").italics());
+        ui.label(RichText::new("strategic output (food, ore, manufacturing, arms, ships, pilgrimage, psyker_tithe, manpower, knowledge, xenos_value)").italics());
         let pinned = state.world_strategic_overrides.contains_key(&world_id);
         let mut strat = state
             .world_strategic_overrides
@@ -359,7 +359,7 @@ fn set_strategic_field(s: &mut StrategicOutput, key: &str, value: f32) {
 // ── §E3 per-system editor ───────────────────────────────────────────────────
 
 fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§E3 — per-system tithe / supply / strategic priority").strong());
+    ui.label(RichText::new("per-system tithe / supply / strategic priority").strong());
     if state.sector.economy.systems.is_empty() {
         ui.colored_label(Color32::GRAY, "No per-system economy rows.");
         return;
@@ -430,12 +430,12 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui.label(if sy.surplus_resources.is_empty() {
                     "—".to_string()
                 } else {
-                    sy.surplus_resources.join(", ")
+                    sy.surplus_resources.join(",")
                 });
                 ui.label(if sy.shortage_resources.is_empty() {
                     "—".to_string()
                 } else {
-                    sy.shortage_resources.join(", ")
+                    sy.shortage_resources.join(",")
                 });
 
                 ui.horizontal(|ui| {
@@ -471,7 +471,7 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
         .collect();
     ui.label(
         RichText::new(format!(
-            "§E4 — stranded worlds ({}) — MAP draws red ring on each system",
+            "stranded worlds ({}) — MAP draws red ring on each system",
             stranded.len()
         ))
         .strong(),
@@ -491,7 +491,7 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
                     if w.shortages.is_empty() {
                         "(systemic)".into()
                     } else {
-                        w.shortages.join(", ")
+                        w.shortages.join(",")
                     }
                 ),
             );
@@ -509,7 +509,7 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §E6 lifeline-lane panel ─────────────────────────────────────────────────
 
 fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§E6 — lifeline lanes").strong());
+    ui.label(RichText::new("lifeline lanes").strong());
     ui.horizontal_wrapped(|ui| {
         ui.checkbox(
             &mut state.economy_highlight_lifelines,
@@ -567,7 +567,7 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
 // ── §E7 heatmap picker ──────────────────────────────────────────────────────
 
 fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§E7 — MAP heatmap (trade volume / food / tithe / supply)").strong());
+    ui.label(RichText::new("MAP heatmap (trade volume / food / tithe / supply)").strong());
     ui.horizontal_wrapped(|ui| {
         ui.label("mode:");
         let current = state.map_heatmap_mode;
@@ -583,7 +583,7 @@ fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
         }
         ui.colored_label(
             Color32::DARK_GRAY,
-            "Overridden by §C7/§C8 when a control overlay is on.",
+            "Overridden when a control overlay is on.",
         );
     });
 }
@@ -591,7 +591,7 @@ fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
 // ── §E5 economy.toml editor ─────────────────────────────────────────────────
 
 fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("§E5 — economy.toml editor").strong());
+    ui.label(RichText::new("economy.toml editor").strong());
     if state.data_catalogs.economy.is_none() {
         ui.horizontal(|ui| {
             ui.colored_label(Color32::DARK_GRAY, "No economy catalog loaded.");

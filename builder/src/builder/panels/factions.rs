@@ -328,15 +328,15 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             // Style preview chip
             show_style_preview(ui, &draft);
 
-            egui::CollapsingHeader::new("§F1 Identity")
+            egui::CollapsingHeader::new("Identity")
                 .default_open(true)
                 .show(ui, |ui| identity_grid(ui, &mut draft));
 
-            egui::CollapsingHeader::new("§F3 Hierarchy (faction > subfaction > force)")
+            egui::CollapsingHeader::new("Hierarchy (faction > subfaction > force)")
                 .default_open(true)
                 .show(ui, |ui| hierarchy_grid(ui, &mut draft));
 
-            egui::CollapsingHeader::new("§F1 Preferences")
+            egui::CollapsingHeader::new("Preferences")
                 .default_open(false)
                 .show(ui, |ui| {
                     preferred_picker_world_types(ui, &mut draft);
@@ -344,15 +344,15 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                     preferred_picker_features(ui, &mut draft);
                 });
 
-            egui::CollapsingHeader::new("§F2 Style override")
+            egui::CollapsingHeader::new("Style override")
                 .default_open(true)
                 .show(ui, |ui| style_overrides(ui, &mut draft));
 
-            egui::CollapsingHeader::new("§F5 Presence (deep-link)")
+            egui::CollapsingHeader::new("Presence (deep-link)")
                 .default_open(false)
                 .show(ui, |ui| presence_link(ui, state, &draft));
 
-            egui::CollapsingHeader::new("§F7 Legend visibility")
+            egui::CollapsingHeader::new("Legend visibility")
                 .default_open(false)
                 .show(ui, |ui| legend_visibility(ui, &mut draft));
         });
@@ -654,7 +654,7 @@ fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
 
     ui.horizontal(|ui| {
         if ui
-            .button("§F4 Recompute style from kind")
+            .button("Recompute style from kind")
             .on_hover_text("Clears all style overrides and reverts to faction_style_rgb defaults")
             .clicked()
         {
@@ -751,7 +751,7 @@ fn presence_link(ui: &mut Ui, state: &mut BuilderState, draft: &FactionDef) {
     ));
     if ui
         .button("Open in CONTROL tab")
-        .on_hover_text("Phase C §11 wires the per-world/system presence editor")
+        .on_hover_text("Phase C wires the per-world/system presence editor")
         .clicked()
     {
         state.selected_faction_id = Some(draft.id.clone());

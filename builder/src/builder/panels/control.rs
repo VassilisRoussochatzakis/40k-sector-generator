@@ -76,7 +76,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§C1..§C8 presence / dominance / control-state + §CL1..§CL4 claims.",
+        "presence / dominance / control-state + claims.",
     );
     ui.separator();
 
@@ -103,7 +103,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 // ── C7 + C8 overlay toggles ──────────────────────────────────────────────
 
 fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§C7 / §C8 — MAP overlays")
+    egui::CollapsingHeader::new("MAP overlays")
         .default_open(true)
         .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -142,7 +142,7 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
 // ── C1 + C2 + C3 per-world presence editor ───────────────────────────────
 
 fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§C1..§C3 — World presence")
+    egui::CollapsingHeader::new("World presence")
         .default_open(true)
         .show(ui, |ui| {
             let world_id = state.selected_world_id.clone();
@@ -256,7 +256,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
 
                             // §C3 dominance picker + manual lock.
                             ui.horizontal(|ui| {
-                                ui.label("§C3 dominance:");
+                                ui.label("dominance:");
                                 let score = edit.dimensions.local_control_score();
                                 let derived = DominanceState::from_score(score);
                                 if !locked {
@@ -399,7 +399,7 @@ fn show_add_presence_row(
     let mut buf: Buf = ui.data_mut(|d| d.get_temp::<Buf>(buf_id).unwrap_or(default));
 
     ui.horizontal(|ui| {
-        ui.label("§C2 add presence:");
+        ui.label("add presence:");
         let label = candidates
             .iter()
             .find(|(fid, _)| fid == &buf.faction)
@@ -449,7 +449,7 @@ fn show_add_presence_row(
 // ── C4 + C5 per-system control editor ────────────────────────────────────
 
 fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§C4 / §C5 — System control")
+    egui::CollapsingHeader::new("System control")
         .default_open(true)
         .show(ui, |ui| {
             let system_id = state.selected_system_id.clone();
@@ -480,7 +480,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
             {
                 let current = state.sector.systems[sys_idx].control.state;
                 ui.horizontal(|ui| {
-                    ui.label("§C4 control_state:");
+                    ui.label("control_state:");
                     egui::ComboBox::from_id_salt(("c4_state", system_id.as_str()))
                         .selected_text(match current {
                             Some(s) => format!("{s}"),
@@ -524,7 +524,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
             let factions = &state.sector.systems[sys_idx].primary_factions.clone();
             ui.horizontal(|ui| {
-                ui.label(RichText::new("§C5 primary_factions:").strong());
+                ui.label(RichText::new("primary_factions:").strong());
                 let was_locked = locked;
                 ui.checkbox(&mut locked, "manual override");
                 if was_locked != locked {
@@ -620,7 +620,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── C6 PowerProfile preview ──────────────────────────────────────────────
 
 fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§C6 — PowerProfile preview")
+    egui::CollapsingHeader::new("PowerProfile preview")
         .default_open(false)
         .show(ui, |ui| {
             let power = aggregate_faction_power(&state.sector.systems);
@@ -710,7 +710,7 @@ fn contested_worlds(state: &BuilderState) -> Vec<(usize, usize, BTreeSet<Faction
 
 fn show_contested_summary(ui: &mut Ui, state: &mut BuilderState) {
     let contested = contested_worlds(state);
-    egui::CollapsingHeader::new(format!("§CL3 — Contested ({})", contested.len()))
+    egui::CollapsingHeader::new(format!("Contested ({})", contested.len()))
         .default_open(false)
         .show(ui, |ui| {
             if contested.is_empty() {
@@ -751,7 +751,7 @@ fn show_contested_summary(ui: &mut Ui, state: &mut BuilderState) {
 // ── CL4 bulk convert ──────────────────────────────────────────────────────
 
 fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§CL4 — Bulk convert claims")
+    egui::CollapsingHeader::new("Bulk convert claims")
         .default_open(false)
         .show(ui, |ui| {
             let factions: Vec<(FactionId, String)> = state
@@ -875,7 +875,7 @@ fn apply_bulk_convert(
 // ── CL1 + CL2 per-world chip-row ─────────────────────────────────────────
 
 fn show_world_list(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("§CL1 / §CL2 — Per-world claims")
+    egui::CollapsingHeader::new("Per-world claims")
         .default_open(false)
         .show(ui, |ui| {
             ui.horizontal(|ui| {

@@ -1131,11 +1131,7 @@ fn draw_system_glyph(
             painter.circle_filled(c, radius, fill);
             painter.circle_stroke(c, radius, Stroke::new(1.5, darken(fill, 0.55)));
         }
-        MapSystemGlyph::UncataloguedStar
-        | MapSystemGlyph::SpecialLocation
-        | MapSystemGlyph::BlackHole
-        | MapSystemGlyph::WarpAnomaly
-        | MapSystemGlyph::SpaceStation => {
+        MapSystemGlyph::UncataloguedStar | MapSystemGlyph::SpecialLocation => {
             let r = radius * 0.8;
             let pts = vec![
                 Pos2::new(c.x, c.y - r),
@@ -1148,6 +1144,43 @@ fn draw_system_glyph(
                 Color32::TRANSPARENT,
                 Stroke::new(1.5, theme.text_dim),
             ));
+        }
+        MapSystemGlyph::BlackHole => {
+            painter.circle_filled(c, radius * 0.55, Color32::BLACK);
+            painter.circle_stroke(c, radius * 0.9, Stroke::new(2.0, theme.text_dim));
+            painter.circle_stroke(c, radius * 1.1, Stroke::new(1.0, darken(theme.text_dim, 0.4)));
+        }
+        MapSystemGlyph::WarpAnomaly => {
+            let r = radius * 0.95;
+            let h = r * 0.866;
+            let stroke = Stroke::new(1.3, theme.text_dim);
+            let up = vec![
+                Pos2::new(c.x, c.y - r),
+                Pos2::new(c.x + h, c.y + r * 0.5),
+                Pos2::new(c.x - h, c.y + r * 0.5),
+            ];
+            let dn = vec![
+                Pos2::new(c.x, c.y + r),
+                Pos2::new(c.x + h, c.y - r * 0.5),
+                Pos2::new(c.x - h, c.y - r * 0.5),
+            ];
+            painter.add(egui::Shape::convex_polygon(up, Color32::TRANSPARENT, stroke));
+            painter.add(egui::Shape::convex_polygon(dn, Color32::TRANSPARENT, stroke));
+        }
+        MapSystemGlyph::SpaceStation => {
+            let r = radius * 0.65;
+            let rect = egui::Rect::from_center_size(c, Vec2::splat(r * 2.0));
+            let stroke = Stroke::new(1.5, theme.text_dim);
+            painter.rect_stroke(rect, 0.0, stroke);
+            let arm = r * 1.3;
+            painter.line_segment(
+                [Pos2::new(c.x - arm, c.y), Pos2::new(c.x + arm, c.y)],
+                Stroke::new(1.0, theme.text_dim),
+            );
+            painter.line_segment(
+                [Pos2::new(c.x, c.y - arm), Pos2::new(c.x, c.y + arm)],
+                Stroke::new(1.0, theme.text_dim),
+            );
         }
     }
 }

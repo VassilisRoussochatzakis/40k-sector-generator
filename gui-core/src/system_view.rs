@@ -13,6 +13,7 @@ pub struct SystemView<'a> {
     pub system: &'a GeneratedSystem,
     pub selected: SystemSelection,
     pub side: f32,
+    pub height: f32,
     pub layout: SystemLayout,
 }
 
@@ -69,12 +70,13 @@ pub enum SystemPick {
 #[must_use]
 pub fn pick_world(
     side: f32,
+    height: f32,
     system: &GeneratedSystem,
     layout: SystemLayout,
     local_pos: Pos2,
 ) -> SystemPick {
-    let g = SystemGeom::new(side, system, layout);
-    let center = layout_center(side);
+    let g = SystemGeom::new(side, height, system, layout);
+    let center = layout_center(side, height);
     let star = star_anchor(&g, center, layout);
 
     // 1. Planet hit (nearest within 1.25 * planet_r).
@@ -137,11 +139,12 @@ pub fn pick_world(
 
 impl<'a> SystemView<'a> {
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SystemClick>) {
-        let g = SystemGeom::new(self.side, self.system, self.layout);
-        let (rect, response) = ui.allocate_exact_size(Vec2::new(g.side, g.side), Sense::click());
+        let g = SystemGeom::new(self.side, self.height, self.system, self.layout);
+        let (rect, response) =
+            ui.allocate_exact_size(Vec2::new(g.side, g.height), Sense::click());
         let painter = ui.painter_at(rect);
         let origin = rect.min;
-        let center = Pos2::new(origin.x + g.side / 2.0, origin.y + g.side / 2.0);
+        let center = Pos2::new(origin.x + g.side / 2.0, origin.y + g.height / 2.0);
         let star = star_anchor(&g, center, self.layout);
 
         painter.rect_filled(rect, 0.0, palette::BG);
@@ -273,6 +276,7 @@ impl<'a> SystemView<'a> {
 ///   orbits along the axis.
 pub struct SystemGeom {
     pub side: f32,
+    pub height: f32,
     pub star_r: f32,
     pub orbit_base: f32,
     pub orbit_step: f32,
@@ -280,14 +284,17 @@ pub struct SystemGeom {
 }
 
 impl SystemGeom {
-    pub fn new(side: f32, sys: &GeneratedSystem, layout: SystemLayout) -> Self {
+    pub fn new(side: f32, height: f32, sys: &GeneratedSystem, layout: SystemLayout) -> Self {
         let max_orbit = f32::from(sys.worlds.iter().map(|w| w.orbit).max().unwrap_or(1).max(1));
-        let star_r = side * 0.065;
-        let planet_r = (side * 0.04).max(16.0);
+        // Star/planet sizes scale with the shorter axis so non-square aspects
+        // (e.g. 2:1 wide preview) don't draw planets taller than the viewport.
+        let base_dim = side.min(height);
+        let star_r = base_dim * 0.065;
+        let planet_r = (base_dim * 0.04).max(16.0);
         let (orbit_base, orbit_step) = match layout {
             SystemLayout::Orbital => {
-                let usable = side * 0.45;
-                let base = side * 0.13;
+                let usable = base_dim * 0.45;
+                let base = base_dim * 0.13;
                 let step = ((usable - base) / max_orbit).max(20.0);
                 (base, step)
             }
@@ -305,6 +312,7 @@ impl SystemGeom {
         };
         Self {
             side,
+            height,
             star_r,
             orbit_base,
             orbit_step,
@@ -313,8 +321,8 @@ impl SystemGeom {
     }
 }
 
-fn layout_center(side: f32) -> Pos2 {
-    Pos2::new(side / 2.0, side / 2.0)
+fn layout_center(side: f32, height: f32) -> Pos2 {
+    Pos2::new(side / 2.0, height / 2.0)
 }
 
 fn star_anchor(g: &SystemGeom, center: Pos2, layout: SystemLayout) -> Pos2 {
@@ -385,11 +393,13 @@ mod tests {
     fn pick_world_orbital_returns_star_at_center() {
         let sys = sys_with_world(2);
         let side = 480.0;
+        let height = 480.0;
         let pick = pick_world(
             side,
+            height,
             &sys,
             SystemLayout::Orbital,
-            Pos2::new(side / 2.0, side / 2.0),
+            Pos2::new(side / 2.0, height / 2.0),
         );
         assert_eq!(pick, SystemPick::Star);
     }
@@ -397,20 +407,20 @@ mod tests {
     #[test]
     fn pick_world_orbital_returns_background_at_corner() {
         let sys = sys_with_world(2);
-        let pick = pick_world(480.0, &sys, SystemLayout::Orbital, Pos2::new(2.0, 2.0));
+        let pick = pick_world(480.0, 480.0, &sys, SystemLayout::Orbital, Pos2::new(2.0, 2.0));
         assert_eq!(pick, SystemPick::Background);
     }
 
     #[test]
     fn pick_world_orbital_returns_world_when_on_planet() {
         let sys = sys_with_world(3);
-        let g = SystemGeom::new(480.0, &sys, SystemLayout::Orbital);
+        let g = SystemGeom::new(480.0, 480.0, &sys, SystemLayout::Orbital);
         let center = Pos2::new(240.0, 240.0);
         let orbit = 3_i32;
         let r = g.orbit_base + (orbit - 1) as f32 * g.orbit_step;
         let a = orbit_angle(1, orbit).to_radians();
         let p = Pos2::new(center.x + r * a.cos(), center.y + r * a.sin());
-        let pick = pick_world(480.0, &sys, SystemLayout::Orbital, p);
+        let pick = pick_world(480.0, 480.0, &sys, SystemLayout::Orbital, p);
         assert_eq!(pick, SystemPick::World(1));
     }
 
@@ -419,11 +429,11 @@ mod tests {
         // Place world on orbit 1 — probe orbit 2's ring on the *opposite* angle
         // so there is no planet there.
         let sys = sys_with_world(1);
-        let g = SystemGeom::new(480.0, &sys, SystemLayout::Orbital);
+        let g = SystemGeom::new(480.0, 480.0, &sys, SystemLayout::Orbital);
         let center = Pos2::new(240.0, 240.0);
         let r = g.orbit_base + g.orbit_step;
         let p = Pos2::new(center.x + r, center.y);
-        let pick = pick_world(480.0, &sys, SystemLayout::Orbital, p);
+        let pick = pick_world(480.0, 480.0, &sys, SystemLayout::Orbital, p);
         assert_eq!(pick, SystemPick::EmptyOrbit(2));
     }
 
@@ -431,12 +441,14 @@ mod tests {
     fn pick_world_horizontal_returns_star_at_left_anchor() {
         let sys = sys_with_world(2);
         let side = 480.0;
-        let g = SystemGeom::new(side, &sys, SystemLayout::Horizontal);
+        let height = 480.0;
+        let g = SystemGeom::new(side, height, &sys, SystemLayout::Horizontal);
         let pick = pick_world(
             side,
+            height,
             &sys,
             SystemLayout::Horizontal,
-            Pos2::new(g.orbit_base, side / 2.0),
+            Pos2::new(g.orbit_base, height / 2.0),
         );
         assert_eq!(pick, SystemPick::Star);
     }
@@ -445,11 +457,12 @@ mod tests {
     fn pick_world_horizontal_returns_world_on_axis() {
         let sys = sys_with_world(3);
         let side = 480.0;
-        let g = SystemGeom::new(side, &sys, SystemLayout::Horizontal);
+        let height = 480.0;
+        let g = SystemGeom::new(side, height, &sys, SystemLayout::Horizontal);
         let star_x = g.orbit_base;
-        let star_y = side / 2.0;
+        let star_y = height / 2.0;
         let p = Pos2::new(star_x + 3.0 * g.orbit_step, star_y);
-        let pick = pick_world(side, &sys, SystemLayout::Horizontal, p);
+        let pick = pick_world(side, height, &sys, SystemLayout::Horizontal, p);
         assert_eq!(pick, SystemPick::World(1));
     }
 
@@ -458,11 +471,12 @@ mod tests {
         // World on orbit 1, probe orbit 2's slot on axis.
         let sys = sys_with_world(1);
         let side = 480.0;
-        let g = SystemGeom::new(side, &sys, SystemLayout::Horizontal);
+        let height = 480.0;
+        let g = SystemGeom::new(side, height, &sys, SystemLayout::Horizontal);
         let star_x = g.orbit_base;
-        let star_y = side / 2.0;
+        let star_y = height / 2.0;
         let p = Pos2::new(star_x + 2.0 * g.orbit_step, star_y);
-        let pick = pick_world(side, &sys, SystemLayout::Horizontal, p);
+        let pick = pick_world(side, height, &sys, SystemLayout::Horizontal, p);
         assert_eq!(pick, SystemPick::EmptyOrbit(2));
     }
 
@@ -470,6 +484,7 @@ mod tests {
     fn pick_world_horizontal_returns_background_far_from_axis() {
         let sys = sys_with_world(2);
         let pick = pick_world(
+            480.0,
             480.0,
             &sys,
             SystemLayout::Horizontal,

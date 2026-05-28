@@ -32,7 +32,7 @@ const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
 
 /// Slider clamp for the SYSTEM-tab embedded `SystemView` size.
 const SYSTEM_VIEW_SIDE_MIN: f32 = 400.0;
-const SYSTEM_VIEW_SIDE_MAX: f32 = 1400.0;
+const SYSTEM_VIEW_SIDE_MAX: f32 = 2400.0;
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
@@ -71,44 +71,58 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             show_header(ui, state, sys_idx);
             ui.separator();
             show_system_map_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_identity_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            let star_resp = show_star_section(ui, state, sys_idx);
-            if state
-                .scroll_target
-                .map_or(false, |t| t == SYS_STAR_GRID_ANCHOR)
-            {
-                star_resp
-                    .header_response
-                    .scroll_to_me(Some(egui::Align::TOP));
-                state.scroll_target = None;
-            }
-            ui.add_space(4.0);
-            show_tags_notes_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_worlds_link(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_routes_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_factions_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_control_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_overlays_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_archetype_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            show_archetype_auto_assign(ui, state);
-            ui.add_space(4.0);
-            show_archetype_rules(ui, state);
-            ui.add_space(4.0);
-            crate::builder::panels::orbital::show_orbital_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            crate::builder::panels::conflict::show_system_conflict_section(ui, state, sys_idx);
-            ui.add_space(4.0);
-            crate::builder::panels::intel::show_system_intel_section(ui, state, sys_idx);
             ui.add_space(8.0);
+            ui.separator();
+            ui.add_space(4.0);
+
+            ui.columns(2, |cols| {
+                // Left column: identity + read-only state.
+                let left = &mut cols[0];
+                show_identity_section(left, state, sys_idx);
+                left.add_space(4.0);
+                let star_resp = show_star_section(left, state, sys_idx);
+                if state
+                    .scroll_target
+                    .map_or(false, |t| t == SYS_STAR_GRID_ANCHOR)
+                {
+                    star_resp
+                        .header_response
+                        .scroll_to_me(Some(egui::Align::TOP));
+                    state.scroll_target = None;
+                }
+                left.add_space(4.0);
+                show_tags_notes_section(left, state, sys_idx);
+                left.add_space(4.0);
+                show_worlds_link(left, state, sys_idx);
+                left.add_space(4.0);
+                show_routes_section(left, state, sys_idx);
+                left.add_space(4.0);
+                show_factions_section(left, state, sys_idx);
+                left.add_space(4.0);
+                show_control_section(left, state, sys_idx);
+
+                // Right column: overlays, archetypes, sibling-panel sections.
+                let right = &mut cols[1];
+                show_overlays_section(right, state, sys_idx);
+                right.add_space(4.0);
+                show_archetype_section(right, state, sys_idx);
+                right.add_space(4.0);
+                show_archetype_auto_assign(right, state);
+                right.add_space(4.0);
+                show_archetype_rules(right, state);
+                right.add_space(4.0);
+                crate::builder::panels::orbital::show_orbital_section(right, state, sys_idx);
+                right.add_space(4.0);
+                crate::builder::panels::conflict::show_system_conflict_section(
+                    right, state, sys_idx,
+                );
+                right.add_space(4.0);
+                crate::builder::panels::intel::show_system_intel_section(right, state, sys_idx);
+            });
+
+            ui.add_space(8.0);
+            ui.separator();
+            ui.add_space(4.0);
             show_regen_section(ui, state, sys_idx);
             ui.add_space(8.0);
             show_bulk_ops(ui, state);
@@ -169,6 +183,7 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
     egui::CollapsingHeader::new("In-system map")
         .default_open(true)
         .show(ui, |ui| {
+            let panel_width = ui.available_width();
             ui.horizontal(|ui| {
                 ui.label("Layout:");
                 let mut horiz = matches!(state.system_layout, SystemLayout::Horizontal);
@@ -200,11 +215,22 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                     )
                     .show_value(false),
                 );
+                if ui
+                    .button("Fit width")
+                    .on_hover_text("Resize preview to fill the panel width")
+                    .clicked()
+                {
+                    state.system_view_side =
+                        panel_width.clamp(SYSTEM_VIEW_SIDE_MIN, SYSTEM_VIEW_SIDE_MAX);
+                }
             });
             let layout = state.system_layout;
             let side = state
                 .system_view_side
                 .clamp(SYSTEM_VIEW_SIDE_MIN, SYSTEM_VIEW_SIDE_MAX);
+            // 3:1 aspect — preview spans the panel width but only a third as
+            // tall so the in-system map doesn't dominate the SYSTEM tab.
+            let height = (side / 3.0).max(SYSTEM_VIEW_SIDE_MIN / 3.0);
             let sys = &state.sector.systems[sys_idx];
             // §CTX1 Phase 7 — while the in-system right-click menu is open,
             // override the `selected` rendering so the SystemView highlights
@@ -226,6 +252,7 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                 system: sys,
                 selected,
                 side,
+                height,
                 layout,
             }
             .show(ui);
@@ -240,6 +267,7 @@ fn show_system_map_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                         state,
                         sys_idx,
                         side,
+                        height,
                         pos,
                         resp.rect.min,
                     );
@@ -278,10 +306,26 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
             let coord = sys.coord;
             let kind = sys.kind;
             let name_buf_key = egui::Id::new(("sys_identity_name_buf", id.as_str()));
+            let kind_choice_key = egui::Id::new(("sys_identity_kind_choice", id.as_str()));
+            let coord_q_key = egui::Id::new(("sys_identity_coord_q", id.as_str()));
+            let coord_r_key = egui::Id::new(("sys_identity_coord_r", id.as_str()));
             let source_name = sys.name.to_string();
-            let mut q = coord.q;
-            let mut r = coord.r;
-            let mut kind_choice = kind;
+            // Persist q/r across frames so DragValue edits survive until the
+            // user clicks "Apply coord". Without this the locals reseed from
+            // `coord` next frame and the in-flight value is lost.
+            let mut q = ui
+                .data_mut(|d| d.get_temp::<i32>(coord_q_key))
+                .unwrap_or(coord.q);
+            let mut r = ui
+                .data_mut(|d| d.get_temp::<i32>(coord_r_key))
+                .unwrap_or(coord.r);
+            // Persist kind_choice across frames so the "Apply kind" button
+            // remains visible after the user picks a new option in the combo.
+            // Without this the local reseeds from `kind` next frame and the
+            // pending selection is lost before the user can confirm it.
+            let mut kind_choice = ui
+                .data_mut(|d| d.get_temp::<SystemKind>(kind_choice_key))
+                .unwrap_or(kind);
 
             let mut name_buf = String::new();
             let mut name_changed = false;
@@ -313,6 +357,10 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                                 .prefix("r "),
                         );
                     });
+                    ui.data_mut(|d| {
+                        d.insert_temp(coord_q_key, q);
+                        d.insert_temp(coord_r_key, r);
+                    });
                     ui.end_row();
                     ui.label("kind");
                     egui::ComboBox::from_id_salt("sys_kind")
@@ -328,6 +376,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                                 ui.selectable_value(&mut kind_choice, k, format!("{:?}", k));
                             }
                         });
+                    ui.data_mut(|d| d.insert_temp(kind_choice_key, kind_choice));
                     ui.end_row();
                     ui.label("pinned");
                     let mut pinned = state.pinned_systems.contains(&id);
@@ -365,11 +414,16 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     if new_coord != coord {
                         apply_coord_move(state, id.clone(), coord, new_coord);
                     }
+                    ui.data_mut(|d| {
+                        d.remove::<i32>(coord_q_key);
+                        d.remove::<i32>(coord_r_key);
+                    });
                 }
                 if kind_choice != kind && ui.button("Apply kind").clicked() {
                     state.sector.systems[sys_idx].kind = kind_choice;
                     state.dirty = true;
                     state.mark_validation_dirty();
+                    ui.data_mut(|d| d.remove::<SystemKind>(kind_choice_key));
                 }
             });
         });
@@ -1016,10 +1070,21 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             let sys = &state.sector.systems[sys_idx];
             let original_coord = sys.coord;
             let sys_id = sys.id.clone();
-            let mut q = sys.coord.q;
-            let mut r = sys.coord.r;
-            let mut index = sys.index;
             let id = sys.id.clone();
+            let regen_q_key = egui::Id::new(("sys_regen_coord_q", id.as_str()));
+            let regen_r_key = egui::Id::new(("sys_regen_coord_r", id.as_str()));
+            let regen_index_key = egui::Id::new(("sys_regen_index", id.as_str()));
+            // Persist q/r/index across frames so DragValue edits survive until
+            // the user clicks a Regenerate button.
+            let mut q = ui
+                .data_mut(|d| d.get_temp::<i32>(regen_q_key))
+                .unwrap_or(sys.coord.q);
+            let mut r = ui
+                .data_mut(|d| d.get_temp::<i32>(regen_r_key))
+                .unwrap_or(sys.coord.r);
+            let mut index = ui
+                .data_mut(|d| d.get_temp::<usize>(regen_index_key))
+                .unwrap_or(sys.index);
             let seed_src = state.config.generation.seed.clone();
             let seed_key = egui::Id::new(("sys_regen_seed_buf", id.as_str()));
             let mut seed = seed_src.clone();
@@ -1043,6 +1108,11 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     ui.end_row();
                     ui.label("index");
                     ui.add(egui::DragValue::new(&mut index).range(1..=usize::MAX));
+                    ui.data_mut(|d| {
+                        d.insert_temp(regen_q_key, q);
+                        d.insert_temp(regen_r_key, r);
+                        d.insert_temp(regen_index_key, index);
+                    });
                     ui.end_row();
                     ui.label("seed");
                     let (buf, _) =
@@ -1054,6 +1124,11 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             ui.horizontal(|ui| {
                 if ui.button("Regenerate this system").clicked() {
                     run_regen(state, original_coord, index, &seed);
+                    ui.data_mut(|d| {
+                        d.remove::<i32>(regen_q_key);
+                        d.remove::<i32>(regen_r_key);
+                        d.remove::<usize>(regen_index_key);
+                    });
                 }
                 if (q, r) != (original_coord.q, original_coord.r)
                     && ui.button("Regenerate at coord (replace)").clicked()
@@ -1072,6 +1147,11 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                         )));
                     } else {
                         run_regen(state, new_coord, index, &seed);
+                        ui.data_mut(|d| {
+                            d.remove::<i32>(regen_q_key);
+                            d.remove::<i32>(regen_r_key);
+                            d.remove::<usize>(regen_index_key);
+                        });
                     }
                 }
             });

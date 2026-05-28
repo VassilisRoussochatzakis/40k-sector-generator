@@ -158,6 +158,7 @@ impl App {
                 system: &sys,
                 selected: selection,
                 side: self.system_side,
+                height: self.system_side,
                 layout: self.system_layout,
             }
             .show(ui);

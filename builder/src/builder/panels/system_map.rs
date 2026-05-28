@@ -404,6 +404,7 @@ pub(super) fn arm_system_context_menu(
     state: &mut BuilderState,
     sys_idx: usize,
     side: f32,
+    height: f32,
     screen_pos: Pos2,
     rect_origin: Pos2,
 ) {
@@ -413,7 +414,7 @@ pub(super) fn arm_system_context_menu(
         Some(s) => s,
         None => return,
     };
-    let pick = pick_world(side, sys, layout, local);
+    let pick = pick_world(side, height, sys, layout, local);
     if let Some(target) = resolve_system_context(state, sys_idx, pick) {
         state.system_context_menu = Some(SystemContextMenu { screen_pos, target });
     }

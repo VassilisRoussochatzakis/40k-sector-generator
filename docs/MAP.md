@@ -12,7 +12,7 @@ faster.
 > add its row here (CLAUDE.md: "update GUIDE.md / docs on non-trivial
 > changes").
 
-## Parent-module layout (REFACTOR_PART2.md Task 2)
+## Parent-module layout (REFACTOR.txt Task 2)
 
 The library crate splits into six parent modules:
 
@@ -328,7 +328,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/state/generation_ops.rs](../builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4: `generate_system_here`, `regenerate_world`, `apply_preview`, `regenerate_partial`, `reroll_seed`, `find_world_indices` |
 | [builder/src/builder/state/tests.rs](../builder/src/builder/state/tests.rs) | Unit tests for builder state + command bus |
 
-### Builder panels — MAP tab (split per REFACTOR_PART2.md Task 1)
+### Builder panels — MAP tab (split per REFACTOR.txt Task 1)
 
 | File | Purpose |
 |---|---|

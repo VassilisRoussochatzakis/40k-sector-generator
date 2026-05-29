@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::common::print_json;
 
-pub fn run_economy(
+pub(crate) fn run_economy(
     project: Option<&Utf8PathBuf>,
     sector: Option<&Utf8PathBuf>,
     out: Option<&Utf8PathBuf>,

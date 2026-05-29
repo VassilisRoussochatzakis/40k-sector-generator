@@ -35,7 +35,7 @@ Detailed file-by-file map: **[docs/MAP.md](docs/MAP.md)**. Don't load that file 
 cargo build                                  # build all targets
 cargo test --workspace                       # all tests
 cargo test --test it -- golden               # golden output tests (slower)
-cargo test --test segmentum_tests -- --ignored  # full-m42 segmentum composition (slow; gated #[ignore])
+cargo test --test it segmentum -- --ignored  # full-m42 segmentum composition (slow; gated #[ignore])
 cargo fmt --all
 cargo check --workspace --all-targets
 cargo clippy --workspace --all-targets -- -D warnings

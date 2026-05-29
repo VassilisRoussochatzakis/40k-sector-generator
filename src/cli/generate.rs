@@ -11,7 +11,7 @@ use super::common::{
 };
 
 #[allow(clippy::too_many_arguments)]
-pub fn run_generate(
+pub(crate) fn run_generate(
     project: Utf8PathBuf,
     seed: Option<String>,
     out: Option<Utf8PathBuf>,
@@ -169,7 +169,7 @@ pub fn run_generate(
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn run_generate_system(
+pub(crate) fn run_generate_system(
     project: Utf8PathBuf,
     seed: Option<String>,
     index: usize,

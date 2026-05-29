@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::common::load_or_regenerate;
 
-pub fn run_briefing(
+pub(crate) fn run_briefing(
     project: Option<&Utf8PathBuf>,
     sector: Option<&Utf8PathBuf>,
     out: &Utf8PathBuf,

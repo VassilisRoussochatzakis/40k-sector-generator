@@ -47,7 +47,7 @@ fn base_file() -> SegmentumFile {
 }
 
 #[test]
-#[ignore = "slow: full m42 composition; run with `cargo test --test segmentum_tests -- --ignored`"]
+#[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn compose_produces_children_and_links() {
     let tmp = tempfile::tempdir().unwrap();
     let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
@@ -65,7 +65,7 @@ fn compose_produces_children_and_links() {
 }
 
 #[test]
-#[ignore = "slow: full m42 composition; run with `cargo test --test segmentum_tests -- --ignored`"]
+#[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn compose_is_byte_deterministic() {
     let tmp_a = tempfile::tempdir().unwrap();
     let tmp_b = tempfile::tempdir().unwrap();
@@ -83,7 +83,7 @@ fn compose_is_byte_deterministic() {
 }
 
 #[test]
-#[ignore = "slow: full m42 composition; run with `cargo test --test segmentum_tests -- --ignored`"]
+#[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn different_stitch_seed_can_change_links() {
     let tmp_a = tempfile::tempdir().unwrap();
     let tmp_b = tempfile::tempdir().unwrap();
@@ -103,7 +103,7 @@ fn different_stitch_seed_can_change_links() {
 }
 
 #[test]
-#[ignore = "slow: full m42 composition; run with `cargo test --test segmentum_tests -- --ignored`"]
+#[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn duplicate_child_slot_is_rejected() {
     let mut file = base_file();
     file.children[1].column = 0; // collide with alpha
@@ -116,7 +116,7 @@ fn duplicate_child_slot_is_rejected() {
 }
 
 #[test]
-#[ignore = "slow: full m42 composition; run with `cargo test --test segmentum_tests -- --ignored`"]
+#[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn writers_emit_expected_artifacts() {
     let tmp = tempfile::tempdir().unwrap();
     let out = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();

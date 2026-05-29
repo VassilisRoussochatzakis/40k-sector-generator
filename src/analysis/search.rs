@@ -19,7 +19,7 @@
 //! Constraints evaluate against the finished sector + its analytics report,
 //! so they reuse the same fields the analytics dashboard exposes (§8).
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use camino::Utf8Path;
@@ -402,15 +402,6 @@ impl PresenceName {
                 | (PresenceName::Significant, I::Significant)
                 | (PresenceName::Dominant, I::Dominant)
         )
-    }
-
-    pub fn debug_name(self) -> &'static str {
-        match self {
-            Self::Hidden => "Hidden",
-            Self::Minor => "Minor",
-            Self::Significant => "Significant",
-            Self::Dominant => "Dominant",
-        }
     }
 }
 
@@ -1437,36 +1428,6 @@ pub fn write_search_outcome(
         &render_outcome_markdown(outcome),
         outcome,
     )
-}
-
-// ── Convenience: build a digest for downstream tools ───────────────────────────
-
-/// Pre-computed per-faction counters keyed by faction id. Useful when a CLI
-/// caller wants to print share/world/system counts without re-walking the
-/// sector.
-#[must_use]
-pub fn faction_summary(
-    analysis: &SectorAnalysis,
-) -> BTreeMap<crate::ids::FactionId, FactionSummary> {
-    let mut out = BTreeMap::new();
-    for f in &analysis.faction_balance.top_factions {
-        out.insert(
-            f.faction_id.clone(),
-            FactionSummary {
-                share: f.share,
-                world_count: f.world_presence_count,
-                system_count: f.system_presence_count,
-            },
-        );
-    }
-    out
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct FactionSummary {
-    pub share: f32,
-    pub world_count: u32,
-    pub system_count: u32,
 }
 
 #[cfg(test)]

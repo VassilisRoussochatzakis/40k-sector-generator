@@ -8,7 +8,7 @@ use super::common::{
     print_invariant_report, print_json, print_validation_report, print_workbook_stats,
 };
 
-pub fn run_validate(
+pub(crate) fn run_validate(
     project: &Utf8PathBuf,
     json: bool,
     strict: bool,
@@ -28,7 +28,7 @@ pub fn run_validate(
     })
 }
 
-pub fn run_validate_sector(
+pub(crate) fn run_validate_sector(
     sector: &Utf8PathBuf,
     json: bool,
 ) -> Result<ExitCode, sectorforge::SectorError> {
@@ -46,7 +46,7 @@ pub fn run_validate_sector(
     })
 }
 
-pub fn run_render_markdown(
+pub(crate) fn run_render_markdown(
     sector: &Utf8PathBuf,
     out: Option<&Utf8PathBuf>,
 ) -> Result<ExitCode, sectorforge::SectorError> {
@@ -59,7 +59,7 @@ pub fn run_render_markdown(
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn run_inspect_worlds(data_dir: &str) -> Result<ExitCode, sectorforge::SectorError> {
+pub(crate) fn run_inspect_worlds(data_dir: &str) -> Result<ExitCode, sectorforge::SectorError> {
     let stats = sectorforge::inspect_world_workbook(data_dir)?;
     print_workbook_stats(&stats);
     Ok(ExitCode::SUCCESS)

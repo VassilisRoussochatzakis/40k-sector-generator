@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::common::{load_or_regenerate, print_json};
 
-pub fn run_interestingness(
+pub(crate) fn run_interestingness(
     project: Option<&Utf8PathBuf>,
     sector: Option<&Utf8PathBuf>,
     out: Option<&Utf8PathBuf>,

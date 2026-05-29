@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::common::{load_or_regenerate, print_json};
 
-pub fn run_missions(
+pub(crate) fn run_missions(
     project: Option<&Utf8PathBuf>,
     sector: Option<&Utf8PathBuf>,
     out: Option<&Utf8PathBuf>,

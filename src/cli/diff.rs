@@ -17,7 +17,7 @@ pub struct DiffArgs {
     pub skip_routes: bool,
 }
 
-pub fn run_diff(args: DiffArgs) -> Result<ExitCode, sectorforge::SectorError> {
+pub(crate) fn run_diff(args: DiffArgs) -> Result<ExitCode, sectorforge::SectorError> {
     let cfg = sectorforge::diff::DiffConfig {
         skip_worlds: args.skip_worlds,
         skip_routes: args.skip_routes,

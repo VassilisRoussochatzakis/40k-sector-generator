@@ -711,16 +711,6 @@ pub fn faction_style(kind: &str, id: &str, disposition: &str) -> FactionStyle {
     }
 }
 
-#[must_use]
-pub fn faction_style_from_rgb(rgb: sectorforge::faction_style::FactionStyleRgb) -> FactionStyle {
-    FactionStyle {
-        fill: from_rgb(rgb.fill),
-        accent: from_rgb(rgb.accent),
-        glyph: rgb.glyph,
-        border: rgb.border,
-    }
-}
-
 pub fn draw_faction_chip(ui: &mut Ui, style: FactionStyle) {
     draw_faction_chip_sized(ui, style, Vec2::new(20.0, 20.0), 3.0, 13.0);
 }

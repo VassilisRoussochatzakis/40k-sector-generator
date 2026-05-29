@@ -12,7 +12,6 @@
 
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
-use std::fs;
 
 use camino::Utf8Path;
 use serde::{Deserialize, Serialize};
@@ -22,12 +21,6 @@ use crate::ids::{FactionId, RouteId};
 use crate::sector_model::{FactionInfluence, GeneratedSector};
 
 // ── Config ─────────────────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
-pub struct BriefingFile {
-    #[serde(default)]
-    pub profiles: Vec<BriefingProfile>,
-}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BriefingProfile {
@@ -394,22 +387,6 @@ fn label_for(id: AudiencePreset) -> &'static str {
 }
 
 #[must_use]
-pub fn all_presets() -> Vec<BriefingProfile> {
-    use AudiencePreset::*;
-    [
-        GmFullTruth,
-        ImperialNavy,
-        Inquisition,
-        RogueTrader,
-        LocalGovernor,
-        PublicAtlas,
-    ]
-    .into_iter()
-    .map(preset)
-    .collect()
-}
-
-#[must_use]
 pub fn parse_preset(s: &str) -> Option<AudiencePreset> {
     match s.to_ascii_lowercase().as_str() {
         "gm" | "gm_full_truth" | "gmfulltruth" => Some(AudiencePreset::GmFullTruth),
@@ -528,18 +505,6 @@ pub fn write_pack(
         &render_markdown(pack, profile),
         pack,
     )
-}
-
-/// Read a `briefing.toml` describing one or more profiles.
-///
-/// # Errors
-///
-/// [`SectorError::Io`] if the file cannot be read; [`SectorError::ConfigParse`]
-/// on syntax errors.
-pub fn load_briefing_file(path: &Utf8Path) -> Result<BriefingFile, SectorError> {
-    let text = fs::read_to_string(path).map_err(|e| SectorError::io(path.as_str(), e))?;
-    toml::from_str::<BriefingFile>(&text)
-        .map_err(|e| SectorError::config_parse(path.as_str(), e.to_string()))
 }
 
 #[cfg(test)]

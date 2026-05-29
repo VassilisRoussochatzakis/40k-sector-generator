@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::common::print_json;
 
-pub fn run_regions(
+pub(crate) fn run_regions(
     project: &Utf8PathBuf,
     out: Option<&Utf8PathBuf>,
     json: bool,

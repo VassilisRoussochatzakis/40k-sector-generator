@@ -1553,7 +1553,7 @@ preserved.
 
 After a sector is generated, `sectorforge::build_subsectors` groups its
 systems into clusters using greedy farthest-first seeding plus Lloyd
-refinement over hex distance (see [src/subsectors.rs](src/subsectors.rs)).
+refinement over hex distance (see [src/export/subsectors/mod.rs](src/export/subsectors/mod.rs)).
 Each cluster gets:
 
 - A spreadsheet-style label (`A`..`Z`, `AA`..) assigned row-major over capital coords.
@@ -1623,7 +1623,7 @@ following views via the top navigation bar:
   before route-pattern drawing or text layout, and at far zoom-out they shrink
   with the hex scale and drop out below a readable size instead of staying
   pinned to normal UI text. See
-  [gui-core/src/export/heatmap.rs](gui-core/src/export/heatmap.rs).
+  [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs).
   Heatmap cells are cached per loaded sector and mode, so toggling a
   non-`OFF` heatmap does not rescore every frame; the cache is invalidated
   when a new sector loads or live map/faction edits change map data. Toggle
@@ -2154,7 +2154,7 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/
 | W1 inspector | [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays summary (§28 / §32), the §SU1/§SU2 surface-region editor ([builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs)), and the §W4 re-roll collapse. |
 | W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
-| W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/generation.rs](src/generation.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
+| W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/gen/generation/mod.rs](src/gen/generation/mod.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
 | W5 features picker | `show_features_section` searchable multi-select. Weight previews are computed by `feature_weights_for_world` which sums per-world-type, per-star-colour, and global tiers of the pool's `FeaturePool` — empty when no worlds catalog is loaded. Already-present features are hidden from the add list. |
 | W6 coupling warnings | `coupling_warnings(&WorldDto)` returns inline non-blocking yellow-pill messages for DeathWorld + High-Tech, DeadWorld with population, TombWorld + Thriving biosphere, Asteroid + dense population, Warp-Lost world + High tech, ForgeWorld + low tech, Uninhabited + non-None government, Airless + Thriving biosphere, Toxic + Thriving biosphere. Surface only when at least one fires. |
 | W7 claims chip-row | `show_claims_section` renders one chip per `FactionClaim`, colour-coded by `ClaimType` (legal / mandate / treaty / religious / dynastic / commercial / military / ancient / hunting / covert / rebellion), with click-to-jump to the FACTIONS tab and × to remove. Add-claim row below picks faction + claim_type + strength (0..=100). |
@@ -2173,7 +2173,7 @@ Phase B §9. The ROUTES tab in [builder/src/builder/panels/routes.rs](builder/sr
 | R2 add-route tool | [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) — `MapTool::AddRoute` stores `BuilderState::pending_route_start`, draws the pending line, then runs `BuilderCommand::AddRoute`; default type is `ChartedPassage`, default stability is `Stable`. |
 | R3 manual distance | The inspector shows computed `hex_distance`, allows manual override, and warns that `ROUTE_DISTANCE_MISMATCH` will fire until the value equals auto distance. |
 | R4 bulk ops | Predicate filters: route type, stability, tag substring, and region-crossing hex-line. Actions set matching type or stability. |
-| R5 route rules | `RouteRules` rows edit `notable_feature`, `world_type`, `government`, `route_type`, and multiplier. Edits mark `data/routes/route_rules.toml` dirty and schedule `PreviewState` so route weights recompute live. Core model change: [src/gen/routes.rs](src/gen/routes.rs) `RouteCondition.route_type`; [src/generation.rs](src/generation.rs) applies government + route-type modifiers. |
+| R5 route rules | `RouteRules` rows edit `notable_feature`, `world_type`, `government`, `route_type`, and multiplier. Edits mark `data/routes/route_rules.toml` dirty and schedule `PreviewState` so route weights recompute live. Core model change: [src/gen/routes.rs](src/gen/routes.rs) `RouteCondition.route_type`; [src/gen/generation/mod.rs](src/gen/generation/mod.rs) applies government + route-type modifiers. |
 | R6 hidden routes | [src/gen/hidden_routes.rs](src/gen/hidden_routes.rs) `HiddenRoutesConfig` plus `configured_hidden_routes` build explicit Webway / BlackShip / SmugglingLane edges from selected endpoints, K-nearest count, and Blackout-region exclusion. |
 | R7 ensure connected | [builder/src/builder/panels/routes.rs](builder/src/builder/panels/routes.rs) `ensure_connected_routes` adds shortest `bridge` routes until the route graph has one component. The toggle re-runs after route edits/removals; "Run connector now" is also exposed. |
 
@@ -2867,7 +2867,7 @@ across runs, so a regression check is a diff away.
 | [builder/src/app.rs](builder/src/app.rs) | Thin eframe app host for builder workspaces |
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
 | [src/gen/world_pool.rs](src/gen/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
-| [src/generation.rs](src/generation.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
+| [src/gen/generation/mod.rs](src/gen/generation/mod.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
 | [src/analysis/control.rs](src/analysis/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validate/validation.rs](src/validate/validation.rs) | All pre-generation checks |
@@ -2905,7 +2905,7 @@ across runs, so a regression check is a diff away.
 | [src/loading/presets.rs](src/loading/presets.rs) | §9 old/DONE.md preset library + scaffolder (`new`, `list-presets`) |
 | [src/analysis/search.rs](src/analysis/search.rs) | §2 old/DONE.md constraint-directed seed search (declarative wishes → deterministic seed enumeration). `clone_project_with_seed` per-candidate clones now `Arc::clone` the shared `ProjectCatalogs` (§TF-P-1) — one refcount bump replaces 14 deep clones of `world_tables` / `world_rows` / `factions` / etc., so seed search bandwidth scales with `config` + `input_digests` only. |
 | [src/validate/diff.rs](src/validate/diff.rs) | §10 old/DONE.md model-aware sector diff (system/world/route/faction strata) and `diff_after_ticks` helper |
-| [src/history.rs](src/history.rs) | §1 NEW2.md/DONE deterministic `SectorChronicle`: typed dated / era-labelled history events with entity refs, consequences, route/subsector/region anchors, and `M{epoch}.{ddd}` notation. |
+| [src/analysis/history/mod.rs](src/analysis/history/mod.rs) | §1 NEW2.md/DONE deterministic `SectorChronicle`: typed dated / era-labelled history events with entity refs, consequences, route/subsector/region anchors, and `M{epoch}.{ddd}` notation. |
 | [src/analysis/personae.rs](src/analysis/personae.rs) | §3 old/DONE.md deterministic dramatis personae: per-faction-kind name + title + trait + agenda pools anchored to system slots and world presences at a configurable dominance tier. |
 | [src/analysis/hooks.rs](src/analysis/hooks.rs) | §7 old/DONE.md plot-hook generator: condition→template rules over the existing model (claims, hidden masters, archetype state, route hazard, blockades). Ranked by dramatic weight; player-edition redaction respects intel layer. |
 | [src/analysis/prose.rs](src/analysis/prose.rs) | §6 old/DONE.md gazetteer prose: deterministic template grammar with seeded synonym rotation per system; gazetteer / dispatch tone presets. |
@@ -2953,7 +2953,7 @@ across runs, so a regression check is a diff away.
 | [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
 | [viewer/src/editor/](viewer/src/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette for GUI; egui wrapper around [src/gen/faction_style.rs](src/gen/faction_style.rs) (`faction_style`, glyph + border) |
-| [gui-core/src/export/heatmap.rs](gui-core/src/export/heatmap.rs) | egui wrapper around [src/export/heatmap.rs](src/export/heatmap.rs) — same scoring, returns `Color32` cells |
+| [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | egui wrapper around [src/export/heatmap.rs](src/export/heatmap.rs) — same scoring, returns `Color32` cells |
 | [builder/src/builder/mod.rs](builder/src/builder/mod.rs) | Builder Phase A entry — re-exports `BuilderState`, `BuilderCommand`, `BuilderIndex`, `DataCatalogs`, `DerivationCache`, `Snapshot`, `BuilderError`, session save/load |
 | [builder/src/builder/state/](builder/src/builder/state/) | `BuilderState` package — struct + `new_blank` in `mod.rs`; impl blocks split per concern: `types.rs` (enums + dialog payloads + `MapViewCache` + `ModalKind`), `selection.rs`, `undo.rs`, `derivations.rs`, `regions_ops.rs`, `generation_ops.rs`, `tests.rs` |
 | [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` apply/revert pattern over `GeneratedSector` mutations, including `ReplaceRoutes` for route-panel batch edits |
@@ -3019,7 +3019,7 @@ These hold across the crate and are enforced by review, not lints:
 - **`std::mem::take(&mut v)` over `v.drain(..)`** when the loop body needs to reassign `v` afterwards. `drain(..)` keeps the original allocation but obscures intent; `mem::take` is one move and lets the compiler reason about the move-out.
 - **`unwrap_or_else(|| ...)` when the fallback is not a trivial copy.** `unwrap_or(expr)` evaluates `expr` eagerly even on the happy path. For `&str` borrows of fields owned by surrounding scope, `unwrap_or_else` avoids the spurious borrow.
 - **`x.to_string()` over `format!("{}", x)`** for single-argument display — skips the format machinery and a temporary `Arguments` struct.
-- **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/generation.rs:422](src/generation.rs#L422) for the recent fill-relax loop.
+- **`Vec::with_capacity(n)`** in hot loops when the upper bound is known. The crate already does this in most generation paths; see [src/gen/generation/mod.rs:422](src/gen/generation/mod.rs#L422) for the recent fill-relax loop.
 - **Keep golden tests cached and format-scoped.** Reuse the cached fixture in [tests/it/golden_generation.rs](tests/it/golden_generation.rs) for assertions that only need the default m42 sector. Export tests should set `formats` to the artifact under test (JSON/Markdown unless explicitly checking images) so they do not render 4K sector/system PNGs as incidental work.
 
 ### Math-accuracy lints (intentionally NOT applied)

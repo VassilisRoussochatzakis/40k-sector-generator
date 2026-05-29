@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 
 use super::common::{log_progress, log_segmentum_progress, print_json};
 
-pub fn run_compose(
+pub(crate) fn run_compose(
     segmentum_path: &Utf8PathBuf,
     out: &Utf8PathBuf,
     stitch_seed: Option<String>,

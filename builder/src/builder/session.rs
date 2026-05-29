@@ -244,6 +244,7 @@ impl SessionFile {
             system_view_side: 720.0,
             search: super::search_run::SearchState::default(),
             diff: super::diff_run::DiffState::new(),
+            analytics: super::analytics_run::AnalyticsState::new(),
         }
     }
 }

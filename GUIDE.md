@@ -1980,7 +1980,7 @@ that adopts `BuilderState` as root state.
 | Piece | Where it lives |
 |---|---|
 | N1 tab enum | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `BuilderTab` enumerates the 24 §N1 tabs in canonical order via `BuilderTab::ALL`. `BuilderState::active_tab` (default `Project`) holds the selection. Tests `default_tab_is_project`, `builder_tab_all_is_full_n1_set`, `builder_tab_labels_are_uppercase_words` pin the contract. |
-| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector + §AR1..§AR3 archetype editor ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)) + §O1/§O2 orbital + blockade editor ([builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §C1..§C8 + §CL1..§CL4; REGIONS hosts §REG1..§REG7; SUBSECTORS hosts §SUB1..§SUB5; ECONOMY hosts §E1..§E7; RELATIONS hosts §REL1..§REL9; SEARCH hosts §SR1..§SR5 ([builder/src/builder/panels/search.rs](builder/src/builder/panels/search.rs)); DIFF hosts §DF1..§DF5 ([builder/src/builder/panels/diff.rs](builder/src/builder/panels/diff.rs)); unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
+| N2 router | [builder/src/builder/panels/nav.rs](builder/src/builder/panels/nav.rs) — `show_top_bar` renders the strip; `show_active_panel` dispatches `BuilderTab` → matching panel module. PROJECT composes the §P1..§P6 surfaces ([builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)); MAP renders the live hex grid + toolbox ([builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs), §S1 / §R2); SYSTEM hosts the §S2..§S6 inspector + §AR1..§AR3 archetype editor ([builder/src/builder/panels/system.rs](builder/src/builder/panels/system.rs)) + §O1/§O2 orbital + blockade editor ([builder/src/builder/panels/orbital.rs](builder/src/builder/panels/orbital.rs)); WORLD hosts §W1..§W7; ROUTES hosts §R1..§R7; FACTIONS hosts §F1..§F7; CONTROL hosts §C1..§C8 + §CL1..§CL4; REGIONS hosts §REG1..§REG7; SUBSECTORS hosts §SUB1..§SUB5; ECONOMY hosts §E1..§E7; RELATIONS hosts §REL1..§REL9; SEARCH hosts §SR1..§SR5 ([builder/src/builder/panels/search.rs](builder/src/builder/panels/search.rs)); DIFF hosts §DF1..§DF5 ([builder/src/builder/panels/diff.rs](builder/src/builder/panels/diff.rs)); ANALYTICS hosts §A1..§A4 ([builder/src/builder/panels/analytics.rs](builder/src/builder/panels/analytics.rs)); unfinished tabs are stubs backed by [builder/src/builder/panels/placeholder.rs](builder/src/builder/panels/placeholder.rs). |
 | N3 map toolbox | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `show_toolbox` renders the selectable-label strip; the click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems, AddRoute}`. |
 | N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
@@ -2396,7 +2396,7 @@ only sanctioned link widget for entity references. Panels call it and dispatch
 command bus — navigation is UI state, not undoable mutation.
 
 **Refusal pattern:** When a panel needs to mention an entity that lives
-in a tab not yet implemented (Phase E ANALYTICS etc.)
+in a tab not yet implemented (Phase E SEGMENTUM / EXPORT etc.)
 the link is still emitted — focus_entity navigates to the
 stub panel with the selection field populated, so the link lands
 first-class the moment the panel ships. PERSONAE (`EntityRef::Persona`)
@@ -2555,6 +2555,21 @@ BUILDER_REQS §27 (DF1..DF5). The DIFF tab is the in-app face of the model-aware
 | DF5 export | `show_actions` picks a folder via `rfd`; `export` calls `sectorforge::write_diff`, which writes `diff.md` + `diff.json`, and reports success/failure through `ModalKind::Message`. |
 
 `BuilderState` gains one field, `diff: DiffState` (in-memory only; nothing diff-related round-trips through the `.sgforge` session or `sector.json`).
+
+---
+
+### ANALYTICS tab — §A1..§A4
+
+BUILDER_REQS §25 (A1..A4). The ANALYTICS tab is the in-app face of the read-only analytics dashboard in [src/analysis/analytics.rs](src/analysis/analytics.rs) (the same `analyze` the `sectorforge analyze` CLI drives — see §8). Like DIFF it is **fully synchronous**: `analyze_with` is a cheap pure derivation, so the panel computes inline on demand and caches the `SectorAnalysis`. Runtime state lives in [builder/src/builder/analytics_run.rs](builder/src/builder/analytics_run.rs) (`AnalyticsState`) and the UI in [builder/src/builder/panels/analytics.rs](builder/src/builder/panels/analytics.rs).
+
+| Piece | Where it lives |
+|---|---|
+| A1 dashboard | `panels/analytics.rs::show_dashboard` renders the cached `SectorAnalysis` straight through (no separate compute path), so the panel shows exactly what `sectorforge analyze` would emit. `recompute` calls [`sectorforge::analyze_sector_with`](src/lib.rs)`(&state.sector, &cfg)` and caches the report on `AnalyticsState::report`. Faction balance is a Gini header + a top-20 share table; `dist_block` / `count_block` render the world-type / star-colour / population / route-type / route-stability distributions and the claim-kind / dominance / system-state buckets; connectivity surfaces component count, largest component, diameter, articulation points, isolated systems; subsector variety is a 3-column table. All `BTreeMap`s iterate in key order (deterministic). |
+| A2 config editor | `show_config` is a `DragValue`/checkbox grid over the five `AnalyzeConfig` fields (`warn_faction_share`, `warn_contested_ratio`, `tiny_sector_threshold`, `warn_if_disconnected`, `warn_if_articulation`) held on `AnalyticsState::config`. Editing any field clears `report` so the dashboard never paints stale thresholds. "Load project [analyze]" (`AnalyticsState::seed_from_project`) pulls `state.config.analyze`; "Reset to defaults" restores `AnalyzeConfig::default()`. |
+| A3 strict toggle | `AnalyticsState::strict` + `failing_flag_count()`. With strict, every health flag counts as a failure (parity with `analyze --strict`, which exits non-zero on any flag); otherwise only `Error`-severity flags do. The builder has no exit code, so this surfaces as a red FAIL-CI banner with the count and promotes warning/info flag tints to a failure colour. |
+| A4 export | `show_actions` picks a folder via `rfd` (`AnalyticsState::export_dir`); `export` calls [`sectorforge::write_analysis`](src/lib.rs), which writes `analysis.md` + `analysis.json`, and reports success through `ModalKind::Message` / failure via `AnalyticsState::error`. |
+
+`BuilderState` gains one field, `analytics: AnalyticsState` (in-memory only; nothing analytics-related round-trips through the `.sgforge` session or `sector.json`). `AnalyticsState` derives `Default`, opening on `AnalyzeConfig::default()` so the editor matches the CLI's canonical thresholds.
 
 ---
 

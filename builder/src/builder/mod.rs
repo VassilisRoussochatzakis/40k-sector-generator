@@ -8,6 +8,7 @@
 //!
 //! See `docs/BUILDER_REQS.txt` §D5 / §D6 for the contract.
 
+pub mod analytics_run;
 pub mod command;
 pub mod data_catalogs;
 pub mod derivation_cache;
@@ -25,6 +26,7 @@ pub mod snapshot;
 pub mod state;
 pub mod workspace;
 
+pub use analytics_run::AnalyticsState;
 pub use command::BuilderCommand;
 pub use data_catalogs::DataCatalogs;
 pub use derivation_cache::{digest_input, DerivationCache};

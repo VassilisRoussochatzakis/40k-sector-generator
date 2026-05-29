@@ -48,6 +48,7 @@ use sectorforge::{InvariantReport, ValidationReport};
 use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
 use super::derivation_cache::DerivationCache;
+use super::analytics_run::AnalyticsState;
 use super::diff_run::DiffState;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
@@ -561,6 +562,11 @@ pub struct BuilderState {
     /// diff/tick filter config, and the most recently computed diff. In-memory
     /// only. See [`super::diff_run::DiffState`].
     pub diff: DiffState,
+    /// §A1..§A4: ANALYTICS tab runtime — the editable `[analyze]` config, the
+    /// strict CI-parity toggle, the most recently computed `SectorAnalysis`,
+    /// and the last export folder. In-memory only. See
+    /// [`super::analytics_run::AnalyticsState`].
+    pub analytics: AnalyticsState,
 }
 
 impl BuilderState {
@@ -731,6 +737,7 @@ impl BuilderState {
             system_view_side: 720.0,
             search: SearchState::default(),
             diff: DiffState::new(),
+            analytics: AnalyticsState::new(),
         }
     }
 }

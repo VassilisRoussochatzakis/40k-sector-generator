@@ -1423,19 +1423,59 @@ INT4. [DONE] Threshold override per profile (custom profile editor).
 25. ANALYTICS DASHBOARD
 ================================================================================
 
-A1.   Full `src/analytics.rs` parity: faction Gini, per-faction
-      projection share, contested-world ratio, average claims per world,
-      claim-kind + dominance counts, world-type / star-colour /
-      population distributions, route-graph stats (component count,
-      diameter, articulation points, isolated systems), per-subsector
-      political variety, health-flag list.
+A1.   [DONE] Full `src/analysis/analytics.rs` parity: faction Gini,
+      per-faction projection share, contested-world ratio, average claims
+      per world, claim-kind + dominance counts, world-type / star-colour /
+      population / route-type / route-stability distributions, route-graph
+      stats (component count, largest component, diameter, articulation
+      points, isolated systems), per-subsector political variety, health-flag
+      list.
+      - `builder/src/builder/panels/analytics.rs::show_dashboard` renders the
+        cached `SectorAnalysis` straight through, so the panel shows exactly
+        what `sectorforge analyze` would emit (no separate computation path).
+        The report is produced by `sectorforge::analyze_sector_with(&sector,
+        &cfg)` and cached on `AnalyticsState::report`; "Analyze" rebuilds it
+        from scratch each press so the dashboard always matches the live
+        config.
+      - Faction balance is a Gini header + a 6-column table (faction / kind /
+        share% / projection / worlds / systems, top 20, descending) mirroring
+        `render_markdown`. Distributions reuse a shared `dist_block`
+        (count + percent of total); claim / dominance / system-state buckets
+        reuse `count_block`. Connectivity surfaces component count, largest
+        component, diameter (or "— disconnected"), and tints articulation /
+        isolated lists amber. Subsector variety is a 3-column table. All maps
+        iterate `BTreeMap` in key order (deterministic).
 
-A2.   `[analyze]` config editor: warn_faction_share, warn_if_disconnected,
-      warn_if_articulation, warn_contested_ratio, tiny_sector_threshold.
+A2.   [DONE] `[analyze]` config editor: warn_faction_share,
+      warn_if_disconnected, warn_if_articulation, warn_contested_ratio,
+      tiny_sector_threshold.
+      - `AnalyticsState::config` holds an editable
+        `sectorforge::analytics::AnalyzeConfig`, opening on
+        `AnalyzeConfig::default()` (the manual impl — same thresholds the CLI
+        uses). `show_config` is a `DragValue`/checkbox grid over all five
+        fields; editing any clears `report` so the dashboard never lies about
+        which thresholds fed it. "Load project [analyze]"
+        (`seed_from_project`) pulls the open project's `state.config.analyze`
+        block; "Reset to defaults" restores `AnalyzeConfig::default()`.
 
-A3.   "Strict" toggle (treats health flags as errors for CI parity).
+A3.   [DONE] "Strict" toggle (treats health flags as errors for CI parity).
+      - `AnalyticsState::strict` + `failing_flag_count()`: with `strict`, every
+        health flag counts as a failure (parity with `analyze --strict`, which
+        exits non-zero on any flag); otherwise only `Error`-severity flags do.
+        The builder has no exit code, so this surfaces as a red FAIL-CI banner
+        with the failing count, and promotes warning/info flag tints to a
+        failure colour in the health-flag list.
 
-A4.   Export `analysis.md` + `analysis.json`.
+A4.   [DONE] Export `analysis.md` + `analysis.json`.
+      - `show_actions` exposes a "Choose export folder…" `rfd` picker
+        (`AnalyticsState::export_dir`) and an "Export analysis.md +
+        analysis.json" button gated on having both a report and a folder. It
+        calls `sectorforge::write_analysis(dir, &report)` — the exact artefacts
+        the `sectorforge analyze --out <dir>` CLI writes — and reports success
+        via `ModalKind::Message` / failure via `AnalyticsState::error`.
+      - Runtime state lives in `builder/src/builder/analytics_run.rs`
+        (`AnalyticsState`, mirroring the `DiffState` pattern); synchronous like
+        DIFF since `analyze` is a cheap pure derivation.
 
 ================================================================================
 26. SEARCH (WISHES)
@@ -2024,7 +2064,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
           [x] panels/sites.rs           §ST1..§ST4  site editor
 
         Phase E
-          [ ] panels/analytics.rs       §A1..§A4    analytics dashboard
+          [x] panels/analytics.rs       §A1..§A4    analytics dashboard
           [x] panels/diff.rs            §DF1..§DF5  diff + tick editor
           [ ] panels/export.rs          §EX1..§EX8  export bundle editor
           [x] panels/search.rs          §SR1..§SR5  wishes/search editor

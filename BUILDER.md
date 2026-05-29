@@ -721,18 +721,46 @@ click-to-expand tree.
    diff.json**. Both files land in the chosen folder — the same artefacts the
    `sectorforge diff` CLI writes.
 
-### 11.8 ANALYTICS, INTERESTINGNESS, SEGMENTUM, EXPORT
+### 11.8 ANALYTICS (live)
 
-> **INTERESTINGNESS and DIFF (§11.7) are wired**; the remaining three tabs are
+The **ANALYTICS** tab is wired (§A1..§A4). It is the in-app face of
+`sectorforge analyze` — a read-only balance dashboard over the live sector.
+
+1. Click **ANALYTICS**, then **Analyze**. The dashboard computes from the
+   current in-memory sector and shows:
+   - A headline count line (systems / worlds / routes / factions) plus a
+     low-confidence warning for tiny sectors.
+   - **Faction balance** — the Gini coefficient plus a top-20 table of each
+     faction's share of total projection, world presence, and system presence.
+   - **World & claim stats** — contested-world ratio, average claims per
+     world, and claim-kind / dominance / system-state buckets.
+   - **Distributions** — world types, star colours, populations, route types,
+     route stability (count + percent).
+   - **Route-graph connectivity** — component count, largest component,
+     diameter, articulation points, isolated systems.
+   - **Subsector political variety** and the derived **health flags**.
+2. **§A2 — [analyze] config**: edit `warn_faction_share`,
+   `warn_contested_ratio`, `tiny_sector_threshold`, `warn_if_disconnected`,
+   `warn_if_articulation`. Editing any field clears the cached report, so
+   re-click **Analyze** to refresh. **Load project [analyze]** seeds the editor
+   from the open project's config; **Reset to defaults** restores the built-ins.
+3. **§A3 — Strict**: tick this to treat *every* health flag as a CI failure
+   (parity with `sectorforge analyze --strict`). A red banner then reports how
+   many flags would fail the build.
+4. **§A4 — Export**: click **Choose export folder…**, then **Export
+   analysis.md + analysis.json** to write the same artefacts the
+   `sectorforge analyze --out <dir>` CLI produces.
+
+### 11.9 INTERESTINGNESS, SEGMENTUM, EXPORT
+
+> **INTERESTINGNESS is wired** (scored "is this sector dramatically
+> interesting" metrics with a per-profile preset); the remaining two tabs are
 > still placeholders as of this writing — Phase E work. They open to the same
-> stub. Use the `sectorforge` CLI for the underlying functionality (`analyze`,
-> `compose`, `generate --formats …`).
+> stub. Use the `sectorforge` CLI for the underlying functionality (`compose`,
+> `generate --formats …`).
 >
 > Conceptually:
 >
-> - **ANALYTICS** — counts, distributions, completeness checks.
-> - **INTERESTINGNESS** — scored "is this sector dramatically interesting"
->   metrics with a per-profile preset (live).
 > - **SEGMENTUM** — multi-sector composition.
 > - **EXPORT** — bundle PNG / SVG / HTML / JSON / Markdown writes; see
 >   §14 for the CLI fallback.

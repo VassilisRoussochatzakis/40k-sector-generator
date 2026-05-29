@@ -2517,7 +2517,7 @@ Phase E — Tooling
                    `sectorforge::write_diff`. State lives in
                    `builder/src/builder/diff_run.rs::DiffState`
                    (`DiffMode`, `SlotKind`, `LoadedFile`).)
-  A1..A4,     (§25 analytics — was "1..A4" typo)
+  A1..A4,     DONE 
   SG1..SG5,   (§36 segmentum)
   PF1..PF6,   (§37 project + files)
   EX1..EX8,   (§34 export bundle)

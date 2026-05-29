@@ -22,8 +22,8 @@
 | Crate | Path | Purpose |
 |---|---|---|
 | `sectorforge` (lib + bin) | [src/](src/) | Domain model, generation, analysis, exports, CLI |
-| `sectorforge-builder` | [builder/](builder/) | Egui editor (writes) |
-| `sectorforge-viewer` | [viewer/](viewer/) | Egui viewer (read-only) |
+| `sectorforge-builder` | [builder/](builder/) | Egui editor — full sector construction (writes) |
+| `sectorforge-viewer` | [viewer/](viewer/) | Egui viewer with **limited** in-place editing (map/faction/world edits, `worlds.toml` data editor, save/save-as) — not read-only; full construction lives in the builder |
 | `sectorforge-gui-core` | [gui-core/](gui-core/) | Shared egui widgets (`SectorView`, palette, info_panel) |
 | integration tests | [tests/it/](tests/it/) | Single-binary integration suite |
 

@@ -1594,8 +1594,13 @@ are accepted by the config parser but the current clustering ignores them.
 ### 8.1 Viewer/editor (`sectorforge-viewer`)
 
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,
-built with egui + eframe. It exposes the following views via the top
-navigation bar:
+built with egui + eframe. **It is not read-only** — it supports *limited*
+in-place editing of a loaded sector (map edits behind **EDIT MAP**, faction
+edits behind **EDIT MODE** / **DESIGNER**, the typed `worlds.toml` **Data**
+editor, plus **SAVE** / **SAVE AS…** back to disk). Full sector construction
+(the command-bus undo/redo workspace) lives in `sectorforge-builder` (§8.2);
+the viewer's editing is the lighter subset listed below. It exposes the
+following views via the top navigation bar:
 
 - **Sector** — hex map with zoom/pan, colored by primary star colour,
   faction tint, subsector overlay, deterministic route-pattern geometry,

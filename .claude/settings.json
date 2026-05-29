@@ -47,7 +47,16 @@
       "Bash(grep -E '\\\\{\\\\}, \\\\{\\\\}')",
       "Bash(grep -rnE '\"[^\"]*\\(\\\\\\(— |— \\\\\\)|\\\\\\( \\\\\\)|—\\\\s*$|^\\\\s*—|in\\\\\\)|by\\\\\\)|see\\\\s*\\\\\\)\\)[^\"]*\"' builder/)",
       "Bash(sed -n '555,600p' src/lib.rs)",
-      "Bash(sed -n '160,200p' src/analysis/conflict.rs)"
+      "Bash(sed -n '160,200p' src/analysis/conflict.rs)",
+      "Bash(grep -vE '\\(^target/|/target/|^\\\\.git/|/\\\\.git/|node_modules/|dist/|pkg/|\\\\.wasm$|^old/|/old/\\)')",
+      "Bash(echo \"fmt exit=$?\")",
+      "Bash(awk '$1>500 && $2!=\"total\"')",
+      "Bash(awk '$1>=250 && $1<=500 && $2!=\"total\"')",
+      "Bash(xargs -I{} sh -c 'sed -n \"$\\(\\({}-8\\)\\),$\\(\\({}+12\\)\\)p\" src/analysis/search.rs')",
+      "Bash(/usr/bin/time -l /Users/vassilis/Documents/40k-sector-generator/target/release/sectorforge generate --project /Users/vassilis/Documents/40k-sector-generator/examples/big_test --out /tmp/bigout)",
+      "Bash(/usr/bin/time -l /Users/vassilis/Documents/40k-sector-generator/target/release/sectorforge validate-sector --sector /tmp/bigout/sector.json)",
+      "Bash(awk '{print $5}')",
+      "Bash(gzip -c /tmp/bigout/sector.json)"
     ],
     "additionalDirectories": [
       "\\tmp"

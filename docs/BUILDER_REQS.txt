@@ -1508,18 +1508,33 @@ SR5.  [DONE] Validation: faction id existence preflight before run.
 27. DIFF + TICKS
 ================================================================================
 
-DF1.  Two-sector diff: pick before/after `sector.json` (or take a
-      snapshot of current sector as either).
+DF1.  [DONE] Two-sector diff: pick before/after `sector.json` (or take a
+      snapshot of current sector as either). Implementation: `panels/diff.rs`
+      `slot_picker` offers a per-slot `Current sector` / `Snapshot` / `Load
+      file…` combo; the "Snapshot current as 'before'" button calls
+      `BuilderState::snapshot` and points the before-slot at it. State lives in
+      `builder/src/builder/diff_run.rs::DiffState` (`SlotKind`, `LoadedFile`).
 
-DF2.  Tick-mode: simulate N conflict ticks from current sector, then
-      diff. Re-uses `src/conflict.rs::advance_sector`.
+DF2.  [DONE] Tick-mode: simulate N conflict ticks from current sector, then
+      diff. Re-uses `src/conflict.rs::advance_sector`. Implementation:
+      `DiffMode::Ticks` + the `advance` DragValue; `compute` clones the live
+      sector, advances `diff.ticks` ticks via
+      `sectorforge::conflict::advance_sector`, and diffs against the original.
 
-DF3.  Diff panel: tree of strata (systems, routes, factions, regions,
-      economy, relations), click-to-expand per-entity changes.
+DF3.  [DONE] Diff panel: tree of strata (systems, routes, factions, regions,
+      economy, relations), click-to-expand per-entity changes. Implementation:
+      `panels/diff.rs::show_report` renders one `CollapsingHeader` per stratum
+      with +/−/~ counts; `show_systems` nests a per-system header that expands
+      to control-field deltas and per-world add/remove/change rows.
 
-DF4.  Filters: skip-worlds, skip-routes, min_faction_delta.
+DF4.  [DONE] Filters: skip-worlds, skip-routes, min_faction_delta.
+      Implementation: `show_filters` binds the three fields (plus
+      `top_faction_deltas`) on `DiffState`; `DiffState::config` assembles the
+      `sectorforge::diff::DiffConfig` consumed by `diff_sectors_with`.
 
-DF5.  Export `diff.md` + `diff.json`.
+DF5.  [DONE] Export `diff.md` + `diff.json`. Implementation: `show_actions`
+      picks a folder via `rfd`, `export` calls `sectorforge::write_diff`, and
+      surfaces the result through `ModalKind::Message`.
 
 ================================================================================
 28. CONFLICT + STABILITY
@@ -1988,7 +2003,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Analytics -> panels/analytics.rs  (Phase E §A1..§A4)
         Interestingness -> panels/interestingness.rs (Phase D §INT1..§INT4 DONE)
         Search    -> panels/search.rs     (Phase E §SR1..§SR5 DONE)
-        Diff      -> panels/diff.rs       (Phase E §DF1..§DF5)
+        Diff      -> panels/diff.rs       (Phase E §DF1..§DF5 DONE)
         Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5 DONE)
         Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5)
         Export    -> panels/export.rs     (Phase E §EX1..§EX8)
@@ -2010,7 +2025,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
 
         Phase E
           [ ] panels/analytics.rs       §A1..§A4    analytics dashboard
-          [ ] panels/diff.rs            §DF1..§DF5  diff + tick editor
+          [x] panels/diff.rs            §DF1..§DF5  diff + tick editor
           [ ] panels/export.rs          §EX1..§EX8  export bundle editor
           [x] panels/search.rs          §SR1..§SR5  wishes/search editor
           [ ] panels/segmentum.rs       §SG1..§SG5  compose editor
@@ -2450,7 +2465,18 @@ Phase E — Tooling
                    faction-id preflight. Tests:
                    `search_with_progress_matches_run_search_and_reports`
                    (lib) + `search_run::tests` (builder).)
-  DF1..DF5,   (§27 diff)
+  DF1..DF5,   (§27 diff — DONE.
+                   `builder/src/builder/panels/diff.rs` ships the §DF1
+                   two-sector slot pickers (Current / Snapshot / Load file),
+                   the §DF2 tick simulator re-using
+                   `sectorforge::conflict::advance_sector`, the §DF3
+                   click-to-expand strata tree (systems / routes / factions /
+                   regions / relations / economy), the §DF4
+                   skip_worlds/skip_routes/min_faction_delta filters, and the
+                   §DF5 `diff.md`+`diff.json` export via
+                   `sectorforge::write_diff`. State lives in
+                   `builder/src/builder/diff_run.rs::DiffState`
+                   (`DiffMode`, `SlotKind`, `LoadedFile`).)
   A1..A4,     (§25 analytics — was "1..A4" typo)
   SG1..SG5,   (§36 segmentum)
   PF1..PF6,   (§37 project + files)

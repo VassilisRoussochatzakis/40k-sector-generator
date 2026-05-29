@@ -692,19 +692,47 @@ two hive worlds."*
    a non-destructive **View on map**. Each near-miss row has its own
    **View** / **Apply** plus the list of constraints it failed.
 
-### 11.7 ANALYTICS, INTERESTINGNESS, DIFF, SEGMENTUM, EXPORT
+### 11.7 DIFF (live)
 
-> **INTERESTINGNESS is wired**; the other four tabs are still placeholders as
-> of this writing — Phase E work. They open to the same stub. Use the
-> `sectorforge` CLI for the underlying functionality (`analyze`, `diff`,
+The **DIFF** tab is wired (§DF1..§DF5). It compares two sectors — or shows
+what a stretch of conflict simulation would do — and renders the result as a
+click-to-expand tree.
+
+1. Click **DIFF**. Pick a **mode** at the top:
+   - **Two-sector (§DF1)** — choose a `before` and an `after`. Each slot has a
+     source combo: `Current sector` (the live in-memory sector), `Snapshot`
+     (pick one of your named snapshots from §12.3), or `Load file…` (browse to
+     any `sector.json` on disk). The **Snapshot current as 'before'** button
+     is a shortcut: it takes a fresh snapshot of the live sector and points the
+     before-slot at it, so you can edit, then diff against where you started.
+   - **Tick simulation (§DF2)** — set **advance N** conflict ticks. The builder
+     clones the current sector, runs `advance_sector` N times (hysteresis
+     preserved), and diffs the result against the un-advanced original. This is
+     the "what happens if the sector simmers for N turns" view.
+2. **Filters (§DF4)**: tick **skip worlds** / **skip routes** to collapse those
+   strata, and raise **min faction Δ** to drop projection-power movements below
+   the threshold as noise. **top deltas** caps the faction list.
+3. Click **Compute diff**. The result appears below as a tree of strata
+   (§DF3) — **Systems**, **Routes**, **Factions**, **Regions**, **Relations**,
+   **Economy** — each header showing `+added −removed ~changed` counts. Expand
+   a header to see per-entity rows; expand a changed system to see its control
+   deltas and per-world changes.
+4. **Export (§DF5)**: click **Choose export folder…**, then **Export diff.md +
+   diff.json**. Both files land in the chosen folder — the same artefacts the
+   `sectorforge diff` CLI writes.
+
+### 11.8 ANALYTICS, INTERESTINGNESS, SEGMENTUM, EXPORT
+
+> **INTERESTINGNESS and DIFF (§11.7) are wired**; the remaining three tabs are
+> still placeholders as of this writing — Phase E work. They open to the same
+> stub. Use the `sectorforge` CLI for the underlying functionality (`analyze`,
 > `compose`, `generate --formats …`).
 >
 > Conceptually:
 >
 > - **ANALYTICS** — counts, distributions, completeness checks.
-> - **INTERESTINGNESS** — scored "is this sector dramatically
->   interesting" metrics with a per-profile preset (live).
-> - **DIFF** — compare two saved states of the sector.
+> - **INTERESTINGNESS** — scored "is this sector dramatically interesting"
+>   metrics with a per-profile preset (live).
 > - **SEGMENTUM** — multi-sector composition.
 > - **EXPORT** — bundle PNG / SVG / HTML / JSON / Markdown writes; see
 >   §14 for the CLI fallback.

@@ -45,7 +45,9 @@
       "Bash(grep -rln '\\\\\\(\\\\{\\\\}, \\\\{\\\\}\\\\\\)' builder/)",
       "Bash(grep -rlE '\\\\{\\\\}, \\\\{\\\\}' builder/)",
       "Bash(grep -E '\\\\{\\\\}, \\\\{\\\\}')",
-      "Bash(grep -rnE '\"[^\"]*\\(\\\\\\(— |— \\\\\\)|\\\\\\( \\\\\\)|—\\\\s*$|^\\\\s*—|in\\\\\\)|by\\\\\\)|see\\\\s*\\\\\\)\\)[^\"]*\"' builder/)"
+      "Bash(grep -rnE '\"[^\"]*\\(\\\\\\(— |— \\\\\\)|\\\\\\( \\\\\\)|—\\\\s*$|^\\\\s*—|in\\\\\\)|by\\\\\\)|see\\\\s*\\\\\\)\\)[^\"]*\"' builder/)",
+      "Bash(sed -n '555,600p' src/lib.rs)",
+      "Bash(sed -n '160,200p' src/analysis/conflict.rs)"
     ],
     "additionalDirectories": [
       "\\tmp"

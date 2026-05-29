@@ -11,6 +11,7 @@
 pub mod command;
 pub mod data_catalogs;
 pub mod derivation_cache;
+pub mod diff_run;
 pub mod errors;
 pub mod file_watcher;
 pub mod index;
@@ -27,6 +28,7 @@ pub mod workspace;
 pub use command::BuilderCommand;
 pub use data_catalogs::DataCatalogs;
 pub use derivation_cache::{digest_input, DerivationCache};
+pub use diff_run::{DiffMode, DiffState, LoadedFile, SlotKind};
 pub use errors::BuilderError;
 pub use file_watcher::{FileChange, FileWatcher};
 pub use index::BuilderIndex;

@@ -48,6 +48,7 @@ use sectorforge::{InvariantReport, ValidationReport};
 use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
 use super::derivation_cache::DerivationCache;
+use super::diff_run::DiffState;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
 use super::preview::PreviewState;
@@ -556,6 +557,10 @@ pub struct BuilderState {
     /// the latest outcome. In-memory only; the wishes doc is round-tripped to
     /// disk separately. See [`super::search_run::SearchState`].
     pub search: SearchState,
+    /// §DF1..§DF5: DIFF tab runtime — the two scratch sector slots, the
+    /// diff/tick filter config, and the most recently computed diff. In-memory
+    /// only. See [`super::diff_run::DiffState`].
+    pub diff: DiffState,
 }
 
 impl BuilderState {
@@ -725,6 +730,7 @@ impl BuilderState {
             system_layout: sectorforge_gui_core::system_view::SystemLayout::default(),
             system_view_side: 720.0,
             search: SearchState::default(),
+            diff: DiffState::new(),
         }
     }
 }

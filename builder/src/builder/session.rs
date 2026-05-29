@@ -243,6 +243,7 @@ impl SessionFile {
             system_layout: sectorforge_gui_core::system_view::SystemLayout::default(),
             system_view_side: 720.0,
             search: super::search_run::SearchState::default(),
+            diff: super::diff_run::DiffState::new(),
         }
     }
 }

@@ -22,7 +22,10 @@ pub(super) fn rect(
     fill: Rgba<u8>,
     stroke: Option<Rgba<u8>>,
 ) {
-    let _ = write!(s, r#"<rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{h:.2}" fill=""#);
+    let _ = write!(
+        s,
+        r#"<rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{h:.2}" fill=""#
+    );
     write_color_hex(s, fill);
     let _ = write!(s, r#"" fill-opacity="{:.3}""#, opacity(fill));
     if let Some(stk) = stroke {
@@ -97,7 +100,10 @@ pub(super) fn line(
     width: f32,
     dasharray: Option<&str>,
 ) {
-    let _ = write!(s, r#"<line x1="{x0:.2}" y1="{y0:.2}" x2="{x1:.2}" y2="{y1:.2}" stroke=""#);
+    let _ = write!(
+        s,
+        r#"<line x1="{x0:.2}" y1="{y0:.2}" x2="{x1:.2}" y2="{y1:.2}" stroke=""#
+    );
     write_color_hex(s, color);
     let _ = write!(
         s,

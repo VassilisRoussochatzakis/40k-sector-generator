@@ -18,6 +18,7 @@ pub mod panels;
 pub mod preferences;
 pub mod preview;
 pub mod project_io;
+pub mod search_run;
 pub mod session;
 pub mod snapshot;
 pub mod state;
@@ -35,6 +36,7 @@ pub use project_io::{
     drain_watcher_events, new_project, open_project, reload_catalog, save_project, save_project_as,
     NewProjectOptions,
 };
+pub use search_run::{NewConstraintKind, SearchJobResult, SearchState};
 pub use session::{load_session, save_session, SessionFile};
 pub use snapshot::Snapshot;
 pub use state::{BuilderState, ModalKind, PartialRegenRect};

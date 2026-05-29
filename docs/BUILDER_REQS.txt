@@ -238,7 +238,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Briefing            [G]       §23
   Interestingness     [X]       §24
   Analytics           [P]       §25   (dashboard exists; need full §8 fields)
-  Search              [P]       §26   (wishes UI exists; need full constraints)
+  Search              [X]       §26   (full per-kind constraint editor + off-thread run w/ progress + winner/near-miss apply + preflight)
   Diff + ticks        [G]       §27
   Conflict + stability[X]       §28
   Intel / visibility  [X]       §29   (per-system + per-world editors, baseline derive_intel, observer lens, player cutoff)
@@ -1441,7 +1441,8 @@ A4.   Export `analysis.md` + `analysis.json`.
 26. SEARCH (WISHES)
 ================================================================================
 
-SR1.  Wishes editor reaches every constraint kind from `src/search.rs`:
+SR1.  [DONE] Wishes editor reaches every constraint kind from
+      `src/analysis/search.rs`:
         faction_share_min/max
         faction_world_count_min/max
         faction_system_count_min/max
@@ -1458,16 +1459,50 @@ SR1.  Wishes editor reaches every constraint kind from `src/search.rs`:
         economy_stranded_max
         economy_resource_min
       Each constraint kind has its own form widget.
+      Implementation: `builder/src/builder/panels/search.rs::constraint_editor`
+      matches `&mut Constraint` and renders a per-kind grid (faction combos
+      over the roster, `WorldType::VARIANTS` / region-kind / stance /
+      system-state combos, resource combo, share/ratio sliders, count
+      DragValues, the optional `n_way` toggle, and the optional dominant
+      faction). New constraints are appended via the
+      `builder/src/builder/search_run.rs::NewConstraintKind` combo +
+      `make()`; the `make_produces_constraint_whose_kind_tag_matches_label`
+      test pins each selector to its on-disk `kind` slug.
 
-SR2.  Run-search button. Off-thread enumeration. Progress bar shows
+SR2.  [DONE] Run-search button. Off-thread enumeration. Progress bar shows
       n_candidates_tried, n_passed, best_near_miss_score.
+      Implementation: `search::run_search_with_progress` (new) keeps the
+      rayon enumeration of `run_search` but reports a `SearchProgress`
+      snapshot after every generated candidate via shared atomics; the panel
+      dispatches it through `SearchState::spawn` (a `gui-core` job) and reads
+      the live snapshot via `progress_snapshot()` into an `egui::ProgressBar`
+      plus a `tried/budget · passed · best near-miss` line. Cancellation
+      detaches the in-flight job (the rayon loop has no early-out hook, so the
+      worker finishes and its stale-revision result is dropped). Covered by
+      `search_with_progress_matches_run_search_and_reports`.
 
-SR3.  Result panel: winning seed (Apply button) + top N near-miss
+SR3.  [DONE] Result panel: winning seed (Apply button) + top N near-miss
       candidates (View + Apply).
+      Implementation: the §SR3 outcome block renders the winner (with the
+      satisfied-constraint table) and every near-miss (with its failed-
+      constraint lines). `Apply` calls `BuilderState::apply_search_seed(seed,
+      commit = true)` — pins `generation.seed`, runs a full synchronous
+      regenerate, marks the project dirty + auto-saves, and jumps to MAP.
+      `View` uses `commit = false` for a non-destructive look (sector swapped
+      in, project left clean).
 
-SR4.  `base_seed`, `budget`, `report_top` fields.
+SR4.  [DONE] `base_seed`, `budget`, `report_top` fields. Implementation:
+      §SR4 grid in `panels/search.rs` — a "use project seed" checkbox
+      toggling `SearchConfig::base_seed` between `None` (project seed) and an
+      editable string, plus DragValues for `budget` (1..=100000) and
+      `report_top` (1..=50).
 
-SR5.  Validation: faction id existence preflight before run.
+SR5.  [DONE] Validation: faction id existence preflight before run.
+      Implementation: the panel mirrors the library's `referenced_faction`,
+      checks each referenced id against the roster (faction ids + kinds), and
+      surfaces unknown ids inline while disabling "Run search". The library
+      `run_search` re-checks and returns `preflight_errors`, which the §SR3
+      panel also renders.
 
 ================================================================================
 27. DIFF + TICKS
@@ -1952,7 +1987,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Prose     -> panels/prose.rs      (Phase D §PR1..§PR4)
         Analytics -> panels/analytics.rs  (Phase E §A1..§A4)
         Interestingness -> panels/interestingness.rs (Phase D §INT1..§INT4 DONE)
-        Search    -> panels/search.rs     (Phase E §SR1..§SR5)
+        Search    -> panels/search.rs     (Phase E §SR1..§SR5 DONE)
         Diff      -> panels/diff.rs       (Phase E §DF1..§DF5)
         Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5 DONE)
         Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5)
@@ -1977,7 +2012,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
           [ ] panels/analytics.rs       §A1..§A4    analytics dashboard
           [ ] panels/diff.rs            §DF1..§DF5  diff + tick editor
           [ ] panels/export.rs          §EX1..§EX8  export bundle editor
-          [ ] panels/search.rs          §SR1..§SR5  wishes/search editor
+          [x] panels/search.rs          §SR1..§SR5  wishes/search editor
           [ ] panels/segmentum.rs       §SG1..§SG5  compose editor
 
       `panels/placeholder.rs` is the shared 13-LOC routing-fallback helper
@@ -2400,7 +2435,21 @@ Phase D — Derivations + GM tools
                    never paints stale bands.)
 
 Phase E — Tooling
-  SR1..SR5,   (§26 search)
+  SR1..SR5,   (§26 search — DONE.
+                   `builder/src/builder/panels/search.rs` ships the §SR1
+                   per-kind constraint editor (a form widget per
+                   `sectorforge::search::Constraint` variant + an "add
+                   constraint" combo backed by
+                   `search_run::NewConstraintKind`), the §SR2 off-thread run
+                   via `search::run_search_with_progress` +
+                   `search_run::SearchState` with a live tried/passed/best
+                   progress bar, the §SR3 winner-apply / near-miss
+                   view+apply outcome panel driven by
+                   `BuilderState::apply_search_seed`, the §SR4
+                   base_seed/budget/report_top editors, and the §SR5
+                   faction-id preflight. Tests:
+                   `search_with_progress_matches_run_search_and_reports`
+                   (lib) + `search_run::tests` (builder).)
   DF1..DF5,   (§27 diff)
   A1..A4,     (§25 analytics — was "1..A4" typo)
   SG1..SG5,   (§36 segmentum)

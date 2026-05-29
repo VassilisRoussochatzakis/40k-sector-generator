@@ -341,8 +341,7 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
                 );
                 if ui
                     .add(
-                        egui::Button::new("Apply preview")
-                            .fill(egui::Color32::from_rgb(0, 100, 0)),
+                        egui::Button::new("Apply preview").fill(egui::Color32::from_rgb(0, 100, 0)),
                     )
                     .clicked()
                 {

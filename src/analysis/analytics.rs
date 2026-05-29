@@ -537,7 +537,10 @@ fn articulation_points(adj: &[Vec<usize>]) -> Vec<usize> {
 
 fn compute_subsector_variety(
     sector: &GeneratedSector,
-) -> (Vec<SubsectorVariety>, Option<crate::subsectors::SubsectorBuildError>) {
+) -> (
+    Vec<SubsectorVariety>,
+    Option<crate::subsectors::SubsectorBuildError>,
+) {
     if sector.systems.is_empty() {
         return (Vec::new(), None);
     }

@@ -234,7 +234,9 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_world_types {
             if taxonomy::parse_world_type_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: ValidationCode::FactionUnknownWorldType.as_slug().to_string(),
+                    code: ValidationCode::FactionUnknownWorldType
+                        .as_slug()
+                        .to_string(),
                     message: format!("faction '{}' references unknown world type '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_world_types")),
                     row: None,
@@ -245,7 +247,9 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
         for s in &f.preferred_governments {
             if taxonomy::parse_government_variant(s).is_none() {
                 warnings.push(ValidationIssue {
-                    code: ValidationCode::FactionUnknownGovernment.as_slug().to_string(),
+                    code: ValidationCode::FactionUnknownGovernment
+                        .as_slug()
+                        .to_string(),
                     message: format!("faction '{}' references unknown government '{}'", f.id, s),
                     path: Some(format!("factions[{idx}].preferred_governments")),
                     row: None,
@@ -417,7 +421,9 @@ fn validate_relations(
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
                 errors.push(ValidationIssue {
-                    code: ValidationCode::RelationsPairUnknownFaction.as_slug().to_string(),
+                    code: ValidationCode::RelationsPairUnknownFaction
+                        .as_slug()
+                        .to_string(),
                     message: format!(
                         "relations.pair_overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
@@ -432,7 +438,9 @@ fn validate_relations(
         for (slot, id) in [("a", &ov.a), ("b", &ov.b)] {
             if !known_ids.contains(id.as_str()) {
                 errors.push(ValidationIssue {
-                    code: ValidationCode::RelationsOverrideUnknownFaction.as_slug().to_string(),
+                    code: ValidationCode::RelationsOverrideUnknownFaction
+                        .as_slug()
+                        .to_string(),
                     message: format!(
                         "relations.overrides[{i}].{slot} = '{id}' is not a known faction id"
                     ),
@@ -495,7 +503,9 @@ fn validate_regions(
     for (i, c) in cfg.conditions.iter().enumerate() {
         if !c.weight.is_finite() || c.weight < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::RegionsConditionBadWeight.as_slug().to_string(),
+                code: ValidationCode::RegionsConditionBadWeight
+                    .as_slug()
+                    .to_string(),
                 message: format!(
                     "regions.conditions[{i}].weight {} is not a finite non-negative number",
                     c.weight
@@ -520,7 +530,9 @@ fn validate_economy(
     for (k, v) in &cfg.by_tech_level {
         if !v.is_finite() || *v < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::EconomyTechMultiplierBad.as_slug().to_string(),
+                code: ValidationCode::EconomyTechMultiplierBad
+                    .as_slug()
+                    .to_string(),
                 message: format!(
                     "economy.by_tech_level[{k}] = {v} is not a finite non-negative number"
                 ),
@@ -533,7 +545,9 @@ fn validate_economy(
     for (k, v) in &cfg.by_population {
         if !v.is_finite() || *v < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::EconomyPopMultiplierBad.as_slug().to_string(),
+                code: ValidationCode::EconomyPopMultiplierBad
+                    .as_slug()
+                    .to_string(),
                 message: format!(
                     "economy.by_population[{k}] = {v} is not a finite non-negative number"
                 ),
@@ -586,7 +600,9 @@ fn validate_resource_rule(
     if let Some(v) = rule.trade_multiplier {
         if !v.is_finite() || v < 0.0 {
             errors.push(ValidationIssue {
-                code: ValidationCode::ResourceTradeMultiplierBad.as_slug().to_string(),
+                code: ValidationCode::ResourceTradeMultiplierBad
+                    .as_slug()
+                    .to_string(),
                 message: format!(
                     "resources.{scope}.{name}.trade_multiplier = {v} is not finite non-negative"
                 ),
@@ -599,7 +615,9 @@ fn validate_resource_rule(
     if let Some(v) = rule.supply_resilience {
         if !v.is_finite() || !(-100.0..=100.0).contains(&v) {
             errors.push(ValidationIssue {
-                code: ValidationCode::ResourceSupplyResilienceBad.as_slug().to_string(),
+                code: ValidationCode::ResourceSupplyResilienceBad
+                    .as_slug()
+                    .to_string(),
                 message: format!(
                     "resources.{scope}.{name}.supply_resilience = {v} is not -100..=100"
                 ),

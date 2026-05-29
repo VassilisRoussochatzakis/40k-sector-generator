@@ -51,6 +51,7 @@ use super::derivation_cache::DerivationCache;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
 use super::preview::PreviewState;
+use super::search_run::SearchState;
 use super::snapshot::Snapshot;
 
 /// TF-NT-3: identifies a cached `feature_weights_for_world` entry by
@@ -550,6 +551,11 @@ pub struct BuilderState {
     /// `planet_r` / `orbit_step` proportionally — bumping the slider grows
     /// the whole widget. In-memory only.
     pub system_view_side: f32,
+    /// §SR1..§SR5: SEARCH tab runtime — the editable `wishes.toml` document,
+    /// the off-thread constraint search job, its live progress snapshot, and
+    /// the latest outcome. In-memory only; the wishes doc is round-tripped to
+    /// disk separately. See [`super::search_run::SearchState`].
+    pub search: SearchState,
 }
 
 impl BuilderState {
@@ -718,6 +724,7 @@ impl BuilderState {
             last_command_error: None,
             system_layout: sectorforge_gui_core::system_view::SystemLayout::default(),
             system_view_side: 720.0,
+            search: SearchState::default(),
         }
     }
 }

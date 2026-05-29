@@ -814,12 +814,16 @@ pub fn render_markdown(d: &SectorDiff) -> String {
     wln!(
         s,
         "\n- Before: sector `{}` seed `{}` v{}",
-        d.before_id, d.before_seed, d.before_version
+        d.before_id,
+        d.before_seed,
+        d.before_version
     );
     wln!(
         s,
         "- After:  sector `{}` seed `{}` v{}",
-        d.after_id, d.after_seed, d.after_version
+        d.after_id,
+        d.after_seed,
+        d.after_version
     );
     wln!(
         s,
@@ -835,7 +839,10 @@ pub fn render_markdown(d: &SectorDiff) -> String {
     wln!(
         s,
         "\n- Systems: {} → {}  ·  Routes: {} → {}",
-        d.system_count_before, d.system_count_after, d.route_count_before, d.route_count_after
+        d.system_count_before,
+        d.system_count_after,
+        d.route_count_before,
+        d.route_count_after
     );
 
     // Systems.
@@ -943,7 +950,9 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                 wln!(
                     s,
                     "- `{}` ({} → {})",
-                    r.id, r.from_system_id, r.to_system_id
+                    r.id,
+                    r.from_system_id,
+                    r.to_system_id
                 );
             }
         }
@@ -953,7 +962,9 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                 wln!(
                     s,
                     "- `{}` ({} → {})",
-                    r.id, r.from_system_id, r.to_system_id
+                    r.id,
+                    r.from_system_id,
+                    r.to_system_id
                 );
             }
         }
@@ -1020,14 +1031,20 @@ pub fn render_markdown(d: &SectorDiff) -> String {
             wln!(
                 s,
                 "- REMOVED `{}` {:?} ({} hexes)",
-                r.id, r.kind, r.hex_count
+                r.id,
+                r.kind,
+                r.hex_count
             );
         }
         for r in &d.regions_changed {
             wln!(
                 s,
                 "- CHANGED `{}` {:?}→{:?} hexes {}→{}",
-                r.id, r.kind_before, r.kind_after, r.hex_count_before, r.hex_count_after
+                r.id,
+                r.kind_before,
+                r.kind_after,
+                r.hex_count_before,
+                r.hex_count_after
             );
         }
     }
@@ -1045,7 +1062,10 @@ pub fn render_markdown(d: &SectorDiff) -> String {
                 wln!(
                     s,
                     "| {} | {:.1} | {:.1} | {:+.1} |",
-                    c.resource, c.before, c.after, c.delta
+                    c.resource,
+                    c.before,
+                    c.after,
+                    c.delta
                 );
             }
         }
@@ -1069,7 +1089,8 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         wln!(
             s,
             "    - Renamed: `{}` → `{}`",
-            wd.name_before, wd.name_after
+            wd.name_before,
+            wd.name_after
         );
     }
     if wd.dominant_before != wd.dominant_after {
@@ -1108,7 +1129,8 @@ fn render_world_change(s: &mut String, wd: &WorldDiff) {
         wln!(
             s,
             "    - Contested: {} → {}",
-            wd.contested_before, wd.contested_after
+            wd.contested_before,
+            wd.contested_after
         );
     }
     if !wd.claims_added.is_empty() {

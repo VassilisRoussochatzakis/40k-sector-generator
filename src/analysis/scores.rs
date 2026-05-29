@@ -9,9 +9,7 @@ use serde::{Deserialize, Serialize};
 macro_rules! score_newtype {
     ($name:ident, $doc:literal) => {
         #[doc = $doc]
-        #[derive(
-            Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize,
-        )]
+        #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
         #[serde(transparent)]
         pub struct $name(pub f32);
 

@@ -106,8 +106,7 @@ fn cli_and_library_validate_produce_identical_report() {
 
     let project_input = sectorforge::load_project(&project).expect("load_project");
     let lib_report = sectorforge::validate_project(&project_input).expect("validate_project");
-    let lib_value: serde_json::Value =
-        serde_json::to_value(&lib_report).expect("ser lib report");
+    let lib_value: serde_json::Value = serde_json::to_value(&lib_report).expect("ser lib report");
 
     assert_eq!(
         cli_value, lib_value,

@@ -105,15 +105,10 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                             ui.end_row();
                             for sy in stressed.iter().take(12) {
                                 ui.label(RichText::new(&sy.system_id).monospace());
+                                ui.label(RichText::new(format!("{}", sy.tithe_status)).monospace());
+                                ui.label(RichText::new(format!("{}", sy.supply_risk)).monospace());
                                 ui.label(
-                                    RichText::new(format!("{}", sy.tithe_status)).monospace(),
-                                );
-                                ui.label(
-                                    RichText::new(format!("{}", sy.supply_risk)).monospace(),
-                                );
-                                ui.label(
-                                    RichText::new(format!("{}", sy.strategic_priority))
-                                        .monospace(),
+                                    RichText::new(format!("{}", sy.strategic_priority)).monospace(),
                                 );
                                 ui.end_row();
                             }

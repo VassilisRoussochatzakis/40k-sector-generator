@@ -381,7 +381,13 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
         );
         changed |= u8_slider(ui, "trust", "rel_trust", &mut ov.trust, rel.metrics.trust);
         changed |= u8_slider(ui, "fear", "rel_fear", &mut ov.fear, rel.metrics.fear);
-        changed |= u8_slider(ui, "rivalry", "rel_riv", &mut ov.rivalry, rel.metrics.rivalry);
+        changed |= u8_slider(
+            ui,
+            "rivalry",
+            "rel_riv",
+            &mut ov.rivalry,
+            rel.metrics.rivalry,
+        );
         changed |= u8_slider(
             ui,
             "ideological_distance",
@@ -790,10 +796,7 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REL4 disposition_rules ─────────────────────────────────────────────────
 
 fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(
-        RichText::new("disposition_rules (disposition × disposition → level delta)")
-            .strong(),
-    );
+    ui.label(RichText::new("disposition_rules (disposition × disposition → level delta)").strong());
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
 

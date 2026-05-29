@@ -98,9 +98,7 @@ fn png_export_matches_pinned_blake3_hash() {
         return;
     }
     let expected = std::fs::read_to_string(&pin).unwrap_or_else(|_| {
-        panic!(
-            "missing pinned hash; run `{PIN_ENV}=1 cargo test --test it -- golden_png` to bless"
-        )
+        panic!("missing pinned hash; run `{PIN_ENV}=1 cargo test --test it -- golden_png` to bless")
     });
     assert_eq!(
         expected.trim(),

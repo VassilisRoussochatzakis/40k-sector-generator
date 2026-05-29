@@ -665,20 +665,45 @@ regenerations.
 > - **SITES** — notable sites / encounter locations per world.
 > - **MISSIONS** — mission seeds anchored on systems / worlds.
 
-### 11.6 ANALYTICS, INTERESTINGNESS, SEARCH, DIFF, SEGMENTUM, EXPORT
+### 11.6 SEARCH (live)
 
-> **All five of these tabs are also placeholders as of this writing** —
-> Phase E work. They open to the same stub. Use the `sectorforge` CLI for
-> the underlying functionality (`analyze`, `interestingness`, `search`,
-> `diff`, `compose`, `generate --formats …`).
+The **SEARCH** tab is wired — it is the declarative wish-based seed search,
+in-app. *"Find me a seed where the Imperium is contested by Tau on at least
+two hive worlds."*
+
+1. Click **SEARCH**. If you have not searched before, click **+ Create
+   wishes.toml** to start an empty wish list.
+2. **§SR4 — Search config**: set `base_seed` (tick *use project seed* to
+   track the project's own seed, or untick to type a fixed base), `budget`
+   (how many candidate seeds to try), and `report_top` (how many near-misses
+   to keep).
+3. **§SR1 — Constraints**: pick a constraint kind from the dropdown and click
+   **+ Add constraint**. Each constraint renders its own form — faction
+   pickers, world-type / region-kind / stance / system-state dropdowns,
+   share/ratio sliders, count fields, etc. Add as many as you like.
+4. If a constraint names a faction that is not in the roster, a red
+   **§SR5 preflight** line appears and **Run search** is disabled until you
+   fix it.
+5. Click **▶ Run search**. The search runs off-thread; a progress bar shows
+   `tried / budget · passed · best near-miss`. **■ Cancel** detaches a long
+   run.
+6. **§SR3 — Outcome**: the winning seed (if any) shows an **Apply winning
+   seed** button (regenerates the sector from that seed and jumps to MAP) and
+   a non-destructive **View on map**. Each near-miss row has its own
+   **View** / **Apply** plus the list of constraints it failed.
+
+### 11.7 ANALYTICS, INTERESTINGNESS, DIFF, SEGMENTUM, EXPORT
+
+> **INTERESTINGNESS is wired**; the other four tabs are still placeholders as
+> of this writing — Phase E work. They open to the same stub. Use the
+> `sectorforge` CLI for the underlying functionality (`analyze`, `diff`,
+> `compose`, `generate --formats …`).
 >
 > Conceptually:
 >
 > - **ANALYTICS** — counts, distributions, completeness checks.
 > - **INTERESTINGNESS** — scored "is this sector dramatically
->   interesting" metrics with a per-profile preset.
-> - **SEARCH** — declarative wish-based seed search. *"Find me a seed
->   where the Imperium is contested by Tau on at least two hive worlds."*
+>   interesting" metrics with a per-profile preset (live).
 > - **DIFF** — compare two saved states of the sector.
 > - **SEGMENTUM** — multi-sector composition.
 > - **EXPORT** — bundle PNG / SVG / HTML / JSON / Markdown writes; see
@@ -835,9 +860,8 @@ you saved is what gets exported. The outputs land in `./tutorial-sector/out/`:
 
 Now that you have built a small sector end-to-end:
 
-- Use the **SEARCH** tab (or, while it is a placeholder, the
-  `sectorforge search` CLI) to find seeds with specific properties, then
-  scaffold a fresh project from one of them.
+- Use the **SEARCH** tab (§11.6) to find a seed with specific properties and
+  apply it straight onto the current project, then keep editing from there.
 - In **PROJECT → Generation (§6)**, click **Open preset launcher…** to
   switch to one of the curated presets (`m42-classic`,
   `embattled-frontier`, `mercantile-crossroads`, `dead-sector`) and see

@@ -11,8 +11,7 @@ fn random_seed_str() -> String {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    let seed =
-        sectorforge::rng::derive_stage_seed(&nanos.to_string(), "viewer_reroll", "session");
+    let seed = sectorforge::rng::derive_stage_seed(&nanos.to_string(), "viewer_reroll", "session");
     let v = u64::from_le_bytes(seed[..8].try_into().expect("blake3 returns 32 bytes"));
     format!("{v:016x}")
 }

@@ -270,4 +270,41 @@ impl BuilderState {
         }
         Ok(regenerated)
     }
+
+    /// §SR3: apply a seed found by the SEARCH tab. Pins `generation.seed` to
+    /// `seed`, runs a full synchronous regenerate via
+    /// [`sectorforge::generation::generate`], and replaces the working sector
+    /// with the result.
+    ///
+    /// `commit == true` is the "Apply" action — it marks the project dirty and
+    /// triggers auto-save. `commit == false` is the non-destructive "View on
+    /// map" action — the sector is swapped in so it renders, but the project is
+    /// left clean. Either way the index, derivation cache, and invariant report
+    /// are refreshed. A search-found seed describes a *fresh* sector, so pinned
+    /// systems are intentionally not preserved here (unlike §G4 apply-preview).
+    pub fn apply_search_seed(&mut self, seed: &str, commit: bool) -> Result<(), BuilderError> {
+        let mut input =
+            self.synthesize_project_input()
+                .ok_or_else(|| BuilderError::ParseFailed {
+                    file: "apply-search-seed".into(),
+                    message: "worlds catalog not loaded".into(),
+                })?;
+        input.config.generation.seed = seed.to_string();
+        let sector =
+            sectorforge::generation::generate(input).map_err(|e| BuilderError::ParseFailed {
+                file: "apply-search-seed".into(),
+                message: e.to_string(),
+            })?;
+        self.config.generation.seed = seed.to_string();
+        self.sector = sector;
+        self.index = BuilderIndex::rebuild(&self.sector);
+        self.derivation_cache.clear();
+        self.invariant_report = Some(check_sector(&self.sector));
+        self.mark_validation_dirty();
+        if commit {
+            self.dirty = true;
+            self.trigger_auto_save();
+        }
+        Ok(())
+    }
 }

@@ -70,6 +70,46 @@ fn search_is_deterministic_for_same_inputs() {
 }
 
 #[test]
+fn search_with_progress_matches_run_search_and_reports() {
+    // §SR2: the progress-reporting variant must produce a byte-identical
+    // outcome to `run_search`, and must invoke the callback at least once with
+    // a `tried` count inside [1, budget].
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    let project = fixture_project();
+    let input = sectorforge::load_project(project).unwrap();
+    let wishes = WishesFile {
+        search: SearchConfig {
+            base_seed: Some("progress".into()),
+            budget: 4,
+            report_top: 5,
+        },
+        constraints: vec![Constraint::RouteGraphConnected],
+    };
+
+    let plain = sectorforge::run_seed_search(&input, &wishes).unwrap();
+
+    let calls = AtomicU32::new(0);
+    let max_tried = AtomicU32::new(0);
+    let with_progress = sectorforge::search::run_search_with_progress(&input, &wishes, |p| {
+        calls.fetch_add(1, Ordering::Relaxed);
+        max_tried.fetch_max(p.tried, Ordering::Relaxed);
+        assert_eq!(p.budget, 4);
+        assert!(p.tried >= 1 && p.tried <= p.budget);
+        assert!(p.passed <= p.tried);
+    })
+    .unwrap();
+
+    assert_eq!(
+        serde_json::to_string_pretty(&plain).unwrap(),
+        serde_json::to_string_pretty(&with_progress).unwrap(),
+    );
+    assert!(calls.load(Ordering::Relaxed) >= 1);
+    let mt = max_tried.load(Ordering::Relaxed);
+    assert!(mt >= 1 && mt <= 4);
+}
+
+#[test]
 fn search_writes_markdown_and_json() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();

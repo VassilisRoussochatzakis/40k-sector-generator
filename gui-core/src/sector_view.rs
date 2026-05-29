@@ -746,11 +746,13 @@ impl<'a> SectorView<'a> {
                     let (block_min_x, block_top_y) = match chosen {
                         Some(p) => p,
                         None => {
-                            let Some(&(q0, r0)) = s.hex_cells.iter().min_by(|&&(q1, r1), &&(q2, r2)| {
-                                let d1 = (q1 as f32 - aq).powi(2) + (r1 as f32 - ar).powi(2);
-                                let d2 = (q2 as f32 - aq).powi(2) + (r2 as f32 - ar).powi(2);
-                                d1.total_cmp(&d2)
-                            }) else {
+                            let Some(&(q0, r0)) =
+                                s.hex_cells.iter().min_by(|&&(q1, r1), &&(q2, r2)| {
+                                    let d1 = (q1 as f32 - aq).powi(2) + (r1 as f32 - ar).powi(2);
+                                    let d2 = (q2 as f32 - aq).powi(2) + (r2 as f32 - ar).powi(2);
+                                    d1.total_cmp(&d2)
+                                })
+                            else {
                                 continue;
                             };
                             let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
@@ -1185,7 +1187,11 @@ fn draw_system_glyph(
         MapSystemGlyph::BlackHole => {
             painter.circle_filled(c, radius * 0.55, Color32::BLACK);
             painter.circle_stroke(c, radius * 0.9, Stroke::new(2.0, theme.text_dim));
-            painter.circle_stroke(c, radius * 1.1, Stroke::new(1.0, darken(theme.text_dim, 0.4)));
+            painter.circle_stroke(
+                c,
+                radius * 1.1,
+                Stroke::new(1.0, darken(theme.text_dim, 0.4)),
+            );
         }
         MapSystemGlyph::WarpAnomaly => {
             let r = radius * 0.95;
@@ -1201,8 +1207,16 @@ fn draw_system_glyph(
                 Pos2::new(c.x + h, c.y - r * 0.5),
                 Pos2::new(c.x - h, c.y - r * 0.5),
             ];
-            painter.add(egui::Shape::convex_polygon(up, Color32::TRANSPARENT, stroke));
-            painter.add(egui::Shape::convex_polygon(dn, Color32::TRANSPARENT, stroke));
+            painter.add(egui::Shape::convex_polygon(
+                up,
+                Color32::TRANSPARENT,
+                stroke,
+            ));
+            painter.add(egui::Shape::convex_polygon(
+                dn,
+                Color32::TRANSPARENT,
+                stroke,
+            ));
         }
         MapSystemGlyph::SpaceStation => {
             let r = radius * 0.65;

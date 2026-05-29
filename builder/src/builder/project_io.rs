@@ -846,11 +846,7 @@ pub enum CatalogReloadError {
     },
 }
 
-fn reload_err(
-    kind: &'static str,
-    rel: &str,
-    e: impl std::fmt::Display,
-) -> CatalogReloadError {
+fn reload_err(kind: &'static str, rel: &str, e: impl std::fmt::Display) -> CatalogReloadError {
     CatalogReloadError::Parse {
         kind,
         rel: rel.to_string(),
@@ -889,8 +885,8 @@ pub fn reload_catalog(
         return Ok(());
     }
     if state.config.inputs.factions.as_deref() == Some(rel) {
-        let file = toml::from_str::<FactionsFile>(text)
-            .map_err(|e| reload_err("FactionsFile", rel, e))?;
+        let file =
+            toml::from_str::<FactionsFile>(text).map_err(|e| reload_err("FactionsFile", rel, e))?;
         state.data_catalogs.factions = Some(file);
         return Ok(());
     }
@@ -907,8 +903,8 @@ pub fn reload_catalog(
         return Ok(());
     }
     if state.config.inputs.regions.as_deref() == Some(rel) {
-        let file = toml::from_str::<RegionsFile>(text)
-            .map_err(|e| reload_err("RegionsFile", rel, e))?;
+        let file =
+            toml::from_str::<RegionsFile>(text).map_err(|e| reload_err("RegionsFile", rel, e))?;
         state.data_catalogs.regions = Some(file.regions);
         return Ok(());
     }

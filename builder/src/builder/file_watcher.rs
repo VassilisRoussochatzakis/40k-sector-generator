@@ -91,10 +91,8 @@ pub(crate) fn scan_once(
     baseline: &mut BTreeMap<String, SystemTime>,
 ) -> Vec<FileChange> {
     let mut out = Vec::new();
-    let snapshot: Vec<(String, SystemTime)> = baseline
-        .iter()
-        .map(|(k, v)| (k.clone(), *v))
-        .collect();
+    let snapshot: Vec<(String, SystemTime)> =
+        baseline.iter().map(|(k, v)| (k.clone(), *v)).collect();
     for (rel, last) in snapshot {
         let abs = root.join(&rel);
         let Ok(meta) = std::fs::metadata(Path::new(abs.as_str())) else {
@@ -103,7 +101,10 @@ pub(crate) fn scan_once(
         let Ok(now) = meta.modified() else { continue };
         if now > last {
             baseline.insert(rel.clone(), now);
-            out.push(FileChange { rel_path: rel, mtime: now });
+            out.push(FileChange {
+                rel_path: rel,
+                mtime: now,
+            });
         }
     }
     out

@@ -45,7 +45,9 @@ fn no_factions_is_ok() {
     // §TF-P-1: catalogs live behind `Arc`; mutating a single field requires
     // either `Arc::make_mut` (clones-on-write) or rebuilding the `Arc`. The
     // test owns the sole reference at this point, so `make_mut` is cheap.
-    std::sync::Arc::make_mut(&mut input.catalogs).factions.clear();
+    std::sync::Arc::make_mut(&mut input.catalogs)
+        .factions
+        .clear();
     let report = sectorforge::validate_project(&input).unwrap();
     assert!(report.ok);
 }

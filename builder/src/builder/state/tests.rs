@@ -337,7 +337,11 @@ fn assert_round_trip(mut state: BuilderState, cmd: BuilderCommand) {
     state.undo().unwrap();
     assert_eq!(snapshot(&state), before, "undo should restore prior sector");
     state.redo().unwrap();
-    assert_eq!(snapshot(&state), after, "redo should reapply the same change");
+    assert_eq!(
+        snapshot(&state),
+        after,
+        "redo should reapply the same change"
+    );
 }
 
 #[test]

@@ -144,8 +144,7 @@ pub fn pick_world(
 impl<'a> SystemView<'a> {
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SystemClick>) {
         let g = SystemGeom::new(self.side, self.height, self.system, self.layout);
-        let (rect, response) =
-            ui.allocate_exact_size(Vec2::new(g.side, g.height), Sense::click());
+        let (rect, response) = ui.allocate_exact_size(Vec2::new(g.side, g.height), Sense::click());
         let painter = ui.painter_at(rect);
         let origin = rect.min;
         let center = Pos2::new(origin.x + g.side / 2.0, origin.y + g.height / 2.0);
@@ -411,7 +410,13 @@ mod tests {
     #[test]
     fn pick_world_orbital_returns_background_at_corner() {
         let sys = sys_with_world(2);
-        let pick = pick_world(480.0, 480.0, &sys, SystemLayout::Orbital, Pos2::new(2.0, 2.0));
+        let pick = pick_world(
+            480.0,
+            480.0,
+            &sys,
+            SystemLayout::Orbital,
+            Pos2::new(2.0, 2.0),
+        );
         assert_eq!(pick, SystemPick::Background);
     }
 

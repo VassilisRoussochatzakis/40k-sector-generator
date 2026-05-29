@@ -1022,10 +1022,7 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .default_open(false)
         .show(ui, |ui| {
             let w = &state.sector.systems[sys_idx].worlds[w_idx];
-            ui.label(format!(
-                "surface_regions: {} (edit below)",
-                w.regions.len()
-            ));
+            ui.label(format!("surface_regions: {} (edit below)", w.regions.len()));
             ui.label(format!(
                 "conflict default: {}",
                 sectorforge::conflict::ConflictState::is_default(&w.conflict)

@@ -301,10 +301,7 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
                 .iter()
                 .map(|f| format!("{} ({})", f.id, f.score))
                 .collect();
-            ui.colored_label(
-                Color32::DARK_GRAY,
-                format!("dominant: {}", chips.join(",")),
-            );
+            ui.colored_label(Color32::DARK_GRAY, format!("dominant: {}", chips.join(",")));
         }
     });
 

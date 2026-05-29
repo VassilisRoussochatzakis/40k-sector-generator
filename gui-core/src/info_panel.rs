@@ -959,11 +959,7 @@ fn archetype_block(ui: &mut Ui, sys: &GeneratedSystem) {
         );
     }
     if a.necron_phase != sectorforge::archetypes::NecronPhase::default() {
-        kv(
-            ui,
-            "NECRON",
-            &format!("{}", a.necron_phase).to_uppercase(),
-        );
+        kv(ui, "NECRON", &format!("{}", a.necron_phase).to_uppercase());
     }
     if a.tyranid_stage != sectorforge::archetypes::TyranidStage::default() {
         kv(

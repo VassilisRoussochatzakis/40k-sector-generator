@@ -476,6 +476,22 @@ pub struct SearchOutcome {
     pub preflight_errors: Vec<String>,
 }
 
+/// §SR2: live progress snapshot for a running search. Reported after every
+/// candidate the search actually generates + evaluates. Skipped candidates
+/// (short-circuited once a lower-`n` winner exists) do not bump `tried`.
+#[derive(Debug, Clone, Copy)]
+pub struct SearchProgress {
+    /// Candidates generated + evaluated so far.
+    pub tried: u32,
+    /// Candidates that satisfied every constraint so far.
+    pub passed: u32,
+    /// Lowest `total_miss` observed so far. `None` until the first candidate
+    /// is evaluated.
+    pub best_miss: Option<f32>,
+    /// Total candidate budget (the denominator for a progress bar).
+    pub budget: u32,
+}
+
 // ── Loading ────────────────────────────────────────────────────────────────────
 
 /// Parse a wishes file from disk.
@@ -924,7 +940,11 @@ fn evaluate(
             let n = analysis.connectivity.component_count;
             let passed = n == 1;
             // Miss = extra components.
-            let miss = if passed { 0.0 } else { n.saturating_sub(1) as f32 };
+            let miss = if passed {
+                0.0
+            } else {
+                n.saturating_sub(1) as f32
+            };
             ConstraintReport {
                 label: "route_graph_connected".to_string(),
                 passed,
@@ -1140,6 +1160,23 @@ pub fn run_search(
     project_template: &ProjectInput,
     wishes: &WishesFile,
 ) -> Result<SearchOutcome, SectorError> {
+    run_search_with_progress(project_template, wishes, |_| {})
+}
+
+/// §SR2: same deterministic search as [`run_search`], but invokes `progress`
+/// with a [`SearchProgress`] snapshot after every candidate is generated +
+/// evaluated. The callback runs on rayon worker threads, so it must be
+/// `Sync` and cheap (the builder forwards into a shared mutex + repaint). The
+/// returned outcome is byte-for-byte identical to [`run_search`].
+///
+/// # Errors
+///
+/// Same as [`run_search`].
+pub fn run_search_with_progress(
+    project_template: &ProjectInput,
+    wishes: &WishesFile,
+    progress: impl Fn(SearchProgress) + Sync,
+) -> Result<SearchOutcome, SectorError> {
     let base_seed = wishes
         .search
         .base_seed
@@ -1177,6 +1214,28 @@ pub fn run_search(
 
     let lowest_winner = AtomicU32::new(u32::MAX);
 
+    // §SR2 live counters shared across the rayon workers. `best_bits` holds the
+    // lowest `total_miss` seen so far as raw f32 bits; for the non-negative
+    // finite misses this search produces, bitwise `fetch_min` matches numeric
+    // min. The sentinel `f32::INFINITY` means "nothing evaluated yet".
+    let tried = AtomicU32::new(0);
+    let passed = AtomicU32::new(0);
+    let best_bits = AtomicU32::new(f32::INFINITY.to_bits());
+    let report_progress = |report: &CandidateReport| {
+        let tried_now = tried.fetch_add(1, Ordering::Relaxed) + 1;
+        if report.passed {
+            passed.fetch_add(1, Ordering::Relaxed);
+        }
+        best_bits.fetch_min(report.total_miss.to_bits(), Ordering::Relaxed);
+        let best = f32::from_bits(best_bits.load(Ordering::Relaxed));
+        progress(SearchProgress {
+            tried: tried_now,
+            passed: passed.load(Ordering::Relaxed),
+            best_miss: best.is_finite().then_some(best),
+            budget,
+        });
+    };
+
     let slots: Vec<Slot> = (0..budget)
         .into_par_iter()
         .map(|n| {
@@ -1206,6 +1265,7 @@ pub fn run_search(
             if report.passed {
                 lowest_winner.fetch_min(n, Ordering::Relaxed);
             }
+            report_progress(&report);
             Slot::Report(Box::new(report))
         })
         .collect();

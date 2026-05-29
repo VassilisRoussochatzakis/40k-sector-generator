@@ -165,7 +165,10 @@ mod tests {
     fn region_overlay_tokens_cover_all_conditions() {
         let pairs: &[(RegionConditionKind, MapRegionOverlay)] = &[
             (RegionConditionKind::WarpStorm, MapRegionOverlay::WarpStorm),
-            (RegionConditionKind::Turbulence, MapRegionOverlay::Turbulence),
+            (
+                RegionConditionKind::Turbulence,
+                MapRegionOverlay::Turbulence,
+            ),
             (
                 RegionConditionKind::CalmCorridor,
                 MapRegionOverlay::CalmCorridor,

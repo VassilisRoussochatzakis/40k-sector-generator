@@ -381,10 +381,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     ui.end_row();
                     ui.label("pinned");
                     let mut pinned = state.pinned_systems.contains(&id);
-                    if ui
-                        .checkbox(&mut pinned, "(pin from generator)")
-                        .changed()
-                    {
+                    if ui.checkbox(&mut pinned, "(pin from generator)").changed() {
                         if pinned {
                             state.pinned_systems.insert(id.clone());
                         } else {
@@ -903,11 +900,7 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                                 TyranidStage::Besieged,
                                 TyranidStage::Consumed,
                             ] {
-                                ui.selectable_value(
-                                    &mut working.tyranid_stage,
-                                    v,
-                                    format!("{v}"),
-                                );
+                                ui.selectable_value(&mut working.tyranid_stage, v, format!("{v}"));
                             }
                         });
                     ui.end_row();

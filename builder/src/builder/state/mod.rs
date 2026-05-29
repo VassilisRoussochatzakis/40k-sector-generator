@@ -45,15 +45,16 @@ use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::{GeneratedSector, RouteStability, RouteType};
 use sectorforge::{InvariantReport, ValidationReport};
 
+use super::analytics_run::AnalyticsState;
 use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
 use super::derivation_cache::DerivationCache;
-use super::analytics_run::AnalyticsState;
 use super::diff_run::DiffState;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
 use super::preview::PreviewState;
 use super::search_run::SearchState;
+use super::segmentum_run::SegmentumState;
 use super::snapshot::Snapshot;
 
 /// TF-NT-3: identifies a cached `feature_weights_for_world` entry by
@@ -567,6 +568,12 @@ pub struct BuilderState {
     /// and the last export folder. In-memory only. See
     /// [`super::analytics_run::AnalyticsState`].
     pub analytics: AnalyticsState,
+    /// §SG1..§SG5: SEGMENTUM tab runtime — the editable `segmentum.toml`
+    /// document, the off-thread compose job + its per-child progress, and the
+    /// most recently composed segmentum (super-manifest + inter-sector links).
+    /// In-memory only; the document round-trips to disk separately. See
+    /// [`super::segmentum_run::SegmentumState`].
+    pub segmentum: SegmentumState,
 }
 
 impl BuilderState {
@@ -738,6 +745,7 @@ impl BuilderState {
             search: SearchState::default(),
             diff: DiffState::new(),
             analytics: AnalyticsState::new(),
+            segmentum: SegmentumState::default(),
         }
     }
 }

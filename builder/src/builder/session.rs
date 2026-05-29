@@ -245,6 +245,7 @@ impl SessionFile {
             search: super::search_run::SearchState::default(),
             diff: super::diff_run::DiffState::new(),
             analytics: super::analytics_run::AnalyticsState::new(),
+            segmentum: super::segmentum_run::SegmentumState::default(),
         }
     }
 }

@@ -52,8 +52,16 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 fn show_mode(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
         ui.label("mode:");
-        ui.selectable_value(&mut state.diff.mode, DiffMode::TwoSector, "Two-sector (§DF1)");
-        ui.selectable_value(&mut state.diff.mode, DiffMode::Ticks, "Tick simulation (§DF2)");
+        ui.selectable_value(
+            &mut state.diff.mode,
+            DiffMode::TwoSector,
+            "Two-sector (§DF1)",
+        );
+        ui.selectable_value(
+            &mut state.diff.mode,
+            DiffMode::Ticks,
+            "Tick simulation (§DF2)",
+        );
     });
 }
 
@@ -359,7 +367,10 @@ fn show_report(ui: &mut egui::Ui, state: &mut BuilderState) {
         let (txt, col) = if d.catalog_compatible {
             ("catalog compatible", Color32::from_rgb(40, 160, 40))
         } else {
-            ("catalog MISMATCH — best effort", Color32::from_rgb(200, 140, 0))
+            (
+                "catalog MISMATCH — best effort",
+                Color32::from_rgb(200, 140, 0),
+            )
         };
         ui.colored_label(col, txt);
     });
@@ -481,7 +492,8 @@ fn show_systems(ui: &mut egui::Ui, d: &SectorDiff) {
                                         w.claims_removed.len()
                                     ));
                                 }
-                                if !w.presences_added.is_empty() || !w.presences_removed.is_empty() {
+                                if !w.presences_added.is_empty() || !w.presences_removed.is_empty()
+                                {
                                     bits.push(format!(
                                         "presence +{} −{}",
                                         w.presences_added.len(),
@@ -599,13 +611,16 @@ fn show_regions(ui: &mut egui::Ui, d: &SectorDiff) {
 }
 
 fn show_relations(ui: &mut egui::Ui, d: &SectorDiff) {
-    egui::CollapsingHeader::new(format!("Relations  ({} stance changes)", d.stance_changes.len()))
-        .id_salt("diff_relations")
-        .show(ui, |ui| {
-            for s in &d.stance_changes {
-                ui.label(format!("{} ↔ {}: {:?} → {:?}", s.a, s.b, s.before, s.after));
-            }
-        });
+    egui::CollapsingHeader::new(format!(
+        "Relations  ({} stance changes)",
+        d.stance_changes.len()
+    ))
+    .id_salt("diff_relations")
+    .show(ui, |ui| {
+        for s in &d.stance_changes {
+            ui.label(format!("{} ↔ {}: {:?} → {:?}", s.a, s.b, s.before, s.after));
+        }
+    });
 }
 
 fn show_economy(ui: &mut egui::Ui, d: &SectorDiff) {

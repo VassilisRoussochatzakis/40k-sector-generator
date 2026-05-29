@@ -751,19 +751,57 @@ The **ANALYTICS** tab is wired (§A1..§A4). It is the in-app face of
    analysis.md + analysis.json** to write the same artefacts the
    `sectorforge analyze --out <dir>` CLI produces.
 
-### 11.9 INTERESTINGNESS, SEGMENTUM, EXPORT
+### 11.9 INTERESTINGNESS, SEGMENTUM (live), EXPORT
 
 > **INTERESTINGNESS is wired** (scored "is this sector dramatically
-> interesting" metrics with a per-profile preset); the remaining two tabs are
-> still placeholders as of this writing — Phase E work. They open to the same
-> stub. Use the `sectorforge` CLI for the underlying functionality (`compose`,
-> `generate --formats …`).
+> interesting" metrics with a per-profile preset) and **SEGMENTUM is now
+> wired** (§SG1..§SG5 — see §11.10 below). **EXPORT** is still a placeholder
+> as of this writing — Phase E work; it opens to a stub. Use the `sectorforge`
+> CLI for export (`generate --formats …`, see §15).
 >
 > Conceptually:
 >
-> - **SEGMENTUM** — multi-sector composition.
 > - **EXPORT** — bundle PNG / SVG / HTML / JSON / Markdown writes; see
->   §14 for the CLI fallback.
+>   §15 for the CLI fallback.
+
+### 11.10 SEGMENTUM (live)
+
+The **SEGMENTUM** tab is wired (§SG1..§SG5). It is the in-app face of the
+multi-sector composition that `sectorforge compose` drives: it stitches
+several independently-generated child sector projects into one super-grid
+joined by inter-sector warp links.
+
+1. Click **SEGMENTUM**, then **New segmentum…** (seeds a blank 2×1 grid named
+   after your project), or **Load segmentum.toml…** to open an existing one.
+2. **§SG1 — Segmentum config / [stitch] policy / children**: set `columns` ×
+   `rows`, `stitch_seed`, and `faction_mode` (`shared` treats matching faction
+   ids across children as the same entity; `independent` namespaces them).
+   The `[stitch]` block controls `max_links_per_pair`, `border_depth`, and the
+   `default_route_type` / `default_stability` stamped on each link. Each child
+   row is `{ id, project, column, row, seed override, title override }` — use
+   **pick…** to choose the child's project folder. The **super-grid preview**
+   shows slot occupancy and flags duplicate slots in red. **Save
+   segmentum.toml** writes the document back to disk.
+3. **§SG2 — Compose**: pick an **output folder**, then click **▶ Compose**.
+   Composition runs off-thread — a progress bar tracks each child through
+   `load → validate → generate → invariant → export`, then the final
+   `stitch` pass. **■ Cancel** detaches a long run.
+4. **§SG3 — Super-manifest**: once compose finishes (or you **Load composed
+   segmentum.json…**), the result opens *in this same tab* — generator
+   version, stitch-seed / settings digests, aggregate system / world / route /
+   link counts, and a per-child table.
+5. **§SG4 — inter-sector links**: edit each warp link's endpoints
+   (`from`/`to` system ids), `distance_units`, route type and stability, with
+   per-row **remove**; **+ Add link** appends a manual link (pick the two
+   child sectors, type the two system ids), inferring its border orientation.
+6. **§SG5 — Export composed segmentum**: **Export segmentum.json + .md**
+   writes the (possibly hand-edited) result — `segmentum.json`,
+   `segmentum.md`, and `super_manifest.json` — into the output folder, the
+   same artefacts the `sectorforge compose` CLI emits.
+
+> **Note.** Each child `project` must be a real sector project on disk (the
+> kind §1 creates). Composition generates every child from scratch using its
+> own (or the overridden) seed, so a compose can take a while for large grids.
 
 ---
 
@@ -922,9 +960,8 @@ Now that you have built a small sector end-to-end:
   switch to one of the curated presets (`m42-classic`,
   `embattled-frontier`, `mercantile-crossroads`, `dead-sector`) and see
   how the tonal knobs change the output without changing the catalogues.
-- Compose multiple sector projects into a super-manifest with the
-  `sectorforge compose` CLI (the **SEGMENTUM** tab is currently a
-  placeholder).
+- Compose multiple sector projects into a super-manifest from the
+  **SEGMENTUM** tab (§11.10), or with the `sectorforge compose` CLI.
 - Read [OVERVIEW.md](OVERVIEW.md) for the qualitative tour of the system, then
   [GUIDE.md](GUIDE.md) for the engineering-level details on every module the
   builder calls into.

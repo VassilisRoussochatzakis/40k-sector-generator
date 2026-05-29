@@ -2045,7 +2045,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Search    -> panels/search.rs     (Phase E §SR1..§SR5 DONE)
         Diff      -> panels/diff.rs       (Phase E §DF1..§DF5 DONE)
         Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5 DONE)
-        Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5)
+        Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5 DONE)
         Export    -> panels/export.rs     (Phase E §EX1..§EX8)
       Stub panels share `panels/placeholder.rs` so each unfinished body
       announces the phase + section that fills the tab.
@@ -2068,7 +2068,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
           [x] panels/diff.rs            §DF1..§DF5  diff + tick editor
           [ ] panels/export.rs          §EX1..§EX8  export bundle editor
           [x] panels/search.rs          §SR1..§SR5  wishes/search editor
-          [ ] panels/segmentum.rs       §SG1..§SG5  compose editor
+          [x] panels/segmentum.rs       §SG1..§SG5  compose editor
 
       `panels/placeholder.rs` is the shared 13-LOC routing-fallback helper
       every stub above calls — it is NOT a stub itself and stays after the
@@ -2517,8 +2517,19 @@ Phase E — Tooling
                    `sectorforge::write_diff`. State lives in
                    `builder/src/builder/diff_run.rs::DiffState`
                    (`DiffMode`, `SlotKind`, `LoadedFile`).)
-  A1..A4,     DONE 
-  SG1..SG5,   (§36 segmentum)
+  A1..A4,     DONE
+  SG1..SG5,   (§36 segmentum — DONE.
+                   `builder/src/builder/panels/segmentum.rs` ships the §SG1
+                   `segmentum.toml` editor (super-grid + [stitch] + children +
+                   super-grid preview, save via `project_io::atomic_write`),
+                   the §SG2 off-thread compose re-using
+                   `sectorforge::compose_segmentum_with_progress` with a
+                   per-child progress bar, the §SG3 super-manifest preview, the
+                   §SG4 inter-sector link editor (add/remove/edit), and the
+                   §SG5 in-tab view + `sectorforge::write_segmentum` re-export
+                   (also loads a prior `segmentum.json`). State lives in
+                   `builder/src/builder/segmentum_run.rs::SegmentumState`
+                   (`ComposeJobResult`, `NewLinkDraft`).)
   PF1..PF6,   (§37 project + files)
   EX1..EX8,   (§34 export bundle)
   T1..T5,     (§40 testing — T6..T7 land in Phase F)

@@ -313,6 +313,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | [builder/src/builder/analytics_run.rs](../builder/src/builder/analytics_run.rs) | §A1..§A4 ANALYTICS runtime: editable `AnalyzeConfig` + strict mode |
 | [builder/src/builder/diff_run.rs](../builder/src/builder/diff_run.rs) | §DF1..§DF5 DIFF runtime: two scratch sector slots + diff/tick |
 | [builder/src/builder/search_run.rs](../builder/src/builder/search_run.rs) | §SR1..§SR5 SEARCH runtime: editable wishes doc + search driver |
+| [builder/src/builder/segmentum_run.rs](../builder/src/builder/segmentum_run.rs) | §SG1..§SG5 SEGMENTUM runtime: editable `segmentum.toml` + off-thread compose job + composed result |
 
 ### Builder state (builder/src/builder/state/)
 

@@ -139,7 +139,9 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
         }
         // §A3 strict toggle — display-only failure gate.
         ui.checkbox(&mut state.analytics.strict, "Strict")
-            .on_hover_text("Treat every health flag as a failure (CI parity with `analyze --strict`).");
+            .on_hover_text(
+                "Treat every health flag as a failure (CI parity with `analyze --strict`).",
+            );
 
         ui.separator();
 
@@ -282,7 +284,14 @@ fn show_faction_balance(ui: &mut Ui, a: &SectorAnalysis) {
             .striped(true)
             .spacing([12.0, 2.0])
             .show(ui, |ui| {
-                for h in ["Faction", "Kind", "Share", "Projection", "Worlds", "Systems"] {
+                for h in [
+                    "Faction",
+                    "Kind",
+                    "Share",
+                    "Projection",
+                    "Worlds",
+                    "Systems",
+                ] {
                     ui.label(RichText::new(h).strong());
                 }
                 ui.end_row();
@@ -316,7 +325,10 @@ fn show_world_stats(ui: &mut Ui, a: &SectorAnalysis) {
                 "Contested world ratio: {:.1}%",
                 a.contested_world_ratio * 100.0
             ));
-            ui.label(format!("Avg claims per world: {:.2}", a.avg_claims_per_world));
+            ui.label(format!(
+                "Avg claims per world: {:.2}",
+                a.avg_claims_per_world
+            ));
             count_block(ui, "Claim kinds", &a.claim_kind_counts);
             count_block(ui, "Dominance buckets", &a.dominance_counts);
             count_block(ui, "System political states", &a.system_state_counts);
@@ -337,37 +349,40 @@ fn show_distributions(ui: &mut Ui, a: &SectorAnalysis) {
 
 fn show_connectivity(ui: &mut Ui, a: &SectorAnalysis) {
     let c = &a.connectivity;
-    egui::CollapsingHeader::new(format!("Route-graph connectivity — {} component(s)", c.component_count))
-        .default_open(false)
-        .show(ui, |ui| {
-            ui.label(format!("Largest component: {}", c.largest_component_size));
-            ui.label(match c.diameter_hops {
-                Some(d) => format!("Diameter: {d} hops"),
-                None => "Diameter: — (disconnected)".to_string(),
-            });
-            if c.articulation_point_ids.is_empty() {
-                ui.colored_label(Color32::from_rgb(120, 180, 120), "No articulation points.");
-            } else {
-                ui.colored_label(
-                    Color32::from_rgb(210, 170, 90),
-                    format!(
-                        "Articulation points ({}): {}",
-                        c.articulation_point_ids.len(),
-                        join_ids(&c.articulation_point_ids)
-                    ),
-                );
-            }
-            if !c.isolated_system_ids.is_empty() {
-                ui.colored_label(
-                    Color32::from_rgb(210, 170, 90),
-                    format!(
-                        "Isolated systems ({}): {}",
-                        c.isolated_system_ids.len(),
-                        join_ids(&c.isolated_system_ids)
-                    ),
-                );
-            }
+    egui::CollapsingHeader::new(format!(
+        "Route-graph connectivity — {} component(s)",
+        c.component_count
+    ))
+    .default_open(false)
+    .show(ui, |ui| {
+        ui.label(format!("Largest component: {}", c.largest_component_size));
+        ui.label(match c.diameter_hops {
+            Some(d) => format!("Diameter: {d} hops"),
+            None => "Diameter: — (disconnected)".to_string(),
         });
+        if c.articulation_point_ids.is_empty() {
+            ui.colored_label(Color32::from_rgb(120, 180, 120), "No articulation points.");
+        } else {
+            ui.colored_label(
+                Color32::from_rgb(210, 170, 90),
+                format!(
+                    "Articulation points ({}): {}",
+                    c.articulation_point_ids.len(),
+                    join_ids(&c.articulation_point_ids)
+                ),
+            );
+        }
+        if !c.isolated_system_ids.is_empty() {
+            ui.colored_label(
+                Color32::from_rgb(210, 170, 90),
+                format!(
+                    "Isolated systems ({}): {}",
+                    c.isolated_system_ids.len(),
+                    join_ids(&c.isolated_system_ids)
+                ),
+            );
+        }
+    });
 }
 
 fn show_subsector_variety(ui: &mut Ui, a: &SectorAnalysis) {

@@ -736,7 +736,9 @@ fn write_and_digest(
     Ok(())
 }
 
-fn atomic_write(target: &Utf8Path, bytes: &[u8]) -> std::io::Result<()> {
+/// Write `bytes` to `target` atomically (write to a sibling temp file, then
+/// rename). Shared with the §PF6 / §SG1 `segmentum.toml` writer.
+pub(crate) fn atomic_write(target: &Utf8Path, bytes: &[u8]) -> std::io::Result<()> {
     let parent = target.parent().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidInput,

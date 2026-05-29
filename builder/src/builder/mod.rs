@@ -21,6 +21,7 @@ pub mod preferences;
 pub mod preview;
 pub mod project_io;
 pub mod search_run;
+pub mod segmentum_run;
 pub mod session;
 pub mod snapshot;
 pub mod state;
@@ -41,6 +42,7 @@ pub use project_io::{
     NewProjectOptions,
 };
 pub use search_run::{NewConstraintKind, SearchJobResult, SearchState};
+pub use segmentum_run::{ComposeJobResult, NewLinkDraft, SegmentumState};
 pub use session::{load_session, save_session, SessionFile};
 pub use snapshot::Snapshot;
 pub use state::{BuilderState, ModalKind, PartialRegenRect};

@@ -1,0 +1,146 @@
+[project]
+id = "sec100-sector"
+title = "SEC100 Generated Sector"
+description = "M42-density sector scaled to a 100x100 hex grid (same system & route density as m42_project)."
+version = "0.2.0"
+
+# ── Inputs ────────────────────────────────────────────────────────────────────
+# Every authorable input the loader (`src/input.rs`) recognises.
+
+[inputs]
+world_data_dir = "data/worlds"
+system_names = "data/names/system_names.toml"
+world_names = "data/names/world_names.toml"
+factions = "data/factions/factions.toml"
+route_rules = "data/routes/route_rules.toml"
+# §5 NEW2.md kind/disposition rules + public/secret relation overrides.
+relations = "data/factions/relations.toml"
+# §5 NEW.md regional warp phenomena overlay catalogue + stage params.
+regions = "data/routes/regions.toml"
+# §12 NEW.md trade & resource economy production / consumption tables.
+economy = "data/worlds/economy.toml"
+# §1 NEW2.md chronicle eras + event rules.
+history = "data/history.toml"
+# §3 NEW.md dramatis personae kind pools + manual entries.
+personae = "data/personae.toml"
+# §7 NEW2.md planetary site / point-of-interest manual entries.
+sites = "data/sites.toml"
+
+# ── Generation ────────────────────────────────────────────────────────────────
+# 100x100 hex grid. m42_project densities preserved:
+#   system density = 24 / (8*10) = 0.30 systems/hex -> 0.30 * 10000 = 3000 systems
+#   route_density  = 0.30 (ratio, unchanged)
+
+[generation]
+seed = "sec100-default-seed"
+sector_width = 100
+sector_height = 100
+subsector_width = 4
+subsector_height = 5
+system_count = 3000
+min_worlds_per_system = 2
+max_worlds_per_system = 6
+allow_empty_hexes = true
+world_feature_count = 3
+strict_world_rows = true
+
+[generation.placement]
+mode = "uniform_grid"   # uniform_grid | weighted_grid | clustered
+cluster_bias = 0.0
+minimum_system_distance = 1
+
+[generation.world_selection]
+mode = "weighted_rows"
+require_complete_rows = true
+allow_partial_rows = false
+same_star_colour_bias = 1.25
+strict_same_star_colour = false
+avoid_duplicate_world_type_in_system = false
+
+[generation.routes]
+enabled = true
+max_route_distance = 4
+route_density = 0.30
+ensure_connected_graph = true
+
+[generation.relations]
+# Filter the diplomacy matrix to factions present on at least N worlds.
+min_world_presence = 1
+
+# ── Analyze (§8 NEW.md) ───────────────────────────────────────────────────────
+
+[analyze]
+warn_faction_share = 0.50
+warn_if_disconnected = true
+warn_if_articulation = true
+tiny_sector_threshold = 5
+warn_contested_ratio = 0.66
+
+# ── Seed-search defaults (§2 NEW.md) ──────────────────────────────────────────
+
+[search]
+budget = 256
+report_top = 5
+
+# ── Sector diff defaults (§10 NEW.md) ────────────────────────────────────────
+
+[diff]
+skip_worlds = false
+skip_routes = false
+min_faction_delta = 1.0
+top_faction_deltas = 10
+
+# ── History block (used as fallback if inputs.history is unset) ──────────────
+# The full eras + event_rules live in data/history.toml; these are the
+# top-level fallback values applied when no history file is referenced.
+
+[history]
+enabled = true
+epoch_start = 36
+epoch_end = 42
+max_events_per_world = 6
+max_events_per_system = 4
+max_events_per_route = 2
+key_events_top_n = 25
+max_subsector_events = 64
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+
+[outputs]
+directory = "out"
+formats = ["json", "markdown", "bitmap", "html"]
+pretty_json = true
+write_per_system_files = true
+write_manifest = true
+write_diagnostics = true
+
+[outputs.bitmap]
+sector_scale = 5
+system_scale = 4
+render_systems = true
+faction_fill = true
+heatmap = "off"   # off | control | tension | stability | economy | warp_pressure
+
+[outputs.html]
+theme = "dark"        # dark | parchment | hololithic
+# player_observer = "imperial_administration"  # uncomment to redact for one faction
+player_min_confidence = 30
+size_warn_bytes = 8388608
+compact_json = true
+
+# ── Map theme (§13 NEW2.md) ───────────────────────────────────────────────────
+# Built-in: gm_dark | print_mono | imperial_archive | navis_tactical |
+# inquisition_redacted | subsector_political. Fields below overlay onto it.
+
+[map_theme]
+name = "gm_dark"
+show_subsector_borders = true
+route_line_mode = "hazard_weighted"   # standard | hazard_weighted
+label_density = "important_only"      # all | important_only | none
+legend = "full"                       # full | compact | hidden
+symbol_set = "standard"               # standard | tactical | redacted
+faction_tint_strength = 0.45
+heatmap_tint_min = 0.10
+heatmap_tint_range = 0.85
+route_thickness = 2.0
+region_tint_strength = 0.30

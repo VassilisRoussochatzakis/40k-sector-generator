@@ -1,0 +1,287 @@
+# §12 NEW.md & §4 NEW2.md — Trade & resource economy.
+#
+# Exercises every authorable knob:
+#   • [economy] enabled / feed_stability
+#   • [economy.by_world_type.<WorldType>]    — production/consumption vectors
+#   • [economy.by_tech_level.<TechLevel>]    — multiplier on the vector
+#   • [economy.by_population."population:*"] — population scale multiplier
+#   • [resources.world_type.<WorldType>]     — strategic output rule (§4 NEW2)
+#   • [resources.notable_feature.<Feature>]  — feature-scoped strategic rule
+
+[economy]
+enabled = true
+feed_stability = true
+
+# ── Per-world-type production / consumption vectors ───────────────────────────
+# Positive = surplus, negative = deficit. Six tracked commodities.
+
+[economy.by_world_type.HiveWorld]
+ore = -20.0
+promethium = -10.0
+foodstuffs = -80.0
+manufactured = 70.0
+archeotech = 0.0
+recruits = 95.0
+
+[economy.by_world_type.ForgeWorld]
+ore = 40.0
+promethium = 20.0
+foodstuffs = -55.0
+manufactured = 120.0
+archeotech = 25.0
+recruits = 10.0
+
+[economy.by_world_type.AgriWorld]
+ore = -10.0
+promethium = -5.0
+foodstuffs = 110.0
+manufactured = -20.0
+archeotech = 0.0
+recruits = 30.0
+
+[economy.by_world_type.ShrineWorld]
+ore = -5.0
+promethium = -5.0
+foodstuffs = -15.0
+manufactured = -10.0
+archeotech = 5.0
+recruits = 25.0
+
+[economy.by_world_type.IndustrialWorld]
+ore = 60.0
+promethium = 30.0
+foodstuffs = -30.0
+manufactured = 60.0
+archeotech = 0.0
+recruits = 15.0
+
+[economy.by_world_type.FrontierWorld]
+ore = 10.0
+promethium = 5.0
+foodstuffs = 0.0
+manufactured = -15.0
+archeotech = 0.0
+recruits = 5.0
+
+[economy.by_world_type.DeathWorld]
+ore = 0.0
+promethium = 0.0
+foodstuffs = -5.0
+manufactured = -25.0
+archeotech = 5.0
+recruits = 50.0
+
+[economy.by_world_type.PenalWorld]
+ore = 35.0
+promethium = 10.0
+foodstuffs = -25.0
+manufactured = 5.0
+archeotech = 0.0
+recruits = 40.0
+
+[economy.by_world_type.BastionWorld]
+ore = 5.0
+promethium = 10.0
+foodstuffs = -25.0
+manufactured = 15.0
+archeotech = 0.0
+recruits = 80.0
+
+[economy.by_world_type.FeudalWorld]
+ore = 5.0
+promethium = -5.0
+foodstuffs = 30.0
+manufactured = -15.0
+archeotech = 0.0
+recruits = 20.0
+
+[economy.by_world_type.FeralWorld]
+ore = 5.0
+promethium = 0.0
+foodstuffs = 15.0
+manufactured = -25.0
+archeotech = 0.0
+recruits = 25.0
+
+[economy.by_world_type.ResearchStation]
+ore = 0.0
+promethium = 0.0
+foodstuffs = -10.0
+manufactured = -5.0
+archeotech = 30.0
+recruits = 0.0
+
+[economy.by_world_type.Orbital]
+ore = 0.0
+promethium = 5.0
+foodstuffs = -10.0
+manufactured = 20.0
+archeotech = 0.0
+recruits = 5.0
+
+[economy.by_world_type.Asteroid]
+ore = 70.0
+promethium = 15.0
+foodstuffs = -15.0
+manufactured = -20.0
+archeotech = 0.0
+recruits = 0.0
+
+[economy.by_world_type.ExtractiveColony]
+ore = 80.0
+promethium = 40.0
+foodstuffs = -30.0
+manufactured = -25.0
+archeotech = 0.0
+recruits = 5.0
+
+[economy.by_world_type.TombWorld]
+ore = 5.0
+promethium = 0.0
+foodstuffs = 0.0
+manufactured = 0.0
+archeotech = 45.0
+recruits = 0.0
+
+[economy.by_world_type.PleasureWorld]
+ore = 0.0
+promethium = -5.0
+foodstuffs = -30.0
+manufactured = -20.0
+archeotech = 0.0
+recruits = 0.0
+
+# ── Tech-level multipliers ────────────────────────────────────────────────────
+# Multiplies the per-world-type vector before population scaling.
+
+[economy.by_tech_level]
+Primitive = 0.35
+Low = 0.70
+Standard = 1.00
+High = 1.30
+XenoHybrid = 1.15
+Archaeotech = 1.60
+
+# ── Population multipliers ────────────────────────────────────────────────────
+# Keys use the "population:<tag>" tag form expected by the loader.
+
+[economy.by_population]
+"population:uninhabited" = 0.10
+"population:minimal" = 0.35
+"population:lightly_populated" = 0.65
+"population:sole_settlement" = 0.85
+"population:densely_populated" = 1.25
+"population:extremely_dense" = 1.75
+
+# ── §4 NEW2.md strategic output rules (0..=100) ───────────────────────────────
+# World-type rules override built-in defaults per-field.
+
+[resources.world_type.AgriWorld]
+food = 95.0
+manpower = 25.0
+manufacturing = 5.0
+trade_multiplier = 1.10
+
+[resources.world_type.HiveWorld]
+food = 0.0
+manpower = 95.0
+manufacturing = 65.0
+arms = 55.0
+trade_multiplier = 1.05
+
+[resources.world_type.ForgeWorld]
+ore = 55.0
+manufacturing = 95.0
+arms = 80.0
+ships = 60.0
+knowledge = 30.0
+
+[resources.world_type.ShrineWorld]
+pilgrimage = 95.0
+psyker_tithe = 50.0
+manpower = 25.0
+supply_resilience = 5.0
+
+[resources.world_type.BastionWorld]
+arms = 70.0
+manpower = 70.0
+ships = 25.0
+supply_resilience = 15.0
+
+[resources.world_type.ResearchStation]
+knowledge = 95.0
+psyker_tithe = 40.0
+arms = 10.0
+
+[resources.world_type.PenalWorld]
+manpower = 65.0
+ore = 40.0
+supply_resilience = -5.0
+
+[resources.world_type.XenosWorld]
+xenos_value = 90.0
+arms = 20.0
+
+[resources.world_type.TombWorld]
+xenos_value = 50.0
+knowledge = 20.0
+
+[resources.world_type.ExtractiveColony]
+ore = 85.0
+manufacturing = 5.0
+
+# ── §4 NEW2.md notable-feature rules ──────────────────────────────────────────
+# Feature rules add to built-ins. trade_multiplier and supply_resilience tweak
+# downstream route economy summaries.
+
+[resources.notable_feature.TradeHub]
+trade_multiplier = 1.5
+supply_resilience = 15.0
+
+[resources.notable_feature.AdministrativeHub]
+trade_multiplier = 1.30
+manpower = 15.0
+supply_resilience = 10.0
+
+[resources.notable_feature.Freeport]
+trade_multiplier = 1.35
+supply_resilience = 5.0
+
+[resources.notable_feature.MajorSpaceyard]
+ships = 25.0
+arms = 10.0
+
+[resources.notable_feature.ImportantShrine]
+pilgrimage = 25.0
+psyker_tithe = 5.0
+
+[resources.notable_feature.PilgrimageSite]
+pilgrimage = 20.0
+
+[resources.notable_feature.WarpPhenomena]
+trade_multiplier = 0.50
+supply_resilience = -10.0
+
+[resources.notable_feature.DaemonicCorruption]
+trade_multiplier = 0.20
+supply_resilience = -25.0
+xenos_value = 10.0
+
+[resources.notable_feature.PsykerAcademy]
+psyker_tithe = 25.0
+knowledge = 10.0
+
+[resources.notable_feature.ArchaeotechRuins]
+knowledge = 15.0
+xenos_value = 5.0
+
+[resources.notable_feature.Prosperous]
+trade_multiplier = 1.20
+food = 5.0
+
+[resources.notable_feature.HeavyMining]
+ore = 20.0
+
+[resources.notable_feature.HeavyIndustry]
+manufacturing = 20.0
+arms = 10.0

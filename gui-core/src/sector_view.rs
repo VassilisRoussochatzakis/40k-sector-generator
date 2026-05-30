@@ -187,6 +187,13 @@ impl<'a> SectorView<'a> {
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SectorClick>) {
         let g = SectorGeom::new(self.hex_size, self.origin);
         let (rect, response) = ui.allocate_at_least(ui.available_size(), self.sense);
+        // Cull against the visible viewport, not the full content rect. Inside a
+        // ScrollArea `ui.clip_rect()` is the scroll viewport (egui clones the
+        // parent painter's clip into child uis), so this confines the per-hex,
+        // per-route, and per-label work to what is actually on screen. Callers
+        // that are not scrolled (clip ⊇ content) get `cull == rect`, leaving
+        // their output unchanged.
+        let cull = ui.clip_rect().intersect(rect);
         let painter = ui.painter_at(rect).with_clip_rect(rect);
         let origin = self.origin;
 
@@ -208,12 +215,12 @@ impl<'a> SectorView<'a> {
 
         // Performance: only iterate hexes visible in the current viewport
         let min_r =
-            ((rect.min.y - origin.y - g.margin - g.hex_size * 2.0) / vert_step).floor() as i32;
-        let max_r = ((rect.max.y - origin.y - g.margin + g.hex_size) / vert_step).ceil() as i32;
+            ((cull.min.y - origin.y - g.margin - g.hex_size * 2.0) / vert_step).floor() as i32;
+        let max_r = ((cull.max.y - origin.y - g.margin + g.hex_size) / vert_step).ceil() as i32;
 
         let min_q =
-            ((rect.min.x - origin.x - g.margin - horiz_step * 1.5) / horiz_step).floor() as i32;
-        let max_q = ((rect.max.x - origin.x - g.margin + horiz_step) / horiz_step).ceil() as i32;
+            ((cull.min.x - origin.x - g.margin - horiz_step * 1.5) / horiz_step).floor() as i32;
+        let max_q = ((cull.max.x - origin.x - g.margin + horiz_step) / horiz_step).ceil() as i32;
 
         for r in min_r.max(0)..max_r.min(self.sector.height as i32) {
             for q in min_q.max(0)..max_q.min(self.sector.width as i32) {
@@ -277,7 +284,7 @@ impl<'a> SectorView<'a> {
                 for (&(q, r), sid) in &cache.hex_subsector {
                     if sid == sel {
                         let c = hex_center(q, r, &g) + origin.to_vec2();
-                        if rect.expand(g.hex_size).contains(c) {
+                        if cull.expand(g.hex_size).contains(c) {
                             draw_hex_fill(&painter, c, g.hex_size, theme.subsector_highlight);
                         }
                     }
@@ -288,7 +295,7 @@ impl<'a> SectorView<'a> {
                     if let Some(s) = subs.iter().find(|s| s.id.as_ref() == sel) {
                         for &(q, r) in &s.hex_cells {
                             let c = hex_center(q as i32, r as i32, &g) + origin.to_vec2();
-                            if rect.expand(g.hex_size).contains(c) {
+                            if cull.expand(g.hex_size).contains(c) {
                                 draw_hex_fill(&painter, c, g.hex_size, theme.subsector_highlight);
                             }
                         }
@@ -386,7 +393,7 @@ impl<'a> SectorView<'a> {
             let Some((a2, b2)) = shorten(a, b) else {
                 continue;
             };
-            if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
+            if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
                 continue;
             }
             draw_route_line(
@@ -446,7 +453,7 @@ impl<'a> SectorView<'a> {
                 let Some((a2, b2)) = shorten(a, b) else {
                     continue;
                 };
-                if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
+                if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
                     continue;
                 }
                 painter.line_segment([a2, b2], Stroke::new(glow_thick, glow));
@@ -468,7 +475,7 @@ impl<'a> SectorView<'a> {
                 let Some((a2, b2)) = shorten(a, b) else {
                     continue;
                 };
-                if !segment_intersects_rect(a2, b2, rect, route_cull_margin) {
+                if !segment_intersects_rect(a2, b2, cull, route_cull_margin) {
                     continue;
                 }
                 let glow = Color32::from_rgba_unmultiplied(
@@ -493,12 +500,12 @@ impl<'a> SectorView<'a> {
             }
         }
 
-        draw_region_labels(&painter, self.sector, origin, &g, rect, self.cache, theme);
+        draw_region_labels(&painter, self.sector, origin, &g, cull, self.cache, theme);
 
         // Pass 1: all system hex fills + stars + pips.
         for sys in &self.sector.systems {
             let c = centers[sys.id.as_str()];
-            if !rect.expand(g.hex_size).contains(c) {
+            if !cull.expand(g.hex_size).contains(c) {
                 continue;
             }
             let is_sel = self.selected_system == Some(sys.id.as_str());
@@ -615,6 +622,9 @@ impl<'a> SectorView<'a> {
                     Vec::with_capacity(self.sector.systems.len() * 2);
                 for sys in &self.sector.systems {
                     let c = centers[sys.id.as_str()];
+                    if !cull.expand(g.hex_size * 2.0).contains(c) {
+                        continue;
+                    }
                     obstacles.push(egui::Rect::from_min_max(
                         Pos2::new(c.x - hex_half_w, c.y - g.hex_size),
                         Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
@@ -642,6 +652,17 @@ impl<'a> SectorView<'a> {
 
                 for s in subs {
                     if s.system_ids.is_empty() || s.hex_cells.is_empty() {
+                        continue;
+                    }
+                    // Skip clusters whose hex bounds fall entirely outside the
+                    // viewport — their label can't land on screen anyway, and
+                    // building the candidate-cell list per cluster is the bulk
+                    // of this block's per-frame cost on large sectors.
+                    if (s.bounds.q_max as i32) < min_q
+                        || (s.bounds.q_min as i32) > max_q
+                        || (s.bounds.r_max as i32) < min_r
+                        || (s.bounds.r_min as i32) > max_r
+                    {
                         continue;
                     }
 
@@ -721,7 +742,7 @@ impl<'a> SectorView<'a> {
                             Pos2::new(block_min_x, block_top_y) - pad,
                             Vec2::new(block_w, block_h) + pad * 2.0,
                         );
-                        if !rect.contains_rect(bg) {
+                        if !cull.contains_rect(bg) {
                             return None;
                         }
                         for o in obstacles.iter().chain(placed.iter()) {
@@ -758,11 +779,11 @@ impl<'a> SectorView<'a> {
                             let anchor = hex_center(q0 as i32, r0 as i32, &g) + origin.to_vec2();
                             let bt = anchor.y - g.hex_size - block_h - 2.0;
                             let bmx = (anchor.x - block_w / 2.0)
-                                .max(rect.left() + pad.x)
-                                .min(rect.right() - block_w - pad.x);
+                                .max(cull.left() + pad.x)
+                                .min(cull.right() - block_w - pad.x);
                             let bty = bt
-                                .max(rect.top() + pad.y)
-                                .min(rect.bottom() - block_h - pad.y);
+                                .max(cull.top() + pad.y)
+                                .min(cull.bottom() - block_h - pad.y);
                             (bmx, bty)
                         }
                     };
@@ -800,7 +821,7 @@ impl<'a> SectorView<'a> {
             let pad = Vec2::new(3.0, 1.0);
             for sys in &self.sector.systems {
                 let c = centers[sys.id.as_str()];
-                if !label_intersects_rect(sys.name.as_ref(), c, star_r, label_size, pad, rect) {
+                if !label_intersects_rect(sys.name.as_ref(), c, star_r, label_size, pad, cull) {
                     continue;
                 }
 
@@ -826,12 +847,12 @@ impl<'a> SectorView<'a> {
                     let pad = Vec2::new(4.0, 2.0);
                     let size = galley.size() + pad * 2.0;
                     let mut anchor = Pos2::new(pos.x - 14.0 - size.x, pos.y - size.y / 2.0);
-                    if anchor.x < rect.left() + 2.0 {
+                    if anchor.x < cull.left() + 2.0 {
                         anchor.x = pos.x + 14.0;
                     }
                     anchor.y = anchor
                         .y
-                        .clamp(rect.top() + 2.0, rect.bottom() - size.y - 2.0);
+                        .clamp(cull.top() + 2.0, cull.bottom() - size.y - 2.0);
                     let bg = egui::Rect::from_min_size(anchor, size);
                     painter.rect_filled(bg, 2.0, theme.bg);
                     painter.rect_stroke(bg, 2.0, Stroke::new(1.0, theme.hex_outline));

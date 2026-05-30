@@ -505,48 +505,63 @@ fn cluster_systems(
         .max(1) as usize)
         .min(n);
 
-    // Pre-score every system as a capital seed candidate.
-    let scores: BTreeMap<SystemId, i32> = sector
+    // Index-keyed precomputation. Clustering is hot: the prior version called
+    // the O(n) `GeneratedSector::get_system` inside every seeding/Lloyd inner
+    // loop, making the whole pass ~O(n²·k) and hanging the MAP tab on large
+    // sectors (2456 systems / 205 clusters ≈ 1e11 ops). Every lookup below is
+    // O(1) over these arrays, and all iteration stays in `sector.systems` order
+    // so the clustering output is byte-identical to the scan-based version.
+    let coords: Vec<HexCoord> = sector.systems.iter().map(|s| s.coord).collect();
+    let score_by_idx: Vec<i32> = sector
         .systems
         .iter()
-        .map(|sys| (sys.id.clone(), seed_score(sys, route_degree)))
+        .map(|s| seed_score(s, route_degree))
         .collect();
 
-    // First seed: highest score; tie-break by ascending system.index then id.
-    let mut sorted_indices: Vec<usize> = (0..n).collect();
-    sorted_indices.sort_by(|&a, &b| {
-        let sys_a = &sector.systems[a];
-        let sys_b = &sector.systems[b];
-        let score_a = scores.get(&sys_a.id).unwrap();
-        let score_b = scores.get(&sys_b.id).unwrap();
-        score_b
-            .cmp(score_a)
-            .then_with(|| sys_a.index.cmp(&sys_b.index))
-            .then_with(|| sys_a.id.cmp(&sys_b.id))
-    });
-    let mut seeds: Vec<SystemId> = vec![sector.systems[sorted_indices[0]].id.clone()];
+    // `a` is the stronger capital seed than `b`: higher score, then lower
+    // sector index, then lower id. Drives the first-seed pick and the Lloyd
+    // seed-update winner. Strict total order (ids are unique), so the chosen
+    // element is independent of visitation order.
+    let stronger = |a: usize, b: usize| -> bool {
+        let (sa, sb) = (&sector.systems[a], &sector.systems[b]);
+        match score_by_idx[a].cmp(&score_by_idx[b]) {
+            std::cmp::Ordering::Greater => true,
+            std::cmp::Ordering::Less => false,
+            std::cmp::Ordering::Equal => match sa.index.cmp(&sb.index) {
+                std::cmp::Ordering::Less => true,
+                std::cmp::Ordering::Greater => false,
+                std::cmp::Ordering::Equal => sa.id < sb.id,
+            },
+        }
+    };
+
+    // First seed: the single strongest candidate (was: sort all, take [0]).
+    let mut first_seed = 0usize;
+    for i in 1..n {
+        if stronger(i, first_seed) {
+            first_seed = i;
+        }
+    }
+
+    let mut seeds: Vec<usize> = vec![first_seed];
+    let mut seed_coords: Vec<HexCoord> = vec![coords[first_seed]];
+    let mut is_seed: Vec<bool> = vec![false; n];
+    is_seed[first_seed] = true;
 
     while seeds.len() < k {
-        // Maximize min hex distance to existing seeds, ties favor higher score.
-        let mut best: Option<(i64, i32, usize, SystemId)> = None;
-        for sys in &sector.systems {
-            if seeds.contains(&sys.id) {
+        // Maximize min hex distance to existing seeds, ties favor higher score
+        // then lower sector index.
+        let mut best: Option<(i64, i32, usize, usize)> = None; // (min_d, score, sys.index, idx)
+        for i in 0..n {
+            if is_seed[i] {
                 continue;
             }
-            let min_d = seeds
+            let min_d = seed_coords
                 .iter()
-                .map(|sid| {
-                    let s_sys = sector.get_system(sid).unwrap();
-                    hex_distance(s_sys.coord, sys.coord) as i64
-                })
+                .map(|sc| hex_distance(*sc, coords[i]) as i64)
                 .min()
                 .unwrap_or(0);
-            let cand = (
-                min_d,
-                *scores.get(&sys.id).unwrap(),
-                sys.index,
-                sys.id.clone(),
-            );
+            let cand = (min_d, score_by_idx[i], sector.systems[i].index, i);
             let take = match &best {
                 None => true,
                 Some(b) => {
@@ -561,78 +576,50 @@ fn cluster_systems(
         }
         if let Some(b) = best {
             seeds.push(b.3);
+            seed_coords.push(coords[b.3]);
+            is_seed[b.3] = true;
         } else {
             break;
         }
     }
 
-    // Lloyd refinement.
-    let mut assignment: BTreeMap<SystemId, usize> = BTreeMap::new();
+    // Lloyd refinement over hex distance.
+    let mut assignment: Vec<usize> = vec![usize::MAX; n];
     for _iter in 0..config.max_iterations {
-        // Assign each system to its nearest seed (hex distance).
-        for sys in &sector.systems {
+        // Assign each system to its nearest seed; ties favor the lower seed idx.
+        for i in 0..n {
             let mut best = (u32::MAX, usize::MAX);
-            for (ci, seed_id) in seeds.iter().enumerate() {
-                let seed_sys = sector.get_system(seed_id).unwrap();
-                let d = hex_distance(seed_sys.coord, sys.coord);
+            for (ci, sc) in seed_coords.iter().enumerate() {
+                let d = hex_distance(*sc, coords[i]);
                 if (d, ci) < (best.0, best.1) {
                     best = (d, ci);
                 }
             }
-            assignment.insert(sys.id.clone(), best.1);
+            assignment[i] = best.1;
         }
-        // Update seeds: highest-scoring member, tie by lowest sys.index.
-        let mut new_seeds: Vec<SystemId> = Vec::with_capacity(k);
-        for ci in 0..k {
-            let members: Vec<&SystemId> = assignment
-                .iter()
-                .filter(|&(_, &c)| c == ci)
-                .map(|(id, _)| id)
-                .collect();
-            if members.is_empty() {
-                new_seeds.push(seeds[ci].clone());
-                continue;
+        // Update each seed to its strongest member in a single pass. A cluster
+        // with no members keeps its prior seed.
+        let mut new_seeds: Vec<usize> = seeds.clone();
+        let mut has_member: Vec<bool> = vec![false; seeds.len()];
+        for i in 0..n {
+            let ci = assignment[i];
+            if !has_member[ci] {
+                new_seeds[ci] = i;
+                has_member[ci] = true;
+            } else if stronger(i, new_seeds[ci]) {
+                new_seeds[ci] = i;
             }
-            let best = members
-                .into_iter()
-                .max_by(|&a, &b| {
-                    let sys_a = sector.get_system(a).unwrap();
-                    let sys_b = sector.get_system(b).unwrap();
-                    scores
-                        .get(a)
-                        .unwrap()
-                        .cmp(scores.get(b).unwrap())
-                        .then_with(|| sys_b.index.cmp(&sys_a.index))
-                        .then_with(|| sys_b.id.cmp(&sys_a.id))
-                })
-                .expect("invariant: members non-empty checked above");
-            new_seeds.push(best.clone());
         }
         if new_seeds == seeds {
             break;
         }
         seeds = new_seeds;
+        seed_coords = seeds.iter().map(|&i| coords[i]).collect();
     }
 
-    // Assignment vec matches sector.systems iteration order.
-    let mut out_assignment: Vec<usize> = Vec::with_capacity(n);
-    for sys in &sector.systems {
-        out_assignment.push(*assignment.get(&sys.id).unwrap());
-    }
-
-    // Convert SystemId seeds back to indices for the caller.
-    let out_seeds: Vec<usize> = seeds
-        .iter()
-        .map(|sid| {
-            sector
-                .systems
-                .iter()
-                .position(|s| s.id == *sid)
-                .expect("seed id missing")
-        })
-        .collect();
-
-    (out_assignment, out_seeds)
+    // `assignment` already follows `sector.systems` order; `seeds` already holds
+    // system indices — both are exactly what the caller expects.
+    (assignment, seeds)
 }
 
 /// Lightweight seed-quality score (route hub + populated worlds + world count).

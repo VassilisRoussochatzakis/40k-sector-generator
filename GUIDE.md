@@ -1631,6 +1631,13 @@ let subs = sectorforge::build_subsectors(&sector, sectorforge::SubsectorConfig {
 })?;
 ```
 
+Clustering is index-keyed: seeding and Lloyd iterations read system coords and
+seed scores from `Vec`s indexed by system position rather than the O(n)
+`GeneratedSector::get_system` scan, keeping the pass ~`O(n·k·iterations)`. This
+matters because the builder MAP tab rebuilds subsectors whenever the sector
+slice digest changes — the scan-based version was ~`O(n²·k)` and hung the tab
+on large sectors (2456 systems / 205 clusters now ≈ 0.2 s).
+
 The GUI's sector view uses these clusters for the subsector overlay /
 detail panel. Subsectors are derived on demand from a `GeneratedSector` —
 they are not persisted into `sector.json`.
@@ -1669,11 +1676,14 @@ following views via the top navigation bar:
   `COVERT`, `FAITH`, `THREAT` (military × covert restricted to
   hostile/zealous), `INTEL` (low-visibility hexes glow), `TENSION`
   (§4 — sum of hostile/at-war pair tensions per system), or `TRADE VOL`
-  (§12 — sum of incident route trade volumes). Offscreen route segments and
-  system-name labels, world-count pips, and subsector label chips are culled
-  before route-pattern drawing or text layout, and at far zoom-out they shrink
-  with the hex scale and drop out below a readable size instead of staying
-  pinned to normal UI text. See
+  (§12 — sum of incident route trade volumes). `SectorView` culls against the
+  visible scroll viewport (`ui.clip_rect()` intersected with the content rect),
+  not the full canvas, so hex fills, route segments, system-name labels,
+  world-count pips, and subsector label chips outside the viewport are skipped
+  before route-pattern drawing or text layout — this keeps multi-thousand-system
+  sectors fluid when panned inside the builder's scrolling map. At far zoom-out
+  the surviving labels shrink with the hex scale and drop out below a readable
+  size instead of staying pinned to normal UI text. See
   [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs).
   Heatmap cells are cached per loaded sector and mode, so toggling a
   non-`OFF` heatmap does not rescore every frame; the cache is invalidated

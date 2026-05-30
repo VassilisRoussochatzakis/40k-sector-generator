@@ -141,6 +141,7 @@ impl SessionFile {
             seed_locked: false,
             seed_reroll_counter: 0,
             preview: super::preview::PreviewState::new(),
+            random_gen: super::random_run::RandomGenState::default(),
             partial_regen_rect: None,
             selected_systems: std::collections::BTreeSet::new(),
             drag_system: None,

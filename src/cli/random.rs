@@ -88,6 +88,12 @@ fn resolve_size(
                     "--width and --height must be >= 1".into(),
                 ));
             }
+            if w > random_sector::MAX_CUSTOM_DIM || h > random_sector::MAX_CUSTOM_DIM {
+                return Err(SectorError::InvalidConfig(format!(
+                    "--width and --height must be <= {}",
+                    random_sector::MAX_CUSTOM_DIM
+                )));
+            }
             Ok(SectorSize::Custom {
                 width: w,
                 height: h,

@@ -45,10 +45,17 @@ use crate::personae::PersonaeReport;
 use crate::prose::ProseReport;
 use crate::sector_model::GeneratedSector;
 use crate::sites::SitesReport;
+use crate::SectorProgress;
 
 /// Id of the checked-in "everything on" preset that supplies the content +
 /// overlay data tree. Hidden from the gallery (leading `_`) but scaffoldable.
 pub const FULL_PRESET_ID: &str = "_full";
+
+/// Upper bound (inclusive) on either custom grid dimension. The largest grid
+/// the generator is expected to handle is `MAX_CUSTOM_DIM × MAX_CUSTOM_DIM`
+/// (RANDOM.md §7.4). The GUI clamps its width/height fields to this and the CLI
+/// rejects anything larger; the value is shared so all three entry points agree.
+pub const MAX_CUSTOM_DIM: u32 = 80;
 
 /// The one user input: how big the sector is. The grid dims map to a cell
 /// count; `system_count` and every other structural knob are rolled from the
@@ -131,6 +138,121 @@ pub struct RandomReport {
 struct RegionKnobs {
     count: u32,
     mean_size: u32,
+}
+
+/// A coarse, ordered phase of the random-sector pipeline. The phases run in
+/// declaration order; [`generate_random_sector_with_progress`] emits each one
+/// as it begins, so the builder/CLI can drive a progress bar without knowing
+/// the internals.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RandomPhase {
+    /// Scaffolding the project bundle from the `_full` preset.
+    Scaffolding,
+    /// Rolling the config, patching regions, loading + validating the project.
+    Configuring,
+    /// Generating the sector itself (the long pole on big grids). Subdivided by
+    /// the underlying [`SectorProgress`] stages.
+    Generating,
+    /// Deriving the personae overlay.
+    Personae,
+    /// Deriving the sites overlay.
+    Sites,
+    /// Deriving the adventure hooks overlay.
+    Hooks,
+    /// Deriving the missions overlay.
+    Missions,
+    /// Deriving the prose / gazetteer overlay.
+    Prose,
+}
+
+impl RandomPhase {
+    /// All phases in pipeline order.
+    pub const ALL: [RandomPhase; 8] = [
+        RandomPhase::Scaffolding,
+        RandomPhase::Configuring,
+        RandomPhase::Generating,
+        RandomPhase::Personae,
+        RandomPhase::Sites,
+        RandomPhase::Hooks,
+        RandomPhase::Missions,
+        RandomPhase::Prose,
+    ];
+
+    /// Zero-based index of this phase in [`Self::ALL`].
+    #[must_use]
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|&p| p == self).unwrap_or(0)
+    }
+
+    /// Human-readable label for the progress popup.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            RandomPhase::Scaffolding => "Preparing project",
+            RandomPhase::Configuring => "Rolling configuration",
+            RandomPhase::Generating => "Generating sector",
+            RandomPhase::Personae => "Deriving personae",
+            RandomPhase::Sites => "Deriving sites",
+            RandomPhase::Hooks => "Deriving hooks",
+            RandomPhase::Missions => "Deriving missions",
+            RandomPhase::Prose => "Writing gazetteer",
+        }
+    }
+}
+
+/// A progress event emitted while a random sector is being generated. `phase`
+/// is the current coarse pipeline phase; `fraction` is the overall completion
+/// in `[0.0, 1.0]` (already blended with intra-phase progress for the long
+/// generation phase); `detail` is an optional sub-step note.
+#[derive(Debug, Clone)]
+pub struct RandomProgress {
+    pub phase: RandomPhase,
+    pub fraction: f32,
+    pub detail: Option<String>,
+}
+
+impl RandomProgress {
+    /// One-line label for the popup: the phase label, plus any sub-step detail.
+    #[must_use]
+    pub fn label(&self) -> String {
+        match &self.detail {
+            Some(detail) => format!("{} — {detail}", self.phase.label()),
+            None => self.phase.label().to_string(),
+        }
+    }
+}
+
+/// Map an inner [`SectorProgress`] event onto `(intra, label)` for the
+/// Generating phase: `intra` is `0.0..=1.0` within that phase's slice (the
+/// per-system build loop dominates the cost on large grids), `label` is a short
+/// sub-step note. Returns `None` for the many fine-grained sub-events so the bar
+/// advances only on coarse milestones and never jumps backwards.
+fn generation_substep(sp: &SectorProgress) -> Option<(f32, &'static str)> {
+    Some(match sp {
+        SectorProgress::WorldPoolBuilt { .. } => (0.03, "building world pool"),
+        SectorProgress::SystemsPlaced { .. } => (0.06, "placing systems"),
+        SectorProgress::SystemBuilt { current, total, .. } => {
+            let frac = if *total == 0 {
+                0.0
+            } else {
+                *current as f32 / *total as f32
+            };
+            (0.1 + frac * 0.6, "building systems")
+        }
+        SectorProgress::RoutesGenerated { .. } => (0.78, "generating routes"),
+        SectorProgress::RegionEffectsApplied { .. } => (0.85, "applying region effects"),
+        SectorProgress::ManifestBuilt { .. } => (0.9, "building manifest"),
+        SectorProgress::ChronicleComplete { .. } => (0.96, "deriving chronicle"),
+        SectorProgress::Complete { .. } => (1.0, "sector complete"),
+        _ => return None,
+    })
+}
+
+/// Overall fraction for a phase that is `intra` (`0.0..=1.0`) of the way through
+/// its own slice. Phases each own an equal `1/ALL` slice of the bar.
+fn phase_fraction(phase: RandomPhase, intra: f32) -> f32 {
+    let span = 1.0 / RandomPhase::ALL.len() as f32;
+    (phase.index() as f32 * span + intra.clamp(0.0, 1.0) * span).clamp(0.0, 1.0)
 }
 
 /// Mint a fresh root seed from process entropy. This is the **only**
@@ -387,14 +509,47 @@ pub fn generate_random_sector(
     presets_dir: &Utf8Path,
     dest: &Utf8Path,
 ) -> Result<RandomReport, SectorError> {
+    generate_random_sector_with_progress(size, seed, presets_dir, dest, &mut |_| {})
+}
+
+/// As [`generate_random_sector`], but emits a [`RandomProgress`] event at the
+/// start of every pipeline phase (and throughout the long generation phase) so
+/// a GUI can animate a progress popup (RANDOM.md §7.4). The headless paths use
+/// the no-op-callback [`generate_random_sector`] wrapper.
+///
+/// The callback is a side channel only — the generated artifacts are identical
+/// to [`generate_random_sector`] for the same `(size, seed)` (the generation
+/// itself runs through [`crate::generate_sector_with_progress`], whose no-op
+/// form is exactly what [`crate::generate_sector`] already calls).
+///
+/// # Errors
+///
+/// Identical to [`generate_random_sector`].
+pub fn generate_random_sector_with_progress(
+    size: SectorSize,
+    seed: Option<String>,
+    presets_dir: &Utf8Path,
+    dest: &Utf8Path,
+    progress: &mut dyn FnMut(RandomProgress),
+) -> Result<RandomReport, SectorError> {
     let seed = seed.unwrap_or_else(mint_seed);
 
     // 1. Materialise the bundle (copies _full's data tree + a sectorforge.toml
     //    we immediately overwrite). scaffold requires `dest` not to exist.
+    progress(RandomProgress {
+        phase: RandomPhase::Scaffolding,
+        fraction: phase_fraction(RandomPhase::Scaffolding, 0.0),
+        detail: None,
+    });
     crate::presets::scaffold(presets_dir, FULL_PRESET_ID, dest, None)?;
 
     // 2. Roll the complete config from the seed and write it over the
     //    scaffolded one — we own every field, so nothing falls to a default.
+    progress(RandomProgress {
+        phase: RandomPhase::Configuring,
+        fraction: phase_fraction(RandomPhase::Configuring, 0.0),
+        detail: None,
+    });
     let mut cfg_rng = crate::rng::stage_rng(&seed, "config", "");
     let (config, regions) = build_random_config_inner(&seed, size, &mut cfg_rng);
     let toml_text = toml::to_string_pretty(&config).map_err(|e| {
@@ -423,14 +578,48 @@ pub fn generate_random_sector(
 
     // 5. Generate + invariant-check (invariants are advisory here; a hard
     //    failure would surface as an empty/incoherent sector the tests catch).
-    let sector = crate::generate_sector(input.clone())?;
+    //    The inner SectorProgress fraction is blended into the Generating slice.
+    let sector = crate::generate_sector_with_progress(input.clone(), |sp| {
+        if let Some((intra, detail)) = generation_substep(&sp) {
+            progress(RandomProgress {
+                phase: RandomPhase::Generating,
+                fraction: phase_fraction(RandomPhase::Generating, intra),
+                detail: Some(detail.to_string()),
+            });
+        }
+    })?;
     let _invariants = crate::validate_sector(&sector);
 
     // 6. Run the five post-generation derivations the orchestrator skips.
+    progress(RandomProgress {
+        phase: RandomPhase::Personae,
+        fraction: phase_fraction(RandomPhase::Personae, 0.0),
+        detail: None,
+    });
     let personae = crate::derive_personae_with(&sector, &input.catalogs.personae);
+    progress(RandomProgress {
+        phase: RandomPhase::Sites,
+        fraction: phase_fraction(RandomPhase::Sites, 0.0),
+        detail: None,
+    });
     let sites = crate::derive_sites_with(&sector, &input.catalogs.sites);
+    progress(RandomProgress {
+        phase: RandomPhase::Hooks,
+        fraction: phase_fraction(RandomPhase::Hooks, 0.0),
+        detail: None,
+    });
     let hooks = crate::derive_hooks_with(&sector, &input.catalogs.hooks);
+    progress(RandomProgress {
+        phase: RandomPhase::Missions,
+        fraction: phase_fraction(RandomPhase::Missions, 0.0),
+        detail: None,
+    });
     let missions = crate::derive_missions_with(&sector, &input.catalogs.missions);
+    progress(RandomProgress {
+        phase: RandomPhase::Prose,
+        fraction: phase_fraction(RandomPhase::Prose, 0.0),
+        detail: None,
+    });
     let prose = crate::derive_prose_with(&sector, &input.catalogs.prose);
 
     Ok(RandomReport {
@@ -546,6 +735,43 @@ mod tests {
             );
             assert!(cfg.generation.max_worlds_per_system >= cfg.generation.min_worlds_per_system);
         }
+    }
+
+    #[test]
+    fn phase_fraction_is_monotonic_and_bounded() {
+        let mut last = -1.0_f32;
+        for phase in RandomPhase::ALL {
+            let f = phase_fraction(phase, 0.0);
+            assert!(
+                (0.0..=1.0).contains(&f),
+                "{phase:?} fraction {f} out of range"
+            );
+            assert!(
+                f >= last,
+                "{phase:?} fraction {f} not monotonic after {last}"
+            );
+            last = f;
+            // Intra-phase progress never escapes the phase's own slice.
+            let end = phase_fraction(phase, 1.0);
+            assert!(end <= 1.0 && end >= f, "{phase:?} intra-progress regressed");
+        }
+        assert_eq!(phase_fraction(RandomPhase::Scaffolding, 0.0), 0.0);
+    }
+
+    #[test]
+    fn random_progress_label_includes_detail() {
+        let p = RandomProgress {
+            phase: RandomPhase::Generating,
+            fraction: 0.3,
+            detail: Some("Building routes".into()),
+        };
+        assert_eq!(p.label(), "Generating sector — Building routes");
+        let p = RandomProgress {
+            phase: RandomPhase::Personae,
+            fraction: 0.5,
+            detail: None,
+        };
+        assert_eq!(p.label(), "Deriving personae");
     }
 
     #[test]

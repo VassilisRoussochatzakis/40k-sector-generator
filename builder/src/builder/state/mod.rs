@@ -54,6 +54,7 @@ use super::export_run::ExportState;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
 use super::preview::PreviewState;
+use super::random_run::RandomGenState;
 use super::search_run::SearchState;
 use super::segmentum_run::SegmentumState;
 use super::snapshot::Snapshot;
@@ -595,6 +596,9 @@ pub struct BuilderState {
     /// In-memory only; the document round-trips to disk separately. See
     /// [`super::segmentum_run::SegmentumState`].
     pub segmentum: SegmentumState,
+    /// RANDOM.md §7.4: off-thread random-sector generation runtime (job +
+    /// live progress snapshot) backing the §7.3 wizard's progress popup.
+    pub random_gen: RandomGenState,
     /// §EX1..§EX8: EXPORT tab runtime — the chosen output folder, the
     /// standalone-system export form, the cached markdown preview, and the
     /// last export error. The per-format / bitmap / HTML knobs live on
@@ -778,6 +782,7 @@ impl BuilderState {
             diff: DiffState::new(),
             analytics: AnalyticsState::new(),
             segmentum: SegmentumState::default(),
+            random_gen: RandomGenState::default(),
             export: ExportState::new(),
         }
     }

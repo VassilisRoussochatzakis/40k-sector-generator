@@ -21,6 +21,7 @@ pub mod panels;
 pub mod preferences;
 pub mod preview;
 pub mod project_io;
+pub mod random_run;
 pub mod search_run;
 pub mod segmentum_run;
 pub mod session;
@@ -43,6 +44,7 @@ pub use project_io::{
     drain_watcher_events, new_project, open_project, reload_catalog, save_project, save_project_as,
     NewProjectOptions,
 };
+pub use random_run::{RandomGenState, RandomJobResult};
 pub use search_run::{NewConstraintKind, SearchJobResult, SearchState};
 pub use segmentum_run::{ComposeJobResult, NewLinkDraft, SegmentumState};
 pub use session::{load_session, save_session, SessionFile};

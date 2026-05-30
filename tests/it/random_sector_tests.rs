@@ -116,6 +116,26 @@ fn random_huge_is_complete() {
 }
 
 #[test]
+#[ignore = "perf: 80x80 = 6400 cells; the max supported grid, run explicitly"]
+fn random_max_80x80_completes() {
+    let dir = presets_dir();
+    if !dir.exists() {
+        return;
+    }
+    let tmp = tempfile::TempDir::new().unwrap();
+    let dest = fresh_dest(&tmp, "max80");
+    let size = SectorSize::Custom {
+        width: 80,
+        height: 80,
+    };
+    let report = generate_random_sector(size, Some("it-80x80".to_string()), &dir, &dest).unwrap();
+    assert_eq!(report.sector.width, 80);
+    assert_eq!(report.sector.height, 80);
+    // The big grid still satisfies every completeness guarantee.
+    assert_complete(&report, size);
+}
+
+#[test]
 fn random_is_byte_deterministic() {
     let dir = presets_dir();
     if !dir.exists() {

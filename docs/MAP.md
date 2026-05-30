@@ -69,6 +69,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | File | Purpose |
 |---|---|
 | [src/gen/generation/mod.rs](../src/gen/generation/mod.rs) | Sector generation facade: `SectorProgress`, `generate*` orchestrator, manifest build |
+| [src/gen/random_sector.rs](../src/gen/random_sector.rs) | RANDOM.md size-only → fully-complete sector: `SectorSize`, `mint_seed`, `build_random_config`, `generate_random_sector`, `RandomReport` |
 | [src/gen/generation/placement.rs](../src/gen/generation/placement.rs) | Hex grid placement with min-distance relaxation |
 | [src/gen/generation/systems.rs](../src/gen/generation/systems.rs) | Per-system build: `build_system*`, star colour, system naming, spectral fallback |
 | [src/gen/generation/world_placement.rs](../src/gen/generation/world_placement.rs) | Per-world build: candidate pick, features, naming, tags, `regenerate_world_payload` |
@@ -193,6 +194,7 @@ exist and both backends import them.
 | [src/cli/validate.rs](../src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
 | [src/cli/analyze.rs](../src/cli/analyze.rs) | `analyze` runner |
 | [src/cli/presets.rs](../src/cli/presets.rs) | `new` + `list-presets` runners |
+| [src/cli/random.rs](../src/cli/random.rs) | `random` runner — RANDOM.md (synthesise + generate + export bundle & five reports) |
 | [src/cli/search.rs](../src/cli/search.rs) | `search` runner |
 | [src/cli/history.rs](../src/cli/history.rs) | `history` runner |
 | [src/cli/personae.rs](../src/cli/personae.rs) | `personae` runner |
@@ -355,6 +357,7 @@ helper.
 | [builder/src/builder/panels/project.rs](../builder/src/builder/panels/project.rs) | PROJECT tab (§N1/§N2): composes Phase-A project I/O surfaces |
 | [builder/src/builder/panels/project_tree.rs](../builder/src/builder/panels/project_tree.rs) | §P4 PROJECT tree panel |
 | [builder/src/builder/panels/new_project.rs](../builder/src/builder/panels/new_project.rs) | New-project wizard (§P1) |
+| [builder/src/builder/panels/generate_random.rs](../builder/src/builder/panels/generate_random.rs) | Random-sector wizard (RANDOM.md) — `ModalKind::GenerateRandom` → `generate_random_sector` → `open_project` |
 | [builder/src/builder/panels/open_project.rs](../builder/src/builder/panels/open_project.rs) | Open-project picker (§P2) |
 | [builder/src/builder/panels/save_project.rs](../builder/src/builder/panels/save_project.rs) | Save-project actions (§P3) |
 | [builder/src/builder/panels/preferences.rs](../builder/src/builder/panels/preferences.rs) | §P6 preferences panel: recent-projects MRU |

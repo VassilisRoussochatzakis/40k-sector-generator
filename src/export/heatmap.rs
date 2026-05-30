@@ -451,9 +451,11 @@ mod tests {
 
     #[test]
     fn stability_value_reads_the_matching_field() {
-        let mut s = crate::stability::StabilityState::default();
-        s.fear = 42.0;
-        s.corruption = 7.0;
+        let s = crate::stability::StabilityState {
+            fear: 42.0,
+            corruption: 7.0,
+            ..Default::default()
+        };
         assert_eq!(StabilityDimension::Fear.value(&s), 42.0);
         assert_eq!(StabilityDimension::Corruption.value(&s), 7.0);
         assert_eq!(StabilityDimension::PublicOrder.value(&s), 0.0);

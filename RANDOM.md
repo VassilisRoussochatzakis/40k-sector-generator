@@ -12,7 +12,23 @@ and economy — and it must run the post-generation derivations that `generate` 
 *not* do. Anything that ships off-by-default must be turned on by us, not left to a
 default.
 
-This is a design/scoping doc, not an implementation.
+> **Status: ✅ IMPLEMENTED.** This document began as the design/scope; the
+> feature now exists end-to-end. Per-section status markers are inline below;
+> the file-by-file checklist is §11.
+>
+> - **Engine** — `src/gen/random_sector.rs` (`SectorSize`, `mint_seed`,
+>   `build_random_config`, `generate_random_sector`, `RandomReport`). ✅
+> - **CLI** — `sectorforge random` (`src/cli/random.rs`). ✅
+> - **Builder** — **Random sector…** wizard (`ModalKind::GenerateRandom`,
+>   `builder/src/builder/panels/generate_random.rs`). ✅
+> - **Preset** — `presets/_full/` (every overlay enabled + the new
+>   `hooks.toml` / `missions.toml` / `prose.toml`). ✅
+> - **Tests** — `tests/it/random_sector_tests.rs` (completeness, determinism,
+>   CLI, `_full` preset) + module unit tests. ✅
+> - **Docs** — [GUIDE.md](GUIDE.md) (`sectorforge random` + source map) and
+>   [BUILDER.md](BUILDER.md) §1.5. ✅
+> - **Deferred (Phase 3, optional — not done):** `include_dir!`-embedded
+>   self-contained binary; `--fixed-shape`; an explicit density knob.
 
 ---
 
@@ -406,17 +422,19 @@ random sector.
 
 ## 7. Work breakdown
 
-### 7.1 Core library (`sectorforge`)
+### 7.1 Core library (`sectorforge`) — ✅ DONE
 - `src/gen/random_sector.rs` *(new)*: `SectorSize`, `RandomReport`, `mint_seed`, the
   knob-roll policy (§5.3), the `AppConfig`/overlay-config builders, and
   `generate_random_sector` (§5.6).
-- Generalize `presets::rewrite_seed` (`src/loading/presets.rs:197`) →
-  `patch_generation_fields` (seed + size + enable flags), or skip it entirely since S
-  builds the config from structs.
+- ~~Generalize `presets::rewrite_seed` (`src/loading/presets.rs:197`) →
+  `patch_generation_fields`~~ **→ Skipped:** the engine builds the whole
+  `AppConfig` from structs and `toml::to_string_pretty`s it, so there is no
+  template to patch. (The only line-patch left is `regions.toml`'s `count` /
+  `mean_size`, scaled to the grid — see `patch_regions_toml`.)
 - `src/gen/mod.rs`: `pub mod random_sector;`  ·  `src/lib.rs`: `pub use gen::random_sector;`
   (sequential — touches a re-exported surface).
 
-### 7.2 CLI (`src/cli/`)
+### 7.2 CLI (`src/cli/`) — ✅ DONE
 - `Command::Random { size | width/height, seed, out, formats }` (`src/cli/mod.rs:40`),
   runner `src/cli/random.rs`. Reuse `common.rs` helpers + `export_sector`
   (`src/cli/generate.rs:157`); also write the five post-gen reports like the existing
@@ -427,7 +445,7 @@ sectorforge random --size medium [--seed S] [--out DIR]
 sectorforge random --width 12 --height 14 [--seed S] [--out DIR]
 ```
 
-### 7.3 Builder (`sectorforge-builder`)
+### 7.3 Builder (`sectorforge-builder`) — ✅ DONE
 - `ModalKind::GenerateRandom { size, custom_w, custom_h, seed }`
   (`builder/src/builder/state/types.rs:23`).
 - `builder/src/builder/panels/generate_random.rs` *(new)*: size dropdown + optional
@@ -442,7 +460,7 @@ sectorforge random --width 12 --height 14 [--seed S] [--out DIR]
   `new_project`, it legitimately bypasses the command bus and clears the log (§R4
   carve-out). Do not add a whole-sector `BuilderCommand`.
 
-### 7.4 Data (`presets/_full`)
+### 7.4 Data (`presets/_full`) — ✅ DONE
 - Author the preset tree per §6, including the three new feature files.
 
 ---
@@ -483,6 +501,17 @@ sectorforge random --width 12 --height 14 [--seed S] [--out DIR]
 ---
 
 ## 10. Open questions
+
+> **Resolved during implementation:**
+> 1. `_full` is checked in **and** Strategy S reads its data tree (the
+>    recommended both-of path).
+> 2. Structural knobs **are rolled** (placement / density / worlds / regions /
+>    routes / map theme). `--fixed-shape` is deferred to Phase 3.
+> 3. The builder result is **project-backed** — written to the chosen folder
+>    and immediately editable / savable.
+> 4. **Huge** auto-raises `min_world_presence` to `2` to bound relations /
+>    economy output; every other size uses `1`.
+> 5. A self-contained `include_dir!` binary stays **out of scope** (Phase 3).
 1. **Author `_full` by hand vs let Strategy S synthesize the whole bundle at runtime?**
    Recommended: check in `_full` (git-visible, single source of truth) *and* have S
    read content + overlay data from it.
@@ -499,6 +528,12 @@ sectorforge random --width 12 --height 14 [--seed S] [--out DIR]
 ---
 
 ## 11. File-by-file change list
+
+> **Status: ✅ every row below is implemented.** The one deviation: the §7.1
+> `rewrite_seed` → `patch_generation_fields` generalisation was intentionally
+> skipped (the engine builds the config from structs, so there is no template
+> to patch). A small `patch_regions_toml` scales the regions overlay to the
+> grid instead.
 
 | File | Change |
 |---|---|
@@ -522,12 +557,13 @@ call-site lookups → `rust-explorer`; keep the `src/lib.rs` re-export change se
 ---
 
 ## 12. Effort & phasing
-- **Phase 1 — `_full` preset + Strategy S core + CLI:** author `_full` (incl. the three
-  new files), build `random_sector.rs`, `sectorforge random`. Fully testable headless.
-  ~1–1.5 days.
-- **Phase 2 — builder entry:** modal + panel + button reusing `open_project`. ~½ day.
-- **Phase 3 — optional:** embed `_full` for a self-contained binary; `--fixed-shape`;
-  density knob.
+- **Phase 1 — `_full` preset + Strategy S core + CLI — ✅ DONE:** authored
+  `_full` (incl. the three new files), built `random_sector.rs` and
+  `sectorforge random`. Fully testable headless.
+- **Phase 2 — builder entry — ✅ DONE:** modal + panel + button reusing
+  `open_project`.
+- **Phase 3 — ➖ optional, not done:** embed `_full` for a self-contained
+  binary; `--fixed-shape`; explicit density knob.
 
 The generation, validation, derivations, data, and builder-install machinery all
 exist. This feature is **config synthesis + a randomization policy + flipping every

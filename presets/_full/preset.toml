@@ -1,0 +1,4 @@
+title = "Full Sector"
+description = "Reference preset: every input overlay enabled, every output format on. The single source of truth for a fully-featured sector; `sectorforge random` copies its data tree."
+tags = ["reference", "everything", "random"]
+default_seed = "full-1"

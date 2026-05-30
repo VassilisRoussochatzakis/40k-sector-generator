@@ -141,6 +141,57 @@ cargo run --bin sectorforge -- generate-system \
      --out /tmp/sys-0012.json --markdown
 ```
 
+### `sectorforge random` (RANDOM.md/DONE)
+
+Synthesise a **fully-complete, fully-randomised** sector from nothing but a
+size. There is no project to author and no `sectorforge.toml` to write by hand:
+the command rolls a complete, fully-enabled config from the seed, materialises a
+fresh project under `--out` (copying the content + overlay data from the
+checked-in `_full` preset — a hidden bundle that wires *and enables* every
+overlay, and holds the repo's only `hooks.toml` / `missions.toml` /
+`prose.toml`), generates the sector, runs the five post-generation derivations
+the orchestrator does *not* (`personae` / `sites` / `hooks` / `missions` /
+`prose`), and exports the bundle plus those five reports.
+
+Unlike `generate`, every overlay is on by construction — `regions`, `economy`
+and `history` are explicitly enabled in the synthesised config and in the
+copied data files — so the output has warp regions, an economy report, and a
+chronicle with no extra flags. The structural shape (placement mode, density,
+worlds-per-system, region count, route knobs, map theme, …) is also rolled, so
+two seeds differ in *shape*, not just in contents.
+
+| Flag | Meaning |
+|---|---|
+| `--size <SIZE>` | `small` (6×8) · `medium` (8×10, default) · `large` (12×14) · `huge` (16×20) |
+| `--width <W>` / `--height <H>` | Explicit custom grid (pass both; overrides `--size`) |
+| `--seed <SEED>` | Reproducibility seed. Omit to mint one (echoed on completion + in `manifest.seed`) |
+| `--out <DIR>` | Project directory to create (must not exist). Default `./random-<seed>` |
+| `--presets-dir <DIR>` | Source presets dir; must contain `_full` (default `./presets`) |
+| `--formats <LIST>` | Comma-separated export formats. Default: all five (`json,markdown,png,svg,html`) |
+
+```bash
+# Roll a medium sector with a freshly minted seed.
+cargo run --bin sectorforge -- random --size medium
+
+# Reproducible large sector into a named project dir.
+cargo run --bin sectorforge -- random --size large --seed crusade-7 --out ./crusade-7
+
+# Custom 12×14 grid, JSON + Markdown only.
+cargo run --bin sectorforge -- random --width 12 --height 14 --formats json,markdown
+```
+
+Outputs land in `<out>/out/`: the requested bundle formats plus `personae`,
+`sites`, `hooks`, `missions` and `gazetteer` (`.md` + `.json` each). The
+synthesised project under `<out>` is a normal project — re-open it in the
+builder, edit it, or re-run `generate` on it.
+
+Determinism: minting the seed is the *only* non-deterministic step. Everything
+else (the rolled config + generation + the five derivations) derives from the
+root seed via a dedicated `"config"` RNG stage, so the same `(size, seed)`
+reproduces a byte-identical `sectorforge.toml`, `sector.json`, and all five
+reports. The `_full` preset is hidden from `list-presets` (leading `_`) but can
+be scaffolded directly with `new --preset _full` for a fixed-data sector.
+
 ### `sectorforge validate-sector --sector <PATH>`
 
 Load a previously generated `sector.json` and check the spec §11.11
@@ -1918,6 +1969,7 @@ gives).
 |---|---|
 | §P1 scaffold | [src/loading/presets.rs](src/loading/presets.rs) `scaffold_to_dir(preset_id, dest, seed_override)` resolves the default `presets/` directory (or the one next to the binary) and forwards to the existing `scaffold`. |
 | §P1 wizard panel | [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) drives `ModalKind::NewProject`. Confirm path calls `project_io::new_project`, which (no preset) writes `sectorforge.toml` with `[inputs]` pre-wired to every catalogue, plus `data/worlds/worlds.toml` (copied from `presets/_base/data/worlds/worlds.toml` when that file is reachable, so the world pool is non-empty and "Regenerate this system" works on a fresh project; falls back to an empty `WorldsConfig::default()` if the `_base` preset is unavailable), `data/factions/factions.toml` (7-faction starter roster — Imperial/Mechanicus/Trader/Chaos/Ork/Tyranid/Cult — produced by `default_starter_roster`), `data/factions/relations.toml`, `data/routes/route_rules.toml`, `data/regions/regions.toml`, `data/worlds/economy.toml`, `data/history.toml`, and an empty `out/sector.json`; then reloads through the §P2 path so the in-memory state matches a fresh open. With `preset = Some(id)` it instead delegates to `sectorforge::presets::scaffold_to_dir`. |
+| RANDOM.md random wizard | [builder/src/builder/panels/generate_random.rs](builder/src/builder/panels/generate_random.rs) drives `ModalKind::GenerateRandom` (size dropdown + optional custom dims + optional seed + folder picker). Confirm calls `random_sector::generate_random_sector` into a fresh `random-<seed>/` under the chosen folder, writes the generated sector to `out/sector.json`, then installs the result via `project_io::open_project` (so catalogues, watcher and MRU are wired exactly like any other open). Like the new-project wizard it is a session boundary, not a command-bus mutation (§R4 carve-out) — it replaces the whole document and clears undo. Reachable from the **Random sector…** button on the PROJECT tab. |
 | §P2 loader | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `open_project(project_dir)` calls `sectorforge::input::load_project`, populates `BuilderState::data_catalogs` from every catalog the loader returned, and loads `<outputs.directory>/sector.json` when present (empty sector at config dims otherwise). `SectorError::ConfigParse { path, message }` is mapped to `BuilderError::ParseFailed { file, message }` so line numbers from the `toml` crate flow through. |
 | §P2 picker panel | [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) opens an `rfd::FileDialog::pick_folder` and surfaces failures via `ModalKind::Message`. |
 | §P3 saver | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `save_project` / `save_project_as`. Writes `sectorforge.toml` always; writes each catalog only when `state.config.inputs.<key>` actually references it (mirrors the load path). After every write, updates `state.sector.manifest.input_digests` so the manifest matches the file we just put on disk; the sector + manifest then go under `<outputs.directory>/`. Every file write is atomic via `atomic_write` (writes to `.<name>.tmp.<pid>` then `fs::rename`). |
@@ -2936,6 +2988,7 @@ across runs, so a regression check is a diff away.
 | [src/cli/validate.rs](src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
 | [src/cli/analyze.rs](src/cli/analyze.rs) | `analyze` runner — §8 NEW.md analytics dashboard |
 | [src/cli/presets.rs](src/cli/presets.rs) | `new` + `list-presets` runners |
+| [src/cli/random.rs](src/cli/random.rs) | `random` runner — RANDOM.md size-only → fully-complete sector; resolves the size, calls `random_sector::generate_random_sector`, exports the bundle + the five post-gen reports |
 | [src/cli/search.rs](src/cli/search.rs) | `search` runner — §2 NEW.md seed search |
 | [src/cli/history.rs](src/cli/history.rs) | `history` runner — §1 NEW2.md chronicle derivation |
 | [src/cli/personae.rs](src/cli/personae.rs) | `personae` runner — §3 NEW.md dramatis personae |
@@ -2956,6 +3009,7 @@ across runs, so a regression check is a diff away.
 | [src/worlds.rs](src/worlds.rs) | Canonical world enums (do not modify casually) |
 | [src/gen/world_pool.rs](src/gen/world_pool.rs) | Adapts `GenerationRow` to weighted candidates |
 | [src/gen/generation/mod.rs](src/gen/generation/mod.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
+| [src/gen/random_sector.rs](src/gen/random_sector.rs) | RANDOM.md engine: `SectorSize`, `mint_seed`, `build_random_config` (rolls a complete fully-enabled `AppConfig` from a `"config"` RNG stage), and `generate_random_sector` (scaffold `_full` → write synthesised config → load → validate → generate → run the five post-gen derivations). Returns `RandomReport` |
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
 | [src/analysis/control.rs](src/analysis/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validate/validation.rs](src/validate/validation.rs) | All pre-generation checks |
@@ -3054,6 +3108,7 @@ across runs, so a regression check is a diff away.
 | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
 | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes (`atomic_write`), manifest digest refresh, `refresh_watcher_baseline` (§PF5) |
 | [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) | §P1 wizard panel driving `ModalKind::NewProject` |
+| [builder/src/builder/panels/generate_random.rs](builder/src/builder/panels/generate_random.rs) | RANDOM.md random-sector wizard driving `ModalKind::GenerateRandom`; synthesises + generates a fully-randomised project and installs it via `open_project` |
 | [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) | §P2 folder-picker panel calling `project_io::open_project` |
 | [builder/src/builder/panels/save_project.rs](builder/src/builder/panels/save_project.rs) | §P3 Save + Save-as action panel |
 | [builder/src/builder/panels/project_tree.rs](builder/src/builder/panels/project_tree.rs) | §P4 / §PF1 PROJECT directory tree, dirty markers, selected-file router |

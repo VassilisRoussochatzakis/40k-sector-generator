@@ -49,6 +49,17 @@ pub enum ModalKind {
         dest: Utf8PathBuf,
         seed: String,
     },
+    /// RANDOM.md §7.3: "Random sector" wizard. On confirm the host synthesises
+    /// a fully-randomised project under a chosen folder, generates it, and
+    /// replaces the active [`BuilderState`] with the freshly opened result.
+    /// `size` is one of `small`/`medium`/`large`/`huge`/`custom`; the custom
+    /// dims are used only when `size == "custom"`. An empty `seed` mints one.
+    GenerateRandom {
+        size: String,
+        custom_w: u32,
+        custom_h: u32,
+        seed: String,
+    },
     Message(String),
     /// §P5: an external file change was detected and the in-memory buffer is
     /// dirty. The user must decide whether to reload from disk (losing the

@@ -1,0 +1,1011 @@
+[[generation]]
+star_colour = "BlueHypergiant"
+world_type = "AgriWorld"
+atmosphere = "Airless"
+temperature = "Freezing"
+biosphere = "Nonexistent"
+population = "Uninhabited"
+tech_level = "Primitive"
+government = "BalkanizedLocalFactions"
+notable_feature = "Abhumans"
+weight = 4.0
+
+[[generation]]
+star_colour = "BlueHypergiant"
+world_type = "AgriWorld"
+atmosphere = "Airless"
+temperature = "Cold"
+biosphere = "Nonexistent"
+population = "Minimal"
+tech_level = "Primitive"
+government = "ChaosCult"
+notable_feature = "AlteredHumans"
+weight = 7.0
+
+[[generation]]
+star_colour = "BlueWhite"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Cold"
+biosphere = "Nonexistent"
+population = "Minimal"
+tech_level = "Low"
+government = "ClansTribes"
+notable_feature = "AncientArchive"
+weight = 7.0
+
+[[generation]]
+star_colour = "BlueWhite"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Cold"
+biosphere = "Minimal"
+population = "Minimal"
+tech_level = "Low"
+government = "Communards"
+notable_feature = "AncientTombs"
+weight = 2.0
+
+[[generation]]
+star_colour = "BlueWhite"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Cold"
+biosphere = "Minimal"
+population = "SoleSettlement"
+tech_level = "Low"
+government = "CorruptAristocrats"
+notable_feature = "ArchaeotechRuins"
+weight = 6.0
+
+[[generation]]
+star_colour = "BlueWhite"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Cold"
+biosphere = "Minimal"
+population = "SoleSettlement"
+tech_level = "Low"
+government = "Demagogue"
+notable_feature = "BlindingMists"
+weight = 8.0
+
+[[generation]]
+star_colour = "BlueWhite"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Temperate"
+biosphere = "Minimal"
+population = "SoleSettlement"
+tech_level = "Low"
+government = "EcclesiarchicalAppointee"
+notable_feature = "CelestialPhenomena"
+weight = 9.0
+
+[[generation]]
+star_colour = "BlueWhite"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Temperate"
+biosphere = "Thriving"
+population = "LightlyPopulated"
+tech_level = "Standard"
+government = "ElitistTyrant"
+notable_feature = "ChaosCultists"
+weight = 4.0
+
+[[generation]]
+star_colour = "White"
+world_type = "AgriWorld"
+atmosphere = "Breathable"
+temperature = "Temperate"
+biosphere = "Thriving"
+population = "LightlyPopulated"
+tech_level = "Standard"
+government = "ExploratorAuthority"
+notable_feature = "CivilWar"
+weight = 18.0
+
+[[generation]]
+star_colour = "White"
+world_type = "AgriWorld"
+atmosphere = "Corrosive"
+temperature = "Temperate"
+biosphere = "Thriving"
+population = "LightlyPopulated"
+tech_level = "Standard"
+government = "GuildsCombine"
+notable_feature = "ColdWar"
+weight = 4.0
+
+[[generation]]
+star_colour = "White"
+world_type = "BastionWorld"
+atmosphere = "Exotic"
+temperature = "Temperate"
+biosphere = "Thriving"
+population = "LightlyPopulated"
+tech_level = "Standard"
+government = "Hereteks"
+notable_feature = "CrumblingArcologies"
+weight = 14.0
+
+[[generation]]
+star_colour = "White"
+world_type = "BastionWorld"
+atmosphere = "Thin"
+temperature = "Temperate"
+biosphere = "Poisoned"
+population = "DenselyPopulated"
+tech_level = "Standard"
+government = "HereticalImperialCult"
+notable_feature = "DaemonicCorruption"
+weight = 7.0
+
+[[generation]]
+star_colour = "White"
+world_type = "BastionWorld"
+atmosphere = "Thin"
+temperature = "Temperate"
+biosphere = "Poisoned"
+population = "DenselyPopulated"
+tech_level = "Standard"
+government = "InfractionistGang"
+notable_feature = "DangerousWildlife"
+weight = 6.0
+
+[[generation]]
+star_colour = "White"
+world_type = "DeathWorld"
+atmosphere = "Thin"
+temperature = "Temperate"
+biosphere = "Poisoned"
+population = "DenselyPopulated"
+tech_level = "Standard"
+government = "LocalReligiousAuthorities"
+notable_feature = "DesertWorld"
+weight = 0.0
+
+[[generation]]
+star_colour = "White"
+world_type = "DeathWorld"
+atmosphere = "Thin"
+temperature = "Hot"
+biosphere = "Poisoned"
+population = "DenselyPopulated"
+tech_level = "High"
+government = "LoyalistMassMovement"
+notable_feature = "DeviantReligion"
+weight = 0.0
+
+[[generation]]
+star_colour = "White"
+world_type = "DeathWorld"
+atmosphere = "Tainted"
+temperature = "Hot"
+biosphere = "XenoHybrid"
+population = "DenselyPopulated"
+tech_level = "High"
+government = "MagistrateCouncil"
+notable_feature = "EugenicCult"
+weight = 2.0
+
+[[generation]]
+star_colour = "White"
+world_type = "DeathWorld"
+atmosphere = "Tainted"
+temperature = "Hot"
+biosphere = "XenoHybrid"
+population = "ExtremelyDense"
+tech_level = "High"
+government = "MechanicusForgeLord"
+notable_feature = "ExtremeEnvironment"
+weight = 4.0
+
+[[generation]]
+star_colour = "White"
+world_type = "DeathWorld"
+atmosphere = "Tainted"
+temperature = "Hot"
+biosphere = "XenoHybrid"
+population = "ExtremelyDense"
+tech_level = "XenoHybrid"
+government = "Megacorporations"
+notable_feature = "FactionalFragmentation"
+weight = 11.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "DeadWorld"
+atmosphere = "Tainted"
+temperature = "Hot"
+biosphere = "XenoDominance"
+population = "ExtremelyDense"
+tech_level = "XenoHybrid"
+government = "MilitaryGovernor"
+notable_feature = "FailedParadise"
+weight = 2.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "DeadWorld"
+atmosphere = "Toxic"
+temperature = "Boiling"
+biosphere = "XenoDominance"
+population = "ExtremelyDense"
+tech_level = "Archaeotech"
+government = "None"
+notable_feature = "FlyingCities"
+weight = 3.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "DeadWorld"
+government = "PopulistTyrant"
+notable_feature = "ForbiddenTech"
+weight = 2.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "PuppetGovernment"
+notable_feature = "ForeignControl"
+weight = 0.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "RevolutionaryJunta"
+notable_feature = "FreakGeology"
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "RogueTraderDynasty"
+notable_feature = "FreakWeather"
+weight = 14.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "ShadowyPsykerCabal"
+notable_feature = "Freeport"
+weight = 42.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "TraditionalOligarchy"
+notable_feature = "FriendlyXenos"
+weight = 6.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "TraditionalistAristocracy"
+notable_feature = "FrozenWorld"
+weight = 8.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "Warlords"
+notable_feature = "GoldRush"
+weight = 20.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "WarriorAristocracy"
+notable_feature = "GreatWork"
+weight = 25.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+government = "XenosOverlords"
+notable_feature = "HeavyIndustry"
+weight = 5.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "ExtractiveColony"
+notable_feature = "HeavyMining"
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "FeralWorld"
+notable_feature = "Hereteks"
+weight = 10.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "FeralWorld"
+notable_feature = "HolyWar"
+weight = 27.0
+
+[[generation]]
+star_colour = "YellowWhite"
+world_type = "FeralWorld"
+notable_feature = "HostileBiosphere"
+weight = 48.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeralWorld"
+notable_feature = "HostileXenos"
+weight = 26.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeralWorld"
+notable_feature = "ImpendingDoom"
+weight = 8.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeudalWorld"
+notable_feature = "ImperialKnights"
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeudalWorld"
+notable_feature = "ImportantShrine"
+weight = 17.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeudalWorld"
+notable_feature = "InquisitionOutpost"
+weight = 34.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeudalWorld"
+notable_feature = "JungleWorld"
+weight = 18.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FeudalWorld"
+notable_feature = "Libertines"
+weight = 25.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "ForgeWorld"
+notable_feature = "LocalSpecialty"
+weight = 17.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "ForgeWorld"
+notable_feature = "LocalTech"
+weight = 9.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "ForgeWorld"
+notable_feature = "MajorSpaceyard"
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "ForgeWorld"
+notable_feature = "MartialLaw"
+weight = 9.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "MassPanic"
+weight = 12.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "MinimalContact"
+weight = 19.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "Missionaries"
+weight = 18.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "MutantHordes"
+weight = 40.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "NavalBlockade"
+weight = 22.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "NavalOutpost"
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "NavigatorHouse"
+weight = 10.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "NomadicCities"
+weight = 32.0
+
+[[generation]]
+star_colour = "Yellow"
+world_type = "FrontierWorld"
+notable_feature = "NotableLocal"
+weight = 35.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "FrontierWorld"
+notable_feature = "OceanWorld"
+weight = 26.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "HiveWorld"
+notable_feature = "OutOfContact"
+weight = 10.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "HiveWorld"
+notable_feature = "Pandemic"
+weight = 7.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "HiveWorld"
+notable_feature = "PilgrimageSite"
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "HiveWorld"
+notable_feature = "PocketEmpire"
+weight = 3.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "HiveWorld"
+notable_feature = "PoliceState"
+weight = 3.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "PopularUprising"
+weight = 2.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "PowerfulCriminals"
+weight = 3.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "PowerfulNobles"
+weight = 4.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "PrimitiveXenos"
+weight = 5.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "Prosperous"
+weight = 4.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "PsykerAcademy"
+weight = 5.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "PsykerCult"
+weight = 2.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "IndustrialWorld"
+notable_feature = "Quarantined"
+weight = 1.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "Orbital"
+notable_feature = "Radioactive"
+weight = 9.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "Orbital"
+notable_feature = "RecentlyRediscovered"
+weight = 5.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "Orbital"
+notable_feature = "ScholaProgenium"
+weight = 4.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "Orbital"
+notable_feature = "SeagoingCities"
+weight = 4.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "Orbital"
+notable_feature = "SealedMenace"
+weight = 2.0
+
+[[generation]]
+star_colour = "OrangeDwarf"
+world_type = "Orbital"
+notable_feature = "SecretMasters"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "Orbital"
+notable_feature = "Sectarians"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "Orbital"
+notable_feature = "SeismicInstability"
+weight = 1.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "PenalWorld"
+notable_feature = "Separatists"
+weight = 2.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "PenalWorld"
+notable_feature = "SilicaAnimus"
+weight = 5.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "PlanetaryDump"
+notable_feature = "SoleSuppliers"
+weight = 2.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "PlanetaryMonument"
+notable_feature = "SororitasConvent"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "PleasureWorld"
+notable_feature = "SpaceHulks"
+weight = 5.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ResearchStation"
+notable_feature = "StrangeCustoms"
+weight = 5.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ResearchStation"
+notable_feature = "StrangeHatred"
+weight = 3.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ResearchStation"
+notable_feature = "SubsectorHegemon"
+weight = 6.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "TechPriestCult"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "TestSite"
+weight = 9.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "TheSilentTrade"
+weight = 6.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "TradeHub"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "UnmappedWastes"
+weight = 5.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "VastFortresses"
+weight = 5.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "ShrineWorld"
+notable_feature = "VerdantEcology"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "TombWorld"
+notable_feature = "WarZone"
+weight = 3.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "TombWorld"
+notable_feature = "WarpPhenomena"
+weight = 7.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "TombWorld"
+notable_feature = "WitchHunt"
+weight = 0.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "WarpLostWorld"
+notable_feature = "XenoRuins"
+weight = 3.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "XenosWorld"
+notable_feature = "Xenophiles"
+weight = 2.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "XenosWorld"
+notable_feature = "Xenophobes"
+weight = 1.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "XenosWorld"
+notable_feature = "XenosInfiltrators"
+weight = 4.0
+
+[[generation]]
+star_colour = "RedDwarf"
+world_type = "Worldship"
+notable_feature = "Zombies"
+weight = 5.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 6.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 6.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 6.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 8.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 1.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 1.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 6.0
+
+[[generation]]
+weight = 8.0
+
+[[generation]]
+weight = 9.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 1.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 7.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 0.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 7.0
+
+[[generation]]
+weight = 1.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 3.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 8.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 4.0
+
+[[generation]]
+weight = 10.0
+
+[[generation]]
+weight = 1.0
+
+[[generation]]
+weight = 5.0
+
+[[generation]]
+weight = 2.0
+
+[[generation]]
+weight = 11.0
+
+[[generation]]
+weight = 12.0
+
+[[generation]]
+weight = 16.0
+
+[[generation]]
+weight = 25.0
+
+[[generation]]
+weight = 22.0
+
+[[generation]]
+weight = 32.0
+
+[features]

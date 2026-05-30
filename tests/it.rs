@@ -26,6 +26,8 @@ mod invariants_proptest;
 mod invariants_tests;
 #[path = "it/personae_tests.rs"]
 mod personae_tests;
+#[path = "it/random_sector_tests.rs"]
+mod random_sector_tests;
 #[path = "it/relations_tests.rs"]
 mod relations_tests;
 #[path = "it/search_and_diff.rs"]

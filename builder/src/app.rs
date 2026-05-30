@@ -1,5 +1,5 @@
 use crate::builder::panels::{
-    conflict_resolver, nav, new_project, open_project, shortcuts, status,
+    conflict_resolver, generate_random, nav, new_project, open_project, shortcuts, status,
 };
 use crate::builder::{project_io, BuilderState, BuilderWorkspace, ModalKind};
 
@@ -126,6 +126,7 @@ impl BuilderApp {
         let title = match &modal {
             ModalKind::NewProject { .. } => "New project",
             ModalKind::OpenProject { .. } => "Open project",
+            ModalKind::GenerateRandom { .. } => "Random sector",
             ModalKind::Message(_) => "Message",
             ModalKind::ConflictResolver { .. } => "External change",
             _ => return,
@@ -141,6 +142,10 @@ impl BuilderApp {
                 ModalKind::OpenProject { .. } => {
                     let state = self.workspace.active_mut();
                     let _ = open_project::show(ui, state);
+                }
+                ModalKind::GenerateRandom { .. } => {
+                    let state = self.workspace.active_mut();
+                    let _ = generate_random::show(ui, state);
                 }
                 ModalKind::ConflictResolver { .. } => {
                     let state = self.workspace.active_mut();

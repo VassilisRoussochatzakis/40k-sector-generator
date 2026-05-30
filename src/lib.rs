@@ -89,6 +89,7 @@ pub use gen::generation;
 pub use gen::hidden_routes;
 pub use gen::names;
 pub use gen::orbital_assets;
+pub use gen::random_sector;
 pub use gen::regions;
 pub use gen::routes;
 pub use gen::sites;

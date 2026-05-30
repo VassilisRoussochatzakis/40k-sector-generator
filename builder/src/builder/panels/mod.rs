@@ -43,6 +43,7 @@ pub mod economy;
 pub mod export;
 pub mod factions;
 pub mod files;
+pub mod generate_random;
 pub mod generation;
 pub mod history;
 pub mod hooks;

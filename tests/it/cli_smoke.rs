@@ -13,6 +13,7 @@ const SUBCOMMANDS: &[&str] = &[
     "validate",
     "generate",
     "generate-system",
+    "random",
     "validate-sector",
     "render-markdown",
     "inspect-worlds",

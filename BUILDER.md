@@ -162,6 +162,41 @@ observed on disk even if the machine dies mid-save.
 > in **Files** and editing a faction row in the **FACTIONS** tab both move the
 > same in-memory catalogue; whichever you touch last wins.
 
+### 1.5 Shortcut — generate a complete random sector
+
+The walkthrough above builds a sector by hand so you meet every panel. When you
+just want a **finished sector to explore or edit**, the PROJECT tab also has a
+**Random sector…** button next to **New project…**.
+
+It opens a small modal:
+
+| Field          | Meaning                                                              |
+|----------------|----------------------------------------------------------------------|
+| Size           | `Small` (6×8) · `Medium` (8×10) · `Large` (12×14) · `Huge` (16×20) · `Custom…` |
+| Width / Height | Shown only for **Custom…** — the explicit grid size.                 |
+| Seed           | Leave blank to mint a fresh one; type a value to reproduce a specific sector. |
+
+Click **Choose folder & create…**, pick a parent folder, and the builder
+synthesises a brand-new project named `random-<seed>/` inside it with **every
+feature on** — systems, worlds, factions and routes *plus* the overlays that a
+hand-built project leaves off by default: warp regions, an economy layer, and a
+full chronicle. It also runs the personae / hooks / sites / missions / prose
+derivations, so those tabs (§11.5) open populated too. The builder then
+re-opens the new project, so you land on a filled-in MAP with `project_path`
+already set and everything written to disk.
+
+Only the seed is random: the same size + seed always produces the identical
+sector, and the seed is part of the project title so you can reproduce it later
+(or headless with `sectorforge random --seed <seed>`; see [GUIDE.md](GUIDE.md)).
+From there every tab behaves exactly as in the rest of this guide.
+
+> **Heads-up.** Creating a random sector replaces the active project and clears
+> the undo history — like opening a different project it is a session boundary,
+> not an undoable edit. The data is drawn from the hidden `_full` preset, the
+> one bundle that wires *and enables* every overlay (it holds the repo's only
+> `hooks.toml` / `missions.toml` / `prose.toml`), so it is the quickest way to
+> see a "kitchen-sink" sector.
+
 ---
 
 ## 2. Tour the empty sector
@@ -747,21 +782,23 @@ regenerations.
 
 ### 11.5 PERSONAE, HOOKS, PROSE, BRIEFING, SITES, MISSIONS
 
-> **As of this writing, all six of these tabs are placeholders** — they
-> open to a stub that says *"Phase D §… — not yet wired"*. The
-> underlying engines are real and exposed via the `sectorforge` CLI
-> (`personae`, `hooks`, `prose`, `briefing`, `sites`, `missions`
-> subcommands); the builder panels have not landed yet.
->
-> Conceptually:
->
-> - **PERSONAE** — named NPCs per faction presence.
-> - **HOOKS** — plot hook templates that condition on the model state.
-> - **PROSE** — deterministic gazetteer paragraphs per world.
-> - **BRIEFING** — a longer prose pack stitched together for the whole
->   sector.
-> - **SITES** — notable sites / encounter locations per world.
-> - **MISSIONS** — mission seeds anchored on systems / worlds.
+These six tabs are **wired**: each derives its content from the live sector and
+renders it in-app — the same output the `sectorforge personae` / `hooks` /
+`prose` / `briefing` / `sites` / `missions` CLI subcommands produce. Each has a
+**Regenerate** action, and any manual entries you add survive regeneration.
+[GUIDE.md](GUIDE.md) §8.2 documents their controls in detail (§PER, §HK, §PR,
+§BR, §ST, §M).
+
+- **PERSONAE** (§PER1..§PER5) — named NPCs per faction presence.
+- **HOOKS** (§HK1..§HK6) — plot hook templates that condition on the model state.
+- **PROSE** (§PR1..§PR4) — deterministic gazetteer paragraphs per world.
+- **BRIEFING** (§BR1..§BR5) — a longer prose pack stitched together for the
+  whole sector.
+- **SITES** (§ST1..§ST4) — notable sites / encounter locations per world.
+- **MISSIONS** (§M1..§M5) — mission seeds anchored on systems / worlds.
+
+> A **Random sector…** project (§1.5) fills all six in from the start — its
+> generation runs every one of these derivations.
 
 ### 11.6 SEARCH (live)
 
@@ -1097,6 +1134,8 @@ you saved is what gets exported. The outputs land in `./tutorial-sector/out/`:
 
 Now that you have built a small sector end-to-end:
 
+- Skip the manual build next time: **PROJECT → Random sector…** (§1.5) rolls a
+  complete, fully-featured sector — every overlay enabled — from just a size.
 - Use the **SEARCH** tab (§11.6) to find a seed with specific properties and
   apply it straight onto the current project, then keep editing from there.
 - In **PROJECT → Generation (§6)**, click **Open preset launcher…** to

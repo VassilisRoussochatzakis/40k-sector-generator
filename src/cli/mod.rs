@@ -20,6 +20,7 @@ mod missions;
 mod personae;
 mod presets;
 mod prose;
+mod random;
 mod regions;
 mod relations;
 mod search;
@@ -85,6 +86,37 @@ enum Command {
         /// Comma-separated output formats. Overrides
         /// `[outputs].formats` in `sectorforge.toml`. Tokens: `json`,
         /// `markdown`, `png` (alias for `bitmap`), `svg`, `html`.
+        #[arg(long, value_delimiter = ',')]
+        formats: Option<Vec<String>>,
+    },
+    /// Synthesise a fully-complete, fully-randomised sector from nothing but a
+    /// size (RANDOM.md). Materialises a fresh project under `--out` with every
+    /// overlay enabled, generates it, runs the five post-generation derivations
+    /// (personae/sites/hooks/missions/prose), and exports the bundle + reports.
+    Random {
+        /// Sector size: small | medium | large | huge. Ignored when
+        /// --width/--height are given. Defaults to medium.
+        #[arg(long)]
+        size: Option<String>,
+        /// Explicit grid width (use with --height for a custom size).
+        #[arg(long)]
+        width: Option<u32>,
+        /// Explicit grid height (use with --width for a custom size).
+        #[arg(long)]
+        height: Option<u32>,
+        /// Reproducibility seed. Omit to mint a fresh one (echoed on success).
+        #[arg(long)]
+        seed: Option<String>,
+        /// Project directory to create (must not exist). Defaults to
+        /// `./random-<seed>`.
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        /// Source directory holding presets (must contain `_full`). Defaults
+        /// to `./presets`.
+        #[arg(long, default_value = "presets")]
+        presets_dir: Utf8PathBuf,
+        /// Comma-separated output formats to export. Defaults to all five
+        /// (json, markdown, png, svg, html).
         #[arg(long, value_delimiter = ',')]
         formats: Option<Vec<String>>,
     },
@@ -439,6 +471,15 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             max_candidates,
             formats,
         ),
+        Command::Random {
+            size,
+            width,
+            height,
+            seed,
+            out,
+            presets_dir,
+            formats,
+        } => random::run_random(size, width, height, seed, out, presets_dir, formats),
         Command::GenerateSystem {
             project,
             seed,

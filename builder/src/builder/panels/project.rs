@@ -24,6 +24,21 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         if ui.button("Open project…").clicked() {
             state.modal = Some(ModalKind::OpenProject { path: None });
         }
+        if ui
+            .button("Random sector…")
+            .on_hover_text(
+                "RANDOM.md — synthesise a fully-complete, fully-randomised sector \
+                 from just a size (every overlay enabled)",
+            )
+            .clicked()
+        {
+            state.modal = Some(ModalKind::GenerateRandom {
+                size: "medium".to_string(),
+                custom_w: 10,
+                custom_h: 12,
+                seed: String::new(),
+            });
+        }
         save_project::show(ui, state);
         // §PF5: single "Save all" — flush every dirty TOML editor buffer, then
         // run the full project save.

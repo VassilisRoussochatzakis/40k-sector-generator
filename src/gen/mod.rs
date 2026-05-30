@@ -15,6 +15,7 @@ pub mod generation;
 pub mod hidden_routes;
 pub mod names;
 pub mod orbital_assets;
+pub mod random_sector;
 pub mod regions;
 pub mod routes;
 pub mod sites;

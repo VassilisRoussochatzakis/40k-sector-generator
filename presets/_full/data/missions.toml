@@ -1,0 +1,9 @@
+# presets/_full — mission/quest seed knobs (§3 NEW2.md / §M1..§M5 BUILDER_REQS).
+#
+# Parsed directly into `MissionsConfig` (bare file — no `[missions]` wrapper).
+# `[[manual]]` mission seeds, if added, are merged in after the per-anchor cap
+# pass and survive "Auto-derive missions".
+
+max_per_anchor = 2
+top_n_digest = 15
+player_edition = false

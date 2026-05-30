@@ -1,0 +1,100 @@
+# presets/_full — the "everything on" bundle.
+#
+# Every input overlay is wired AND enabled, every output format is emitted, and
+# the three GM-content overlays that have no copy in any other preset (hooks,
+# missions, prose) ship here. This preset is the single source of truth for "a
+# sector with every feature": `sectorforge random` copies this data tree and
+# synthesises a randomised [generation] block over it, while
+# `sectorforge new --preset _full` (and the builder's wizard) scaffold it
+# directly for a fixed-data sector.
+#
+# Hidden from the gallery (leading `_`, like `_base`) but scaffoldable by id.
+
+[project]
+id = "full-sector"
+title = "Full Sector"
+description = "Reference preset with every overlay enabled and every output format on."
+version = "0.1.0"
+
+[inputs]
+# Every key wired. Content catalogs come from _base; the enabled overlays come
+# from embattled-frontier; hooks/missions/prose are authored here.
+world_data_dir = "data/worlds"
+system_names   = "data/names/system_names.toml"
+world_names    = "data/names/world_names.toml"
+factions       = "data/factions/factions.toml"
+route_rules    = "data/routes/route_rules.toml"
+relations      = "data/factions/relations.toml"
+regions        = "data/routes/regions.toml"
+economy        = "data/worlds/economy.toml"
+history        = "data/history.toml"
+personae       = "data/personae.toml"
+sites          = "data/sites.toml"
+hooks          = "data/hooks.toml"
+missions       = "data/missions.toml"
+prose          = "data/prose.toml"
+
+[generation]
+seed = "full-1"
+sector_width = 8
+sector_height = 10
+subsector_width = 2
+subsector_height = 3
+system_count = 24
+min_worlds_per_system = 1
+max_worlds_per_system = 5
+allow_empty_hexes = true
+world_feature_count = 4
+strict_world_rows = true
+
+[generation.placement]
+mode = "weighted_grid"
+cluster_bias = 0.0
+minimum_system_distance = 1
+
+[generation.world_selection]
+mode = "weighted_rows"
+require_complete_rows = true
+allow_partial_rows = false
+same_star_colour_bias = 1.25
+strict_same_star_colour = false
+avoid_duplicate_world_type_in_system = false
+
+[generation.routes]
+enabled = true
+max_route_distance = 4
+route_density = 0.30
+ensure_connected_graph = true
+
+[generation.relations]
+min_world_presence = 1
+
+# `enabled` here is a fallback; the loader uses data/history.toml's own
+# [history] block (also enabled) because `inputs.history` is set.
+[history]
+enabled = true
+
+[outputs]
+directory = "out"
+formats = ["json", "markdown", "bitmap", "svg", "html"]
+pretty_json = true
+write_per_system_files = false
+write_manifest = true
+
+[outputs.bitmap]
+sector_scale = 1
+system_scale = 1
+render_systems = true
+faction_fill = true
+
+[outputs.html]
+theme = "dark"
+
+[map_theme]
+name = "gm_dark"
+
+[analyze]
+
+[search]
+
+[diff]

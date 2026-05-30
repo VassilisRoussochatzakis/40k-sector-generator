@@ -1,4 +1,4 @@
 [alias]
 sview = "run --release -p sectorforge-viewer --"
 sbuild = "run --release -p sectorforge-builder --"
-sba = "build --release --workspace --bins"
+sba = "build --release --workspace --all-targets"

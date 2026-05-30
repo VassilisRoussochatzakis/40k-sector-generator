@@ -365,7 +365,13 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
         {
             let regions_clone = regions.clone();
             let systems_clone = state.sector.systems.clone();
-            apply_route_effects(&regions_clone, &systems_clone, &mut state.sector.routes);
+            let max_route_distance = state.config.generation.routes.max_route_distance;
+            apply_route_effects(
+                &regions_clone,
+                &systems_clone,
+                &mut state.sector.routes,
+                max_route_distance,
+            );
             state.dirty = true;
             state.invariant_report = Some(sectorforge::invariants::check_sector(&state.sector));
             state.mark_validation_dirty();

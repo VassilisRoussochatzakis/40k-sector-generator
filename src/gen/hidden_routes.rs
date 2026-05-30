@@ -5,8 +5,11 @@
 //! generator runs. Hidden routes do not honour the warp-distance cap —
 //! they connect *any two systems* in the sector where both endpoints have
 //! meaningful faction presence of the relevant kind. Distance is the raw
-//! hex distance; stability is always `Stable` (these layers do not use
-//! the warp).
+//! hex distance; stability is derived from that distance on the same
+//! monotonic "short is safer than long" ladder as public routes, banded
+//! against [`HIDDEN_ROUTE_MAX_NAVIGABLE`] (these layers have no per-config
+//! distance cap of their own, so a lane longer than any sane warp jump
+//! reads as perilous while short hops stay safe).
 //!
 //! All output is deterministic given the input sector; this module does
 //! not consult an RNG.
@@ -27,6 +30,40 @@ use crate::sector_model::{
 /// network. Tuned so a single Hidden-level presence doesn't qualify; a
 /// Significant or higher presence does.
 const ENDPOINT_THRESHOLD: f32 = 25.0;
+
+/// Hidden routes ignore the per-config warp-distance cap, so their distance
+/// baseline is banded against the upper bound of the normal navigable range
+/// that the random generator rolls (`max_route_distance` ∈ `3..=6`). Using the
+/// top of that range keeps the "short is safer than long" gradient consistent
+/// with public routes; [`hidden_route_stability`] then applies a per-type
+/// adjustment on top.
+const HIDDEN_ROUTE_MAX_NAVIGABLE: u32 = 6;
+
+/// Stability for a hidden lane, combining the shared distance gradient with
+/// per-network character. The gradient stays monotonic in distance within each
+/// type ("short is safer than long"), but different networks sit at different
+/// safety floors:
+///
+/// * [`RouteType::Webway`] — the Aeldari webway is a parallel-dimension
+///   shortcut that never touches the warp, so length is irrelevant: always
+///   [`RouteStability::Stable`].
+/// * [`RouteType::BlackShip`] — Navigator-piloted, escort-heavy Inquisition
+///   convoys: one tier safer than the raw distance baseline, and never worse
+///   than [`RouteStability::Hazardous`].
+/// * [`RouteType::SmugglingLane`] — criminal/Drukhari shortcuts run hot: one
+///   tier more dangerous than the baseline (a 1-hex run is already `Unstable`).
+/// * Anything else (e.g. [`RouteType::SecretPassage`]) — plain distance
+///   baseline.
+fn hidden_route_stability(rtype: RouteType, dist: u32) -> RouteStability {
+    let base = crate::generation::distance_base_level(dist, HIDDEN_ROUTE_MAX_NAVIGABLE);
+    let level = match rtype {
+        RouteType::Webway => 0,
+        RouteType::BlackShip => base.saturating_sub(1),
+        RouteType::SmugglingLane => (base + 1).min(3),
+        _ => base,
+    };
+    crate::generation::stability_from_level(level)
+}
 
 /// Maximum hidden-route fan-out per endpoint. Each qualifying endpoint
 /// connects to its `HIDDEN_K_NEAREST` closest peers (by hex distance, with
@@ -154,13 +191,14 @@ pub fn configured_hidden_routes(
         let Some(b) = systems_by_id.get(to.as_str()).copied() else {
             continue;
         };
+        let dist = hex_distance(a.coord, b.coord);
         let mut route = GeneratedRoute {
             id,
             from_system_id: from,
             to_system_id: to,
-            distance: hex_distance(a.coord, b.coord),
+            distance: dist,
             route_type: config.kind,
-            stability: RouteStability::Stable,
+            stability: hidden_route_stability(config.kind, dist),
             tags: vec![format!("hidden:{suffix}").into()],
             controls: Vec::new(),
         };
@@ -439,7 +477,7 @@ fn emit_layer(
             to_system_id: to,
             distance: dist,
             route_type: rtype,
-            stability: RouteStability::Stable,
+            stability: hidden_route_stability(rtype, dist),
             tags: vec![format!("hidden:{suffix}").into()],
             controls: Vec::new(),
         });

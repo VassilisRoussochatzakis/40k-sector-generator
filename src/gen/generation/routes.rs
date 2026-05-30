@@ -170,31 +170,86 @@ pub(super) fn generate_routes(
         })
         .collect();
 
-    // Cap perilous routes at 10% of total. Excess downgraded to Hazardous.
+    // Cap perilous routes at 10% of total. Excess downgraded to Hazardous,
+    // shortest-first — so the downgrade can never leave a longer route safer
+    // than a shorter one (preserves the short-is-safer invariant).
     let perilous_limit = ((routes.len() as f64) * 0.10).round() as usize;
-    if routes
+    let perilous_count = routes
         .iter()
         .filter(|r| r.stability == RouteStability::Perilous)
-        .count()
-        > perilous_limit
-    {
-        let remaining = std::cell::Cell::new(
-            routes
-                .iter()
-                .filter(|r| r.stability == RouteStability::Perilous)
-                .count()
-                .saturating_sub(perilous_limit),
-        );
-        for r in &mut routes {
-            if r.stability == RouteStability::Perilous && remaining.get() > 0 {
-                r.stability = RouteStability::Hazardous;
-                remaining.set(remaining.get() - 1);
+        .count();
+    if perilous_count > perilous_limit {
+        let mut excess = perilous_count - perilous_limit;
+        let mut perilous_idx: Vec<usize> = (0..routes.len())
+            .filter(|&k| routes[k].stability == RouteStability::Perilous)
+            .collect();
+        // Shortest distance first; id as a deterministic tie-breaker.
+        perilous_idx.sort_by(|&x, &y| {
+            routes[x]
+                .distance
+                .cmp(&routes[y].distance)
+                .then_with(|| routes[x].id.cmp(&routes[y].id))
+        });
+        for k in perilous_idx {
+            if excess == 0 {
+                break;
             }
+            routes[k].stability = RouteStability::Hazardous;
+            excess -= 1;
         }
     }
 
     routes.sort_by(|a, b| a.id.cmp(&b.id));
     routes
+}
+
+/// Severity ladder used internally by route classification: `0` = safest.
+/// The public [`RouteStability`] deliberately derives no `Ord`, so the ordering
+/// lives here, next to the only code that needs to reason about "safer than".
+/// `pub(crate)` so the hidden-route layers can shift a distance baseline by
+/// whole tiers (e.g. an escorted black-ship lane one tier safer).
+pub(crate) fn stability_from_level(level: u8) -> RouteStability {
+    match level {
+        0 => RouteStability::Stable,
+        1 => RouteStability::Unstable,
+        2 => RouteStability::Hazardous,
+        _ => RouteStability::Perilous,
+    }
+}
+
+/// Inverse of [`stability_from_level`]: the severity rank of a stability value
+/// (`0` = safest). `pub(crate)` so region overlays can clamp a stability change
+/// to a distance-derived floor without making a long route safer than a short
+/// one.
+pub(crate) fn stability_level(s: RouteStability) -> u8 {
+    match s {
+        RouteStability::Stable => 0,
+        RouteStability::Unstable => 1,
+        RouteStability::Hazardous => 2,
+        RouteStability::Perilous => 3,
+    }
+}
+
+/// Distance-only baseline danger level, **monotonically non-decreasing in
+/// `dist`**: a shorter hop is never given a worse baseline than a longer one.
+/// Banded relative to `max_dist` so the gradient scales with the configured
+/// cap (a 1-hex jump is always the safest baseline; a hop at/over the cap is
+/// always the worst). This is the core "short is safer than long" guarantee;
+/// hazards in [`classify_route`] may only push the level *up* from here.
+/// `pub(crate)` so the hidden-route layers share the exact same gradient.
+pub(crate) fn distance_base_level(dist: u32, max_dist: u32) -> u8 {
+    let max_dist = max_dist.max(1);
+    if dist <= 1 {
+        0 // single-hex jump: always Stable baseline
+    } else if dist >= max_dist {
+        3 // at or beyond the cap: worst baseline
+    } else if 4 * dist <= max_dist {
+        0 // <= 25% of cap
+    } else if 2 * dist <= max_dist {
+        1 // <= 50% of cap
+    } else {
+        2 // < 100% of cap
+    }
 }
 
 fn classify_route(
@@ -210,22 +265,35 @@ fn classify_route(
         .flat_map(|w| w.tags.iter())
         .collect();
     let has = |tag: &str| tags.iter().any(|t| t.as_ref() == tag);
-    if has("feature:warp_phenomena") || has("feature:daemonic_corruption") {
-        if dist >= max_dist - 2 && dist < max_dist {
-            return (RouteType::ChartedPassage, RouteStability::Perilous);
-        }
-        return (RouteType::ChartedPassage, RouteStability::Hazardous);
+
+    // Distance sets the monotonic baseline; hazards can only raise danger,
+    // never lower it. A longer route therefore can never be safer than a
+    // shorter one carrying the same hazards.
+    let mut level = distance_base_level(dist, max_dist);
+    let war_zone = has("feature:war_zone");
+    let warp = has("feature:warp_phenomena") || has("feature:daemonic_corruption");
+    if war_zone {
+        level = level.saturating_add(2);
     }
-    if has("feature:war_zone") {
-        return (RouteType::ChartedPassage, RouteStability::Perilous);
+    if warp {
+        level = level.saturating_add(1);
     }
-    if dist >= max_dist {
-        return (RouteType::ChartedPassage, RouteStability::Unstable);
-    }
-    if has("feature:trade_hub") || has("feature:administrative_hub") {
-        return (RouteType::StableWarpLane, RouteStability::Stable);
-    }
-    (RouteType::ChartedPassage, RouteStability::Stable)
+    let stability = stability_from_level(level.min(3));
+
+    // Hub-anchored, low-danger lanes read as Stable Warp Lanes; anything
+    // hazardous or beyond half the cap is a Charted Passage.
+    // `level` is still the pristine baseline here (this branch excludes
+    // hazards, the only thing that mutates it).
+    let route_type = if !war_zone
+        && !warp
+        && level <= 1
+        && (has("feature:trade_hub") || has("feature:administrative_hub"))
+    {
+        RouteType::StableWarpLane
+    } else {
+        RouteType::ChartedPassage
+    };
+    (route_type, stability)
 }
 
 fn find(parent: &mut [usize], i: usize) -> usize {

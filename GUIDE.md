@@ -701,8 +701,12 @@ overlay:
   sole navigable bridge lanes are capped at `Hazardous`.
 * `Turbulence` → degrades by one stability tier, with the same bridge cap
   when the downgrade would make the route `Perilous`.
-* `CalmCorridor` → upgrades by one tier (cannot upgrade above
-  `Hazardous` when another rule already forced `Perilous`).
+* `CalmCorridor` → upgrades by one tier, but **never below the route's
+  distance-baseline floor** (`distance_base_level`, keyed on
+  `max_route_distance`): a calm corridor can soothe hazard-driven danger
+  without making a long lane safer than a short one ("short is safer than
+  long"). Already-`Perilous` routes are left untouched, and navigable bridge
+  lanes still keep their connectivity cap.
 * `Blackout` → marks the area for no covert / hidden routes.
 * `Anomaly` → reweights world generation in the affected hex toward
   warp-phenomena / ancient-ruins / daemonic-corruption candidates
@@ -732,7 +736,15 @@ storm, `^` turbulence, `=` calm corridor, `#` blackout, `*` anomaly.
 
 `Blackout` regions also gate the hidden-route stage: webway, black-ship,
 and smuggling-lane endpoints inside a blackout footprint are excluded so
-no covert lane terminates there. Post-generation invariants check that
+no covert lane terminates there. Hidden lanes ignore the warp-distance cap
+but their stability is distance-derived on the same monotonic
+"short is safer than long" gradient as public routes (`hidden_route_stability`,
+banded against `HIDDEN_ROUTE_MAX_NAVIGABLE = 6`), with a per-network safety
+floor on top: `Webway` is always `Stable` (the webway never touches the warp,
+so length is irrelevant), escorted `BlackShip` convoys are one tier safer and
+never worse than `Hazardous`, `SmugglingLane` runs one tier more dangerous
+(a 1-hex run is already `Unstable`), and any other hidden type uses the plain
+baseline. Post-generation invariants check that
 region hexes stay inside the grid, that no two regions overlap, and
 that the route graph restricted to non-Perilous lanes stays connected
 after region effects are applied — the `REGION_ISOLATES_SECTOR`
@@ -1182,6 +1194,17 @@ Active route types are `StableWarpLane`, `ChartedPassage`, `SecretPassage`,
 editor dropdown use this same route-type set; route danger is represented by
 `RouteStability` (`Stable`, `Unstable`, `Hazardous`, `Perilous`), not by a
 separate route type.
+
+`classify_route` (in `src/gen/generation/routes.rs`) assigns stability so that
+**a shorter route is never less safe than a longer one carrying the same
+hazards** — "short is safer than long" holds along the distance axis. Distance
+sets a monotonic baseline level (`distance_base_level`, banded by `dist /
+max_route_distance`: a 1-hex hop is always the `Stable` baseline, a hop at/over
+the cap is always the `Perilous` baseline). Hazards then only ever raise danger,
+never lower it — `feature:war_zone` adds two severity tiers, `warp_phenomena` /
+`daemonic_corruption` add one (saturating at `Perilous`). The 10%-perilous cap
+downgrades excess `Perilous` lanes shortest-first, so the cap itself can never
+leave a longer lane safer than a shorter one.
 
 For compatibility with the proposal syntax, a top-level `[map_theme]` table is
 also accepted and merged into `[outputs.bitmap.theme]`.

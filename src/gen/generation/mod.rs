@@ -24,6 +24,7 @@ mod world_placement;
 pub use factions::assign_factions_for_systems;
 pub use systems::{build_system, build_system_with_bias};
 pub use world_placement::regenerate_world_payload;
+pub(crate) use routes::{distance_base_level, stability_from_level, stability_level};
 
 /// Progress events emitted by sector generation when a caller opts in through
 /// [`generate_with_progress`].
@@ -418,6 +419,7 @@ where
             &warp_regions,
             &systems,
             &mut routes,
+            config.generation.routes.max_route_distance,
             |event| match event {
                 crate::regions::RegionRouteEffectsProgress::Started {
                     regions,

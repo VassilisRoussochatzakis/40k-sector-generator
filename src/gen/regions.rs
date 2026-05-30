@@ -561,14 +561,16 @@ pub fn apply_route_effects(
     regions: &[WarpRegion],
     systems: &[GeneratedSystem],
     routes: &mut [GeneratedRoute],
+    max_route_distance: u32,
 ) {
-    let _ = apply_route_effects_with_progress(regions, systems, routes, |_| {});
+    let _ = apply_route_effects_with_progress(regions, systems, routes, max_route_distance, |_| {});
 }
 
 pub fn apply_route_effects_with_progress(
     regions: &[WarpRegion],
     systems: &[GeneratedSystem],
     routes: &mut [GeneratedRoute],
+    max_route_distance: u32,
     mut progress: impl FnMut(RegionRouteEffectsProgress),
 ) -> RegionRouteEffectsSummary {
     let mut summary = RegionRouteEffectsSummary {
@@ -619,7 +621,20 @@ pub fn apply_route_effects_with_progress(
                         if matches!(routes[idx].stability, RouteStability::Perilous) {
                             RouteEffectOutcome::default()
                         } else {
-                            let target = upgrade(routes[idx].stability);
+                            // A calm corridor can soothe hazard-driven danger,
+                            // but must not make a route safer than its sheer
+                            // length warrants — otherwise a long calm lane could
+                            // end up safer than a short one, breaking the
+                            // "short is safer than long" invariant. Upgrade one
+                            // tier, then clamp to the distance baseline floor.
+                            let upgraded = crate::generation::stability_level(routes[idx].stability)
+                                .saturating_sub(1);
+                            let floor = crate::generation::distance_base_level(
+                                routes[idx].distance,
+                                max_route_distance,
+                            );
+                            let target =
+                                crate::generation::stability_from_level(upgraded.max(floor));
                             apply_route_stability_with_bridge_progress(
                                 routes,
                                 idx,
@@ -787,14 +802,6 @@ fn degrade(s: RouteStability) -> RouteStability {
         RouteStability::Stable => RouteStability::Unstable,
         RouteStability::Unstable => RouteStability::Hazardous,
         RouteStability::Hazardous | RouteStability::Perilous => RouteStability::Perilous,
-    }
-}
-
-fn upgrade(s: RouteStability) -> RouteStability {
-    match s {
-        RouteStability::Perilous => RouteStability::Hazardous,
-        RouteStability::Hazardous => RouteStability::Unstable,
-        RouteStability::Unstable | RouteStability::Stable => RouteStability::Stable,
     }
 }
 

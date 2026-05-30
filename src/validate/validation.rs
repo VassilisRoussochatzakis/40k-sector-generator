@@ -197,16 +197,33 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
     }
     if !pool.excluded_rows.is_empty() {
         let n = pool.excluded_rows.len();
+        let usable = pool.candidates.len();
         let breakdown = exclusion_reasons
             .iter()
             .map(|(r, c)| format!("{r}: {c}"))
             .collect::<Vec<_>>()
             .join(", ");
-        warnings.push(issue(
-            "WB_EXCLUDED_ROWS",
-            &format!("{n} workbook row(s) were excluded ({breakdown})"),
-            Severity::Warning,
-        ));
+        // A few malformed rows are a warning. But when *more rows are dropped
+        // than kept*, the sector would silently generate from a fraction of its
+        // intended templates — collapsing world and feature variety (e.g. a
+        // column-truncated workbook). Escalate so it can't pass unnoticed.
+        if n > usable {
+            errors.push(issue(
+                "WB_EXCLUDED_ROWS_SEVERE",
+                &format!(
+                    "{n} of {} workbook row(s) were excluded — more than half; \
+                     only {usable} usable template(s) remain ({breakdown})",
+                    n + usable
+                ),
+                Severity::Error,
+            ));
+        } else {
+            warnings.push(issue(
+                "WB_EXCLUDED_ROWS",
+                &format!("{n} workbook row(s) were excluded ({breakdown})"),
+                Severity::Warning,
+            ));
+        }
     }
 
     // World feature count vs available pool

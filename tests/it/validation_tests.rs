@@ -52,6 +52,38 @@ fn no_factions_is_ok() {
     assert!(report.ok);
 }
 
+#[test]
+fn majority_excluded_rows_is_severe_error() {
+    // Regression guard: a column-truncated workbook (most rows missing fields)
+    // must fail loudly, not silently generate from the surviving fraction.
+    // See WB_EXCLUDED_ROWS_SEVERE in src/validate/validation.rs.
+    let project = manifest_dir().join("examples/m42_project");
+    let mut input = sectorforge::load_project(project).unwrap();
+
+    let cat = std::sync::Arc::make_mut(&mut input.catalogs);
+    let valid = cat.world_rows[0].clone();
+    cat.world_rows.clear();
+    cat.world_rows.push(valid.clone()); // 1 usable row
+    for _ in 0..4 {
+        // Drop the first required field so the row is excluded by the pool
+        // builder's `first_missing_field` check.
+        let mut stub = valid.clone();
+        stub.star_colour = None;
+        cat.world_rows.push(stub);
+    }
+
+    let report = sectorforge::validate_project(&input).unwrap();
+    assert!(!report.ok, "4 excluded vs 1 usable must fail validation");
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.code == "WB_EXCLUDED_ROWS_SEVERE"),
+        "expected WB_EXCLUDED_ROWS_SEVERE, got {:?}",
+        report.errors
+    );
+}
+
 fn manifest_dir() -> Utf8PathBuf {
     Utf8PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
 }

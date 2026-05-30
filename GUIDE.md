@@ -160,6 +160,15 @@ chronicle with no extra flags. The structural shape (placement mode, density,
 worlds-per-system, region count, route knobs, map theme, …) is also rolled, so
 two seeds differ in *shape*, not just in contents.
 
+> **Complete world templates.** The bundled workbook
+> (`data/worlds/worlds.toml`) must carry **complete** rows: each `[[generation]]`
+> row needs all eight physical columns plus a positive `weight` (the separate
+> `[features]` table holds the weighted feature pool). Pre-generation validation
+> drops malformed rows, and if *more rows are dropped than kept* it fails with
+> `WB_EXCLUDED_ROWS_SEVERE` (an error, not a warning) — a guard so a
+> column-truncated workbook can't silently collapse world/feature variety down
+> to the few intact rows.
+
 > **Square sectors.** Every sector is square (`sector_width == sector_height`).
 > The `random` presets are all `N × N`, a custom size is a single side length
 > (pass `--width`/`--height` equal, or just one), and a non-square

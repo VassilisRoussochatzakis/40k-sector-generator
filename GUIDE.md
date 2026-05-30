@@ -101,7 +101,8 @@ Progress is printed to stderr with `[sectorforge]` prefixes: load, validation,
 world-pool build, system generation, public routes, region route effects (route
 scan counts, changed routes, bridge checks, and final stability totals),
 hidden-route layers (endpoint scans, candidate-pair counts, and emit progress),
-route-control derivation, influence-field projection/resolution, chronicle
+the optional stability rebalance (when `[generation.routes].stability_targets`
+is set), route-control derivation, influence-field projection/resolution, chronicle
 scan/sort progress, overlays, invariant check, and export. Stdout keeps the
 final summary, so scripted callers can redirect stderr if they only want
 artifacts or JSON.
@@ -1119,6 +1120,11 @@ enabled                    = true
 max_route_distance         = 4
 route_density              = 0.30
 ensure_connected_graph     = true
+# Optional. When present, swaps the legacy 10%-perilous cap for a final
+# quantile re-bucketing of public lanes to this relative mix — so a storm-heavy
+# regions.toml can't flood the sector to Perilous and starve the Stable
+# backbone. Omit to keep legacy behaviour (and byte-identical golden output).
+stability_targets = { stable = 0.32, unstable = 0.30, hazardous = 0.23, perilous = 0.15 }
 
 [generation.relations]
 # Minimum world presence required for a faction to appear in the diplomacy
@@ -1217,6 +1223,24 @@ never lower it — `feature:war_zone` adds two severity tiers, `warp_phenomena` 
 `daemonic_corruption` add one (saturating at `Perilous`). The 10%-perilous cap
 downgrades excess `Perilous` lanes shortest-first, so the cap itself can never
 leave a longer lane safer than a shorter one.
+
+**Optional stability rebalance (`[generation.routes].stability_targets`).** The
+per-route additive model above is *local* — it has no view of the whole-graph
+mix, so a storm-heavy `regions.toml` (whose `WarpStorm` regions force-rewrite
+endpoints to `Perilous` *after* the 10% cap runs) can flood the sector and leave
+almost no `Stable` lanes. Setting `stability_targets` swaps the early cap for a
+final stage, `rebalance_public_stability` (run after the region and hidden
+layers, in `src/gen/generation/routes.rs`), that re-buckets the **public** lanes
+(`StableWarpLane` / `ChartedPassage` / `SecretPassage`; hidden lanes keep their
+own per-type stability) to the configured relative mix. Routes are ranked
+safest-first by `(existing stability tier, distance, id)` and the ranks are
+partitioned into the four tiers by quantile. Because that key is non-decreasing
+in distance for a fixed hazard/region class, the partition preserves "short is
+safer than long" by construction; any lane promoted to `Perilous` that is the
+sole navigable link between its endpoints is capped back to `Hazardous` (tagged
+`rebalance:connectivity_preserved`), the same connectivity rule the region
+overlay uses. The default (field absent → `None`) keeps the legacy cap and
+byte-identical golden output; only projects that opt in change.
 
 For compatibility with the proposal syntax, a top-level `[map_theme]` table is
 also accepted and merged into `[outputs.bitmap.theme]`.

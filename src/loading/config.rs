@@ -237,6 +237,30 @@ fn default_bias() -> f64 {
     1.25
 }
 
+/// Target stability mix for **public** warp routes (`StableWarpLane` /
+/// `ChartedPassage` / `SecretPassage`; hidden lanes keep their own per-type
+/// stability). When present on [`RouteGenerationConfig`], a final generation
+/// stage re-buckets the public route graph so the fraction of routes in each
+/// [`crate::sector_model::RouteStability`] tier approaches these weights —
+/// *regardless* of how many warp-storm regions the sector rolled.
+///
+/// Weights are relative (they need not sum to `1.0`; they are normalised) and
+/// negatives are clamped to `0`. The re-bucketing is a monotonic function of
+/// the pre-rebalance danger ordering, so a shorter route is never made less
+/// safe than a longer one carrying the same hazards (the "short is safer than
+/// long" invariant is preserved by construction).
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub struct StabilityTargets {
+    #[serde(default)]
+    pub stable: f64,
+    #[serde(default)]
+    pub unstable: f64,
+    #[serde(default)]
+    pub hazardous: f64,
+    #[serde(default)]
+    pub perilous: f64,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RouteGenerationConfig {
     #[serde(default = "default_true")]
@@ -247,6 +271,13 @@ pub struct RouteGenerationConfig {
     pub route_density: f64,
     #[serde(default = "default_true")]
     pub ensure_connected_graph: bool,
+    /// Optional target stability mix for public routes. `None` (default)
+    /// preserves the legacy early perilous-cap behaviour and byte-identical
+    /// golden output; `Some` swaps that cap for a quantile re-bucketing that
+    /// guarantees the configured fraction of Stable / Unstable / Hazardous /
+    /// Perilous lanes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stability_targets: Option<StabilityTargets>,
 }
 
 impl Default for RouteGenerationConfig {
@@ -256,6 +287,7 @@ impl Default for RouteGenerationConfig {
             max_route_distance: default_max_route_distance(),
             route_density: default_route_density(),
             ensure_connected_graph: true,
+            stability_targets: None,
         }
     }
 }

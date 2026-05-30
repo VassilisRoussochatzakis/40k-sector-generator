@@ -627,8 +627,9 @@ pub fn apply_route_effects_with_progress(
                             // end up safer than a short one, breaking the
                             // "short is safer than long" invariant. Upgrade one
                             // tier, then clamp to the distance baseline floor.
-                            let upgraded = crate::generation::stability_level(routes[idx].stability)
-                                .saturating_sub(1);
+                            let upgraded =
+                                crate::generation::stability_level(routes[idx].stability)
+                                    .saturating_sub(1);
                             let floor = crate::generation::distance_base_level(
                                 routes[idx].distance,
                                 max_route_distance,
@@ -753,7 +754,11 @@ fn apply_route_stability(
     }
 }
 
-fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool {
+/// Would marking `candidate_idx` Perilous sever the only navigable
+/// (non-Perilous) path between its two endpoints? `pub(crate)` so the
+/// route-stability rebalance ([`crate::generation::rebalance_public_stability`])
+/// can reuse the exact same connectivity rule the region overlay uses.
+pub(crate) fn is_navigable_bridge(routes: &[GeneratedRoute], candidate_idx: usize) -> bool {
     let Some(candidate) = routes.get(candidate_idx) else {
         return false;
     };

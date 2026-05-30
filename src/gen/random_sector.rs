@@ -393,6 +393,9 @@ fn build_random_config_inner(
             max_route_distance,
             route_density,
             ensure_connected_graph: true,
+            // Legacy default: the random scaffolder keeps the early perilous-cap
+            // balancing. Projects opt into quantile rebalancing via their toml.
+            stability_targets: None,
         },
         relations: RelationsGenerationConfig { min_world_presence },
         search_base_seed: None,

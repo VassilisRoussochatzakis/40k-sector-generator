@@ -22,9 +22,9 @@ mod systems;
 mod world_placement;
 
 pub use factions::assign_factions_for_systems;
+pub(crate) use routes::{distance_base_level, stability_from_level, stability_level};
 pub use systems::{build_system, build_system_with_bias};
 pub use world_placement::regenerate_world_payload;
-pub(crate) use routes::{distance_base_level, stability_from_level, stability_level};
 
 /// Progress events emitted by sector generation when a caller opts in through
 /// [`generate_with_progress`].
@@ -527,6 +527,15 @@ where
             added: routes.len().saturating_sub(before),
             routes: routes.len(),
         });
+    }
+
+    // §route-rebalance: with `stability_targets` configured, re-bucket public
+    // route stabilities to the target mix now that every layer is in place
+    // (public generation, region effects, hidden lanes). This replaces the
+    // legacy early perilous-cap — skipped in `generate_routes` when targets are
+    // set — so a storm-heavy sector still keeps a guaranteed Stable backbone.
+    if let Some(targets) = config.generation.routes.stability_targets {
+        routes::rebalance_public_stability(&mut routes, targets);
     }
 
     // §3 per-route per-faction control. Derived after routes are built and

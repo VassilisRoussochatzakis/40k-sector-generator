@@ -1,0 +1,172 @@
+# Embattled Frontier — dramatis personae pools (§3 NEW.md).
+#
+# War-themed kind pools for the three belligerents. Loader expects
+# PersonaeConfig at file root (no [personae] wrapper).
+
+min_world_dominance = "influence"
+max_per_world = 3
+max_per_system = 4
+
+# ── Imperium ──────────────────────────────────────────────────────────────────
+
+[kinds.imperial]
+name_prefixes = ["Lord", "Lady", "Cardinal", "Marshal", "Magistrate", "Castellan", "Commissar"]
+name_roots = [
+    "Argentius", "Belisar", "Cassia", "Drusilla", "Eustace", "Faustinus",
+    "Galenius", "Hadria", "Iocanthe", "Julien", "Klemens", "Lucia",
+    "Marcellus", "Nyssa", "Octavian", "Pallas", "Quintus", "Roderick",
+    "Sabina", "Tarsus", "Ulrick", "Valerian", "Xerxes", "Yseult", "Zephyr",
+]
+name_suffixes = ["the Iron", "Vox", "the Stern", "the Untiring", "Aquilon", "the Just", "of the Aegis"]
+single_names = ["Lord-General Vorne", "Saint Caelia of Calixis", "Marshal Drusus Erasmus"]
+titles = [
+    "Sector Lord", "Lord-Governor", "Cardinal-Astral", "Lord Marshal",
+    "Prefect of Munitorum", "Magistrate-Penitent", "Commissar-General",
+]
+traits = [
+    "iron-jawed", "tireless", "incorruptible", "ruthless", "calculating",
+    "devout", "burdened by duty", "vain", "ascetic", "scarred by Ork glyphs",
+]
+
+[kinds.imperial_guard]
+name_prefixes = ["Colonel", "Lord-Colonel", "Captain", "Major", "Commissar"]
+name_roots = [
+    "Avven", "Baird", "Creed", "Drennan", "Eichmann", "Garran", "Hark",
+    "Jurgen", "Kell", "Lukas", "Mira", "Norne", "Olsen", "Padorin",
+    "Rendel", "Steiner", "Tasker", "Vesker",
+]
+name_suffixes = ["the Iron", "of Cadia", "of Krieg", "of Catachan", "the Tenacious"]
+single_names = ["Colour-Sergeant Brask", "Lord-Colonel Helsker", "Commissar Vant"]
+titles = [
+    "Regimental Colonel", "Lord-Colonel of the Line", "Storm-Captain",
+    "Munitorum Liaison", "Castellan of the Wall",
+]
+traits = [
+    "soot-stained", "rebreather-scarred", "veteran of three sieges",
+    "soft-spoken under fire", "wounded twice and counting",
+]
+
+[kinds.adeptus_astartes]
+name_prefixes = ["Brother-Captain", "Sergeant", "Chaplain", "Lieutenant", "Apothecary"]
+name_roots = [
+    "Aexilus", "Brennor", "Caelum", "Dareth", "Erevan", "Faerus", "Galex",
+    "Helion", "Igrael", "Joros", "Korven", "Lyran", "Maerix", "Nymrus",
+]
+name_suffixes = ["the Stoic", "Far-Sword", "Anvil-Hand", "the Resolute"]
+single_names = ["Brother-Captain Nikalus", "Chaplain Verros"]
+titles = ["Brother-Captain", "Reclusiarch", "Lieutenant of the Third", "Watch-Sergeant"]
+traits = [
+    "weathered ceramite", "scriptural calm", "implacable", "veteran of the Long War",
+    "carries a relic chainsword",
+]
+
+[kinds.mechanicus]
+name_prefixes = ["Magos", "Genetor", "Dominus", "Artisan", "Lexmechanic", "Tech-priest"]
+name_roots = ["0x1A", "Khedive", "Kelvar", "Nivelle", "Sothrax", "Vellexor"]
+name_suffixes = ["7", "Theta-12", "the Augur", "of the Coil", "Hexagrammaton"]
+titles = ["Magos Dominus", "Genetor Biologis", "Artisan-Empyrean", "Logis-Conservator"]
+traits = ["flensed flesh", "binharic voice", "hyper-rational", "data-hoarder", "weaponised limbs"]
+
+[kinds.inquisition]
+name_prefixes = ["Inquisitor", "Interrogator", "Lord-Inquisitor"]
+name_roots = ["Ravenor", "Eisenhorn", "Glas", "Voss", "Krane", "Mortal", "Sythraen"]
+name_suffixes = ["the Severe", "of the Ordo", "Black-Eye", "the Watching"]
+titles = ["Inquisitor", "Lord-Inquisitor", "Interrogator-Adept"]
+traits = ["unblinking gaze", "patient cruelty", "marked by warp", "carries a digital weapon"]
+
+[kinds.deathwatch]
+name_prefixes = ["Watch-Captain", "Watch-Sergeant", "Brother"]
+name_roots = ["Artemis", "Cassius", "Garran", "Helion", "Mordrak", "Sycorax"]
+name_suffixes = ["Xenoslayer", "the Silent", "Black-Shield"]
+titles = ["Watch-Captain", "Kill-Team Leader", "Watch-Sergeant"]
+traits = ["xenos-trophy belt", "polyglot", "silent before contact"]
+
+# ── Orks ──────────────────────────────────────────────────────────────────────
+
+[kinds.ork]
+name_prefixes = ["Warboss", "Big Boss", "Kaptin", "Wazboss", "Mek"]
+name_roots = [
+    "Snikk", "Gor'kaz", "Thrak", "Urgrim", "Mogg", "Krooga", "Skarboy",
+    "Drogga", "Nazdreg", "Wazgrod", "Buzzgut", "Goresplat", "Killmaim",
+]
+name_suffixes = [
+    "Toofcrusha", "da Bone-Crowned", "da Loud", "of the Long Howl",
+    "Skulltaka", "Bigboot", "Tankhanda", "Killchoppa",
+]
+single_names = ["Ghazghkull (rumour)", "Nazdreg of the Bad Moons", "Kaptin Badrukk's outrunners"]
+titles = [
+    "Warboss of da Waaagh!", "Big Mek", "Kaptin of da Freebootaz",
+    "Mek-Boss", "Speed Freek Boss", "Warlord of the Cluster",
+]
+traits = [
+    "krumpin' big", "missing teef", "iron-jawed", "covered in glyphs",
+    "drives too fast", "loves loud gunz", "smells of promethium and gretchin",
+    "carries a custom power klaw",
+]
+
+# ── Leagues of Votann ─────────────────────────────────────────────────────────
+
+[kinds.leagues_of_votann]
+name_prefixes = ["Kâhl", "Grimnyr", "Hernkyn", "Theyn", "Pioneer"]
+name_roots = [
+    "Borrek", "Durnvar", "Ezran", "Fjellgrim", "Halvar", "Iverthain",
+    "Jovrun", "Kheldur", "Lokri", "Magni", "Norvar", "Orrik",
+]
+name_suffixes = [
+    "Anvil-Born", "of the Long Ledger", "Iron-Spoken", "of the Deep Vault",
+    "Coin-Counter",
+]
+single_names = [
+    "Kâhl Borrek Anvil-Born",
+    "Grimnyr Halvar of the Long Ledger",
+]
+titles = [
+    "Kâhl of the Prospect Clan", "Hearthkyn Foreman", "Ironkin Steeljack",
+    "Grimnyr of the Vault", "Trade Liaison of the Kindred",
+]
+traits = [
+    "bionic eye", "owes a debt", "stoic to a fault", "ledger-bound",
+    "carries a clan oath-stone", "patient enough to outwait an Ork",
+]
+
+# ── Manual personae (anchored by faction id, system slot fallback) ───────────
+
+[[manual]]
+id = "persona-vorne-castellan"
+faction_id = "imperial_administration"
+faction_kind = "imperial"
+name = "Lord Castellan Erasmus Vorne"
+title = "Lord Castellan of the Frontier"
+traits = ["iron-jawed", "tireless", "burdened by duty"]
+agenda = "Hold the western marches until Battlefleet Frontier completes its refit."
+anchor = { scope = "system", system_id = "sys-0001", slot = "sovereign" }
+
+[[manual]]
+id = "persona-ghazku-warboss"
+faction_id = "goff_clan"
+faction_kind = "ork"
+name = "Warboss Ghazku Skullsplitta"
+title = "Warboss of the Goff Skulltakaz"
+traits = ["krumpin' big", "iron-jawed", "carries a custom power klaw"]
+agenda = "Krump da humies all da way back to da Throne."
+anchor = { scope = "system", system_id = "sys-0002", slot = "sovereign" }
+
+[[manual]]
+id = "persona-nazgrim-mek"
+faction_id = "big_mek_workshops"
+faction_kind = "ork"
+name = "Big Mek Nazgrim Bigboot"
+title = "Big Mek of the Iron Yards"
+traits = ["covered in glyphs", "loves loud gunz", "smells of promethium and gretchin"]
+agenda = "Finish the Stompa hulk before the Goffs notice it's missing parts."
+anchor = { scope = "system", system_id = "sys-0002", slot = "orbital_controller" }
+
+[[manual]]
+id = "persona-borrek-kahl"
+faction_id = "kindred_prospect_clans"
+faction_kind = "leagues_of_votann"
+name = "Kâhl Borrek Anvil-Born"
+title = "Kâhl of the Prospect Clan"
+traits = ["bionic eye", "ledger-bound", "patient enough to outwait an Ork"]
+agenda = "Recover the Kin ancestor-core lost to the last Waaagh!, then leave the system."
+anchor = { scope = "system", system_id = "sys-0003", slot = "economic_hegemon" }

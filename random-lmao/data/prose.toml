@@ -1,0 +1,10 @@
+# presets/_full — gazetteer / prose knobs (§6 NEW.md / §PR1..§PR4 BUILDER_REQS).
+#
+# Parsed directly into `ProseConfig` (bare file — no `[prose]` wrapper).
+# `tone` is "gazetteer" (florid) or "dispatch" (terse Administratum).
+# `[overrides]` per-sector / per-system text replacements survive every
+# "Regenerate prose" pass.
+
+tone = "gazetteer"
+include_overview = true
+include_per_system = true

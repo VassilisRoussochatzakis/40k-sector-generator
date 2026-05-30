@@ -1,0 +1,10 @@
+# presets/_full — plot-hook knobs (§7 NEW.md / §HK4 BUILDER_REQS).
+#
+# Parsed directly into `HooksConfig` (bare file — no `[hooks]` wrapper table,
+# unlike regions/economy/history which use a named wrapper). `[[manual]]`
+# entries, if added, are appended after the derivation pass and survive
+# "Regenerate hooks".
+
+max_per_anchor = 3
+top_n_digest = 12
+hide_hidden_hooks = false

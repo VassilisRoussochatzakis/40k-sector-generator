@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use rand_chacha::ChaCha8Rng;
 
-use crate::config::AppConfig;
+use crate::config::{AppConfig, StabilityTargets};
 use crate::ids;
 use crate::routes::RouteRules;
 use crate::sector_model::{
@@ -170,32 +170,37 @@ pub(super) fn generate_routes(
         })
         .collect();
 
-    // Cap perilous routes at 10% of total. Excess downgraded to Hazardous,
-    // shortest-first — so the downgrade can never leave a longer route safer
-    // than a shorter one (preserves the short-is-safer invariant).
-    let perilous_limit = ((routes.len() as f64) * 0.10).round() as usize;
-    let perilous_count = routes
-        .iter()
-        .filter(|r| r.stability == RouteStability::Perilous)
-        .count();
-    if perilous_count > perilous_limit {
-        let mut excess = perilous_count - perilous_limit;
-        let mut perilous_idx: Vec<usize> = (0..routes.len())
-            .filter(|&k| routes[k].stability == RouteStability::Perilous)
-            .collect();
-        // Shortest distance first; id as a deterministic tie-breaker.
-        perilous_idx.sort_by(|&x, &y| {
-            routes[x]
-                .distance
-                .cmp(&routes[y].distance)
-                .then_with(|| routes[x].id.cmp(&routes[y].id))
-        });
-        for k in perilous_idx {
-            if excess == 0 {
-                break;
+    // Legacy balancing: cap perilous routes at 10% of total. Excess downgraded
+    // to Hazardous, shortest-first — so the downgrade can never leave a longer
+    // route safer than a shorter one (preserves the short-is-safer invariant).
+    // Skipped when `stability_targets` is configured: the final quantile
+    // rebalance (run after the region + hidden layers) then owns the whole
+    // public-route stability distribution instead.
+    if config.generation.routes.stability_targets.is_none() {
+        let perilous_limit = ((routes.len() as f64) * 0.10).round() as usize;
+        let perilous_count = routes
+            .iter()
+            .filter(|r| r.stability == RouteStability::Perilous)
+            .count();
+        if perilous_count > perilous_limit {
+            let mut excess = perilous_count - perilous_limit;
+            let mut perilous_idx: Vec<usize> = (0..routes.len())
+                .filter(|&k| routes[k].stability == RouteStability::Perilous)
+                .collect();
+            // Shortest distance first; id as a deterministic tie-breaker.
+            perilous_idx.sort_by(|&x, &y| {
+                routes[x]
+                    .distance
+                    .cmp(&routes[y].distance)
+                    .then_with(|| routes[x].id.cmp(&routes[y].id))
+            });
+            for k in perilous_idx {
+                if excess == 0 {
+                    break;
+                }
+                routes[k].stability = RouteStability::Hazardous;
+                excess -= 1;
             }
-            routes[k].stability = RouteStability::Hazardous;
-            excess -= 1;
         }
     }
 
@@ -314,5 +319,246 @@ fn union(parent: &mut [usize], a: usize, b: usize) {
     let rb = find(parent, b);
     if ra != rb {
         parent[ra] = rb;
+    }
+}
+
+/// Cumulative cut indices `[c0, c1, c2]` partitioning `n` rank positions into
+/// the four stability tiers (`[0,c0)` Stable, `[c0,c1)` Unstable, `[c1,c2)`
+/// Hazardous, `[c2,n)` Perilous) per the target weights. Weights are treated as
+/// relative (normalised by their sum) with negatives clamped to `0`; cuts are
+/// clamped non-decreasing so the bands can never invert.
+fn stability_cut_indices(n: usize, t: StabilityTargets) -> [usize; 3] {
+    let w = [
+        t.stable.max(0.0),
+        t.unstable.max(0.0),
+        t.hazardous.max(0.0),
+        t.perilous.max(0.0),
+    ];
+    let sum: f64 = w.iter().sum();
+    if !sum.is_finite() || sum <= 0.0 {
+        // Degenerate weights: leave everything in the safest tier rather than
+        // emit garbage cuts.
+        return [n, n, n];
+    }
+    let nf = n as f64;
+    let cut = |frac: f64| -> usize { (nf * frac / sum).round() as usize };
+    let c0 = cut(w[0]).min(n);
+    let c1 = cut(w[0] + w[1]).clamp(c0, n);
+    let c2 = cut(w[0] + w[1] + w[2]).clamp(c1, n);
+    [c0, c1, c2]
+}
+
+/// §route-rebalance: re-bucket **public** route stabilities to approach the
+/// configured [`StabilityTargets`] mix, independent of how many warp-storm
+/// regions the sector rolled (the original failure mode — a storm-heavy
+/// `regions.toml` could force nearly every lane to Perilous, leaving almost no
+/// Stable backbone).
+///
+/// Public routes (`!route_type.is_hidden()`) are ranked safest-first by the
+/// pre-rebalance danger ordering — existing stability tier, then distance, then
+/// id — and the rank positions are partitioned into the four tiers by
+/// [`stability_cut_indices`]. Because that ranking key is non-decreasing in
+/// distance for a fixed hazard/region configuration, and the partition is
+/// monotonic in rank, a shorter route is never assigned a *less* safe tier than
+/// a longer route carrying the same hazards: the "short is safer than long"
+/// invariant holds by construction.
+///
+/// Hidden lanes (webway / black-ship / smuggling) are untouched — they keep
+/// their own per-type stability. Finally, any route promoted to Perilous that
+/// is the sole navigable link between its endpoints is capped back to Hazardous
+/// (the same connectivity rule the region overlay uses), tagged
+/// `rebalance:connectivity_preserved`.
+pub(crate) fn rebalance_public_stability(routes: &mut [GeneratedRoute], targets: StabilityTargets) {
+    let mut order: Vec<usize> = (0..routes.len())
+        .filter(|&i| !routes[i].route_type.is_hidden())
+        .collect();
+    if order.is_empty() {
+        return;
+    }
+    order.sort_by(|&a, &b| {
+        stability_level(routes[a].stability)
+            .cmp(&stability_level(routes[b].stability))
+            .then_with(|| routes[a].distance.cmp(&routes[b].distance))
+            .then_with(|| routes[a].id.cmp(&routes[b].id))
+    });
+    let [c0, c1, c2] = stability_cut_indices(order.len(), targets);
+    for (rank, &ri) in order.iter().enumerate() {
+        routes[ri].stability = if rank < c0 {
+            RouteStability::Stable
+        } else if rank < c1 {
+            RouteStability::Unstable
+        } else if rank < c2 {
+            RouteStability::Hazardous
+        } else {
+            RouteStability::Perilous
+        };
+    }
+
+    // Connectivity guard: don't let the rebalance strand part of the graph. A
+    // route freshly at Perilous that is the only navigable link between its
+    // endpoints is pulled back to Hazardous. Deterministic id order.
+    let mut perilous: Vec<usize> = (0..routes.len())
+        .filter(|&i| {
+            !routes[i].route_type.is_hidden() && routes[i].stability == RouteStability::Perilous
+        })
+        .collect();
+    perilous.sort_by(|&a, &b| routes[a].id.cmp(&routes[b].id));
+    for i in perilous {
+        // `is_navigable_bridge` treats a Perilous candidate as already severed,
+        // so test it as Hazardous first, then restore it if it is not a bridge.
+        routes[i].stability = RouteStability::Hazardous;
+        if crate::regions::is_navigable_bridge(routes, i) {
+            if !routes[i]
+                .tags
+                .iter()
+                .any(|t| t.as_ref() == "rebalance:connectivity_preserved")
+            {
+                routes[i]
+                    .tags
+                    .push("rebalance:connectivity_preserved".into());
+            }
+        } else {
+            routes[i].stability = RouteStability::Perilous;
+        }
+    }
+}
+
+#[cfg(test)]
+mod rebalance_tests {
+    use super::*;
+    use crate::ids;
+
+    fn targets(stable: f64, unstable: f64, hazardous: f64, perilous: f64) -> StabilityTargets {
+        StabilityTargets {
+            stable,
+            unstable,
+            hazardous,
+            perilous,
+        }
+    }
+
+    fn route(idx: usize, dist: u32, rt: RouteType, stab: RouteStability) -> GeneratedRoute {
+        // Distinct, disconnected endpoints per route so the connectivity guard
+        // never fires unless a test wires shared endpoints deliberately.
+        let from = ids::SystemId::new(format!("sys-{:04}", idx * 2));
+        let to = ids::SystemId::new(format!("sys-{:04}", idx * 2 + 1));
+        GeneratedRoute {
+            id: ids::route_id(&from, &to),
+            from_system_id: from,
+            to_system_id: to,
+            distance: dist,
+            route_type: rt,
+            stability: stab,
+            tags: Vec::new(),
+            controls: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn cut_indices_even_split() {
+        assert_eq!(
+            stability_cut_indices(100, targets(1.0, 1.0, 1.0, 1.0)),
+            [25, 50, 75]
+        );
+    }
+
+    #[test]
+    fn cut_indices_relative_weights_are_normalised() {
+        // 60/30/10/0 of 100 — weights need not sum to 1.
+        assert_eq!(
+            stability_cut_indices(100, targets(6.0, 3.0, 1.0, 0.0)),
+            [60, 90, 100]
+        );
+    }
+
+    #[test]
+    fn cut_indices_degenerate_weights_keep_all_safe() {
+        assert_eq!(
+            stability_cut_indices(50, targets(0.0, 0.0, 0.0, 0.0)),
+            [50, 50, 50]
+        );
+        assert_eq!(
+            stability_cut_indices(50, targets(-1.0, -1.0, 0.0, 0.0)),
+            [50, 50, 50]
+        );
+    }
+
+    #[test]
+    fn rebalance_hits_target_mix() {
+        // 20 public routes all currently Perilous (the storm-flood failure
+        // mode). Ask for half Stable, half Unstable.
+        let mut routes: Vec<GeneratedRoute> = (0..20)
+            .map(|i| {
+                route(
+                    i,
+                    1 + (i as u32 % 4),
+                    RouteType::ChartedPassage,
+                    RouteStability::Perilous,
+                )
+            })
+            .collect();
+        rebalance_public_stability(&mut routes, targets(1.0, 1.0, 0.0, 0.0));
+        let stable = routes
+            .iter()
+            .filter(|r| r.stability == RouteStability::Stable)
+            .count();
+        let unstable = routes
+            .iter()
+            .filter(|r| r.stability == RouteStability::Unstable)
+            .count();
+        assert_eq!(stable, 10);
+        assert_eq!(unstable, 10);
+    }
+
+    #[test]
+    fn rebalance_preserves_short_is_safer() {
+        // Same hazard class (all ChartedPassage, same pre-rebalance tier), only
+        // distance differs. After rebalance, a longer route must never be safer
+        // than a shorter one.
+        let mut routes: Vec<GeneratedRoute> = (0..40)
+            .map(|i| {
+                route(
+                    i,
+                    1 + (i as u32 % 8),
+                    RouteType::ChartedPassage,
+                    RouteStability::Unstable,
+                )
+            })
+            .collect();
+        rebalance_public_stability(&mut routes, targets(0.3, 0.3, 0.2, 0.2));
+        for a in &routes {
+            for b in &routes {
+                // The invariant is about *strictly* shorter routes: a shorter
+                // `a` must be at least as safe as a longer `b`. Equal-distance
+                // routes may straddle a quantile boundary (split by id) — that
+                // is not an inversion.
+                if a.distance < b.distance {
+                    assert!(
+                        stability_level(a.stability) <= stability_level(b.stability),
+                        "dist {} ({:?}) less safe than longer dist {} ({:?})",
+                        a.distance,
+                        a.stability,
+                        b.distance,
+                        b.stability
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn rebalance_leaves_hidden_routes_untouched() {
+        let mut routes = vec![
+            route(0, 9, RouteType::Webway, RouteStability::Stable),
+            route(1, 1, RouteType::ChartedPassage, RouteStability::Stable),
+        ];
+        rebalance_public_stability(&mut routes, targets(0.0, 0.0, 0.0, 1.0));
+        // Webway keeps Stable despite an all-Perilous target; the public lane is
+        // pushed out of Stable (to Perilous, or Hazardous if the connectivity
+        // guard saves it as the sole link — here its endpoints are isolated, so
+        // it is preserved as Hazardous).
+        assert_eq!(routes[0].stability, RouteStability::Stable);
+        assert_ne!(routes[1].stability, RouteStability::Stable);
+        assert_eq!(routes[1].stability, RouteStability::Hazardous);
     }
 }

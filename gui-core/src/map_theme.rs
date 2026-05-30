@@ -16,6 +16,7 @@
 //! readable when the user zooms out.
 
 use egui::Color32;
+use sectorforge::sector_model::RouteStability;
 
 use crate::palette;
 use crate::visual_tokens::MapRegionOverlay;
@@ -61,6 +62,11 @@ pub struct RenderMapTheme {
     pub multi_select_outline: Color32,
     pub rect_select_tint: Color32,
     pub pending_route_preview: Color32,
+    // -- route stability palette (§35 T4 — theme-driven) -------------------
+    pub route_stable: Color32,
+    pub route_unstable: Color32,
+    pub route_hazardous: Color32,
+    pub route_perilous: Color32,
     // -- region condition palette ------------------------------------------
     pub region_warp_storm: Color32,
     pub region_turbulence: Color32,
@@ -102,6 +108,56 @@ pub struct RenderMapTheme {
 }
 
 impl RenderMapTheme {
+    /// §35 T4: route colour for a stability tier, theme-driven. Mirrors
+    /// [`crate::palette::stability_color`] for the default theme.
+    pub fn route_color(&self, stability: RouteStability) -> Color32 {
+        match stability {
+            RouteStability::Stable => self.route_stable,
+            RouteStability::Unstable => self.route_unstable,
+            RouteStability::Hazardous => self.route_hazardous,
+            RouteStability::Perilous => self.route_perilous,
+            _ => self.route_unstable,
+        }
+    }
+
+    /// §35 T1/T4: derive an egui render theme from a resolved data-layer
+    /// [`sectorforge::map_theme::MapTheme`] (the kind parsed from a builtin
+    /// name or a custom `map_theme.toml`). Colours the data theme does not
+    /// carry (selection, path glow, region palette, sizing) keep their
+    /// [`RenderMapTheme::default`] values so the live map stays legible.
+    #[must_use]
+    pub fn from_map_theme(mt: &sectorforge::map_theme::MapTheme) -> Self {
+        // `mt.*` are `image::Rgba<u8>` whose `.0` is `[r, g, b, a]`; take the
+        // array so gui-core needn't name the `image` crate directly.
+        fn c([r, g, b, a]: [u8; 4]) -> Color32 {
+            Color32::from_rgba_unmultiplied(r, g, b, a)
+        }
+        let base = Self::default();
+        Self {
+            bg: c(mt.bg.0),
+            hex_empty: c(mt.hex_empty.0),
+            hex_outline: c(mt.hex_outline.0),
+            text: c(mt.text.0),
+            text_dim: c(mt.text_dim.0),
+            subsector_border_color: c(mt.subsector_border.0),
+            subsector_label: c(mt.subsector_label.0),
+            subsector_label_bg: c(mt.subsector_label_bg.0),
+            capital_marker_fill: c(mt.capital_marker.0),
+            capital_marker_outline: c(mt.capital_outline.0),
+            route_stable: c(mt.route_stable.0),
+            route_unstable: c(mt.route_unstable.0),
+            route_hazardous: c(mt.route_hazardous.0),
+            route_perilous: c(mt.route_perilous.0),
+            // Scale the per-hex route thickness by the theme's multiplier so
+            // print_mono thins and navis_tactical thickens the live lanes too.
+            route_thickness: ScaledSize::new(
+                base.route_thickness.mul * mt.route_thickness,
+                base.route_thickness.min,
+            ),
+            ..base
+        }
+    }
+
     pub fn region_color(&self, kind: MapRegionOverlay) -> Color32 {
         match kind {
             MapRegionOverlay::WarpStorm => self.region_warp_storm,
@@ -142,6 +198,13 @@ impl Default for RenderMapTheme {
             rect_select_tint: Color32::from_rgba_unmultiplied(255, 240, 120, 30),
             pending_route_preview: Color32::from_rgb(255, 220, 120),
 
+            // Mirrors `palette::stability_color` so the default render theme is
+            // visually identical to the pre-§35 hard-coded route colours.
+            route_stable: Color32::from_rgb(110, 210, 130),
+            route_unstable: Color32::from_rgb(240, 200, 90),
+            route_hazardous: Color32::from_rgb(235, 90, 90),
+            route_perilous: Color32::from_rgb(165, 100, 215),
+
             region_warp_storm: Color32::from_rgb(170, 60, 180),
             region_turbulence: Color32::from_rgb(140, 100, 200),
             region_calm_corridor: Color32::from_rgb(90, 200, 180),
@@ -180,5 +243,40 @@ impl Default for RenderMapTheme {
             pending_route_preview_mul: 1.4,
             pending_route_preview_min: 2.5,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_route_colours_match_palette_stability_color() {
+        let t = RenderMapTheme::default();
+        assert_eq!(
+            t.route_color(RouteStability::Stable),
+            crate::palette::stability_color(RouteStability::Stable)
+        );
+        assert_eq!(
+            t.route_color(RouteStability::Perilous),
+            crate::palette::stability_color(RouteStability::Perilous)
+        );
+    }
+
+    #[test]
+    fn from_map_theme_carries_data_route_colours() {
+        // navis_tactical has distinct route colours and a thicker route mult.
+        let mt = sectorforge::map_theme::resolve_map_theme(
+            &sectorforge::map_theme::MapThemeConfig::named("navis_tactical"),
+        )
+        .unwrap();
+        let rt = RenderMapTheme::from_map_theme(&mt);
+        let [r, g, b, a] = mt.route_hazardous.0;
+        assert_eq!(
+            rt.route_color(RouteStability::Hazardous),
+            Color32::from_rgba_unmultiplied(r, g, b, a)
+        );
+        // thickness multiplier > 1.0 widens the default per-hex thickness.
+        assert!(rt.route_thickness.mul > RenderMapTheme::default().route_thickness.mul);
     }
 }

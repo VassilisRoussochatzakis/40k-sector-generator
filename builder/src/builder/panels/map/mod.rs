@@ -17,6 +17,7 @@ mod cache;
 mod context_menu;
 mod dialogs;
 mod interactions;
+mod theme;
 
 use crate::builder::state::MapTool;
 use crate::builder::BuilderState;
@@ -52,6 +53,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         }
     });
     crate::builder::panels::intel::show_map_intel_controls(ui, state);
+    // §35 T1/T2/T3/T4 — theme picker, custom editor, heatmap selector, legend.
+    theme::show(ui, state);
     ui.separator();
 
     egui::ScrollArea::both().show(ui, |ui| {

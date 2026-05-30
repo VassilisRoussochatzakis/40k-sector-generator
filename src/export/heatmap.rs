@@ -127,6 +127,95 @@ impl core::fmt::Display for HeatmapMode {
     }
 }
 
+/// §35 T3: the per-dimension stability heatmap family. Each variant maps to one
+/// 0.0..=100.0 field of [`crate::stability::StabilityState`].
+///
+/// Kept deliberately separate from [`HeatmapMode`] so the PNG/SVG bitmap
+/// exporter enum — and its byte-stable golden output — stays untouched. This
+/// family is a GUI-only overlay computed straight off the finalised sector.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum StabilityDimension {
+    PublicOrder,
+    Corruption,
+    Fear,
+    RebellionRisk,
+    XenosThreat,
+    WarpInstability,
+    FamineResourceStress,
+}
+
+impl StabilityDimension {
+    pub const ALL: &'static [StabilityDimension] = &[
+        StabilityDimension::PublicOrder,
+        StabilityDimension::Corruption,
+        StabilityDimension::Fear,
+        StabilityDimension::RebellionRisk,
+        StabilityDimension::XenosThreat,
+        StabilityDimension::WarpInstability,
+        StabilityDimension::FamineResourceStress,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::PublicOrder => "PUBLIC ORDER",
+            Self::Corruption => "CORRUPTION",
+            Self::Fear => "FEAR",
+            Self::RebellionRisk => "REBELLION",
+            Self::XenosThreat => "XENOS THREAT",
+            Self::WarpInstability => "WARP INSTABILITY",
+            Self::FamineResourceStress => "FAMINE / RESOURCE",
+        }
+    }
+
+    pub fn as_slug(self) -> &'static str {
+        match self {
+            Self::PublicOrder => "public_order",
+            Self::Corruption => "corruption",
+            Self::Fear => "fear",
+            Self::RebellionRisk => "rebellion_risk",
+            Self::XenosThreat => "xenos_threat",
+            Self::WarpInstability => "warp_instability",
+            Self::FamineResourceStress => "famine_resource_stress",
+        }
+    }
+
+    /// Pull this dimension's scalar (0.0..=100.0) out of a stability snapshot.
+    #[must_use]
+    pub fn value(self, s: &crate::stability::StabilityState) -> f32 {
+        match self {
+            Self::PublicOrder => s.public_order,
+            Self::Corruption => s.corruption,
+            Self::Fear => s.fear,
+            Self::RebellionRisk => s.rebellion_risk,
+            Self::XenosThreat => s.xenos_threat,
+            Self::WarpInstability => s.warp_instability,
+            Self::FamineResourceStress => s.famine_or_resource_stress,
+        }
+    }
+
+    /// Tint for this dimension's scalar heatmap (RGB).
+    #[must_use]
+    pub fn base_color_rgb(self) -> (u8, u8, u8) {
+        match self {
+            Self::PublicOrder => (80, 190, 120),
+            Self::Corruption => (150, 90, 220),
+            Self::Fear => (200, 60, 90),
+            Self::RebellionRisk => (235, 120, 60),
+            Self::XenosThreat => (120, 200, 90),
+            Self::WarpInstability => (190, 70, 160),
+            Self::FamineResourceStress => (220, 170, 70),
+        }
+    }
+}
+
+impl core::fmt::Display for StabilityDimension {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
+}
+
 /// Per-system raw score + optional dominant faction id (for `Control` mode).
 #[derive(Debug, Clone)]
 pub struct SystemScore {
@@ -194,6 +283,29 @@ pub fn compute_rgb(
             _ => mode.base_color_rgb(),
         };
         out.insert(system_id, HeatCellRgb { rgb, intensity });
+    }
+    out
+}
+
+/// §35 T3: per-dimension stability heatmap. Scores every system from its
+/// finalised `stability` snapshot, normalised to [0, 1] against the sector
+/// maximum, tinted with [`StabilityDimension::base_color_rgb`].
+#[must_use]
+pub fn compute_stability_rgb(
+    sector: &GeneratedSector,
+    dim: StabilityDimension,
+) -> HashMap<crate::ids::SystemId, HeatCellRgb> {
+    let mut out = HashMap::new();
+    let max = sector
+        .systems
+        .iter()
+        .map(|sys| dim.value(&sys.stability))
+        .fold(0.0_f32, f32::max)
+        .max(0.0001);
+    let rgb = dim.base_color_rgb();
+    for sys in &sector.systems {
+        let intensity = (dim.value(&sys.stability) / max).clamp(0.0, 1.0);
+        out.insert(sys.id.clone(), HeatCellRgb { rgb, intensity });
     }
     out
 }
@@ -317,4 +429,57 @@ fn score_system_in(
         None
     };
     (score, dom)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ids::SystemId;
+    use crate::sector_model::{GeneratedSystem, HexCoord};
+
+    #[test]
+    fn stability_dimension_all_covers_seven_and_round_trips() {
+        assert_eq!(StabilityDimension::ALL.len(), 7);
+        for dim in StabilityDimension::ALL {
+            assert!(!dim.label().is_empty());
+            assert!(!dim.as_slug().is_empty());
+            // slug is the snake_case serde name.
+            let json = serde_json::to_string(dim).unwrap();
+            assert_eq!(json, format!("\"{}\"", dim.as_slug()));
+        }
+    }
+
+    #[test]
+    fn stability_value_reads_the_matching_field() {
+        let mut s = crate::stability::StabilityState::default();
+        s.fear = 42.0;
+        s.corruption = 7.0;
+        assert_eq!(StabilityDimension::Fear.value(&s), 42.0);
+        assert_eq!(StabilityDimension::Corruption.value(&s), 7.0);
+        assert_eq!(StabilityDimension::PublicOrder.value(&s), 0.0);
+    }
+
+    #[test]
+    fn compute_stability_rgb_normalises_against_sector_max() {
+        let mut sector = GeneratedSector::empty("s", "S", "seed", 4, 4);
+        let id_a = SystemId::new("sys-0001");
+        let id_b = SystemId::new("sys-0002");
+        let mut a = GeneratedSystem::new_at(id_a.clone(), 0, HexCoord { q: 0, r: 0 }, "A");
+        let mut b = GeneratedSystem::new_at(id_b.clone(), 1, HexCoord { q: 1, r: 0 }, "B");
+        a.stability.fear = 50.0;
+        b.stability.fear = 100.0;
+        sector.systems.push(a);
+        sector.systems.push(b);
+
+        let cells = compute_stability_rgb(&sector, StabilityDimension::Fear);
+        assert!((cells[&id_a].intensity - 0.5).abs() < 1e-6);
+        assert!((cells[&id_b].intensity - 1.0).abs() < 1e-6);
+        assert_eq!(cells[&id_a].rgb, StabilityDimension::Fear.base_color_rgb());
+    }
+
+    #[test]
+    fn compute_stability_rgb_is_empty_for_empty_sector() {
+        let sector = GeneratedSector::empty("s", "S", "seed", 4, 4);
+        assert!(compute_stability_rgb(&sector, StabilityDimension::PublicOrder).is_empty());
+    }
 }

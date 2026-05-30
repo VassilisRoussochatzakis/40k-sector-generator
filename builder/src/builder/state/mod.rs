@@ -89,9 +89,9 @@ pub use types::{
     validate_toml, BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState,
     JobHandle, MapTool, MapViewCache, ModalKind, OpenTomlBuffer, PartialRegenRect,
     PendingBulkRename, PendingCollision, PendingPlace, PendingRegionRename, PendingRename,
-    PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemContextMenu, SystemMenuTarget,
-    TickLogEntry, TickLogScope, TomlEditorState, DEFAULT_COMMAND_LOG_CAPACITY,
-    DEFAULT_VALIDATION_DEBOUNCE_MS,
+    PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemBitmapPreview,
+    SystemContextMenu, SystemMenuTarget, TickLogEntry, TickLogScope, TomlEditorState,
+    DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
 pub struct BuilderState {
@@ -307,6 +307,21 @@ pub struct BuilderState {
     /// read straight off `sector.economy` and require
     /// [`Self::recompute_economy`] to have run at least once.
     pub map_heatmap_mode: sectorforge::heatmap::HeatmapMode,
+    /// §35 T3: when `Some`, the MAP panel paints a per-dimension stability
+    /// heatmap instead of [`Self::map_heatmap_mode`]. Mutually exclusive with
+    /// it — selecting a stability dimension forces `map_heatmap_mode = Off`,
+    /// and selecting any [`sectorforge::heatmap::HeatmapMode`] clears this.
+    pub map_stability_dim: Option<sectorforge::heatmap::StabilityDimension>,
+    /// §35 T2: filename stem the custom-theme editor saves to under
+    /// `data/map_themes/<name>.toml`. Defaults to the active theme name.
+    pub theme_save_name: String,
+    /// §35 T2: transient one-line result of the last theme save/load action,
+    /// shown beneath the editor. Runtime-only.
+    pub theme_status: Option<String>,
+    /// §35 T5: cached per-system bitmap preview texture, keyed by a digest of
+    /// (system id, theme, faction_fill, scale) so the PNG renderer only re-runs
+    /// when one of those changes. Never serialized (runtime-only).
+    pub system_bitmap_preview: Option<SystemBitmapPreview>,
     /// §E6: when true, the MAP panel highlights the route ids carrying the
     /// top-N supplier→consumer dependency edges (lifeline lanes) using the
     /// existing `SectorView::path_route_ids` channel.
@@ -695,6 +710,10 @@ impl BuilderState {
             system_supply_overrides: BTreeMap::new(),
             system_priority_overrides: BTreeMap::new(),
             map_heatmap_mode: sectorforge::heatmap::HeatmapMode::Off,
+            map_stability_dim: None,
+            theme_save_name: String::new(),
+            theme_status: None,
+            system_bitmap_preview: None,
             economy_highlight_lifelines: false,
             economy_lifeline_min_score: 35.0,
             relations_selected_pair: None,

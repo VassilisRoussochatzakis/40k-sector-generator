@@ -67,21 +67,24 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         &state.sector.factions,
         state.control_overlay,
     );
-    let economy_cells = if overlay_cells.is_none()
-        && !matches!(
-            state.map_heatmap_mode,
-            sectorforge::heatmap::HeatmapMode::Off,
-        ) {
+    // §35 T3: scalar heatmap layer. A CONTROL overlay (§C7/§C8) always wins;
+    // otherwise a per-dimension stability overlay takes precedence over the
+    // economy/HeatmapMode picker, which itself is skipped when `Off`.
+    let scalar_cells = if overlay_cells.is_some() {
+        None
+    } else if let Some(dim) = state.map_stability_dim {
+        let cells = sectorforge_gui_core::heatmap::compute_stability(&state.sector, dim);
+        (!cells.is_empty()).then_some(cells)
+    } else if !matches!(
+        state.map_heatmap_mode,
+        sectorforge::heatmap::HeatmapMode::Off
+    ) {
         let cells = sectorforge_gui_core::heatmap::compute(&state.sector, state.map_heatmap_mode);
-        if cells.is_empty() {
-            None
-        } else {
-            Some(cells)
-        }
+        (!cells.is_empty()).then_some(cells)
     } else {
         None
     };
-    let heatmap_ref = overlay_cells.as_ref().or(economy_cells.as_ref());
+    let heatmap_ref = overlay_cells.as_ref().or(scalar_cells.as_ref());
 
     let lifeline_routes = crate::builder::panels::economy::lifeline_route_ids(state);
     let lifeline_ref = if lifeline_routes.is_empty() {
@@ -89,6 +92,13 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
     } else {
         Some(&lifeline_routes)
     };
+
+    // §35 T1/T4: retint the live view from the project's map theme. A bad
+    // custom colour falls back to the default render theme rather than panicking.
+    let render_theme =
+        sectorforge::map_theme::resolve_map_theme(&state.config.outputs.bitmap.theme)
+            .map(|mt| sectorforge_gui_core::map_theme::RenderMapTheme::from_map_theme(&mt))
+            .unwrap_or_default();
 
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
         SectorView {
@@ -112,7 +122,7 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             rect_select,
             sense: Sense::hover(),
             disable_internal_click_dispatch: true,
-            theme: None,
+            theme: Some(&render_theme),
             show_hover_coord: true,
         }
         .show(ui);

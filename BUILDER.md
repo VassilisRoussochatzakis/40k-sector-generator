@@ -197,6 +197,39 @@ shortly.
 
 Return to **MAP** to continue.
 
+### 2.3 Map theme, heatmaps, and the route legend (§35)
+
+The MAP tab carries two appearance controls just under the toolbox. They do
+nothing destructive — they only change how the map is *drawn* — so it is a good
+time to learn them before there is anything important on screen.
+
+- **`heatmap:` selector (§T3).** A single dropdown that covers every heatmap
+  mode the engine knows: `OFF`, `CONTROL`, `MILITARY`, `TRADE`, `INDUSTRY`,
+  `COVERT`, `FAITH`, `THREAT`, `INTEL`, `TENSION`, `TRADE VOL`, `FOOD`,
+  `TITHE`, `SUPPLY`, `CONFLICT`, **plus** a `STABILITY (per-dimension)` block
+  with one entry per stability axis (public order, corruption, fear, rebellion
+  risk, xenos threat, warp instability, famine / resource). Pick one and the
+  hexes retint by that scalar. (A CONTROL-tab power/influence overlay, if you
+  turn one on later, always wins over this picker.)
+
+- **`§T1/§T2/§T4 — Map theme` collapsing header.** Open it for three things:
+  - **Theme picker (§T1).** A `theme:` dropdown over the six built-ins —
+    `gm_dark`, `print_mono`, `imperial_archive`, `navis_tactical`,
+    `inquisition_redacted`, `subsector_political`. Pick one and the live map
+    *and* the PNG/SVG export retint immediately (both read the same
+    `outputs.bitmap.theme`).
+  - **Route legend (§T4).** A small STABLE / UNSTABLE / HAZARDOUS / PERILOUS
+    swatch strip plus the active line-mode / legend / symbol-set. It is painted
+    from the current theme's route colours, so it updates the instant you change
+    the theme or edit a colour below.
+  - **Custom theme editor (§T2).** Expand `§T2 — custom theme editor` to override
+    any element: 18 colour swatches (each with a **reset** back to the builtin),
+    the `route_line_mode` / `label_density` / `legend` / `symbol_set` dropdowns,
+    `show_subsector_borders`, and the five tint/thickness factors. The
+    `data/map_themes/<name>.toml` row **Save theme** writes your edits to disk
+    (atomically) and **Load** reads them back; saved themes round-trip through
+    the same files the CLI's `--theme` flag consumes.
+
 ---
 
 ## 3. Place your first system
@@ -236,7 +269,8 @@ Click **SYSTEM** in the top tab strip. The tab now shows:
   (§11)`, `Overlays (§28..§32 — managed elsewhere)`, `§AR1 — Archetypes
   (§30)`, `§AR2 — Auto-assign archetypes`, `§AR3 — Archetype rules`,
   `§S5 — Generate one system here`, `§S4 — Bulk operations`, plus
-  injected orbital / conflict / intel sub-sections.
+  injected orbital / conflict / intel sub-sections. Near the top, under the
+  egui `In-system map`, sits `Bitmap preview (§T5)` — see §4.4.
 
 You have your first system. Two notes:
 
@@ -310,6 +344,28 @@ section, then set its classification, environment and society fields the
 same way you edited the generated one.
 
 Save the project (PROJECT tab → **Save**) so you do not lose what you have.
+
+### 4.4 Preview the system as a bitmap (§T5)
+
+Now that `Velikan` has worlds, see what it looks like as an exported image.
+On the **SYSTEM** tab, just below the interactive **In-system map**, open the
+**Bitmap preview (§T5)** collapsing header. The builder renders the focused
+system through the *same* per-system PNG renderer the exporter uses — star at
+the centre, planets on colour-coded orbit rings, a side legend — and shows it
+inline.
+
+Two things drive how it looks, and both update the preview:
+
+- The **map theme** you picked in §2.3 (e.g. switch to `print_mono` and the
+  preview turns into clean black-on-white line art).
+- The **`faction_fill`** toggle on the EXPORT tab's **§EX3 — bitmap settings**
+  (halo each planet with its dominant faction's colour).
+
+The image is cached, so it only re-renders when the system, theme, or
+faction_fill changes; click **Refresh** to force a re-render after editing a
+world's classification. This is exactly the artefact `render_systems` writes
+to `out/systems/<sys-id>.png` at export time, so the preview is a faithful
+proof of what the bundle will contain.
 
 ---
 
@@ -664,7 +720,9 @@ Click **ECONOMY**. You can:
   the MAP will draw a red ring around the system they live in).
 - Toggle a **lifeline lanes** highlight that paints the top supplier→consumer
   edges onto the route layer.
-- Choose a heatmap mode (tithe, supply, food, trade volume).
+- Choose a heatmap mode (tithe, supply, food, trade volume). This is the same
+  `BuilderState::map_heatmap_mode` the MAP tab's full `heatmap:` selector (§2.3)
+  drives — ECONOMY just exposes the trade-relevant subset for convenience.
 
 ### 11.3 RELATIONS
 
@@ -855,7 +913,10 @@ into a folder you choose.
    enabled formats (and the manifest) for the live sector.
 3. **§EX3 — bitmap settings**: `sector_scale` / `system_scale` (1–8),
    `render_systems`, `faction_fill`, and a `heatmap` mode picker — applied to
-   the PNG / per-system maps the bundle emits.
+   the PNG / per-system maps the bundle emits. The **map theme** these PNGs use
+   (gm_dark, print_mono, …) is the one you pick on the MAP tab (§2.3); it is the
+   same `outputs.bitmap.theme` field, so the live map and the exported image
+   always agree.
 4. **§EX4 — HTML settings**: theme (dark | parchment | hololithic),
    `player_observer` (restrict the inlined sector to one faction's view, or
    "(none)" for the full GM edition), `player_min_confidence`,

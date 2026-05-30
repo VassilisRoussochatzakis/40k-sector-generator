@@ -16,10 +16,11 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
+use sectorforge::system_map::{render_system, SystemRenderOptions};
 use sectorforge_gui_core::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
 
 use crate::builder::command::BuilderCommand;
-use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
+use crate::builder::state::{BuilderTab, EntityRef, ModalKind, SystemBitmapPreview};
 use crate::builder::BuilderState;
 
 /// §CTX0 — scroll-anchor id used by [`show_star_section`] when
@@ -71,6 +72,8 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             show_header(ui, state, sys_idx);
             ui.separator();
             show_system_map_section(ui, state, sys_idx);
+            ui.add_space(4.0);
+            show_bitmap_preview_section(ui, state, sys_idx);
             ui.add_space(8.0);
             ui.separator();
             ui.add_space(4.0);
@@ -294,6 +297,90 @@ fn handle_system_view_click(state: &mut BuilderState, sys_idx: usize, click: Sys
 }
 
 // ── identity (S2 + S6) ──────────────────────────────────────────────────────
+
+/// §35 T5 — per-system bitmap preview. Renders the focused system through the
+/// same `system_map` PNG renderer the exporter uses (honouring the project's
+/// §T1/§T2 map theme and the §EX3 `faction_fill` flag), uploads it once as an
+/// egui texture, and caches it until the system / theme / faction_fill changes.
+fn show_bitmap_preview_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+    /// Preview render resolution. Scale 1 ≈ 1080×720 px — large enough to read,
+    /// cheap enough to re-upload on demand. The exporter's `system_scale`
+    /// controls the on-disk resolution separately.
+    const PREVIEW_SCALE: u32 = 1;
+
+    egui::CollapsingHeader::new("Bitmap preview (§T5)")
+        .id_salt("sys_bitmap_preview")
+        .show(ui, |ui| {
+            let faction_fill = state.config.outputs.bitmap.faction_fill;
+            let theme =
+                sectorforge::map_theme::resolve_map_theme(&state.config.outputs.bitmap.theme)
+                    .unwrap_or_else(|_| sectorforge::map_theme::MapTheme::gm_dark());
+            let theme_name = theme.name.clone();
+
+            let key = {
+                let sys = &state.sector.systems[sys_idx];
+                format!(
+                    "{}|ff{}|{}|w{}|s{}",
+                    sys.id,
+                    u8::from(faction_fill),
+                    theme_name,
+                    sys.worlds.len(),
+                    PREVIEW_SCALE
+                )
+            };
+
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new("PNG render via the per-system exporter")
+                        .small()
+                        .color(Color32::GRAY),
+                );
+                if ui.button("Refresh").clicked() {
+                    state.system_bitmap_preview = None;
+                }
+            });
+
+            let stale = state
+                .system_bitmap_preview
+                .as_ref()
+                .is_none_or(|p| p.key != key);
+            if stale {
+                let opts = SystemRenderOptions {
+                    faction_fill,
+                    theme,
+                };
+                let img = {
+                    let sys = &state.sector.systems[sys_idx];
+                    render_system(sys, &state.sector.factions, PREVIEW_SCALE, opts)
+                };
+                let size = [img.width() as usize, img.height() as usize];
+                let color = egui::ColorImage::from_rgba_unmultiplied(size, img.as_raw());
+                let texture = ui.ctx().load_texture(
+                    "sys_bitmap_preview",
+                    color,
+                    egui::TextureOptions::LINEAR,
+                );
+                state.system_bitmap_preview = Some(SystemBitmapPreview { key, texture, size });
+            }
+
+            if let Some(p) = &state.system_bitmap_preview {
+                let avail = ui.available_width().min(p.size[0] as f32);
+                let sized = egui::load::SizedTexture::new(
+                    p.texture.id(),
+                    egui::vec2(p.size[0] as f32, p.size[1] as f32),
+                );
+                ui.add(egui::Image::new(sized).max_width(avail));
+                ui.label(
+                    RichText::new(format!(
+                        "{}×{} px · theme {theme_name} · faction_fill {faction_fill}",
+                        p.size[0], p.size[1]
+                    ))
+                    .small()
+                    .color(Color32::DARK_GRAY),
+                );
+            }
+        });
+}
 
 fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     egui::CollapsingHeader::new("Identity")

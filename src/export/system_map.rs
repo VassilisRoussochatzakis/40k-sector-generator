@@ -118,7 +118,9 @@ impl SysGeom {
     }
 }
 
-fn render_system(
+/// Render a single system to an in-memory RGBA image without touching disk.
+/// Used by the bitmap writers above and by the builder's §35 T5 in-app preview.
+pub fn render_system(
     sys: &GeneratedSystem,
     factions: &[GeneratedFaction],
     scale: u32,

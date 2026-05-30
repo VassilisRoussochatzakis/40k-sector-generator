@@ -356,6 +356,17 @@ pub struct MapViewCache {
     pub lookup: sectorforge_gui_core::sector_view::SectorMapCache,
 }
 
+/// §35 T5: cached per-system bitmap preview. The SYSTEM tab renders the focused
+/// system through the same `system_map` PNG renderer the exporter uses, uploads
+/// it once as an egui texture, and reuses it until `key` changes (system id /
+/// theme / faction_fill / scale).
+pub struct SystemBitmapPreview {
+    pub key: String,
+    pub texture: egui::TextureHandle,
+    /// Pixel dimensions of the rendered image, for aspect-correct display.
+    pub size: [usize; 2],
+}
+
 /// §C7 / §C8: live map overlay driven from the CONTROL tab. Off by default;
 /// the MAP panel reads this to override its `SectorView::heatmap` input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

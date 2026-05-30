@@ -9,7 +9,7 @@ use egui::Color32;
 
 use sectorforge::sector_model::GeneratedSector;
 
-pub use sectorforge::heatmap::{HeatCellRgb, HeatmapMode};
+pub use sectorforge::heatmap::{HeatCellRgb, HeatmapMode, StabilityDimension};
 
 /// One per-hex sample: tint colour plus a 0..=1 intensity.
 #[derive(Debug, Clone, Copy)]
@@ -100,6 +100,14 @@ impl HeatmapCache {
 /// Computed heatmap values keyed by system id.
 pub fn compute(sector: &GeneratedSector, mode: HeatmapMode) -> HeatmapCells {
     sectorforge::heatmap::compute_rgb(sector, mode)
+        .into_iter()
+        .map(|(k, c)| (k, HeatCell::from(c)))
+        .collect()
+}
+
+/// §35 T3: per-dimension stability heatmap cells for the egui map overlay.
+pub fn compute_stability(sector: &GeneratedSector, dim: StabilityDimension) -> HeatmapCells {
+    sectorforge::heatmap::compute_stability_rgb(sector, dim)
         .into_iter()
         .map(|(k, c)| (k, HeatCell::from(c)))
         .collect()

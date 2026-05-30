@@ -13,8 +13,8 @@ use sectorforge::subsectors::Subsector;
 use super::heatmap::HeatCell;
 use super::map_theme::RenderMapTheme;
 use super::palette::{
-    darken, draw_route_control_glyph, draw_route_line, faction_style_by_id, stability_color,
-    star_color, FactionStyle,
+    darken, draw_route_control_glyph, draw_route_line, faction_style_by_id, star_color,
+    FactionStyle,
 };
 use super::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
 
@@ -394,7 +394,7 @@ impl<'a> SectorView<'a> {
                 a2,
                 b2,
                 route_thickness,
-                stability_color(route.stability),
+                theme.route_color(route.stability),
                 MapRouteVisual::from_route_type(route.route_type, self.route_view_mode).pattern(),
             );
             draw_route_control_glyph(

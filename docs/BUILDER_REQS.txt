@@ -248,7 +248,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Validation surface  [P]       §33
   Invariants surface  [P]       §33
   Export bundle       [P]       §34   (need manifest write, super-manifest)
-  Themes / heatmaps   [P]       §35
+  Themes / heatmaps   [X]       §35   (builtin + custom theme editor, full heatmap selector incl. per-dimension stability, live route legend, per-system bitmap preview)
   Segmentum compose   [G]       §36   (view only; need build pipeline)
   Project / files     [P]       §37
   Undo / snapshots    [G]       §38
@@ -1850,25 +1850,66 @@ EX8.  [DONE] Project-wide "Export everything" (`run_everything`) runs the §EX1
 35. THEMES + HEATMAPS
 ================================================================================
 
-T1.   Theme picker covers all built-ins:
+T1.   [DONE] Theme picker covers all built-ins:
       gm_dark | print_mono | imperial_archive | navis_tactical |
       inquisition_redacted | subsector_political.
+      Implemented in `builder/src/builder/panels/map/theme.rs::show_theme_picker`
+      as a ComboBox over `sectorforge::map_theme::BUILTIN_THEME_NAMES`, hosted in
+      the MAP tab's `§T1/§T2/§T4 — Map theme` collapsing header. Selecting a
+      builtin rewrites `config.outputs.bitmap.theme` (the field the PNG / SVG /
+      per-system exporters already consume) via `MapThemeConfig::named`. The MAP
+      view retints live because `panels/map/interactions.rs` rebuilds a
+      `RenderMapTheme` from the resolved theme every frame (see T4).
 
-T2.   Custom theme editor (`data/map_themes/<name>.toml`):
+T2.   [DONE] Custom theme editor (`data/map_themes/<name>.toml`):
       background, route_line_mode (standard | hazard_weighted),
       label_density (all | important_only | none),
       legend (full | compact | hidden),
       symbol_set (standard | tactical | redacted), per-element colours.
+      `theme.rs::edit_theme_fields` renders all 18 `MapThemeConfig` colour fields
+      (egui `color_edit_button_srgb` with per-field `reset`), the four enum
+      combos (each with a leading `default (X)` clear entry), `show_subsector_
+      borders`, and the five clamp-checked factor DragValues. `show_save_load_row`
+      writes `data/map_themes/<name>.toml` atomically via
+      `project_io::atomic_write` (wrapping `MapThemeFile`) and reloads it through
+      `parse_map_theme_file`. Edits mark `sectorforge.toml` dirty.
 
-T3.   Heatmap selector covers every mode:
+T3.   [DONE] Heatmap selector covers every mode:
       off | control | military | trade | industrial | covert | faith |
       threat | intel | tension | trade_volume | food_output |
       tithe_stress | supply_vulnerability | conflict_intensity |
       stability (per-dimension).
+      `theme.rs::show_heatmap_selector` is a single MAP-tab ComboBox listing
+      every `sectorforge::heatmap::HeatmapMode::ALL` variant plus the seven
+      per-dimension `StabilityDimension` entries (public_order, corruption, fear,
+      rebellion_risk, xenos_threat, warp_instability, famine_resource_stress).
+      `StabilityDimension` + `compute_stability_rgb` are new in
+      `src/export/heatmap.rs` — kept separate from `HeatmapMode` so the byte-
+      stable PNG golden output is untouched. Picking a stability dimension sets
+      `BuilderState::map_stability_dim` (and forces `map_heatmap_mode = Off`);
+      `panels/map/interactions.rs` paints it via
+      `sectorforge_gui_core::heatmap::compute_stability`. A live CONTROL overlay
+      (§C7/§C8) still wins over both.
 
-T4.   Route-style legend live-updates on theme change.
+T4.   [DONE] Route-style legend live-updates on theme change.
+      `theme.rs::show_route_legend` paints STABLE / UNSTABLE / HAZARDOUS /
+      PERILOUS swatches straight from the resolved `MapTheme` route colours plus
+      the active line_mode / legend / symbol_set, so it re-renders the moment the
+      picker or any custom override changes. `RenderMapTheme` gained the four
+      route-stability `Color32` fields + `route_color()` + `from_map_theme()`, and
+      `SectorView` now draws routes through `theme.route_color(..)`, so the live
+      map lanes and the legend share one theme-driven palette.
 
-T5.   Per-system bitmap preview tab.
+T5.   [DONE] Per-system bitmap preview tab.
+      Hosted as the `Bitmap preview (§T5)` collapsing section on the SYSTEM tab
+      (`panels/system.rs::show_bitmap_preview_section`) — the 24-tab strip (§N1)
+      stays fixed, so the "tab" is a section rather than a 25th top-level tab. It
+      renders the focused system through the now-`pub`
+      `sectorforge::system_map::render_system` (the same renderer the per-system
+      PNG exporter uses), honouring the §T1/§T2 map theme and the §EX3
+      `faction_fill` flag, uploads the result once as an egui texture cached in
+      `BuilderState::system_bitmap_preview` (keyed by system / theme /
+      faction_fill / world-count), and re-renders on `Refresh`.
 
 ================================================================================
 36. SEGMENTUM COMPOSE
@@ -2603,8 +2644,8 @@ Phase E — Tooling
                    `OpenTomlBuffer::is_dirty` + `dirty_files`; PF5 per-tab Save
                    + `files::save_all`; PF6 `project_io::atomic_write` tmp +
                    rename. Editor state in `state/types.rs::TomlEditorState`.)
-  EX1..EX8,   (§34 export bundle)
-  T1..T5,     (§40 testing — T6..T7 land in Phase F)
+  EX1..EX8,   DONE
+  T1..T5,     DONE
   V4..V6,     (§33 strict mode, invariant catalogue, refuse-on-error gate)
   LD1..LD4.   (§39 live derivations)
 

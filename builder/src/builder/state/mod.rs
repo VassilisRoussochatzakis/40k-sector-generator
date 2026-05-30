@@ -50,6 +50,7 @@ use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
 use super::derivation_cache::DerivationCache;
 use super::diff_run::DiffState;
+use super::export_run::ExportState;
 use super::file_watcher::FileWatcher;
 use super::index::BuilderIndex;
 use super::preview::PreviewState;
@@ -579,6 +580,12 @@ pub struct BuilderState {
     /// In-memory only; the document round-trips to disk separately. See
     /// [`super::segmentum_run::SegmentumState`].
     pub segmentum: SegmentumState,
+    /// §EX1..§EX8: EXPORT tab runtime — the chosen output folder, the
+    /// standalone-system export form, the cached markdown preview, and the
+    /// last export error. The per-format / bitmap / HTML knobs live on
+    /// `config.outputs`, not here. In-memory only. See
+    /// [`super::export_run::ExportState`].
+    pub export: ExportState,
 }
 
 impl BuilderState {
@@ -752,6 +759,7 @@ impl BuilderState {
             diff: DiffState::new(),
             analytics: AnalyticsState::new(),
             segmentum: SegmentumState::default(),
+            export: ExportState::new(),
         }
     }
 }

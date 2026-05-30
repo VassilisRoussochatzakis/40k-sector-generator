@@ -791,18 +791,13 @@ The **ANALYTICS** tab is wired (§A1..§A4). It is the in-app face of
    analysis.md + analysis.json** to write the same artefacts the
    `sectorforge analyze --out <dir>` CLI produces.
 
-### 11.9 INTERESTINGNESS, SEGMENTUM (live), EXPORT
+### 11.9 INTERESTINGNESS, SEGMENTUM (live), EXPORT (live)
 
 > **INTERESTINGNESS is wired** (scored "is this sector dramatically
-> interesting" metrics with a per-profile preset) and **SEGMENTUM is now
-> wired** (§SG1..§SG5 — see §11.10 below). **EXPORT** is still a placeholder
-> as of this writing — Phase E work; it opens to a stub. Use the `sectorforge`
-> CLI for export (`generate --formats …`, see §15).
->
-> Conceptually:
->
-> - **EXPORT** — bundle PNG / SVG / HTML / JSON / Markdown writes; see
->   §15 for the CLI fallback.
+> interesting" metrics with a per-profile preset), **SEGMENTUM is wired**
+> (§SG1..§SG5 — see §11.10 below), and **EXPORT is now wired** (§EX1..§EX8 —
+> see §11.11 below). The `sectorforge` CLI still offers the same writes
+> (`generate --formats …`, see §15) for headless / scripted runs.
 
 ### 11.10 SEGMENTUM (live)
 
@@ -842,6 +837,49 @@ joined by inter-sector warp links.
 > **Note.** Each child `project` must be a real sector project on disk (the
 > kind §1 creates). Composition generates every child from scratch using its
 > own (or the overridden) seed, so a compose can take a while for large grids.
+
+### 11.11 EXPORT (live)
+
+The **EXPORT** tab is wired (§EX1..§EX8). It is the in-app face of
+`sectorforge generate --formats …` plus every per-overlay writer the CLI
+exposes — all writing the same artefacts, over the **live in-memory sector**,
+into a folder you choose.
+
+1. Click **EXPORT**, then **Choose output folder…**. Every export button stays
+   disabled until a folder is picked.
+2. **§EX1 / §EX2 — formats + manifest**: tick which formats the bundle writes
+   (`json`, `markdown`, `bitmap (png)`, `svg`, `html`), plus **write
+   manifest.json**, **pretty JSON**, and **write per-system JSON files**.
+   These edit the project's own output config, so they round-trip to
+   `sectorforge.toml` on the next save. **Export bundle (§EX1)** writes the
+   enabled formats (and the manifest) for the live sector.
+3. **§EX3 — bitmap settings**: `sector_scale` / `system_scale` (1–8),
+   `render_systems`, `faction_fill`, and a `heatmap` mode picker — applied to
+   the PNG / per-system maps the bundle emits.
+4. **§EX4 — HTML settings**: theme (dark | parchment | hololithic),
+   `player_observer` (restrict the inlined sector to one faction's view, or
+   "(none)" for the full GM edition), `player_min_confidence`,
+   `size_warn_bytes`, and `compact_json`.
+5. **§EX7 — per-overlay export**: one button each for `history`, `personae`,
+   `hooks`, `prose`, `relations`, `regions`, `economy`, `interestingness`,
+   `briefing`, `missions`, `sites`, and `analyze`. Each derives over the live
+   sector and writes `<name>.md` + `<name>.json` (the same files the matching
+   `sectorforge <name>` CLI subcommand writes). `relations`, `regions` and
+   `economy` export the sector's own edited data, so painted warp regions and
+   edited economy survive.
+6. **§EX5 — standalone-system export**: mirrors `generate-system`. Give a
+   coord, an optional seed (blank = project seed), and a 1-based index, then
+   **Generate + write system** writes `<sys-id>.json` (+ optional `<sys-id>.md`).
+   This reads the project **from disk**, so open / save the project first.
+7. **§EX6 — render markdown preview**: **Refresh preview** shows a live
+   `render-markdown` of the in-memory sector in a scrollable pane.
+8. **§EX8 — Export everything**: runs the §EX1 bundle and every §EX7 overlay
+   into the chosen folder in one click, then reports how many artefact groups
+   were written (and the first failure, if any).
+
+> **Note.** Exports use the live, possibly-unsaved in-memory sector — except
+> the §EX5 standalone-system export, which (like the CLI) regenerates one
+> system from the project's on-disk catalogs.
 
 ---
 
@@ -969,8 +1007,12 @@ through disk, so what you see should match what you left.
 
 ## 15. Export
 
-Click **EXPORT**. (As of this writing the export panel is in active
-development — if it shows a placeholder, use the CLI for now:)
+Click **EXPORT**, **Choose output folder…**, tick the formats you want, and
+hit **Export bundle** (or **Export everything** for the bundle plus every
+overlay). See §11.11 for the full tour of the tab.
+
+If you'd rather run it headless, the CLI writes the same artefacts from the
+same project folder:
 
 ```bash
 cargo run --release -p sectorforge -- generate \

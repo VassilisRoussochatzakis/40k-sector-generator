@@ -1798,32 +1798,53 @@ V6.   Pre-export refuse-on-error gate (mirrors CLI `generate`).
 34. EXPORT BUNDLE
 ================================================================================
 
-EX1.  Export dialog covers every format from `[outputs]`:
-      json, markdown, bitmap, html. Per-format toggle.
+EX1.  [DONE] Export dialog covers every format from `[outputs]`:
+      json, markdown, bitmap, html (plus svg). Per-format toggle.
+      `builder/src/builder/panels/export.rs::show_formats` renders a checkbox
+      per `OutputFormat` that adds/removes it from `state.config.outputs.formats`
+      (the project's own `OutputConfig`, so the toggles round-trip to
+      `sectorforge.toml` on save). "Export bundle (§EX1)" runs
+      `sectorforge::export_sector(&state.sector, &state.config.outputs, dir)`.
 
-EX2.  Manifest writer (`src/export.rs::write_manifest`) included.
-      Input digests computed over current in-memory data catalogs.
+EX2.  [DONE] Manifest writer included. The `write manifest.json` checkbox in
+      `show_formats` drives `state.config.outputs.write_manifest`, which gates
+      the `manifest.json` write inside `export_sector` (`src/export/writers.rs`).
+      Input digests are computed by the generator over the in-memory catalogs
+      and live on `sector.manifest`.
 
-EX3.  Bitmap settings panel: `sector_scale` (1..=8), `system_scale`
-      (1..=8), `render_systems` toggle, `faction_fill` toggle,
-      `heatmap` mode picker.
+EX3.  [DONE] Bitmap settings panel: `show_bitmap_settings` edits
+      `state.config.outputs.bitmap` — `sector_scale` (1..=8), `system_scale`
+      (1..=8), `render_systems` toggle, `faction_fill` toggle, and a `heatmap`
+      mode `ComboBox` over `HeatmapMode::ALL`.
 
-EX4.  HTML settings panel: theme picker (dark | parchment | hololithic),
-      `player_observer` picker, `player_min_confidence`,
-      `size_warn_bytes`, `compact_json`.
+EX4.  [DONE] HTML settings panel: `show_html_settings` edits
+      `state.config.outputs.html` — theme picker (dark | parchment | hololithic),
+      `player_observer` picker (combo over `sector.factions` + "(none)"),
+      `player_min_confidence` slider, `size_warn_bytes`, `compact_json`.
 
-EX5.  Standalone-system export (mirrors `generate-system`): pick coord
-      + seed + index → write `sys-NNNN.json` (+ optional `.md`).
+EX5.  [DONE] Standalone-system export (mirrors `generate-system`):
+      `show_standalone_system` collects coord + seed + index, and
+      `generate_and_write_system` loads the project from disk
+      (`sectorforge::load_project`), calls `generate_system_standalone`, and
+      writes `<sys-id>.json` (+ optional `<sys-id>.md`) into the output folder.
 
-EX6.  "Render markdown" preview tab (live, mirrors `render-markdown`
-      output).
+EX6.  [DONE] "Render markdown" preview (live, mirrors `render-markdown`):
+      `show_markdown_preview` caches `sectorforge::render_sector_markdown(&sector)`
+      on `ExportState::md_preview` and renders it in a scrollable monospace
+      `TextEdit`.
 
-EX7.  Per-overlay export buttons: history (`history.md/json`),
-      personae, hooks, prose, relations, regions, economy,
-      interestingness, briefing, missions, sites, analyze.
+EX7.  [DONE] Per-overlay export buttons: history, personae, hooks, prose,
+      relations, regions, economy, interestingness, briefing, missions, sites,
+      analyze. `show_overlays` renders one button per `Overlay`; `write_overlay`
+      derives each over the live sector (using the loaded catalog config from
+      `state.data_catalogs`, or its `Default`) and writes `<name>.md` +
+      `<name>.json` via the matching `sectorforge::write_*` helper. relations /
+      regions / economy export the live sector's embedded data so painted
+      regions / edited economy survive.
 
-EX8.  Project-wide "Export everything" runs every overlay and writes
-      to chosen folder.
+EX8.  [DONE] Project-wide "Export everything" (`run_everything`) runs the §EX1
+      bundle and every §EX7 overlay into the chosen folder in one pass,
+      reporting the artefact-group count and the first failure (if any).
 
 ================================================================================
 35. THEMES + HEATMAPS
@@ -2087,7 +2108,7 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Diff      -> panels/diff.rs       (Phase E §DF1..§DF5 DONE)
         Briefing  -> panels/briefing.rs   (Phase D §BR1..§BR5 DONE)
         Segmentum -> panels/segmentum.rs  (Phase E §SG1..§SG5 DONE)
-        Export    -> panels/export.rs     (Phase E §EX1..§EX8)
+        Export    -> panels/export.rs     (Phase E §EX1..§EX8 DONE)
       Stub panels share `panels/placeholder.rs` so each unfinished body
       announces the phase + section that fills the tab.
 
@@ -2107,13 +2128,14 @@ N2.   [DONE] Each tab corresponds to a panel module under
         Phase E
           [x] panels/analytics.rs       §A1..§A4    analytics dashboard
           [x] panels/diff.rs            §DF1..§DF5  diff + tick editor
-          [ ] panels/export.rs          §EX1..§EX8  export bundle editor
+          [x] panels/export.rs          §EX1..§EX8  export bundle editor
           [x] panels/search.rs          §SR1..§SR5  wishes/search editor
           [x] panels/segmentum.rs       §SG1..§SG5  compose editor
 
-      `panels/placeholder.rs` is the shared 13-LOC routing-fallback helper
-      every stub above calls — it is NOT a stub itself and stays after the
-      last Phase D/E panel above lands.
+      All Phase D/E panels above have now landed — no panel routes through
+      `panels/placeholder.rs` any longer. The helper is the shared 13-LOC
+      routing fallback, NOT a stub itself, and stays as the §N1 router's
+      default arm for any future tab added ahead of its panel.
 
 N3.   [DONE] Map tab keeps the editor toolbox
       (ADD/DELETE/MOVE/ROUTE/REGION paint).

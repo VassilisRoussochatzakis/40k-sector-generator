@@ -23,7 +23,11 @@ use crate::builder::{BuilderState, ModalKind};
 
 /// True when `rel` names a TOML file the editor is willing to open.
 fn is_toml(rel: &str) -> bool {
-    rel.rsplit('.').next().map(str::to_ascii_lowercase).as_deref() == Some("toml")
+    rel.rsplit('.')
+        .next()
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+        == Some("toml")
 }
 
 /// Leaf file name for a project-relative path (everything after the last `/`).

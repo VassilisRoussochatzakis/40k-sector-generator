@@ -247,6 +247,7 @@ impl SessionFile {
             diff: super::diff_run::DiffState::new(),
             analytics: super::analytics_run::AnalyticsState::new(),
             segmentum: super::segmentum_run::SegmentumState::default(),
+            export: super::export_run::ExportState::new(),
         }
     }
 }

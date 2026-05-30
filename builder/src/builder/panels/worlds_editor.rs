@@ -89,7 +89,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.separator();
 
     let mut any_change = false;
-    edit_rows(ui, state.data_catalogs.worlds.as_mut().unwrap(), &mut any_change);
+    edit_rows(
+        ui,
+        state.data_catalogs.worlds.as_mut().unwrap(),
+        &mut any_change,
+    );
 
     if any_change {
         state.dirty = true;
@@ -137,37 +141,90 @@ fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
                     ui.end_row();
 
                     for (idx, row) in cfg.generation.iter_mut().enumerate() {
-                        ui.label(RichText::new((idx + 1).to_string()).monospace().color(Color32::GRAY));
+                        ui.label(
+                            RichText::new((idx + 1).to_string())
+                                .monospace()
+                                .color(Color32::GRAY),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("sc", idx),
+                            &mut row.star_colour,
+                            StarColour::VARIANTS,
+                            |v| v.display_name(),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("wt", idx),
+                            &mut row.world_type,
+                            WorldType::VARIANTS,
+                            |v| v.display_name(),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("at", idx),
+                            &mut row.atmosphere,
+                            Atmosphere::VARIANTS,
+                            |v| v.display_name(),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("te", idx),
+                            &mut row.temperature,
+                            Temperature::VARIANTS,
+                            |v| v.display_name(),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("bi", idx),
+                            &mut row.biosphere,
+                            Biosphere::VARIANTS,
+                            |v| v.display_name(),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("po", idx),
+                            &mut row.population,
+                            Population::VARIANTS,
+                            |v| v.display_name(),
+                        );
                         *any_change |=
-                            enum_combo(ui, ("sc", idx), &mut row.star_colour, StarColour::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("wt", idx), &mut row.world_type, WorldType::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("at", idx), &mut row.atmosphere, Atmosphere::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("te", idx), &mut row.temperature, Temperature::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("bi", idx), &mut row.biosphere, Biosphere::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("po", idx), &mut row.population, Population::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("tl", idx), &mut row.tech, TechLevel::VARIANTS, |v| v.display_name());
-                        *any_change |=
-                            enum_combo(ui, ("gv", idx), &mut row.government, Government::VARIANTS, |v| v.display_name());
-                        *any_change |= enum_combo(ui, ("nf", idx), &mut row.notable_feature, NotableFeature::VARIANTS, |v| {
-                            v.display_name()
-                        });
+                            enum_combo(ui, ("tl", idx), &mut row.tech, TechLevel::VARIANTS, |v| {
+                                v.display_name()
+                            });
+                        *any_change |= enum_combo(
+                            ui,
+                            ("gv", idx),
+                            &mut row.government,
+                            Government::VARIANTS,
+                            |v| v.display_name(),
+                        );
+                        *any_change |= enum_combo(
+                            ui,
+                            ("nf", idx),
+                            &mut row.notable_feature,
+                            NotableFeature::VARIANTS,
+                            |v| v.display_name(),
+                        );
 
                         let mut weight = row.weight.unwrap_or(0.0);
                         if ui
-                            .add(egui::DragValue::new(&mut weight).speed(0.1).range(0.0..=1e6))
+                            .add(
+                                egui::DragValue::new(&mut weight)
+                                    .speed(0.1)
+                                    .range(0.0..=1e6),
+                            )
                             .changed()
                         {
                             row.weight = (weight > 0.0).then_some(weight);
                             *any_change = true;
                         }
 
-                        if ui.small_button("＋").on_hover_text("insert row above").clicked() {
+                        if ui
+                            .small_button("＋")
+                            .on_hover_text("insert row above")
+                            .clicked()
+                        {
                             insert_above = Some(idx);
                         }
                         if ui.small_button("✕").on_hover_text("delete row").clicked() {

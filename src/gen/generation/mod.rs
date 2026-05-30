@@ -305,11 +305,8 @@ where
 
     let source_rows = world_rows.len();
     let t_pool = Instant::now();
-    let mut pool = crate::world_pool::build_pool(
-        world_rows,
-        world_tables,
-        &config.generation.world_selection,
-    );
+    let mut pool =
+        crate::world_pool::build_pool(world_rows, world_tables, &config.generation.world_selection);
     if let Some(features) = &authored_features {
         crate::world_pool::apply_authored_features(&mut pool, features);
     }

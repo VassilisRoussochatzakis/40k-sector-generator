@@ -124,6 +124,7 @@ impl SessionFile {
             stable_ids_on_rename: self.stable_ids_on_rename,
             dirty_files: std::collections::BTreeSet::new(),
             selected_file: None,
+            toml_editor: super::state::TomlEditorState::default(),
             file_mtimes: std::collections::BTreeMap::new(),
             file_watcher: None,
             validation_dirty_since: None,

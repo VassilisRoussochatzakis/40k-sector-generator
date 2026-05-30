@@ -5,7 +5,7 @@
 
 use crate::builder::{BuilderState, ModalKind};
 
-use super::{generation, preferences, project_tree, save_project};
+use super::{files, generation, preferences, project_tree, save_project, worlds_editor};
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Project");
@@ -25,6 +25,21 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.modal = Some(ModalKind::OpenProject { path: None });
         }
         save_project::show(ui, state);
+        // §PF5: single "Save all" — flush every dirty TOML editor buffer, then
+        // run the full project save.
+        let any_dirty = state.dirty || !state.dirty_files.is_empty();
+        if ui
+            .add_enabled(
+                state.project_path.is_some() && any_dirty,
+                egui::Button::new("Save all"),
+            )
+            .on_hover_text("§PF5 — flush every dirty file + save the whole project")
+            .clicked()
+        {
+            if let Err(e) = files::save_all(state) {
+                state.modal = Some(ModalKind::Message(format!("Save all failed: {e}")));
+            }
+        }
     });
     ui.separator();
 
@@ -34,6 +49,12 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             egui::CollapsingHeader::new("Tree")
                 .default_open(true)
                 .show(ui, |ui| project_tree::show(ui, state));
+            egui::CollapsingHeader::new("Files (§PF2)")
+                .default_open(false)
+                .show(ui, |ui| files::show(ui, state));
+            egui::CollapsingHeader::new("World data (§PF3)")
+                .default_open(false)
+                .show(ui, |ui| worlds_editor::show(ui, state));
             egui::CollapsingHeader::new("Generation")
                 .default_open(false)
                 .show(ui, |ui| generation::show(ui, state, None));

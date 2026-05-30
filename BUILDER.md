@@ -109,7 +109,8 @@ on disk:
 - a few more catalogue files under `data/`.
 - `sector.json` — your sector itself; empty at this point.
 
-If you ever want to peek at one, click the file name in the tree.
+If you ever want to peek at one, click the file name in the tree — clicking a
+`.toml` file opens it in the **Files (§PF2)** editor just below (see §1.4).
 
 ### 1.3 Save now
 
@@ -118,9 +119,48 @@ This writes the in-memory state out to the folder you chose. You will return
 to this button frequently — the builder *does* auto-save, but a manual save
 after every major step is a habit worth forming.
 
+Next to it is **Save all** — the one-button "flush everything" (§PF5). It
+saves every open file editor *and* the whole project (catalogues + sector) in a
+single click. Use plain **Save** for the routine case and **Save all** when you
+have been hand-editing raw files (§1.4) and want it all on disk at once.
+
 > **Tip.** The status footer shows a `dirty` indicator whenever the in-memory
 > state has changes that have not been written to disk. After Save it should
 > clear.
+
+### 1.4 Edit raw config files and world data (PROJECT tab)
+
+The PROJECT tab carries two editors directly under the **Tree**, for when you
+want to touch the underlying config instead of clicking through the
+domain-specific tabs:
+
+- **Files (§PF2)** — a raw-TOML editor. Click any `.toml` in the **Tree** and
+  it opens here as a *tab*. You can have several files open at once; each tab
+  shows a `●` when it has unsaved edits and a red tint when its text no longer
+  parses. The body is a syntax-highlighted editor (comments, `[section]`
+  headers, `key =` names and strings are coloured), and a line under the
+  toolbar reads **✓ valid TOML** or **✗ parse error** with the failing
+  `line:column` as you type. **Save** writes that one file (it refuses to
+  write text that does not parse, so you can never save a broken config), and
+  the matching tab — FACTIONS, REGIONS, etc. — picks up the change
+  immediately. **Revert** throws away the edits and restores the on-disk text.
+  Close a tab with its `×`.
+
+- **World data (§PF3)** — a typed editor over `worlds.toml`. Instead of raw
+  text, each generation row is a set of dropdowns (star colour, world type,
+  atmosphere, …) plus a numeric **weight**. Use the per-row **＋** to insert a
+  row above, **✕** to delete one, or **+ Add row** at the bottom to append.
+  A **✓ valid worlds.toml** / **✗** line validates the whole catalogue, and
+  **Save worlds.toml** (enabled only while there are unsaved, valid changes)
+  writes just that file.
+
+Both editors write atomically (§PF6) — a half-written file can never be
+observed on disk even if the machine dies mid-save.
+
+> **Tip.** Edits made in these two editors and edits made in the
+> domain-specific tabs are the same underlying data. Editing `factions.toml`
+> in **Files** and editing a faction row in the **FACTIONS** tab both move the
+> same in-memory catalogue; whichever you touch last wins.
 
 ---
 

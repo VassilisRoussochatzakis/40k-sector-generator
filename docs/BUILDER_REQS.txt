@@ -1874,22 +1874,63 @@ SG5.  Open composed segmentum in existing SEGMENTUM tab.
 37. PROJECT + FILES (operational)
 ================================================================================
 
-PF1.  Project tree panel (§P4).
+PF1.  [DONE] Project tree panel (§P4).
+      `builder/src/builder/panels/project_tree.rs` renders the collapsible
+      directory tree (folders-first, hidden entries skipped, dirty files
+      flagged "● " in yellow) rooted at `BuilderState::project_path`. Clicking
+      a file sets `BuilderState::selected_file`, which the §PF2 editor reads.
+      Surfaced under PROJECT → "Tree".
 
-PF2.  TOML editor tabs for every config file with syntax highlighting +
-      validation (`sectorforge.toml`, `factions.toml`, `relations.toml`,
-      `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`,
-      `system_names.toml`, `world_names.toml`, `wishes.toml`,
-      `map_theme.toml`, `segmentum.toml`, `personae.toml`, `sites.toml`).
+PF2.  [DONE] TOML editor tabs for every config file with syntax highlighting +
+      validation. `builder/src/builder/panels/files.rs` turns a §P4 tree click
+      on any `.toml` into an editor tab. Each open file is one tab in
+      `BuilderState::toml_editor` (`TomlEditorState { open: BTreeMap<rel,
+      OpenTomlBuffer>, active }` in `state/types.rs`); the strip shows per-tab
+      dirty `●` + invalid-TOML tint + close `×`. The body is a `code_editor()`
+      multiline with a line-based TOML syntax highlighter (comments, `[section]`
+      headers, `key =` names, quoted strings) wired through `TextEdit::layouter`.
+      Validation runs on every keystroke via `state::validate_toml` (parses as
+      `toml::Table`, surfaces the `toml` crate's `line:col` error). Works for
+      every config file the tree lists (`sectorforge.toml`, `factions.toml`,
+      `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`,
+      `history.toml`, `system_names.toml`, `world_names.toml`, `wishes.toml`,
+      `map_theme.toml`, `segmentum.toml`, `personae.toml`, `sites.toml`, …).
+      Per-tab Save writes the exact bytes atomically (§PF6) and re-parses into
+      the in-memory catalog via `project_io::reload_catalog` so the typed
+      panels stay in lock-step. Surfaced under PROJECT → "Files (§PF2)".
 
-PF3.  `worlds.toml` editor: typed dropdowns + DragValue weights
-      (already exists; extend with delete-row, insert-row, validation surface).
+PF3.  [DONE] `worlds.toml` editor: typed dropdowns + DragValue weights.
+      `builder/src/builder/panels/worlds_editor.rs` ports the viewer's §WD4
+      typed editor into the builder (per WD4: builder world-data editing must
+      not route through `sectorforge-viewer`). Each `GenerationRow` is edited
+      via enum `ComboBox`es over `Enum::VARIANTS` + a `DragValue<f64>` weight.
+      Extensions delivered: per-row delete (`✕`) AND insert-above (`＋`) plus an
+      append "+ Add row", and a validation surface that round-trips the config
+      (serialise → re-parse) and gates "Save worlds.toml" on a clean parse.
+      Save writes the catalog atomically (§PF6) and mirrors the bytes into any
+      open §PF2 raw tab. Surfaced under PROJECT → "World data (§PF3)".
 
-PF4.  Dirty-state markers per tab.
+PF4.  [DONE] Dirty-state markers per tab. `OpenTomlBuffer::is_dirty`
+      (`buffer != original`) drives the per-tab `●` marker + colour in the
+      §PF2 strip; the §PF3 editor shows "● unsaved" while the worlds catalog
+      diverges. Both feed `BuilderState::dirty_files`, which the §P4 tree and
+      the status footer also read. Cleared on per-file save / Save all.
 
-PF5.  Single "Save all" + per-tab "Save".
+PF5.  [DONE] Single "Save all" + per-tab "Save". Per-tab Save lives in each
+      editor (`files::save_one`, `worlds_editor::save`). "Save all"
+      (`files::save_all`, button in the PROJECT row) flushes every dirty editor
+      buffer (validating each), runs the full `project_io::save_project` pass
+      (catalog files + `sector.json` + manifest), then re-reads the open
+      buffers so the editor mirrors the canonical post-save bytes.
 
-PF6.  Atomic write via `tempfile::NamedTempFile::persist`.
+PF6.  [DONE] Atomic write. All writes go through
+      `project_io::atomic_write` (sibling `.<file>.tmp.<pid>` + `fs::rename`).
+      R9 forbids new crates so we do not take the `tempfile::NamedTempFile::
+      persist` dependency the spec names; the tmp + rename strategy is
+      identical (same as §P3 / §SG1). The §PF2/§PF3 editors also call
+      `project_io::refresh_watcher_baseline` after a direct write so the file
+      watcher does not raise a spurious ConflictResolver on the builder's own
+      save.
 
 ================================================================================
 38. UNDO + SNAPSHOTS
@@ -2530,7 +2571,16 @@ Phase E — Tooling
                    (also loads a prior `segmentum.json`). State lives in
                    `builder/src/builder/segmentum_run.rs::SegmentumState`
                    (`ComposeJobResult`, `NewLinkDraft`).)
-  PF1..PF6,   (§37 project + files)
+  PF1..PF6,   (§37 project + files — DONE.
+                   PF1 tree `panels/project_tree.rs`; PF2 raw-TOML editor
+                   `panels/files.rs` (open-on-tree-click tabs, line-based
+                   syntax highlight, live `validate_toml`); PF3 typed
+                   `worlds.toml` editor `panels/worlds_editor.rs` (enum combos
+                   + DragValue weights, insert/delete row, round-trip
+                   validation); PF4 per-tab dirty markers via
+                   `OpenTomlBuffer::is_dirty` + `dirty_files`; PF5 per-tab Save
+                   + `files::save_all`; PF6 `project_io::atomic_write` tmp +
+                   rename. Editor state in `state/types.rs::TomlEditorState`.)
   EX1..EX8,   (§34 export bundle)
   T1..T5,     (§40 testing — T6..T7 land in Phase F)
   V4..V6,     (§33 strict mode, invariant catalogue, refuse-on-error gate)

@@ -3,7 +3,7 @@
 //! All `pub` here so the facade can re-export them under
 //! `crate::builder::state::*`.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use camino::Utf8PathBuf;
 
@@ -494,6 +494,76 @@ pub enum SectorMenuTarget {
     /// [`super::BuilderState::selected_systems`] with `len >= 2`. Phase 3
     /// reads this to surface bulk actions.
     MultiSelection { ids: Vec<SystemId> },
+}
+
+/// §PF2 / §PF4: in-memory state for the raw-TOML editor surface on the PROJECT
+/// tab. Each open config file is one "editor tab" keyed by its
+/// project-relative path. Buffers persist across tree-selection changes so
+/// switching files never drops unsaved edits. In-memory only — never
+/// serialised into a session.
+#[derive(Debug, Default)]
+pub struct TomlEditorState {
+    /// Open file buffers keyed by project-relative path. A `BTreeMap` keeps the
+    /// tab strip order deterministic regardless of open sequence.
+    pub open: BTreeMap<String, OpenTomlBuffer>,
+    /// Project-relative path of the active editor tab, or `None` when nothing
+    /// is open.
+    pub active: Option<String>,
+}
+
+/// §PF2: one open file in the raw-TOML editor.
+#[derive(Debug, Clone)]
+pub struct OpenTomlBuffer {
+    /// Text as last read from / written to disk. The buffer is "dirty" when
+    /// `buffer != original`.
+    pub original: String,
+    /// Live edited text bound to the multiline editor.
+    pub buffer: String,
+    /// Cached validation message from the most recent parse of `buffer`:
+    /// `None` once it parses as a TOML document, otherwise the `toml` crate's
+    /// `line:col` error string (§PF2 validation surface).
+    pub error: Option<String>,
+}
+
+impl OpenTomlBuffer {
+    /// Wrap freshly-read `text`, validating it immediately so the editor opens
+    /// with the parse state already known.
+    #[must_use]
+    pub fn new(text: String) -> Self {
+        let error = validate_toml(&text);
+        Self {
+            original: text.clone(),
+            buffer: text,
+            error,
+        }
+    }
+
+    /// True when the live buffer diverges from the on-disk snapshot.
+    #[must_use]
+    pub fn is_dirty(&self) -> bool {
+        self.buffer != self.original
+    }
+
+    /// Re-parse `buffer` and refresh [`Self::error`]. Call after every edit.
+    pub fn revalidate(&mut self) {
+        self.error = validate_toml(&self.buffer);
+    }
+
+    /// Mark the buffer clean by adopting `buffer` as the on-disk snapshot.
+    pub fn mark_saved(&mut self) {
+        self.original = self.buffer.clone();
+    }
+}
+
+/// §PF2: parse `text` as a TOML document, returning a one-line error string
+/// (the `toml` crate already carries `line N, column M` info) or `None` when
+/// it parses cleanly.
+#[must_use]
+pub fn validate_toml(text: &str) -> Option<String> {
+    match toml::from_str::<toml::Table>(text) {
+        Ok(_) => None,
+        Err(e) => Some(e.to_string()),
+    }
 }
 
 /// §G5: inclusive rectangle of hex coordinates that

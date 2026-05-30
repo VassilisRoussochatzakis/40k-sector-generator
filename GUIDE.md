@@ -1933,6 +1933,35 @@ Tests in `builder/src/builder/project_io.rs`:
   and asserts the resulting `BuilderError::ParseFailed.message` contains
   the `toml` crate's `line` info.
 
+#### PF1–PF6 project + files (DONE)
+
+BUILDER_REQS §37. The PROJECT tab gains two editor surfaces that sit beside the
+§P4 tree: a raw-TOML editor (§PF2) and a typed `worlds.toml` editor (§PF3).
+Editor state lives in `BuilderState::toml_editor`
+([builder/src/builder/state/types.rs](builder/src/builder/state/types.rs)
+`TomlEditorState { open: BTreeMap<String, OpenTomlBuffer>, active: Option<String> }`).
+`OpenTomlBuffer { original, buffer, error }` carries the on-disk snapshot, the
+live buffer, and the cached parse error; `is_dirty()` is `buffer != original`.
+
+| Step | Module |
+|---|---|
+| §PF1 tree | [builder/src/builder/panels/project_tree.rs](builder/src/builder/panels/project_tree.rs) (already shipped under §P4) — folders-first tree, "● " dirty marker, click sets `state.selected_file`. |
+| §PF2 raw editor | [builder/src/builder/panels/files.rs](builder/src/builder/panels/files.rs) — `show` opens the `.toml` named by `state.selected_file` as a tab in `state.toml_editor.open`; the strip shows per-tab dirty `●` + invalid tint + close `×`. The body is a `TextEdit::multiline().code_editor()` with a line-based TOML `layouter` (`highlight` colours comments / `[section]` headers / `key =` names / quoted strings). Every keystroke calls `OpenTomlBuffer::revalidate` (→ `state::validate_toml`, parses as `toml::Table`). |
+| §PF2 save | `files::save_one(state, rel)` — refuses to write a buffer that fails `validate_toml`, then `project_io::atomic_write` + `project_io::reload_catalog` (so the typed panels mirror the hand edit) + `OpenTomlBuffer::mark_saved` + `project_io::refresh_watcher_baseline`. |
+| §PF3 worlds editor | [builder/src/builder/panels/worlds_editor.rs](builder/src/builder/panels/worlds_editor.rs) — typed editor over `state.data_catalogs.worlds` (`WorldsConfig`). Per-`GenerationRow` enum `ComboBox`es over `Enum::VARIANTS` + `DragValue<f64>` weight; per-row insert-above (`＋`) / delete (`✕`) + append "+ Add row" (§PF3 extensions). `validate` round-trips (serialise → re-parse) and gates "Save worlds.toml" (`save` → `atomic_write` + mirror into any open §PF2 tab + watcher refresh). Parity with the viewer's §WD4 editor, kept in the builder per WD4. |
+| §PF4 dirty markers | `OpenTomlBuffer::is_dirty` drives the per-tab `●`; both editors also write `state.dirty_files`, which the §P4 tree + status footer read. |
+| §PF5 save all | `files::save_all` — flushes every dirty editor buffer via `save_one`, runs `project_io::save_project`, then re-reads the open buffers (`resync_open_buffers`) so the editor mirrors the canonical post-save bytes. Button lives in the PROJECT row beside Save / Save-as. |
+| §PF6 atomic write | `project_io::atomic_write` (`.<name>.tmp.<pid>` + `fs::rename`). R9 forbids the `tempfile::NamedTempFile::persist` dependency the spec names; the strategy is identical and shared with §P3 / §SG1. |
+
+Wiring: `panels/files.rs` + `panels/worlds_editor.rs` are added to
+[builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs);
+[builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs)
+hosts them under the "Files (§PF2)" and "World data (§PF3)" collapsing headers
+and adds the "Save all" button. Tests: `worlds_editor::tests`
+(`validate_round_trips_default_config`, `worlds_rel_uses_config_dir`) and
+`files::tests` (`is_toml_*`, `file_name_takes_leaf`, `highlight_emits_full_text`
+— the highlighter reproduces its input byte-for-byte).
+
 #### U1–U2 undo / redo (DONE)
 
 | Piece | Where it lives |
@@ -1957,7 +1986,7 @@ pass. The status bar combines them into a single tri-coloured health pip.
 
 | Piece | Where it lives |
 |---|---|
-| V1 validation panel | [builder/src/builder/panels/validation.rs](builder/src/builder/panels/validation.rs) — groups `ValidationReport.errors` / `warnings` under collapsing per-file buckets keyed by the issue `path` prefix (`factions` → `state.config.inputs.factions`, `routes` → `route_rules`, `relations`, `regions`, `economy`, `history`, `names`, otherwise `sectorforge.toml`). Each leaf is a button that sets `BuilderState::selected_file` so the §P4 project tree and the upcoming TOML editor tabs can route the user to the file. The footer renders `WorldWorkbookValidation` (row count, usable candidates, exclusion reasons, key tables). A "Re-validate now" button forces an immediate `BuilderState::revalidate_now` flush. |
+| V1 validation panel | [builder/src/builder/panels/validation.rs](builder/src/builder/panels/validation.rs) — groups `ValidationReport.errors` / `warnings` under collapsing per-file buckets keyed by the issue `path` prefix (`factions` → `state.config.inputs.factions`, `routes` → `route_rules`, `relations`, `regions`, `economy`, `history`, `names`, otherwise `sectorforge.toml`). Each leaf is a button that sets `BuilderState::selected_file` so the §P4 project tree and the §PF2 TOML editor tabs route the user to the file (the editor opens whichever `.toml` `selected_file` names). The footer renders `WorldWorkbookValidation` (row count, usable candidates, exclusion reasons, key tables). A "Re-validate now" button forces an immediate `BuilderState::revalidate_now` flush. |
 | V2 invariants panel | [builder/src/builder/panels/invariants.rs](builder/src/builder/panels/invariants.rs) — groups `InvariantReport.violations` by stratum (`systems` / `worlds` / `routes` / `factions` / `regions` / `economy` / `manifest` / `other`) using the invariant `path` prefix. Each row is a button that writes typed IDs into the selection mailbox (`BuilderState::selected_system_id`, `selected_world_id`, `selected_route_id`, `selected_faction_id`, `selected_region_id`) so the inspector tabs can focus the entity. A "Re-check now" button re-runs `sectorforge::invariants::check_sector`. The panel also surfaces the §V5 invariant catalogue as a read-only collapsing list of every code the checker may emit. |
 | V3 debounced live validation | [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) — `BuilderState::run` / `undo` / `redo` call `mark_validation_dirty()` which stamps `Instant::now()` into `validation_dirty_since`. Per-frame the UI calls `BuilderState::pump_validation()`; once `validation_debounce` (default 200 ms, `DEFAULT_VALIDATION_DEBOUNCE_MS`) elapses, `revalidate_now()` runs `sectorforge::validation::validate` against a synthetic `ProjectInput` built by `synthesize_project_input()` (worlds catalog mandatory; other catalogs default-fall-through). The debounce timer is cleared regardless of catalog completeness so we don't re-arm every tick. |
 | V3 health pip | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — calls `BuilderState::health_level()` which returns `HealthLevel::Red` when any validation error or invariant violation is present, `Yellow` when warnings exist or either report has not run yet, and `Green` only when both reports are present and clean. The pip displays `validation: N err / M warn · invariants: K`. |
@@ -2980,11 +3009,13 @@ across runs, so a regression check is a diff away.
 | [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` JSON envelope + inline base64 helper |
 | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` (thiserror) — wraps mutation/validation/IO/serde |
 | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) | R10 panel contract — `fn show(&mut Ui, &mut BuilderState)`; first instance is `panels/status.rs` (status bar) |
-| [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes, manifest digest refresh |
+| [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) | §P1–§P3 project I/O — `new_project`, `open_project`, `save_project`, `save_project_as`, atomic tmp+rename writes (`atomic_write`), manifest digest refresh, `refresh_watcher_baseline` (§PF5) |
 | [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) | §P1 wizard panel driving `ModalKind::NewProject` |
 | [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) | §P2 folder-picker panel calling `project_io::open_project` |
 | [builder/src/builder/panels/save_project.rs](builder/src/builder/panels/save_project.rs) | §P3 Save + Save-as action panel |
-| [builder/src/builder/panels/project_tree.rs](builder/src/builder/panels/project_tree.rs) | §P4 PROJECT directory tree, dirty markers, selected-file router |
+| [builder/src/builder/panels/project_tree.rs](builder/src/builder/panels/project_tree.rs) | §P4 / §PF1 PROJECT directory tree, dirty markers, selected-file router |
+| [builder/src/builder/panels/files.rs](builder/src/builder/panels/files.rs) | §PF2 raw-TOML editor tabs (open-on-tree-click, syntax highlight, live validation, per-tab Save + `save_all`) |
+| [builder/src/builder/panels/worlds_editor.rs](builder/src/builder/panels/worlds_editor.rs) | §PF3 typed `worlds.toml` editor (enum combos + DragValue weights, insert/delete row, round-trip validation) |
 | [builder/src/builder/file_watcher.rs](builder/src/builder/file_watcher.rs) | §P5 mtime-polling external-change watcher (no `notify` dep — R9) |
 | [builder/src/builder/panels/conflict_resolver.rs](builder/src/builder/panels/conflict_resolver.rs) | §P5 Reload / Keep dialog when watcher detects external change against dirty buffer |
 | [builder/src/builder/preferences.rs](builder/src/builder/preferences.rs) | §P6 `Preferences` store at `~/.config/sectorforge/preferences.toml` — recent-projects MRU |

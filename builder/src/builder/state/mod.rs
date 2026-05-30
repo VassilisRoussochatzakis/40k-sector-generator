@@ -85,11 +85,12 @@ mod tests;
 
 pub use nav::EntityRef;
 pub use types::{
-    BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState, JobHandle,
-    MapTool, MapViewCache, ModalKind, PartialRegenRect, PendingBulkRename, PendingCollision,
-    PendingPlace, PendingRegionRename, PendingRename, PendingWorldRename, SectorContextMenu,
-    SectorMenuTarget, SystemContextMenu, SystemMenuTarget, TickLogEntry, TickLogScope,
-    DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
+    validate_toml, BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState,
+    JobHandle, MapTool, MapViewCache, ModalKind, OpenTomlBuffer, PartialRegenRect,
+    PendingBulkRename, PendingCollision, PendingPlace, PendingRegionRename, PendingRename,
+    PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemContextMenu, SystemMenuTarget,
+    TickLogEntry, TickLogScope, TomlEditorState, DEFAULT_COMMAND_LOG_CAPACITY,
+    DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
 pub struct BuilderState {
@@ -141,9 +142,13 @@ pub struct BuilderState {
     /// §P4: per-file dirty markers keyed by project-relative path. Populated
     /// by panels that edit individual catalogs and cleared on save.
     pub dirty_files: BTreeSet<String>,
-    /// §P4: file currently selected in the PROJECT tree. Optional — Phase E's
-    /// TOML editor tabs (§PF2) will read this to decide which buffer to open.
+    /// §P4: file currently selected in the PROJECT tree. Optional — the §PF2
+    /// TOML editor reads this to decide which buffer to open.
     pub selected_file: Option<Utf8PathBuf>,
+    /// §PF2 / §PF4 / §PF5: raw-TOML editor surface on the PROJECT tab. Holds the
+    /// open file buffers ("editor tabs"), their dirty/validation state, and the
+    /// active tab. In-memory only.
+    pub toml_editor: TomlEditorState,
     /// §P4 + §P5: project-relative mtime snapshot taken at load time. The
     /// file watcher uses this baseline to spot external changes; the tree
     /// view uses it to draw the "● dirty" marker when the catalog mirror
@@ -626,6 +631,7 @@ impl BuilderState {
             stable_ids_on_rename: true,
             dirty_files: BTreeSet::new(),
             selected_file: None,
+            toml_editor: TomlEditorState::default(),
             file_mtimes: BTreeMap::new(),
             file_watcher: None,
             validation_dirty_since: None,

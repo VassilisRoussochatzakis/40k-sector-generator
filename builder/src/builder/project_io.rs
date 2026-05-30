@@ -638,6 +638,22 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
     Ok(())
 }
 
+/// §PF5: re-snapshot the mtimes of every tracked file and restart the watcher.
+///
+/// The §PF2 raw editor writes individual config files directly (not through
+/// `save_project`), so without this the watcher's stale baseline would fire a
+/// spurious [`super::ModalKind::ConflictResolver`] on the builder's own write.
+/// Mirrors the watcher refresh `save_project_as` performs after a full save.
+pub fn refresh_watcher_baseline(state: &mut BuilderState) {
+    let Some(root) = state.project_path.clone() else {
+        return;
+    };
+    let keys: Vec<String> = state.file_mtimes.keys().cloned().collect();
+    let mtimes = collect_mtimes(&root, keys.iter());
+    state.file_mtimes = mtimes.clone();
+    state.file_watcher = Some(super::file_watcher::FileWatcher::spawn(root, mtimes));
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 fn catalogs_from_input(input: &ProjectInput) -> DataCatalogs {

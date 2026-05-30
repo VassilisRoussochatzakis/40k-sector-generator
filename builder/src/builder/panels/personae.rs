@@ -246,24 +246,21 @@ fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_anchor_link(ui: &mut Ui, state: &mut BuilderState, p: &Persona) {
     match &p.anchor {
-        PersonaAnchor::System { system_id, slot } => {
+        PersonaAnchor::System { system_id, slot }
             if ui
                 .link(format!("{system_id} · {}", slot_label(*slot)))
-                .clicked()
-            {
-                state.focus_entity(EntityRef::System(system_id.clone()));
-            }
+                .clicked() =>
+        {
+            state.focus_entity(EntityRef::System(system_id.clone()));
         }
         PersonaAnchor::World {
             system_id,
             world_id,
-        } => {
-            if ui.link(format!("{system_id}/{world_id}")).clicked() {
-                state.focus_entity(EntityRef::World {
-                    system: system_id.clone(),
-                    world: world_id.clone(),
-                });
-            }
+        } if ui.link(format!("{system_id}/{world_id}")).clicked() => {
+            state.focus_entity(EntityRef::World {
+                system: system_id.clone(),
+                world: world_id.clone(),
+            });
         }
         _ => {}
     }

@@ -155,7 +155,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
     let rows: Vec<&Hook> = report
         .hooks
         .iter()
-        .filter(|h| filter.map_or(true, |k| h.kind == k))
+        .filter(|h| filter.is_none_or(|k| h.kind == k))
         .collect();
     if rows.is_empty() {
         ui.colored_label(

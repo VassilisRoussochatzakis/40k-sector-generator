@@ -306,8 +306,8 @@ where
     let source_rows = world_rows.len();
     let t_pool = Instant::now();
     let mut pool = crate::world_pool::build_pool(
-        &world_rows,
-        &world_tables,
+        world_rows,
+        world_tables,
         &config.generation.world_selection,
     );
     if let Some(features) = &authored_features {
@@ -342,7 +342,7 @@ where
         &config.generation.seed,
         config.generation.sector_width,
         config.generation.sector_height,
-        &regions_cfg,
+        regions_cfg,
     );
     let anomaly_hexes: BTreeSet<(i32, i32)> = warp_regions
         .iter()
@@ -362,7 +362,7 @@ where
         let system = systems::build_system_with_bias(
             &config,
             &pool,
-            &names,
+            names,
             system_index,
             *coord,
             &mut used_names,
@@ -382,13 +382,13 @@ where
     let t_factions = Instant::now();
     if !factions.is_empty() {
         let mut faction_rng = rng::stage_rng(&config.generation.seed, "factions", "sector");
-        factions::assign_factions(&mut systems, &factions, &mut faction_rng);
+        factions::assign_factions(&mut systems, factions, &mut faction_rng);
         emit!(SectorProgress::FactionsAssigned {
             catalog_rows: factions.len(),
         });
     }
 
-    let generated_factions = factions::aggregate_factions(&systems, &factions);
+    let generated_factions = factions::aggregate_factions(&systems, factions);
     emit!(SectorProgress::FactionsAggregated {
         factions: generated_factions.len(),
     });
@@ -401,7 +401,7 @@ where
             name: "public routes",
         });
         let mut route_rng = rng::stage_rng(&config.generation.seed, "routes", "sector");
-        routes::generate_routes(&config, &route_rules, &systems, &mut route_rng)
+        routes::generate_routes(&config, route_rules, &systems, &mut route_rng)
     } else {
         Vec::new()
     };
@@ -707,7 +707,7 @@ where
     });
     sector.relations = crate::relations::derive_with_threshold(
         &sector,
-        &relations_cfg,
+        relations_cfg,
         config.generation.relations.min_world_presence,
     )
     .into();
@@ -721,7 +721,7 @@ where
     emit!(SectorProgress::StageStarted {
         name: "economy overlay",
     });
-    sector.economy = crate::economy::derive_with(&sector, &economy_cfg).into();
+    sector.economy = crate::economy::derive_with(&sector, economy_cfg).into();
     if economy_cfg.feed_stability && sector.economy.enabled {
         let snap = sector.economy.clone();
         crate::economy::apply_stability_nudge(&snap, &mut sector);
@@ -737,7 +737,7 @@ where
         name: "chronicle overlay",
     });
     sector.chronicle =
-        crate::history::derive_with_progress(&sector, &history_cfg, |event| match event {
+        crate::history::derive_with_progress(&sector, history_cfg, |event| match event {
             crate::history::HistoryProgress::Started {
                 systems,
                 worlds,

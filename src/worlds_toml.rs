@@ -304,7 +304,7 @@ mod tests {
             for i in 0..n_rows {
                 let s = (seed as usize + i) % pick_world.len();
                 rows.push(GenerationRow {
-                    star_colour: Some(pick_star[s % pick_star.len()].clone()),
+                    star_colour: Some(pick_star[s % pick_star.len()]),
                     world_type: Some(pick_world[s].clone()),
                     atmosphere: None,
                     temperature: None,

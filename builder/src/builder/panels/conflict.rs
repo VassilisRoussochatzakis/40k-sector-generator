@@ -85,10 +85,8 @@ pub fn show_world_conflict_section(
             ui.label(RichText::new("Stability (7 dimensions)").strong());
 
             // §CF3 — stability editor.
-            let mut stab = state.sector.systems[sys_idx].worlds[w_idx]
-                .stability
-                .clone();
-            let stab_original = stab.clone();
+            let mut stab = state.sector.systems[sys_idx].worlds[w_idx].stability;
+            let stab_original = stab;
             stability_editor(ui, &format!("w_stab_{world_id}"), &mut stab);
             ui.horizontal_wrapped(|ui| {
                 if ui

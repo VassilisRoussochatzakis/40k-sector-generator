@@ -531,8 +531,8 @@ impl BuilderCommand {
                     .flat_map(|s| s.worlds.iter_mut())
                     .find(|w| w.id == *world)
                     .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
-                *before = Some(Box::new(w.stability.clone()));
-                w.stability = after.clone();
+                *before = Some(Box::new(w.stability));
+                w.stability = *after;
                 Ok(())
             }
             Self::SetRouteType { id, before, after } => {
@@ -833,7 +833,7 @@ impl BuilderCommand {
                         .flat_map(|s| s.worlds.iter_mut())
                         .find(|w| w.id == *world)
                     {
-                        w.stability = (**prev).clone();
+                        w.stability = **prev;
                     }
                 }
                 Ok(())
@@ -1049,9 +1049,11 @@ mod tests {
     fn set_archetype_round_trip() {
         let mut s = empty();
         let id = s.add_system(HexCoord { q: 1, r: 1 }, "A").unwrap();
-        let mut after = ArchetypeState::default();
-        after.ork_waaagh = 73;
-        after.necron_phase = sectorforge::archetypes::NecronPhase::Awakening;
+        let after = ArchetypeState {
+            ork_waaagh: 73,
+            necron_phase: sectorforge::archetypes::NecronPhase::Awakening,
+            ..Default::default()
+        };
         let mut cmd = BuilderCommand::SetArchetype {
             system: id.clone(),
             before: None,
@@ -1074,8 +1076,10 @@ mod tests {
         let mut s = empty();
         let id = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
         // Pre-seed a non-default archetype so revert has something to restore.
-        let mut seed = ArchetypeState::default();
-        seed.ork_waaagh = 11;
+        let seed = ArchetypeState {
+            ork_waaagh: 11,
+            ..Default::default()
+        };
         s.set_archetype(&id, seed.clone()).unwrap();
         let flags = ArchetypeApplyFlags {
             ork: false,

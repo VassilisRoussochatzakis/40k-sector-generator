@@ -81,10 +81,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
                 show_identity_section(left, state, sys_idx);
                 left.add_space(4.0);
                 let star_resp = show_star_section(left, state, sys_idx);
-                if state
-                    .scroll_target
-                    .map_or(false, |t| t == SYS_STAR_GRID_ANCHOR)
-                {
+                if state.scroll_target == Some(SYS_STAR_GRID_ANCHOR) {
                     star_resp
                         .header_response
                         .scroll_to_me(Some(egui::Align::TOP));

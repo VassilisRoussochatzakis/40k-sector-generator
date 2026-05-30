@@ -197,7 +197,7 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
     let rows: Vec<&MissionSeed> = report
         .missions
         .iter()
-        .filter(|m| filter.map_or(true, |k| m.kind == k))
+        .filter(|m| filter.is_none_or(|k| m.kind == k))
         .collect();
     if rows.is_empty() {
         ui.colored_label(

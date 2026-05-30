@@ -1180,7 +1180,7 @@ fn short_narrative(s: &str) -> String {
         s.to_string()
     } else {
         let mut out: String = s.chars().take(107).collect();
-        out.push_str("…");
+        out.push('…');
         out
     }
 }
@@ -1492,8 +1492,10 @@ mod tests {
 
     #[test]
     fn wizard_anchor_ready_world_requires_both_ids() {
-        let mut w = HistoryWizardState::default();
-        w.anchor_kind = HistoryAnchorKind::World;
+        let mut w = HistoryWizardState {
+            anchor_kind: HistoryAnchorKind::World,
+            ..Default::default()
+        };
         assert!(!wizard_anchor_ready(&w));
         w.anchor_world = Some(WorldId::from("wrld-0001-1"));
         w.anchor_system = Some(SystemId::from("sys-0001"));

@@ -259,12 +259,10 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             worlds,
-        } => {
-            if should_log_progress(current, total) {
-                log_progress(format_args!(
-                    "{prefix}: generated systems {current}/{total} (last {worlds} world(s))"
-                ));
-            }
+        } if should_log_progress(current, total) => {
+            log_progress(format_args!(
+                "{prefix}: generated systems {current}/{total} (last {worlds} world(s))"
+            ));
         }
         SectorProgress::FactionsAssigned { catalog_rows } => log_progress(format_args!(
             "{prefix}: assigned factions from {catalog_rows} catalog row(s)"
@@ -292,12 +290,10 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             changed_routes,
             bridge_checks,
             bridges_preserved,
-        } => {
-            if should_log_progress(current, total) {
-                log_progress(format_args!(
-                    "{prefix}: region route effects scanned {current}/{total} route(s), affected {affected_routes}, changed {changed_routes}, bridge checks {bridge_checks}, preserved {bridges_preserved}"
-                ));
-            }
+        } if should_log_progress(current, total) => {
+            log_progress(format_args!(
+                "{prefix}: region route effects scanned {current}/{total} route(s), affected {affected_routes}, changed {changed_routes}, bridge checks {bridge_checks}, preserved {bridges_preserved}"
+            ));
         }
         SectorProgress::RegionEffectsBridgeCheckStarted {
             check,
@@ -349,20 +345,20 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
         SectorProgress::HiddenRoutesApplied { added, routes } => log_progress(format_args!(
             "{prefix}: applied hidden routes (+{added}, total {routes})"
         )),
-        SectorProgress::RouteControlsProgress { current, total } => {
-            if should_log_progress(current, total) {
-                log_progress(format_args!(
-                    "{prefix}: derived route control {current}/{total}"
-                ));
-            }
+        SectorProgress::RouteControlsProgress { current, total }
+            if should_log_progress(current, total) =>
+        {
+            log_progress(format_args!(
+                "{prefix}: derived route control {current}/{total}"
+            ));
         }
         SectorProgress::RouteControlsDerived { routes } => {
             log_progress(format_args!("{prefix}: derived control for {routes} route(s)"));
         }
-        SectorProgress::SystemStateDerived { current, total } => {
-            if should_log_progress(current, total) {
-                log_progress(format_args!("{prefix}: derived system state {current}/{total}"));
-            }
+        SectorProgress::SystemStateDerived { current, total }
+            if should_log_progress(current, total) =>
+        {
+            log_progress(format_args!("{prefix}: derived system state {current}/{total}"));
         }
         SectorProgress::ManifestBuilt {
             systems,
@@ -430,23 +426,19 @@ fn log_sector_progress_with_prefix(prefix: &str, event: SectorProgress) {
             current,
             total,
             events,
-        } => {
-            if should_log_progress(current, total) {
-                log_progress(format_args!(
-                    "{prefix}: chronicle scanned systems {current}/{total} ({events} event(s))"
-                ));
-            }
+        } if should_log_progress(current, total) => {
+            log_progress(format_args!(
+                "{prefix}: chronicle scanned systems {current}/{total} ({events} event(s))"
+            ));
         }
         SectorProgress::ChronicleRoutesScanned {
             current,
             total,
             events,
-        } => {
-            if should_log_progress(current, total) {
-                log_progress(format_args!(
-                    "{prefix}: chronicle scanned routes {current}/{total} ({events} event(s))"
-                ));
-            }
+        } if should_log_progress(current, total) => {
+            log_progress(format_args!(
+                "{prefix}: chronicle scanned routes {current}/{total} ({events} event(s))"
+            ));
         }
         SectorProgress::ChronicleEventRulesApplied { events } => log_progress(format_args!(
             "{prefix}: chronicle event rules applied ({events} event(s))"

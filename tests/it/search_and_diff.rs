@@ -106,7 +106,7 @@ fn search_with_progress_matches_run_search_and_reports() {
     );
     assert!(calls.load(Ordering::Relaxed) >= 1);
     let mt = max_tried.load(Ordering::Relaxed);
-    assert!(mt >= 1 && mt <= 4);
+    assert!((1..=4).contains(&mt));
 }
 
 #[test]

@@ -275,6 +275,7 @@ fn parse_err(rel: &'static str) -> impl Fn(toml::ser::Error) -> BuilderError {
 /// blank project so the FACTIONS tab and downstream derivations have
 /// something to bind to. Matches the starter set described in BUILDER.md §5.
 fn default_starter_roster() -> Vec<FactionDef> {
+    #[allow(clippy::too_many_arguments)]
     fn def(
         id: &str,
         name: &str,

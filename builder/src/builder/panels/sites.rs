@@ -200,7 +200,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
     let rows: Vec<&WorldSite> = report
         .sites
         .iter()
-        .filter(|s| filter.map_or(true, |k| s.kind == k))
+        .filter(|s| filter.is_none_or(|k| s.kind == k))
         .collect();
     if rows.is_empty() {
         ui.colored_label(

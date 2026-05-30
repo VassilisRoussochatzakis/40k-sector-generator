@@ -251,7 +251,7 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
                 .sector
                 .regions
                 .iter()
-                .find(|r| r.hexes.iter().any(|h| *h == coord))
+                .find(|r| r.hexes.contains(&coord))
                 .map(|r| r.id.clone());
             if let Some(rid) = owning {
                 if let Err(e) = state.erase_region_hex(&rid, coord) {
@@ -550,7 +550,7 @@ fn render_empty_hex_menu(ui: &mut egui::Ui, state: &mut BuilderState, coord: Hex
         .sector
         .regions
         .iter()
-        .any(|r| r.hexes.iter().any(|h| *h == coord));
+        .any(|r| r.hexes.contains(&coord));
     let erase_resp = ui.add_enabled(
         erase_enabled,
         egui::SelectableLabel::new(false, "ERASE REGION HERE"),

@@ -78,7 +78,8 @@
       "Bash(chmod +x /tmp/check_all.sh)",
       "Bash(/tmp/check_all.sh)",
       "Bash(rg -n '^pub fn run_' src/cli/*.rs)",
-      "Bash(rg 'segmentum|test$|error|no test target')"
+      "Bash(rg 'segmentum|test$|error|no test target')",
+      "Bash(echo \"EXIT: $?\")"
     ],
     "additionalDirectories": [
       "\\tmp"

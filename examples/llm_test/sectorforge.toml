@@ -20,9 +20,9 @@ history = "data/factions/history.toml"
 [generation]
 seed = "llm-test-labyrinthine-0x4E61"
 sector_width = 48
-sector_height = 32
+sector_height = 48
 subsector_width = 12
-subsector_height = 8
+subsector_height = 12
 system_count = 96
 min_worlds_per_system = 1
 max_worlds_per_system = 4

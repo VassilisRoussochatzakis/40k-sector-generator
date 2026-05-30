@@ -5,7 +5,8 @@ first launch to a small, complete sector they can re-open and export. It walks
 through each capability in the order you would naturally need it, with no
 assumptions about which button to click or which tab to look at next.
 
-The target is a **tiny 8 × 6 sector with 5 systems**. That is small enough that
+The target is a **tiny 8 × 8 sector with 5 systems**. (Every sector is square —
+width always equals height.) That is small enough that
 every step is visible at a glance and every panel is exercised at least once,
 but big enough that subsectors, routes, factions, regions and conflict all have
 something to act on. Once you have done it the long way, the rest of the
@@ -89,7 +90,12 @@ A small modal dialog appears titled *New project* with five fields:
 | Title        | `Tutorial Sector`| Human-readable title shown in legends and exports. |
 | Seed         | `walkthrough-1`  | Deterministic RNG seed. Any string works.          |
 | Width        | `8`              | Hexes across.                                      |
-| Height       | `6`              | Hexes down.                                        |
+| Height       | `8`              | Hexes down. Locked to Width — sectors must be square. |
+
+> **Sectors must be square.** The Width and Height fields are locked equal —
+> editing one mirrors the other. The same lock applies to the §G1 generation
+> panel's `sector_width` / `sector_height` and to the Random sector wizard, and
+> a non-square `sectorforge.toml` is rejected at validation.
 
 ### 1.2 Pick a destination on disk
 
@@ -172,8 +178,8 @@ It opens a small modal:
 
 | Field          | Meaning                                                              |
 |----------------|----------------------------------------------------------------------|
-| Size           | `Small` (6×8) · `Medium` (8×10) · `Large` (12×14) · `Huge` (16×20) · `Custom…` |
-| Width / Height | Shown only for **Custom…** — the explicit grid size.                 |
+| Size           | `Small` (8×8) · `Medium` (16×16) · `Large` (32×32) · `Vast` (48×48) · `Massive` (64×64) · `Huge` (80×80) · `Custom…` |
+| Width / Height | Shown only for **Custom…** — the explicit square side length (the two fields are locked equal). |
 | Seed           | Leave blank to mint a fresh one; type a value to reproduce a specific sector. |
 
 Click **Choose folder & create…**, pick a parent folder, and the builder
@@ -212,8 +218,8 @@ Click **MAP**. The panel now shows:
   `REGION PAINT`. Exactly one is highlighted at a time. The default is
   `SELECT`.
 - A **zoom slider** labelled `hex` ranging 12–64 pixels.
-- A grid of **empty hexes** filling the panel. With width 8 and height 6 you
-  get 48 hexes. Coordinates are not labelled, but the top-left hex is `(0, 0)`,
+- A grid of **empty hexes** filling the panel. With width 8 and height 8 you
+  get 64 hexes. Coordinates are not labelled, but the top-left hex is `(0, 0)`,
   q increases to the right, r increases downward.
 
 Drag the slider up to roughly `40` so the hexes are comfortably clickable.

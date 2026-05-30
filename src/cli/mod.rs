@@ -94,14 +94,16 @@ enum Command {
     /// overlay enabled, generates it, runs the five post-generation derivations
     /// (personae/sites/hooks/missions/prose), and exports the bundle + reports.
     Random {
-        /// Sector size: small | medium | large | huge. Ignored when
-        /// --width/--height are given. Defaults to medium.
+        /// Sector size: small | medium | large | vast | massive | huge.
+        /// Ignored when --width/--height are given. Defaults to medium.
         #[arg(long)]
         size: Option<String>,
-        /// Explicit grid width (use with --height for a custom size).
+        /// Explicit square grid side length (sectors must be square). When
+        /// both --width and --height are given they must be equal.
         #[arg(long)]
         width: Option<u32>,
-        /// Explicit grid height (use with --width for a custom size).
+        /// Explicit square grid side length (sectors must be square). When
+        /// both --width and --height are given they must be equal.
         #[arg(long)]
         height: Option<u32>,
         /// Reproducibility seed. Omit to mint a fresh one (echoed on success).

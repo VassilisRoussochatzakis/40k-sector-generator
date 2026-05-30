@@ -160,10 +160,17 @@ chronicle with no extra flags. The structural shape (placement mode, density,
 worlds-per-system, region count, route knobs, map theme, …) is also rolled, so
 two seeds differ in *shape*, not just in contents.
 
+> **Square sectors.** Every sector is square (`sector_width == sector_height`).
+> The `random` presets are all `N × N`, a custom size is a single side length
+> (pass `--width`/`--height` equal, or just one), and a non-square
+> `sectorforge.toml` is rejected at validation (`GEN_SECTOR_NOT_SQUARE`). The
+> builder/viewer grid-dimension fields are locked equal so you cannot author a
+> non-square sector through the UI either.
+
 | Flag | Meaning |
 |---|---|
-| `--size <SIZE>` | `small` (6×8) · `medium` (8×10, default) · `large` (12×14) · `huge` (16×20) |
-| `--width <W>` / `--height <H>` | Explicit custom grid (pass both; overrides `--size`) |
+| `--size <SIZE>` | `small` (8×8) · `medium` (16×16, default) · `large` (32×32) · `vast` (48×48) · `massive` (64×64) · `huge` (80×80) |
+| `--width <W>` / `--height <H>` | Explicit **square** side length (overrides `--size`). Sectors must be square — pass one, or both equal; unequal values are rejected. |
 | `--seed <SEED>` | Reproducibility seed. Omit to mint one (echoed on completion + in `manifest.seed`) |
 | `--out <DIR>` | Project directory to create (must not exist). Default `./random-<seed>` |
 | `--presets-dir <DIR>` | Source presets dir; must contain `_full` (default `./presets`) |
@@ -176,8 +183,8 @@ cargo run --bin sectorforge -- random --size medium
 # Reproducible large sector into a named project dir.
 cargo run --bin sectorforge -- random --size large --seed crusade-7 --out ./crusade-7
 
-# Custom 12×14 grid, JSON + Markdown only.
-cargo run --bin sectorforge -- random --width 12 --height 14 --formats json,markdown
+# Custom 24×24 square grid, JSON + Markdown only.
+cargo run --bin sectorforge -- random --width 24 --height 24 --formats json,markdown
 ```
 
 Outputs land in `<out>/out/`: the requested bundle formats plus `personae`,
@@ -1062,9 +1069,9 @@ missions              = "data/missions.toml"               # optional (§M1..§M
 
 [generation]
 seed                       = "my-seed-string"
-sector_width               = 8
-sector_height              = 10
-subsector_width            = 4     # reserved; subsector layout is currently k-means clustered, not tile-sized
+sector_width               = 10
+sector_height              = 10    # MUST equal sector_width — sectors are square (validation: GEN_SECTOR_NOT_SQUARE)
+subsector_width            = 5     # reserved; subsector layout is currently k-means clustered, not tile-sized
 subsector_height           = 5     # reserved (see above)
 system_count               = 24
 min_worlds_per_system      = 2
@@ -1425,7 +1432,7 @@ The canonical machine-readable output. Top-level shape:
    "seed": "m42-default-seed",
    "generator_name": "sectorforge",
    "generator_version": "0.1.0",
-   "width": 8, "height": 10,
+   "width": 10, "height": 10,
    "systems": [ /* GeneratedSystem ... */ ],
    "routes": [ /* GeneratedRoute ... */ ],
    "factions": [ /* GeneratedFaction ... */ ],
@@ -1979,7 +1986,7 @@ gives).
 |---|---|
 | §P1 scaffold | [src/loading/presets.rs](src/loading/presets.rs) `scaffold_to_dir(preset_id, dest, seed_override)` resolves the default `presets/` directory (or the one next to the binary) and forwards to the existing `scaffold`. |
 | §P1 wizard panel | [builder/src/builder/panels/new_project.rs](builder/src/builder/panels/new_project.rs) drives `ModalKind::NewProject`. Confirm path calls `project_io::new_project`, which (no preset) writes `sectorforge.toml` with `[inputs]` pre-wired to every catalogue, plus `data/worlds/worlds.toml` (copied from `presets/_base/data/worlds/worlds.toml` when that file is reachable, so the world pool is non-empty and "Regenerate this system" works on a fresh project; falls back to an empty `WorldsConfig::default()` if the `_base` preset is unavailable), `data/factions/factions.toml` (7-faction starter roster — Imperial/Mechanicus/Trader/Chaos/Ork/Tyranid/Cult — produced by `default_starter_roster`), `data/factions/relations.toml`, `data/routes/route_rules.toml`, `data/regions/regions.toml`, `data/worlds/economy.toml`, `data/history.toml`, and an empty `out/sector.json`; then reloads through the §P2 path so the in-memory state matches a fresh open. With `preset = Some(id)` it instead delegates to `sectorforge::presets::scaffold_to_dir`. |
-| RANDOM.md random wizard | [builder/src/builder/panels/generate_random.rs](builder/src/builder/panels/generate_random.rs) drives `ModalKind::GenerateRandom` (size dropdown + optional custom dims, each capped at `random_sector::MAX_CUSTOM_DIM` = 80, + optional seed + folder picker). Confirm dispatches the synthesise→generate→derive→export pipeline to a background worker via [`random_run::RandomGenState`](builder/src/builder/random_run.rs) (RANDOM.md §7.4) — so grids up to **80×80** never freeze the UI — and the same modal turns into a live progress popup driven by `random_sector::RandomProgress` (8 coarse phases; the long generation phase is sub-divided by the inner `SectorProgress`). On completion the wizard reopens the generated `random-<seed>/` project via `project_io::open_project`, a §R4 session boundary that replaces the document and clears undo. Reachable from the **Random sector…** button on the PROJECT tab. |
+| RANDOM.md random wizard | [builder/src/builder/panels/generate_random.rs](builder/src/builder/panels/generate_random.rs) drives `ModalKind::GenerateRandom` (square size dropdown — `small` 8² · `medium` 16² · `large` 32² · `vast` 48² · `massive` 64² · `huge` 80² — + optional custom dims **locked equal** (sectors are square), each capped at `random_sector::MAX_CUSTOM_DIM` = 80, + optional seed + folder picker). Confirm dispatches the synthesise→generate→derive→export pipeline to a background worker via [`random_run::RandomGenState`](builder/src/builder/random_run.rs) (RANDOM.md §7.4) — so grids up to **80×80** never freeze the UI — and the same modal turns into a live progress popup driven by `random_sector::RandomProgress` (8 coarse phases; the long generation phase is sub-divided by the inner `SectorProgress`). On completion the wizard reopens the generated `random-<seed>/` project via `project_io::open_project`, a §R4 session boundary that replaces the document and clears undo. Reachable from the **Random sector…** button on the PROJECT tab. |
 | §P2 loader | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `open_project(project_dir)` calls `sectorforge::input::load_project`, populates `BuilderState::data_catalogs` from every catalog the loader returned, and loads `<outputs.directory>/sector.json` when present (empty sector at config dims otherwise). `SectorError::ConfigParse { path, message }` is mapped to `BuilderError::ParseFailed { file, message }` so line numbers from the `toml` crate flow through. |
 | §P2 picker panel | [builder/src/builder/panels/open_project.rs](builder/src/builder/panels/open_project.rs) opens an `rfd::FileDialog::pick_folder` and surfaces failures via `ModalKind::Message`. |
 | §P3 saver | [builder/src/builder/project_io.rs](builder/src/builder/project_io.rs) `save_project` / `save_project_as`. Writes `sectorforge.toml` always; writes each catalog only when `state.config.inputs.<key>` actually references it (mirrors the load path). After every write, updates `state.sector.manifest.input_digests` so the manifest matches the file we just put on disk; the sector + manifest then go under `<outputs.directory>/`. Every file write is atomic via `atomic_write` (writes to `.<name>.tmp.<pid>` then `fs::rename`). |
@@ -2863,6 +2870,7 @@ Common codes:
 | Code | Meaning |
 |---|---|
 | `GEN_GRID_EMPTY` | `sector_width * sector_height == 0` |
+| `GEN_SECTOR_NOT_SQUARE` | `sector_width != sector_height` — every sector must be square |
 | `GEN_SYSTEM_COUNT_OVERFLOW` | `system_count` exceeds grid cells |
 | `GEN_WORLD_COUNT_RANGE` | `min_worlds_per_system > max_worlds_per_system` |
 | `WB_NO_USABLE_ROWS` | World data produced zero usable candidates |
@@ -2936,7 +2944,7 @@ cargo bench --bench generation            # full sample
 cargo bench --bench generation -- --quick # ~10s smoke
 ```
 
-Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three sector sizes (8×10 / 16×20 / 24×30), `validate_project`, and `validate_sector_invariants`.
+Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`.
 
 Generation builds a world candidate pool once per project load. That pool also
 caches star-colour weight totals, so per-system star selection does not rescan

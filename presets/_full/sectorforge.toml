@@ -36,9 +36,9 @@ prose          = "data/prose.toml"
 
 [generation]
 seed = "full-1"
-sector_width = 8
+sector_width = 10
 sector_height = 10
-subsector_width = 2
+subsector_width = 3
 subsector_height = 3
 system_count = 24
 min_worlds_per_system = 1

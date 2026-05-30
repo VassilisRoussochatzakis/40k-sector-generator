@@ -57,11 +57,14 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
     });
 
     ui.horizontal(|ui| {
+        // Sectors must be square: mirror either edit into the other dimension
+        // so width and height stay locked equal.
         label(ui, "WIDTH");
         if ui
             .add(egui::DragValue::new(&mut input.config.generation.sector_width).range(1..=100))
             .changed()
         {
+            input.config.generation.sector_height = input.config.generation.sector_width;
             changed = true;
         }
         label(ui, "HEIGHT");
@@ -69,8 +72,10 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
             .add(egui::DragValue::new(&mut input.config.generation.sector_height).range(1..=100))
             .changed()
         {
+            input.config.generation.sector_width = input.config.generation.sector_height;
             changed = true;
         }
+        ui.label("🔒 square");
     });
 
     ui.horizontal(|ui| {

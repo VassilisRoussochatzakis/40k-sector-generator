@@ -57,44 +57,64 @@ pub const FULL_PRESET_ID: &str = "_full";
 /// rejects anything larger; the value is shared so all three entry points agree.
 pub const MAX_CUSTOM_DIM: u32 = 80;
 
-/// The one user input: how big the sector is. The grid dims map to a cell
-/// count; `system_count` and every other structural knob are rolled from the
-/// seed (RANDOM.md §5.2).
+/// The one user input: how big the sector is. **Every sector is square**
+/// (`width == height`), so a size is fully described by a single side length
+/// (RANDOM.md §5.2 / the square-sector invariant). The side length maps to a
+/// cell count; `system_count` and every other structural knob are rolled from
+/// the seed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SectorSize {
-    /// 6 × 8 = 48 cells.
+    /// 8 × 8 = 64 cells.
     Small,
-    /// 8 × 10 = 80 cells (≈ `_base`).
+    /// 16 × 16 = 256 cells.
     Medium,
-    /// 12 × 14 = 168 cells.
+    /// 32 × 32 = 1024 cells.
     Large,
-    /// 16 × 20 = 320 cells.
+    /// 48 × 48 = 2304 cells.
+    Vast,
+    /// 64 × 64 = 4096 cells.
+    Massive,
+    /// 80 × 80 = 6400 cells — the maximum supported grid ([`MAX_CUSTOM_DIM`]).
     Huge,
-    /// An explicit `width × height`.
-    Custom { width: u32, height: u32 },
+    /// An explicit square `dim × dim`.
+    Custom { dim: u32 },
 }
 
 impl SectorSize {
-    /// Grid dimensions `(width, height)` in hexes.
+    /// Grid dimensions `(width, height)` in hexes. Always square, so both
+    /// elements are equal — see [`Self::dim`].
     #[must_use]
     pub fn dims(self) -> (u32, u32) {
+        let d = self.dim();
+        (d, d)
+    }
+
+    /// The square side length in hexes. Sectors are square, so one dimension
+    /// fully describes the grid.
+    #[must_use]
+    pub fn dim(self) -> u32 {
         match self {
-            SectorSize::Small => (6, 8),
-            SectorSize::Medium => (8, 10),
-            SectorSize::Large => (12, 14),
-            SectorSize::Huge => (16, 20),
-            SectorSize::Custom { width, height } => (width, height),
+            SectorSize::Small => 8,
+            SectorSize::Medium => 16,
+            SectorSize::Large => 32,
+            SectorSize::Vast => 48,
+            SectorSize::Massive => 64,
+            SectorSize::Huge => 80,
+            SectorSize::Custom { dim } => dim,
         }
     }
 
-    /// Parse a CLI-style size token (`small`/`medium`/`large`/`huge`).
-    /// `Custom` is expressed via explicit `--width`/`--height`, not a token.
+    /// Parse a CLI-style size token
+    /// (`small`/`medium`/`large`/`vast`/`massive`/`huge`). `Custom` is
+    /// expressed via an explicit square `--width`/`--height`, not a token.
     #[must_use]
     pub fn parse_token(s: &str) -> Option<Self> {
         match s.trim().to_ascii_lowercase().as_str() {
             "small" => Some(Self::Small),
             "medium" => Some(Self::Medium),
             "large" => Some(Self::Large),
+            "vast" => Some(Self::Vast),
+            "massive" => Some(Self::Massive),
             "huge" => Some(Self::Huge),
             _ => None,
         }
@@ -107,6 +127,8 @@ impl SectorSize {
             SectorSize::Small => "small",
             SectorSize::Medium => "medium",
             SectorSize::Large => "large",
+            SectorSize::Vast => "vast",
+            SectorSize::Massive => "massive",
             SectorSize::Huge => "huge",
             SectorSize::Custom { .. } => "custom",
         }
@@ -324,12 +346,10 @@ fn build_random_config_inner(
     let max_route_distance = rng.gen_range(3..=6u32);
     let route_density = rng.gen_range(0.15..=0.40);
 
-    // Bound relations/economy output on the largest grids (RANDOM.md §5.6).
-    let min_world_presence = if matches!(size, SectorSize::Huge) {
-        2
-    } else {
-        1
-    };
+    // Bound relations/economy output on the largest grids (RANDOM.md §5.6):
+    // raise the presence floor once the grid passes ~400 cells (Large and up,
+    // plus big customs) so the presence/economy graph stays tractable.
+    let min_world_presence = if cells > 400 { 2 } else { 1 };
 
     // Region overlay scaled to the grid so tiny sectors don't overfill: total
     // region area ≈ 60% of the grid, count clamped to ≤ ½ the cells.
@@ -655,18 +675,29 @@ mod tests {
 
     #[test]
     fn dims_match_spec() {
-        assert_eq!(SectorSize::Small.dims(), (6, 8));
-        assert_eq!(SectorSize::Medium.dims(), (8, 10));
-        assert_eq!(SectorSize::Large.dims(), (12, 14));
-        assert_eq!(SectorSize::Huge.dims(), (16, 20));
-        assert_eq!(
-            SectorSize::Custom {
-                width: 5,
-                height: 9
-            }
-            .dims(),
-            (5, 9)
-        );
+        assert_eq!(SectorSize::Small.dims(), (8, 8));
+        assert_eq!(SectorSize::Medium.dims(), (16, 16));
+        assert_eq!(SectorSize::Large.dims(), (32, 32));
+        assert_eq!(SectorSize::Vast.dims(), (48, 48));
+        assert_eq!(SectorSize::Massive.dims(), (64, 64));
+        assert_eq!(SectorSize::Huge.dims(), (80, 80));
+        assert_eq!(SectorSize::Custom { dim: 9 }.dims(), (9, 9));
+    }
+
+    #[test]
+    fn every_size_is_square() {
+        for size in [
+            SectorSize::Small,
+            SectorSize::Medium,
+            SectorSize::Large,
+            SectorSize::Vast,
+            SectorSize::Massive,
+            SectorSize::Huge,
+            SectorSize::Custom { dim: 13 },
+        ] {
+            let (w, h) = size.dims();
+            assert_eq!(w, h, "{} must be square", size.as_slug());
+        }
     }
 
     #[test]
@@ -675,6 +706,8 @@ mod tests {
             SectorSize::Small,
             SectorSize::Medium,
             SectorSize::Large,
+            SectorSize::Vast,
+            SectorSize::Massive,
             SectorSize::Huge,
         ] {
             assert_eq!(SectorSize::parse_token(s.as_slug()), Some(s));
@@ -721,6 +754,8 @@ mod tests {
             SectorSize::Small,
             SectorSize::Medium,
             SectorSize::Large,
+            SectorSize::Vast,
+            SectorSize::Massive,
             SectorSize::Huge,
         ] {
             let (w, h) = size.dims();

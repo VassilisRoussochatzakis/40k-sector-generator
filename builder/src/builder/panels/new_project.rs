@@ -41,7 +41,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         && title == "Tutorial Sector"
         && seed == "walkthrough-1"
         && width == 8
-        && height == 6;
+        && height == 8;
     let mut tutorial = tutorial_match;
     if ui
         .checkbox(
@@ -55,7 +55,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         title = "Tutorial Sector".to_string();
         seed = "walkthrough-1".to_string();
         width = 8;
-        height = 6;
+        height = 8;
     }
     ui.add_space(4.0);
     egui::Grid::new("new_project_grid")
@@ -70,11 +70,30 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
             ui.label("Seed");
             ui.text_edit_singleline(&mut seed);
             ui.end_row();
+            // Sectors must be square: editing either dimension mirrors it into
+            // the other so width and height stay locked equal.
             ui.label("Width");
-            ui.add(egui::DragValue::new(&mut width).range(1..=64));
+            if ui
+                .add(egui::DragValue::new(&mut width).range(1..=64))
+                .changed()
+            {
+                height = width;
+            }
             ui.end_row();
             ui.label("Height");
-            ui.add(egui::DragValue::new(&mut height).range(1..=64));
+            if ui
+                .add(egui::DragValue::new(&mut height).range(1..=64))
+                .changed()
+            {
+                width = height;
+            }
+            ui.end_row();
+            ui.label("");
+            ui.label(
+                egui::RichText::new("🔒 square — width & height locked equal")
+                    .small()
+                    .weak(),
+            );
             ui.end_row();
         });
     ui.add_space(6.0);
@@ -135,6 +154,6 @@ fn default_modal() -> impl FnOnce() -> ModalKind {
         title: "New Sector".to_string(),
         seed: "seed-1".to_string(),
         width: 8,
-        height: 10,
+        height: 8,
     }
 }

@@ -23,10 +23,11 @@ fn load() -> sectorforge::ProjectInput {
     load_project(project_dir()).expect("load m42_project")
 }
 
+// Sectors are square (width == height); the bench grids follow suit.
 const SCALES: &[(u32, u32, usize)] = &[
-    (8, 10, 24),   // tiny
-    (16, 20, 96),  // normal
-    (24, 30, 200), // large
+    (10, 10, 24),  // tiny
+    (20, 20, 96),  // normal
+    (30, 30, 200), // large
 ];
 
 fn bench_generate(c: &mut Criterion) {

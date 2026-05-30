@@ -73,6 +73,19 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             Severity::Error,
         ));
     }
+    // Sectors must be square (width == height). This is the canonical
+    // enforcement point — it catches hand-edited `sectorforge.toml`, loaded
+    // sectors, and any UI that slips a non-square grid through.
+    if g.sector_width != g.sector_height {
+        errors.push(issue(
+            "GEN_SECTOR_NOT_SQUARE",
+            &format!(
+                "sectors must be square: sector_width ({}) must equal sector_height ({})",
+                g.sector_width, g.sector_height
+            ),
+            Severity::Error,
+        ));
+    }
     if g.system_count > grid_cells && !g.allow_empty_hexes {
         errors.push(issue(
             "GEN_SYSTEM_COUNT_OVERFLOW",

@@ -17,6 +17,10 @@
   ```
 - **Mutations in the builder always go through the command bus.** Call `state.run(BuilderCommand::...)`. Never write directly to `BuilderState` fields from inside a panel — that breaks undo/redo (§R4).
 
+## Sector geometry invariant (do not violate)
+
+- **Sectors must be square** — `sector_width == sector_height` everywhere. Enforced by the `GEN_SECTOR_NOT_SQUARE` validation rule in [src/validate/validation.rs](src/validate/validation.rs). The builder/viewer grid-dimension fields lock the two equal; the `random` `SectorSize` presets are all `N × N` (`Custom { dim }` carries one side length); every checked-in `sectorforge.toml` (under `presets/` and `examples/`) is square. Do not add a non-square config, a non-square `SectorSize`, or any UI path that lets width and height diverge. (Exception: `tests/it/invariants_proptest.rs` deliberately feeds non-square dims to stress the generation engine via `validate_sector`, which is post-gen and does not run this pre-gen rule.)
+
 ## Workspace
 
 | Crate | Path | Purpose |

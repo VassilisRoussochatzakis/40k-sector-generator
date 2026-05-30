@@ -20,9 +20,9 @@ route_rules = "data/routes/route_rules.toml"
 
 [generation]
 seed = "m42-default-seed"
-sector_width = 8
+sector_width = 10
 sector_height = 10
-subsector_width = 4
+subsector_width = 5
 subsector_height = 5
 system_count = 24
 min_worlds_per_system = 2

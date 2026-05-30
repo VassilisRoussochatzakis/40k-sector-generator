@@ -74,42 +74,50 @@ pub(crate) fn run_random(
     Ok(ExitCode::SUCCESS)
 }
 
-/// Resolve the one user input. Explicit `--width`+`--height` ⇒ `Custom`;
-/// otherwise a `--size` token; otherwise `Medium`.
+/// Resolve the one user input. Sectors are **square**, so a custom size is a
+/// single side length: pass `--width` and/or `--height` (when both are given
+/// they must be equal) ⇒ `Custom`; otherwise a `--size` token; otherwise
+/// `Medium`.
 fn resolve_size(
     size: Option<&str>,
     width: Option<u32>,
     height: Option<u32>,
 ) -> Result<SectorSize, SectorError> {
-    match (width, height) {
+    let dim = match (width, height) {
         (Some(w), Some(h)) => {
-            if w == 0 || h == 0 {
-                return Err(SectorError::InvalidConfig(
-                    "--width and --height must be >= 1".into(),
-                ));
-            }
-            if w > random_sector::MAX_CUSTOM_DIM || h > random_sector::MAX_CUSTOM_DIM {
+            if w != h {
                 return Err(SectorError::InvalidConfig(format!(
-                    "--width and --height must be <= {}",
-                    random_sector::MAX_CUSTOM_DIM
+                    "sectors must be square: --width ({w}) must equal --height ({h})"
                 )));
             }
-            Ok(SectorSize::Custom {
-                width: w,
-                height: h,
-            })
+            Some(w)
         }
-        (None, None) => match size {
-            Some(token) => SectorSize::parse_token(token).ok_or_else(|| {
-                SectorError::InvalidConfig(format!(
-                    "unknown --size '{token}' (expected small | medium | large | huge)"
-                ))
-            }),
-            None => Ok(SectorSize::Medium),
-        },
-        _ => Err(SectorError::InvalidConfig(
-            "provide both --width and --height for a custom size, or neither".into(),
-        )),
+        (Some(d), None) | (None, Some(d)) => Some(d),
+        (None, None) => None,
+    };
+
+    if let Some(d) = dim {
+        if d == 0 {
+            return Err(SectorError::InvalidConfig(
+                "--width / --height must be >= 1".into(),
+            ));
+        }
+        if d > random_sector::MAX_CUSTOM_DIM {
+            return Err(SectorError::InvalidConfig(format!(
+                "--width / --height must be <= {}",
+                random_sector::MAX_CUSTOM_DIM
+            )));
+        }
+        return Ok(SectorSize::Custom { dim: d });
+    }
+
+    match size {
+        Some(token) => SectorSize::parse_token(token).ok_or_else(|| {
+            SectorError::InvalidConfig(format!(
+                "unknown --size '{token}' (expected small | medium | large | vast | massive | huge)"
+            ))
+        }),
+        None => Ok(SectorSize::Medium),
     }
 }
 
@@ -136,8 +144,8 @@ fn parse_formats(tokens: &[String]) -> Result<Vec<OutputFormat>, SectorError> {
 
 fn reproduce_hint(size: SectorSize, seed: &str) -> String {
     match size {
-        SectorSize::Custom { width, height } => {
-            format!("sectorforge random --width {width} --height {height} --seed {seed}")
+        SectorSize::Custom { dim } => {
+            format!("sectorforge random --width {dim} --height {dim} --seed {seed}")
         }
         other => format!(
             "sectorforge random --size {} --seed {seed}",

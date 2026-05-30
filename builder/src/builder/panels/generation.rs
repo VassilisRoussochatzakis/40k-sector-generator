@@ -51,6 +51,13 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
         .show(ui, |ui| {
             ui.label("`[generation]` parity");
             ui.separator();
+            // Square-sector invariant: highlight it right where the grid dims
+            // are edited so it is unmissable in the generator UI.
+            ui.colored_label(
+                egui::Color32::from_rgb(0xE0, 0xA0, 0x30),
+                "◧ Sectors must be square — sector_width and sector_height are locked equal.",
+            );
+            ui.add_space(2.0);
             let gen = &mut state.config.generation;
             egui::Grid::new("gen_basic_grid")
                 .num_columns(2)
@@ -58,15 +65,25 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                     ui.label("seed");
                     changed |= ui.text_edit_singleline(&mut gen.seed).changed();
                     ui.end_row();
+                    // Sectors must be square: mirror either edit into the
+                    // other dimension so they stay locked equal.
                     ui.label("sector_width");
-                    changed |= ui
+                    if ui
                         .add(egui::DragValue::new(&mut gen.sector_width).range(1..=200))
-                        .changed();
+                        .changed()
+                    {
+                        gen.sector_height = gen.sector_width;
+                        changed = true;
+                    }
                     ui.end_row();
                     ui.label("sector_height");
-                    changed |= ui
+                    if ui
                         .add(egui::DragValue::new(&mut gen.sector_height).range(1..=200))
-                        .changed();
+                        .changed()
+                    {
+                        gen.sector_width = gen.sector_height;
+                        changed = true;
+                    }
                     ui.end_row();
                     ui.label("subsector_width");
                     let mut sw = gen.subsector_width.unwrap_or(0);

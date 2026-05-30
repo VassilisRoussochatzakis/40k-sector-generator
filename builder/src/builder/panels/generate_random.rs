@@ -25,12 +25,16 @@ use crate::builder::project_io::open_project;
 use crate::builder::random_run::RandomJobResult;
 use crate::builder::{BuilderState, ModalKind};
 
-/// `(id, label)` for the size dropdown. `custom` reveals width/height fields.
+/// `(id, label)` for the size dropdown. Every preset is square (N × N) — the
+/// square-sector invariant. `custom` reveals the (locked-equal) width/height
+/// fields.
 const SIZES: &[(&str, &str)] = &[
-    ("small", "Small — 6 × 8"),
-    ("medium", "Medium — 8 × 10"),
-    ("large", "Large — 12 × 14"),
-    ("huge", "Huge — 16 × 20"),
+    ("small", "Small — 8 × 8"),
+    ("medium", "Medium — 16 × 16"),
+    ("large", "Large — 32 × 32"),
+    ("vast", "Vast — 48 × 48"),
+    ("massive", "Massive — 64 × 64"),
+    ("huge", "Huge — 80 × 80"),
     ("custom", "Custom…"),
 ];
 
@@ -74,6 +78,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
          regions, economy, history — is rolled from the seed, and every overlay \
          is enabled.",
     );
+    ui.label(
+        egui::RichText::new("Sectors are square — every size is N × N.")
+            .italics()
+            .weak(),
+    );
     ui.add_space(6.0);
 
     egui::Grid::new("generate_random_grid")
@@ -90,11 +99,30 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
             ui.end_row();
 
             if size == "custom" {
+                // Sectors must be square: editing either dimension mirrors it
+                // into the other so the two fields stay locked equal.
                 ui.label("Width");
-                ui.add(egui::DragValue::new(&mut custom_w).range(1..=MAX_CUSTOM_DIM));
+                if ui
+                    .add(egui::DragValue::new(&mut custom_w).range(1..=MAX_CUSTOM_DIM))
+                    .changed()
+                {
+                    custom_h = custom_w;
+                }
                 ui.end_row();
                 ui.label("Height");
-                ui.add(egui::DragValue::new(&mut custom_h).range(1..=MAX_CUSTOM_DIM));
+                if ui
+                    .add(egui::DragValue::new(&mut custom_h).range(1..=MAX_CUSTOM_DIM))
+                    .changed()
+                {
+                    custom_w = custom_h;
+                }
+                ui.end_row();
+                ui.label("");
+                ui.label(
+                    egui::RichText::new("🔒 square — width & height locked equal")
+                        .small()
+                        .weak(),
+                );
                 ui.end_row();
             }
 
@@ -213,10 +241,13 @@ fn resolve_size(size: &str, custom_w: u32, custom_h: u32) -> SectorSize {
     match size {
         "small" => SectorSize::Small,
         "large" => SectorSize::Large,
+        "vast" => SectorSize::Vast,
+        "massive" => SectorSize::Massive,
         "huge" => SectorSize::Huge,
         "custom" => SectorSize::Custom {
-            width: custom_w.clamp(1, MAX_CUSTOM_DIM),
-            height: custom_h.clamp(1, MAX_CUSTOM_DIM),
+            // Square: the two fields are locked equal in the UI; fold to one
+            // side length defensively in case they ever diverge.
+            dim: custom_w.max(custom_h).clamp(1, MAX_CUSTOM_DIM),
         },
         _ => SectorSize::Medium,
     }
@@ -226,7 +257,7 @@ fn size_label(id: &str) -> &'static str {
     SIZES
         .iter()
         .find(|(s, _)| *s == id)
-        .map_or("Medium — 8 × 10", |(_, label)| *label)
+        .map_or("Medium — 16 × 16", |(_, label)| *label)
 }
 
 fn dir_slug(seed: &str) -> String {
@@ -245,8 +276,8 @@ fn dir_slug(seed: &str) -> String {
 fn default_modal() -> ModalKind {
     ModalKind::GenerateRandom {
         size: "medium".to_string(),
-        custom_w: 10,
-        custom_h: 12,
+        custom_w: 16,
+        custom_h: 16,
         seed: String::new(),
     }
 }

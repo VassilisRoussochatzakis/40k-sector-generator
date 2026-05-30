@@ -91,12 +91,9 @@ fn random_custom_size_respects_dims() {
     }
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = fresh_dest(&tmp, "custom");
-    let size = SectorSize::Custom {
-        width: 7,
-        height: 9,
-    };
+    let size = SectorSize::Custom { dim: 9 };
     let report = generate_random_sector(size, Some("it-custom".to_string()), &dir, &dest).unwrap();
-    assert_eq!(report.sector.width, 7);
+    assert_eq!(report.sector.width, 9);
     assert_eq!(report.sector.height, 9);
     assert_complete(&report, size);
 }
@@ -124,10 +121,7 @@ fn random_max_80x80_completes() {
     }
     let tmp = tempfile::TempDir::new().unwrap();
     let dest = fresh_dest(&tmp, "max80");
-    let size = SectorSize::Custom {
-        width: 80,
-        height: 80,
-    };
+    let size = SectorSize::Custom { dim: 80 };
     let report = generate_random_sector(size, Some("it-80x80".to_string()), &dir, &dest).unwrap();
     assert_eq!(report.sector.width, 80);
     assert_eq!(report.sector.height, 80);

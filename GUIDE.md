@@ -1208,8 +1208,11 @@ separate route type.
 **a shorter route is never less safe than a longer one carrying the same
 hazards** — "short is safer than long" holds along the distance axis. Distance
 sets a monotonic baseline level (`distance_base_level`, banded by `dist /
-max_route_distance`: a 1-hex hop is always the `Stable` baseline, a hop at/over
-the cap is always the `Perilous` baseline). Hazards then only ever raise danger,
+max_route_distance`: a 1-2 hex hop — or anything up to half the cap — is the
+`Stable` baseline, up to 75% is `Unstable`, and a hop at/over the cap is always
+the `Perilous` baseline). The Stable band is deliberately generous so dense
+sectors keep a usable backbone of safe lanes instead of degrading almost
+everything to `Hazardous`. Hazards then only ever raise danger,
 never lower it — `feature:war_zone` adds two severity tiers, `warp_phenomena` /
 `daemonic_corruption` add one (saturating at `Perilous`). The 10%-perilous cap
 downgrades excess `Perilous` lanes shortest-first, so the cap itself can never

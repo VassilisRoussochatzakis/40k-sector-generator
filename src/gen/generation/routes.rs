@@ -233,22 +233,26 @@ pub(crate) fn stability_level(s: RouteStability) -> u8 {
 /// Distance-only baseline danger level, **monotonically non-decreasing in
 /// `dist`**: a shorter hop is never given a worse baseline than a longer one.
 /// Banded relative to `max_dist` so the gradient scales with the configured
-/// cap (a 1-hex jump is always the safest baseline; a hop at/over the cap is
+/// cap (a 1-2 hex jump is always the safest baseline; a hop at/over the cap is
 /// always the worst). This is the core "short is safer than long" guarantee;
 /// hazards in [`classify_route`] may only push the level *up* from here.
 /// `pub(crate)` so the hidden-route layers share the exact same gradient.
+///
+/// The Stable band is deliberately generous — short hops (<= 2 hexes, or up to
+/// half the cap) read as Stable baseline so that dense sectors keep a usable
+/// backbone of safe lanes instead of degrading almost everything to Hazardous.
 pub(crate) fn distance_base_level(dist: u32, max_dist: u32) -> u8 {
     let max_dist = max_dist.max(1);
-    if dist <= 1 {
-        0 // single-hex jump: always Stable baseline
+    if dist <= 2 {
+        0 // 1-2 hex jump: always Stable baseline
     } else if dist >= max_dist {
         3 // at or beyond the cap: worst baseline
-    } else if 4 * dist <= max_dist {
-        0 // <= 25% of cap
     } else if 2 * dist <= max_dist {
-        1 // <= 50% of cap
+        0 // <= 50% of cap: Stable
+    } else if 4 * dist <= 3 * max_dist {
+        1 // <= 75% of cap: Unstable
     } else {
-        2 // < 100% of cap
+        2 // 75-100% of cap: Hazardous
     }
 }
 

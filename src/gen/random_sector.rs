@@ -351,11 +351,19 @@ fn build_random_config_inner(
     // plus big customs) so the presence/economy graph stays tractable.
     let min_world_presence = if cells > 400 { 2 } else { 1 };
 
-    // Region overlay scaled to the grid so tiny sectors don't overfill: total
-    // region area ≈ 60% of the grid, count clamped to ≤ ½ the cells.
-    let mean_size = rng.gen_range(4..=8u32);
-    let region_count =
-        ((cells_f * 0.6 / f64::from(mean_size)).round() as u32).clamp(1, (cells / 2).max(1));
+    // Region overlay scaled to the grid: total region area ≈ 60% of the grid,
+    // spread over at most `MAX_REGIONS` blobs. Small grids keep a modest blob
+    // size floor (so they get a handful of small regions); once 60% coverage
+    // would need more than `MAX_REGIONS` blobs the count caps and the
+    // per-region size grows instead — so an 80×80 grid gets ~50 large regions,
+    // not hundreds of tiny ones. Still clamped to ≤ ½ the cells for tiny grids.
+    const MAX_REGIONS: u32 = 50;
+    let coverage_cells = cells_f * 0.6;
+    let base_size = rng.gen_range(4..=8u32);
+    let region_count = ((coverage_cells / f64::from(base_size)).round() as u32)
+        .clamp(1, MAX_REGIONS.min((cells / 2).max(1)));
+    let mean_size =
+        ((coverage_cells / f64::from(region_count)).round() as u32).max(base_size);
 
     let theme = crate::map_theme::BUILTIN_THEME_NAMES
         [rng.gen_range(0..crate::map_theme::BUILTIN_THEME_NAMES.len())];

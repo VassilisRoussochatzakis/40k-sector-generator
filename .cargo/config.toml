@@ -1,4 +1,11 @@
 [alias]
 sview = "run --release -p sectorforge-viewer --"
 sbuild = "run --release -p sectorforge-builder --"
-sba = "build --release --workspace --all-targets"
+# `sba` pre-builds every runnable bin (sectorforge CLI, viewer, builder) so the
+# `srun`/`sview`/`sbuild` aliases launch instantly. `--bins` (not `--all-targets`)
+# is deliberate: pulling in tests/benches drags dev-deps (proptest, criterion,
+# tempfile) into the graph, widening shared-dep features under resolver v2 — that
+# diverges from the plain `cargo run` feature set and forces a full rebuild on
+# first launch. `--bins` keeps the resolution identical to the run aliases.
+sba = "build --release --workspace --bins"
+srun = "run --release --bin sectorforge --"

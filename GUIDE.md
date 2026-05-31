@@ -54,7 +54,7 @@ cargo run --bin sectorforge -- generate --project examples/m42_project --allow-w
 # Inspect world-data directory contents
 cargo run --bin sectorforge -- inspect-worlds --data-dir examples/m42_project/data/worlds
 
-# Launch the GUI viewer/editor (cargo alias is `sgui`)
+# Launch the GUI viewer/editor (cargo alias is `sview`)
 cargo sview --project examples/m42_project
 
 # Launch the interactive sector builder (cargo alias is `sbuild`)
@@ -165,6 +165,12 @@ copied data files — so the output has warp regions, an economy report, and a
 chronicle with no extra flags. The structural shape (placement mode, density,
 worlds-per-system, region count, route knobs, map theme, …) is also rolled, so
 two seeds differ in *shape*, not just in contents.
+
+> **Region scaling.** The warp-region overlay targets ≈60% grid coverage spread
+> over **at most 50 blobs** (`MAX_REGIONS` in `random_sector.rs`). Small grids
+> get a handful of small regions; once 60% coverage would need more than 50
+> blobs the count caps and per-region size grows instead — so an 80×80 `huge`
+> sector gets ~45–50 large regions, not hundreds of tiny ones.
 
 > **Complete world templates.** The bundled workbook
 > (`data/worlds/worlds.toml`) must carry **complete** rows: each `[[generation]]`
@@ -1848,7 +1854,16 @@ sector was loaded from a project.
 
 #### Launching the viewer/editor
 
-A `cargo sview` alias is registered in [.cargo/config.toml](.cargo/config.toml):
+Several `s*` aliases are registered in [.cargo/config.toml](.cargo/config.toml):
+
+- `cargo sview` — run the viewer/editor (release)
+- `cargo sbuild` — run the interactive builder (release)
+- `cargo srun` — run the `sectorforge` CLI (release)
+- `cargo sba` — pre-build every runnable bin so the three aliases above launch
+  with no recompile. Deliberately uses `--bins`, not `--all-targets`:
+  tests/benches drag dev-deps (proptest, criterion, tempfile) into the graph and
+  widen shared-dep features under resolver v2, which diverges from the plain
+  `cargo run` feature set and forces a full rebuild on first launch.
 
 ```bash
 # From a project directory (auto-loads out/sector.json if present)

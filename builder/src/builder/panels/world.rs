@@ -194,7 +194,7 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                     }
                     ui.end_row();
                 });
-            let w = &mut state.sector.systems[sys_idx].worlds[w_idx];
+            let w = &mut state.sector_mut().systems[sys_idx].worlds[w_idx];
             let mut mutated = false;
             let new_orbit = orbit.clamp(1, 99) as u8;
             if new_orbit != w.orbit {
@@ -229,7 +229,7 @@ fn show_classification_section(
                 .num_columns(2)
                 .show(ui, |ui| {
                     ui.label("star_colour");
-                    let w = &mut state.sector.systems[sys_idx].worlds[w_idx];
+                    let w = &mut state.sector_mut().systems[sys_idx].worlds[w_idx];
                     let current_code = w.world.star_colour_code.to_string();
                     let mut selected = StarColour::VARIANTS
                         .iter()
@@ -259,7 +259,7 @@ fn show_classification_section(
                     if combo_enum::<WorldType>(
                         ui,
                         "w_type",
-                        &mut state.sector.systems[sys_idx].worlds[w_idx].world.world_type,
+                        &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.world_type,
                     ) {
                         mutated = true;
                     }
@@ -284,7 +284,7 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
                 if combo_enum::<Atmosphere>(
                     ui,
                     "w_atm",
-                    &mut state.sector.systems[sys_idx].worlds[w_idx].world.atmosphere,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.atmosphere,
                 ) {
                     mutated = true;
                 }
@@ -293,7 +293,7 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
                 if combo_enum::<Temperature>(
                     ui,
                     "w_temp",
-                    &mut state.sector.systems[sys_idx].worlds[w_idx]
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
                         .world
                         .temperature,
                 ) {
@@ -304,7 +304,7 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
                 if combo_enum::<Biosphere>(
                     ui,
                     "w_bio",
-                    &mut state.sector.systems[sys_idx].worlds[w_idx].world.biosphere,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.biosphere,
                 ) {
                     mutated = true;
                 }
@@ -329,7 +329,7 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 if combo_enum::<Population>(
                     ui,
                     "w_pop",
-                    &mut state.sector.systems[sys_idx].worlds[w_idx].world.population,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.population,
                 ) {
                     mutated = true;
                 }
@@ -338,7 +338,7 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 if combo_enum::<TechLevel>(
                     ui,
                     "w_tech",
-                    &mut state.sector.systems[sys_idx].worlds[w_idx].world.tech_level,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.tech_level,
                 ) {
                     mutated = true;
                 }
@@ -347,7 +347,7 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 if combo_enum::<Government>(
                     ui,
                     "w_gov",
-                    &mut state.sector.systems[sys_idx].worlds[w_idx].world.government,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.government,
                 ) {
                     mutated = true;
                 }

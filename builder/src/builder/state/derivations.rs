@@ -150,7 +150,7 @@ impl BuilderState {
         self.sector.economy = std::sync::Arc::new(report);
         if feed_stability {
             let report = self.sector.economy.as_ref().clone();
-            apply_stability_nudge(&report, &mut self.sector);
+            apply_stability_nudge(&report, self.sector_mut());
         }
         let _ = sys_idx;
         self.dirty = true;

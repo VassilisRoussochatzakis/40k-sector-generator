@@ -3,6 +3,7 @@
 use camino::Utf8PathBuf;
 use serde::Serialize;
 
+use sectorforge::config::OutputFormat;
 use sectorforge::validation::Severity;
 use sectorforge::{SectorProgress, SegmentumProgress};
 
@@ -139,6 +140,83 @@ pub fn parse_heatmap(
     }
 }
 
+/// Render-only export artifacts. Unlike `Json`, none of these is ever read
+/// back in: HTML inlines its own data copy and PNG/SVG/Markdown are terminal.
+/// So the `--light` / `--exclude` opt-outs may freely drop them.
+const RENDER_FORMATS: [OutputFormat; 4] = [
+    OutputFormat::Html,
+    OutputFormat::Bitmap,
+    OutputFormat::Svg,
+    OutputFormat::Markdown,
+];
+
+/// Resolve the effective export-format set from a project's base formats plus
+/// the CLI overrides shared by `generate` and `random`:
+///
+/// * `formats` — when given, *replaces* the base set (positive selection).
+/// * `light` — drop every render artifact (html/png/svg/markdown), keeping the
+///   machine-readable `json`.
+/// * `exclude` — remove the listed formats from whatever remains.
+///
+/// `json` is load-bearing: the viewer (`viewer/src/main.rs`) and segmentum
+/// compose load `out/sector.json`, so it can never be excluded — passing it to
+/// `--exclude` is a hard error rather than a silent viewer break.
+pub fn resolve_formats(
+    base: Vec<OutputFormat>,
+    formats: Option<Vec<String>>,
+    exclude: Option<Vec<String>>,
+    light: bool,
+) -> Result<Vec<OutputFormat>, sectorforge::SectorError> {
+    let mut set = match formats {
+        Some(tokens) => parse_format_tokens(&tokens, "--formats")?,
+        None => base,
+    };
+
+    if light {
+        set.retain(|f| !RENDER_FORMATS.contains(f));
+    }
+
+    if let Some(tokens) = exclude {
+        let drop = parse_format_tokens(&tokens, "--exclude")?;
+        if drop.contains(&OutputFormat::Json) {
+            return Err(sectorforge::SectorError::InvalidConfig(
+                "json cannot be excluded: the viewer and segmentum compose load out/sector.json. \
+                 Drop html, png, svg, or markdown instead (or use --light)."
+                    .into(),
+            ));
+        }
+        set.retain(|f| !drop.contains(f));
+    }
+
+    if set.is_empty() {
+        return Err(sectorforge::SectorError::InvalidConfig(
+            "no output formats remain after --formats/--light/--exclude".into(),
+        ));
+    }
+    Ok(set)
+}
+
+/// Parse + dedup a list of CLI format tokens, naming the originating flag in any
+/// error. Shared by `--formats` and `--exclude`.
+fn parse_format_tokens(
+    tokens: &[String],
+    flag: &str,
+) -> Result<Vec<OutputFormat>, sectorforge::SectorError> {
+    let mut out: Vec<OutputFormat> = Vec::with_capacity(tokens.len());
+    for token in tokens {
+        match OutputFormat::parse_token(token) {
+            Some(f) if !out.contains(&f) => out.push(f),
+            Some(_) => {}
+            None => {
+                return Err(sectorforge::SectorError::InvalidConfig(format!(
+                    "unknown {flag} token '{token}' (expected json|markdown|png|svg|html)"
+                )))
+            }
+        }
+    }
+    Ok(out)
+}
+
 pub fn load_or_regenerate(
     project: Option<Utf8PathBuf>,
     sector: Option<Utf8PathBuf>,
@@ -157,6 +235,45 @@ pub fn load_or_regenerate(
 
 pub fn log_progress(message: impl std::fmt::Display) {
     eprintln!("[sectorforge] {message}");
+}
+
+/// Render export progress to stderr. The `JsonProgress` ticks animate the
+/// otherwise-silent multi-second write of a large `sector.json`.
+pub fn log_export_progress(event: sectorforge::ExportProgress) {
+    use sectorforge::ExportProgress as E;
+    match event {
+        E::Started { formats } => {
+            log_progress(format_args!("export: writing {formats} format(s)"));
+        }
+        E::FormatStarted { format } => log_progress(format_args!("export: writing {format}…")),
+        E::JsonProgress { bytes_written } => log_progress(format_args!(
+            "export: sector.json {} written…",
+            human_bytes(bytes_written)
+        )),
+        E::PerSystemJson { current, total } => {
+            log_progress(format_args!("export: per-system json {current}/{total}"));
+        }
+        E::FormatComplete { format, bytes } => {
+            log_progress(format_args!("export: wrote {format} ({})", human_bytes(bytes)));
+        }
+        E::Complete => log_progress("export: all formats written"),
+        _ => {}
+    }
+}
+
+/// Human-readable byte size (binary units) for progress lines.
+fn human_bytes(n: u64) -> String {
+    const UNIT: f64 = 1024.0;
+    let b = n as f64;
+    if n >= 1024 * 1024 * 1024 {
+        format!("{:.1} GiB", b / UNIT / UNIT / UNIT)
+    } else if n >= 1024 * 1024 {
+        format!("{:.1} MiB", b / UNIT / UNIT)
+    } else if n >= 1024 {
+        format!("{:.1} KiB", b / UNIT)
+    } else {
+        format!("{n} B")
+    }
 }
 
 pub fn log_sector_progress(event: SectorProgress) {

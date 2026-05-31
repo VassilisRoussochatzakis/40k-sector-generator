@@ -369,7 +369,7 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
             apply_route_effects(
                 &regions_clone,
                 &systems_clone,
-                &mut state.sector.routes,
+                &mut state.sector_mut().routes,
                 max_route_distance,
             );
             state.dirty = true;

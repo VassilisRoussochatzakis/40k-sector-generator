@@ -382,6 +382,7 @@ mod tests {
             revision,
             description: "preview".to_string(),
             progress: Arc::new(Mutex::new(0.0)),
+            status: Arc::new(Mutex::new(None)),
             cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             receiver: rx,
         }

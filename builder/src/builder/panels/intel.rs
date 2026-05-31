@@ -81,7 +81,7 @@ pub fn run_baseline_intel(state: &mut BuilderState) {
         .map(|f| f.id.as_str().to_string())
         .collect();
     let observer_refs: Vec<&str> = observer_ids.iter().map(|s| s.as_str()).collect();
-    sectorforge::intel::derive_intel(&mut state.sector, &observer_refs);
+    sectorforge::intel::derive_intel(state.sector_mut(), &observer_refs);
     state.dirty = true;
     state.mark_validation_dirty();
 }
@@ -102,7 +102,7 @@ pub fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx:
                 .iter()
                 .map(|f| (f.id.clone(), f.name.to_string()))
                 .collect();
-            let intel = &mut state.sector.systems[sys_idx].intel;
+            let intel = &mut state.sector_mut().systems[sys_idx].intel;
             let mut dirty = false;
             dirty |= show_observer_editor(ui, intel, "sys_intel", &factions);
             if dirty {
@@ -131,7 +131,7 @@ pub fn show_world_intel_section(
                 .iter()
                 .map(|f| (f.id.clone(), f.name.to_string()))
                 .collect();
-            let intel = &mut state.sector.systems[sys_idx].worlds[w_idx].intel;
+            let intel = &mut state.sector_mut().systems[sys_idx].worlds[w_idx].intel;
             let mut dirty = false;
             dirty |= show_observer_editor(ui, intel, "world_intel", &factions);
             if dirty {

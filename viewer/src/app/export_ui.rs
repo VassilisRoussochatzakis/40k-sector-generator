@@ -121,10 +121,11 @@ impl App {
             self.export_job = None;
         } else if let Some(job) = self.export_job.as_ref() {
             let pct = (job.progress().clamp(0.0, 1.0) * 100.0).round();
+            let detail = job.status().map(|s| format!(" — {s}")).unwrap_or_default();
             self.export_status = if job.is_cancelled() {
-                format!("cancelling {} ({pct:.0}%)", job.description)
+                format!("cancelling {} ({pct:.0}%){detail}", job.description)
             } else {
-                format!("{} ({pct:.0}%)", job.description)
+                format!("{} ({pct:.0}%){detail}", job.description)
             };
         }
     }
@@ -426,7 +427,30 @@ impl App {
         let sector_subdir = output_dir.join(sector.id.as_ref());
         self.start_export_job(BUNDLE_JOB_ID, "sector bundle export", ctx, move |job_ctx| {
             job_ctx.set_progress(0.05);
-            match export::export_bundle(&sector, data_dir.as_deref(), &output_dir) {
+            job_ctx.set_status("writing sector.json…");
+            let mut on_progress = |ev: sectorforge::ExportProgress| {
+                use sectorforge::ExportProgress as E;
+                match ev {
+                    E::JsonProgress { bytes_written } => {
+                        job_ctx.set_progress(0.1);
+                        job_ctx.set_status(format!(
+                            "writing sector.json… {}",
+                            sectorforge_gui_core::human_bytes(bytes_written)
+                        ));
+                    }
+                    E::PerSystemJson { current, total } => {
+                        job_ctx.set_status(format!("per-system json {current}/{total}"));
+                    }
+                    _ => {}
+                }
+            };
+            let result = export::export_bundle_with_progress(
+                &sector,
+                data_dir.as_deref(),
+                &output_dir,
+                &mut on_progress,
+            );
+            match result {
                 Ok(()) => {
                     job_ctx.set_progress(1.0);
                     let status = if data_dir_present {

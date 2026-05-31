@@ -3,15 +3,15 @@
 //!
 //! # R1: single source of truth
 //!
-//! `BuilderState` owns the sole live [`GeneratedSector`] for the project. Per
-//! docs/BUILDER_REQS §R1, the spec allows `Arc<RwLock<GeneratedSector>>` or
-//! `Rc<RefCell<GeneratedSector>>` if the GUI thread is sole writer. We choose
-//! the simpler design: direct ownership behind `&mut BuilderState`, since
-//! every mutation route must hold an exclusive borrow on the state, and
-//! background jobs receive *cloned* read-only snapshots through
-//! [`crate::jobs`] (they post results back via mpsc, never mutate in place).
-//! This gives the same single-writer guarantee as `Rc<RefCell<>>` without the
-//! runtime borrow check or `Arc` overhead.
+//! `BuilderState` owns the sole live sector as `Arc<GeneratedSector>`. Per
+//! docs/BUILDER_REQS §R1 the GUI thread is the sole writer: every mutation
+//! route holds an exclusive `&mut BuilderState` and edits the sector through
+//! [`BuilderState::sector_mut`] ([`Arc::make_mut`]). The `Arc` is not for
+//! shared *writing* — it exists so a background job (e.g. a bundle export) can
+//! take an O(1) read-only snapshot via `Arc::clone` instead of deep-copying a
+//! 100 MB+ sector on the UI thread. While such a snapshot is alive the next
+//! edit copies-on-write, so the worker keeps reading a stable sector and never
+//! mutates in place; results come back over [`crate::jobs`] via mpsc.
 //!
 //! # R10: panel contract
 //!
@@ -36,6 +36,8 @@
 //! | [`generation_ops`] | §G2..§G5 + §S5 + §W4 preview / per-system regen / world reroll |
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use camino::Utf8PathBuf;
@@ -95,8 +97,60 @@ pub use types::{
     DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
 };
 
+/// The live, editable sector, held behind an `Arc` so a background job (e.g. a
+/// bundle export) can take an O(1) read-only snapshot via [`LiveSector::share`]
+/// instead of deep-copying a 100 MB+ sector on the UI thread.
+///
+/// Reads go through [`Deref`] (no clone). Mutations go through [`DerefMut`],
+/// which routes every in-place edit through [`Arc::make_mut`]: a no-op while the
+/// sector is uniquely held (the steady state), copying on write only while a
+/// worker still shares the allocation — so an edit during an in-flight export
+/// never disturbs the stable snapshot the worker is serialising.
+#[derive(Debug, Clone)]
+pub struct LiveSector(Arc<GeneratedSector>);
+
+impl LiveSector {
+    #[must_use]
+    pub fn new(sector: GeneratedSector) -> Self {
+        Self(Arc::new(sector))
+    }
+
+    /// O(1) read-only snapshot (`Arc::clone`) for a background job.
+    #[must_use]
+    pub fn share(&self) -> Arc<GeneratedSector> {
+        Arc::clone(&self.0)
+    }
+}
+
+impl From<GeneratedSector> for LiveSector {
+    fn from(sector: GeneratedSector) -> Self {
+        Self::new(sector)
+    }
+}
+
+impl Deref for LiveSector {
+    type Target = GeneratedSector;
+    fn deref(&self) -> &GeneratedSector {
+        &self.0
+    }
+}
+
+impl DerefMut for LiveSector {
+    fn deref_mut(&mut self) -> &mut GeneratedSector {
+        Arc::make_mut(&mut self.0)
+    }
+}
+
+impl serde::Serialize for LiveSector {
+    /// Serialize transparently as the inner [`GeneratedSector`] so `&state.sector`
+    /// keeps round-tripping through `serde_json` (auto-save, session, exports).
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serde::Serialize::serialize(&*self.0, serializer)
+    }
+}
+
 pub struct BuilderState {
-    pub sector: GeneratedSector,
+    pub sector: LiveSector,
     pub project_path: Option<Utf8PathBuf>,
     pub config: AppConfig,
     pub data_catalogs: DataCatalogs,
@@ -608,6 +662,15 @@ pub struct BuilderState {
 }
 
 impl BuilderState {
+    /// Mutable access to the live sector. Uses [`Arc::make_mut`]: a no-op when
+    /// the sector is uniquely held (the steady state), copying on write only if
+    /// a background job (e.g. an in-flight bundle export) still shares the
+    /// allocation — so edits never disturb the snapshot a worker is reading.
+    /// All in-place sector mutations must go through this rather than the `Arc`.
+    pub fn sector_mut(&mut self) -> &mut GeneratedSector {
+        &mut self.sector
+    }
+
     /// O(log n) lookup of a system by id. Backed by [`BuilderIndex::systems`].
     /// Prefer this over `state.sector.systems.iter().find(|s| s.id == ...)`.
     #[must_use]
@@ -632,7 +695,7 @@ impl BuilderState {
         let sector = GeneratedSector::empty(id, title, seed, width, height);
         let index = BuilderIndex::rebuild(&sector);
         Self {
-            sector,
+            sector: LiveSector::new(sector),
             project_path: None,
             config: default_config(id, title, seed, width, height),
             data_catalogs: DataCatalogs::new(),

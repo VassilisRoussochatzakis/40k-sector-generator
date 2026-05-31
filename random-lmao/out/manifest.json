@@ -21,7 +21,7 @@
     "data/sites.toml": "blake3:2fa483dafbc7f46c4b9e94a4e9b091c824ce51bc45c05e2e2c536b439ff65d9d",
     "data/worlds/economy.toml": "blake3:36a31d998831737bf4b96b541916c0adcb8ad00afea446b1b101ced75af37195",
     "data/worlds/worlds.toml": "blake3:ce3a786685b10724b21b5d42f7ff2f1d7226f3d925c3052e528af0af613d786d",
-    "sectorforge.toml": "blake3:ebcc086778a52c958d4b8839348b86e38dc6ed67f29cb46a68c5a1487883ebb5"
+    "sectorforge.toml": "blake3:0f11637871b6ae6e493c00b249b8257c2738560f094272b4c0f80cc779d38f52"
   },
   "settings_digest": "blake3:1f1316ee5401bc93efbff456c5f8f4f507dd35f5ad84b27e40c8f8e15cf6a4c2",
   "system_count": 1959,

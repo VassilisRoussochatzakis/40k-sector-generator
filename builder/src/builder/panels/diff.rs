@@ -312,7 +312,7 @@ fn resolve_slot(
     file: Option<&LoadedFile>,
 ) -> Result<GeneratedSector, String> {
     match kind {
-        SlotKind::Current => Ok(state.sector.clone()),
+        SlotKind::Current => Ok((*state.sector).clone()),
         SlotKind::Snapshot => {
             let name = snap.ok_or("no snapshot selected")?;
             state

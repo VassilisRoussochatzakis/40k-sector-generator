@@ -146,7 +146,7 @@ impl BuilderState {
             file: "regenerate-world".into(),
             message: e.to_string(),
         })?;
-        let w = &mut self.sector.systems[sys_idx].worlds[w_idx];
+        let w = &mut self.sector_mut().systems[sys_idx].worlds[w_idx];
         w.world = dto;
         w.source_row_index = source_row;
         w.tags = tags;
@@ -206,7 +206,7 @@ impl BuilderState {
                 preview_sector.systems.sort_by(|a, b| a.id.cmp(&b.id));
             }
         }
-        self.sector = preview_sector;
+        self.sector = preview_sector.into();
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         self.dirty = true;
@@ -296,7 +296,7 @@ impl BuilderState {
                 message: e.to_string(),
             })?;
         self.config.generation.seed = seed.to_string();
-        self.sector = sector;
+        self.sector = sector.into();
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         self.invariant_report = Some(check_sector(&self.sector));

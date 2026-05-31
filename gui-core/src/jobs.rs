@@ -9,6 +9,7 @@ pub struct JobHandle<T> {
     pub revision: u64,
     pub description: String,
     pub progress: Arc<Mutex<f32>>, // 0.0 to 1.0
+    pub status: Arc<Mutex<Option<String>>>,
     pub cancelled: Arc<AtomicBool>,
     pub receiver: Receiver<T>,
 }
@@ -24,6 +25,12 @@ impl<T> JobHandle<T> {
 
     pub fn progress(&self) -> f32 {
         *self.progress.lock().unwrap()
+    }
+
+    /// Latest live status line the worker posted via [`JobContext::set_status`]
+    /// (e.g. a byte counter), or `None` if it hasn't posted one.
+    pub fn status(&self) -> Option<String> {
+        self.status.lock().unwrap().clone()
     }
 }
 
@@ -41,10 +48,12 @@ where
 {
     let (tx, rx) = channel();
     let progress = Arc::new(Mutex::new(0.0));
+    let status = Arc::new(Mutex::new(None));
     let cancelled = Arc::new(AtomicBool::new(false));
 
     let job_ctx = JobContext {
         progress: progress.clone(),
+        status: status.clone(),
         cancelled: cancelled.clone(),
         ui_ctx: ctx.clone(),
     };
@@ -60,6 +69,7 @@ where
         revision,
         description: description.to_string(),
         progress,
+        status,
         cancelled,
         receiver: rx,
     }
@@ -67,6 +77,7 @@ where
 
 pub struct JobContext {
     progress: Arc<Mutex<f32>>,
+    status: Arc<Mutex<Option<String>>>,
     cancelled: Arc<AtomicBool>,
     ui_ctx: egui::Context,
 }
@@ -74,6 +85,13 @@ pub struct JobContext {
 impl JobContext {
     pub fn set_progress(&self, p: f32) {
         *self.progress.lock().unwrap() = p;
+        self.ui_ctx.request_repaint();
+    }
+
+    /// Post a live status line for the UI to display (e.g. a byte counter while
+    /// a large `sector.json` streams to disk).
+    pub fn set_status(&self, status: impl Into<String>) {
+        *self.status.lock().unwrap() = Some(status.into());
         self.ui_ctx.request_repaint();
     }
 

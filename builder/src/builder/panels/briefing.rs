@@ -338,7 +338,7 @@ mod tests {
 
     fn seeded_state() -> BuilderState {
         let mut state = BuilderState::new_blank("t", "T", "s", 4, 4);
-        state.sector = empty_sector_with_factions();
+        state.sector = empty_sector_with_factions().into();
         state
     }
 

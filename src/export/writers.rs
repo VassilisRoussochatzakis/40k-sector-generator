@@ -1,7 +1,7 @@
 //! Sector export: JSON, Markdown, manifest. All file-creating code lives here.
 
 use std::fs;
-use std::io::{BufWriter, Write as _};
+use std::io::{self, BufWriter, Write as _};
 
 use camino::Utf8Path;
 use serde::Serialize;
@@ -25,6 +25,21 @@ impl JsonFormat {
         match self {
             JsonFormat::Pretty => serde_json::to_string_pretty(value),
             JsonFormat::Compact => serde_json::to_string(value),
+        }
+    }
+
+    /// Streaming counterpart of [`JsonFormat::render`]: serialize straight into
+    /// `writer` instead of building the whole `String` first. Byte-for-byte
+    /// identical output (`to_writer*` and `to_string*` share one serializer) —
+    /// used for the large `sector.json` so the write can report live progress.
+    fn render_to_writer<W: io::Write, T: Serialize>(
+        self,
+        writer: W,
+        value: &T,
+    ) -> serde_json::Result<()> {
+        match self {
+            JsonFormat::Pretty => serde_json::to_writer_pretty(writer, value),
+            JsonFormat::Compact => serde_json::to_writer(writer, value),
         }
     }
 
@@ -62,12 +77,96 @@ pub(crate) fn write_md_and_json<T: Serialize>(
         .map_err(|e| SectorError::io(json_path.as_str(), e))
 }
 
+/// Progress events emitted by [`export_all_with_progress`] and the public
+/// [`crate::export_sector_with_progress`]. Lets a caller surface the otherwise
+/// silent multi-second write of a large `sector.json` (and the other format
+/// writers). Purely informational — never part of any generated artifact.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ExportProgress {
+    /// Export began; `formats` format writers will run.
+    Started { formats: usize },
+    /// A format writer started.
+    FormatStarted { format: OutputFormat },
+    /// Periodic byte counter while streaming `sector.json` to disk.
+    JsonProgress { bytes_written: u64 },
+    /// Per-system JSON files, when `write_per_system_files` is enabled.
+    PerSystemJson { current: usize, total: usize },
+    /// A format writer finished; `bytes` is its primary file size on disk.
+    FormatComplete { format: OutputFormat, bytes: u64 },
+    /// All format writers finished.
+    Complete,
+}
+
+/// Emit a [`ExportProgress::JsonProgress`] roughly every this many bytes while
+/// streaming `sector.json`. Coarse enough to stay cheap on small sectors, fine
+/// enough to animate a 100 MB+ write.
+const JSON_PROGRESS_STRIDE: u64 = 8 * 1024 * 1024;
+
+/// Emit a [`ExportProgress::PerSystemJson`] every this many per-system files.
+const PER_SYSTEM_PROGRESS_STRIDE: usize = 200;
+
+/// `io::Write` adapter that counts bytes passing through and fires `on_bytes`
+/// every `stride` bytes. Wraps the `sector.json` file (under a `BufWriter`) so
+/// the streaming serialize reports live progress without buffering the whole
+/// document in memory.
+struct ProgressWriter<'a, W: io::Write> {
+    inner: W,
+    written: u64,
+    last_reported: u64,
+    stride: u64,
+    on_bytes: &'a mut dyn FnMut(u64),
+}
+
+impl<'a, W: io::Write> ProgressWriter<'a, W> {
+    fn new(inner: W, stride: u64, on_bytes: &'a mut dyn FnMut(u64)) -> Self {
+        Self {
+            inner,
+            written: 0,
+            last_reported: 0,
+            stride,
+            on_bytes,
+        }
+    }
+}
+
+impl<W: io::Write> io::Write for ProgressWriter<'_, W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let n = self.inner.write(buf)?;
+        self.written += n as u64;
+        if self.written - self.last_reported >= self.stride {
+            self.last_reported = self.written;
+            (self.on_bytes)(self.written);
+        }
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
 pub fn export_all(
     sector: &GeneratedSector,
     output_config: &OutputConfig,
     output_dir: &Utf8Path,
 ) -> Result<(), SectorError> {
+    export_all_with_progress(sector, output_config, output_dir, &mut |_| {})
+}
+
+/// [`export_all`] with a progress callback invoked across the format writers —
+/// notably a live byte counter for the large `sector.json`. See
+/// [`ExportProgress`].
+pub fn export_all_with_progress(
+    sector: &GeneratedSector,
+    output_config: &OutputConfig,
+    output_dir: &Utf8Path,
+    on_progress: &mut dyn FnMut(ExportProgress),
+) -> Result<(), SectorError> {
     fs::create_dir_all(output_dir).map_err(|e| SectorError::io(output_dir.as_str(), e))?;
+    on_progress(ExportProgress::Started {
+        formats: output_config.formats.len(),
+    });
 
     if output_config.write_manifest {
         let fmt = JsonFormat::from_flag(output_config.pretty_json);
@@ -80,8 +179,9 @@ pub fn export_all(
         .map_err(|e| SectorError::InvalidConfig(format!("outputs.bitmap.theme: {e}")))?;
     let mut wrote_image = false;
     for fmt in &output_config.formats {
+        on_progress(ExportProgress::FormatStarted { format: *fmt });
         match fmt {
-            OutputFormat::Json => write_json(sector, output_dir, output_config)?,
+            OutputFormat::Json => write_json(sector, output_dir, output_config, on_progress)?,
             OutputFormat::Markdown => write_markdown(sector, output_dir)?,
             OutputFormat::Bitmap => {
                 let opts = crate::bitmap::RenderOptions {
@@ -101,6 +201,10 @@ pub fn export_all(
                 crate::html_export::write_html(sector, output_dir, &output_config.html)?;
             }
         }
+        on_progress(ExportProgress::FormatComplete {
+            format: *fmt,
+            bytes: primary_file_len(*fmt, output_dir),
+        });
     }
 
     // System maps are written whenever any image format is enabled and
@@ -113,19 +217,36 @@ pub fn export_all(
         crate::system_map::write_system_maps(sector, output_dir, bm.system_scale, sys_opts)?;
     }
 
+    on_progress(ExportProgress::Complete);
     Ok(())
+}
+
+/// Best-effort size of the primary file a format writer produces, for
+/// [`ExportProgress::FormatComplete`]. Returns 0 if the file can't be stat'd.
+fn primary_file_len(fmt: OutputFormat, output_dir: &Utf8Path) -> u64 {
+    let name = match fmt {
+        OutputFormat::Json => "sector.json",
+        OutputFormat::Markdown => "sector.md",
+        OutputFormat::Bitmap => "sector.png",
+        OutputFormat::Svg => "sector.svg",
+        OutputFormat::Html => "sector.html",
+    };
+    fs::metadata(output_dir.join(name))
+        .map(|m| m.len())
+        .unwrap_or(0)
 }
 
 fn write_json(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
     cfg: &OutputConfig,
+    on_progress: &mut dyn FnMut(ExportProgress),
 ) -> Result<(), SectorError> {
     let format = JsonFormat::from_flag(cfg.pretty_json);
-    write_sector_json_file(sector, output_dir, format)?;
+    write_sector_json_file(sector, output_dir, format, on_progress)?;
 
     if cfg.write_per_system_files {
-        write_per_system_json_files(sector, output_dir, format)?;
+        write_per_system_json_files(sector, output_dir, format, on_progress)?;
     } else {
         remove_per_system_json_files(sector, output_dir)?;
     }
@@ -136,12 +257,22 @@ fn write_sector_json_file(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
     format: JsonFormat,
+    on_progress: &mut dyn FnMut(ExportProgress),
 ) -> Result<(), SectorError> {
     let sector_path = output_dir.join("sector.json");
-    let text = format
-        .render(sector)
+    let file =
+        fs::File::create(&sector_path).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
+    // Stream the serialize so a 100 MB+ document reports live byte progress
+    // instead of building the whole `String` in memory and writing silently.
+    let mut on_bytes =
+        |written: u64| on_progress(ExportProgress::JsonProgress { bytes_written: written });
+    let mut writer = BufWriter::new(ProgressWriter::new(file, JSON_PROGRESS_STRIDE, &mut on_bytes));
+    format
+        .render_to_writer(&mut writer, sector)
         .map_err(|e| SectorError::export(sector_path.as_str(), e.to_string()))?;
-    fs::write(&sector_path, text).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
+    writer
+        .flush()
+        .map_err(|e| SectorError::io(sector_path.as_str(), e))?;
     Ok(())
 }
 
@@ -149,15 +280,21 @@ fn write_per_system_json_files(
     sector: &GeneratedSector,
     output_dir: &Utf8Path,
     format: JsonFormat,
+    on_progress: &mut dyn FnMut(ExportProgress),
 ) -> Result<(), SectorError> {
     let systems_dir = output_dir.join("systems");
     fs::create_dir_all(&systems_dir).map_err(|e| SectorError::io(systems_dir.as_str(), e))?;
-    for sys in &sector.systems {
+    let total = sector.systems.len();
+    for (i, sys) in sector.systems.iter().enumerate() {
         let path = systems_dir.join(format!("{}.json", sys.id));
         let text = format
             .render(sys)
             .map_err(|e| SectorError::export(path.as_str(), e.to_string()))?;
         fs::write(&path, text).map_err(|e| SectorError::io(path.as_str(), e))?;
+        let current = i + 1;
+        if current == total || current.is_multiple_of(PER_SYSTEM_PROGRESS_STRIDE) {
+            on_progress(ExportProgress::PerSystemJson { current, total });
+        }
     }
     Ok(())
 }
@@ -214,7 +351,7 @@ fn write_validation_placeholder(
 /// [`OutputConfig`] with `write_per_system_files = true` when callers need
 /// those convenience files.
 pub fn export_json(sector: &GeneratedSector, output_dir: &Utf8Path) -> Result<(), SectorError> {
-    write_sector_json_file(sector, output_dir, JsonFormat::Pretty)?;
+    write_sector_json_file(sector, output_dir, JsonFormat::Pretty, &mut |_| {})?;
     remove_per_system_json_files(sector, output_dir)
 }
 
@@ -228,13 +365,27 @@ pub fn export_bundle(
     data_dir: Option<&Utf8Path>,
     output_dir: &Utf8Path,
 ) -> Result<(), SectorError> {
+    export_bundle_with_progress(sector, data_dir, output_dir, &mut |_| {})
+}
+
+/// [`export_bundle`] with a progress callback threaded into the (potentially
+/// very large) `sector.json` write, so a GUI can animate the otherwise-silent
+/// bundle export. See [`ExportProgress`].
+pub fn export_bundle_with_progress(
+    sector: &GeneratedSector,
+    data_dir: Option<&Utf8Path>,
+    output_dir: &Utf8Path,
+    on_progress: &mut dyn FnMut(ExportProgress),
+) -> Result<(), SectorError> {
     let sector_dir = output_dir.join(sanitize_dir_name(&sector.id));
     fs::create_dir_all(&sector_dir).map_err(|e| SectorError::io(sector_dir.as_str(), e))?;
 
     let out_dir = sector_dir.join("out");
     fs::create_dir_all(&out_dir).map_err(|e| SectorError::io(out_dir.as_str(), e))?;
 
-    export_json(sector, &out_dir)?;
+    // Equivalent to `export_json` but with progress reporting on the big write.
+    write_sector_json_file(sector, &out_dir, JsonFormat::Pretty, on_progress)?;
+    remove_per_system_json_files(sector, &out_dir)?;
     write_manifest(sector, &out_dir, JsonFormat::Pretty)?;
     write_validation_placeholder(sector, &out_dir, JsonFormat::Pretty)?;
     write_markdown(sector, &out_dir)?;

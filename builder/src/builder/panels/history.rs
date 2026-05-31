@@ -484,7 +484,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     let mut delete = false;
     let mut highlight = false;
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        let ev = &mut state.sector.chronicle.events[idx];
+        let ev = &mut state.sector_mut().chronicle.events[idx];
         ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new("id").strong());
             ui.monospace(&ev.id);
@@ -586,7 +586,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
             });
     });
     if let Some(fid) = to_add {
-        let ev = &mut state.sector.chronicle.events[idx];
+        let ev = &mut state.sector_mut().chronicle.events[idx];
         if !ev.factions.iter().any(|f| f == &fid) {
             ev.factions.push(fid);
             changed = true;
@@ -597,7 +597,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     egui::CollapsingHeader::new("consequences")
         .default_open(false)
         .show(ui, |ui| {
-            let ev = &mut state.sector.chronicle.events[idx];
+            let ev = &mut state.sector_mut().chronicle.events[idx];
             let mut remove_c: Option<usize> = None;
             for (ci, c) in ev.consequences.iter_mut().enumerate() {
                 ui.horizontal_wrapped(|ui| {
@@ -1452,7 +1452,7 @@ mod tests {
 
     fn seed_state() -> BuilderState {
         let mut state = BuilderState::new_blank("h-test", "H", "seed", 8, 8);
-        state.sector = GeneratedSector::empty("h-test", "H", "seed", 8, 8);
+        state.sector = GeneratedSector::empty("h-test", "H", "seed", 8, 8).into();
         let sid = state
             .sector
             .add_system(HexCoord { q: 0, r: 0 }, "Alpha")

@@ -143,6 +143,7 @@ pub use economy::{
     StrategicPriority, SupplyRisk, SystemEconomy, TitheStatus, WorldEconomy,
 };
 pub use errors::SectorError;
+pub use export::ExportProgress;
 pub use generation::SectorProgress;
 pub use history::{
     HistoryConfig, HistoryConsequence, HistoryConsequenceKind, HistoryEntityKind, HistoryEntityRef,
@@ -471,6 +472,30 @@ pub fn export_sector(
     output_dir: impl AsRef<Utf8Path>,
 ) -> Result<(), SectorError> {
     export::export_all(sector, output_config, output_dir.as_ref())
+}
+
+/// Like [`export_sector`], but reports progress through `on_progress` — chiefly
+/// the live byte counter while a large `sector.json` streams to disk. See
+/// [`ExportProgress`].
+///
+/// # Errors
+///
+/// Same as [`export_sector`].
+pub fn export_sector_with_progress<F>(
+    sector: &GeneratedSector,
+    output_config: &config::OutputConfig,
+    output_dir: impl AsRef<Utf8Path>,
+    mut on_progress: F,
+) -> Result<(), SectorError>
+where
+    F: FnMut(ExportProgress),
+{
+    export::export_all_with_progress(
+        sector,
+        output_config,
+        output_dir.as_ref(),
+        &mut on_progress,
+    )
 }
 
 /// §11 NEW.md: write a self-contained interactive HTML sector view to

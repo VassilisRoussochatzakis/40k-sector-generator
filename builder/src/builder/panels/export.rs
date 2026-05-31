@@ -40,6 +40,7 @@ use sectorforge::heatmap::HeatmapMode;
 use sectorforge::sector_model::HexCoord;
 use sectorforge::SectorError;
 
+use crate::builder::export_run::ExportJobResult;
 use crate::builder::{BuilderState, ModalKind};
 
 const HTML_THEMES: &[HtmlTheme] = &[HtmlTheme::Dark, HtmlTheme::Parchment, HtmlTheme::Hololithic];
@@ -132,6 +133,18 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
+    // Drain the async bundle-export worker (mirrors the RANDOM / SEARCH
+    // runtimes) and surface its outcome as a completion modal / error.
+    if let Some(result) = state.export.pump() {
+        match result {
+            ExportJobResult::Done(msg) => {
+                state.export.error = None;
+                state.modal = Some(ModalKind::Message(msg));
+            }
+            ExportJobResult::Failed(msg) => state.export.error = Some(msg),
+        }
+    }
+
     egui::ScrollArea::vertical()
         .id_salt("export_root_scroll")
         .auto_shrink([false; 2])
@@ -172,22 +185,23 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
         let has_dir = state.export.output_dir.is_some();
+        let busy = state.export.is_running();
         if ui
-            .add_enabled(has_dir, egui::Button::new("Export bundle (§EX1)"))
+            .add_enabled(has_dir && !busy, egui::Button::new("Export bundle (§EX1)"))
             .on_hover_text("Write every enabled format (+ manifest) for the live sector.")
             .clicked()
         {
-            run_bundle(state);
+            run_bundle(state, ui.ctx());
         }
         if ui
             .add_enabled(
-                has_dir,
+                has_dir && !busy,
                 egui::Button::new(RichText::new("Export everything (§EX8)").strong()),
             )
             .on_hover_text("Run the bundle and every per-overlay writer in one pass.")
             .clicked()
         {
-            run_everything(state);
+            run_everything(state, ui.ctx());
         }
     });
     let dir_label = state
@@ -197,6 +211,18 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
         .map(Utf8PathBuf::to_string)
         .unwrap_or_else(|| "(no output folder picked)".to_string());
     ui.colored_label(Color32::DARK_GRAY, dir_label);
+
+    // Live progress for the off-thread bundle export (the big sector.json write).
+    if state.export.is_running() {
+        let frac = state.export.fraction();
+        ui.add(egui::ProgressBar::new(frac).show_percentage());
+        if let Some(status) = state.export.status_text() {
+            ui.colored_label(Color32::GRAY, status);
+        }
+        if ui.button("■ Cancel").clicked() {
+            state.export.cancel();
+        }
+    }
 }
 
 // ── §EX1 formats + §EX2 manifest ────────────────────────────────────────────
@@ -491,27 +517,28 @@ fn show_markdown_preview(ui: &mut Ui, state: &mut BuilderState) {
 
 // ── actions ─────────────────────────────────────────────────────────────────
 
-fn run_bundle(state: &mut BuilderState) {
+fn run_bundle(state: &mut BuilderState, ctx: &egui::Context) {
     let Some(dir) = state.export.output_dir.clone() else {
         return;
     };
-    match sectorforge::export_sector(&state.sector, &state.config.outputs, dir.as_path()) {
-        Ok(()) => {
-            state.export.error = None;
-            let formats = state
-                .config
-                .outputs
-                .formats
-                .iter()
-                .map(OutputFormat::as_slug)
-                .collect::<Vec<_>>()
-                .join(", ");
-            state.modal = Some(ModalKind::Message(format!(
-                "Wrote bundle ({formats}) to {dir}"
-            )));
-        }
-        Err(e) => state.export.error = Some(format!("Bundle export failed: {e}")),
-    }
+    let formats = formats_label(state);
+    let summary = format!("Wrote bundle ({formats}) to {dir}");
+    let sector = state.sector.share();
+    let outputs = state.config.outputs.clone();
+    state.export.spawn_bundle(ctx, sector, outputs, dir, summary);
+}
+
+/// Comma-joined slug list of the project's enabled bundle formats, for status
+/// / completion messages.
+fn formats_label(state: &BuilderState) -> String {
+    state
+        .config
+        .outputs
+        .formats
+        .iter()
+        .map(OutputFormat::as_slug)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn run_overlay(state: &mut BuilderState, overlay: Overlay) {
@@ -532,17 +559,15 @@ fn run_overlay(state: &mut BuilderState, overlay: Overlay) {
     }
 }
 
-fn run_everything(state: &mut BuilderState) {
+fn run_everything(state: &mut BuilderState, ctx: &egui::Context) {
     let Some(dir) = state.export.output_dir.clone() else {
         return;
     };
+    // The per-overlay writers are small and read `state`, so run them inline on
+    // the UI thread; only the heavy sector bundle goes off-thread (with live
+    // progress) via `spawn_bundle` below.
     let mut first_error: Option<String> = None;
     let mut written = 0u32;
-
-    match sectorforge::export_sector(&state.sector, &state.config.outputs, dir.as_path()) {
-        Ok(()) => written += 1,
-        Err(e) => first_error = Some(format!("bundle: {e}")),
-    }
     for overlay in OVERLAYS {
         match write_overlay(state, dir.as_path(), *overlay) {
             Ok(()) => written += 1,
@@ -554,19 +579,15 @@ fn run_everything(state: &mut BuilderState) {
         }
     }
 
-    match first_error {
-        None => {
-            state.export.error = None;
-            state.modal = Some(ModalKind::Message(format!(
-                "Exported everything ({written} artefact group(s)) to {dir}"
-            )));
-        }
-        Some(err) => {
-            state.export.error = Some(format!(
-                "Export everything: {written} ok, first failure — {err}"
-            ));
-        }
-    }
+    let formats = formats_label(state);
+    let overlays_note = match &first_error {
+        None => format!("{written} overlay group(s)"),
+        Some(err) => format!("{written} overlay group(s); first overlay failure — {err}"),
+    };
+    let summary = format!("Exported everything ({overlays_note} + bundle: {formats}) to {dir}");
+    let sector = state.sector.share();
+    let outputs = state.config.outputs.clone();
+    state.export.spawn_bundle(ctx, sector, outputs, dir, summary);
 }
 
 /// Derive the requested overlay over the live sector (using the loaded catalog
@@ -742,8 +763,21 @@ mod tests {
         let tmp = tempdir().unwrap();
         let dir = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
         state.export.output_dir = Some(dir.clone());
-        run_bundle(&mut state);
-        assert!(state.export.error.is_none(), "{:?}", state.export.error);
+        let ctx = egui::Context::default();
+        run_bundle(&mut state, &ctx);
+        // Export now runs off-thread; block on the worker before asserting.
+        let result = state
+            .export
+            .job
+            .as_ref()
+            .expect("bundle export job should be in flight")
+            .receiver
+            .recv()
+            .expect("export worker should post a result");
+        assert!(
+            matches!(result, ExportJobResult::Done(_)),
+            "expected a successful bundle export"
+        );
         assert!(dir.join("sector.json").exists());
         assert!(dir.join("sector.md").exists());
         assert!(dir.join("manifest.json").exists());

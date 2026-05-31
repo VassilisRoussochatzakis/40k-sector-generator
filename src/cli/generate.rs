@@ -7,7 +7,8 @@ use camino::Utf8PathBuf;
 use sectorforge::sector_model::HexCoord;
 
 use super::common::{
-    log_progress, log_sector_progress, parse_heatmap, print_validation_report, to_json_pretty,
+    log_export_progress, log_progress, log_sector_progress, parse_heatmap, print_validation_report,
+    resolve_formats, to_json_pretty,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -22,6 +23,8 @@ pub(crate) fn run_generate(
     constraints: Option<Utf8PathBuf>,
     max_candidates: Option<u32>,
     formats: Option<Vec<String>>,
+    light: bool,
+    exclude: Option<Vec<String>>,
 ) -> Result<ExitCode, sectorforge::SectorError> {
     log_progress(format_args!("sector: loading project {project}"));
     let mut input = sectorforge::load_project(&project)?;
@@ -90,20 +93,12 @@ pub(crate) fn run_generate(
     if let Some(t) = theme {
         input.config.outputs.bitmap.theme.name = Some(t);
     }
-    if let Some(tokens) = formats {
-        let mut parsed = Vec::with_capacity(tokens.len());
-        for tok in &tokens {
-            let Some(fmt) = sectorforge::config::OutputFormat::parse_token(tok) else {
-                return Err(sectorforge::SectorError::InvalidConfig(format!(
-                    "unknown format '{tok}' (use json, markdown, png, svg, or html)"
-                )));
-            };
-            if !parsed.contains(&fmt) {
-                parsed.push(fmt);
-            }
-        }
-        input.config.outputs.formats = parsed;
-    }
+    input.config.outputs.formats = resolve_formats(
+        input.config.outputs.formats.clone(),
+        formats,
+        exclude,
+        light,
+    )?;
     log_progress("sector: validating inputs");
     let report = sectorforge::validate_project(&input)?;
     if !report.ok {
@@ -154,7 +149,7 @@ pub(crate) fn run_generate(
     }
 
     log_progress(format_args!("sector: exporting to {output_dir}"));
-    sectorforge::export_sector(&sector, &output_cfg, &output_dir)?;
+    sectorforge::export_sector_with_progress(&sector, &output_cfg, &output_dir, log_export_progress)?;
     log_progress("sector: export complete");
 
     println!(

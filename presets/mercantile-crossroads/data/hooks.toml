@@ -1,0 +1,9 @@
+# Mercantile Crossroads — plot-hook knobs (§7 NEW.md / §HK4 BUILDER_REQS).
+#
+# Parsed directly into `HooksConfig` (bare file — no `[hooks]` wrapper table).
+# A busy crossroads spins off opportunities everywhere — generous per-anchor
+# cap and a long digest of leads.
+
+max_per_anchor = 3
+top_n_digest = 15
+hide_hidden_hooks = false

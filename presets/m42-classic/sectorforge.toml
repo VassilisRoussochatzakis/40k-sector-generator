@@ -1,12 +1,19 @@
+# presets/m42-classic — the balanced, fully-featured default sector.
+#
+# Inherits the shared _base data tree (worlds workbook, names, the canonical
+# faction roster, route rules) and overlays a complete set of themed overlays:
+# relations, regions, economy, history, personae, sites, hooks, missions, and
+# prose — every input the engine understands. Every output format is emitted
+# (json, markdown, bitmap, svg, html). This is the general-purpose baseline for
+# `sectorforge random --baseline m42-classic`.
+
 [project]
-id = "embattled-frontier"
-title = "Embattled Frontier"
-description = "20x20 contested marchworld sector: Imperium vs. Orks with a small Leagues of Votann presence. Sparse, high-hazard, fully fleshed-out."
+id = "m42-classic"
+title = "M42 Classic"
+description = "Balanced canonical Imperium sector — the default M42 setup, every overlay and output enabled."
 version = "0.2.0"
 
-# ── Inputs ────────────────────────────────────────────────────────────────────
-# Every authorable overlay enabled. Files under data/ overlay the inherited
-# _base tree; missing files fall through to bundled defaults.
+# ── Inputs (every authorable overlay) ─────────────────────────────────────────
 
 [inputs]
 world_data_dir = "data/worlds"
@@ -24,41 +31,38 @@ hooks = "data/hooks.toml"
 missions = "data/missions.toml"
 prose = "data/prose.toml"
 
-# ── Generation ────────────────────────────────────────────────────────────────
+# ── Generation (balanced 10x10) ───────────────────────────────────────────────
 
 [generation]
-seed = "embattled-frontier-seed"
-sector_width = 20
-sector_height = 20
+seed = "m42-default-seed"
+sector_width = 10
+sector_height = 10
 subsector_width = 5
 subsector_height = 5
-# Sparse occupancy on a 400-hex grid — ~14% populated. Leaves vast empty marches
-# for warp storms and ork advances to claim.
-system_count = 56
-min_worlds_per_system = 1
-max_worlds_per_system = 4
+system_count = 24
+min_worlds_per_system = 2
+max_worlds_per_system = 6
 allow_empty_hexes = true
-world_feature_count = 4
+world_feature_count = 3
 strict_world_rows = true
 
 [generation.placement]
-mode = "clustered"
-cluster_bias = 0.55
+mode = "weighted_grid"
+cluster_bias = 0.0
 minimum_system_distance = 1
 
 [generation.world_selection]
 mode = "weighted_rows"
 require_complete_rows = true
 allow_partial_rows = false
-same_star_colour_bias = 1.10
+same_star_colour_bias = 1.25
 strict_same_star_colour = false
 avoid_duplicate_world_type_in_system = false
 
 [generation.routes]
 enabled = true
-# Long-hop frontier — fewer safe lanes, larger jumps.
-max_route_distance = 6
-route_density = 0.20
+max_route_distance = 4
+route_density = 0.30
 ensure_connected_graph = true
 
 [generation.relations]
@@ -67,11 +71,11 @@ min_world_presence = 1
 # ── Analyze (§8 NEW.md) ───────────────────────────────────────────────────────
 
 [analyze]
-warn_faction_share = 0.55
+warn_faction_share = 0.60
 warn_if_disconnected = true
 warn_if_articulation = true
 tiny_sector_threshold = 5
-warn_contested_ratio = 0.50
+warn_contested_ratio = 0.45
 
 # ── Seed-search defaults (§2 NEW.md) ──────────────────────────────────────────
 
@@ -87,20 +91,19 @@ skip_routes = false
 min_faction_delta = 1.0
 top_faction_deltas = 10
 
-# ── History (§1 NEW2.md) ──────────────────────────────────────────────────────
-# Top-level fallback values; the full eras + event_rules live in data/history.toml.
+# ── History (§1 NEW2.md) — full eras live in data/history.toml ────────────────
 
 [history]
 enabled = true
-epoch_start = 36
+epoch_start = 34
 epoch_end = 42
-max_events_per_world = 6
+max_events_per_world = 5
 max_events_per_system = 4
 max_events_per_route = 2
 key_events_top_n = 30
 max_subsector_events = 64
 
-# ── Outputs ───────────────────────────────────────────────────────────────────
+# ── Outputs (every format) ────────────────────────────────────────────────────
 
 [outputs]
 directory = "out"
@@ -115,7 +118,6 @@ sector_scale = 5
 system_scale = 4
 render_systems = true
 faction_fill = true
-heatmap = "threat"
 
 [outputs.html]
 theme = "dark"
@@ -126,14 +128,9 @@ compact_json = true
 # ── Map theme (§13 NEW2.md) ───────────────────────────────────────────────────
 
 [map_theme]
-name = "navis_tactical"
+name = "gm_dark"
 show_subsector_borders = true
 route_line_mode = "hazard_weighted"
 label_density = "important_only"
 legend = "full"
 symbol_set = "tactical"
-faction_tint_strength = 0.50
-heatmap_tint_min = 0.10
-heatmap_tint_range = 0.90
-route_thickness = 2.2
-region_tint_strength = 0.35

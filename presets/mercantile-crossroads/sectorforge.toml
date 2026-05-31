@@ -1,8 +1,18 @@
+# presets/mercantile-crossroads — a dense, route-rich trade sector.
+#
+# Inherits the shared _base data tree and overlays a complete, themed set of
+# overlays (factions, relations, regions, route rules, economy, history,
+# personae, sites, hooks, missions, prose). Dense generation, short safe hops;
+# every output format emitted. Baseline for
+# `sectorforge random --baseline mercantile-crossroads`.
+
 [project]
 id = "mercantile-crossroads"
 title = "Mercantile Crossroads"
-description = "Dense, trade-rich sector preset (§9 NEW.md)."
-version = "0.1.0"
+description = "Dense, trade-rich Rogue Trader sector — every overlay and output enabled."
+version = "0.2.0"
+
+# ── Inputs (every authorable overlay) ─────────────────────────────────────────
 
 [inputs]
 world_data_dir = "data/worlds"
@@ -10,6 +20,17 @@ system_names = "data/names/system_names.toml"
 world_names = "data/names/world_names.toml"
 factions = "data/factions/factions.toml"
 route_rules = "data/routes/route_rules.toml"
+relations = "data/factions/relations.toml"
+regions = "data/routes/regions.toml"
+economy = "data/worlds/economy.toml"
+history = "data/history.toml"
+personae = "data/personae.toml"
+sites = "data/sites.toml"
+hooks = "data/hooks.toml"
+missions = "data/missions.toml"
+prose = "data/prose.toml"
+
+# ── Generation (dense, short hops) ────────────────────────────────────────────
 
 [generation]
 seed = "crossroads-seed"
@@ -43,21 +64,74 @@ max_route_distance = 3
 route_density = 0.55
 ensure_connected_graph = true
 
+[generation.relations]
+min_world_presence = 1
+
+# ── Analyze (§8 NEW.md) ───────────────────────────────────────────────────────
+
+[analyze]
+warn_faction_share = 0.45
+warn_if_disconnected = true
+warn_if_articulation = true
+tiny_sector_threshold = 6
+warn_contested_ratio = 0.60
+
+# ── Seed-search defaults (§2 NEW.md) ──────────────────────────────────────────
+
+[search]
+budget = 256
+report_top = 5
+
+# ── Sector diff defaults (§10 NEW.md) ────────────────────────────────────────
+
+[diff]
+skip_worlds = false
+skip_routes = false
+min_faction_delta = 1.0
+top_faction_deltas = 10
+
+# ── History (§1 NEW2.md) — full eras live in data/history.toml ────────────────
+
+[history]
+enabled = true
+epoch_start = 36
+epoch_end = 42
+max_events_per_world = 6
+max_events_per_system = 5
+max_events_per_route = 3
+key_events_top_n = 36
+max_subsector_events = 72
+
+# ── Outputs (every format) ────────────────────────────────────────────────────
+
 [outputs]
 directory = "out"
-formats = ["json", "markdown", "bitmap"]
+formats = ["json", "markdown", "bitmap", "svg", "html"]
 pretty_json = true
 write_per_system_files = true
 write_manifest = true
+write_diagnostics = true
 
 [outputs.bitmap]
 sector_scale = 5
 system_scale = 4
 render_systems = true
+faction_fill = true
 
-[outputs.bitmap.theme]
+[outputs.html]
+theme = "dark"
+player_min_confidence = 30
+size_warn_bytes = 8388608
+compact_json = true
+
+# ── Map theme (§13 NEW2.md) ───────────────────────────────────────────────────
+
+[map_theme]
 name = "navis_tactical"
-
-[analyze]
-warn_faction_share = 0.45
-warn_contested_ratio = 0.60
+show_subsector_borders = true
+route_line_mode = "hazard_weighted"
+label_density = "important_only"
+legend = "full"
+symbol_set = "tactical"
+faction_tint_strength = 0.45
+region_tint_strength = 0.30

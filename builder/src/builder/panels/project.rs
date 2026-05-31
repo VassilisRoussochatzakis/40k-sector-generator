@@ -37,6 +37,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                 custom_w: 10,
                 custom_h: 12,
                 seed: String::new(),
+                baseline: "_full".to_string(),
             });
         }
         save_project::show(ui, state);

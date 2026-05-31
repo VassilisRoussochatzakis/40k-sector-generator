@@ -1,0 +1,44 @@
+# Dead Sector — route weighting overrides.
+#
+# Travel here is perilous and reluctant: warp phenomena are punished hard, the
+# few populated worlds and archaeotech finds are the only things worth the
+# risk, and tomb-haunted xenos worlds are shunned.
+
+[routes]
+default_weight = 1.0
+max_distance = 6
+prefer_populated_worlds = true
+prefer_trade_hubs = false
+avoid_warp_phenomena = true
+
+[[routes.modifiers]]
+when = { notable_feature = "AdministrativeHub" }
+multiplier = 1.8
+
+[[routes.modifiers]]
+when = { notable_feature = "ImportantShrine" }
+multiplier = 1.4
+
+[[routes.modifiers]]
+when = { notable_feature = "ArchaeotechRuins" }
+multiplier = 1.3
+
+[[routes.modifiers]]
+when = { notable_feature = "WarpPhenomena" }
+multiplier = 0.10
+
+[[routes.modifiers]]
+when = { notable_feature = "HostileXenos" }
+multiplier = 0.30
+
+[[routes.modifiers]]
+when = { notable_feature = "DaemonicCorruption" }
+multiplier = 0.10
+
+[[routes.modifiers]]
+when = { world_type = "DeathWorld" }
+multiplier = 0.50
+
+[[routes.modifiers]]
+when = { route_type = "secret_passage" }
+multiplier = 0.60

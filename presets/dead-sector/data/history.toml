@@ -1,0 +1,100 @@
+# Dead Sector — sector chronicle (§1 NEW2.md).
+#
+# A long arc of decline: ancient discovery, a brief flicker of compliance, then
+# warp storms, quarantines, and the slow loss of world after world to silence.
+# Event-type vocabulary matches the proven set the generator emits (no bespoke
+# event types — the Necron flavour is carried by quarantine / secession /
+# warp-storm weighting, the prose tone, and the faction roster). `lost` is used
+# only as a *system state* in the rules below, never as an event type.
+
+[history]
+enabled = true
+epoch_start = 30
+epoch_end = 42
+max_events_per_world = 4
+max_events_per_system = 3
+max_events_per_route = 1
+key_events_top_n = 24
+max_subsector_events = 48
+
+# ── Era bands ─────────────────────────────────────────────────────────────────
+
+[[history.eras]]
+id = "elder_discovery"
+label = "Elder Discovery"
+relative_start = -2000
+relative_end = -1400
+weight = 1.0
+allowed_events = ["discovery", "foundation"]
+
+[[history.eras]]
+id = "brief_compliance"
+label = "A Brief Compliance"
+relative_start = -1399
+relative_end = -1000
+weight = 0.8
+allowed_events = ["imperial_mandate_granted", "annexation", "consecration"]
+
+[[history.eras]]
+id = "the_dimming"
+label = "The Dimming"
+relative_start = -999
+relative_end = -500
+weight = 1.3
+allowed_events = ["warp_storm_surge", "quarantine_declared", "blockade", "secession"]
+
+[[history.eras]]
+id = "the_long_silence"
+label = "The Long Silence"
+relative_start = -499
+relative_end = -120
+weight = 1.5
+allowed_events = ["secession", "quarantine_declared", "warp_storm_surge", "purge"]
+
+[[history.eras]]
+id = "scattered_embers"
+label = "Scattered Embers"
+relative_start = -119
+relative_end = -1
+weight = 1.1
+allowed_events = ["reconquest", "discovery", "quarantine_declared", "purge"]
+
+[[history.eras]]
+id = "present_stillness"
+label = "Present Stillness"
+relative_start = 0
+relative_end = 0
+weight = 1.4
+allowed_events = ["secession", "quarantine_declared", "warp_storm_surge"]
+
+# ── Event rules ───────────────────────────────────────────────────────────────
+
+[[history.event_rules]]
+id = "lost_secession"
+when_system_state = "lost"
+prefer_event = "secession"
+minimum_events = 2
+
+[[history.event_rules]]
+id = "quarantined_quarantine"
+when_system_state = "quarantined"
+prefer_event = "quarantine_declared"
+minimum_events = 2
+
+[[history.event_rules]]
+id = "blockaded_blockade"
+when_system_state = "blockaded"
+prefer_event = "blockade"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "contested_warp_storm"
+when_system_state = "contested"
+prefer_event = "warp_storm_surge"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "stable_reconquest"
+when_system_state = "stable"
+prefer_event = "reconquest"
+minimum_events = 1

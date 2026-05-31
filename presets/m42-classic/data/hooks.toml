@@ -1,0 +1,9 @@
+# M42 Classic — plot-hook knobs (§7 NEW.md / §HK4 BUILDER_REQS).
+#
+# Parsed directly into `HooksConfig` (bare file — no `[hooks]` wrapper table).
+# Balanced defaults: a steady spread of hooks per anchor, nothing hidden from
+# the GM. `[[manual]]` entries, if added, survive "Regenerate hooks".
+
+max_per_anchor = 2
+top_n_digest = 12
+hide_hidden_hooks = false

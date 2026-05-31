@@ -1,0 +1,8 @@
+# M42 Classic — mission/quest seed knobs (§3 NEW2.md / §M1..§M5 BUILDER_REQS).
+#
+# Parsed directly into `MissionsConfig` (bare file — no `[missions]` wrapper).
+# Balanced GM-facing campaign seeding.
+
+max_per_anchor = 2
+top_n_digest = 12
+player_edition = false

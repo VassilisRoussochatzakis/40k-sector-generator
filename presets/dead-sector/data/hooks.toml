@@ -1,0 +1,9 @@
+# Dead Sector — plot-hook knobs (§7 NEW.md / §HK4 BUILDER_REQS).
+#
+# Parsed directly into `HooksConfig` (bare file — no `[hooks]` wrapper table).
+# A sparse void yields fewer but stranger hooks — a tighter per-anchor cap and
+# digest. Hidden hooks (buried tombs, dormant horrors) stay visible to the GM.
+
+max_per_anchor = 2
+top_n_digest = 10
+hide_hidden_hooks = false

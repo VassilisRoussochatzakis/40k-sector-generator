@@ -1,0 +1,9 @@
+# Embattled Frontier — gazetteer / prose knobs (§6 NEW.md / §PR1..§PR4 BUILDER_REQS).
+#
+# Parsed directly into `ProseConfig` (bare file — no `[prose]` wrapper).
+# `dispatch` tone reads as a terse Administratum / Departmento Munitorum war
+# brief — clipped, declarative, befitting a front-line sector.
+
+tone = "dispatch"
+include_overview = true
+include_per_system = true

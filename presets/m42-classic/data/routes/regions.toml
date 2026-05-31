@@ -1,0 +1,31 @@
+# M42 Classic — warp phenomena overlay (§5 NEW.md).
+#
+# A balanced sector: a few storms and turbulence pockets, a couple of calm
+# corridors. `count` / `mean_size` are scaled to the grid by `sectorforge
+# random`; the values here suit the preset's own 10x10 layout.
+
+[regions]
+enabled = true
+count = 4
+mean_size = 6
+apply_to_routes = true
+
+[[regions.conditions]]
+kind = "warp_storm"
+weight = 1.5
+
+[[regions.conditions]]
+kind = "turbulence"
+weight = 2.5
+
+[[regions.conditions]]
+kind = "calm_corridor"
+weight = 2.0
+
+[[regions.conditions]]
+kind = "anomaly"
+weight = 1.0
+
+[[regions.conditions]]
+kind = "blackout"
+weight = 0.8

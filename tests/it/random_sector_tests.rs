@@ -8,8 +8,17 @@ use std::process::Command;
 
 use camino::Utf8PathBuf;
 use sectorforge::random_sector::{
-    build_random_config, generate_random_sector, RandomReport, SectorSize,
+    build_random_config, generate_random_sector, generate_random_sector_from, RandomReport,
+    SectorSize,
 };
+
+/// The four themed gallery presets, all usable as `random --baseline` sources.
+const THEMED_BASELINES: [&str; 4] = [
+    "m42-classic",
+    "embattled-frontier",
+    "dead-sector",
+    "mercantile-crossroads",
+];
 
 fn presets_dir() -> Utf8PathBuf {
     Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("presets")
@@ -281,4 +290,88 @@ fn random_cli_writes_bundle_and_reports() {
     }
     // The synthesised project itself is reusable.
     assert!(proj.join("sectorforge.toml").exists());
+}
+
+/// Every themed baseline scaffolds, loads, and validates cleanly, and carries
+/// the full overlay set at the nested `_full`-layout paths the random scaffolder
+/// references — so each one works as a `random --baseline` source. The flat
+/// `_base` copies of relations/regions/economy are *not* enough; the preset must
+/// overlay the nested versions (this test guards that requirement).
+#[test]
+fn themed_baselines_scaffold_load_validate_and_enable_overlays() {
+    let dir = presets_dir();
+    if !dir.exists() {
+        return;
+    }
+    for preset in THEMED_BASELINES {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let dest = fresh_dest(&tmp, preset);
+        sectorforge::presets::scaffold(&dir, preset, &dest, Some("baseline-test")).unwrap();
+
+        let input = sectorforge::load_project(&dest).unwrap();
+        let report = sectorforge::validate_project(&input).unwrap();
+        assert!(
+            report.errors.is_empty(),
+            "{preset} has validation errors: {:?}",
+            report.errors
+        );
+
+        for rel in [
+            "data/worlds/worlds.toml",
+            "data/names/system_names.toml",
+            "data/names/world_names.toml",
+            "data/factions/factions.toml",
+            "data/routes/route_rules.toml",
+            "data/factions/relations.toml",
+            "data/routes/regions.toml",
+            "data/worlds/economy.toml",
+            "data/history.toml",
+            "data/personae.toml",
+            "data/sites.toml",
+            "data/hooks.toml",
+            "data/missions.toml",
+            "data/prose.toml",
+        ] {
+            assert!(
+                dest.join(rel).exists(),
+                "{preset} is missing {rel} after scaffold (needed as a random baseline)"
+            );
+        }
+
+        assert!(
+            input.catalogs.regions.enabled,
+            "{preset} regions overlay must be enabled"
+        );
+        assert!(
+            input.catalogs.economy.enabled,
+            "{preset} economy overlay must be enabled"
+        );
+        assert!(
+            input.catalogs.history.enabled,
+            "{preset} history overlay must be enabled"
+        );
+    }
+}
+
+/// Driving `random` from a themed baseline produces a sector as complete as the
+/// `_full` default — same completeness guarantees, different content tree.
+#[test]
+fn random_from_each_themed_baseline_is_complete() {
+    let dir = presets_dir();
+    if !dir.exists() {
+        return;
+    }
+    for preset in THEMED_BASELINES {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let dest = fresh_dest(&tmp, preset);
+        let report = generate_random_sector_from(
+            SectorSize::Small,
+            Some(format!("baseline-it-{preset}")),
+            preset,
+            &dir,
+            &dest,
+        )
+        .unwrap_or_else(|e| panic!("random from baseline {preset} failed: {e}"));
+        assert_complete(&report, SectorSize::Small);
+    }
 }

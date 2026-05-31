@@ -1,0 +1,120 @@
+# Dead Sector — thin, dying faction roster.
+#
+# A near-abandoned void: stirring Necron dynasties, a clinging Imperial
+# remnant, Mechanicus salvage-explorators picking the ruins, a quiet Ordo
+# Xenos watch, and ork scavengers. Weights are low across the board — this is a
+# sector of embers, not empires. Overlay replaces the inherited _base roster.
+
+# ── Necrons (the waking dead) ─────────────────────────────────────────────────
+
+[[factions]]
+faction = "necron"
+faction_name = "Necrons"
+subfaction = "sautekh_dynasty"
+id = "sautekh_dynasty"
+name = "Sautekh Dynasty (Stirring)"
+kind = "necron"
+weight = 2.5
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "FrontierWorld", "IndustrialWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["ArchaeotechRuins", "HostileXenos", "ForbiddenTech"]
+
+[[factions]]
+faction = "necron"
+faction_name = "Necrons"
+subfaction = "novokh_court"
+id = "novokh_court"
+name = "Novokh Blood Court (Dormant)"
+kind = "necron"
+weight = 1.5
+default_disposition = "hostile"
+preferred_world_types = ["DeathWorld", "FrontierWorld"]
+preferred_governments = ["XenosOverlords"]
+preferred_notable_features = ["ArchaeotechRuins", "HostileXenos"]
+
+# ── Imperial remnant (the last lights) ────────────────────────────────────────
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "imperial_administration"
+id = "imperial_remnant"
+name = "Imperial Remnant Administration"
+kind = "imperial"
+weight = 3.0
+default_disposition = "lawful"
+preferred_world_types = ["HiveWorld", "BastionWorld", "AgriWorld"]
+preferred_governments = ["MilitaryGovernor", "MagistrateCouncil"]
+preferred_notable_features = ["AdministrativeHub", "PoliceState"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "imperial_guard"
+id = "survivor_garrison"
+name = "Survivor Garrison"
+kind = "imperial_guard"
+weight = 2.0
+default_disposition = "lawful"
+preferred_world_types = ["BastionWorld", "DeathWorld", "FrontierWorld"]
+preferred_governments = ["MilitaryGovernor"]
+preferred_notable_features = ["WarZone", "PoliceState"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "ecclesiarchy"
+id = "mourning_ecclesiarchy"
+name = "Mourning Ecclesiarchy"
+kind = "imperial"
+weight = 1.5
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "FeudalWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite"]
+
+# ── Mechanicus salvage (the ruin-pickers) ─────────────────────────────────────
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "mechanicus"
+id = "explorator_salvage"
+name = "Explorator Salvage Fleet"
+kind = "mechanicus"
+weight = 2.5
+default_disposition = "insular"
+preferred_world_types = ["ForgeWorld", "ResearchStation", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "ExploratorAuthority"]
+preferred_notable_features = ["ArchaeotechRuins", "ForbiddenTech", "LocalTech"]
+
+# ── Inquisition watch (the cordon) ────────────────────────────────────────────
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "ordo_xenos"
+id = "ordo_xenos_watch"
+name = "Ordo Xenos Watch"
+kind = "inquisition"
+weight = 1.0
+default_disposition = "secretive"
+preferred_world_types = ["DeathWorld", "FrontierWorld", "ShrineWorld"]
+preferred_governments = []
+preferred_notable_features = ["InquisitionOutpost", "WitchHunt", "HostileXenos"]
+
+# ── Ork scavengers (the carrion) ──────────────────────────────────────────────
+
+[[factions]]
+faction = "ork"
+faction_name = "Orks"
+subfaction = "freebooterz"
+id = "scavenger_freebootaz"
+name = "Scavenger Freebootaz"
+kind = "ork"
+weight = 2.0
+default_disposition = "hostile"
+preferred_world_types = ["FrontierWorld", "DeathWorld", "Orbital"]
+preferred_governments = ["Warlords", "XenosOverlords"]
+preferred_notable_features = ["HostileXenos", "ArchaeotechRuins"]

@@ -3352,3 +3352,49 @@ In addition to the JSON-byte test in
   agree, then asserts the hash changes when the seed changes. Detects any
   HashMap iteration-order leak or other nondeterminism reaching the
   rasteriser / PNG encoder.
+
+## Random baselines (themed presets)
+
+`sectorforge random` builds a fully-randomised sector by scaffolding a preset's
+**data tree** (worlds, factions, relations, regions, economy, history, personae,
+sites, hooks, missions, prose), then rolling a fresh `[generation]` block over
+it from the seed. Which preset supplies that data tree is the **baseline**.
+
+The four gallery presets are full-featured themed baselines — every input
+overlay and every output format is enabled, tuned to the theme:
+
+| Baseline | Theme |
+|---|---|
+| `m42-classic` | Balanced canonical Imperium (general-purpose default flavour) |
+| `embattled-frontier` | Imperium vs. Orks open war, Leagues of Votann foothold |
+| `dead-sector` | Sparse, ruins-heavy, Necron-haunted void |
+| `mercantile-crossroads` | Dense Rogue Trader / kin-merchant trade hub |
+| `_full` | The reference "everything on", balanced — the implicit default |
+
+Pick one two ways:
+
+```bash
+# CLI — defaults to _full when --baseline is omitted (unchanged behaviour)
+cargo run --bin sectorforge -- random --size medium --baseline dead-sector
+```
+
+In the **builder**, the *Random sector* wizard (RANDOM.md §7.3) has a
+**Baseline** dropdown next to Size; the choice is threaded through
+`RandomGenState::spawn` → `random_sector::generate_random_sector_from_with_progress`.
+
+**Semantics (RANDOM.md §6).** The baseline only swaps the scaffolded data tree.
+The rolled `[generation]` config is byte-identical for a given `(size, seed)`
+regardless of baseline, so the layout (placement, density, routes, sizing) is
+always fully randomised — the baseline themes the *content*, not the shape.
+
+**Adding a baseline.** A preset is a valid random baseline only if its *merged*
+tree (after any `inherits` overlay) carries every file the rolled config
+references at the nested `_full` layout: `data/factions/relations.toml`,
+`data/routes/regions.toml`, `data/worlds/economy.toml`, plus
+`data/{history,personae,sites,hooks,missions,prose}.toml`. `_base` ships the
+flat copies (`data/relations.toml`, `data/regions.toml`, `data/economy.toml`),
+so a thin preset that `inherits = "_base"` must overlay the nested versions.
+`data/routes/regions.toml` is mandatory — the scaffolder patches its
+`count`/`mean_size` in place. The
+`themed_baselines_scaffold_load_validate_and_enable_overlays` integration test
+guards this for all four presets.

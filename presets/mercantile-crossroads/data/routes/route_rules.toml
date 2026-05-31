@@ -1,0 +1,52 @@
+# Mercantile Crossroads — route weighting overrides.
+#
+# The lanes follow the money: trade hubs, freeports, spaceyards, and admin hubs
+# pull traffic hard, charted passages are cheap and common, and only the worst
+# warp phenomena deter a captain with cargo to move.
+
+[routes]
+default_weight = 1.0
+max_distance = 3
+prefer_populated_worlds = true
+prefer_trade_hubs = true
+avoid_warp_phenomena = true
+
+[[routes.modifiers]]
+when = { notable_feature = "TradeHub" }
+multiplier = 2.5
+
+[[routes.modifiers]]
+when = { notable_feature = "Freeport" }
+multiplier = 2.2
+
+[[routes.modifiers]]
+when = { notable_feature = "MajorSpaceyard" }
+multiplier = 1.9
+
+[[routes.modifiers]]
+when = { notable_feature = "AdministrativeHub" }
+multiplier = 1.7
+
+[[routes.modifiers]]
+when = { notable_feature = "PilgrimageSite" }
+multiplier = 1.4
+
+[[routes.modifiers]]
+when = { notable_feature = "WarpPhenomena" }
+multiplier = 0.30
+
+[[routes.modifiers]]
+when = { notable_feature = "HostileXenos" }
+multiplier = 0.50
+
+[[routes.modifiers]]
+when = { world_type = "ForgeWorld" }
+multiplier = 1.5
+
+[[routes.modifiers]]
+when = { route_type = "charted_passage" }
+multiplier = 1.10
+
+[[routes.modifiers]]
+when = { route_type = "secret_passage" }
+multiplier = 0.70

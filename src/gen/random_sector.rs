@@ -535,6 +535,23 @@ pub fn generate_random_sector(
     generate_random_sector_with_progress(size, seed, presets_dir, dest, &mut |_| {})
 }
 
+/// As [`generate_random_sector`], but scaffolds the data tree from an explicit
+/// `baseline` preset id (no-op progress). See
+/// [`generate_random_sector_from_with_progress`] for the baseline semantics.
+///
+/// # Errors
+///
+/// Identical to [`generate_random_sector_from_with_progress`].
+pub fn generate_random_sector_from(
+    size: SectorSize,
+    seed: Option<String>,
+    baseline: &str,
+    presets_dir: &Utf8Path,
+    dest: &Utf8Path,
+) -> Result<RandomReport, SectorError> {
+    generate_random_sector_from_with_progress(size, seed, baseline, presets_dir, dest, &mut |_| {})
+}
+
 /// As [`generate_random_sector`], but emits a [`RandomProgress`] event at the
 /// start of every pipeline phase (and throughout the long generation phase) so
 /// a GUI can animate a progress popup (RANDOM.md §7.4). The headless paths use
@@ -555,16 +572,56 @@ pub fn generate_random_sector_with_progress(
     dest: &Utf8Path,
     progress: &mut dyn FnMut(RandomProgress),
 ) -> Result<RandomReport, SectorError> {
+    generate_random_sector_from_with_progress(
+        size,
+        seed,
+        FULL_PRESET_ID,
+        presets_dir,
+        dest,
+        progress,
+    )
+}
+
+/// As [`generate_random_sector_with_progress`], but scaffolds the content +
+/// overlay *data tree* from an explicit `baseline` preset id (e.g.
+/// `"dead-sector"`) instead of [`FULL_PRESET_ID`].
+///
+/// The rolled `[generation]` config is byte-identical for the same
+/// `(size, seed)` regardless of the baseline — only the scaffolded data tree
+/// differs. So a baseline themes the sector's worlds, factions, relations,
+/// regions, economy, history, personae, sites, hooks, missions, and prose,
+/// while the layout (placement, density, routes, sizing) stays fully
+/// randomised (RANDOM.md §6: pick a themed baseline, fully roll the rest).
+///
+/// `baseline` must name a preset under `presets_dir` whose *merged* data tree
+/// (after any `inherits` overlay) carries every file the rolled config
+/// references at the standard nested paths — see [`crate::presets::scaffold`].
+/// The four checked-in themed presets (`m42-classic`, `embattled-frontier`,
+/// `dead-sector`, `mercantile-crossroads`) and `_full` all satisfy this.
+///
+/// # Errors
+///
+/// Identical to [`generate_random_sector_with_progress`]; additionally surfaces
+/// any scaffolding error if `baseline` is missing or incomplete.
+pub fn generate_random_sector_from_with_progress(
+    size: SectorSize,
+    seed: Option<String>,
+    baseline: &str,
+    presets_dir: &Utf8Path,
+    dest: &Utf8Path,
+    progress: &mut dyn FnMut(RandomProgress),
+) -> Result<RandomReport, SectorError> {
     let seed = seed.unwrap_or_else(mint_seed);
 
-    // 1. Materialise the bundle (copies _full's data tree + a sectorforge.toml
-    //    we immediately overwrite). scaffold requires `dest` not to exist.
+    // 1. Materialise the bundle (copies the baseline's data tree + a
+    //    sectorforge.toml we immediately overwrite). scaffold requires `dest`
+    //    not to exist.
     progress(RandomProgress {
         phase: RandomPhase::Scaffolding,
         fraction: phase_fraction(RandomPhase::Scaffolding, 0.0),
         detail: None,
     });
-    crate::presets::scaffold(presets_dir, FULL_PRESET_ID, dest, None)?;
+    crate::presets::scaffold(presets_dir, baseline, dest, None)?;
 
     // 2. Roll the complete config from the seed and write it over the
     //    scaffolded one — we own every field, so nothing falls to a default.

@@ -1,8 +1,18 @@
+# presets/dead-sector — a sparse, ruins-heavy, Necron-haunted void.
+#
+# Inherits the shared _base data tree and overlays a complete, themed set of
+# overlays (factions, relations, regions, route rules, economy, history,
+# personae, sites, hooks, missions, prose). Sparse, high-hazard generation;
+# every output format emitted. Baseline for
+# `sectorforge random --baseline dead-sector`.
+
 [project]
 id = "dead-sector"
 title = "Dead Sector"
-description = "Sparse low-population sector preset (§9 NEW.md)."
-version = "0.1.0"
+description = "Sparse, low-population, Necron-haunted void — every overlay and output enabled."
+version = "0.2.0"
+
+# ── Inputs (every authorable overlay) ─────────────────────────────────────────
 
 [inputs]
 world_data_dir = "data/worlds"
@@ -10,6 +20,17 @@ system_names = "data/names/system_names.toml"
 world_names = "data/names/world_names.toml"
 factions = "data/factions/factions.toml"
 route_rules = "data/routes/route_rules.toml"
+relations = "data/factions/relations.toml"
+regions = "data/routes/regions.toml"
+economy = "data/worlds/economy.toml"
+history = "data/history.toml"
+personae = "data/personae.toml"
+sites = "data/sites.toml"
+hooks = "data/hooks.toml"
+missions = "data/missions.toml"
+prose = "data/prose.toml"
+
+# ── Generation (sparse, high-hazard) ──────────────────────────────────────────
 
 [generation]
 seed = "dead-sector-seed"
@@ -43,21 +64,76 @@ max_route_distance = 6
 route_density = 0.12
 ensure_connected_graph = true
 
+[generation.relations]
+min_world_presence = 1
+
+# ── Analyze (§8 NEW.md) ───────────────────────────────────────────────────────
+
+[analyze]
+warn_faction_share = 0.70
+warn_if_disconnected = true
+warn_if_articulation = true
+tiny_sector_threshold = 4
+warn_contested_ratio = 0.40
+
+# ── Seed-search defaults (§2 NEW.md) ──────────────────────────────────────────
+
+[search]
+budget = 256
+report_top = 5
+
+# ── Sector diff defaults (§10 NEW.md) ────────────────────────────────────────
+
+[diff]
+skip_worlds = false
+skip_routes = false
+min_faction_delta = 1.0
+top_faction_deltas = 10
+
+# ── History (§1 NEW2.md) — full eras live in data/history.toml ────────────────
+
+[history]
+enabled = true
+epoch_start = 30
+epoch_end = 42
+max_events_per_world = 4
+max_events_per_system = 3
+max_events_per_route = 1
+key_events_top_n = 24
+max_subsector_events = 48
+
+# ── Outputs (every format) ────────────────────────────────────────────────────
+
 [outputs]
 directory = "out"
-formats = ["json", "markdown", "bitmap"]
+formats = ["json", "markdown", "bitmap", "svg", "html"]
 pretty_json = true
 write_per_system_files = true
 write_manifest = true
+write_diagnostics = true
 
 [outputs.bitmap]
 sector_scale = 5
 system_scale = 4
 render_systems = true
+faction_fill = true
+heatmap = "threat"
 
-[outputs.bitmap.theme]
+[outputs.html]
+theme = "dark"
+player_min_confidence = 30
+size_warn_bytes = 8388608
+compact_json = true
+
+# ── Map theme (§13 NEW2.md) ───────────────────────────────────────────────────
+
+[map_theme]
 name = "inquisition_redacted"
-
-[analyze]
-warn_faction_share = 0.70
-warn_contested_ratio = 0.40
+show_subsector_borders = true
+route_line_mode = "hazard_weighted"
+label_density = "important_only"
+legend = "full"
+symbol_set = "tactical"
+faction_tint_strength = 0.40
+heatmap_tint_min = 0.10
+heatmap_tint_range = 0.90

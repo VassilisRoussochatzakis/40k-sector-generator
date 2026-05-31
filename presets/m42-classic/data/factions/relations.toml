@@ -1,0 +1,32 @@
+# M42 Classic — diplomacy overlay (§5 NEW2.md).
+#
+# Balanced canonical relations: the Imperium tolerates the kin, wars on the
+# greenskin, and watches the witch. Built-in kind/disposition rules fill in
+# every pair this file does not pin.
+
+[relations]
+feed_conflict = true
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "ork"
+stance = "at_war"
+cause = "Standing Imperial extermination order against Greenskins."
+
+[[relations.kind_rules]]
+a = "imperial_guard"
+b = "ork"
+stance = "at_war"
+cause = "Frontline regiments hold the line against ork incursions."
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "leagues_of_votann"
+stance = "rival"
+cause = "Imperial authorities tolerate kin commerce while disputing tithe sovereignty."
+
+[[relations.kind_rules]]
+a = "mechanicus"
+b = "leagues_of_votann"
+stance = "rival"
+cause = "Competing claims over recovered archaeotech."

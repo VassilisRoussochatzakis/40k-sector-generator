@@ -1,0 +1,75 @@
+# Mercantile Crossroads — dramatis personae pools (§3 NEW.md).
+#
+# Rogue Traders, chartist captains, kin guild-masters, and forge-traders crowd
+# the roster. Loader expects PersonaeConfig at file root (no [personae] wrapper).
+
+min_world_dominance = "influence"
+max_per_world = 3
+max_per_system = 4
+
+[kinds.imperial]
+name_prefixes = ["Lord-Captain", "Captain", "Magnate", "Lady", "Don", "Governor"]
+name_roots = [
+    "Vrell", "Tavar", "Calliston", "Drachmar", "Eurysse", "Halloran",
+    "Iskander", "Kasmiri", "Lartessa", "Montague", "Orsova", "Perenne",
+    "Sartorian", "Veyne", "Wycliffe", "Zandar",
+]
+name_suffixes = ["the Gilded", "of the Long Charter", "Coin-Hand", "the Far-Venturer", "of House Vrell"]
+single_names = ["Rogue Trader Lukah Vrell", "Lord-Captain Sera Tavar", "Magnate Orsova"]
+titles = ["Rogue Trader", "Lord-Captain", "Chartist Master", "Sector Magnate", "Warrant-Holder"]
+traits = ["silver-tongued", "outrageously wealthy", "in debt to dangerous people", "lucky", "collects xenos curios"]
+
+[kinds.mechanicus]
+name_prefixes = ["Magos", "Artisan", "Negotiator", "Lexmechanic"]
+name_roots = ["Khedive", "Kelvar", "Nivelle", "Sothrax", "Vellexor", "Mercata9"]
+name_suffixes = ["7", "Theta-12", "the Broker", "of the Trade-Cohort"]
+titles = ["Magos Negotiator", "Artisan-Factor", "Logis-Trader"]
+traits = ["drives a hard bargain", "hyper-rational", "values contracts above flesh", "data-hoarder"]
+
+[kinds.leagues_of_votann]
+name_prefixes = ["Kâhl", "Guildmaster", "Hernkyn", "Theyn", "Factor"]
+name_roots = ["Borrek", "Durnvar", "Halvar", "Magni", "Norvar", "Orrik", "Sigrun"]
+name_suffixes = ["of the Long Ledger", "Coin-Counter", "Anvil-Born", "Iron-Spoken"]
+single_names = ["Guildmaster Halvar of the Long Ledger", "Kâhl Sigrun Coin-Counter"]
+titles = ["Guildmaster of the Kindred", "Kâhl of the Trade-Clan", "Hearthkyn Factor"]
+traits = ["ledger-bound", "patient", "never forgets a debt", "bionic eye", "drives a hard bargain"]
+
+[kinds.ork]
+name_prefixes = ["Kaptin", "Big Boss", "Mek", "Nob"]
+name_roots = ["Badtoof", "Snikk", "Krooga", "Drogga", "Goresplat", "Redfang"]
+name_suffixes = ["da Bold", "Loot-Grabba", "da Lucky", "Redsail"]
+single_names = ["Kaptin Badtoof Redsail", "Big Boss Goresplat"]
+titles = ["Kaptin of da Freebootaz", "Pirate-Boss", "Loota-Nob"]
+traits = ["greedy", "flies a fast ship", "missing teef", "wears looted finery"]
+
+# ── Manual personae (anchored by faction id; skipped if the seed shifts) ──────
+
+[[manual]]
+id = "persona-vrell-trader"
+faction_id = "house_vrell"
+faction_kind = "imperial"
+name = "Rogue Trader Lukah Vrell"
+title = "Warrant-Holder of House Vrell"
+traits = ["silver-tongued", "outrageously wealthy", "collects xenos curios"]
+agenda = "Corner the archaeotech trade before House Tavar does."
+anchor = { scope = "system", system_id = "sys-0001", slot = "economic_hegemon" }
+
+[[manual]]
+id = "persona-halvar-guildmaster"
+faction_id = "kin_merchant_guilds"
+faction_kind = "leagues_of_votann"
+name = "Guildmaster Halvar of the Long Ledger"
+title = "Guildmaster of the Kin Merchant Guilds"
+traits = ["ledger-bound", "patient", "never forgets a debt"]
+agenda = "Secure exclusive charter rights to the three richest lanes."
+anchor = { scope = "system", system_id = "sys-0002", slot = "economic_hegemon" }
+
+[[manual]]
+id = "persona-badtoof-pirate"
+faction_id = "crimson_freebootaz"
+faction_kind = "ork"
+name = "Kaptin Badtoof Redsail"
+title = "Kaptin of the Crimson Freebootaz"
+traits = ["greedy", "flies a fast ship", "wears looted finery"]
+agenda = "Take one fat convoy per season and live like a Warboss."
+anchor = { scope = "system", system_id = "sys-0004", slot = "sovereign" }

@@ -1,0 +1,94 @@
+# Mercantile Crossroads — economy overlay (§12 NEW.md / §4 NEW2.md).
+#
+# A prosperous trade economy: surplus everywhere, strong trade multipliers, and
+# resilient supply lines. Hive and forge worlds churn goods, agri-belts feed the
+# crews, and every trade hub lifts the whole resource layer.
+
+[economy]
+enabled = true
+feed_stability = true
+
+[economy.by_world_type.HiveWorld]
+foodstuffs = -50.0
+manufactured = 80.0
+recruits = 60.0
+
+[economy.by_world_type.AgriWorld]
+foodstuffs = 120.0
+manufactured = -5.0
+recruits = 30.0
+
+[economy.by_world_type.ForgeWorld]
+manufactured = 100.0
+munitions = 40.0
+archaeotech = 20.0
+
+[economy.by_world_type.IndustrialWorld]
+manufactured = 80.0
+munitions = 20.0
+
+[economy.by_world_type.Orbital]
+manufactured = 20.0
+foodstuffs = -10.0
+
+[economy.by_world_type.FrontierWorld]
+foodstuffs = 20.0
+manufactured = 5.0
+
+[economy.by_tech_level]
+Imperial = 1.1
+Mechanicus = 1.4
+Primitive = 0.7
+
+[economy.by_population]
+"population:massive" = 1.7
+"population:standard" = 1.1
+"population:sparse" = 0.6
+
+# ── Resource layer (§4 NEW2.md) ──────────────────────────────────────────────
+
+[resources.world_type.AgriWorld]
+food = 95
+manpower = 30
+manufacturing = 10
+
+[resources.world_type.HiveWorld]
+food = 5
+manpower = 90
+manufacturing = 70
+
+[resources.world_type.ForgeWorld]
+food = 0
+manpower = 30
+manufacturing = 95
+tech = 90
+
+[resources.world_type.IndustrialWorld]
+food = 10
+manpower = 55
+manufacturing = 80
+
+[resources.world_type.Orbital]
+food = 0
+manpower = 25
+manufacturing = 40
+
+[resources.world_type.FrontierWorld]
+food = 25
+manpower = 20
+manufacturing = 15
+
+[resources.notable_feature.TradeHub]
+trade_multiplier = 1.8
+supply_resilience = 25
+
+[resources.notable_feature.Freeport]
+trade_multiplier = 1.6
+supply_resilience = 18
+
+[resources.notable_feature.MajorSpaceyard]
+manufacturing = 25
+supply_resilience = 20
+
+[resources.notable_feature.AdministrativeHub]
+supply_resilience = 15

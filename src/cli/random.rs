@@ -21,6 +21,7 @@ pub(crate) fn run_random(
     seed: Option<String>,
     out: Option<Utf8PathBuf>,
     presets_dir: Utf8PathBuf,
+    baseline: String,
     formats: Option<Vec<String>>,
     light: bool,
     exclude: Option<Vec<String>>,
@@ -32,11 +33,16 @@ pub(crate) fn run_random(
     let dest = out.unwrap_or_else(|| Utf8PathBuf::from(format!("random-{}", dir_slug(&seed))));
 
     log_progress(format_args!(
-        "random: synthesising {} sector (seed: {seed}) in {dest}",
+        "random: synthesising {} sector from baseline '{baseline}' (seed: {seed}) in {dest}",
         size.as_slug()
     ));
-    let report =
-        random_sector::generate_random_sector(size, Some(seed.clone()), &presets_dir, &dest)?;
+    let report = random_sector::generate_random_sector_from(
+        size,
+        Some(seed.clone()),
+        &baseline,
+        &presets_dir,
+        &dest,
+    )?;
 
     // Export the bundle into <dest>/out. The synthesised config already turns
     // on all five formats; --formats picks a subset, --light/--exclude drop
@@ -75,7 +81,7 @@ pub(crate) fn run_random(
     );
     println!("Project:  {dest}");
     println!("Outputs:  {output_dir} (bundle + personae/sites/hooks/missions/gazetteer)");
-    println!("Reproduce: {}", reproduce_hint(size, &report.seed));
+    println!("Reproduce: {}", reproduce_hint(size, &baseline, &report.seed));
     Ok(ExitCode::SUCCESS)
 }
 
@@ -126,15 +132,19 @@ fn resolve_size(
     }
 }
 
-fn reproduce_hint(size: SectorSize, seed: &str) -> String {
-    match size {
+fn reproduce_hint(size: SectorSize, baseline: &str, seed: &str) -> String {
+    let base = match size {
         SectorSize::Custom { dim } => {
             format!("sectorforge random --width {dim} --height {dim} --seed {seed}")
         }
-        other => format!(
-            "sectorforge random --size {} --seed {seed}",
-            other.as_slug()
-        ),
+        other => format!("sectorforge random --size {} --seed {seed}", other.as_slug()),
+    };
+    // Echo the baseline only when it is not the implicit default, so the common
+    // case stays terse.
+    if baseline == random_sector::FULL_PRESET_ID {
+        base
+    } else {
+        format!("{base} --baseline {baseline}")
     }
 }
 

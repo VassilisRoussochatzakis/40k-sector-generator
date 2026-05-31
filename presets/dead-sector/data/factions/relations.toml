@@ -1,0 +1,43 @@
+# Dead Sector — diplomacy overlay (§5 NEW2.md).
+#
+# Everything fears the waking dead. The Necrons are at war with all the living;
+# the living squabble over the ruins they leave behind.
+
+[relations]
+feed_conflict = true
+
+[[relations.kind_rules]]
+a = "necron"
+b = "imperial"
+stance = "at_war"
+cause = "The dynasties reclaim their tomb-worlds from the Imperial squatters."
+
+[[relations.kind_rules]]
+a = "necron"
+b = "imperial_guard"
+stance = "at_war"
+cause = "Garrison forces hold the line against the metal tide."
+
+[[relations.kind_rules]]
+a = "necron"
+b = "mechanicus"
+stance = "at_war"
+cause = "The Explorators strip the very tombs the dynasties are waking from."
+
+[[relations.kind_rules]]
+a = "necron"
+b = "ork"
+stance = "hostile"
+cause = "Scavengers loot the tombs; the Necrons answer with gauss fire."
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "ork"
+stance = "at_war"
+cause = "Standing extermination order, even here at the edge of the dark."
+
+[[relations.kind_rules]]
+a = "mechanicus"
+b = "inquisition"
+stance = "rival"
+cause = "The Ordo Xenos would quarantine the very archaeotech the Magi crave."

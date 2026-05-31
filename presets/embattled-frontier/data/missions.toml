@@ -1,0 +1,8 @@
+# Embattled Frontier — mission/quest seed knobs (§3 NEW2.md / §M1..§M5 BUILDER_REQS).
+#
+# Parsed directly into `MissionsConfig` (bare file — no `[missions]` wrapper).
+# Dense, GM-facing war-campaign seeding: many objectives per warzone anchor.
+
+max_per_anchor = 3
+top_n_digest = 18
+player_edition = false

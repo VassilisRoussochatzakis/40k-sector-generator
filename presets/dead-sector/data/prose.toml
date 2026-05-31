@@ -1,0 +1,9 @@
+# Dead Sector — gazetteer / prose knobs (§6 NEW.md / §PR1..§PR4 BUILDER_REQS).
+#
+# Parsed directly into `ProseConfig` (bare file — no `[prose]` wrapper).
+# An elegiac gazetteer — ruins, silence, and the long memory of dead worlds
+# read best in the florid register.
+
+tone = "gazetteer"
+include_overview = true
+include_per_system = true

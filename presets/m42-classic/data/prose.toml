@@ -1,0 +1,8 @@
+# M42 Classic — gazetteer / prose knobs (§6 NEW.md / §PR1..§PR4 BUILDER_REQS).
+#
+# Parsed directly into `ProseConfig` (bare file — no `[prose]` wrapper).
+# Balanced sector: a florid gazetteer overview plus per-system entries.
+
+tone = "gazetteer"
+include_overview = true
+include_per_system = true

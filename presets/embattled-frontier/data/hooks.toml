@@ -1,0 +1,9 @@
+# Embattled Frontier — plot-hook knobs (§7 NEW.md / §HK4 BUILDER_REQS).
+#
+# Parsed directly into `HooksConfig` (bare file — no `[hooks]` wrapper table).
+# A warzone throws off hooks faster than a quiet sector — a higher per-anchor
+# cap and a longer digest. Nothing hidden from the GM running the campaign.
+
+max_per_anchor = 3
+top_n_digest = 15
+hide_hidden_hooks = false

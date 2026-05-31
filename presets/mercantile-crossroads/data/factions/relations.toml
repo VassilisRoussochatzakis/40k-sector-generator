@@ -1,0 +1,32 @@
+# Mercantile Crossroads — diplomacy overlay (§5 NEW2.md).
+#
+# Commerce keeps most knives sheathed: the Administratum, the guilds, and the
+# kin trade more than they fight. The exceptions are the ork freebooters
+# (everyone's enemy) and the perennial rivalry between competing dynasties.
+
+[relations]
+feed_conflict = true
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "leagues_of_votann"
+stance = "neutral"
+cause = "Lucrative charters keep the kin and the Administratum at the same table."
+
+[[relations.kind_rules]]
+a = "mechanicus"
+b = "leagues_of_votann"
+stance = "rival"
+cause = "Both covet the same archaeotech contracts, but neither will torch a paying lane."
+
+[[relations.kind_rules]]
+a = "imperial"
+b = "ork"
+stance = "at_war"
+cause = "Freebooter raids on the convoy lanes draw a standing naval response."
+
+[[relations.kind_rules]]
+a = "leagues_of_votann"
+b = "ork"
+stance = "hostile"
+cause = "Orks raid kin convoys; the Guilds hire mercenaries to answer in kind."

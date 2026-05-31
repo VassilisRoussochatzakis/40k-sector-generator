@@ -1,0 +1,144 @@
+# Mercantile Crossroads — dense trade-faction roster.
+#
+# Rogue Trader dynasties, the Chartist Captains' Union, kin merchant guilds,
+# and forge-trade Magi crowd the lanes; the Administratum taxes them all and
+# ork freebooters prey on the convoys. Weights favour many mid-sized players
+# over one hegemon. Overlay replaces the inherited _base roster.
+
+# ── Imperial authority & commerce ─────────────────────────────────────────────
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "imperial_administration"
+id = "sector_administration"
+name = "Sector Administratum"
+kind = "imperial"
+weight = 5.0
+default_disposition = "lawful"
+preferred_world_types = ["HiveWorld", "IndustrialWorld", "Orbital"]
+preferred_governments = ["MagistrateCouncil", "MilitaryGovernor"]
+preferred_notable_features = ["AdministrativeHub", "TradeHub", "MajorSpaceyard"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "chartist_captains"
+id = "chartist_union"
+name = "Chartist Captains' Union"
+kind = "imperial"
+weight = 5.0
+default_disposition = "opportunistic"
+preferred_world_types = ["Orbital", "HiveWorld", "IndustrialWorld"]
+preferred_governments = ["GuildsCombine", "Megacorporations"]
+preferred_notable_features = ["TradeHub", "Freeport", "MajorSpaceyard"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "rogue_trader"
+id = "house_vrell"
+name = "Rogue Trader Dynasty Vrell"
+kind = "imperial"
+weight = 4.5
+default_disposition = "opportunistic"
+preferred_world_types = ["Orbital", "FrontierWorld", "HiveWorld"]
+preferred_governments = ["GuildsCombine", "Megacorporations", "TraditionalistAristocracy"]
+preferred_notable_features = ["TradeHub", "Freeport", "ArchaeotechRuins"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "rogue_trader"
+id = "house_tavar"
+name = "Rogue Trader Dynasty Tavar"
+kind = "imperial"
+weight = 4.0
+default_disposition = "opportunistic"
+preferred_world_types = ["Orbital", "FrontierWorld", "AgriWorld"]
+preferred_governments = ["GuildsCombine", "TraditionalistAristocracy"]
+preferred_notable_features = ["TradeHub", "Freeport"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "imperial_navy"
+id = "battlefleet_mercantile"
+name = "Battlefleet Mercantile Escort"
+kind = "imperial"
+weight = 3.5
+default_disposition = "lawful"
+preferred_world_types = ["Orbital", "BastionWorld", "IndustrialWorld"]
+preferred_governments = ["MilitaryGovernor"]
+preferred_notable_features = ["MajorSpaceyard", "AdministrativeHub", "TradeHub"]
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "ecclesiarchy"
+id = "pilgrim_ecclesiarchy"
+name = "Pilgrim Ecclesiarchy"
+kind = "imperial"
+weight = 3.0
+default_disposition = "zealous"
+preferred_world_types = ["ShrineWorld", "FeudalWorld", "HiveWorld"]
+preferred_governments = ["EcclesiarchicalAppointee", "LocalReligiousAuthorities"]
+preferred_notable_features = ["ImportantShrine", "PilgrimageSite", "TradeHub"]
+
+# ── Mechanicus commerce ───────────────────────────────────────────────────────
+
+[[factions]]
+faction = "imperial"
+faction_name = "Imperium"
+subfaction = "mechanicus"
+id = "forge_trade_magi"
+name = "Forge-Trade Magi"
+kind = "mechanicus"
+weight = 4.0
+default_disposition = "insular"
+preferred_world_types = ["ForgeWorld", "IndustrialWorld", "Orbital"]
+preferred_governments = ["MechanicusForgeLord", "ExploratorAuthority"]
+preferred_notable_features = ["MajorSpaceyard", "LocalTech", "TradeHub"]
+
+# ── Leagues of Votann (the kin merchants) ─────────────────────────────────────
+
+[[factions]]
+faction = "leagues_of_votann"
+faction_name = "Leagues of Votann"
+subfaction = "kin_merchant_guilds"
+id = "kin_merchant_guilds"
+name = "Kin Merchant Guilds"
+kind = "leagues_of_votann"
+weight = 4.5
+default_disposition = "opportunistic"
+preferred_world_types = ["Orbital", "ForgeWorld", "FrontierWorld"]
+preferred_governments = ["GuildsCombine", "Megacorporations"]
+preferred_notable_features = ["TradeHub", "Freeport", "MajorSpaceyard"]
+
+[[factions]]
+faction = "leagues_of_votann"
+faction_name = "Leagues of Votann"
+subfaction = "kindred_prospect_clans"
+id = "kindred_prospect"
+name = "Kindred Prospect Clans"
+kind = "leagues_of_votann"
+weight = 3.0
+default_disposition = "opportunistic"
+preferred_world_types = ["FrontierWorld", "ForgeWorld", "Orbital"]
+preferred_governments = ["GuildsCombine"]
+preferred_notable_features = ["ArchaeotechRuins", "TradeHub", "Freeport"]
+
+# ── Ork freebooters (the predators) ───────────────────────────────────────────
+
+[[factions]]
+faction = "ork"
+faction_name = "Orks"
+subfaction = "freebooterz"
+id = "crimson_freebootaz"
+name = "Crimson Freebootaz"
+kind = "ork"
+weight = 2.5
+default_disposition = "hostile"
+preferred_world_types = ["FrontierWorld", "Orbital", "DeathWorld"]
+preferred_governments = ["Warlords", "XenosOverlords"]
+preferred_notable_features = ["HostileXenos", "Freeport"]

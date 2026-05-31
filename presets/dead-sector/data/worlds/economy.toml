@@ -1,0 +1,83 @@
+# Dead Sector — economy overlay (§12 NEW.md / §4 NEW2.md).
+#
+# A depressed, scavenged economy: production is a shadow of its height, supply
+# lines are brittle, and the only growth sector is salvage — archaeotech pulled
+# from the ruins. feed_stability is on so the poverty bleeds into the conflict
+# layer.
+
+[economy]
+enabled = true
+feed_stability = true
+
+[economy.by_world_type.HiveWorld]
+foodstuffs = -40.0
+manufactured = 25.0
+recruits = 30.0
+
+[economy.by_world_type.AgriWorld]
+foodstuffs = 55.0
+manufactured = -15.0
+
+[economy.by_world_type.ForgeWorld]
+manufactured = 40.0
+archaeotech = 25.0
+
+[economy.by_world_type.IndustrialWorld]
+manufactured = 30.0
+
+[economy.by_world_type.FrontierWorld]
+foodstuffs = 5.0
+manufactured = -15.0
+recruits = -15.0
+
+[economy.by_world_type.DeathWorld]
+recruits = -10.0
+foodstuffs = -25.0
+
+[economy.by_tech_level]
+Imperial = 0.8
+Mechanicus = 1.2
+Primitive = 0.5
+
+[economy.by_population]
+"population:massive" = 1.2
+"population:standard" = 0.8
+"population:sparse" = 0.4
+
+# ── Resource layer (§4 NEW2.md) ──────────────────────────────────────────────
+
+[resources.world_type.AgriWorld]
+food = 60
+manpower = 15
+manufacturing = 5
+
+[resources.world_type.HiveWorld]
+food = 5
+manpower = 55
+manufacturing = 35
+
+[resources.world_type.ForgeWorld]
+food = 0
+manpower = 20
+manufacturing = 60
+tech = 70
+
+[resources.world_type.IndustrialWorld]
+food = 5
+manpower = 30
+manufacturing = 45
+
+[resources.world_type.FrontierWorld]
+food = 15
+manpower = 10
+manufacturing = 5
+
+[resources.notable_feature.ArchaeotechRuins]
+tech = 45
+trade_multiplier = 1.2
+
+[resources.notable_feature.HostileXenos]
+supply_resilience = -25
+
+[resources.notable_feature.WarpPhenomena]
+supply_resilience = -20

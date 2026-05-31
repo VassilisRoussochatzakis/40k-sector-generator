@@ -1,0 +1,62 @@
+# Dead Sector — planetary sites / points of interest (§7 NEW2.md).
+#
+# Tomb complexes, quarantine cordons, and ruin-vaults dominate. Manual entries
+# anchor to default deterministic ids for the first few systems; the loader
+# skips stale entries silently if the seed changes. Uninhabited worlds still
+# get sites — most of the interest here is in dead places.
+
+max_per_world = 4
+skip_uninhabited = false
+player_edition = false
+
+[[manual]]
+id = "site-sautekh-tomb"
+world_id = "sys-0001-w01"
+system_id = "sys-0001"
+kind = "xenos_ruin"
+name = "The Sautekh Tomb-Spire"
+controlling_faction = "sautekh_dynasty"
+known_to = ["ordo_xenos_watch", "explorator_salvage"]
+public_status = "quarantined"
+actual_status = "active"
+tags = ["necron-tomb", "waking", "gauss-scarred"]
+hook = "The spire's lights came on three nights ago, and have not gone out."
+
+[[manual]]
+id = "site-quarantine-cordon"
+world_id = "sys-0001-w02"
+system_id = "sys-0001"
+kind = "quarantine_zone"
+name = "Ordo Xenos Cordon Theta"
+controlling_faction = "ordo_xenos_watch"
+known_to = ["ordo_xenos_watch", "imperial_remnant"]
+public_status = "quarantined"
+actual_status = "quarantined"
+tags = ["cordon", "xenos-watch", "no-survivors"]
+hook = "The cordon's last vox-report was a single repeated word: 'awake'."
+
+[[manual]]
+id = "site-salvage-vault"
+world_id = "sys-0003-w01"
+system_id = "sys-0003"
+kind = "data_vault"
+name = "The Half-Cracked Vault"
+controlling_faction = "explorator_salvage"
+known_to = ["explorator_salvage", "ordo_xenos_watch"]
+public_status = "restricted"
+actual_status = "active"
+tags = ["archaeotech", "necron-vault", "salvage-claim"]
+hook = "The Explorators are one seal away from something the Inquisition wants buried."
+
+[[manual]]
+id = "site-remnant-hold"
+world_id = "sys-0002-w01"
+system_id = "sys-0002"
+kind = "arbites_precinct"
+name = "The Last Hold"
+controlling_faction = "imperial_remnant"
+known_to = []
+public_status = "active"
+actual_status = "active"
+tags = ["fortified", "refugees", "rationed"]
+hook = "Every refugee convoy that leaves the Hold arrives one shorter than it set out."

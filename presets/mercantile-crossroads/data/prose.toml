@@ -1,0 +1,8 @@
+# Mercantile Crossroads — gazetteer / prose knobs (§6 NEW.md / §PR1..§PR4 BUILDER_REQS).
+#
+# Parsed directly into `ProseConfig` (bare file — no `[prose]` wrapper).
+# A florid gazetteer suits a sector of dynasties, charters, and grand bazaars.
+
+tone = "gazetteer"
+include_overview = true
+include_per_system = true

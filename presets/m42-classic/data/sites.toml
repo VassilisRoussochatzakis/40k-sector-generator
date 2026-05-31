@@ -1,0 +1,9 @@
+# M42 Classic — planetary sites / points of interest (§7 NEW2.md).
+#
+# Derive-only (no [[manual]] entries) so the site pass applies cleanly to any
+# sector the seed produces. Balanced caps; uninhabited worlds still get sites
+# (ruins, relays, anchorages) so the map stays interesting.
+
+max_per_world = 4
+skip_uninhabited = false
+player_edition = false

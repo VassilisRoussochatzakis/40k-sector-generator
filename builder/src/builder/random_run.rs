@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 use camino::Utf8PathBuf;
 use sectorforge::config::OutputFormat;
 use sectorforge::random_sector::{
-    generate_random_sector_with_progress, RandomPhase, RandomProgress, SectorSize,
+    generate_random_sector_from_with_progress, RandomPhase, RandomProgress, SectorSize,
 };
 use sectorforge_gui_core::jobs::{spawn_job, JobHandle};
 
@@ -69,6 +69,7 @@ impl RandomGenState {
         &mut self,
         ctx: &egui::Context,
         size: SectorSize,
+        baseline: String,
         seed: String,
         dest: Utf8PathBuf,
     ) {
@@ -88,9 +89,10 @@ impl RandomGenState {
             ctx.clone(),
             move |job_ctx| {
                 let presets_dir = sectorforge::presets::default_presets_dir();
-                let result = generate_random_sector_with_progress(
+                let result = generate_random_sector_from_with_progress(
                     size,
                     Some(seed.clone()),
+                    &baseline,
                     &presets_dir,
                     &dest,
                     &mut |p| {

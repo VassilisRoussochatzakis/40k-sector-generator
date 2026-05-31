@@ -1,5 +1,5 @@
 title = "Embattled Frontier"
-description = "20x20 contested marchworld sector: Imperium vs. Orks open war with a small Leagues of Votann presence. Fully fleshed out — every overlay (factions, relations, regions, economy, history, personae, sites, HTML/map theme) is active."
-tags = ["war", "frontier", "20x20", "imperium", "orks", "leagues-of-votann", "fully-featured"]
+description = "20x20 contested marchworld sector: Imperium vs. Orks open war with a small Leagues of Votann presence. Fully fleshed out — every overlay (factions, relations, regions, economy, history, personae, sites, hooks, missions, prose) and every output format (incl. SVG + interactive HTML) is active, tuned to a sparse, high-hazard warzone."
+tags = ["war", "frontier", "20x20", "imperium", "orks", "leagues-of-votann", "fully-featured", "random-baseline"]
 default_seed = "embattled-frontier-seed"
 inherits = "_base"

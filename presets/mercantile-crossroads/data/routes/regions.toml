@@ -1,0 +1,27 @@
+# Mercantile Crossroads — warp phenomena overlay (§5 NEW.md).
+#
+# A well-charted, well-policed sector: calm corridors dominate the lanes, with
+# only occasional turbulence and the rare storm to keep the Navigators honest.
+# `count` / `mean_size` are scaled to the grid by `sectorforge random`.
+
+[regions]
+enabled = true
+count = 3
+mean_size = 5
+apply_to_routes = true
+
+[[regions.conditions]]
+kind = "calm_corridor"
+weight = 3.5
+
+[[regions.conditions]]
+kind = "turbulence"
+weight = 1.5
+
+[[regions.conditions]]
+kind = "warp_storm"
+weight = 0.8
+
+[[regions.conditions]]
+kind = "anomaly"
+weight = 0.6

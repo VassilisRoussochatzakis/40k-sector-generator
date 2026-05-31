@@ -38,6 +38,19 @@ const SIZES: &[(&str, &str)] = &[
     ("custom", "Custom…"),
 ];
 
+/// `(id, label)` for the baseline dropdown. `_full` is the balanced
+/// "everything on" reference; the rest are the themed gallery presets. The
+/// chosen baseline supplies the content/overlay data tree, while the layout is
+/// still rolled from the seed (RANDOM.md §6: pick a themed baseline, fully roll
+/// the rest).
+const BASELINES: &[(&str, &str)] = &[
+    ("_full", "Everything — balanced, all features"),
+    ("m42-classic", "M42 Classic — balanced Imperium"),
+    ("embattled-frontier", "Embattled Frontier — Imperium vs Orks"),
+    ("dead-sector", "Dead Sector — ruins & Necrons"),
+    ("mercantile-crossroads", "Mercantile Crossroads — trade hub"),
+];
+
 /// Render the wizard. Returns `true` when the modal should be dismissed
 /// (created, cancelled, or surfaced an error message).
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
@@ -60,6 +73,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         custom_w,
         custom_h,
         seed,
+        baseline,
     } = state.modal.clone().unwrap_or_else(default_modal)
     else {
         return false;
@@ -69,14 +83,16 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     let mut custom_w = custom_w;
     let mut custom_h = custom_h;
     let mut seed = seed;
+    let mut baseline = baseline;
     let mut close = false;
 
     ui.heading("Random sector");
     ui.add_space(2.0);
     ui.label(
-        "Pick a size; everything else — systems, worlds, factions, routes, \
-         regions, economy, history — is rolled from the seed, and every overlay \
-         is enabled.",
+        "Pick a size and a themed baseline. The layout — systems, worlds, \
+         routes, regions — is rolled from the seed, while the baseline seeds the \
+         content (factions, history, personae, sites, prose). Every overlay is \
+         enabled.",
     );
     ui.label(
         egui::RichText::new("Sectors are square — every size is N × N.")
@@ -94,6 +110,16 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                 .show_ui(ui, |ui| {
                     for (id, label) in SIZES {
                         ui.selectable_value(&mut size, (*id).to_string(), *label);
+                    }
+                });
+            ui.end_row();
+
+            ui.label("Baseline");
+            egui::ComboBox::from_id_salt("random_baseline")
+                .selected_text(baseline_label(&baseline))
+                .show_ui(ui, |ui| {
+                    for (id, label) in BASELINES {
+                        ui.selectable_value(&mut baseline, (*id).to_string(), *label);
                     }
                 });
             ui.end_row();
@@ -151,7 +177,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                     // host reopens `dest` once the job lands (RANDOM.md §7.4).
                     state
                         .random_gen
-                        .spawn(ui.ctx(), sector_size, seed_val, dest);
+                        .spawn(ui.ctx(), sector_size, baseline.clone(), seed_val, dest);
                 }
             }
         }
@@ -172,6 +198,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         custom_w,
         custom_h,
         seed,
+        baseline,
     });
     false
 }
@@ -260,6 +287,13 @@ fn size_label(id: &str) -> &'static str {
         .map_or("Medium — 16 × 16", |(_, label)| *label)
 }
 
+fn baseline_label(id: &str) -> &'static str {
+    BASELINES
+        .iter()
+        .find(|(s, _)| *s == id)
+        .map_or("Everything — balanced, all features", |(_, label)| *label)
+}
+
 fn dir_slug(seed: &str) -> String {
     let s: String = seed
         .chars()
@@ -279,5 +313,6 @@ fn default_modal() -> ModalKind {
         custom_w: 16,
         custom_h: 16,
         seed: String::new(),
+        baseline: "_full".to_string(),
     }
 }

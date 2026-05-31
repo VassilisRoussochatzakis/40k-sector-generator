@@ -1,0 +1,62 @@
+# Mercantile Crossroads — planetary sites / points of interest (§7 NEW2.md).
+#
+# Freeports, dockyards, and guild anchorages dominate. Manual entries anchor to
+# default deterministic ids for the first few systems; the loader skips stale
+# entries silently if the seed changes. player_edition is on — this is a
+# crew-facing sector.
+
+max_per_world = 5
+skip_uninhabited = false
+player_edition = true
+
+[[manual]]
+id = "site-grand-freeport"
+world_id = "sys-0001-w01"
+system_id = "sys-0001"
+kind = "star_fort_dockyard"
+name = "The Vrell Freeport"
+controlling_faction = "house_vrell"
+known_to = []
+public_status = "active"
+actual_status = "active"
+tags = ["freeport", "bazaar", "dynasty-seat"]
+hook = "A sealed Vrell cargo-hold is up for auction; three buyers have already died bidding."
+
+[[manual]]
+id = "site-guild-anchorage"
+world_id = "sys-0002-w01"
+system_id = "sys-0002"
+kind = "naval_anchorage"
+name = "Kindred Guild Anchorage"
+controlling_faction = "kin_merchant_guilds"
+known_to = ["kindred_prospect", "sector_administration"]
+public_status = "active"
+actual_status = "active"
+tags = ["kin-dock", "ledger-house", "bonded-warehouse"]
+hook = "The Guild ledger shows a lane that pays triple — and that no ship has ever returned from."
+
+[[manual]]
+id = "site-admin-exchange"
+world_id = "sys-0003-w01"
+system_id = "sys-0003"
+kind = "manufactorum"
+name = "Sector Tithe Exchange"
+controlling_faction = "sector_administration"
+known_to = []
+public_status = "active"
+actual_status = "active"
+tags = ["tithe-house", "customs", "administratum"]
+hook = "An auditor has gone missing with proof that a Rogue Trader undertithes by half."
+
+[[manual]]
+id = "site-forge-emporium"
+world_id = "sys-0005-w01"
+system_id = "sys-0005"
+kind = "data_vault"
+name = "Forge-Trade Emporium"
+controlling_faction = "forge_trade_magi"
+known_to = ["forge_trade_magi", "house_tavar"]
+public_status = "restricted"
+actual_status = "active"
+tags = ["tech-market", "archaeotech", "sanctioned"]
+hook = "A device on the Emporium floor answers questions no one has asked it."

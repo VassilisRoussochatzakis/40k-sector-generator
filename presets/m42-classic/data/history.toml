@@ -1,0 +1,102 @@
+# M42 Classic — sector chronicle (§1 NEW2.md).
+#
+# A balanced, canonical Imperial arc: discovery and compliance, a long
+# consolidation, the usual rebellions and warp storms, and an Indomitus-era
+# present. Event-type vocabulary matches the proven set the generator emits.
+
+[history]
+enabled = true
+epoch_start = 34
+epoch_end = 42
+max_events_per_world = 5
+max_events_per_system = 4
+max_events_per_route = 2
+key_events_top_n = 30
+max_subsector_events = 64
+
+# ── Era bands ─────────────────────────────────────────────────────────────────
+
+[[history.eras]]
+id = "first_settlement"
+label = "First Settlement"
+relative_start = -1600
+relative_end = -1100
+weight = 1.0
+allowed_events = ["foundation", "discovery"]
+
+[[history.eras]]
+id = "compliance"
+label = "Imperial Compliance"
+relative_start = -1099
+relative_end = -700
+weight = 1.1
+allowed_events = [
+    "imperial_mandate_granted",
+    "annexation",
+    "consecration",
+    "commercial_charter",
+]
+
+[[history.eras]]
+id = "high_consolidation"
+label = "High Consolidation"
+relative_start = -699
+relative_end = -300
+weight = 1.0
+allowed_events = ["consecration", "commercial_charter", "discovery", "annexation"]
+
+[[history.eras]]
+id = "age_of_unrest"
+label = "Age of Unrest"
+relative_start = -299
+relative_end = -80
+weight = 1.2
+allowed_events = ["uprising", "secession", "warp_storm_surge", "reconquest", "purge"]
+
+[[history.eras]]
+id = "indomitus_era"
+label = "The Indomitus Era"
+relative_start = -79
+relative_end = -1
+weight = 1.1
+allowed_events = ["reconquest", "consecration", "warp_storm_surge", "blockade"]
+
+[[history.eras]]
+id = "present_day"
+label = "Present Day"
+relative_start = 0
+relative_end = 0
+weight = 1.2
+allowed_events = ["reconquest", "consecration", "uprising"]
+
+# ── Event rules ───────────────────────────────────────────────────────────────
+
+[[history.event_rules]]
+id = "warzone_reconquest"
+when_system_state = "warzone"
+prefer_event = "reconquest"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "contested_uprising"
+when_system_state = "contested"
+prefer_event = "uprising"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "stable_consecration"
+when_system_state = "stable"
+prefer_event = "consecration"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "blockaded_blockade"
+when_system_state = "blockaded"
+prefer_event = "blockade"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "lost_secession"
+when_system_state = "lost"
+prefer_event = "secession"
+minimum_events = 1

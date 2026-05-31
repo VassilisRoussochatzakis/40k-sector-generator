@@ -123,10 +123,18 @@ enum Command {
         /// `./random-<seed>`.
         #[arg(long)]
         out: Option<Utf8PathBuf>,
-        /// Source directory holding presets (must contain `_full`). Defaults
-        /// to `./presets`.
+        /// Source directory holding presets (must contain the chosen
+        /// `--baseline`, `_full` by default). Defaults to `./presets`.
         #[arg(long, default_value = "presets")]
         presets_dir: Utf8PathBuf,
+        /// Baseline preset whose themed data tree seeds the sector's content
+        /// (worlds, factions, relations, regions, economy, history, personae,
+        /// sites, hooks, missions, prose). The layout — placement, density,
+        /// routes, sizing — is still fully rolled from the seed. Use a gallery
+        /// preset (e.g. `dead-sector`, `mercantile-crossroads`) or `_full` (the
+        /// default: every feature, balanced).
+        #[arg(long, default_value = "_full")]
+        baseline: String,
         /// Comma-separated output formats to export. Defaults to all five
         /// (json, markdown, png, svg, html).
         #[arg(long, value_delimiter = ',')]
@@ -504,11 +512,12 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             seed,
             out,
             presets_dir,
+            baseline,
             formats,
             light,
             exclude,
         } => random::run_random(
-            size, width, height, seed, out, presets_dir, formats, light, exclude,
+            size, width, height, seed, out, presets_dir, baseline, formats, light, exclude,
         ),
         Command::GenerateSystem {
             project,

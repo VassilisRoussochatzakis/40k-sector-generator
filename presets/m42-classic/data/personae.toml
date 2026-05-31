@@ -1,0 +1,67 @@
+# M42 Classic — dramatis personae pools (§3 NEW.md).
+#
+# Balanced Imperial-led roster. Loader expects PersonaeConfig at file root (no
+# [personae] wrapper). Derive-only (no [[manual]] entries) so the pools apply
+# cleanly to whatever sector the seed produces.
+
+min_world_dominance = "influence"
+max_per_world = 2
+max_per_system = 3
+
+[kinds.imperial]
+name_prefixes = ["Lord", "Lady", "Cardinal", "Marshal", "Magistrate", "Castellan", "Governor"]
+name_roots = [
+    "Argentius", "Belisar", "Cassia", "Drusilla", "Eustace", "Faustinus",
+    "Galenius", "Hadria", "Iocanthe", "Julien", "Klemens", "Lucia",
+    "Marcellus", "Nyssa", "Octavian", "Pallas", "Quintus", "Roderick",
+    "Sabina", "Tarsus", "Valerian", "Yseult",
+]
+name_suffixes = ["the Elder", "the Just", "Aquilon", "the Stern", "of the Aegis"]
+single_names = ["Lord-Governor Helmawr", "Sector Lord Vandire", "Cardinal Augustus"]
+titles = ["Sector Lord", "Lord-Governor", "Planetary Governor", "Cardinal-Astral", "Magistrate"]
+traits = ["dutiful", "calculating", "devout", "vain", "incorruptible", "weary of office"]
+
+[kinds.imperial_guard]
+name_prefixes = ["Colonel", "Lord-Colonel", "Captain", "Major", "Commissar"]
+name_roots = ["Avven", "Baird", "Creed", "Drennan", "Garran", "Hark", "Kell", "Steiner", "Tasker"]
+name_suffixes = ["the Iron", "of Cadia", "of Vostroya", "the Tenacious"]
+single_names = ["Lord-Colonel Helsker", "Commissar Vant"]
+titles = ["Regimental Colonel", "Storm-Captain", "Munitorum Liaison"]
+traits = ["veteran of three sieges", "soft-spoken under fire", "by-the-book", "scarred"]
+
+[kinds.adeptus_astartes]
+name_prefixes = ["Brother-Captain", "Sergeant", "Chaplain", "Lieutenant"]
+name_roots = ["Aexilus", "Brennor", "Caelum", "Dareth", "Helion", "Korven", "Lyran", "Maerix"]
+name_suffixes = ["the Stoic", "Anvil-Hand", "the Resolute"]
+single_names = ["Brother-Captain Nikalus", "Chaplain Verros"]
+titles = ["Brother-Captain", "Reclusiarch", "Lieutenant of the Third"]
+traits = ["weathered ceramite", "scriptural calm", "implacable", "veteran of the Long War"]
+
+[kinds.mechanicus]
+name_prefixes = ["Magos", "Genetor", "Dominus", "Artisan", "Tech-priest"]
+name_roots = ["Khedive", "Kelvar", "Nivelle", "Sothrax", "Vellexor"]
+name_suffixes = ["7", "Theta-12", "the Augur", "of the Coil"]
+titles = ["Magos Dominus", "Genetor Biologis", "Logis-Conservator"]
+traits = ["flensed flesh", "binharic voice", "hyper-rational", "data-hoarder"]
+
+[kinds.inquisition]
+name_prefixes = ["Inquisitor", "Interrogator", "Lord-Inquisitor"]
+name_roots = ["Ravenor", "Glas", "Voss", "Krane", "Sythraen"]
+name_suffixes = ["the Severe", "of the Ordo", "the Watching"]
+titles = ["Inquisitor", "Lord-Inquisitor", "Interrogator-Adept"]
+traits = ["unblinking gaze", "patient", "marked by the warp"]
+
+[kinds.ork]
+name_prefixes = ["Warboss", "Big Boss", "Kaptin", "Mek"]
+name_roots = ["Snikk", "Gor'kaz", "Thrak", "Urgrim", "Mogg", "Krooga", "Drogga"]
+name_suffixes = ["Toofcrusha", "da Loud", "Skulltaka", "Killchoppa"]
+single_names = ["Warboss Gutrippa", "Kaptin Badtoof"]
+titles = ["Warboss of da Waaagh!", "Big Mek", "Kaptin of da Freebootaz"]
+traits = ["krumpin' big", "missing teef", "covered in glyphs", "loves loud gunz"]
+
+[kinds.leagues_of_votann]
+name_prefixes = ["Kâhl", "Grimnyr", "Hernkyn", "Theyn"]
+name_roots = ["Borrek", "Durnvar", "Halvar", "Magni", "Norvar", "Orrik"]
+name_suffixes = ["Anvil-Born", "of the Long Ledger", "Iron-Spoken"]
+titles = ["Kâhl of the Prospect Clan", "Hearthkyn Foreman", "Trade Liaison of the Kindred"]
+traits = ["bionic eye", "stoic to a fault", "ledger-bound", "owes a debt"]

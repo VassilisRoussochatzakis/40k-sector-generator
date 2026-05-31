@@ -1,0 +1,98 @@
+# Mercantile Crossroads — sector chronicle (§1 NEW2.md).
+#
+# A prosperity arc: discovery, an early and enthusiastic compliance, waves of
+# commercial charters, and a present day of crowded, well-policed lanes — with
+# the occasional pirate blockade or tithe rebellion to keep it honest.
+# Event-type vocabulary matches the proven set the generator emits.
+
+[history]
+enabled = true
+epoch_start = 36
+epoch_end = 42
+max_events_per_world = 6
+max_events_per_system = 5
+max_events_per_route = 3
+key_events_top_n = 36
+max_subsector_events = 72
+
+# ── Era bands ─────────────────────────────────────────────────────────────────
+
+[[history.eras]]
+id = "first_charters"
+label = "The First Charters"
+relative_start = -1300
+relative_end = -900
+weight = 1.0
+allowed_events = ["discovery", "foundation", "commercial_charter"]
+
+[[history.eras]]
+id = "eager_compliance"
+label = "Eager Compliance"
+relative_start = -899
+relative_end = -560
+weight = 1.1
+allowed_events = ["imperial_mandate_granted", "annexation", "commercial_charter", "consecration"]
+
+[[history.eras]]
+id = "the_great_boom"
+label = "The Great Boom"
+relative_start = -559
+relative_end = -220
+weight = 1.4
+allowed_events = ["commercial_charter", "consecration", "discovery", "annexation"]
+
+[[history.eras]]
+id = "corsair_years"
+label = "The Corsair Years"
+relative_start = -219
+relative_end = -60
+weight = 1.0
+allowed_events = ["blockade", "uprising", "reconquest", "commercial_charter"]
+
+[[history.eras]]
+id = "policed_lanes"
+label = "The Policed Lanes"
+relative_start = -59
+relative_end = -1
+weight = 1.1
+allowed_events = ["reconquest", "consecration", "commercial_charter", "blockade"]
+
+[[history.eras]]
+id = "present_traffic"
+label = "Present Traffic"
+relative_start = 0
+relative_end = 0
+weight = 1.2
+allowed_events = ["commercial_charter", "consecration", "reconquest"]
+
+# ── Event rules ───────────────────────────────────────────────────────────────
+
+[[history.event_rules]]
+id = "stable_charter"
+when_system_state = "stable"
+prefer_event = "commercial_charter"
+minimum_events = 2
+
+[[history.event_rules]]
+id = "blockaded_blockade"
+when_system_state = "blockaded"
+prefer_event = "blockade"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "contested_uprising"
+when_system_state = "contested"
+prefer_event = "uprising"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "warzone_reconquest"
+when_system_state = "warzone"
+prefer_event = "reconquest"
+minimum_events = 1
+
+[[history.event_rules]]
+id = "lost_secession"
+when_system_state = "lost"
+prefer_event = "secession"
+minimum_events = 1

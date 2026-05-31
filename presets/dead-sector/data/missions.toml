@@ -1,0 +1,8 @@
+# Dead Sector — mission/quest seed knobs (§3 NEW2.md / §M1..§M5 BUILDER_REQS).
+#
+# Parsed directly into `MissionsConfig` (bare file — no `[missions]` wrapper).
+# Few survivors, few patrons: a lean mission spread, GM-facing.
+
+max_per_anchor = 2
+top_n_digest = 10
+player_edition = false

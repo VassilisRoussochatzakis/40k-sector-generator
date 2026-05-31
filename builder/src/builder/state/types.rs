@@ -61,6 +61,10 @@ pub enum ModalKind {
         custom_w: u32,
         custom_h: u32,
         seed: String,
+        /// Baseline preset id whose themed data tree seeds the sector's content
+        /// while the layout is fully rolled from the seed. `_full` (the
+        /// default) means "every feature, balanced".
+        baseline: String,
     },
     Message(String),
     /// §P5: an external file change was detected and the in-memory buffer is

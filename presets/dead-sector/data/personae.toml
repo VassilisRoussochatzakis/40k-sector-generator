@@ -1,0 +1,88 @@
+# Dead Sector — dramatis personae pools (§3 NEW.md).
+#
+# Necron lords stir at the head of the roster; a thin scatter of Imperial,
+# Mechanicus, Inquisition, and ork survivors fills the rest. Loader expects
+# PersonaeConfig at file root (no [personae] wrapper).
+
+min_world_dominance = "influence"
+max_per_world = 2
+max_per_system = 3
+
+[kinds.necron]
+name_prefixes = ["Overlord", "Phaeron", "Nemesor", "Cryptek", "Lord", "Plasmancer"]
+name_roots = [
+    "Imhotekh", "Anrakyr", "Trazyn", "Zahndrekh", "Obyron", "Szeras",
+    "Orikan", "Khaygis", "Nakhmenos", "Seth021", "Valgûl",
+]
+name_suffixes = ["the Stormlord", "the Traveller", "the Infinite", "the Undying", "of the Sautekh"]
+single_names = ["Nemesor Zahndrekh", "Trazyn the Infinite (rumour)"]
+titles = ["Phaeron", "Overlord", "Nemesor", "Cryptek", "Lord of the Dynasty"]
+traits = ["ancient beyond reckoning", "implacable", "cold patience", "glory-bound and deluded", "clad in living metal"]
+
+[kinds.imperial]
+name_prefixes = ["Governor", "Lord", "Lady", "Magistrate", "Castellan"]
+name_roots = ["Argentius", "Belisar", "Cassia", "Drusilla", "Faustinus", "Hadria", "Roderick", "Valerian"]
+name_suffixes = ["the Last", "the Stubborn", "of the Cordon", "the Forsaken"]
+single_names = ["Governor Mourne", "Castellan Vask"]
+titles = ["Planetary Governor", "Magistrate of the Remnant", "Castellan of the Last Hold"]
+traits = ["haunted", "stubborn", "starving the garrison to feed the people", "praying to a silent Throne"]
+
+[kinds.imperial_guard]
+name_prefixes = ["Colonel", "Captain", "Sergeant", "Commissar"]
+name_roots = ["Avven", "Creed", "Drennan", "Garran", "Kell", "Steiner"]
+name_suffixes = ["the Weary", "of the Cordon", "Last-Stand"]
+titles = ["Garrison Colonel", "Watch-Captain", "Commissar of the Remnant"]
+traits = ["out of ammunition", "sleepless", "counting the dead", "unbroken"]
+
+[kinds.mechanicus]
+name_prefixes = ["Magos", "Genetor", "Explorator", "Artisan"]
+name_roots = ["Khedive", "Kelvar", "Nivelle", "Sothrax", "Vellexor", "Cawl0x"]
+name_suffixes = ["7", "Theta-12", "the Delver", "of the Salvage Fleet"]
+titles = ["Magos Explorator", "Logis-Salvor", "Artisan of the Deep Vaults"]
+traits = ["obsessed with the tombs", "heretek-curious", "data-hoarder", "deaf to warnings"]
+
+[kinds.inquisition]
+name_prefixes = ["Inquisitor", "Interrogator", "Lord-Inquisitor"]
+name_roots = ["Glas", "Voss", "Krane", "Sythraen", "Mortis"]
+name_suffixes = ["the Cordoner", "of the Ordo", "the Watching"]
+titles = ["Inquisitor of the Ordo Xenos", "Lord-Inquisitor", "Cordon-Master"]
+traits = ["would burn the sector to be sure", "patient", "marked by what he has seen"]
+
+[kinds.ork]
+name_prefixes = ["Kaptin", "Big Boss", "Mek", "Looter"]
+name_roots = ["Snikk", "Krooga", "Drogga", "Buzzgut", "Goresplat"]
+name_suffixes = ["da Loota", "Scrapgrabba", "da Greedy"]
+titles = ["Kaptin of da Freebootaz", "Looter-Boss", "Scrap-Mek"]
+traits = ["digs where it shouldn't", "missing teef", "greedy", "lucky (so far)"]
+
+# ── Manual personae (anchored by faction id; skipped if the seed shifts) ──────
+
+[[manual]]
+id = "persona-sautekh-overlord"
+faction_id = "sautekh_dynasty"
+faction_kind = "necron"
+name = "Overlord Khaygis the Undying"
+title = "Overlord of the Sautekh Vanguard"
+traits = ["ancient beyond reckoning", "implacable", "cold patience"]
+agenda = "Reclaim the tomb-worlds, one waking dynasty at a time."
+anchor = { scope = "system", system_id = "sys-0001", slot = "sovereign" }
+
+[[manual]]
+id = "persona-remnant-governor"
+faction_id = "imperial_remnant"
+faction_kind = "imperial"
+name = "Governor Aldous Mourne"
+title = "Governor of the Imperial Remnant"
+traits = ["haunted", "stubborn", "praying to a silent Throne"]
+agenda = "Hold one more world, one more season, against the rising metal."
+anchor = { scope = "system", system_id = "sys-0002", slot = "sovereign" }
+
+[[manual]]
+id = "persona-explorator-magos"
+faction_id = "explorator_salvage"
+faction_kind = "mechanicus"
+name = "Magos Explorator Vellexor"
+title = "Magos of the Salvage Fleet"
+traits = ["obsessed with the tombs", "heretek-curious", "deaf to warnings"]
+agenda = "Crack one intact tomb-vault before the Ordo Xenos quarantines the system."
+anchor = { scope = "system", system_id = "sys-0003", slot = "economic_hegemon" }

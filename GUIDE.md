@@ -1909,7 +1909,12 @@ ring — reads its colour and sizing from
 [`RenderMapTheme`](gui-core/src/map_theme.rs). Apps either pass a customised theme via
 `SectorView { theme: Some(&...), .. }` or leave it `None` to fall back to
 [`RenderMapTheme::default`]. Sizing is expressed as `ScaledSize { mul, min }`,
-which the painter resolves with `hex_size * mul` floored at `min`. To restyle
+which the painter resolves with `hex_size * mul` floored at `min`. Screen-text
+labels (system, subsector, pip, **and region**) are the exception: they take
+only the `mul` and scale linearly with zoom via the `*_font_px` helpers in
+[sector_view.rs](gui-core/src/sector_view.rs), then disappear below a ~3px
+`*_MIN_VISIBLE_PX` threshold rather than flooring at `min` — a floor would make
+the chip balloon relative to the shrinking map as the user zooms out. To restyle
 the map, edit one struct; the viewer, the editor MAP panel, and the builder MAP
 tab all follow. Named `RenderMapTheme` to disambiguate from
 [`sectorforge::map_theme::MapTheme`](src/export/map_theme.rs) — the data-layer

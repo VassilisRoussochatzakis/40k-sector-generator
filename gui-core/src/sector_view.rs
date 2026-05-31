@@ -21,6 +21,7 @@ use super::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
 const SYSTEM_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
 const SYSTEM_PIP_MIN_VISIBLE_PX: f32 = 3.0;
 const SUBSECTOR_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
+const REGION_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
 
 pub struct SectorMapCache {
     pub hex_subsector: HashMap<(i32, i32), String>,
@@ -1306,6 +1307,14 @@ fn system_pip_metrics(theme: &RenderMapTheme, hex_size: f32) -> Option<(f32, f32
     (font_size >= SYSTEM_PIP_MIN_VISIBLE_PX).then_some((font_size, disc_r))
 }
 
+fn region_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
+    // Match system labels: scale linearly with zoom, then vanish when too
+    // small to read — never floor at a fixed px. A floor makes the chip
+    // balloon relative to the shrinking map as the user zooms out.
+    let label_size = hex_size * theme.region_label_font.mul;
+    (label_size >= REGION_LABEL_MIN_VISIBLE_PX).then_some(label_size)
+}
+
 fn subsector_label_font_px(theme: &RenderMapTheme, hex_size: f32) -> Option<f32> {
     if hex_size >= 40.0 {
         return None;
@@ -1362,7 +1371,10 @@ fn draw_region_labels(
     if sector.regions.is_empty() {
         return;
     }
-    let font = FontId::monospace(theme.region_label_font.px(g.hex_size));
+    let Some(font_px) = region_label_font_px(theme, g.hex_size) else {
+        return;
+    };
+    let font = FontId::monospace(font_px);
     let pad = Vec2::new(6.0, 3.0);
     for region in sector.regions.iter() {
         let anchor = if let Some(cache) = cache {

@@ -413,7 +413,7 @@ pub fn open_project(project_dir: &Utf8Path) -> Result<BuilderState, BuilderError
         sector.width,
         sector.height,
     );
-    state.sector = sector;
+    state.sector = sector.into();
     state.index = index;
     state.config = input.config;
     state.data_catalogs = catalogs;
@@ -606,15 +606,16 @@ pub fn save_project_as(state: &mut BuilderState, root: &Utf8Path) -> Result<(), 
     // Update the manifest digests to mirror what we just wrote before
     // serialising the sector. This keeps `sector.manifest.input_digests`
     // honest after a builder save.
-    state.sector.manifest.input_digests = digests
+    let s = state.sector_mut();
+    s.manifest.input_digests = digests
         .iter()
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect();
-    state.sector.manifest.system_count = state.sector.systems.len();
-    state.sector.manifest.world_count = state.sector.systems.iter().map(|s| s.worlds.len()).sum();
-    state.sector.manifest.route_count = state.sector.routes.len();
+    s.manifest.system_count = s.systems.len();
+    s.manifest.world_count = s.systems.iter().map(|sys| sys.worlds.len()).sum();
+    s.manifest.route_count = s.routes.len();
 
-    let sector_text = serde_json::to_string_pretty(&state.sector)?;
+    let sector_text = serde_json::to_string_pretty(&*state.sector)?;
     atomic_write(&out_dir.join("sector.json"), sector_text.as_bytes())?;
 
     if state.config.outputs.write_manifest {

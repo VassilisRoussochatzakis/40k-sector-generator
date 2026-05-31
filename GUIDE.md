@@ -103,9 +103,11 @@ scan counts, changed routes, bridge checks, and final stability totals),
 hidden-route layers (endpoint scans, candidate-pair counts, and emit progress),
 the optional stability rebalance (when `[generation.routes].stability_targets`
 is set), route-control derivation, influence-field projection/resolution, chronicle
-scan/sort progress, overlays, invariant check, and export. Stdout keeps the
-final summary, so scripted callers can redirect stderr if they only want
-artifacts or JSON.
+scan/sort progress, overlays, invariant check, and export. Export reports each
+format as it is written (with the file size on completion) and a live byte
+counter while the large `sector.json` streams to disk, so a 100 MB+ write is no
+longer a silent pause. Stdout keeps the final summary, so scripted callers can
+redirect stderr if they only want artifacts or JSON.
 
 | Flag | Meaning |
 |---|---|
@@ -115,6 +117,9 @@ artifacts or JSON.
 | `--heatmap <MODE>` | Override `[outputs.bitmap].heatmap` for PNG exports |
 | `--theme <NAME>` | Override `[outputs.bitmap.theme].name` for PNG exports |
 | `--no-faction-fill` | Disable dominant-faction tinting on PNG maps |
+| `--formats <LIST>` | Comma-separated subset to write, overriding `[outputs].formats`. Tokens: `json`, `markdown`, `png`, `svg`, `html` |
+| `--light` | Drop render-only artifacts (`html`, `png`, `svg`, `markdown`); keep the `json` the viewer loads. Subtracts from `--formats` / `[outputs].formats` |
+| `--exclude <LIST>` | Comma-separated formats to drop from the effective set. `json` is load-bearing (the viewer reads `out/sector.json`) and cannot be excluded |
 
 ### `sectorforge generate-system --project <DIR>`
 
@@ -185,6 +190,8 @@ two seeds differ in *shape*, not just in contents.
 | `--out <DIR>` | Project directory to create (must not exist). Default `./random-<seed>` |
 | `--presets-dir <DIR>` | Source presets dir; must contain `_full` (default `./presets`) |
 | `--formats <LIST>` | Comma-separated export formats. Default: all five (`json,markdown,png,svg,html`) |
+| `--light` | Drop render-only artifacts (`html`, `png`, `svg`, `markdown`); keep the `json` the viewer loads. Subtracts from `--formats` |
+| `--exclude <LIST>` | Comma-separated formats to drop. `json` is load-bearing (the viewer reads `out/sector.json`) and cannot be excluded |
 
 ```bash
 # Roll a medium sector with a freshly minted seed.
@@ -195,6 +202,10 @@ cargo run --bin sectorforge -- random --size large --seed crusade-7 --out ./crus
 
 # Custom 24×24 square grid, JSON + Markdown only.
 cargo run --bin sectorforge -- random --width 24 --height 24 --formats json,markdown
+
+# Skip the heavy render artifacts (html/png/svg/md); keep json (+ manifest) so
+# the result still opens in the viewer.
+cargo run --bin sectorforge -- random --size huge --light
 ```
 
 Outputs land in `<out>/out/`: the requested bundle formats plus `personae`,

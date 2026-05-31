@@ -30,7 +30,7 @@ impl BuilderState {
     /// the report exposes the violation so the user can choose to undo. This
     /// matches the spec's "soft" invariant policy outside of export.
     pub fn run(&mut self, mut cmd: BuilderCommand) -> Result<(), BuilderError> {
-        cmd.apply(&mut self.sector)?;
+        cmd.apply(self.sector_mut())?;
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         self.command_log.truncate(self.command_cursor);
@@ -110,7 +110,7 @@ impl BuilderState {
             return Ok(());
         }
         let mut cmd = self.command_log[self.command_cursor].clone();
-        cmd.apply(&mut self.sector)?;
+        cmd.apply(self.sector_mut())?;
         self.command_log[self.command_cursor] = cmd;
         self.command_cursor += 1;
         self.index = BuilderIndex::rebuild(&self.sector);
@@ -126,7 +126,7 @@ impl BuilderState {
     pub fn snapshot(&mut self, name: impl Into<String>) {
         self.snapshots.push(Snapshot::new(
             name,
-            self.sector.clone(),
+            (*self.sector).clone(),
             self.command_cursor,
         ));
     }
@@ -137,7 +137,7 @@ impl BuilderState {
         let Some(snap) = self.snapshots.iter().find(|s| s.name == name).cloned() else {
             return false;
         };
-        self.sector = snap.sector;
+        self.sector = snap.sector.into();
         self.command_cursor = snap.command_log_position.min(self.command_log.len());
         self.dirty = true;
         self.mark_validation_dirty();

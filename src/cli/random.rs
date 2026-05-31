@@ -8,11 +8,10 @@
 use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
-use sectorforge::config::OutputFormat;
 use sectorforge::random_sector::{self, SectorSize};
 use sectorforge::SectorError;
 
-use super::common::log_progress;
+use super::common::{log_export_progress, log_progress, resolve_formats};
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn run_random(
@@ -23,6 +22,8 @@ pub(crate) fn run_random(
     out: Option<Utf8PathBuf>,
     presets_dir: Utf8PathBuf,
     formats: Option<Vec<String>>,
+    light: bool,
+    exclude: Option<Vec<String>>,
 ) -> Result<ExitCode, SectorError> {
     let size = resolve_size(size.as_deref(), width, height)?;
     // Mint here (not inside the core) so we can name the project dir after the
@@ -38,14 +39,18 @@ pub(crate) fn run_random(
         random_sector::generate_random_sector(size, Some(seed.clone()), &presets_dir, &dest)?;
 
     // Export the bundle into <dest>/out. The synthesised config already turns
-    // on all five formats; --formats overrides which subset is written.
+    // on all five formats; --formats picks a subset, --light/--exclude drop
+    // render artifacts. `json` is always kept (the viewer reads sector.json).
     let mut output_cfg = report.input.config.outputs.clone();
-    if let Some(tokens) = formats {
-        output_cfg.formats = parse_formats(&tokens)?;
-    }
+    output_cfg.formats = resolve_formats(output_cfg.formats.clone(), formats, exclude, light)?;
     let output_dir = dest.join(&output_cfg.directory);
     log_progress(format_args!("random: exporting bundle to {output_dir}"));
-    sectorforge::export_sector(&report.sector, &output_cfg, &output_dir)?;
+    sectorforge::export_sector_with_progress(
+        &report.sector,
+        &output_cfg,
+        &output_dir,
+        log_export_progress,
+    )?;
 
     // The five post-generation reports alongside the bundle, using the configs
     // the project was loaded with.
@@ -119,27 +124,6 @@ fn resolve_size(
         }),
         None => Ok(SectorSize::Medium),
     }
-}
-
-fn parse_formats(tokens: &[String]) -> Result<Vec<OutputFormat>, SectorError> {
-    let mut out: Vec<OutputFormat> = Vec::new();
-    for token in tokens {
-        match OutputFormat::parse_token(token) {
-            Some(f) if !out.contains(&f) => out.push(f),
-            Some(_) => {}
-            None => {
-                return Err(SectorError::InvalidConfig(format!(
-                    "unknown --formats token '{token}' (expected json|markdown|png|svg|html)"
-                )))
-            }
-        }
-    }
-    if out.is_empty() {
-        return Err(SectorError::InvalidConfig(
-            "--formats listed no valid formats".into(),
-        ));
-    }
-    Ok(out)
 }
 
 fn reproduce_hint(size: SectorSize, seed: &str) -> String {

@@ -79,7 +79,7 @@ impl SessionFile {
     pub fn from_state(state: &BuilderState, files: Vec<EmbeddedFile>) -> Self {
         Self {
             version: SESSION_VERSION,
-            sector: state.sector.clone(),
+            sector: (*state.sector).clone(),
             config: state.config.clone(),
             command_log: state.command_log.clone(),
             command_cursor: state.command_cursor,
@@ -99,7 +99,7 @@ impl SessionFile {
 
         let index = BuilderIndex::rebuild(&self.sector);
         BuilderState {
-            sector: self.sector,
+            sector: self.sector.into(),
             project_path: self.project_path,
             config: self.config,
             data_catalogs: DataCatalogs::new(),

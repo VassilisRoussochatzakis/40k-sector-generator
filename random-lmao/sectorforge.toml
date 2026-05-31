@@ -54,7 +54,7 @@ ensure_connected_graph = true
 # Target stability mix for public warp lanes. Quantile re-bucketing runs after
 # the region overlay, so this Stable backbone survives the storm-heavy
 # regions.toml instead of being flooded to Perilous. Weights are relative.
-stability_targets = { stable = 0.32, unstable = 0.30, hazardous = 0.23, perilous = 0.15 }
+stability_targets = { stable = 0.4, unstable = 0.30, hazardous = 0.2, perilous = 0.1 }
 
 [generation.relations]
 min_world_presence = 2

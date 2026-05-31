@@ -311,7 +311,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                 }
             }
             if !edits.is_empty() {
-                let target = &mut state.sector.systems[sys_idx].worlds[w_idx].factions;
+                let target = &mut state.sector_mut().systems[sys_idx].worlds[w_idx].factions;
                 for (i, p) in edits {
                     if i < target.len() {
                         target[i] = p;
@@ -321,7 +321,7 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                 state.mark_validation_dirty();
             }
             if let Some(i) = remove_at {
-                let target = &mut state.sector.systems[sys_idx].worlds[w_idx].factions;
+                let target = &mut state.sector_mut().systems[sys_idx].worlds[w_idx].factions;
                 if i < target.len() {
                     let removed = target.remove(i);
                     state
@@ -673,7 +673,7 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
                 });
             if ui.small_button("Apply to sector rollups").clicked() {
                 let power = aggregate_faction_power(&state.sector.systems);
-                sectorforge::control::apply_faction_power(&mut state.sector.factions, &power);
+                sectorforge::control::apply_faction_power(&mut state.sector_mut().factions, &power);
                 state.dirty = true;
                 state.mark_validation_dirty();
             }
@@ -859,7 +859,7 @@ fn apply_bulk_convert(
     to: ClaimType,
 ) -> usize {
     let mut n = 0usize;
-    for sys in &mut state.sector.systems {
+    for sys in &mut state.sector_mut().systems {
         for w in &mut sys.worlds {
             for c in &mut w.claims {
                 if &c.faction_id == faction && c.claim_type == from {

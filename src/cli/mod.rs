@@ -88,6 +88,16 @@ enum Command {
         /// `markdown`, `png` (alias for `bitmap`), `svg`, `html`.
         #[arg(long, value_delimiter = ',')]
         formats: Option<Vec<String>>,
+        /// Drop render-only artifacts (html, png, svg, markdown), keeping the
+        /// machine-readable `json` the viewer loads. Subtracts from `--formats`
+        /// / `[outputs].formats`.
+        #[arg(long)]
+        light: bool,
+        /// Comma-separated formats to *exclude* from the effective set. `json`
+        /// is load-bearing (the viewer reads `out/sector.json`) and cannot be
+        /// excluded. Applies after `--formats` / `--light`.
+        #[arg(long, value_delimiter = ',')]
+        exclude: Option<Vec<String>>,
     },
     /// Synthesise a fully-complete, fully-randomised sector from nothing but a
     /// size (RANDOM.md). Materialises a fresh project under `--out` with every
@@ -121,6 +131,16 @@ enum Command {
         /// (json, markdown, png, svg, html).
         #[arg(long, value_delimiter = ',')]
         formats: Option<Vec<String>>,
+        /// Drop render-only artifacts (html, png, svg, markdown), keeping the
+        /// machine-readable `json` the viewer loads. Subtracts from `--formats`
+        /// / the synthesised config's formats.
+        #[arg(long)]
+        light: bool,
+        /// Comma-separated formats to *exclude* from the effective set. `json`
+        /// is load-bearing (the viewer reads `out/sector.json`) and cannot be
+        /// excluded. Applies after `--formats` / `--light`.
+        #[arg(long, value_delimiter = ',')]
+        exclude: Option<Vec<String>>,
     },
     /// Generate a single standalone system from a project directory.
     GenerateSystem {
@@ -461,6 +481,8 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             constraints,
             max_candidates,
             formats,
+            light,
+            exclude,
         } => generate::run_generate(
             project,
             seed,
@@ -472,6 +494,8 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             constraints,
             max_candidates,
             formats,
+            light,
+            exclude,
         ),
         Command::Random {
             size,
@@ -481,7 +505,11 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             out,
             presets_dir,
             formats,
-        } => random::run_random(size, width, height, seed, out, presets_dir, formats),
+            light,
+            exclude,
+        } => random::run_random(
+            size, width, height, seed, out, presets_dir, formats, light, exclude,
+        ),
         Command::GenerateSystem {
             project,
             seed,

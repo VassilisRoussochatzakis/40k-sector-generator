@@ -984,7 +984,7 @@ mod tests {
 
     fn seed_state() -> BuilderState {
         let mut state = BuilderState::new_blank("rel-test", "Rel", "s", 4, 4);
-        state.sector = GeneratedSector::empty("rel-test", "Rel", "s", 4, 4);
+        state.sector = GeneratedSector::empty("rel-test", "Rel", "s", 4, 4).into();
         state
             .sector
             .factions

@@ -611,7 +611,7 @@ fn show_star_section(
                 };
             }
 
-            let sys = &mut state.sector.systems[sys_idx];
+            let sys = &mut state.sector_mut().systems[sys_idx];
             if toggle_star {
                 if has_star && sys.star.is_none() {
                     sys.star = Some(sectorforge::sector_model::GeneratedStar {
@@ -1410,7 +1410,7 @@ pub(crate) fn apply_bulk_primary_faction(
 /// multi-selection menu.
 pub(crate) fn apply_bulk_clear_factions(state: &mut BuilderState) {
     let ids: BTreeSet<SystemId> = state.selected_systems.clone();
-    for sys in &mut state.sector.systems {
+    for sys in &mut state.sector_mut().systems {
         if ids.contains(&sys.id) {
             sys.primary_factions.clear();
         }

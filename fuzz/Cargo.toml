@@ -17,7 +17,7 @@ cargo-fuzz = true
 #   cargo +nightly fuzz run map_theme_parse_color
 [dependencies]
 libfuzzer-sys = "0.4"
-sectorforge = { path = "..", package = "sector-generator" }
+sectorforge = { path = ".." }
 
 [[bin]]
 name = "config_parse"

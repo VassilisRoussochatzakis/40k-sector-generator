@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.87"
 
 [dependencies]
-sectorforge = { package = "sector-generator", path = ".." }
+sectorforge = { path = ".." }
 egui = "0.29"
 image = { version = "0.25", default-features = false, features = ["png"] }
 

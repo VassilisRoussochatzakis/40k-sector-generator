@@ -1915,6 +1915,9 @@ Several `s*` aliases are registered in [.cargo/config.toml](.cargo/config.toml):
 - `cargo sview` — run the viewer/editor (release)
 - `cargo sbuild` — run the interactive builder (release)
 - `cargo srun` — run the `sectorforge` CLI (release)
+- `cargo sg <project-dir> [flags]` — shorthand for `cargo srun generate --project
+  <project-dir>`. The first positional arg is the project folder; extra flags
+  (e.g. `--seed`, `--light`, `--out`) append after it.
 - `cargo sba` — pre-build every runnable bin so the three aliases above launch
   with no recompile. Deliberately uses `--bins`, not `--all-targets`:
   tests/benches drag dev-deps (proptest, criterion, tempfile) into the graph and
@@ -1933,6 +1936,14 @@ cargo sview --segmentum out/segmentumTEST/segmentum.json
 
 # Empty editor (no sector loaded — starts in edit mode)
 cargo sview
+```
+
+```bash
+# Generate a sector from a project folder (shorthand)
+cargo sg examples/m42_project
+
+# …with overrides (flags append after the project dir)
+cargo sg examples/m42_project --seed 42 --light --out /tmp/run
 ```
 
 With no args, the GUI launches an empty editor. To load the default example,

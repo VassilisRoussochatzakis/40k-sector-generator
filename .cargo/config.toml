@@ -9,3 +9,7 @@ sbuild = "run --release -p sectorforge-builder --"
 # first launch. `--bins` keeps the resolution identical to the run aliases.
 sba = "build --release --workspace --bins"
 srun = "run --release --bin sectorforge --"
+# `sg <project-dir> [flags]` — shorthand for `srun generate --project <dir>`.
+# Trailing `--project` means the first positional arg is the project folder;
+# extra flags append after it. E.g. `cargo sg examples/m42_project --seed 42`.
+sg = "run --release --bin sectorforge -- generate --project"

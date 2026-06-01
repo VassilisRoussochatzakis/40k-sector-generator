@@ -6,11 +6,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
-                ui.label(
-                    RichText::new("no sector loaded")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
             });
         return;
     };
@@ -25,13 +21,11 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 ui.label(
                     RichText::new("WARP REGIONS")
                         .color(palette::chrome_text())
-                        .monospace()
                         .strong(),
                 );
                 ui.label(
                     RichText::new("§5 NEW.md — regional warp phenomena overlay")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
+                        .color(palette::chrome_text_dim()),
                 );
                 ui.add_space(8.0);
                 if sector.regions.is_empty() {
@@ -40,8 +34,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                             "no regions configured — enable in regions.toml or \
                             sectorforge.toml",
                         )
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
+                        .color(palette::chrome_text_dim()),
                     );
                     return;
                 }
@@ -52,61 +45,50 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         ui.label(
                             RichText::new("ID")
                                 .color(palette::chrome_text_dim())
-                                .monospace()
                                 .strong(),
                         );
                         ui.label(
                             RichText::new("NAME")
                                 .color(palette::chrome_text_dim())
-                                .monospace()
                                 .strong(),
                         );
                         ui.label(
                             RichText::new("KIND")
                                 .color(palette::chrome_text_dim())
-                                .monospace()
                                 .strong(),
                         );
                         ui.label(
                             RichText::new("DESCRIPTION")
                                 .color(palette::chrome_text_dim())
-                                .monospace()
                                 .strong(),
                         );
                         ui.label(
                             RichText::new("HEXES")
                                 .color(palette::chrome_text_dim())
-                                .monospace()
                                 .strong(),
                         );
                         ui.label(
                             RichText::new("CENTRE")
                                 .color(palette::chrome_text_dim())
-                                .monospace()
                                 .strong(),
                         );
                         ui.end_row();
                         for r in sector.regions.iter() {
-                            ui.label(RichText::new(&r.id).monospace());
-                            ui.label(RichText::new(&r.name).monospace());
+                            ui.label(RichText::new(&r.id));
+                            ui.label(RichText::new(&r.name));
                             ui.label(
                                 RichText::new(r.kind.label())
-                                    .color(Color32::from_rgb(220, 160, 60))
-                                    .monospace(),
+                                    .color(Color32::from_rgb(220, 160, 60)),
                             );
                             ui.add(
                                 egui::Label::new(
                                     RichText::new(r.kind.description())
-                                        .color(palette::chrome_text_dim())
-                                        .monospace(),
+                                        .color(palette::chrome_text_dim()),
                                 )
                                 .wrap(),
                             );
-                            ui.label(RichText::new(r.hexes.len().to_string()).monospace());
-                            ui.label(
-                                RichText::new(format!("({},{})", r.centre.q, r.centre.r))
-                                    .monospace(),
-                            );
+                            ui.label(RichText::new(r.hexes.len().to_string()));
+                            ui.label(RichText::new(format!("({},{})", r.centre.q, r.centre.r)));
                             ui.end_row();
                         }
                     });

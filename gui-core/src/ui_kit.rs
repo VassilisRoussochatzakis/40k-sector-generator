@@ -8,8 +8,8 @@
 //!   one flat wall of widgets.
 //! - **Field rows** — [`field`]: an aligned label-left / control-right row.
 //!
-//! Plus [`combo`] (a pre-sized dropdown) and a set of monospace text helpers
-//! ([`mono`], [`mono_title`], …) for tabular panels like
+//! Plus [`combo`] (a pre-sized dropdown) and a set of text helpers
+//! ([`mono_title`], …) for tabular panels like
 //! [`crate::info_panel`].
 //!
 //! Everything reads the active theme — `Frame::group` paints the themed
@@ -20,26 +20,20 @@
 //!
 //! [docs/UI_OVERHAUL.md]: the UI overhaul playbook.
 
-use egui::{FontId, Frame, Margin, RichText, Rounding, Ui, WidgetText};
+use egui::{Frame, Margin, RichText, Rounding, Ui, WidgetText};
 
 use crate::palette;
 
-/// Monospace text scale, aligned with the theme type scale (`§UO3.1`). Tabular
-/// panels use these explicit sizes so columns line up; everything else should
-/// just use plain `ui.label(..)` and inherit the theme's proportional `Body`.
+/// Proportional text scale, aligned with the theme type scale (`§UO3.1`). The
+/// tabular helpers use these explicit sizes for a consistent hierarchy;
+/// everything else should just use plain `ui.label(..)` and inherit `Body`.
 pub const TITLE: f32 = 20.0;
-/// Section-header monospace size.
+/// Section-header size.
 pub const SECTION: f32 = 15.0;
-/// Body / value monospace size.
+/// Body / value size.
 pub const BODY: f32 = 15.0;
-/// Dimmed / key monospace size.
+/// Dimmed / key size.
 pub const DIM: f32 = 14.0;
-
-/// A monospace [`FontId`] at `size`.
-#[must_use]
-pub fn mono(size: f32) -> FontId {
-    FontId::monospace(size)
-}
 
 // ── tier-2: section containers ──────────────────────────────────────────────
 
@@ -110,59 +104,43 @@ pub fn combo(id_source: impl std::hash::Hash, selected: impl Into<WidgetText>) -
         .width(190.0)
 }
 
-// ── monospace text helpers (tabular panels) ─────────────────────────────────
+// ── text helpers (tabular panels) ─────────────────────────────────
 
-/// Monospace title row (size [`TITLE`]), primary text color, + a little space.
+/// Title row (size [`TITLE`]), primary text color, + a little space.
 pub fn mono_title(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(TITLE)),
-    );
+    ui.label(RichText::new(s).color(palette::chrome_text()).size(TITLE));
     ui.add_space(2.0);
 }
 
-/// Bold monospace section header (size [`SECTION`]), primary text color.
+/// Bold section header (size [`SECTION`]), primary text color.
 pub fn mono_section(ui: &mut Ui, s: &str) {
     ui.label(
         RichText::new(s)
             .color(palette::chrome_text())
-            .font(mono(SECTION))
+            .size(SECTION)
             .strong(),
     );
 }
 
-/// Monospace body line (size [`BODY`]), primary text color.
+/// Body line (size [`BODY`]), primary text color.
 pub fn mono_body(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(BODY)),
-    );
+    ui.label(RichText::new(s).color(palette::chrome_text()).size(BODY));
 }
 
-/// Dimmed monospace line (size [`DIM`]), secondary text color.
+/// Dimmed line (size [`DIM`]), secondary text color.
 pub fn mono_dim(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text_dim())
-            .font(mono(DIM)),
-    );
+    ui.label(RichText::new(s).color(palette::chrome_text_dim()).size(DIM));
 }
 
-/// A `key: value` row — dimmed monospace key, primary monospace value.
+/// A `key: value` row — dimmed key, primary value.
 pub fn kv(ui: &mut Ui, k: &str, v: &str) {
     ui.horizontal(|ui| {
         ui.label(
             RichText::new(format!("{k}:"))
                 .color(palette::chrome_text_dim())
-                .font(mono(DIM)),
+                .size(DIM),
         );
-        ui.label(
-            RichText::new(v)
-                .color(palette::chrome_text())
-                .font(mono(DIM)),
-        );
+        ui.label(RichText::new(v).color(palette::chrome_text()).size(DIM));
     });
 }
 

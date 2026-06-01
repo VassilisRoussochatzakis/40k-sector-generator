@@ -1775,7 +1775,28 @@ buttons/combos are comfortably tall and stop clipping enum names. A second
 headless test locks these values. This is Phase 0 of the broader UI overhaul
 tracked in [docs/UI_OVERHAUL.md](docs/UI_OVERHAUL.md) (`§UO`): the theme is the
 single global lever for chrome typography/spacing — never hardcode a font size
-or chrome color in a panel.
+or chrome color in a panel. Consequently **both** apps now render proportional
+chrome end to end: the builder always did, and the **viewer** — historically a
+monospace "console" with ~300 `RichText::monospace()` calls plus an `editor/`
+subtree styled through a hardcoded-size `mono(size)` helper — was migrated to
+proportional everywhere so it matches the builder. The `editor/` panels no longer
+set a per-widget font at all: the old `ui_font(size)` helper was removed and the
+panels now inherit the theme text styles (Body/Button/Small) exactly as the
+builder does, so the two apps are at full size parity. The shared
+[`gui-core` `ui_kit`](gui-core/src/ui_kit.rs) text helpers (`mono_title` /
+`mono_section` / `mono_body` / `mono_dim` / `kv`, dogfooded by
+[`info_panel`](gui-core/src/info_panel.rs) in **both** apps) were likewise
+flipped from `FontId::monospace` to proportional `.size(..)` at the same
+theme-aligned sizes; the `mono_*` names are retained as historical but now render
+proportional. The single deliberate hold-out is the **segmentum map-canvas
+overlay text** ([segmentum_view.rs](viewer/src/segmentum_view.rs)
+`paint_text(... FontId::monospace ...)`): like faction/hazard/route colors it is
+*map render*, not chrome, and stays monospace by the same rule that keeps the
+semantic map stable across themes. The viewer top bar
+([viewer/src/app/layout.rs](viewer/src/app/layout.rs)) is also split into two
+`horizontal_wrapped` rows — row 1 view navigation (`SECTOR`…`DATA-RAW`), row 2 the
+route-view toggle + file/export actions + status — so the dense action set no
+longer wraps into the view tabs.
 
 **Shared widget kit** ([gui-core/src/ui_kit.rs](gui-core/src/ui_kit.rs), UI
 overhaul Phase 1). The tier-2/tier-3 building blocks panels were missing:

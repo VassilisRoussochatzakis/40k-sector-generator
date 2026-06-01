@@ -41,18 +41,13 @@ impl DashboardState {
 pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     state.ensure_for(sector);
     let Some(a) = state.analysis.as_ref() else {
-        ui.label(
-            RichText::new("analysis unavailable")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("analysis unavailable").color(palette::chrome_text_dim()));
         return;
     };
 
     ui.label(
         RichText::new(format!("DASHBOARD — {}", a.sector_id.to_uppercase()))
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.label(
@@ -60,16 +55,14 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
             "{} systems · {} worlds · {} routes · {} factions",
             a.system_count, a.world_count, a.route_count, a.faction_count
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     ui.add_space(8.0);
 
     if a.low_confidence {
         ui.label(
             RichText::new("⚠ low-confidence sector (few systems)")
-                .color(Color32::from_rgb(235, 200, 90))
-                .monospace(),
+                .color(Color32::from_rgb(235, 200, 90)),
         );
         ui.add_space(6.0);
     }
@@ -78,7 +71,6 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     ui.label(
         RichText::new("FACTION BALANCE")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.label(
@@ -86,8 +78,7 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
             "Gini {:.3}   (0 = even, 1 = winner-take-all)",
             a.faction_balance.gini
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     ui.add_space(4.0);
     const TOP: usize = 12;
@@ -98,8 +89,7 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     if total > TOP {
         ui.label(
             RichText::new(format!("… {} more factions", total - TOP))
-                .color(palette::chrome_text_dim())
-                .monospace(),
+                .color(palette::chrome_text_dim()),
         );
     }
 
@@ -110,7 +100,6 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     ui.label(
         RichText::new("POLITICAL STATE")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.label(
@@ -119,16 +108,11 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
             a.contested_world_ratio * 100.0,
             a.avg_claims_per_world
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     if !a.system_state_counts.is_empty() {
         for (k, v) in &a.system_state_counts {
-            ui.label(
-                RichText::new(format!("  {k}: {v}"))
-                    .color(palette::chrome_text_dim())
-                    .monospace(),
-            );
+            ui.label(RichText::new(format!("  {k}: {v}")).color(palette::chrome_text_dim()));
         }
     }
 
@@ -139,7 +123,6 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     ui.label(
         RichText::new("CONNECTIVITY")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     let c = &a.connectivity;
@@ -152,8 +135,7 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
             "Components: {} · Largest: {} · Diameter: {}",
             c.component_count, c.largest_component_size, diameter_text
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     if !c.articulation_point_ids.is_empty() {
         ui.label(
@@ -161,15 +143,13 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
                 "Articulation points: {}",
                 c.articulation_point_ids.join(", ")
             ))
-            .color(Color32::from_rgb(235, 200, 90))
-            .monospace(),
+            .color(Color32::from_rgb(235, 200, 90)),
         );
     }
     if !c.isolated_system_ids.is_empty() {
         ui.label(
             RichText::new(format!("Isolated: {}", c.isolated_system_ids.join(", ")))
-                .color(palette::chrome_text_dim())
-                .monospace(),
+                .color(palette::chrome_text_dim()),
         );
     }
 
@@ -180,7 +160,6 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     ui.label(
         RichText::new("DISTRIBUTIONS")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     dist_block(ui, "World types", &a.world_type_distribution);
@@ -197,7 +176,6 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
         ui.label(
             RichText::new("SUBSECTOR VARIETY")
                 .color(palette::chrome_text())
-                .monospace()
                 .strong(),
         );
         for v in &a.subsector_variety {
@@ -206,8 +184,7 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
                     "{} {} — {} unique dominants · {} contested",
                     v.label, v.name, v.unique_dominants, v.contested_count
                 ))
-                .color(palette::chrome_text_dim())
-                .monospace(),
+                .color(palette::chrome_text_dim()),
             );
         }
         ui.add_space(10.0);
@@ -218,15 +195,10 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     ui.label(
         RichText::new("HEALTH FLAGS")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     if a.health_flags.is_empty() {
-        ui.label(
-            RichText::new("(none)")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("(none)").color(palette::chrome_text_dim()));
     } else {
         for f in &a.health_flags {
             let color = match f.severity {
@@ -241,11 +213,7 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
                 FlagSeverity::Info => "INFO",
                 _ => "UNKNOWN",
             };
-            ui.label(
-                RichText::new(format!("[{tag}] {} — {}", f.code, f.message))
-                    .color(color)
-                    .monospace(),
-            );
+            ui.label(RichText::new(format!("[{tag}] {} — {}", f.code, f.message)).color(color));
         }
     }
 }
@@ -274,8 +242,7 @@ fn share_bar(
         );
         ui.label(
             RichText::new(format!("{:>5.1}%  {}", share * 100.0, name))
-                .color(palette::chrome_text())
-                .monospace(),
+                .color(palette::chrome_text()),
         );
     });
 }
@@ -289,11 +256,7 @@ fn dist_block(
         return;
     }
     let total: u32 = map.values().sum();
-    ui.label(
-        RichText::new(format!("{title} — {total} total"))
-            .color(palette::chrome_text_dim())
-            .monospace(),
-    );
+    ui.label(RichText::new(format!("{title} — {total} total")).color(palette::chrome_text_dim()));
     for (k, v) in map {
         let pct = if total == 0 {
             0.0
@@ -301,9 +264,7 @@ fn dist_block(
             (*v as f32) * 100.0 / total as f32
         };
         ui.label(
-            RichText::new(format!("  {k:<24} {v:>4}  ({pct:>4.1}%)"))
-                .color(palette::chrome_text())
-                .monospace(),
+            RichText::new(format!("  {k:<24} {v:>4}  ({pct:>4.1}%)")).color(palette::chrome_text()),
         );
     }
 }

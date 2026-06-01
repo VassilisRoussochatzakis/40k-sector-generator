@@ -348,10 +348,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
 
     let mut dirty = false;
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button(RichText::new("+ ADD FACTION").monospace())
-            .clicked()
-        {
+        if ui.button(RichText::new("+ ADD FACTION")).clicked() {
             let id = next_faction_id(sector);
             sector
                 .factions
@@ -359,7 +356,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
             dirty = true;
         }
         if ui
-            .button(RichText::new("REBUILD ALL FROM WORLD DATA").monospace())
+            .button(RichText::new("REBUILD ALL FROM WORLD DATA"))
             .on_hover_text("refresh summary presences from per-world faction records")
             .clicked()
         {
@@ -367,7 +364,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
             dirty = true;
         }
         if ui
-            .button(RichText::new("SORT BY NAME").monospace())
+            .button(RichText::new("SORT BY NAME"))
             .on_hover_text("sort sector faction list by id")
             .clicked()
         {
@@ -395,7 +392,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
         let fac = &mut sector.factions[i];
         dirty |= show_edit_row(ui, fac, &obs, &all_systems, &all_worlds);
         if ui
-            .button(RichText::new("DELETE FACTION").monospace())
+            .button(RichText::new("DELETE FACTION"))
             .on_hover_text("remove this faction and sector references to it")
             .clicked()
         {
@@ -421,7 +418,6 @@ pub fn show_designer(
     ui.label(
         RichText::new("FACTION DESIGNER")
             .color(palette::chrome_text())
-            .monospace()
             .strong()
             .size(18.0),
     );
@@ -431,21 +427,17 @@ pub fn show_designer(
             state.rows.len(),
             sector.factions.len()
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     ui.add_space(8.0);
 
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button(RichText::new("START SCRATCH").monospace())
-            .clicked()
-        {
+        if ui.button(RichText::new("START SCRATCH")).clicked() {
             state.rows.clear();
             state.status = "designer rows cleared".into();
         }
         if ui
-            .button(RichText::new("REPLACE FROM OUTPUT").monospace())
+            .button(RichText::new("REPLACE FROM OUTPUT"))
             .on_hover_text("build designer rows from loaded sector forces")
             .clicked()
         {
@@ -453,7 +445,7 @@ pub fn show_designer(
             state.status = format!("loaded {} rows from output", state.rows.len());
         }
         if ui
-            .button(RichText::new("APPEND FROM OUTPUT").monospace())
+            .button(RichText::new("APPEND FROM OUTPUT"))
             .on_hover_text("append generated forces not already in the designer rows")
             .clicked()
         {
@@ -461,7 +453,7 @@ pub fn show_designer(
             state.status = format!("appended {added} output rows");
         }
         if ui
-            .button(RichText::new("SAVE TOML...").monospace())
+            .button(RichText::new("SAVE TOML..."))
             .on_hover_text("save designer rows as data/factions/factions.toml schema")
             .clicked()
         {
@@ -473,11 +465,7 @@ pub fn show_designer(
         }
     });
     if !state.status.is_empty() {
-        ui.label(
-            RichText::new(&state.status)
-                .color(egui::Color32::from_rgb(235, 200, 90))
-                .monospace(),
-        );
+        ui.label(RichText::new(&state.status).color(egui::Color32::from_rgb(235, 200, 90)));
     }
 
     ui.add_space(10.0);
@@ -490,7 +478,6 @@ fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
     ui.label(
         RichText::new("FACTIONS")
             .color(palette::chrome_text())
-            .monospace()
             .strong()
             .size(18.0),
     );
@@ -503,8 +490,7 @@ fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
             world_count,
             if edit_mode { " - edit mode" } else { "" }
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
 }
 
@@ -514,19 +500,14 @@ fn show_kind_summary(ui: &mut Ui, sector: &GeneratedSector) {
         *counts.entry(f.kind.as_ref()).or_default() += 1;
     }
     if counts.is_empty() {
-        ui.label(
-            RichText::new("no factions in sector")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("no factions in sector").color(palette::chrome_text_dim()));
         return;
     }
     ui.horizontal_wrapped(|ui| {
         for (kind, count) in counts {
             ui.label(
                 RichText::new(format!("{} {}", kind.to_uppercase(), count))
-                    .color(palette::chrome_text_dim())
-                    .monospace(),
+                    .color(palette::chrome_text_dim()),
             );
         }
     });
@@ -589,8 +570,7 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
                 fac.subfactions.len(),
                 force_count
             ))
-            .color(palette::chrome_text_dim())
-            .monospace(),
+            .color(palette::chrome_text_dim()),
         );
     }
 }
@@ -645,11 +625,11 @@ fn show_edit_row(
     });
 
     ui.horizontal_wrapped(|ui| {
-        if ui.button(RichText::new("ALL SYS").monospace()).clicked() {
+        if ui.button(RichText::new("ALL SYS")).clicked() {
             fac.system_presence = all_systems.to_vec();
             dirty = true;
         }
-        if ui.button(RichText::new("NO SYS").monospace()).clicked() {
+        if ui.button(RichText::new("NO SYS")).clicked() {
             fac.system_presence.clear();
             for sf in &mut fac.subfactions {
                 sf.system_presence.clear();
@@ -659,11 +639,11 @@ fn show_edit_row(
             }
             dirty = true;
         }
-        if ui.button(RichText::new("ALL WORLDS").monospace()).clicked() {
+        if ui.button(RichText::new("ALL WORLDS")).clicked() {
             fac.world_presence = all_worlds.to_vec();
             dirty = true;
         }
-        if ui.button(RichText::new("NO WORLDS").monospace()).clicked() {
+        if ui.button(RichText::new("NO WORLDS")).clicked() {
             fac.world_presence.clear();
             for sf in &mut fac.subfactions {
                 sf.world_presence.clear();
@@ -674,7 +654,7 @@ fn show_edit_row(
             dirty = true;
         }
         if ui
-            .button(RichText::new("FROM WORLD DATA").monospace())
+            .button(RichText::new("FROM WORLD DATA"))
             .on_hover_text("replace summary presence counts using per-world faction records")
             .clicked()
         {
@@ -712,8 +692,7 @@ fn show_edit_row(
                     fac.subfactions.len(),
                     force_count
                 ))
-                .color(palette::chrome_text_dim())
-                .monospace(),
+                .color(palette::chrome_text_dim()),
             );
         }
     });
@@ -725,7 +704,6 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
     ui.label(
         RichText::new("ADD OVERALL / SUBFACTION")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     let selected = state.selected_preset.min(OVERALL_PRESETS.len() - 1);
@@ -733,11 +711,11 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
     ui.horizontal_wrapped(|ui| {
         field_label(ui, "OVERALL");
         ComboBox::from_id_salt("faction_designer_overall")
-            .selected_text(RichText::new(OVERALL_PRESETS[selected].label).monospace())
+            .selected_text(RichText::new(OVERALL_PRESETS[selected].label))
             .show_ui(ui, |ui| {
                 for (i, p) in OVERALL_PRESETS.iter().enumerate() {
                     if ui
-                        .selectable_label(i == selected, RichText::new(p.label).monospace())
+                        .selectable_label(i == selected, RichText::new(p.label))
                         .clicked()
                     {
                         picked = i;
@@ -752,10 +730,7 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
         let _ = text_edit(ui, &mut state.new_kind, 150.0);
         field_label(ui, "ID");
         let _ = text_edit(ui, &mut state.new_id, 170.0);
-        if ui
-            .button(RichText::new("ID FROM NAME").monospace())
-            .clicked()
-        {
+        if ui.button(RichText::new("ID FROM NAME")).clicked() {
             state.new_id = slug_id(&state.new_name);
         }
     });
@@ -772,7 +747,7 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
                 .speed(0.25)
                 .range(0.1..=100.0),
         );
-        if ui.button(RichText::new("+ ADD ROW").monospace()).clicked() {
+        if ui.button(RichText::new("+ ADD ROW")).clicked() {
             match add_builder_row(state) {
                 Ok(()) => {
                     let added = state
@@ -810,11 +785,7 @@ fn show_designer_rows(ui: &mut Ui, state: &mut FactionDesignerState) {
     ui.separator();
 
     if state.rows.is_empty() {
-        ui.label(
-            RichText::new("designer roster empty")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("designer roster empty").color(palette::chrome_text_dim()));
         return;
     }
 
@@ -834,7 +805,7 @@ fn show_designer_rows(ui: &mut Ui, state: &mut FactionDesignerState) {
                     .speed(0.25)
                     .range(0.1..=100.0),
             );
-            if ui.button(RichText::new("REMOVE").monospace()).clicked() {
+            if ui.button(RichText::new("REMOVE")).clicked() {
                 remove = Some(i);
             }
         });
@@ -1274,16 +1245,12 @@ fn fixed(ui: &mut Ui, width: f32, text: &str) {
 fn fixed_text(ui: &mut Ui, width: f32, text: &str, color: Color32) {
     ui.add_sized(
         [width, 18.0],
-        egui::Label::new(RichText::new(text).color(color).monospace()),
+        egui::Label::new(RichText::new(text).color(color)),
     );
 }
 
 fn field_label(ui: &mut Ui, text: &str) {
-    ui.label(
-        RichText::new(text)
-            .color(palette::chrome_text_dim())
-            .monospace(),
-    );
+    ui.label(RichText::new(text).color(palette::chrome_text_dim()));
 }
 
 fn text_edit<T>(ui: &mut Ui, value: &mut T, width: f32) -> bool
@@ -1294,7 +1261,7 @@ where
     let changed = ui
         .add_sized(
             [width, 22.0],
-            egui::TextEdit::singleline(&mut buf).font(egui::FontId::monospace(12.0)),
+            egui::TextEdit::singleline(&mut buf).font(egui::FontId::proportional(12.0)),
         )
         .changed();
     if changed {

@@ -7,11 +7,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
-                ui.label(
-                    RichText::new("no sector loaded")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
             });
         return;
     };
@@ -27,22 +23,20 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 let on_overview = matches!(app.factions_mode, FactionsMode::Overview);
                 let on_designer = matches!(app.factions_mode, FactionsMode::Designer);
                 if ui
-                    .selectable_label(on_overview, RichText::new("OVERVIEW").monospace())
+                    .selectable_label(on_overview, RichText::new("OVERVIEW"))
                     .clicked()
                 {
                     app.factions_mode = FactionsMode::Overview;
                 }
                 if ui
-                    .selectable_label(on_designer, RichText::new("DESIGNER").monospace())
+                    .selectable_label(on_designer, RichText::new("DESIGNER"))
                     .clicked()
                 {
                     app.factions_mode = FactionsMode::Designer;
                 }
                 ui.separator();
                 ui.label(
-                    RichText::new("high-level faction state")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
+                    RichText::new("high-level faction state").color(palette::chrome_text_dim()),
                 );
             });
         });

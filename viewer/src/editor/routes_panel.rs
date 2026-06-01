@@ -6,7 +6,7 @@ use sectorforge::sector_model::{HexCoord, RouteStability, RouteType};
 
 use super::enums::{ROUTE_STABILITIES, ROUTE_TYPES};
 use super::state::{empty_route, EditorState, RouteEndpoint};
-use super::ui_helpers::{combo_kv, combo_kv_id, dim, label, mono, section};
+use super::ui_helpers::{combo_kv, combo_kv_id, dim, label, section};
 use sectorforge::ids::SystemId;
 
 pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
@@ -56,10 +56,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
             }
             let from_active = current_pick == Some((i, RouteEndpoint::From));
             let from_btn = if from_active { "PICKING…" } else { "PICK" };
-            if ui
-                .small_button(RichText::new(from_btn).font(mono(10.0)))
-                .clicked()
-            {
+            if ui.small_button(RichText::new(from_btn)).clicked() {
                 new_pick = Some(if from_active {
                     None
                 } else {
@@ -72,10 +69,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
             }
             let to_active = current_pick == Some((i, RouteEndpoint::To));
             let to_btn = if to_active { "PICKING…" } else { "PICK" };
-            if ui
-                .small_button(RichText::new(to_btn).font(mono(10.0)))
-                .clicked()
-            {
+            if ui.small_button(RichText::new(to_btn)).clicked() {
                 new_pick = Some(if to_active {
                     None
                 } else {
@@ -106,10 +100,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
                 route.distance = d.max(0) as u32;
                 dirty = true;
             }
-            if ui
-                .small_button(RichText::new("x").font(mono(11.0)))
-                .clicked()
-            {
+            if ui.small_button(RichText::new("x")).clicked() {
                 remove_idx = Some(i);
             }
         });
@@ -127,11 +118,7 @@ pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
         });
     }
 
-    if system_options.len() >= 2
-        && ui
-            .button(RichText::new("+ ADD ROUTE").font(mono(12.0)))
-            .clicked()
-    {
+    if system_options.len() >= 2 && ui.button(RichText::new("+ ADD ROUTE")).clicked() {
         let from = system_options[0].clone();
         let to = system_options[1].clone();
         let mut route = empty_route(from.clone(), to.clone());

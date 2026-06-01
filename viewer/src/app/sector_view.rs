@@ -28,11 +28,7 @@ impl App {
             egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
                 });
             return;
         };
@@ -49,8 +45,7 @@ impl App {
                         ui.label(
                             RichText::new("PREVIEW MODE - APPLY CHANGES TO COMMIT")
                                 .strong()
-                                .color(Color32::WHITE)
-                                .monospace(),
+                                .color(Color32::WHITE),
                         );
                     });
                 });
@@ -78,7 +73,7 @@ impl App {
                                 info_panel::route_summary(ui, route, &sector, self.route_view_mode);
                                 ui.add_space(10.0);
                                 ui.horizontal(|ui| {
-                                    if ui.button(RichText::new("OPEN FROM").monospace()).clicked() {
+                                    if ui.button(RichText::new("OPEN FROM")).clicked() {
                                         self.sector_selected = Some(from.clone());
                                         self.sector_selected_route = None;
                                         self.sector_selected_subsector = None;
@@ -87,7 +82,7 @@ impl App {
                                             selection: SystemSelection::None,
                                         };
                                     }
-                                    if ui.button(RichText::new("OPEN TO").monospace()).clicked() {
+                                    if ui.button(RichText::new("OPEN TO")).clicked() {
                                         self.sector_selected = Some(to.clone());
                                         self.sector_selected_route = None;
                                         self.sector_selected_subsector = None;
@@ -97,10 +92,7 @@ impl App {
                                         };
                                     }
                                 });
-                                if ui
-                                    .button(RichText::new("CLEAR ROUTE").monospace())
-                                    .clicked()
-                                {
+                                if ui.button(RichText::new("CLEAR ROUTE")).clicked() {
                                     self.sector_selected_route = None;
                                 }
                                 ui.separator();
@@ -112,10 +104,7 @@ impl App {
                             if let Some(sys) = sector.systems.iter().find(|s| s.id == sel) {
                                 info_panel::system_summary(ui, sys, &sector);
                                 ui.add_space(10.0);
-                                if ui
-                                    .button(RichText::new("OPEN SYSTEM →").monospace())
-                                    .clicked()
-                                {
+                                if ui.button(RichText::new("OPEN SYSTEM →")).clicked() {
                                     self.view = View::System {
                                         system_id: sys.id.clone(),
                                         selection: SystemSelection::None,
@@ -157,7 +146,7 @@ impl App {
         };
         let mut open = true;
         let title = format!("SUBSECTOR {} - {}", sub.label, sub.name);
-        egui::Window::new(RichText::new(&title).monospace().strong())
+        egui::Window::new(RichText::new(&title).strong())
             .open(&mut open)
             .collapsible(true)
             .resizable(true)
@@ -184,7 +173,7 @@ impl App {
         };
         let mut open = true;
         let title = format!("REGION - {}", region.name);
-        egui::Window::new(RichText::new(&title).monospace().strong())
+        egui::Window::new(RichText::new(&title).strong())
             .open(&mut open)
             .collapsible(true)
             .resizable(true)
@@ -193,31 +182,26 @@ impl App {
             .anchor(egui::Align2::RIGHT_TOP, [-360.0, 60.0])
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
-                    ui.label(RichText::new(&region.name).strong().monospace().size(18.0));
+                    ui.label(RichText::new(&region.name).strong().size(18.0));
                     ui.add_space(4.0);
                     ui.label(
                         RichText::new(region.kind.label())
-                            .color(egui::Color32::from_rgb(220, 160, 60))
-                            .monospace(),
+                            .color(egui::Color32::from_rgb(220, 160, 60)),
                     );
                     ui.add_space(8.0);
                     ui.add(
                         egui::Label::new(
                             RichText::new(region.kind.description())
-                                .monospace()
                                 .color(palette::chrome_text_dim()),
                         )
                         .wrap(),
                     );
                     ui.add_space(12.0);
-                    ui.label(RichText::new(format!("Hexes: {}", region.hexes.len())).monospace());
-                    ui.label(
-                        RichText::new(format!(
-                            "Centre: ({}, {})",
-                            region.centre.q, region.centre.r
-                        ))
-                        .monospace(),
-                    );
+                    ui.label(RichText::new(format!("Hexes: {}", region.hexes.len())));
+                    ui.label(RichText::new(format!(
+                        "Centre: ({}, {})",
+                        region.centre.q, region.centre.r
+                    )));
                 });
             });
         if !open {
@@ -235,52 +219,34 @@ impl App {
             .show_inside(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     if ui
-                        .button(
-                            RichText::new(if self.info_panel_open {
-                                "◀ PANEL"
-                            } else {
-                                "PANEL ▶"
-                            })
-                            .monospace(),
-                        )
+                        .button(RichText::new(if self.info_panel_open {
+                            "◀ PANEL"
+                        } else {
+                            "PANEL ▶"
+                        }))
                         .clicked()
                     {
                         self.info_panel_open = !self.info_panel_open;
                     }
                     ui.separator();
-                    if ui
-                        .button(RichText::new("ZOOM TO FIT").monospace())
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("ZOOM TO FIT")).clicked() {
                         self.zoom_to_fit();
                     }
                     ui.separator();
-                    ui.label(
-                        RichText::new("HEX SIZE")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("HEX SIZE").color(palette::chrome_text_dim()));
                     ui.add(
                         egui::Slider::new(&mut self.sector_hex_size, 5.0..=250.0).show_value(false),
                     );
                     ui.separator();
-                    ui.label(
-                        RichText::new("HEATMAP")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("HEATMAP").color(palette::chrome_text_dim()));
                     egui::ComboBox::from_id_salt("sector_heatmap")
                         .selected_text(
-                            RichText::new(self.heatmap_mode.label())
-                                .monospace()
-                                .color(palette::chrome_text()),
+                            RichText::new(self.heatmap_mode.label()).color(palette::chrome_text()),
                         )
                         .show_ui(ui, |ui| {
                             for &m in super::HeatmapMode::ALL {
                                 let sel = m == self.heatmap_mode;
-                                if ui
-                                    .selectable_label(sel, RichText::new(m.label()).monospace())
-                                    .clicked()
+                                if ui.selectable_label(sel, RichText::new(m.label())).clicked()
                                     && !sel
                                 {
                                     self.heatmap_mode = m;
@@ -289,7 +255,7 @@ impl App {
                         });
                     ui.separator();
                     if ui
-                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
+                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP"))
                         .clicked()
                     {
                         self.map_edit_mode = !self.map_edit_mode;
@@ -300,7 +266,7 @@ impl App {
                         if ui
                             .selectable_label(
                                 self.editor.tool == SectorEditTool::AddSystem,
-                                RichText::new("ADD SYSTEM").monospace(),
+                                RichText::new("ADD SYSTEM"),
                             )
                             .clicked()
                         {
@@ -311,7 +277,7 @@ impl App {
                         if ui
                             .selectable_label(
                                 self.editor.tool == SectorEditTool::AddRoute,
-                                RichText::new("ADD WARP ROUTE").monospace(),
+                                RichText::new("ADD WARP ROUTE"),
                             )
                             .clicked()
                         {
@@ -322,7 +288,7 @@ impl App {
                         if ui
                             .add_enabled(
                                 self.sector_selected.is_some(),
-                                egui::Button::new(RichText::new("REMOVE SYSTEM").monospace()),
+                                egui::Button::new(RichText::new("REMOVE SYSTEM")),
                             )
                             .clicked()
                         {
@@ -331,7 +297,7 @@ impl App {
                         if ui
                             .add_enabled(
                                 self.sector_selected_route.is_some(),
-                                egui::Button::new(RichText::new("REMOVE WARP ROUTE").monospace()),
+                                egui::Button::new(RichText::new("REMOVE WARP ROUTE")),
                             )
                             .clicked()
                         {
@@ -340,28 +306,19 @@ impl App {
                         if let Some(start) = self.pending_route_start.as_ref() {
                             ui.label(
                                 RichText::new(format!("ROUTE FROM {}", start.to_uppercase()))
-                                    .color(Color32::from_rgb(235, 200, 90))
-                                    .monospace(),
+                                    .color(Color32::from_rgb(235, 200, 90)),
                             );
                         }
                     }
                     if self.live_dirty {
-                        ui.label(
-                            RichText::new("UNSAVED")
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
-                        );
+                        ui.label(RichText::new("UNSAVED").color(Color32::from_rgb(235, 200, 90)));
                     }
                     if self.sector_pick_export {
                         ui.label(
                             RichText::new("◉ click a system hex to pick for PNG export")
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
+                                .color(Color32::from_rgb(235, 200, 90)),
                         );
-                        if ui
-                            .button(RichText::new("CANCEL PICK").monospace())
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("CANCEL PICK")).clicked() {
                             self.sector_pick_export = false;
                         }
                     }

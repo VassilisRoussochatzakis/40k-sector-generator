@@ -6,7 +6,7 @@ use crate::palette;
 
 use super::enums::{star_colour_name, STAR_COLOUR_CODES};
 use super::state::{empty_world, EditorState, Selection};
-use super::ui_helpers::{combo_str, dim, label, mono, section, text_field};
+use super::ui_helpers::{combo_str, dim, label, section, text_field};
 
 pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     let Selection::System(id) = state.selection.clone() else {
@@ -27,9 +27,7 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     let mut delete_world: Option<usize> = None;
 
     ui.label(
-        RichText::new(format!("SYSTEM {}", sys.id.to_uppercase()))
-            .color(palette::chrome_text())
-            .font(mono(15.0)),
+        RichText::new(format!("SYSTEM {}", sys.id.to_uppercase())).color(palette::chrome_text()),
     );
 
     section(ui, "NAME");
@@ -91,7 +89,7 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui.horizontal(|ui| {
             label(ui, "KIND");
             // I'll skip a combo for Kind for now to keep it simple, but at least show it.
-            ui.label(RichText::new(format!("{}", sys.kind).to_uppercase()).font(mono(12.0)));
+            ui.label(RichText::new(format!("{}", sys.kind).to_uppercase()));
         });
     }
 
@@ -108,34 +106,24 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
                         w.orbit,
                         truncate(&w.name, 18),
                         truncate(&w.world.world_type, 14)
-                    ))
-                    .font(mono(12.0)),
+                    )),
                 )
                 .clicked()
             {
                 select_world = Some(w.index);
             }
-            if ui
-                .small_button(RichText::new("x").font(mono(11.0)))
-                .clicked()
-            {
+            if ui.small_button(RichText::new("x")).clicked() {
                 delete_world = Some(w.index);
             }
         });
     }
-    if ui
-        .button(RichText::new("+ ADD WORLD").font(mono(12.0)))
-        .clicked()
-    {
+    if ui.button(RichText::new("+ ADD WORLD")).clicked() {
         add_world = true;
     }
 
     ui.add_space(8.0);
     ui.separator();
-    if ui
-        .button(RichText::new("DELETE SYSTEM").font(mono(12.0)))
-        .clicked()
-    {
+    if ui.button(RichText::new("DELETE SYSTEM")).clicked() {
         delete_system = true;
     }
 

@@ -72,11 +72,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     state.ensure_loaded();
 
     ui.horizontal(|ui| {
-        ui.label(
-            RichText::new("CREATE:")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("CREATE:").color(palette::chrome_text_dim()));
         ui.selectable_value(&mut state.target, CreationTarget::Project, "PROJECT");
         ui.selectable_value(&mut state.target, CreationTarget::Segmentum, "SEGMENTUM");
         ui.selectable_value(&mut state.target, CreationTarget::Sector, "SECTOR");
@@ -92,11 +88,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
 
     if state.target == CreationTarget::Sector {
         ui.group(|ui| {
-            ui.label(
-                RichText::new("SECTOR DIMENSIONS")
-                    .color(palette::chrome_text_dim())
-                    .monospace(),
-            );
+            ui.label(RichText::new("SECTOR DIMENSIONS").color(palette::chrome_text_dim()));
             ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
 
             if state.irregular_dimensions {
@@ -107,17 +99,9 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
             }
 
             ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new("WIDTH")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new("WIDTH").color(palette::chrome_text_dim()));
                 let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
-                ui.label(
-                    RichText::new("HEIGHT")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new("HEIGHT").color(palette::chrome_text_dim()));
                 let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
 
                 if !state.irregular_dimensions {
@@ -137,12 +121,8 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     }
 
     let dir = state.resolved_dir();
-    ui.label(
-        RichText::new(format!("PRESETS DIRECTORY: {dir}"))
-            .color(palette::chrome_text_dim())
-            .monospace(),
-    );
-    if ui.button(RichText::new("RELOAD").monospace()).clicked() {
+    ui.label(RichText::new(format!("PRESETS DIRECTORY: {dir}")).color(palette::chrome_text_dim()));
+    if ui.button(RichText::new("RELOAD")).clicked() {
         state.invalidate();
         state.ensure_loaded();
     }
@@ -152,9 +132,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         Some(Ok(v)) => v,
         Some(Err(e)) => {
             ui.label(
-                RichText::new(format!("load failed: {e}"))
-                    .color(Color32::from_rgb(235, 90, 90))
-                    .monospace(),
+                RichText::new(format!("load failed: {e}")).color(Color32::from_rgb(235, 90, 90)),
             );
             return;
         }
@@ -162,11 +140,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     };
 
     if entries.is_empty() {
-        ui.label(
-            RichText::new("no presets found")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("no presets found").color(palette::chrome_text_dim()));
         return;
     }
 
@@ -176,16 +150,11 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         } else {
             "DESTINATION DIRECTORY"
         })
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     ui.text_edit_singleline(&mut state.dest_text);
     ui.add_space(4.0);
-    ui.label(
-        RichText::new("SEED OVERRIDE (optional)")
-            .color(palette::chrome_text_dim())
-            .monospace(),
-    );
+    ui.label(RichText::new("SEED OVERRIDE (optional)").color(palette::chrome_text_dim()));
     ui.text_edit_singleline(&mut state.seed_text);
     ui.add_space(8.0);
 
@@ -195,32 +164,22 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                 ui.label(
                     RichText::new(&entry.title)
                         .color(palette::chrome_text())
-                        .monospace()
                         .strong(),
                 );
                 ui.label(
-                    RichText::new(format!("id: {}", entry.id))
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
+                    RichText::new(format!("id: {}", entry.id)).color(palette::chrome_text_dim()),
                 );
-                ui.label(
-                    RichText::new(&entry.description)
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new(&entry.description).color(palette::chrome_text_dim()));
                 if ui
-                    .button(
-                        RichText::new(format!(
-                            "CREATE {} FROM THIS PRESET",
-                            match state.target {
-                                CreationTarget::Project => "PROJECT",
-                                CreationTarget::Segmentum => "SEGMENTUM",
-                                CreationTarget::Sector => "SECTOR",
-                                CreationTarget::System => "SYSTEM",
-                            }
-                        ))
-                        .monospace(),
-                    )
+                    .button(RichText::new(format!(
+                        "CREATE {} FROM THIS PRESET",
+                        match state.target {
+                            CreationTarget::Project => "PROJECT",
+                            CreationTarget::Segmentum => "SEGMENTUM",
+                            CreationTarget::Sector => "SECTOR",
+                            CreationTarget::System => "SYSTEM",
+                        }
+                    )))
                     .clicked()
                 {
                     let dest_str = state.dest_text.trim();
@@ -265,14 +224,13 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         } else {
             Color32::from_rgb(235, 90, 90)
         };
-        ui.label(RichText::new(&state.status).color(color).monospace());
+        ui.label(RichText::new(&state.status).color(color));
         ui.label(
             RichText::new(
                 "Next: launch the GUI with `--project <dest>` or run \
                  `cargo run --bin sectorforge -- generate --project <dest>`.",
             )
-            .color(palette::chrome_text_dim())
-            .monospace(),
+            .color(palette::chrome_text_dim()),
         );
     }
 }

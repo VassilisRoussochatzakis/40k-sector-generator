@@ -34,8 +34,7 @@ impl App {
                             Sel::None => {
                                 ui.label(
                                     RichText::new("click a hex to add or select a system")
-                                        .color(palette::chrome_text_dim())
-                                        .monospace(),
+                                        .color(palette::chrome_text_dim()),
                                 );
                             }
                         },
@@ -58,11 +57,7 @@ impl App {
             )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new("HEX SIZE")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("HEX SIZE").color(palette::chrome_text_dim()));
                     ui.add(
                         egui::Slider::new(&mut self.editor.hex_size, 20.0..=80.0).show_value(false),
                     );
@@ -79,8 +74,7 @@ impl App {
                     _ => {
                         ui.label(
                             RichText::new("(switch to MAP tab to view the hex grid)")
-                                .color(palette::chrome_text_dim())
-                                .monospace(),
+                                .color(palette::chrome_text_dim()),
                         );
                     }
                 });
@@ -95,7 +89,7 @@ impl App {
             return;
         }
         let mut open = true;
-        egui::Window::new(RichText::new("NEW").monospace().strong())
+        egui::Window::new(RichText::new("NEW").strong())
             .open(&mut open)
             .collapsible(false)
             .resizable(true)
@@ -127,10 +121,7 @@ impl App {
                 ui.horizontal_wrapped(|ui| {
                     let can_reload = self.project_dir.is_some();
                     if ui
-                        .add_enabled(
-                            can_reload,
-                            egui::Button::new(RichText::new("RELOAD").monospace()),
-                        )
+                        .add_enabled(can_reload, egui::Button::new(RichText::new("RELOAD")))
                         .on_hover_text("re-read worlds.toml from disk (discards unsaved edits)")
                         .clicked()
                     {
@@ -142,10 +133,7 @@ impl App {
                     }
                     let can_save = self.data_editor.worlds_toml.is_some();
                     if ui
-                        .add_enabled(
-                            can_save,
-                            egui::Button::new(RichText::new("SAVE").monospace()),
-                        )
+                        .add_enabled(can_save, egui::Button::new(RichText::new("SAVE")))
                         .clicked()
                     {
                         if let Err(e) = self.data_editor.save() {
@@ -155,22 +143,18 @@ impl App {
                     if let Some(dir) = &self.project_dir {
                         ui.label(
                             RichText::new(dir.display().to_string())
-                                .color(palette::chrome_text_dim())
-                                .monospace(),
+                                .color(palette::chrome_text_dim()),
                         );
                     } else {
                         ui.label(
                             RichText::new(
                                 "no project loaded — pass --project <dir> when launching",
                             )
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
+                            .color(palette::chrome_text_dim()),
                         );
                     }
                     ui.label(
-                        RichText::new(&self.data_editor.status)
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
+                        RichText::new(&self.data_editor.status).color(palette::chrome_text_dim()),
                     );
                 });
             });

@@ -49,57 +49,37 @@ impl App {
         };
         let mut confirm = false;
         let mut cancel = false;
-        egui::Window::new(RichText::new(&title).monospace().strong())
+        egui::Window::new(RichText::new(&title).strong())
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                ui.label(
-                    RichText::new("Resolution")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new("Resolution").color(palette::chrome_text_dim()));
                 ui.horizontal(|ui| {
-                    ui.selectable_value(
-                        &mut self.export_scale,
-                        1,
-                        RichText::new("720p").monospace(),
-                    );
-                    ui.selectable_value(
-                        &mut self.export_scale,
-                        2,
-                        RichText::new("1440p").monospace(),
-                    );
-                    ui.selectable_value(&mut self.export_scale, 3, RichText::new("4K").monospace());
-                    ui.selectable_value(
-                        &mut self.export_scale,
-                        5,
-                        RichText::new("Ultra (5x)").monospace(),
-                    );
+                    ui.selectable_value(&mut self.export_scale, 1, RichText::new("720p"));
+                    ui.selectable_value(&mut self.export_scale, 2, RichText::new("1440p"));
+                    ui.selectable_value(&mut self.export_scale, 3, RichText::new("4K"));
+                    ui.selectable_value(&mut self.export_scale, 5, RichText::new("Ultra (5x)"));
                 });
                 ui.add_space(8.0);
-                ui.label(
-                    RichText::new("Theme")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+                ui.label(RichText::new("Theme").color(palette::chrome_text_dim()));
                 egui::ComboBox::from_id_salt("png_export_theme")
-                    .selected_text(RichText::new(&self.export_theme_name).monospace())
+                    .selected_text(RichText::new(&self.export_theme_name))
                     .show_ui(ui, |ui| {
                         for name in sectorforge::map_theme::BUILTIN_THEME_NAMES {
                             ui.selectable_value(
                                 &mut self.export_theme_name,
                                 (*name).to_string(),
-                                RichText::new(*name).monospace(),
+                                RichText::new(*name),
                             );
                         }
                     });
                 ui.add_space(10.0);
                 ui.horizontal(|ui| {
-                    if ui.button(RichText::new("EXPORT").monospace()).clicked() {
+                    if ui.button(RichText::new("EXPORT")).clicked() {
                         confirm = true;
                     }
-                    if ui.button(RichText::new("CANCEL").monospace()).clicked() {
+                    if ui.button(RichText::new("CANCEL")).clicked() {
                         cancel = true;
                     }
                 });

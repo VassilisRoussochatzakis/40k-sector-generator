@@ -4,7 +4,7 @@
 use egui::{Context, RichText};
 
 use super::state::{Dialog, EditorState};
-use super::ui_helpers::{combo_str, label, mono, section, text_field};
+use super::ui_helpers::{combo_str, label, section, text_field};
 
 pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
     let dialog = std::mem::replace(&mut state.dialog, Dialog::None);
@@ -12,13 +12,13 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
         Dialog::None => {}
         Dialog::Message(msg) => {
             let mut open = true;
-            egui::Window::new(RichText::new("INFO").font(mono(14.0)))
+            egui::Window::new(RichText::new("INFO"))
                 .open(&mut open)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
                     label(ui, &msg);
-                    if ui.button(RichText::new("OK").font(mono(12.0))).clicked() {
+                    if ui.button(RichText::new("OK")).clicked() {
                         // closes via open=false next frame
                     }
                 });
@@ -33,7 +33,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             let mut keep = true;
             let mut load: Option<String> = None;
             let mut cancel = false;
-            egui::Window::new(RichText::new("OPEN PROJECT").font(mono(14.0)))
+            egui::Window::new(RichText::new("OPEN PROJECT"))
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -52,22 +52,16 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         if ui
                             .add_enabled(
                                 selected.is_some(),
-                                egui::Button::new(RichText::new("LOAD").font(mono(12.0))),
+                                egui::Button::new(RichText::new("LOAD")),
                             )
                             .clicked()
                         {
                             load = selected.clone();
                         }
-                        if ui
-                            .button(RichText::new("REFRESH").font(mono(12.0)))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("REFRESH")).clicked() {
                             projects = super::file_ops::list_projects();
                         }
-                        if ui
-                            .button(RichText::new("CANCEL").font(mono(12.0)))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("CANCEL")).clicked() {
                             cancel = true;
                         }
                     });
@@ -96,7 +90,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
         } => {
             let mut create = false;
             let mut cancel = false;
-            egui::Window::new(RichText::new("NEW SECTOR").font(mono(14.0)))
+            egui::Window::new(RichText::new("NEW SECTOR"))
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -136,14 +130,14 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         if ui
                             .add_enabled(
                                 !name.trim().is_empty(),
-                                egui::Button::new(RichText::new("CREATE").font(mono(12.0))),
+                                egui::Button::new(RichText::new("CREATE")),
                             )
                             .clicked()
                         {
                             create = true;
                         }
                         if ui
-                            .button(RichText::new("CANCEL").font(mono(12.0)))
+                            .button(RichText::new("CANCEL"))
                             .clicked()
                         {
                             cancel = true;
@@ -179,7 +173,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
         Dialog::SaveAs { mut name, error } => {
             let mut save = false;
             let mut cancel = false;
-            egui::Window::new(RichText::new("SAVE AS").font(mono(14.0)))
+            egui::Window::new(RichText::new("SAVE AS"))
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -193,16 +187,13 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         if ui
                             .add_enabled(
                                 !name.trim().is_empty(),
-                                egui::Button::new(RichText::new("SAVE").font(mono(12.0))),
+                                egui::Button::new(RichText::new("SAVE")),
                             )
                             .clicked()
                         {
                             save = true;
                         }
-                        if ui
-                            .button(RichText::new("CANCEL").font(mono(12.0)))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("CANCEL")).clicked() {
                             cancel = true;
                         }
                     });
@@ -239,7 +230,7 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
         } => {
             let mut create = false;
             let mut cancel = false;
-            egui::Window::new(RichText::new("ADD SYSTEM").font(mono(14.0)))
+            egui::Window::new(RichText::new("ADD SYSTEM"))
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -279,16 +270,13 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         if ui
                             .add_enabled(
                                 !name.trim().is_empty(),
-                                egui::Button::new(RichText::new("CREATE").font(mono(12.0))),
+                                egui::Button::new(RichText::new("CREATE")),
                             )
                             .clicked()
                         {
                             create = true;
                         }
-                        if ui
-                            .button(RichText::new("CANCEL").font(mono(12.0)))
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("CANCEL")).clicked() {
                             cancel = true;
                         }
                     });

@@ -47,10 +47,7 @@ impl App {
                         ui.separator();
                         info_panel::system_summary(ui, sys, sector);
                         ui.add_space(10.0);
-                        if ui
-                            .button(RichText::new("← BACK TO SECTOR").monospace())
-                            .clicked()
-                        {
+                        if ui.button(RichText::new("← BACK TO SECTOR")).clicked() {
                             self.view = View::Sector;
                         }
                     }
@@ -77,30 +74,22 @@ impl App {
             )
             .show_inside(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(
-                        RichText::new("SIZE")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("SIZE").color(palette::chrome_text_dim()));
                     ui.add(
                         egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),
                     );
                     ui.separator();
-                    ui.label(
-                        RichText::new("LAYOUT")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("LAYOUT").color(palette::chrome_text_dim()));
                     let mut horiz = matches!(self.system_layout, SystemLayout::Horizontal);
                     if ui
-                        .selectable_label(horiz, RichText::new("HORIZ").monospace())
+                        .selectable_label(horiz, RichText::new("HORIZ"))
                         .on_hover_text("star left, planets arrayed right in orbit order")
                         .clicked()
                     {
                         horiz = true;
                     }
                     if ui
-                        .selectable_label(!horiz, RichText::new("ORBITAL").monospace())
+                        .selectable_label(!horiz, RichText::new("ORBITAL"))
                         .on_hover_text("concentric orbit rings")
                         .clicked()
                     {
@@ -112,7 +101,7 @@ impl App {
                         SystemLayout::Orbital
                     };
                     if ui
-                        .button(RichText::new("EXPORT MAP PNG").monospace())
+                        .button(RichText::new("EXPORT MAP PNG"))
                         .on_hover_text("export this system's map to a PNG")
                         .clicked()
                     {
@@ -120,7 +109,7 @@ impl App {
                     }
                     ui.separator();
                     if ui
-                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP").monospace())
+                        .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP"))
                         .clicked()
                     {
                         self.map_edit_mode = !self.map_edit_mode;
@@ -128,7 +117,7 @@ impl App {
                         self.pending_route_start = None;
                     }
                     if self.map_edit_mode {
-                        if ui.button(RichText::new("ADD PLANET").monospace()).clicked() {
+                        if ui.button(RichText::new("ADD PLANET")).clicked() {
                             if let Some(world_index) = self.add_planet_to_system(&sys_id_owned) {
                                 self.view = View::System {
                                     system_id: sys_id_owned.clone(),
@@ -144,7 +133,7 @@ impl App {
                         if ui
                             .add_enabled(
                                 selected_world.is_some(),
-                                egui::Button::new(RichText::new("REMOVE PLANET").monospace()),
+                                egui::Button::new(RichText::new("REMOVE PLANET")),
                             )
                             .clicked()
                         {
@@ -154,11 +143,7 @@ impl App {
                         }
                     }
                     if self.live_dirty {
-                        ui.label(
-                            RichText::new("UNSAVED")
-                                .color(Color32::from_rgb(235, 200, 90))
-                                .monospace(),
-                        );
+                        ui.label(RichText::new("UNSAVED").color(Color32::from_rgb(235, 200, 90)));
                     }
                 });
             });

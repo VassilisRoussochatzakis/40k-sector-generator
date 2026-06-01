@@ -8,7 +8,7 @@ use egui::{Color32, RichText, Ui};
 
 use super::state::{empty_faction, EditorState, FactionSort};
 use super::ui_helpers::{
-    combo_kv_id, combo_str_id, dim, label, mono, section, text_field, text_field_id,
+    combo_kv_id, combo_str_id, dim, label, section, text_field, text_field_id,
 };
 use crate::palette::{draw_faction_chip, faction_style};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
@@ -45,14 +45,11 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         );
         label(ui, "SORT");
         egui::ComboBox::from_id_salt("fac_sort")
-            .selected_text(RichText::new(state.faction_sort.label()).font(mono(12.0)))
+            .selected_text(RichText::new(state.faction_sort.label()))
             .show_ui(ui, |ui| {
                 for s in FactionSort::ALL {
                     if ui
-                        .selectable_label(
-                            state.faction_sort == s,
-                            RichText::new(s.label()).font(mono(12.0)),
-                        )
+                        .selectable_label(state.faction_sort == s, RichText::new(s.label()))
                         .clicked()
                     {
                         state.faction_sort = s;
@@ -62,9 +59,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         if (state.faction_filter_kind.is_some()
             || state.faction_filter_disposition.is_some()
             || state.faction_sort != FactionSort::default())
-            && ui
-                .small_button(RichText::new("clear").font(mono(11.0)))
-                .clicked()
+            && ui.small_button(RichText::new("clear")).clicked()
         {
             state.faction_filter_kind = None;
             state.faction_filter_disposition = None;
@@ -158,14 +153,10 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         // Header row: chip + name + power + pin + delete.
         ui.horizontal(|ui| {
             draw_faction_chip(ui, style);
-            ui.label(
-                RichText::new(fac.name.to_uppercase())
-                    .font(mono(13.0))
-                    .strong(),
-            );
+            ui.label(RichText::new(fac.name.to_uppercase()).strong());
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
-                    .small_button(RichText::new("x").font(mono(11.0)))
+                    .small_button(RichText::new("x"))
                     .on_hover_text("delete faction")
                     .clicked()
                 {
@@ -173,7 +164,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
                 }
                 let pin_glyph = if pinned_now { "★" } else { "☆" };
                 if ui
-                    .small_button(RichText::new(pin_glyph).font(mono(12.0)))
+                    .small_button(RichText::new(pin_glyph))
                     .on_hover_text("pin to top")
                     .clicked()
                 {
@@ -181,7 +172,6 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
                 }
                 ui.label(
                     RichText::new(format!("pwr {:.0}", fac.power.total_projection()))
-                        .font(mono(11.0))
                         .color(palette_dim()),
                 );
             });
@@ -216,19 +206,17 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             }
         });
 
-        ui.label(
-            RichText::new(format!("SYSTEMS ({})", fac.system_presence.len())).font(mono(12.0)),
-        );
+        ui.label(RichText::new(format!(
+            "SYSTEMS ({})",
+            fac.system_presence.len()
+        )));
         let mut remove_sys: Option<usize> = None;
         for (j, sid) in fac.system_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 if combo_kv_id(ui, &format!("f_{i}_sys_{j}"), sid, &system_kv) {
                     dirty = true;
                 }
-                if ui
-                    .small_button(RichText::new("x").font(mono(11.0)))
-                    .clicked()
-                {
+                if ui.small_button(RichText::new("x")).clicked() {
                     remove_sys = Some(j);
                 }
             });
@@ -237,26 +225,22 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             fac.system_presence.remove(j);
             dirty = true;
         }
-        if !system_ids.is_empty()
-            && ui
-                .button(RichText::new("+ ADD SYSTEM").font(mono(12.0)))
-                .clicked()
-        {
+        if !system_ids.is_empty() && ui.button(RichText::new("+ ADD SYSTEM")).clicked() {
             fac.system_presence.push(system_ids[0].clone());
             dirty = true;
         }
 
-        ui.label(RichText::new(format!("WORLDS ({})", fac.world_presence.len())).font(mono(12.0)));
+        ui.label(RichText::new(format!(
+            "WORLDS ({})",
+            fac.world_presence.len()
+        )));
         let mut remove_w: Option<usize> = None;
         for (j, wid) in fac.world_presence.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 if combo_str_id(ui, &format!("f_{i}_w_{j}"), wid, &world_refs) {
                     dirty = true;
                 }
-                if ui
-                    .small_button(RichText::new("x").font(mono(11.0)))
-                    .clicked()
-                {
+                if ui.small_button(RichText::new("x")).clicked() {
                     remove_w = Some(j);
                 }
             });
@@ -265,11 +249,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             fac.world_presence.remove(j);
             dirty = true;
         }
-        if !world_ids.is_empty()
-            && ui
-                .button(RichText::new("+ ADD WORLD").font(mono(12.0)))
-                .clicked()
-        {
+        if !world_ids.is_empty() && ui.button(RichText::new("+ ADD WORLD")).clicked() {
             fac.world_presence.push(world_ids[0].clone());
             dirty = true;
         }
@@ -290,10 +270,7 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
         }
     }
 
-    if ui
-        .button(RichText::new("+ ADD FACTION").font(mono(12.0)))
-        .clicked()
-    {
+    if ui.button(RichText::new("+ ADD FACTION")).clicked() {
         let id = FactionId::new(format!("faction_{}", sector.factions.len() + 1));
         sector.factions.push(empty_faction(&id));
         dirty = true;
@@ -312,20 +289,17 @@ fn filter_combo<'a, I: IntoIterator<Item = &'a String>>(
 ) {
     let label = value.as_deref().unwrap_or("(any)").to_string();
     egui::ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(label).font(mono(12.0)))
+        .selected_text(RichText::new(label))
         .show_ui(ui, |ui| {
             if ui
-                .selectable_label(value.is_none(), RichText::new("(any)").font(mono(12.0)))
+                .selectable_label(value.is_none(), RichText::new("(any)"))
                 .clicked()
             {
                 *value = None;
             }
             for opt in options {
                 let sel = value.as_deref() == Some(opt.as_str());
-                if ui
-                    .selectable_label(sel, RichText::new(opt).font(mono(12.0)))
-                    .clicked()
-                {
+                if ui.selectable_label(sel, RichText::new(opt)).clicked() {
                     *value = Some(opt.clone());
                 }
             }

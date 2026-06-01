@@ -1,36 +1,19 @@
 //! Small egui helpers shared across editor panels.
 
-use egui::{ComboBox, FontId, Response, RichText, Ui};
+use egui::{ComboBox, Response, RichText, Ui};
 
 use crate::palette;
 
-pub fn mono(size: f32) -> FontId {
-    FontId::monospace(size)
-}
-
 pub fn section(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(13.0))
-            .strong(),
-    );
+    ui.label(RichText::new(s).color(palette::chrome_text()).strong());
 }
 
 pub fn dim(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text_dim())
-            .font(mono(12.0)),
-    );
+    ui.label(RichText::new(s).color(palette::chrome_text_dim()));
 }
 
 pub fn label(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(12.0)),
-    );
+    ui.label(RichText::new(s).color(palette::chrome_text()));
 }
 
 /// Dropdown over `&[&str]`; writes selected value into `current`. Returns true
@@ -38,11 +21,11 @@ pub fn label(ui: &mut Ui, s: &str) {
 pub fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[&str]) -> bool {
     let mut changed = false;
     ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(current.as_str()).font(mono(12.0)))
+        .selected_text(RichText::new(current.as_str()))
         .show_ui(ui, |ui| {
             for opt in options {
                 if ui
-                    .selectable_label(current == opt, RichText::new(*opt).font(mono(12.0)))
+                    .selectable_label(current == opt, RichText::new(*opt))
                     .clicked()
                     && current != opt
                 {
@@ -63,11 +46,11 @@ pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &
         .find(|(v, _)| *v == current.as_str())
         .map_or(current.as_str(), |(_, l)| *l);
     ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(shown).font(mono(12.0)))
+        .selected_text(RichText::new(shown))
         .show_ui(ui, |ui| {
             for (v, l) in options {
                 if ui
-                    .selectable_label(current == v, RichText::new(*l).font(mono(12.0)))
+                    .selectable_label(current == v, RichText::new(*l))
                     .clicked()
                     && current != v
                 {
@@ -80,11 +63,7 @@ pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &
 }
 
 pub fn text_field(ui: &mut Ui, value: &mut String, hint: &str) -> Response {
-    ui.add(
-        egui::TextEdit::singleline(value)
-            .hint_text(hint)
-            .font(mono(12.0)),
-    )
+    ui.add(egui::TextEdit::singleline(value).hint_text(hint))
 }
 
 /// Text-edit + dropdown helpers that operate on the strongly-typed ID
@@ -96,11 +75,7 @@ where
     T: AsRef<str> + From<String>,
 {
     let mut buf = value.as_ref().to_string();
-    let resp = ui.add(
-        egui::TextEdit::singleline(&mut buf)
-            .hint_text(hint)
-            .font(mono(12.0)),
-    );
+    let resp = ui.add(egui::TextEdit::singleline(&mut buf).hint_text(hint));
     if resp.changed() {
         *value = T::from(buf);
     }

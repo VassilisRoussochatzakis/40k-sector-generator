@@ -13,7 +13,6 @@ use sectorforge_gui_core::sector_view::{SectorGeom, SectorView};
 use crate::palette::{self, HEX_OUTLINE};
 
 use super::state::{Dialog, EditorState, RouteEndpoint, SectorEditTool, Selection};
-use super::ui_helpers::mono;
 
 pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     let route_pick = state.route_pick;
@@ -290,11 +289,7 @@ fn draw_toolbox(ui: &mut Ui, state: &mut EditorState) {
     ui.put(toolbox_rect, |ui: &mut Ui| {
         ui.vertical_centered(|ui| {
             ui.add_space(5.0);
-            ui.label(
-                RichText::new("TOOLBOX")
-                    .font(mono(11.0))
-                    .color(palette::chrome_text_dim()),
-            );
+            ui.label(RichText::new("TOOLBOX").color(palette::chrome_text_dim()));
             ui.add_space(5.0);
 
             for (tool, label) in [
@@ -304,7 +299,7 @@ fn draw_toolbox(ui: &mut Ui, state: &mut EditorState) {
                 (SectorEditTool::Delete, "DELETE"),
             ] {
                 if ui
-                    .selectable_label(state.tool == tool, RichText::new(label).font(mono(11.0)))
+                    .selectable_label(state.tool == tool, RichText::new(label))
                     .clicked()
                 {
                     state.tool = tool;

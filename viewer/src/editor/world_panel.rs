@@ -9,7 +9,7 @@ use super::enums::{
     STAR_COLOUR_CODES, TECH_LEVELS, TEMPERATURES, WORLD_TYPES,
 };
 use super::state::{EditorState, Selection};
-use super::ui_helpers::{combo_str, dim, label, mono, section, text_field_id};
+use super::ui_helpers::{combo_str, dim, label, section, text_field_id};
 
 pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let Selection::World {
@@ -31,11 +31,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     let mut dirty = false;
 
-    ui.label(
-        RichText::new(format!("WORLD {}", w.id.to_uppercase()))
-            .color(palette::chrome_text())
-            .font(mono(15.0)),
-    );
+    ui.label(RichText::new(format!("WORLD {}", w.id.to_uppercase())).color(palette::chrome_text()));
 
     section(ui, "NAME");
     if text_field_id(ui, &mut w.name, "name").changed() {
@@ -184,10 +180,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
                 *feat = val.into();
                 dirty = true;
             }
-            if ui
-                .small_button(RichText::new("x").font(mono(11.0)))
-                .clicked()
-            {
+            if ui.small_button(RichText::new("x")).clicked() {
                 remove = Some(i);
             }
         });
@@ -196,20 +189,14 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         w.world.notable_features.remove(i);
         dirty = true;
     }
-    if ui
-        .button(RichText::new("+ ADD FEATURE").font(mono(12.0)))
-        .clicked()
-    {
+    if ui.button(RichText::new("+ ADD FEATURE")).clicked() {
         w.world.notable_features.push("Prosperous".into());
         dirty = true;
     }
 
     ui.add_space(8.0);
     ui.separator();
-    if ui
-        .button(RichText::new("← BACK TO SYSTEM").font(mono(12.0)))
-        .clicked()
-    {
+    if ui.button(RichText::new("← BACK TO SYSTEM")).clicked() {
         state.selection = Selection::System(system_id.clone());
     }
 

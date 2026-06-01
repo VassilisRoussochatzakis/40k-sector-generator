@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use egui::{Color32, FontId, Pos2, RichText, Ui, Vec2};
+use egui::{Color32, Pos2, RichText, Ui, Vec2};
 
 use sectorforge::sector_model::{
     GeneratedRoute, GeneratedSector, GeneratedSystem, GeneratedWorld, RoutePattern,
@@ -823,12 +823,7 @@ pub fn star_detail(ui: &mut Ui, sys: &GeneratedSystem) {
 // ── small helpers ─────────────────────────────────────────────────────────
 
 // These delegate to the shared `ui_kit` text helpers (§UO P1 dogfood) so the
-// info panel follows the one type scale defined there. `mono` stays a local
-// passthrough for the remaining explicit-size call sites (legend rows).
-fn mono(size: f32) -> FontId {
-    crate::ui_kit::mono(size)
-}
-
+// info panel follows the one type scale defined there.
 fn title(ui: &mut Ui, s: &str) {
     crate::ui_kit::mono_title(ui, s);
 }
@@ -1035,11 +1030,7 @@ fn legend_row(ui: &mut Ui, color: Color32, text: &str) {
         ui.painter().rect_filled(rect, 1.0, color);
         ui.painter()
             .rect_stroke(rect, 1.0, egui::Stroke::new(1.0, darken(color, 0.5)));
-        ui.label(
-            RichText::new(text)
-                .color(palette::chrome_text())
-                .font(mono(12.0)),
-        );
+        ui.label(RichText::new(text).color(palette::chrome_text()).size(12.0));
     });
 }
 
@@ -1050,11 +1041,7 @@ fn legend_route_row(ui: &mut Ui, color: Color32, pattern: RoutePattern, text: &s
         let a = Pos2::new(rect.left(), y);
         let b = Pos2::new(rect.right(), y);
         draw_route_line(ui.painter(), a, b, 2.5, color, pattern);
-        ui.label(
-            RichText::new(text)
-                .color(palette::chrome_text())
-                .font(mono(12.0)),
-        );
+        ui.label(RichText::new(text).color(palette::chrome_text()).size(12.0));
     });
 }
 
@@ -1103,11 +1090,7 @@ fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
             _ => {}
         }
 
-        ui.label(
-            RichText::new(text)
-                .color(palette::chrome_text())
-                .font(mono(12.0)),
-        );
+        ui.label(RichText::new(text).color(palette::chrome_text()).size(12.0));
     });
 }
 

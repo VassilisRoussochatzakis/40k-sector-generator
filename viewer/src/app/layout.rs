@@ -122,18 +122,14 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                 {
                     app.view = View::Data;
                 }
+            });
 
-                ui.separator();
-                ui.label(
-                    RichText::new("ROUTE VIEW")
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
+            ui.separator();
+
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("ROUTE VIEW").color(palette::chrome_text_dim()));
                 if ui
-                    .selectable_label(
-                        app.route_view_mode == RouteViewMode::TopLevel,
-                        RichText::new("TOP-LEVEL").monospace(),
-                    )
+                    .selectable_label(app.route_view_mode == RouteViewMode::TopLevel, "TOP-LEVEL")
                     .on_hover_text("Group routes by Warp / Webway / etc.")
                     .clicked()
                 {
@@ -141,10 +137,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     app.editor.route_view_mode = RouteViewMode::TopLevel;
                 }
                 if ui
-                    .selectable_label(
-                        app.route_view_mode == RouteViewMode::Detailed,
-                        RichText::new("DETAILED").monospace(),
-                    )
+                    .selectable_label(app.route_view_mode == RouteViewMode::Detailed, "DETAILED")
                     .on_hover_text("Show all specialized route types")
                     .clicked()
                 {
@@ -213,9 +206,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
 
                 if !app.export_status.is_empty() {
                     ui.label(
-                        RichText::new(&app.export_status)
-                            .color(Color32::from_rgb(235, 200, 90))
-                            .monospace(),
+                        RichText::new(&app.export_status).color(Color32::from_rgb(235, 200, 90)),
                     );
                 }
             });

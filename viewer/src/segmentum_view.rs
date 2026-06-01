@@ -142,14 +142,9 @@ pub fn show_side_panel(
     ui.label(
         RichText::new("SEGMENTUM")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
-    ui.label(
-        RichText::new(&bundle.segmentum.title)
-            .color(palette::chrome_text_dim())
-            .monospace(),
-    );
+    ui.label(RichText::new(&bundle.segmentum.title).color(palette::chrome_text_dim()));
     ui.add_space(8.0);
 
     if let Some(link_id) = selected_link.as_deref() {
@@ -157,7 +152,7 @@ pub fn show_side_panel(
             ui.separator();
             action = action.or_else(|| link_detail(ui, bundle, link, mode));
             ui.add_space(8.0);
-            if ui.button(RichText::new("CLEAR LINK").monospace()).clicked() {
+            if ui.button(RichText::new("CLEAR LINK")).clicked() {
                 *selected_link = None;
             }
             return action;
@@ -170,10 +165,7 @@ pub fn show_side_panel(
             ui.separator();
             child_detail(ui, bundle, meta);
             ui.add_space(8.0);
-            if ui
-                .button(RichText::new("OPEN ACTIVE MAP").monospace())
-                .clicked()
-            {
+            if ui.button(RichText::new("OPEN ACTIVE MAP")).clicked() {
                 action = Some(SegmentumAction::OpenChild(id.to_string()));
             }
         }
@@ -183,7 +175,6 @@ pub fn show_side_panel(
     ui.label(
         RichText::new("FILES")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     kv(ui, "segmentum", bundle.source_path.as_str());
@@ -196,7 +187,6 @@ fn header(ui: &mut Ui, bundle: &SegmentumBundle) {
     ui.label(
         RichText::new(format!("{} — {}", seg.id, seg.title))
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.label(
@@ -207,8 +197,7 @@ fn header(ui: &mut Ui, bundle: &SegmentumBundle) {
             seg.children.len(),
             seg.inter_sector_links.len()
         ))
-        .color(palette::chrome_text_dim())
-        .monospace(),
+        .color(palette::chrome_text_dim()),
     );
     ui.add_space(8.0);
     egui::Grid::new("segmentum_stats")
@@ -255,7 +244,6 @@ fn super_map(
     ui.label(
         RichText::new("SUPER-MAP")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.add_space(4.0);
@@ -451,7 +439,6 @@ fn super_grid(
     ui.label(
         RichText::new("SUPER-GRID")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.add_space(4.0);
@@ -482,41 +469,33 @@ fn super_grid(
                             ui.label(
                                 RichText::new(child.id.to_uppercase())
                                     .color(palette::chrome_text())
-                                    .monospace()
                                     .strong(),
                             );
-                            ui.label(
-                                RichText::new(&child.title)
-                                    .color(palette::chrome_text_dim())
-                                    .monospace(),
-                            );
+                            ui.label(RichText::new(&child.title).color(palette::chrome_text_dim()));
                             ui.add_space(4.0);
                             ui.label(
                                 RichText::new(format!(
                                     "slot ({}, {})  {}x{}",
                                     child.column, child.row, child.width, child.height
                                 ))
-                                .color(palette::chrome_text_dim())
-                                .monospace(),
+                                .color(palette::chrome_text_dim()),
                             );
                             ui.label(
                                 RichText::new(format!(
                                     "{} sys  {} worlds  {} routes",
                                     child.system_count, child.world_count, child.route_count
                                 ))
-                                .color(palette::chrome_text_dim())
-                                .monospace(),
+                                .color(palette::chrome_text_dim()),
                             );
                             ui.label(
                                 RichText::new(format!(
                                     "{} stitch links",
                                     bundle.link_count_for_child(&child.id)
                                 ))
-                                .color(palette::chrome_text_dim())
-                                .monospace(),
+                                .color(palette::chrome_text_dim()),
                             );
                             ui.add_space(4.0);
-                            if ui.button(RichText::new("OPEN MAP").monospace()).clicked() {
+                            if ui.button(RichText::new("OPEN MAP")).clicked() {
                                 action = Some(SegmentumAction::OpenChild(child.id.clone()));
                             }
                         });
@@ -529,8 +508,7 @@ fn super_grid(
                                 ui.set_min_size(egui::vec2(220.0, 128.0));
                                 ui.label(
                                     RichText::new(format!("EMPTY ({}, {})", col, row))
-                                        .color(palette::chrome_text_dim())
-                                        .monospace(),
+                                        .color(palette::chrome_text_dim()),
                                 );
                             });
                     }
@@ -550,7 +528,6 @@ fn child_table(
     ui.label(
         RichText::new("CHILD SECTORS")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.add_space(4.0);
@@ -562,12 +539,7 @@ fn child_table(
             for h in [
                 "ID", "SLOT", "TITLE", "SEED", "SYS", "WORLDS", "ROUTES", "LINKS", "",
             ] {
-                ui.label(
-                    RichText::new(h)
-                        .color(palette::chrome_text_dim())
-                        .monospace()
-                        .strong(),
-                );
+                ui.label(RichText::new(h).color(palette::chrome_text_dim()).strong());
             }
             ui.end_row();
             for c in &bundle.segmentum.children {
@@ -577,19 +549,17 @@ fn child_table(
                 } else {
                     palette::chrome_text()
                 };
-                ui.label(RichText::new(&c.id).color(color).monospace());
-                ui.label(RichText::new(format!("({}, {})", c.column, c.row)).monospace());
-                ui.label(RichText::new(&c.title).monospace());
-                ui.label(
-                    RichText::new(&c.seed)
-                        .color(palette::chrome_text_dim())
-                        .monospace(),
-                );
-                ui.label(RichText::new(c.system_count.to_string()).monospace());
-                ui.label(RichText::new(c.world_count.to_string()).monospace());
-                ui.label(RichText::new(c.route_count.to_string()).monospace());
-                ui.label(RichText::new(bundle.link_count_for_child(&c.id).to_string()).monospace());
-                if ui.button(RichText::new("OPEN").monospace()).clicked() {
+                ui.label(RichText::new(&c.id).color(color));
+                ui.label(RichText::new(format!("({}, {})", c.column, c.row)));
+                ui.label(RichText::new(&c.title));
+                ui.label(RichText::new(&c.seed).color(palette::chrome_text_dim()));
+                ui.label(RichText::new(c.system_count.to_string()));
+                ui.label(RichText::new(c.world_count.to_string()));
+                ui.label(RichText::new(c.route_count.to_string()));
+                ui.label(RichText::new(
+                    bundle.link_count_for_child(&c.id).to_string(),
+                ));
+                if ui.button(RichText::new("OPEN")).clicked() {
                     action = Some(SegmentumAction::OpenChild(c.id.clone()));
                 }
                 ui.end_row();
@@ -608,16 +578,11 @@ fn link_table(
     ui.label(
         RichText::new("INTER-SECTOR LINKS")
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     ui.add_space(4.0);
     if bundle.segmentum.inter_sector_links.is_empty() {
-        ui.label(
-            RichText::new("none")
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new("none").color(palette::chrome_text_dim()));
         return None;
     }
     egui::Grid::new("segmentum_links")
@@ -626,12 +591,7 @@ fn link_table(
         .spacing([12.0, 4.0])
         .show(ui, |ui| {
             for h in ["ID", "FROM", "TO", "EDGE", "UNITS", "TYPE", "STABILITY", ""] {
-                ui.label(
-                    RichText::new(h)
-                        .color(palette::chrome_text_dim())
-                        .monospace()
-                        .strong(),
-                );
+                ui.label(RichText::new(h).color(palette::chrome_text_dim()).strong());
             }
             ui.end_row();
             for l in &bundle.segmentum.inter_sector_links {
@@ -641,11 +601,11 @@ fn link_table(
                 } else {
                     palette::chrome_text()
                 };
-                ui.label(RichText::new(&l.id).color(color).monospace());
+                ui.label(RichText::new(&l.id).color(color));
                 endpoint_label(ui, bundle, &l.from_child_id, &l.from_system_id);
                 endpoint_label(ui, bundle, &l.to_child_id, &l.to_system_id);
-                ui.label(RichText::new(orientation_label(l.orientation)).monospace());
-                ui.label(RichText::new(l.distance_units.to_string()).monospace());
+                ui.label(RichText::new(orientation_label(l.orientation)));
+                ui.label(RichText::new(l.distance_units.to_string()));
                 let type_label = match mode {
                     sectorforge::sector_model::RouteViewMode::Detailed => l.route_type.label(),
                     sectorforge::sector_model::RouteViewMode::TopLevel => {
@@ -653,23 +613,21 @@ fn link_table(
                     }
                     _ => l.route_type.label(),
                 };
-                ui.label(RichText::new(type_label).monospace());
+                ui.label(RichText::new(type_label));
                 ui.label(
-                    RichText::new(format!("{}", l.stability))
-                        .color(stability_color(l.stability))
-                        .monospace(),
+                    RichText::new(format!("{}", l.stability)).color(stability_color(l.stability)),
                 );
                 ui.horizontal(|ui| {
-                    if ui.button(RichText::new("INFO").monospace()).clicked() {
+                    if ui.button(RichText::new("INFO")).clicked() {
                         *selected_link = Some(Arc::from(l.id.as_str()));
                     }
-                    if ui.button(RichText::new("FROM").monospace()).clicked() {
+                    if ui.button(RichText::new("FROM")).clicked() {
                         action = Some(SegmentumAction::OpenSystem {
                             child_id: l.from_child_id.clone(),
                             system_id: l.from_system_id.clone(),
                         });
                     }
-                    if ui.button(RichText::new("TO").monospace()).clicked() {
+                    if ui.button(RichText::new("TO")).clicked() {
                         action = Some(SegmentumAction::OpenSystem {
                             child_id: l.to_child_id.clone(),
                             system_id: l.to_system_id.clone(),
@@ -692,7 +650,6 @@ fn link_detail(
     ui.label(
         RichText::new(format!("LINK {}", link.id.to_uppercase()))
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     kv(ui, "edge", orientation_label(link.orientation));
@@ -724,10 +681,7 @@ fn link_detail(
         &link.from_system_id,
         &from_name,
     );
-    if ui
-        .button(RichText::new("OPEN FROM SYSTEM").monospace())
-        .clicked()
-    {
+    if ui.button(RichText::new("OPEN FROM SYSTEM")).clicked() {
         action = Some(SegmentumAction::OpenSystem {
             child_id: link.from_child_id.clone(),
             system_id: link.from_system_id.clone(),
@@ -735,10 +689,7 @@ fn link_detail(
     }
     ui.add_space(8.0);
     endpoint_detail(ui, "TO", &link.to_child_id, &link.to_system_id, &to_name);
-    if ui
-        .button(RichText::new("OPEN TO SYSTEM").monospace())
-        .clicked()
-    {
+    if ui.button(RichText::new("OPEN TO SYSTEM")).clicked() {
         action = Some(SegmentumAction::OpenSystem {
             child_id: link.to_child_id.clone(),
             system_id: link.to_system_id.clone(),
@@ -751,7 +702,6 @@ fn child_detail(ui: &mut Ui, bundle: &SegmentumBundle, child: &SegmentumChild) {
     ui.label(
         RichText::new(format!("ACTIVE CHILD {}", child.id.to_uppercase()))
             .color(palette::chrome_text())
-            .monospace()
             .strong(),
     );
     kv(ui, "title", &child.title);
@@ -772,7 +722,6 @@ fn child_detail(ui: &mut Ui, bundle: &SegmentumBundle, child: &SegmentumChild) {
         ui.label(
             RichText::new("LOCAL BORDER LINKS")
                 .color(palette::chrome_text())
-                .monospace()
                 .strong(),
         );
         for l in bundle
@@ -786,8 +735,7 @@ fn child_detail(ui: &mut Ui, bundle: &SegmentumBundle, child: &SegmentumChild) {
                     "{}  {}:{} ↔ {}:{}",
                     l.id, l.from_child_id, l.from_system_id, l.to_child_id, l.to_system_id
                 ))
-                .color(palette::chrome_text_dim())
-                .monospace(),
+                .color(palette::chrome_text_dim()),
             );
         }
     }
@@ -797,7 +745,6 @@ fn endpoint_detail(ui: &mut Ui, label: &str, child_id: &str, system_id: &str, na
     ui.label(
         RichText::new(label)
             .color(palette::chrome_text_dim())
-            .monospace()
             .strong(),
     );
     kv(ui, "child", child_id);
@@ -806,15 +753,12 @@ fn endpoint_detail(ui: &mut Ui, label: &str, child_id: &str, system_id: &str, na
 }
 
 fn endpoint_label(ui: &mut Ui, bundle: &SegmentumBundle, child_id: &str, system_id: &str) {
-    ui.label(
-        RichText::new(format!(
-            "{}/{} ({})",
-            child_id,
-            system_id,
-            bundle.system_name(child_id, system_id)
-        ))
-        .monospace(),
-    );
+    ui.label(RichText::new(format!(
+        "{}/{} ({})",
+        child_id,
+        system_id,
+        bundle.system_name(child_id, system_id)
+    )));
 }
 
 fn orientation_label(o: BorderOrientation) -> &'static str {
@@ -830,14 +774,9 @@ fn stat(ui: &mut Ui, label: &str, value: usize) {
         ui.label(
             RichText::new(value.to_string())
                 .color(palette::chrome_text())
-                .monospace()
                 .strong(),
         );
-        ui.label(
-            RichText::new(label.to_ascii_uppercase())
-                .color(palette::chrome_text_dim())
-                .monospace(),
-        );
+        ui.label(RichText::new(label.to_ascii_uppercase()).color(palette::chrome_text_dim()));
     });
 }
 
@@ -847,11 +786,7 @@ fn chip(ui: &mut Ui, text: &str, fill: Color32) {
         .stroke(Stroke::new(1.0, palette::HEX_OUTLINE))
         .inner_margin(egui::Margin::symmetric(8.0, 3.0))
         .show(ui, |ui| {
-            ui.label(
-                RichText::new(text)
-                    .color(palette::chrome_text_dim())
-                    .monospace(),
-            );
+            ui.label(RichText::new(text).color(palette::chrome_text_dim()));
         });
 }
 
@@ -860,11 +795,9 @@ fn kv(ui: &mut Ui, k: &str, v: &str) {
         ui.add_sized(
             [86.0, 0.0],
             egui::Label::new(
-                RichText::new(k.to_ascii_uppercase())
-                    .color(palette::chrome_text_dim())
-                    .monospace(),
+                RichText::new(k.to_ascii_uppercase()).color(palette::chrome_text_dim()),
             ),
         );
-        ui.label(RichText::new(v).color(palette::chrome_text()).monospace());
+        ui.label(RichText::new(v).color(palette::chrome_text()));
     });
 }

@@ -3,7 +3,7 @@
 use egui::{RichText, Ui};
 
 use super::state::EditorState;
-use super::ui_helpers::{dim, label, mono, section};
+use super::ui_helpers::{dim, label, section};
 
 pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
     let Some(input) = state.project_input.as_ref() else {
@@ -41,7 +41,7 @@ pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
     let mut remove_idx: Option<usize> = None;
     for (i, c) in wishes.constraints.iter_mut().enumerate() {
         ui.horizontal(|ui| {
-            ui.label(RichText::new(format!("{:?}", c)).monospace().size(10.0));
+            ui.label(RichText::new(format!("{:?}", c)).size(10.0));
             if ui.small_button("x").clicked() {
                 remove_idx = Some(i);
             }
@@ -100,13 +100,10 @@ pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
         ui.label("NEAR MISSES:");
         for cand in &outcome.near_misses {
             ui.horizontal(|ui| {
-                ui.label(
-                    RichText::new(format!(
-                        "#{} miss={:.3} ({})",
-                        cand.n, cand.total_miss, cand.seed
-                    ))
-                    .font(mono(11.0)),
-                );
+                ui.label(RichText::new(format!(
+                    "#{} miss={:.3} ({})",
+                    cand.n, cand.total_miss, cand.seed
+                )));
                 if ui.button("PREVIEW").clicked() {
                     preview_seed = Some(cand.seed.clone());
                 }

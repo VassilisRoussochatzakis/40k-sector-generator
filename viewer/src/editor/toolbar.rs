@@ -5,14 +5,10 @@ use egui::{RichText, Ui};
 use crate::palette;
 
 use super::state::{Dialog, EditorState, Tab};
-use super::ui_helpers::mono;
 
 pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button(RichText::new("NEW SECTOR").font(mono(12.0)))
-            .clicked()
-        {
+        if ui.button(RichText::new("NEW SECTOR")).clicked() {
             state.dialog = Dialog::NewSector {
                 name: String::new(),
                 title: String::new(),
@@ -22,7 +18,7 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                 irregular_dimensions: false,
             };
         }
-        if ui.button(RichText::new("OPEN").font(mono(12.0))).clicked() {
+        if ui.button(RichText::new("OPEN")).clicked() {
             let projects = super::file_ops::list_projects();
             state.dialog = Dialog::OpenProject {
                 selected: projects.first().cloned(),
@@ -31,10 +27,7 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
         }
         let can_save = state.sector.is_some();
         if ui
-            .add_enabled(
-                can_save,
-                egui::Button::new(RichText::new("SAVE AS").font(mono(12.0))),
-            )
+            .add_enabled(can_save, egui::Button::new(RichText::new("SAVE AS")))
             .clicked()
         {
             let default = state
@@ -61,9 +54,7 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
             if ui
                 .selectable_label(
                     state.tab == tab,
-                    RichText::new(label)
-                        .font(mono(12.0))
-                        .color(palette::chrome_text()),
+                    RichText::new(label).color(palette::chrome_text()),
                 )
                 .clicked()
             {
@@ -83,15 +74,10 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                         sec.routes.len(),
                         sec.factions.len(),
                     ))
-                    .color(palette::chrome_text_dim())
-                    .font(mono(12.0)),
+                    .color(palette::chrome_text_dim()),
                 );
             } else {
-                ui.label(
-                    RichText::new("NO SECTOR LOADED")
-                        .color(palette::chrome_text_dim())
-                        .font(mono(12.0)),
-                );
+                ui.label(RichText::new("NO SECTOR LOADED").color(palette::chrome_text_dim()));
             }
         });
     });

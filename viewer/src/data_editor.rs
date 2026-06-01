@@ -108,16 +108,10 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
             .as_ref()
             .map_or(0, |c| c.generation.len());
         ui.label(
-            RichText::new(format!("{row_count} rows"))
-                .color(super::palette::chrome_text_dim())
-                .monospace(),
+            RichText::new(format!("{row_count} rows")).color(super::palette::chrome_text_dim()),
         );
         if editor.dirty {
-            ui.label(
-                RichText::new("• unsaved")
-                    .color(Color32::from_rgb(240, 200, 90))
-                    .monospace(),
-            );
+            ui.label(RichText::new("• unsaved").color(Color32::from_rgb(240, 200, 90)));
         }
     });
 
@@ -126,8 +120,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     if editor.project_dir.is_none() {
         ui.label(
             RichText::new("load a project from the toolbar to edit world data")
-                .color(super::palette::chrome_text_dim())
-                .monospace(),
+                .color(super::palette::chrome_text_dim()),
         );
         return;
     }
@@ -135,8 +128,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     if editor.worlds_toml.is_none() {
         ui.label(
             RichText::new("project has no worlds.toml in its data dir")
-                .color(super::palette::chrome_text_dim())
-                .monospace(),
+                .color(super::palette::chrome_text_dim()),
         );
         return;
     }
@@ -181,8 +173,7 @@ fn show_native(ui: &mut egui::Ui, editor: &mut DataEditor) {
                         ui.label(
                             RichText::new(h.to_ascii_uppercase())
                                 .color(super::palette::chrome_text())
-                                .strong()
-                                .monospace(),
+                                .strong(),
                         );
                     }
                     ui.end_row();
@@ -190,8 +181,7 @@ fn show_native(ui: &mut egui::Ui, editor: &mut DataEditor) {
                     for (idx, row) in cfg.generation.iter_mut().enumerate() {
                         ui.label(
                             RichText::new((idx + 1).to_string())
-                                .color(super::palette::chrome_text_dim())
-                                .monospace(),
+                                .color(super::palette::chrome_text_dim()),
                         );
                         any_change |= enum_combo(
                             ui,

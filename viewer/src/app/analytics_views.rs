@@ -9,11 +9,7 @@ impl App {
             egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
                 });
             return;
         };
@@ -26,7 +22,7 @@ impl App {
             .show(ctx, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     if ui
-                        .button(RichText::new("RECOMPUTE").monospace())
+                        .button(RichText::new("RECOMPUTE"))
                         .on_hover_text("re-run analytics on the current sector")
                         .clicked()
                     {
@@ -34,8 +30,7 @@ impl App {
                     }
                     ui.label(
                         RichText::new("§8 NEW.md — analytics dashboard")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
+                            .color(palette::chrome_text_dim()),
                     );
                 });
             });
@@ -57,11 +52,7 @@ impl App {
             egui::CentralPanel::default()
                 .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
-                    ui.label(
-                        RichText::new("no sector loaded")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
-                    );
+                    ui.label(RichText::new("no sector loaded").color(palette::chrome_text_dim()));
                 });
             return;
         };
@@ -77,19 +68,16 @@ impl App {
                     ui.label(
                         RichText::new("SECTOR HISTORY")
                             .color(palette::chrome_text())
-                            .monospace()
                             .strong(),
                     );
                     ui.label(
                         RichText::new("§1 NEW2.md — typed timeline records")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
+                            .color(palette::chrome_text_dim()),
                     );
                     ui.separator();
                     ui.label(
                         RichText::new(format!("{} EVENTS", sector.chronicle.events.len()))
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
+                            .color(palette::chrome_text_dim()),
                     );
                 });
             });
@@ -105,8 +93,7 @@ impl App {
                     if sector.chronicle.events.is_empty() {
                         ui.label(
                             RichText::new("no chronicle events embedded in this sector")
-                                .color(palette::chrome_text_dim())
-                                .monospace(),
+                                .color(palette::chrome_text_dim()),
                         );
                         return;
                     }
@@ -116,7 +103,6 @@ impl App {
                             ui.label(
                                 RichText::new("TIMELINE")
                                     .color(palette::chrome_text())
-                                    .monospace()
                                     .strong(),
                             );
                             ui.add_space(6.0);
@@ -125,10 +111,7 @@ impl App {
                                 let is_selected = selected.as_deref() == Some(e.id.as_str());
                                 let label = format!("{}  {}  {}", e.date, e.kind, e.summary);
                                 if ui
-                                    .selectable_label(
-                                        is_selected,
-                                        RichText::new(short(&label, 96)).monospace(),
-                                    )
+                                    .selectable_label(is_selected, RichText::new(short(&label, 96)))
                                     .clicked()
                                 {
                                     self.history_selected_event = Some(e.id.as_str().into());
@@ -152,34 +135,23 @@ impl App {
                                 ui.label(
                                     RichText::new("EVENT DETAIL")
                                         .color(palette::chrome_text())
-                                        .monospace()
                                         .strong(),
                                 );
-                                ui.label(
-                                    RichText::new(&e.id)
-                                        .color(palette::chrome_text_dim())
-                                        .monospace(),
-                                );
+                                ui.label(RichText::new(&e.id).color(palette::chrome_text_dim()));
                                 ui.add_space(4.0);
                                 ui.label(
                                     RichText::new(format!(
                                         "{} · {} · {:?}",
                                         e.date, e.era_label, e.kind
                                     ))
-                                    .color(palette::chrome_text())
-                                    .monospace(),
+                                    .color(palette::chrome_text()),
                                 );
-                                ui.label(
-                                    RichText::new(&e.narrative)
-                                        .color(palette::chrome_text())
-                                        .monospace(),
-                                );
+                                ui.label(RichText::new(&e.narrative).color(palette::chrome_text()));
                                 if !e.entities.is_empty() {
                                     ui.add_space(6.0);
                                     ui.label(
                                         RichText::new("REFS")
                                             .color(palette::chrome_text_dim())
-                                            .monospace()
                                             .strong(),
                                     );
                                     for ent in &e.entities {
@@ -189,8 +161,7 @@ impl App {
                                                 "{:?}  {}  {}",
                                                 ent.kind, ent.id, role
                                             ))
-                                            .color(palette::chrome_text_dim())
-                                            .monospace(),
+                                            .color(palette::chrome_text_dim()),
                                         );
                                     }
                                 }
@@ -199,7 +170,6 @@ impl App {
                                     ui.label(
                                         RichText::new("CONSEQUENCES")
                                             .color(palette::chrome_text_dim())
-                                            .monospace()
                                             .strong(),
                                     );
                                     for c in &e.consequences {
@@ -208,17 +178,13 @@ impl App {
                                                 "{:?}  sev{}  {}",
                                                 c.kind, c.severity, c.description
                                             ))
-                                            .color(palette::chrome_text_dim())
-                                            .monospace(),
+                                            .color(palette::chrome_text_dim()),
                                         );
                                     }
                                 }
                                 if let Some(sys_id) = first_system_from_event(e) {
                                     ui.add_space(8.0);
-                                    if ui
-                                        .button(RichText::new("OPEN FIRST SYSTEM").monospace())
-                                        .clicked()
-                                    {
+                                    if ui.button(RichText::new("OPEN FIRST SYSTEM")).clicked() {
                                         self.view = View::System {
                                             system_id: sys_id,
                                             selection: SystemSelection::None,
@@ -235,13 +201,9 @@ impl App {
                     ui.label(
                         RichText::new("SNAPSHOTS / VERSIONING")
                             .color(palette::chrome_text())
-                            .monospace()
                             .strong(),
                     );
-                    if ui
-                        .button(RichText::new("+ CREATE SNAPSHOT").monospace())
-                        .clicked()
-                    {
+                    if ui.button(RichText::new("+ CREATE SNAPSHOT")).clicked() {
                         let name = format!("Snapshot {}", self.history_snapshots.len() + 1);
                         self.history_snapshots.push((name, sector.as_ref().clone()));
                     }
@@ -249,7 +211,7 @@ impl App {
                     let mut revert_idx: Option<usize> = None;
                     for (i, (name, _)) in self.history_snapshots.iter().enumerate() {
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new(name).monospace());
+                            ui.label(RichText::new(name));
                             if ui.button("REVERT").clicked() {
                                 revert_idx = Some(i);
                             }

@@ -12,9 +12,7 @@ impl App {
                 .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
                     ui.label(
-                        RichText::new("no segmentum loaded")
-                            .color(palette::chrome_text_dim())
-                            .monospace(),
+                        RichText::new("no segmentum loaded").color(palette::chrome_text_dim()),
                     );
                 });
             return;

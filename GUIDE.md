@@ -1736,8 +1736,10 @@ are accepted by the config parser but the current clustering ignores them.
 
 Both desktop apps share one chrome theme system in
 [gui-core/src/theme.rs](gui-core/src/theme.rs). A `Theme` enum — `Grimdark`
-(default), `Void`, `Abyssal` (three dark presets) and `Light` (parchment +
-crimson) — expands a flat color set into a full egui `Visuals` +
+(default), `Void`, `Abyssal`, `Slate`, `Nord`, `Solarized`, `Graphite` (seven
+dark presets; `Slate`/`Nord`/`Solarized`/`Graphite` are neutral IDE-style looks)
+and `Light` (parchment + crimson) — expands a flat color set into a full egui
+`Visuals` +
 spacing/rounding/shadow `Style`; `Theme::apply(ctx)` pushes it, and
 `theme::menu(ui, &mut theme)` renders the **Theme:** picker (top bar, left of
 the tabs in both apps). Each app stores `theme` + `applied_theme` and re-applies

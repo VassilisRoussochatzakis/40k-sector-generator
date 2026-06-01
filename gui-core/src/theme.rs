@@ -29,13 +29,30 @@ pub enum Theme {
     Void,
     /// Teal/cyan on deep blue-black.
     Abyssal,
+    /// Neutral slate-grey with a blue accent — an IDE-style professional dark.
+    Slate,
+    /// Muted arctic blue-greys with a frost-cyan accent (the Nord palette).
+    Nord,
+    /// Schoonover's low-contrast teal base with a blue accent (Solarized Dark).
+    Solarized,
+    /// Near-monochrome grey chrome with a lone teal accent.
+    Graphite,
     /// Parchment + crimson ink — the only light preset.
     Light,
 }
 
 impl Theme {
     /// Every preset, in picker order.
-    pub const ALL: [Theme; 4] = [Theme::Grimdark, Theme::Void, Theme::Abyssal, Theme::Light];
+    pub const ALL: [Theme; 8] = [
+        Theme::Grimdark,
+        Theme::Void,
+        Theme::Abyssal,
+        Theme::Slate,
+        Theme::Nord,
+        Theme::Solarized,
+        Theme::Graphite,
+        Theme::Light,
+    ];
 
     /// Human-readable name for menus and tooltips.
     #[must_use]
@@ -44,6 +61,10 @@ impl Theme {
             Theme::Grimdark => "Grimdark",
             Theme::Void => "Void",
             Theme::Abyssal => "Abyssal",
+            Theme::Slate => "Slate",
+            Theme::Nord => "Nord",
+            Theme::Solarized => "Solarized",
+            Theme::Graphite => "Graphite",
             Theme::Light => "Light",
         }
     }
@@ -114,6 +135,74 @@ impl Theme {
                 text: rgb(224, 234, 236),
                 text_weak: rgb(140, 160, 164),
                 border: rgb(44, 60, 66),
+            },
+            // Neutral cool-grey IDE chrome with a single blue accent (VS Code
+            // Dark+ family). Lowest-personality dark preset.
+            Theme::Slate => Pal {
+                dark: true,
+                window: rgb(30, 34, 39),
+                panel: rgb(38, 43, 51),
+                faint: rgb(44, 50, 59),
+                extreme: rgb(22, 25, 29),
+                weak: rgb(46, 52, 62),
+                hover: rgb(58, 66, 79),
+                active: rgb(72, 82, 98),
+                accent: rgb(90, 156, 255),
+                sel: rgb(46, 80, 130),
+                text: rgb(216, 220, 227),
+                text_weak: rgb(140, 148, 160),
+                border: rgb(58, 64, 75),
+            },
+            // Nord: Polar Night greys (nord0..nord3) under Snow Storm text
+            // (nord6) with a single Frost accent (nord8).
+            Theme::Nord => Pal {
+                dark: true,
+                window: rgb(46, 52, 64),
+                panel: rgb(59, 66, 82),
+                faint: rgb(67, 76, 94),
+                extreme: rgb(38, 43, 53),
+                weak: rgb(64, 72, 90),
+                hover: rgb(76, 86, 106),
+                active: rgb(94, 109, 134),
+                accent: rgb(136, 192, 208),
+                sel: rgb(67, 97, 133),
+                text: rgb(236, 239, 244),
+                text_weak: rgb(146, 158, 178),
+                border: rgb(76, 86, 106),
+            },
+            // Solarized Dark: base03 backdrop, base02 panels, base1 text — the
+            // canonical low-contrast teal with a measured blue accent.
+            Theme::Solarized => Pal {
+                dark: true,
+                window: rgb(0, 43, 54),
+                panel: rgb(7, 54, 66),
+                faint: rgb(13, 62, 74),
+                extreme: rgb(0, 33, 42),
+                weak: rgb(20, 68, 80),
+                hover: rgb(33, 86, 98),
+                active: rgb(48, 104, 116),
+                accent: rgb(38, 139, 210),
+                sel: rgb(18, 74, 108),
+                text: rgb(147, 161, 161),
+                text_weak: rgb(88, 110, 117),
+                border: rgb(20, 68, 80),
+            },
+            // Graphite: near-colorless grey chrome so the map is the only color
+            // on screen; one restrained teal accent.
+            Theme::Graphite => Pal {
+                dark: true,
+                window: rgb(26, 26, 26),
+                panel: rgb(36, 36, 36),
+                faint: rgb(42, 42, 42),
+                extreme: rgb(18, 18, 18),
+                weak: rgb(46, 46, 46),
+                hover: rgb(58, 58, 58),
+                active: rgb(74, 74, 74),
+                accent: rgb(77, 182, 172),
+                sel: rgb(45, 72, 69),
+                text: rgb(224, 224, 224),
+                text_weak: rgb(140, 140, 140),
+                border: rgb(58, 58, 58),
             },
             // Parchment app backdrop, near-white cards, crimson ink accent.
             Theme::Light => Pal {

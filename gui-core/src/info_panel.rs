@@ -822,57 +822,31 @@ pub fn star_detail(ui: &mut Ui, sys: &GeneratedSystem) {
 
 // ── small helpers ─────────────────────────────────────────────────────────
 
+// These delegate to the shared `ui_kit` text helpers (§UO P1 dogfood) so the
+// info panel follows the one type scale defined there. `mono` stays a local
+// passthrough for the remaining explicit-size call sites (legend rows).
 fn mono(size: f32) -> FontId {
-    FontId::monospace(size)
+    crate::ui_kit::mono(size)
 }
 
 fn title(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(18.0)),
-    );
-    ui.add_space(2.0);
+    crate::ui_kit::mono_title(ui, s);
 }
 
 fn section(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(13.0))
-            .strong(),
-    );
+    crate::ui_kit::mono_section(ui, s);
 }
 
 fn body(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text())
-            .font(mono(13.0)),
-    );
+    crate::ui_kit::mono_body(ui, s);
 }
 
 fn dim(ui: &mut Ui, s: &str) {
-    ui.label(
-        RichText::new(s)
-            .color(palette::chrome_text_dim())
-            .font(mono(12.0)),
-    );
+    crate::ui_kit::mono_dim(ui, s);
 }
 
 fn kv(ui: &mut Ui, k: &str, v: &str) {
-    ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(format!("{k}:"))
-                .color(palette::chrome_text_dim())
-                .font(mono(12.0)),
-        );
-        ui.label(
-            RichText::new(v)
-                .color(palette::chrome_text())
-                .font(mono(12.0)),
-        );
-    });
+    crate::ui_kit::kv(ui, k, v);
 }
 
 fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {

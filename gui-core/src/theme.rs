@@ -15,7 +15,9 @@
 //! with the viewer's custom-framed surfaces.
 
 use egui::epaint::Shadow;
-use egui::{Color32, Context, Margin, Rounding, Stroke, Style, Ui, Visuals};
+use egui::{
+    Color32, Context, FontFamily, FontId, Margin, Rounding, Stroke, Style, TextStyle, Ui, Visuals,
+};
 
 use crate::palette;
 
@@ -86,6 +88,7 @@ impl Theme {
             ..Style::default()
         };
         tune_spacing(&mut style);
+        tune_typography(&mut style);
         ctx.set_style(style);
     }
 
@@ -336,18 +339,55 @@ fn build_visuals(p: &Pal) -> Visuals {
 /// Spacing/padding tweaks shared by every preset — looser than egui's dense
 /// defaults, which is most of what separates "themed" from "prototype".
 fn tune_spacing(style: &mut Style) {
-    style.spacing.item_spacing = egui::vec2(8.0, 5.0);
-    style.spacing.button_padding = egui::vec2(8.0, 4.0);
+    style.spacing.item_spacing = egui::vec2(8.0, 7.0);
+    style.spacing.button_padding = egui::vec2(10.0, 6.0);
     style.spacing.menu_margin = Margin::same(6.0);
     style.spacing.window_margin = Margin::same(10.0);
+    // §UO3.2: taller click targets and a wider combo floor so enum names stop
+    // clipping. These pair with the larger `Button` text style below.
+    style.spacing.interact_size.y = 26.0;
+    style.spacing.combo_width = 190.0;
+}
+
+/// App-wide type scale (§UO3.1). egui's default text styles are dense; this is
+/// the single place that enlarges every default-styled label / button / combo /
+/// tab across both apps. Bumping `Button` is the high-leverage move — every tab
+/// in the builder strip and every combo's selected text is `Button`-styled.
+fn tune_typography(style: &mut Style) {
+    style.text_styles = [
+        (
+            TextStyle::Heading,
+            FontId::new(20.0, FontFamily::Proportional),
+        ),
+        (TextStyle::Body, FontId::new(15.0, FontFamily::Proportional)),
+        (
+            TextStyle::Button,
+            FontId::new(15.0, FontFamily::Proportional),
+        ),
+        (
+            TextStyle::Monospace,
+            FontId::new(14.0, FontFamily::Monospace),
+        ),
+        (
+            TextStyle::Small,
+            FontId::new(12.0, FontFamily::Proportional),
+        ),
+    ]
+    .into();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // `Theme::apply` writes the process-wide `palette::CHROME` static, so the
+    // two tests that call it must not run concurrently or they clobber each
+    // other's chrome snapshot. Serialize them.
+    static CHROME_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn every_theme_applies_and_flips_chrome() {
+        let _guard = CHROME_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let ctx = egui::Context::default();
         for theme in Theme::ALL {
             theme.apply(&ctx);
@@ -374,5 +414,21 @@ mod tests {
                 theme.label()
             );
         }
+    }
+
+    #[test]
+    fn type_scale_and_combo_sizing_applied() {
+        // §UO3.1/§UO3.2: the theme owns the app-wide type scale and control
+        // sizing. Lock the load-bearing values so a stray egui default can't
+        // silently shrink the chrome again.
+        let _guard = CHROME_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let ctx = egui::Context::default();
+        Theme::default().apply(&ctx);
+        let style = ctx.style();
+        assert_eq!(style.text_styles[&TextStyle::Body].size, 15.0);
+        assert_eq!(style.text_styles[&TextStyle::Button].size, 15.0);
+        assert_eq!(style.text_styles[&TextStyle::Heading].size, 20.0);
+        assert_eq!(style.spacing.combo_width, 190.0);
+        assert_eq!(style.spacing.interact_size.y, 26.0);
     }
 }

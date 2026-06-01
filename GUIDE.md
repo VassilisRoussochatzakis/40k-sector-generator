@@ -1766,6 +1766,28 @@ themeable chrome:
 theming carries no golden-test or determinism risk. A headless smoke test in
 `theme.rs` applies every preset and asserts the chrome store + `dark_mode` flip.
 
+**Type scale + control sizing.** Beyond colors, `Theme::apply` also owns the
+app-wide type scale and control sizing, so they stay consistent across both apps
+and every preset. `tune_typography` sets `style.text_styles` (Heading 20 / Body
+15 / Button 15 / Monospace 14 / Small 12 — Button drives tabs + combo selected
+text), and `tune_spacing` sets `interact_size.y = 26` and `combo_width = 190` so
+buttons/combos are comfortably tall and stop clipping enum names. A second
+headless test locks these values. This is Phase 0 of the broader UI overhaul
+tracked in [docs/UI_OVERHAUL.md](docs/UI_OVERHAUL.md) (`§UO`): the theme is the
+single global lever for chrome typography/spacing — never hardcode a font size
+or chrome color in a panel.
+
+**Shared widget kit** ([gui-core/src/ui_kit.rs](gui-core/src/ui_kit.rs), UI
+overhaul Phase 1). The tier-2/tier-3 building blocks panels were missing:
+`ui_kit::section` / `collapsing_section` (a titled, themed, bordered box that
+groups controls — replaces the bare `CollapsingHeader` + `ui.separator()`
+pattern), `ui_kit::field` (aligned label/control row), `ui_kit::combo` (a
+pre-sized dropdown), and monospace text helpers (`mono`, `mono_title`,
+`mono_section`, `kv`, …) for tabular panels. Like `gui-core::nav` it takes
+`&mut Ui` + plain data and has **no** `BuilderState` dependency, so both apps
+share it. `info_panel` already routes its text helpers through it. Builder and
+viewer panels migrate onto it in overhaul Phases 3–4.
+
 ### 8.1 Viewer/editor (`sectorforge-viewer`)
 
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,

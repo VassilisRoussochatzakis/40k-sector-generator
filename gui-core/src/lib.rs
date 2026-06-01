@@ -10,6 +10,7 @@ pub mod palette;
 pub mod sector_view;
 pub mod system_view;
 pub mod theme;
+pub mod ui_kit;
 pub mod visual_tokens;
 
 pub use nav::entity_link;

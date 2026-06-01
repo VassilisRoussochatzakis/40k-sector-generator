@@ -94,7 +94,7 @@ impl SessionFile {
 
     pub fn into_state(self) -> BuilderState {
         use super::data_catalogs::DataCatalogs;
-        use super::derivation_cache::DerivationCache;
+        use super::derivation_cache::{DerivationCache, DerivationLedger};
         use super::index::BuilderIndex;
 
         let index = BuilderIndex::rebuild(&self.sector);
@@ -111,6 +111,7 @@ impl SessionFile {
             pinned_systems: self.pinned_systems,
             pinned_worlds: self.pinned_worlds,
             derivation_cache: DerivationCache::new(),
+            derivations: DerivationLedger::new(),
             dirty: false,
             auto_save_path: None,
             last_save_error: None,

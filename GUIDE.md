@@ -2021,27 +2021,28 @@ foundation layer lives in:
 |---|---|
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | `GeneratedSector::empty`, `GeneratedSystem::new_at`, `GeneratedWorld::new` constructors used by the builder when the user creates entities from scratch. |
 | [src/model/sector_model/mutation.rs](src/model/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, `add_faction`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
-| [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + dirty flag + validation/invariant reports + pending jobs. Holds the struct definition + `new_blank` constructor + `default_config`; method `impl` blocks are split into sibling modules by concern. |
+| [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + §39 live-derivation ledger (`derivations`) + dirty flag + validation/invariant reports + pending jobs. Holds the struct definition + `new_blank` constructor + `default_config`; method `impl` blocks are split into sibling modules by concern. |
 | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types backing `BuilderState`: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `PendingPlace`/`Rename`/`Collision`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, plus `DEFAULT_COMMAND_LOG_CAPACITY` / `DEFAULT_VALIDATION_DEBOUNCE_MS`. Re-exported by `state/mod.rs`. |
 | [builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs) | §S1/§S4 selection helpers: `focus_system`, `toggle_system_selection`. |
 | [builder/src/builder/state/undo.rs](builder/src/builder/state/undo.rs) | R4 command-bus entry point: `BuilderState::run` + `undo` / `redo` + ring-buffer trim + `snapshot` + `trigger_auto_save`. |
-| [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Heavy derived state on `BuilderState`: `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`. |
+| [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Heavy derived state on `BuilderState`: `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`. Also the §39 live-derivation drivers (LD1..LD4): `derivation_fingerprint`, `invalidate_derivations`, `mark_derivation_fresh`, `ensure_fresh`, `derivation_status`, `pump_derivations`. |
 | [builder/src/builder/state/regions_ops.rs](builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region overlay mutators: `add_region`, `remove_region`, `paint_region_hex`, `erase_region_hex`, `update_region`, `next_region_id`. |
 | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4 wiring on `BuilderState`: `generate_system_here`, `find_world_indices`, `regenerate_world`, `reroll_seed`, `apply_preview`, `regenerate_partial`. |
 | [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`), the §O1/§O2 orbital-asset commands (`SetOrbitalAssets`, `SetBlockadeReport`), and the §SU1 surface-region command (`SetSurfaceRegions`); overlay commands land with their panels in later phases. |
 | [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
-| [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3-keyed cache (LD1) for derived overlays (analytics, history, prose, ...). Cleared on every command — finer-grained invalidation lands in Phase E. |
+| [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3 cache primitives (`digest_input`) **and** the §39 live-derivation ledger (LD1..LD4): `DerivationKind` (16 overlays), `DepClass` (6 mutation-input classes) + the dependency table, `DerivationLedger` (per-kind fingerprints / stale set / deriving set), `DerivationStatus`. The generic key→value `DerivationCache` is flushed per command; the ledger is invalidated *precisely* by `BuilderCommand::dep_classes` (LD2). |
 | [builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs) | Named save points tying a `GeneratedSector` clone to a command-log position. |
 | [builder/src/builder/session.rs](builder/src/builder/session.rs) | `.sgforge` save/load. JSON envelope; embedded project files use the inline base64 helper. |
 | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) | `BuilderError` — wraps `MutationError`, validation/invariant failures, IO, parse, stale snapshot, and JSON errors. |
 
 `BuilderState::run` routes a command through the bus enforcing the R4
-rails: apply → re-index → clear derivation cache → truncate redo tail →
-push onto the log → mark dirty → re-check invariants (stored in
+rails: apply → re-index → flush the generic derivation cache **and** invalidate
+the §39 live-derivation ledger by the command's `dep_classes` (LD2) → truncate
+redo tail → push onto the log → mark dirty → re-check invariants (stored in
 `invariant_report`) → trigger auto-save when `auto_save_path` is set.
 `BuilderState::undo` and `BuilderState::redo` walk the cursor and fire the
-same invariant / auto-save tail so the status bar stays accurate.
+same invariant / invalidation / auto-save tail so the status bar stays accurate.
 
 `BuilderState::new_blank(id, title, seed, w, h)` constructs the empty
 session used by the new-project wizard. It uses the new
@@ -2057,13 +2058,66 @@ mismatched versions explicitly rather than partially decoding.
 | R1 single source of truth | [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) — direct ownership of `GeneratedSector` behind `&mut BuilderState`; equivalent to the spec's `Rc<RefCell<>>` (GUI thread is sole writer; jobs hold cloned read-only snapshots). |
 | R2 typed IDs only | `BuilderCommand`, `BuilderIndex`, `BuilderState.pinned_*`, `SessionFile.pinned_*` all use `SystemId` / `WorldId` / `RouteId` / `FactionId` — no raw `String` IDs at panel boundaries. |
 | R3 deterministic index | `BuilderIndex` keys every map with `BTreeMap<TypedId, _>`; JSON exports stay byte-stable. |
-| R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform invariant re-check, snapshot/undo stack, auto-save trigger, and derivation-cache invalidation. |
+| R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform invariant re-check, snapshot/undo stack, auto-save trigger, and derivation-cache invalidation (generic flush + §39 ledger precise invalidation off `dep_classes`). |
 | R5 BLAKE3 cache | [src/model/rng.rs](src/model/rng.rs) `digest_bytes` + [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
 | R6 BuilderError variants | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
 | R7 off-thread runner | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. Builder previews cancel superseded work and discard stale revisions before applying results. |
 | R8 determinism test | [builder/src/builder/command.rs](builder/src/builder/command.rs) `tests::command_log_determinism_blake3` — replays a fixed log twice and asserts BLAKE3 hex equality. |
 | R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
 | R10 panel contract | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
+
+#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 IN PROGRESS, LD4 DONE)
+
+The overlay tabs (economy, relations, history, personae, hooks, sites, missions,
+prose, analytics, briefing, interestingness, …) render *derived* state. Each
+derivation is a pure function of a slice of the sector plus a catalog/config. The
+live-derivation ledger keeps the cached results fresh across tabs without a
+blanket recompute on every edit.
+
+**LD1 — per-derivation fingerprint cache.**
+[`DerivationKind`](builder/src/builder/derivation_cache.rs) enumerates the sixteen
+§39 overlays. `BuilderState::derivation_fingerprint(kind)` BLAKE3-hashes the
+derivation's input: `GENERATOR_VERSION`, the kind's `key()` (domain separator),
+the serialized sector slice for each `DepClass` the kind reads
+(`DerivationKind::deps()`), and the per-kind catalog/config knobs. A stable
+fingerprint means the cached value is still valid — this is the cache key.
+
+**LD2 — precise, dependency-table invalidation.**
+Six `DepClass`es model the mutation inputs (`SystemsWorlds`, `Factions`,
+`Regions`, `Routes`, `RelationsCfg`, `EconomyCfg`). The §39 table is encoded as
+`DepClass::dependents()` (forward) and pinned to its transpose
+`DerivationKind::deps()` by the `dependency_table_is_consistent_transpose` test.
+`BuilderCommand::dep_classes()` classifies every command; the command bus calls
+`DerivationLedger::invalidate(cmd.dep_classes())`, marking *only* the overlays
+downstream of the touched inputs stale — replacing the old blanket flush. A
+system/world edit fans out to all sixteen; a route edit only to
+`{analytics, economy, hooks}`; a faction edit to the ten faction-reading
+overlays. Full-sector swaps (apply-preview, partial regen, search-seed apply,
+snapshot revert) call `invalidate_all`. `relations.toml` / `economy.toml`
+catalog edits route through `recompute_relations` / `recompute_economy`, which
+invalidate the `RelationsCfg` / `EconomyCfg` classes (→ briefing / hooks).
+`invalidate` only flags already-derived overlays, so `stale ⊆ derived` always
+holds and the status-bar "stale" count never includes an unopened tab.
+
+**LD3 — stale tag + refresh (background thread pending).**
+The status bar (`render_derivations`) shows `deriv N` (cached overlays), a yellow
+`stale M` tag (hover lists the kinds), and a blue `deriving K` tag.
+`BuilderState::pump_derivations` (called each frame from `pump_active_state`)
+re-derives the active tab's stale overlay so the panel paints a live value;
+`DerivationStatus` is `Cold` / `Fresh` / `Stale` / `Deriving`. The recompute
+currently runs synchronously on the GUI thread (the derivations are cheap — §T7
+warm budget). The `deriving` ledger slot + `mark_deriving` are wired so a
+dedicated background thread (via [`gui-core::jobs::JobHandle`](gui-core/src/jobs.rs))
+can refresh off-tab overlays ahead of time without further ledger changes.
+
+**LD4 — panels consume the live cache.**
+The eight overlays with a state-level `recompute_*` are kept fresh centrally by
+`pump_derivations`; the three with a panel-local config builder (analytics,
+briefing, interestingness) self-refresh at the top of their `show` when
+stale-and-already-derived. Every `recompute_*` stamps the ledger via
+`mark_derivation_fresh`, so a cross-tab edit reliably re-derives the affected
+overlay the next time its tab is shown. Cold overlays stay cold, so the panel's
+explicit first-derive action still gates the initial compute.
 
 #### P1–P3 project I/O (DONE)
 

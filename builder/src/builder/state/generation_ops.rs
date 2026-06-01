@@ -209,6 +209,8 @@ impl BuilderState {
         self.sector = preview_sector.into();
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
+        // Full sector swap — every previously-derived overlay is now stale.
+        self.derivations.invalidate_all();
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
@@ -263,6 +265,7 @@ impl BuilderState {
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         if regenerated > 0 {
+            self.derivations.invalidate_all();
             self.dirty = true;
             self.invariant_report = Some(check_sector(&self.sector));
             self.mark_validation_dirty();
@@ -299,6 +302,7 @@ impl BuilderState {
         self.sector = sector.into();
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
+        self.derivations.invalidate_all();
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
         if commit {

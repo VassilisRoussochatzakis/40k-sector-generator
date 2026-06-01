@@ -41,7 +41,7 @@ use sectorforge::interestingness::{
 };
 use sectorforge_gui_core::palette::{paint_rect_filled, paint_rect_stroke};
 
-use crate::builder::BuilderState;
+use crate::builder::{BuilderState, DerivationKind};
 
 const PROFILE_VARIANTS: &[ProfileId] = &[
     ProfileId::PoliticalSandbox,
@@ -71,6 +71,14 @@ const METRIC_CATALOG: &[&str] = &[
 ];
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // §39 LD4: re-score when a prior mutation left the cached report stale.
+    // The profile/override config builder is panel-local, so this overlay
+    // self-heals here. No score yet ⇒ stay cold until the user scores once.
+    if state.derivations.is_stale(DerivationKind::Interestingness)
+        && state.interestingness_report.is_some()
+    {
+        rescore(state);
+    }
     ui.heading("Interestingness");
     ui.add_space(2.0);
     ui.colored_label(
@@ -160,6 +168,7 @@ fn rescore(state: &mut BuilderState) {
     let cfg = build_config(state);
     let report = sectorforge::derive_interestingness_with(&state.sector, &cfg);
     state.interestingness_report = Some(report);
+    state.mark_derivation_fresh(DerivationKind::Interestingness);
 }
 
 fn build_config(state: &BuilderState) -> InterestingnessConfig {

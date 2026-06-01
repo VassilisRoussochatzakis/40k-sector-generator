@@ -23,8 +23,11 @@ impl BuilderState {
     ///       the command is pushed onto the log,
     ///   (c) auto-save trigger via [`Self::trigger_auto_save`] when an
     ///       `auto_save_path` is configured,
-    ///   (d) cache invalidation for all cached overlays
-    ///       (subsectors / heatmaps / derivations).
+    ///   (d) cache invalidation. The generic [`crate::builder::DerivationCache`]
+    ///       (map render / world preview) is flushed, and the §39 live-derivation
+    ///       ledger is invalidated *precisely* by the command's
+    ///       [`BuilderCommand::dep_classes`] (LD2) — only the overlays
+    ///       downstream of the touched input classes are marked stale.
     ///
     /// The command itself is never rolled back here even if invariants fail —
     /// the report exposes the violation so the user can choose to undo. This
@@ -33,6 +36,8 @@ impl BuilderState {
         cmd.apply(self.sector_mut())?;
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
+        // LD2: stale exactly the overlays this mutation's inputs feed.
+        self.derivations.invalidate(cmd.dep_classes());
         self.command_log.truncate(self.command_cursor);
         self.command_log.push(cmd);
         self.command_cursor = self.command_log.len();
@@ -93,10 +98,12 @@ impl BuilderState {
             return Ok(());
         }
         let cmd = &self.command_log[self.command_cursor - 1];
+        let classes = cmd.dep_classes();
         cmd.revert(&mut self.sector)?;
         self.command_cursor -= 1;
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
+        self.derivations.invalidate(classes);
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
@@ -110,11 +117,13 @@ impl BuilderState {
             return Ok(());
         }
         let mut cmd = self.command_log[self.command_cursor].clone();
+        let classes = cmd.dep_classes();
         cmd.apply(self.sector_mut())?;
         self.command_log[self.command_cursor] = cmd;
         self.command_cursor += 1;
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
+        self.derivations.invalidate(classes);
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
@@ -139,6 +148,8 @@ impl BuilderState {
         };
         self.sector = snap.sector.into();
         self.command_cursor = snap.command_log_position.min(self.command_log.len());
+        self.derivation_cache.clear();
+        self.derivations.invalidate_all();
         self.dirty = true;
         self.mark_validation_dirty();
         self.trigger_auto_save();

@@ -28,6 +28,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         ));
         ui.separator();
         ui.label(format!("cache: {}", state.derivation_cache.entries.len()));
+        // §39 LD3: live-derivation freshness — fresh count + stale/deriving tags.
+        render_derivations(ui, state);
         if !state.pending_jobs.is_empty() {
             ui.separator();
             ui.spinner();
@@ -53,6 +55,34 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.colored_label(egui::Color32::RED, format!("subsectors: {err}"));
         }
     });
+}
+
+/// §39 LD3 — live-derivation freshness readout. Shows how many tracked
+/// overlays hold a cached value (`deriv N`), and tags any that a recent
+/// mutation left stale (`stale M`) or that a background recompute is refreshing
+/// (`deriving K`). Hovering lists the kinds involved.
+fn render_derivations(ui: &mut egui::Ui, state: &BuilderState) {
+    let led = &state.derivations;
+    let derived = led.fingerprints.len();
+    ui.separator();
+    ui.label(format!("deriv {derived}"))
+        .on_hover_text("Live overlays (§39) with a cached value this session.");
+    let stale = led.stale_count();
+    if stale > 0 {
+        let names: Vec<&str> = led.stale.iter().map(|k| k.key()).collect();
+        ui.colored_label(
+            egui::Color32::from_rgb(220, 180, 60),
+            format!("stale {stale}"),
+        )
+        .on_hover_text(format!("Out of date until viewed: {}", names.join(", ")));
+    }
+    let deriving = led.deriving.len();
+    if deriving > 0 {
+        ui.colored_label(
+            egui::Color32::from_rgb(120, 170, 220),
+            format!("deriving {deriving}"),
+        );
+    }
 }
 
 fn render_health(ui: &mut egui::Ui, state: &BuilderState) {

@@ -50,7 +50,7 @@ use sectorforge::{InvariantReport, ValidationReport};
 use super::analytics_run::AnalyticsState;
 use super::command::BuilderCommand;
 use super::data_catalogs::DataCatalogs;
-use super::derivation_cache::DerivationCache;
+use super::derivation_cache::{DerivationCache, DerivationLedger};
 use super::diff_run::DiffState;
 use super::export_run::ExportState;
 use super::file_watcher::FileWatcher;
@@ -169,6 +169,12 @@ pub struct BuilderState {
     pub pinned_systems: BTreeSet<SystemId>,
     pub pinned_worlds: BTreeSet<WorldId>,
     pub derivation_cache: DerivationCache,
+    /// §39 (LD1..LD4) live-derivation ledger. Tracks per-kind input
+    /// fingerprints, staleness, and in-flight recomputes so the command bus can
+    /// invalidate exactly the overlays a mutation touches (LD2) and the overlay
+    /// panels can read freshness before rendering (LD4). See
+    /// [`Self::invalidate_derivations`] / [`Self::ensure_fresh`].
+    pub derivations: DerivationLedger,
     pub dirty: bool,
     pub auto_save_path: Option<Utf8PathBuf>,
     /// Last error encountered by [`Self::trigger_auto_save`], or `None` if
@@ -713,6 +719,7 @@ impl BuilderState {
             pinned_systems: BTreeSet::new(),
             pinned_worlds: BTreeSet::new(),
             derivation_cache: DerivationCache::new(),
+            derivations: DerivationLedger::new(),
             dirty: false,
             auto_save_path: None,
             last_save_error: None,

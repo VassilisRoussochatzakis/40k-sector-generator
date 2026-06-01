@@ -997,8 +997,19 @@ Every tab has a footer that surfaces (left to right): project path, a
 `● dirty` / `clean` indicator, a tri-coloured **health pip** (green /
 yellow / red) followed by an inline validation + invariant summary
 (`validation: N err / M warn · invariants: K`), the command-bus cursor
-(`cmd P/Q`), the derivation cache size, and a job spinner when async
-work is running.
+(`cmd P/Q`), the derivation cache size, a **live-derivation freshness**
+readout, and a job spinner when async work is running.
+
+- **Live-derivation freshness (§39).** `deriv N` counts the overlays
+  (economy, relations, history, personae, hooks, sites, missions, prose,
+  analytics, briefing, interestingness) you have generated this session.
+  When you edit something on one tab that another overlay depends on — say
+  you move a system while the HOOKS tab holds a generated report — a yellow
+  `stale M` tag appears (hover it to see which overlays are affected). The
+  builder re-derives a stale overlay automatically the moment you open its
+  tab, so you always read a live result; the tag just tells you what is
+  waiting to refresh. A blue `deriving K` tag shows when a background
+  refresh is in flight.
 
 - **Validation** counts pre-generation rule checks (your config and data
   are coherent).

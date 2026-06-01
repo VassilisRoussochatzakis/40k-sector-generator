@@ -99,7 +99,9 @@ R4.   [DONE] `BuilderState::run` enforces all four rails:
       `command_cursor` advanced,
       (c) auto-save trigger via `trigger_auto_save` when
       `auto_save_path` is set,
-      (d) full `derivation_cache.clear()` (LD2 precision pending).
+      (d) cache invalidation — the generic `derivation_cache.clear()` (map /
+          world-preview store) plus *precise* §39 live-derivation invalidation
+          via `derivations.invalidate(cmd.dep_classes())` (LD2 — done).
       Same rails fire on `undo` / `redo`.
 
 R5.   [DONE] BLAKE3 cache helpers: `sectorforge::rng::digest_bytes` and
@@ -256,7 +258,7 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Segmentum compose   [G]       §36   (view only; need build pipeline)
   Project / files     [P]       §37
   Undo / snapshots    [G]       §38
-  Live derivations    [G]       §39
+  Live derivations    [P]       §39   (LD1/LD2/LD4 done — BLAKE3 fingerprint cache + dependency-table precise invalidation + ledger-fresh panels; LD3 background thread pending)
 
 ================================================================================
 4. DATA-MODEL TASKS (foundation)
@@ -311,7 +313,9 @@ D5.   [DONE] `BuilderState` (in `builder/src/builder/state/mod.rs`; method
         - `snapshots: Vec<Snapshot>` (named save-points)
         - `pinned_systems: BTreeSet<SystemId>` (side-table for Q1)
         - `pinned_worlds: BTreeSet<WorldId>` (side-table for Q1)
-        - `derivation_cache: DerivationCache`
+        - `derivation_cache: DerivationCache` (generic map / world-preview store)
+        - `derivations: DerivationLedger` (§39 LD1..LD4 live-derivation freshness:
+          per-kind BLAKE3 fingerprints, stale set, deriving set)
         - `dirty: bool`, `auto_save_path: Option<Utf8PathBuf>`
         - `validation_report: Option<ValidationReport>`
         - `invariant_report: Option<InvariantReport>`
@@ -2093,13 +2097,24 @@ U6.   Auto-snapshot on destructive batch ops (e.g., recluster
 39. LIVE DERIVATIONS
 ================================================================================
 
-LD1.  Per-derivation cache keyed by BLAKE3 over the relevant sector
+LD1.  [DONE] Per-derivation cache keyed by BLAKE3 over the relevant sector
       slice + config + version. Cache entries:
       analytics, relations, regions, economy, history, personae, hooks,
       prose, sites, missions, briefing, interestingness, subsectors,
       power_projection, influence_field, intel.
+      `builder/src/builder/derivation_cache.rs::DerivationKind` enumerates the
+      sixteen entries (`DerivationKind::ALL` is the canonical key space).
+      `BuilderState::derivation_fingerprint` (in `state/derivations.rs`) hashes
+      each kind's input slice via `digest_input` (BLAKE3): the generator
+      version (`sectorforge::GENERATOR_VERSION`), the kind's domain-separator
+      `key()`, the serialized sector slice per `DerivationKind::deps()`
+      (systems / factions / regions / routes), and the per-kind catalog/config
+      knobs (player-edition masks, `[analyze]` config, briefing profile, …).
+      The fingerprint is the cache key: a stable fingerprint ⇒ the cached value
+      is still valid. Tests `derivation_kind_keys_are_unique`,
+      `ld1_fingerprint_tracks_sector_inputs`.
 
-LD2.  On mutation, invalidate caches whose key inputs changed (precise
+LD2.  [DONE] On mutation, invalidate caches whose key inputs changed (precise
       invalidation, not full flush). Use a dependency table:
         systems/worlds → all
         factions → analytics, relations, personae, hooks, sites,
@@ -2110,13 +2125,57 @@ LD2.  On mutation, invalidate caches whose key inputs changed (precise
         routes → analytics, economy, hooks
         relations.toml → relations, briefing, conflict
         economy.toml → economy, hooks (lifeline, starving)
+      The table is encoded both ways and pinned in sync by the
+      `dependency_table_is_consistent_transpose` test: `DepClass::dependents`
+      (forward — what an input class invalidates) and `DerivationKind::deps`
+      (the transpose — what slices a kind reads). `BuilderCommand::dep_classes`
+      classifies every command variant into its `DepClass` set, and the command
+      bus (`run` / `undo` / `redo` in `state/undo.rs`) calls
+      `DerivationLedger::invalidate` with that set — replacing the blanket
+      `DerivationCache::clear` for the sixteen overlays. Full-sector swaps
+      (apply-preview §G4, partial regen §G5, search-seed apply §SR3, snapshot
+      revert §U4) call `invalidate_all`. The parenthesised effects (route
+      stability, invariants, conflict) are sector mutations / checks, not cached
+      overlays, so they stay on the command bus. `relations.toml` / `economy.toml`
+      catalog edits route through `recompute_relations` / `recompute_economy`,
+      which invalidate the `RelationsCfg` / `EconomyCfg` classes (→ briefing /
+      hooks). `invalidate` only flags already-derived overlays, so the
+      status-bar "stale" count never counts an overlay the user has not opened.
+      Tests `dep_classes_are_assigned`, `routes_invalidate_only_their_dependents`,
+      `ld2_route_edit_invalidates_precisely`, `ld2_world_edit_invalidates_all_derived`,
+      `ld2_catalog_class_invalidation`, `ld2_snapshot_revert_invalidates_all_derived`.
 
-LD3.  Background re-derivation thread: when cache invalidated, kicks off
-      recompute; UI shows stale-tag until refresh completes.
+LD3.  [IN PROGRESS] Background re-derivation thread: when cache invalidated,
+      kicks off recompute; UI shows stale-tag until refresh completes.
+      DONE: the stale-tag surface and the lazy refresh. `DerivationLedger`
+      carries a `stale` set (LD2) and a `deriving` set; the status bar
+      (`panels/status.rs::render_derivations`) shows `deriv N` (cached overlays)
+      plus a yellow `stale M` tag (hover lists the kinds) and a blue `deriving K`
+      tag. `BuilderState::pump_derivations` (called each frame from
+      `app.rs::pump_active_state`) re-derives the active tab's stale overlay so
+      the panel paints a live value; `DerivationStatus` reports
+      Cold/Fresh/Stale/Deriving per kind.
+      PENDING: the recompute currently runs *synchronously* on the GUI thread
+      (the derivations are cheap — §T7 warm budget), not on a dedicated
+      background thread. The `deriving` slot + `mark_deriving` hook are wired so
+      off-thread dispatch (via `gui-core::jobs::JobHandle`, Q4 ad-hoc thread
+      model) can be added without further ledger changes; off-tab overlays stay
+      lazily stale until visited rather than being refreshed ahead of time.
 
-LD4.  All overlay panels (history, relations, regions, economy,
+LD4.  [DONE] All overlay panels (history, relations, regions, economy,
       analytics, hooks, sites, missions, prose, personae, briefing,
       interestingness) consume the live cache, not stored sector fields.
+      The ledger is the freshness authority the panels consult before
+      rendering. The eight overlays with a state-level recompute (economy,
+      relations, history, personae, hooks, sites, missions, prose) are kept
+      fresh centrally by `pump_derivations`; the three that own a panel-local
+      config builder (analytics, briefing, interestingness) self-refresh at the
+      top of their `show` when stale-and-already-derived. Each `recompute_*`
+      stamps the ledger via `mark_derivation_fresh`, so a cross-tab edit on one
+      panel now reliably re-derives the affected overlay the next time its tab is
+      shown (the staleness bug this section targets). Cold overlays stay cold so
+      the panel's explicit first-derive action still gates the initial compute.
+      Test `ld4_pump_refreshes_active_tab_only`.
 
 ================================================================================
 40. TESTING + DETERMINISM
@@ -2702,7 +2761,14 @@ Phase E — Tooling
   EX1..EX8,   DONE
   T1..T5,     DONE
   V4..V6,     DONE  (§33 strict mode, invariant catalogue, refuse-on-error gate)
-  LD1..LD4.   (§39 live derivations)
+  LD1, LD2, LD4,  DONE  (§39 live derivations — BLAKE3 per-derivation
+                   fingerprint cache, dependency-table precise invalidation off
+                   `BuilderCommand::dep_classes`, overlay panels read ledger
+                   freshness. `builder/src/builder/derivation_cache.rs` +
+                   `state/derivations.rs`.)
+  LD3.        IN PROGRESS  (§39 — stale-tag surface + lazy synchronous refresh
+                   done; dedicated background re-derivation thread pending, the
+                   `deriving` ledger slot is wired for it.)
 
 Phase F — Polish
   U3..U6,        (§38 snapshots)

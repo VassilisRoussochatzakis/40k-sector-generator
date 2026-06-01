@@ -8,6 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::derivation_cache::DepClass;
 use sectorforge::archetypes::ArchetypeState;
 use sectorforge::conflict::ConflictState;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
@@ -295,6 +296,60 @@ pub enum BuilderCommand {
 }
 
 impl BuilderCommand {
+    /// LD2 — the §39 mutation-input classes this command touches. The command
+    /// bus passes the result to [`crate::builder::DerivationLedger::invalidate`]
+    /// so only the derivations downstream of the touched classes are marked
+    /// stale, replacing the blanket cache flush.
+    ///
+    /// Most structural system/world edits map to
+    /// [`DepClass::SystemsWorlds`], which §39 fans out to *every* derivation;
+    /// route edits to [`DepClass::Routes`]; faction-roster edits to
+    /// [`DepClass::Factions`]; warp-region edits to [`DepClass::Regions`].
+    /// `relations.toml` / `economy.toml` catalog edits are not command-bus
+    /// mutations — panels invalidate those classes directly when the catalog
+    /// changes.
+    pub fn dep_classes(&self) -> &'static [DepClass] {
+        use DepClass as D;
+        match self {
+            // Route-only structural edits.
+            Self::AddRoute { .. }
+            | Self::RemoveRoute { .. }
+            | Self::ReplaceRoutes { .. }
+            | Self::SetRouteType { .. }
+            | Self::SetRouteStability { .. } => &[D::Routes],
+            // Removing a system drops its incident routes alongside it, so the
+            // route graph changes too — even though `SystemsWorlds` already
+            // fans out to everything, the pair documents the real footprint.
+            Self::RemoveSystem { .. } => &[D::SystemsWorlds, D::Routes],
+            // Faction-roster edits.
+            Self::AddFaction { .. } | Self::RemoveFaction { .. } => &[D::Factions],
+            // Warp-region edits.
+            Self::SetRegionKind { .. } | Self::RenameRegion { .. } => &[D::Regions],
+            // Everything else is a system/world field edit, which §39 treats
+            // as invalidating all derivations.
+            Self::AddSystem { .. }
+            | Self::MoveSystem { .. }
+            | Self::RenameSystem { .. }
+            | Self::SwapSystems { .. }
+            | Self::ReplaceSystem { .. }
+            | Self::AddWorld { .. }
+            | Self::RemoveWorld { .. }
+            | Self::SetArchetype { .. }
+            | Self::AutoAssignArchetypes { .. }
+            | Self::SetOrbitalAssets { .. }
+            | Self::SetBlockadeReport { .. }
+            | Self::SetSurfaceRegions { .. }
+            | Self::SetWorldConflict { .. }
+            | Self::SetSystemConflict { .. }
+            | Self::SetWorldStability { .. }
+            | Self::SetStar { .. }
+            | Self::SetStarSpectral { .. }
+            | Self::RenameWorld { .. }
+            | Self::SetWorldOrbit { .. }
+            | Self::AdvanceConflictTicks { .. } => &[D::SystemsWorlds],
+        }
+    }
+
     pub fn apply(&mut self, sector: &mut GeneratedSector) -> Result<(), MutationError> {
         match self {
             Self::AddSystem {
@@ -940,6 +995,52 @@ mod tests {
 
     fn empty() -> GeneratedSector {
         GeneratedSector::empty("t", "T", "seed", 8, 8)
+    }
+
+    /// LD2 — every command classifies into at least one dependency class, and
+    /// route / faction / region commands classify to exactly the expected one.
+    #[test]
+    fn dep_classes_are_assigned() {
+        let route = BuilderCommand::AddRoute {
+            from: SystemId::from("a"),
+            to: SystemId::from("b"),
+            route_type: RouteType::ChartedPassage,
+            stability: RouteStability::Stable,
+            result_id: None,
+        };
+        assert_eq!(route.dep_classes(), &[DepClass::Routes]);
+
+        let faction = BuilderCommand::AddFaction {
+            id: FactionId::from("imperium"),
+            name: "Imperium".into(),
+            kind: "imperial".into(),
+        };
+        assert_eq!(faction.dep_classes(), &[DepClass::Factions]);
+
+        let region = BuilderCommand::RenameRegion {
+            region: "r".into(),
+            before: "a".into(),
+            after: "b".into(),
+        };
+        assert_eq!(region.dep_classes(), &[DepClass::Regions]);
+
+        let world = BuilderCommand::AddWorld {
+            system: SystemId::from("a"),
+            name: "W".into(),
+            result_id: None,
+        };
+        assert_eq!(world.dep_classes(), &[DepClass::SystemsWorlds]);
+
+        // RemoveSystem also drops incident routes.
+        let rm = BuilderCommand::RemoveSystem {
+            id: SystemId::from("a"),
+            before: None,
+            removed_routes: Vec::new(),
+        };
+        assert_eq!(
+            rm.dep_classes(),
+            &[DepClass::SystemsWorlds, DepClass::Routes]
+        );
     }
 
     #[test]

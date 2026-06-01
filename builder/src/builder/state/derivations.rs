@@ -12,8 +12,9 @@ use sectorforge::input::ProjectInput;
 use sectorforge::invariants::check_sector;
 use sectorforge::validation::validate;
 
-use super::types::HealthLevel;
+use super::types::{BuilderTab, HealthLevel};
 use super::BuilderState;
+use crate::builder::derivation_cache::{digest_input, DepClass, DerivationKind, DerivationStatus};
 
 impl BuilderState {
     /// §V3: arm the debounced live-validation timer. Cheap — just stamps
@@ -21,6 +22,161 @@ impl BuilderState {
     /// [`Self::pump_validation`] after `validation_debounce` elapses.
     pub fn mark_validation_dirty(&mut self) {
         self.validation_dirty_since = Some(Instant::now());
+    }
+
+    // ── §39 live derivations (LD1..LD4) ─────────────────────────────────────
+
+    /// LD1 — BLAKE3 fingerprint of the input slice `kind` reads: the generator
+    /// version, the kind's domain-separator key, the serialized sector slice
+    /// for each [`DepClass`] in [`DerivationKind::deps`], and any per-kind
+    /// catalog/config knobs. Two derivations that read the same slice never
+    /// collide because the key is folded in. A stable fingerprint means the
+    /// cached value is still valid (the precise half of LD2).
+    pub fn derivation_fingerprint(&self, kind: DerivationKind) -> String {
+        let mut parts: Vec<String> = vec![
+            sectorforge::GENERATOR_VERSION.to_string(),
+            kind.key().to_string(),
+        ];
+        for dep in kind.deps() {
+            parts.push(match dep {
+                DepClass::SystemsWorlds => digest_input(&self.sector.systems),
+                DepClass::Factions => digest_input(&self.sector.factions),
+                DepClass::Regions => digest_input(&self.sector.regions),
+                DepClass::Routes => digest_input(&self.sector.routes),
+                DepClass::RelationsCfg => digest_input(&(
+                    &self.data_catalogs.relations,
+                    self.config.generation.relations.min_world_presence,
+                )),
+                DepClass::EconomyCfg => digest_input(&(
+                    &self.data_catalogs.economy,
+                    &self.world_economy_overrides,
+                    &self.world_strategic_overrides,
+                    &self.system_tithe_overrides,
+                    &self.system_supply_overrides,
+                    &self.system_priority_overrides,
+                )),
+            });
+        }
+        parts.push(self.derivation_config_digest(kind));
+        digest_input(&parts)
+    }
+
+    /// Per-kind catalog / toggle knobs that sit outside the [`DepClass`] slices
+    /// but still change the derived output (player-edition masks, the analytics
+    /// `[analyze]` config, the briefing profile, …). Empty for kinds whose
+    /// output is fully determined by their dependency slices.
+    fn derivation_config_digest(&self, kind: DerivationKind) -> String {
+        match kind {
+            DerivationKind::Personae => digest_input(&self.data_catalogs.personae),
+            DerivationKind::Hooks => {
+                digest_input(&(&self.data_catalogs.hooks, self.hooks_player_edition))
+            }
+            DerivationKind::Sites => {
+                digest_input(&(&self.data_catalogs.sites, self.sites_player_edition))
+            }
+            DerivationKind::Missions => {
+                digest_input(&(&self.data_catalogs.missions, self.missions_player_edition))
+            }
+            DerivationKind::Prose => digest_input(&self.data_catalogs.prose),
+            DerivationKind::History => digest_input(&self.data_catalogs.history),
+            DerivationKind::Analytics => digest_input(&self.analytics.config),
+            DerivationKind::Briefing => digest_input(&(
+                &self.briefing_preset,
+                &self.briefing_observer,
+                self.briefing_min_confidence,
+            )),
+            DerivationKind::Interestingness => digest_input(&self.interestingness_profile),
+            _ => String::new(),
+        }
+    }
+
+    /// LD2 — invalidate every derivation downstream of the given mutation
+    /// classes. Called by the command bus (`run` / `undo` / `redo`) with
+    /// `BuilderCommand::dep_classes`, and by catalog panels when they edit a
+    /// `relations.toml` / `economy.toml` slice outside the command bus.
+    pub fn invalidate_derivations(&mut self, classes: &[DepClass]) {
+        self.derivations.invalidate(classes);
+    }
+
+    /// LD3/LD4 — record that `kind`'s cached value matches the current input.
+    /// Panels and the `recompute_*` methods call this after (re)deriving so the
+    /// ledger fingerprint tracks the value actually on display.
+    pub fn mark_derivation_fresh(&mut self, kind: DerivationKind) {
+        let fp = self.derivation_fingerprint(kind);
+        self.derivations.mark_fresh(kind, fp);
+    }
+
+    /// LD3 — current freshness of `kind` for the status bar / panel stale tag.
+    pub fn derivation_status(&self, kind: DerivationKind) -> DerivationStatus {
+        let fp = self.derivation_fingerprint(kind);
+        self.derivations.status(kind, &fp)
+    }
+
+    /// Map a top tab to the overlay derivation it renders, when that overlay is
+    /// one the builder re-derives from a state-level `recompute_*` method. The
+    /// user-triggered overlays (analytics / briefing / interestingness) own
+    /// their config builders inside the panel and self-refresh there, so they
+    /// are deliberately absent here.
+    fn tab_auto_derivation(tab: BuilderTab) -> Option<DerivationKind> {
+        Some(match tab {
+            BuilderTab::Economy => DerivationKind::Economy,
+            BuilderTab::Relations => DerivationKind::Relations,
+            BuilderTab::History => DerivationKind::History,
+            BuilderTab::Personae => DerivationKind::Personae,
+            BuilderTab::Hooks => DerivationKind::Hooks,
+            BuilderTab::Sites => DerivationKind::Sites,
+            BuilderTab::Missions => DerivationKind::Missions,
+            BuilderTab::Prose => DerivationKind::Prose,
+            _ => return None,
+        })
+    }
+
+    /// LD4 — re-derive `kind` if it is stale (a dependency changed since the
+    /// last derive). Cold overlays are left untouched so the panel's explicit
+    /// first-derive action still gates the initial computation; only overlays
+    /// the user has already opened are kept live. The precise half of LD2 lives
+    /// here too: a dependency-table hit whose fingerprint is unchanged clears
+    /// the stale flag without recomputing.
+    pub fn ensure_fresh(&mut self, kind: DerivationKind) {
+        if !self.derivations.is_stale(kind) {
+            return;
+        }
+        let current = self.derivation_fingerprint(kind);
+        if self.derivations.fingerprints.get(&kind) == Some(&current) {
+            self.derivations.mark_fresh(kind, current);
+            return;
+        }
+        self.recompute_derivation(kind);
+        self.mark_derivation_fresh(kind);
+    }
+
+    /// Dispatch a stale auto-derived overlay to its `recompute_*` method.
+    /// Only the eight overlays with a state-level recompute are handled; the
+    /// rest are panel-driven or computed live each frame.
+    fn recompute_derivation(&mut self, kind: DerivationKind) {
+        match kind {
+            DerivationKind::Economy => self.recompute_economy(),
+            DerivationKind::Relations => self.recompute_relations(),
+            DerivationKind::History => self.recompute_chronicle(),
+            DerivationKind::Personae => self.recompute_personae(),
+            DerivationKind::Hooks => self.recompute_hooks(),
+            DerivationKind::Sites => self.recompute_sites(),
+            DerivationKind::Missions => self.recompute_missions(),
+            DerivationKind::Prose => self.recompute_prose(),
+            _ => {}
+        }
+    }
+
+    /// LD3/LD4 — per-frame freshness pump, called from the app's
+    /// `pump_active_state`. Lazily re-derives the overlay the active tab
+    /// renders if a prior mutation marked it stale, so the panel always paints
+    /// a live result. Off-tab overlays stay flagged stale (surfaced in the
+    /// status bar) until visited; a future background thread (LD3) will refresh
+    /// them ahead of time.
+    pub fn pump_derivations(&mut self) {
+        if let Some(kind) = Self::tab_auto_derivation(self.active_tab) {
+            self.ensure_fresh(kind);
+        }
     }
 
     /// §E1..§E4 — run `economy::derive_with` against the live sector using the
@@ -157,6 +313,15 @@ impl BuilderState {
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
         self.trigger_auto_save();
+        // §E4 feed-stability nudges per-world stability — a systems/worlds
+        // input change — so every other overlay reading stability is now stale.
+        if feed_stability {
+            self.derivations.invalidate(&[DepClass::SystemsWorlds]);
+        }
+        // §39 table: the economy config also feeds hooks (lifeline / starving),
+        // so an economy-catalog edit (which routes here) leaves hooks stale.
+        self.derivations.invalidate(&[DepClass::EconomyCfg]);
+        self.mark_derivation_fresh(DerivationKind::Economy);
     }
 
     /// §REL9: recompute the inter-faction diplomacy matrix from the in-memory
@@ -176,6 +341,10 @@ impl BuilderState {
         self.dirty = true;
         self.mark_validation_dirty();
         self.trigger_auto_save();
+        // §39 table: the relations config also feeds the briefing pack, so a
+        // relations-catalog edit (which routes here) leaves briefing stale.
+        self.derivations.invalidate(&[DepClass::RelationsCfg]);
+        self.mark_derivation_fresh(DerivationKind::Relations);
     }
 
     /// §H6: rebuild `sector.chronicle` from the in-memory history catalog
@@ -205,6 +374,7 @@ impl BuilderState {
         self.dirty = true;
         self.mark_validation_dirty();
         self.trigger_auto_save();
+        self.mark_derivation_fresh(DerivationKind::History);
     }
 
     /// §PER1..§PER5 — rebuild [`sectorforge::personae::PersonaeReport`] from
@@ -221,6 +391,7 @@ impl BuilderState {
         let report = sectorforge::personae::derive_with(&self.sector, &cfg);
         self.personae_report = Some(report);
         self.mark_validation_dirty();
+        self.mark_derivation_fresh(DerivationKind::Personae);
     }
 
     /// §HK1..§HK6 — rebuild [`sectorforge::hooks::HooksReport`] from the live
@@ -239,6 +410,7 @@ impl BuilderState {
         let report = sectorforge::hooks::derive_with(&self.sector, &cfg);
         self.hooks_report = Some(report);
         self.mark_validation_dirty();
+        self.mark_derivation_fresh(DerivationKind::Hooks);
     }
 
     /// §ST1..§ST4 — rebuild [`sectorforge::sites::SitesReport`] from the live
@@ -258,6 +430,7 @@ impl BuilderState {
         let report = sectorforge::sites::derive_with(&self.sector, &cfg);
         self.sites_report = Some(report);
         self.mark_validation_dirty();
+        self.mark_derivation_fresh(DerivationKind::Sites);
     }
 
     /// §M1..§M5 — rebuild [`sectorforge::missions::MissionsReport`] from the
@@ -277,6 +450,7 @@ impl BuilderState {
         let report = sectorforge::missions::derive_with(&self.sector, &cfg);
         self.missions_report = Some(report);
         self.mark_validation_dirty();
+        self.mark_derivation_fresh(DerivationKind::Missions);
     }
 
     /// §PR1..§PR4 — rebuild [`sectorforge::prose::ProseReport`] from the live
@@ -294,6 +468,7 @@ impl BuilderState {
         let report = sectorforge::prose::derive_with(&self.sector, &cfg);
         self.prose_report = Some(report);
         self.mark_validation_dirty();
+        self.mark_derivation_fresh(DerivationKind::Prose);
     }
 
     /// §V3: per-frame poll from the UI. When the debounce window has elapsed

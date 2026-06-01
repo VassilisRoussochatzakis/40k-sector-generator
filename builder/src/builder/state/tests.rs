@@ -596,3 +596,143 @@ fn round_trip_set_route_stability() {
         },
     );
 }
+
+// ── §39 live derivations (LD1..LD4) ─────────────────────────────────────────
+
+use crate::builder::{DepClass, DerivationKind};
+
+/// LD1 — the input fingerprint is stable for an unchanged sector and shifts
+/// when a systems/worlds edit lands.
+#[test]
+fn ld1_fingerprint_tracks_sector_inputs() {
+    let mut s = seeded();
+    let before = s.derivation_fingerprint(DerivationKind::Hooks);
+    assert_eq!(
+        before,
+        s.derivation_fingerprint(DerivationKind::Hooks),
+        "fingerprint is deterministic for an unchanged sector"
+    );
+    s.run(BuilderCommand::AddSystem {
+        coord: HexCoord { q: 2, r: 0 },
+        name: "gamma".into(),
+        result_id: None,
+    })
+    .unwrap();
+    assert_ne!(
+        before,
+        s.derivation_fingerprint(DerivationKind::Hooks),
+        "a systems/worlds edit changes the Hooks input fingerprint"
+    );
+}
+
+/// LD2 — a command-bus mutation marks exactly the derived overlays downstream
+/// of its `dep_classes` stale, and leaves unrelated ones fresh.
+#[test]
+fn ld2_route_edit_invalidates_precisely() {
+    let mut s = seeded();
+    // Make both overlays "derived" so they are eligible for staleness.
+    s.recompute_hooks();
+    s.recompute_personae();
+    assert!(!s.derivations.is_stale(DerivationKind::Hooks));
+    assert!(!s.derivations.is_stale(DerivationKind::Personae));
+
+    let from = s.sector.systems[0].id.clone();
+    let to = s.sector.systems[1].id.clone();
+    s.run(BuilderCommand::AddRoute {
+        from,
+        to,
+        route_type: sectorforge::sector_model::RouteType::StableWarpLane,
+        stability: sectorforge::sector_model::RouteStability::Stable,
+        result_id: None,
+    })
+    .unwrap();
+
+    // Routes → {analytics, economy, hooks}; personae is untouched.
+    assert!(
+        s.derivations.is_stale(DerivationKind::Hooks),
+        "hooks read routes, so a route edit stales them"
+    );
+    assert!(
+        !s.derivations.is_stale(DerivationKind::Personae),
+        "personae do not read routes, so they stay fresh"
+    );
+}
+
+/// LD2 — a world edit (SystemsWorlds) fans out to every derived overlay.
+#[test]
+fn ld2_world_edit_invalidates_all_derived() {
+    let mut s = seeded();
+    s.recompute_hooks();
+    s.recompute_personae();
+    s.run(BuilderCommand::RenameSystem {
+        id: s.sector.systems[0].id.clone(),
+        from: "alpha".into(),
+        to: "alpha-prime".into(),
+    })
+    .unwrap();
+    assert!(s.derivations.is_stale(DerivationKind::Hooks));
+    assert!(s.derivations.is_stale(DerivationKind::Personae));
+}
+
+/// LD3/LD4 — `pump_derivations` re-derives the active tab's stale overlay so
+/// the panel about to paint reads a live value; off-tab overlays stay stale.
+#[test]
+fn ld4_pump_refreshes_active_tab_only() {
+    let mut s = seeded();
+    s.recompute_hooks();
+    s.recompute_personae();
+    s.run(BuilderCommand::AddSystem {
+        coord: HexCoord { q: 3, r: 0 },
+        name: "delta".into(),
+        result_id: None,
+    })
+    .unwrap();
+    assert!(s.derivations.is_stale(DerivationKind::Hooks));
+    assert!(s.derivations.is_stale(DerivationKind::Personae));
+
+    s.active_tab = BuilderTab::Hooks;
+    s.pump_derivations();
+    assert!(
+        !s.derivations.is_stale(DerivationKind::Hooks),
+        "the active tab's overlay is refreshed by the pump"
+    );
+    assert!(
+        s.derivations.is_stale(DerivationKind::Personae),
+        "an off-tab overlay stays stale until visited"
+    );
+}
+
+/// LD2 — `invalidate_derivations` honours a panel-supplied catalog-config
+/// class (relations.toml → relations, briefing) without a command-bus mutation.
+#[test]
+fn ld2_catalog_class_invalidation() {
+    let mut s = seeded();
+    // Pretend briefing + relations were derived this session.
+    s.mark_derivation_fresh(DerivationKind::Briefing);
+    s.mark_derivation_fresh(DerivationKind::Relations);
+    s.invalidate_derivations(&[DepClass::RelationsCfg]);
+    assert!(s.derivations.is_stale(DerivationKind::Briefing));
+    assert!(s.derivations.is_stale(DerivationKind::Relations));
+    assert!(!s.derivations.is_stale(DerivationKind::Hooks));
+}
+
+/// LD2 — a full-sector swap (snapshot revert) marks every previously-derived
+/// overlay stale.
+#[test]
+fn ld2_snapshot_revert_invalidates_all_derived() {
+    let mut s = seeded();
+    s.recompute_hooks();
+    s.snapshot("base");
+    s.run(BuilderCommand::AddSystem {
+        coord: HexCoord { q: 4, r: 0 },
+        name: "epsilon".into(),
+        result_id: None,
+    })
+    .unwrap();
+    s.mark_derivation_fresh(DerivationKind::Hooks); // re-derive after the edit
+    assert!(s.revert_to_snapshot("base"));
+    assert!(
+        s.derivations.is_stale(DerivationKind::Hooks),
+        "reverting the sector invalidates the derived overlay"
+    );
+}

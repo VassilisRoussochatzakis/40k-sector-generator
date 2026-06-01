@@ -34,9 +34,16 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::analytics::{AnalyzeConfig, FlagSeverity, SectorAnalysis};
 
-use crate::builder::{BuilderState, ModalKind};
+use crate::builder::{BuilderState, DerivationKind, ModalKind};
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // §39 LD4: this overlay owns its `[analyze]` config builder, so it refreshes
+    // its own cached report when a prior mutation left it stale (rather than
+    // through the central `pump_derivations`). Cold reports stay cold — the user
+    // still presses "Analyze" for the first run.
+    if state.derivations.is_stale(DerivationKind::Analytics) && state.analytics.report.is_some() {
+        recompute(state);
+    }
     ui.heading("Analytics");
     ui.label(
         RichText::new("§A1..§A4 — faction balance, connectivity, distributions, health flags.")
@@ -189,6 +196,7 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
 fn recompute(state: &mut BuilderState) {
     let report = sectorforge::analyze_sector_with(&state.sector, &state.analytics.config);
     state.analytics.report = Some(report);
+    state.mark_derivation_fresh(DerivationKind::Analytics);
 }
 
 fn export(state: &mut BuilderState) {

@@ -34,6 +34,7 @@ use sectorforge::briefing::{self, AudiencePreset, BriefingProfile};
 use sectorforge::ids::FactionId;
 
 use crate::builder::BuilderState;
+use crate::builder::DerivationKind;
 use crate::builder::ModalKind;
 
 const PRESET_VARIANTS: &[AudiencePreset] = &[
@@ -46,6 +47,12 @@ const PRESET_VARIANTS: &[AudiencePreset] = &[
 ];
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // §39 LD4: refresh the cached preview when a prior mutation left it stale.
+    // The briefing profile builder is panel-local, so this overlay self-heals
+    // here rather than through `pump_derivations`. No preview yet ⇒ stay cold.
+    if state.derivations.is_stale(DerivationKind::Briefing) && state.briefing_preview_md.is_some() {
+        regenerate_preview(state);
+    }
     ui.heading("Briefing");
     ui.add_space(2.0);
     ui.colored_label(
@@ -209,6 +216,7 @@ fn regenerate_preview(state: &mut BuilderState) {
     let md = briefing::render_markdown(&pack, &profile);
     state.briefing_preview_md = Some(md);
     state.briefing_preview_pack = Some(pack);
+    state.mark_derivation_fresh(DerivationKind::Briefing);
 }
 
 fn invalidate_preview(state: &mut BuilderState) {

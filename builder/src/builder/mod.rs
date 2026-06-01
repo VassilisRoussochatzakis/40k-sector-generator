@@ -32,7 +32,9 @@ pub mod workspace;
 pub use analytics_run::AnalyticsState;
 pub use command::BuilderCommand;
 pub use data_catalogs::DataCatalogs;
-pub use derivation_cache::{digest_input, DerivationCache};
+pub use derivation_cache::{
+    digest_input, DepClass, DerivationCache, DerivationKind, DerivationLedger, DerivationStatus,
+};
 pub use diff_run::{DiffMode, DiffState, LoadedFile, SlotKind};
 pub use errors::BuilderError;
 pub use export_run::ExportState;

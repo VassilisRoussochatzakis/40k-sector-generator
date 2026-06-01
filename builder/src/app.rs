@@ -59,6 +59,9 @@ impl BuilderApp {
         let state = self.workspace.active_mut();
         shortcuts::handle(ctx, state);
         project_io::drain_watcher_events(state);
+        // §39 LD3/LD4: re-derive the active tab's overlay if a prior mutation
+        // left it stale, so the panel about to paint reads a live result.
+        state.pump_derivations();
         if state.pump_validation() {
             ctx.request_repaint();
         }

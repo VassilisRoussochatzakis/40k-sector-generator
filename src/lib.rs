@@ -490,12 +490,7 @@ pub fn export_sector_with_progress<F>(
 where
     F: FnMut(ExportProgress),
 {
-    export::export_all_with_progress(
-        sector,
-        output_config,
-        output_dir.as_ref(),
-        &mut on_progress,
-    )
+    export::export_all_with_progress(sector, output_config, output_dir.as_ref(), &mut on_progress)
 }
 
 /// §11 NEW.md: write a self-contained interactive HTML sector view to

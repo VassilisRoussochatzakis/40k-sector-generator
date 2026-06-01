@@ -363,9 +363,10 @@ impl BuilderState {
         })
     }
 
-    /// §V3: derive the status-bar health pip from validation + invariants.
-    /// Red — any validation error or invariant violation. Yellow — warnings or
-    /// no report yet. Green — both clean.
+    /// §V3 / §V4: derive the status-bar health pip from validation +
+    /// invariants. Red — any validation error or invariant violation (and,
+    /// under §V4 strict mode, any validation warning). Yellow — warnings or no
+    /// report yet. Green — both clean.
     pub fn health_level(&self) -> HealthLevel {
         let v_has_err = self
             .validation_report
@@ -375,19 +376,64 @@ impl BuilderState {
             .invariant_report
             .as_ref()
             .is_some_and(|r| !r.violations.is_empty());
-        if v_has_err || inv_has_violation {
-            return HealthLevel::Red;
-        }
         let v_has_warn = self
             .validation_report
             .as_ref()
             .is_some_and(|r| !r.warnings.is_empty());
+        // §V4: strict mode promotes validation warnings to errors.
+        if v_has_err || inv_has_violation || (self.validation_strict && v_has_warn) {
+            return HealthLevel::Red;
+        }
         let v_missing = self.validation_report.is_none();
         let inv_missing = self.invariant_report.is_none();
         if v_has_warn || v_missing || inv_missing {
             return HealthLevel::Yellow;
         }
         HealthLevel::Green
+    }
+
+    /// §V6 — pre-export refuse-on-error gate (parity with `sectorforge
+    /// generate`). Recomputes the validation report (via
+    /// [`Self::revalidate_now`]) and the invariant report against the live
+    /// sector, then returns `Some(reason)` when an export must be refused: any
+    /// validation error, any invariant violation, or — under §V4 strict mode —
+    /// any validation warning. Returns `None` when the sector is clean enough
+    /// to export.
+    pub fn export_block_reason(&mut self) -> Option<String> {
+        self.revalidate_now();
+        self.invariant_report = Some(sectorforge::invariants::check_sector(&self.sector));
+
+        let (val_errors, val_warns) = self
+            .validation_report
+            .as_ref()
+            .map(|r| (r.errors.len(), r.warnings.len()))
+            .unwrap_or((0, 0));
+        let inv_count = self
+            .invariant_report
+            .as_ref()
+            .map(|r| r.violations.len())
+            .unwrap_or(0);
+        let strict_warns = self.validation_strict && val_warns > 0;
+
+        if val_errors == 0 && inv_count == 0 && !strict_warns {
+            return None;
+        }
+
+        let mut parts: Vec<String> = Vec::new();
+        if val_errors > 0 {
+            parts.push(format!("{val_errors} validation error(s)"));
+        }
+        if strict_warns {
+            parts.push(format!("{val_warns} validation warning(s) (strict mode)"));
+        }
+        if inv_count > 0 {
+            parts.push(format!("{inv_count} invariant violation(s)"));
+        }
+        Some(format!(
+            "Export refused — {}. Resolve them in the VALIDATION / INVARIANTS \
+             tabs (or turn off strict mode), then export again.",
+            parts.join(" + ")
+        ))
     }
 
     /// §CF4 / §CF5: run `BuilderCommand::AdvanceConflictTicks` for `ticks` and

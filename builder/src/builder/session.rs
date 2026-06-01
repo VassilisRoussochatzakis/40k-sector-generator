@@ -131,6 +131,7 @@ impl SessionFile {
             validation_debounce: std::time::Duration::from_millis(
                 super::state::DEFAULT_VALIDATION_DEBOUNCE_MS,
             ),
+            validation_strict: false,
             selected_system_id: None,
             selected_world_id: None,
             selected_route_id: None,

@@ -168,51 +168,31 @@ fn stratum_of(v: &InvariantViolation) -> &'static str {
     }
 }
 
-/// §V5: read-only catalogue of every invariant the checker emits. Not the
-/// dynamic list of *firing* invariants — the static list of codes so users
-/// can audit what is enforced even on a clean sector. Sourced from
-/// [`sectorforge::invariants`] (codes mirrored manually; promoted to a
-/// shared const list in Phase E §V5).
-const INVARIANT_CATALOGUE: &[&str] = &[
-    "DUPLICATE_SYSTEM_ID",
-    "DUPLICATE_WORLD_ID_IN_SYSTEM",
-    "DUPLICATE_WORLD_ID_GLOBAL",
-    "DUPLICATE_COORDINATE",
-    "COORD_OUT_OF_BOUNDS",
-    "SYSTEM_INDEX_ZERO",
-    "WORLD_INDEX_OR_ORBIT_ZERO",
-    "WORLD_ID_PREFIX",
-    "WORLD_TAG_NAMESPACE_MISSING",
-    "WORLD_TAG_DUPLICATE",
-    "ROUTE_SELF_REFERENCE",
-    "ROUTE_UNKNOWN_FROM",
-    "ROUTE_UNKNOWN_TO",
-    "ROUTE_DUPLICATE_UNDIRECTED",
-    "ROUTE_DISTANCE_MISMATCH",
-    "FACTION_SYSTEM_PRESENCE_UNKNOWN",
-    "FACTION_WORLD_PRESENCE_UNKNOWN",
-    "WORLD_FACTION_MISSING_SUMMARY",
-    "WORLD_CLAIM_UNKNOWN_FACTION",
-    "WORLD_CLAIM_STRENGTH_OUT_OF_RANGE",
-    "PRESENCE_DIMENSION_OUT_OF_RANGE",
-    "PRIMARY_FACTION_MISSING_SUMMARY",
-    "REGION_HEX_OUT_OF_BOUNDS",
-    "REGION_HEX_OVERLAP",
-    "REGION_ISOLATES_SECTOR",
-    "ECONOMY_ENABLED_NO_WORLDS",
-    "MANIFEST_SYSTEM_COUNT_MISMATCH",
-    "MANIFEST_WORLD_COUNT_MISMATCH",
-    "MANIFEST_ROUTE_COUNT_MISMATCH",
-];
-
+/// §V5: render the read-only catalogue of every invariant the checker may
+/// emit. This is the static list of *checked* codes (not the dynamic list of
+/// *firing* ones) so users can audit what is enforced even on a clean sector.
+///
+/// The list is sourced verbatim from the authoritative
+/// [`sectorforge::invariants::INVARIANT_CODES`] table — the single source of
+/// truth shared with the checker — so it can never drift from the codes the
+/// engine actually raises.
 fn render_catalogue(ui: &mut egui::Ui) {
+    use sectorforge::invariants::INVARIANT_CODES;
     egui::CollapsingHeader::new(format!(
         "Invariant catalogue ({} codes)",
-        INVARIANT_CATALOGUE.len()
+        INVARIANT_CODES.len()
     ))
     .show(ui, |ui| {
-        for code in INVARIANT_CATALOGUE {
-            ui.label(*code);
+        ui.label(
+            egui::RichText::new("Every invariant checked on the live sector:")
+                .small()
+                .color(egui::Color32::GRAY),
+        );
+        for (code, desc) in INVARIANT_CODES {
+            ui.horizontal(|ui| {
+                ui.monospace(*code);
+                ui.colored_label(egui::Color32::GRAY, *desc);
+            });
         }
     });
 }

@@ -149,7 +149,12 @@ pub(crate) fn run_generate(
     }
 
     log_progress(format_args!("sector: exporting to {output_dir}"));
-    sectorforge::export_sector_with_progress(&sector, &output_cfg, &output_dir, log_export_progress)?;
+    sectorforge::export_sector_with_progress(
+        &sector,
+        &output_cfg,
+        &output_dir,
+        log_export_progress,
+    )?;
     log_progress("sector: export complete");
 
     println!(

@@ -259,7 +259,9 @@ fn show_classification_section(
                     if combo_enum::<WorldType>(
                         ui,
                         "w_type",
-                        &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.world_type,
+                        &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
+                            .world
+                            .world_type,
                     ) {
                         mutated = true;
                     }
@@ -284,7 +286,9 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
                 if combo_enum::<Atmosphere>(
                     ui,
                     "w_atm",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.atmosphere,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
+                        .world
+                        .atmosphere,
                 ) {
                     mutated = true;
                 }
@@ -304,7 +308,9 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
                 if combo_enum::<Biosphere>(
                     ui,
                     "w_bio",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.biosphere,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
+                        .world
+                        .biosphere,
                 ) {
                     mutated = true;
                 }
@@ -329,7 +335,9 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 if combo_enum::<Population>(
                     ui,
                     "w_pop",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.population,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
+                        .world
+                        .population,
                 ) {
                     mutated = true;
                 }
@@ -338,7 +346,9 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 if combo_enum::<TechLevel>(
                     ui,
                     "w_tech",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.tech_level,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
+                        .world
+                        .tech_level,
                 ) {
                     mutated = true;
                 }
@@ -347,7 +357,9 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 if combo_enum::<Government>(
                     ui,
                     "w_gov",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx].world.government,
+                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
+                        .world
+                        .government,
                 ) {
                     mutated = true;
                 }

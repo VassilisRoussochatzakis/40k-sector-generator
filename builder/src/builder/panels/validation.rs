@@ -24,6 +24,13 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         if ui.button("Re-validate now").clicked() {
             state.revalidate_now();
         }
+        // §V4 — strict toggle: promote warnings to errors for the health pip
+        // and the §V6 pre-export gate (parity with `generate --strict`).
+        ui.checkbox(&mut state.validation_strict, "Strict")
+            .on_hover_text(
+                "§V4 — treat validation warnings as errors for the health pip \
+                 and the pre-export gate. Mirrors `sectorforge generate --strict`.",
+            );
     });
     ui.separator();
 
@@ -32,7 +39,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         return;
     };
 
-    render_summary(ui, &report);
+    render_summary(ui, &report, state.validation_strict);
     ui.separator();
 
     egui::ScrollArea::vertical()
@@ -64,18 +71,31 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         });
 }
 
-fn render_summary(ui: &mut egui::Ui, report: &ValidationReport) {
+fn render_summary(ui: &mut egui::Ui, report: &ValidationReport, strict: bool) {
+    // §V4: under strict mode, warnings fail the report just like errors.
+    let strict_fail = strict && !report.warnings.is_empty();
     ui.horizontal(|ui| {
-        if report.ok {
+        if report.ok && !strict_fail {
             ui.colored_label(egui::Color32::GREEN, "✓ ok");
         } else {
-            ui.colored_label(egui::Color32::RED, "✗ errors");
+            let txt = if strict_fail && report.errors.is_empty() {
+                "✗ warnings (strict)"
+            } else {
+                "✗ errors"
+            };
+            ui.colored_label(egui::Color32::RED, txt);
         }
         ui.label(format!(
             "{} error(s), {} warning(s)",
             report.errors.len(),
             report.warnings.len()
         ));
+        if strict {
+            ui.colored_label(
+                egui::Color32::from_rgb(220, 180, 60),
+                "· strict: warnings count as errors",
+            );
+        }
     });
 }
 

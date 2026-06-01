@@ -220,6 +220,12 @@ pub struct BuilderState {
     pub validation_dirty_since: Option<Instant>,
     /// §V3: debounce window between mutation and live-validation flush.
     pub validation_debounce: Duration,
+    /// §V4 — strict validation toggle. When set, validation *warnings* are
+    /// promoted to errors for the status-bar health pip
+    /// ([`Self::health_level`]) and the §V6 pre-export gate
+    /// ([`Self::export_block_reason`]), matching
+    /// `sectorforge generate --strict`. Off by default. In-memory only.
+    pub validation_strict: bool,
     /// §V2: entity selection mailbox — invariant / validation panels write
     /// here so the inspector tabs can focus the offending entity. Each field
     /// is independent so the active inspector reads only the IDs it cares
@@ -725,6 +731,7 @@ impl BuilderState {
             file_watcher: None,
             validation_dirty_since: None,
             validation_debounce: Duration::from_millis(DEFAULT_VALIDATION_DEBOUNCE_MS),
+            validation_strict: false,
             selected_system_id: None,
             selected_world_id: None,
             selected_route_id: None,

@@ -362,8 +362,7 @@ fn build_random_config_inner(
     let base_size = rng.gen_range(4..=8u32);
     let region_count = ((coverage_cells / f64::from(base_size)).round() as u32)
         .clamp(1, MAX_REGIONS.min((cells / 2).max(1)));
-    let mean_size =
-        ((coverage_cells / f64::from(region_count)).round() as u32).max(base_size);
+    let mean_size = ((coverage_cells / f64::from(region_count)).round() as u32).max(base_size);
 
     let theme = crate::map_theme::BUILTIN_THEME_NAMES
         [rng.gen_range(0..crate::map_theme::BUILTIN_THEME_NAMES.len())];

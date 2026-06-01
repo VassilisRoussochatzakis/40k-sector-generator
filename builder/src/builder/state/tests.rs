@@ -199,6 +199,64 @@ fn health_level_green_when_both_clean() {
     assert_eq!(state.health_level(), HealthLevel::Green);
 }
 
+fn warn_validation() -> sectorforge::validation::ValidationReport {
+    use sectorforge::validation::{
+        Severity, ValidationIssue, ValidationReport, WorldWorkbookValidation,
+    };
+    ValidationReport {
+        // errors empty ⇒ `ok` stays true even with a warning present.
+        ok: true,
+        errors: Vec::new(),
+        warnings: vec![ValidationIssue {
+            code: "W".into(),
+            message: "w".into(),
+            path: None,
+            row: None,
+            severity: Severity::Warning,
+        }],
+        world_workbook: WorldWorkbookValidation {
+            row_count: 0,
+            usable_candidate_count: 0,
+            excluded_row_count: 0,
+            exclusion_reasons: Default::default(),
+            key_table_counts: Default::default(),
+        },
+    }
+}
+
+fn clean_invariant() -> sectorforge::invariants::InvariantReport {
+    sectorforge::invariants::InvariantReport {
+        ok: true,
+        violations: Vec::new(),
+    }
+}
+
+#[test]
+fn health_level_yellow_on_warnings_without_strict() {
+    let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    state.validation_report = Some(warn_validation());
+    state.invariant_report = Some(clean_invariant());
+    state.validation_strict = false;
+    assert_eq!(state.health_level(), HealthLevel::Yellow);
+}
+
+#[test]
+fn health_level_red_when_strict_and_warnings() {
+    // §V4: strict mode promotes validation warnings to errors → Red pip.
+    let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    state.validation_report = Some(warn_validation());
+    state.invariant_report = Some(clean_invariant());
+    state.validation_strict = true;
+    assert_eq!(state.health_level(), HealthLevel::Red);
+}
+
+#[test]
+fn export_block_reason_none_on_clean_blank_sector() {
+    // §V6: a blank, valid sector must be exportable (gate returns None).
+    let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+    assert_eq!(state.export_block_reason(), None);
+}
+
 // ── §LINK navigation tests ────────────────────────────────────────────────
 
 fn sid(s: &str) -> SystemId {

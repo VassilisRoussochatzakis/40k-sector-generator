@@ -517,7 +517,16 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             light,
             exclude,
         } => random::run_random(
-            size, width, height, seed, out, presets_dir, baseline, formats, light, exclude,
+            size,
+            width,
+            height,
+            seed,
+            out,
+            presets_dir,
+            baseline,
+            formats,
+            light,
+            exclude,
         ),
         Command::GenerateSystem {
             project,

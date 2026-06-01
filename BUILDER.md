@@ -1008,12 +1008,20 @@ work is running.
   only warnings (or no report yet), red when at least one error or
   violation fires.
 
-The footer is read-only — there is no clickable chip to expand the
-failing rules in the current build. To see the actual issue list, either
-re-run `cargo run --bin sectorforge -- validate --project <path>` from a
-terminal, or use the inline per-section hints (e.g. the
-`ROUTE_DISTANCE_MISMATCH` warning that appears in the route inspector,
-or the `§REG6` chips at the top of REGIONS).
+The footer is read-only, but the **VALIDATION** and **INVARIANTS** tabs are
+not — they list the actual issues. VALIDATION groups errors and warnings by
+file (each is a clickable jump to the offending `.toml`), with a
+**Re-validate now** button. INVARIANTS groups violations by entity stratum
+(each jumps to the offending system / world / route / faction / region), and
+carries a read-only **Invariant catalogue** — the full list of every code the
+checker can raise, with a one-line description each, so you can audit what is
+enforced even on a clean sector. You can also re-run
+`cargo run --bin sectorforge -- validate --project <path>` from a terminal.
+
+> **Strict mode.** The VALIDATION tab header has a **Strict** checkbox. Turn it
+> on and validation *warnings* are treated as errors: the health pip goes red on
+> a warning, and the pre-export gate (§15) refuses to export until they are
+> cleared. This mirrors `sectorforge generate --strict` for CI-style discipline.
 
 ### 12.2 Undo / Redo
 
@@ -1114,6 +1122,13 @@ through disk, so what you see should match what you left.
 Click **EXPORT**, **Choose output folder…**, tick the formats you want, and
 hit **Export bundle** (or **Export everything** for the bundle plus every
 overlay). See §11.11 for the full tour of the tab.
+
+> **Export refuses an invalid sector.** Both buttons run a validation +
+> invariant check first (the same gate the `sectorforge generate` CLI uses). If
+> the sector has any validation error or invariant violation — or any warning
+> while §12.1 **Strict** mode is on — the export is refused and the reason is
+> shown in red instead of writing files. Clear the issues in the VALIDATION /
+> INVARIANTS tabs (or turn off strict) and export again.
 
 If you'd rather run it headless, the CLI writes the same artefacts from the
 same project folder:

@@ -206,6 +206,10 @@ for all remaining checklist items:
       Auto-derive + auto-recompute toggle, agenda derivation source tooltip,
       Save personae.toml passthrough.
   [x] Validation/invariant panels and health status pip.
+  [x] Phase E §V4..§V6: VALIDATION strict-mode toggle (warnings → errors on
+      the health pip + export gate), shared `invariants::INVARIANT_CODES`
+      catalogue rendered read-only in the INVARIANTS tab, and the §EX1/§EX8
+      pre-export refuse-on-error gate (`BuilderState::export_block_reason`).
   [x] Shared jobs/palette/widgets pulled from `sectorforge-gui-core`.
 
 ================================================================================
@@ -245,8 +249,8 @@ Statuses refer to `sectorforge-builder` unless a row explicitly says
   Archetypes          [X]       §30   (per-system AR1 editor + AR2 sector-wide apply_all + AR3 per-axis enable mask)
   Orbital assets      [G]       §31
   Surface regions     [G]       §32
-  Validation surface  [P]       §33
-  Invariants surface  [P]       §33
+  Validation surface  [X]       §33   (V1..V3 + V4 strict-mode toggle)
+  Invariants surface  [X]       §33   (V2 + V5 shared catalogue + V6 export gate)
   Export bundle       [P]       §34   (need manifest write, super-manifest)
   Themes / heatmaps   [X]       §35   (builtin + custom theme editor, full heatmap selector incl. per-dimension stability, live route legend, per-system bitmap preview)
   Segmentum compose   [G]       §36   (view only; need build pipeline)
@@ -1755,7 +1759,8 @@ V2.   [DONE] Invariants panel (`src/invariants.rs::check_sector`):
       `selected_faction_id`, `selected_region_id`) so the upcoming
       inspector tabs can focus the offending entity. The panel also
       exposes the §V5 invariant catalogue as a read-only collapsing
-      list so users can audit what is checked on clean sectors.
+      list so users can audit what is checked on clean sectors (now
+      sourced from the shared `invariants::INVARIANT_CODES` const — see V5).
 
 V3.   [DONE] Live validation on every mutation, debounced.
       - `BuilderState::run` / `undo` / `redo` call `mark_validation_dirty()`
@@ -1782,17 +1787,67 @@ V3.   [DONE] Live validation on every mutation, debounced.
         `health_level_yellow_when_reports_missing`,
         `health_level_green_when_both_clean`.
 
-V4.   Strict-mode toggle (warnings → errors).
+V4.   [DONE] Strict-mode toggle (warnings → errors). New
+      `BuilderState::validation_strict` flag (default off). When set,
+      validation *warnings* are promoted to errors for both the status-bar
+      health pip (`BuilderState::health_level` now returns `Red` on
+      `validation_strict && any_warn`) and the §V6 pre-export gate — exact
+      parity with `sectorforge generate --strict`
+      (`src/cli/generate.rs::run`, `strict && !warnings.is_empty()`). The
+      toggle lives in the VALIDATION panel header
+      (`builder/src/builder/panels/validation.rs`); `render_summary` shows a
+      "strict: warnings count as errors" note and flips the headline to
+      "✗ warnings (strict)" when only warnings are present. Tests:
+      `health_level_yellow_on_warnings_without_strict`,
+      `health_level_red_when_strict_and_warnings` (state/mod.rs).
 
-V5.   Invariant catalogue list (read-only) so user can see what's checked:
-        SYSTEM_ID_DUPLICATE, WORLD_ID_DUPLICATE, COORD_OUT_OF_BOUNDS,
-        COORD_DUPLICATE, ROUTE_ENDPOINT_MISSING, ROUTE_DISTANCE_MISMATCH,
-        DUPLICATE_UNDIRECTED_EDGE, FACTION_SUMMARY_INCOHERENT,
-        WORLD_TAG_NAMESPACE_MISSING, MANIFEST_COUNT_MISMATCH,
-        REGION_HEX_OUT_OF_BOUNDS, REGION_HEX_OVERLAP,
-        REGION_ISOLATES_SECTOR, ECONOMY_ENABLED_NO_WORLDS, ...
+V5.   [DONE] Invariant catalogue list (read-only) so user can see what's
+      checked. Promoted to a single shared const list (Q-resolution from
+      §V2): `sectorforge::invariants::INVARIANT_CODES` is now the
+      authoritative `&[(code, description)]` table — defined in the same
+      module the checker emits from (`src/validate/invariants.rs`) — so the
+      panel can never drift from the live codes. The 32 codes it carries, in
+      stratum order:
+        systems  — DUPLICATE_SYSTEM_ID, SYSTEM_INDEX_ZERO,
+                   COORD_OUT_OF_BOUNDS, DUPLICATE_COORDINATE,
+                   SYSTEM_CONTROL_UNKNOWN_FACTION, SYSTEM_CONTROL_TOP_UNKNOWN,
+                   PRIMARY_FACTION_MISSING_SUMMARY;
+        worlds   — WORLD_ID_PREFIX, DUPLICATE_WORLD_ID_IN_SYSTEM,
+                   DUPLICATE_WORLD_ID_GLOBAL, WORLD_INDEX_OR_ORBIT_ZERO,
+                   WORLD_TAG_NAMESPACE_MISSING, WORLD_TAG_DUPLICATE,
+                   PRESENCE_DIMENSION_OUT_OF_RANGE,
+                   WORLD_FACTION_MISSING_SUMMARY, WORLD_CLAIM_UNKNOWN_FACTION,
+                   WORLD_CLAIM_STRENGTH_OUT_OF_RANGE,
+                   WORLD_CONTROL_UNKNOWN_FACTION;
+        routes   — ROUTE_SELF_REFERENCE, ROUTE_UNKNOWN_FROM, ROUTE_UNKNOWN_TO,
+                   ROUTE_DUPLICATE_UNDIRECTED, ROUTE_DISTANCE_MISMATCH;
+        factions — FACTION_SYSTEM_PRESENCE_UNKNOWN,
+                   FACTION_WORLD_PRESENCE_UNKNOWN;
+        regions  — REGION_HEX_OUT_OF_BOUNDS, REGION_HEX_OVERLAP,
+                   REGION_ISOLATES_SECTOR;
+        economy  — ECONOMY_ENABLED_NO_WORLDS;
+        manifest — MANIFEST_SYSTEM_COUNT_MISMATCH,
+                   MANIFEST_WORLD_COUNT_MISMATCH, MANIFEST_ROUTE_COUNT_MISMATCH.
+      (`GEN_SECTOR_NOT_SQUARE` is a *pre-generation* validation rule, not a
+      post-gen invariant, so it is not in this list.)
+      `builder/src/builder/panels/invariants.rs::render_catalogue` renders
+      `INVARIANT_CODES` (code + one-line description) instead of the old
+      hand-mirrored array, which had drifted from the real codes (it listed
+      codes the checker never emits, e.g. `MANIFEST_COUNT_MISMATCH`, and
+      missed several it does). Guarded by `invariant_catalogue_is_consistent`
+      (uniqueness / casing / count) in `src/validate/invariants.rs`.
 
-V6.   Pre-export refuse-on-error gate (mirrors CLI `generate`).
+V6.   [DONE] Pre-export refuse-on-error gate (mirrors CLI `generate`).
+      `BuilderState::export_block_reason(&mut self) -> Option<String>`
+      re-validates the live sector (`revalidate_now` + `check_sector`) and
+      returns `Some(reason)` when there are validation errors, invariant
+      violations, or — under §V4 strict — validation warnings; `None`
+      otherwise. The §EX1 "Export bundle" and §EX8 "Export everything"
+      actions (`builder/src/builder/panels/export.rs::{run_bundle,
+      run_everything}`) call it first and surface the refusal via
+      `ExportState::error` instead of writing, matching the CLI's
+      `SectorError::ValidationFailed` / `InvariantsViolated` returns. Test:
+      `export_block_reason_none_on_clean_blank_sector` (state/mod.rs).
 
 ================================================================================
 34. EXPORT BUNDLE
@@ -2227,7 +2282,7 @@ Phase A — Foundation
   R1..R10 - DONE  (§1)
   P1..P6  - DONE  (§5)
   U1..U2  - DONE  (§38)
-  V1..V3  - DONE  (§33; V4..V6 land in Phase E)
+  V1..V3  - DONE  (§33; V4..V6 also DONE, in Phase E)
   N0..N4  - DONE  (§41; N5 command palette lands in Phase F)
 
 Phase B — Direct entity edit
@@ -2646,7 +2701,7 @@ Phase E — Tooling
                    rename. Editor state in `state/types.rs::TomlEditorState`.)
   EX1..EX8,   DONE
   T1..T5,     DONE
-  V4..V6,     (§33 strict mode, invariant catalogue, refuse-on-error gate)
+  V4..V6,     DONE  (§33 strict mode, invariant catalogue, refuse-on-error gate)
   LD1..LD4.   (§39 live derivations)
 
 Phase F — Polish

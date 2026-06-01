@@ -81,7 +81,10 @@ pub(crate) fn run_random(
     );
     println!("Project:  {dest}");
     println!("Outputs:  {output_dir} (bundle + personae/sites/hooks/missions/gazetteer)");
-    println!("Reproduce: {}", reproduce_hint(size, &baseline, &report.seed));
+    println!(
+        "Reproduce: {}",
+        reproduce_hint(size, &baseline, &report.seed)
+    );
     Ok(ExitCode::SUCCESS)
 }
 
@@ -137,7 +140,10 @@ fn reproduce_hint(size: SectorSize, baseline: &str, seed: &str) -> String {
         SectorSize::Custom { dim } => {
             format!("sectorforge random --width {dim} --height {dim} --seed {seed}")
         }
-        other => format!("sectorforge random --size {} --seed {seed}", other.as_slug()),
+        other => format!(
+            "sectorforge random --size {} --seed {seed}",
+            other.as_slug()
+        ),
     };
     // Echo the baseline only when it is not the implicit default, so the common
     // case stays terse.

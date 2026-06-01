@@ -254,7 +254,10 @@ pub fn log_export_progress(event: sectorforge::ExportProgress) {
             log_progress(format_args!("export: per-system json {current}/{total}"));
         }
         E::FormatComplete { format, bytes } => {
-            log_progress(format_args!("export: wrote {format} ({})", human_bytes(bytes)));
+            log_progress(format_args!(
+                "export: wrote {format} ({})",
+                human_bytes(bytes)
+            ));
         }
         E::Complete => log_progress("export: all formats written"),
         _ => {}

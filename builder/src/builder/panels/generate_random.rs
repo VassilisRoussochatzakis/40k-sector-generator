@@ -46,7 +46,10 @@ const SIZES: &[(&str, &str)] = &[
 const BASELINES: &[(&str, &str)] = &[
     ("_full", "Everything — balanced, all features"),
     ("m42-classic", "M42 Classic — balanced Imperium"),
-    ("embattled-frontier", "Embattled Frontier — Imperium vs Orks"),
+    (
+        "embattled-frontier",
+        "Embattled Frontier — Imperium vs Orks",
+    ),
     ("dead-sector", "Dead Sector — ruins & Necrons"),
     ("mercantile-crossroads", "Mercantile Crossroads — trade hub"),
 ];

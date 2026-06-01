@@ -22,6 +22,147 @@ pub struct InvariantReport {
     pub violations: Vec<InvariantViolation>,
 }
 
+/// §V5 — authoritative catalogue of every invariant code [`check_sector`] may
+/// emit, each paired with a one-line human description, grouped in the same
+/// stratum order the builder buckets violations by (systems → worlds → routes
+/// → factions → regions → economy → manifest).
+///
+/// This is the single source of truth for the `sectorforge-builder` read-only
+/// "what is checked" panel (§V5): the panel renders this list directly so it
+/// can never drift from the codes the checker actually raises. Keep it in
+/// lockstep with the `violation("CODE", …)` call sites in this module; the
+/// `invariant_catalogue_is_consistent` test guards uniqueness, casing, and the
+/// count.
+///
+/// Note: `GEN_SECTOR_NOT_SQUARE` is a *pre-generation* validation rule (see
+/// [`crate::validation`]), not a post-generation invariant, so it is not listed
+/// here.
+pub const INVARIANT_CODES: &[(&str, &str)] = &[
+    // systems
+    ("DUPLICATE_SYSTEM_ID", "Two systems share the same id."),
+    ("SYSTEM_INDEX_ZERO", "A system's 1-based index is zero."),
+    (
+        "COORD_OUT_OF_BOUNDS",
+        "A system coordinate lies outside the sector grid.",
+    ),
+    (
+        "DUPLICATE_COORDINATE",
+        "Two systems occupy the same hex coordinate.",
+    ),
+    (
+        "SYSTEM_CONTROL_UNKNOWN_FACTION",
+        "A system control entry names a faction absent from the roster.",
+    ),
+    (
+        "SYSTEM_CONTROL_TOP_UNKNOWN",
+        "A system's top-control faction is absent from the roster.",
+    ),
+    (
+        "PRIMARY_FACTION_MISSING_SUMMARY",
+        "A system primary faction has no matching sector summary.",
+    ),
+    // worlds
+    (
+        "WORLD_ID_PREFIX",
+        "A world id does not start with its parent system id.",
+    ),
+    (
+        "DUPLICATE_WORLD_ID_IN_SYSTEM",
+        "Two worlds within one system share the same id.",
+    ),
+    (
+        "DUPLICATE_WORLD_ID_GLOBAL",
+        "A world id is reused across systems.",
+    ),
+    (
+        "WORLD_INDEX_OR_ORBIT_ZERO",
+        "A world's index or orbit is zero.",
+    ),
+    (
+        "WORLD_TAG_NAMESPACE_MISSING",
+        "A world tag lacks its required `namespace:` prefix.",
+    ),
+    ("WORLD_TAG_DUPLICATE", "A world carries the same tag twice."),
+    (
+        "PRESENCE_DIMENSION_OUT_OF_RANGE",
+        "A faction-presence dimension is outside 0..=100.",
+    ),
+    (
+        "WORLD_FACTION_MISSING_SUMMARY",
+        "A world faction presence has no matching sector summary.",
+    ),
+    (
+        "WORLD_CLAIM_UNKNOWN_FACTION",
+        "A world claim names a faction absent from the roster.",
+    ),
+    (
+        "WORLD_CLAIM_STRENGTH_OUT_OF_RANGE",
+        "A world claim strength is outside 0..=100.",
+    ),
+    (
+        "WORLD_CONTROL_UNKNOWN_FACTION",
+        "A world control entry names a faction absent from the roster.",
+    ),
+    // routes
+    (
+        "ROUTE_SELF_REFERENCE",
+        "A route connects a system to itself.",
+    ),
+    (
+        "ROUTE_UNKNOWN_FROM",
+        "A route's source system id does not exist.",
+    ),
+    (
+        "ROUTE_UNKNOWN_TO",
+        "A route's destination system id does not exist.",
+    ),
+    (
+        "ROUTE_DUPLICATE_UNDIRECTED",
+        "Two routes describe the same undirected edge.",
+    ),
+    (
+        "ROUTE_DISTANCE_MISMATCH",
+        "A route distance disagrees with its endpoints' hex distance.",
+    ),
+    // factions
+    (
+        "FACTION_SYSTEM_PRESENCE_UNKNOWN",
+        "A faction's system-presence list names a missing system.",
+    ),
+    (
+        "FACTION_WORLD_PRESENCE_UNKNOWN",
+        "A faction's world-presence list names a missing world.",
+    ),
+    // regions
+    (
+        "REGION_HEX_OUT_OF_BOUNDS",
+        "A region hex lies outside the sector grid.",
+    ),
+    ("REGION_HEX_OVERLAP", "Two regions claim the same hex."),
+    (
+        "REGION_ISOLATES_SECTOR",
+        "Region effects split the navigable route graph.",
+    ),
+    // economy
+    (
+        "ECONOMY_ENABLED_NO_WORLDS",
+        "The economy layer is enabled but the sector has no worlds.",
+    ),
+    // manifest
+    (
+        "MANIFEST_SYSTEM_COUNT_MISMATCH",
+        "The manifest system count disagrees with the sector.",
+    ),
+    (
+        "MANIFEST_WORLD_COUNT_MISMATCH",
+        "The manifest world count disagrees with the sector.",
+    ),
+    (
+        "MANIFEST_ROUTE_COUNT_MISMATCH",
+        "The manifest route count disagrees with the sector.",
+    ),
+];
+
 pub fn check_sector(sector: &GeneratedSector) -> InvariantReport {
     let mut v: Vec<InvariantViolation> = Vec::new();
 
@@ -584,5 +725,34 @@ fn violation(code: &str, message: &str, path: Option<&str>) -> InvariantViolatio
         code: code.to_string(),
         message: message.to_string(),
         path: path.map(|s| s.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::INVARIANT_CODES;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn invariant_catalogue_is_consistent() {
+        // Codes are unique, SCREAMING_SNAKE_CASE, and each has a description.
+        let mut seen = BTreeSet::new();
+        for (code, desc) in INVARIANT_CODES {
+            assert!(seen.insert(*code), "duplicate catalogue code: {code}");
+            assert!(!desc.is_empty(), "empty description for {code}");
+            assert_eq!(
+                *code,
+                code.to_ascii_uppercase(),
+                "catalogue codes must be SCREAMING_SNAKE_CASE: {code}"
+            );
+        }
+        // The crate cannot enumerate live `violation(…)` call sites at compile
+        // time, so guard the total: bump this deliberately whenever a code is
+        // added/removed so the §V5 catalogue is never silently left stale.
+        assert_eq!(
+            INVARIANT_CODES.len(),
+            32,
+            "INVARIANT_CODES count changed — update the catalogue and this guard together"
+        );
     }
 }

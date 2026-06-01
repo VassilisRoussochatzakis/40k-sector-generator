@@ -521,11 +521,19 @@ fn run_bundle(state: &mut BuilderState, ctx: &egui::Context) {
     let Some(dir) = state.export.output_dir.clone() else {
         return;
     };
+    // §V6 — refuse to export a sector carrying validation errors or invariant
+    // violations (parity with the `sectorforge generate` refuse-on-error gate).
+    if let Some(reason) = state.export_block_reason() {
+        state.export.error = Some(reason);
+        return;
+    }
     let formats = formats_label(state);
     let summary = format!("Wrote bundle ({formats}) to {dir}");
     let sector = state.sector.share();
     let outputs = state.config.outputs.clone();
-    state.export.spawn_bundle(ctx, sector, outputs, dir, summary);
+    state
+        .export
+        .spawn_bundle(ctx, sector, outputs, dir, summary);
 }
 
 /// Comma-joined slug list of the project's enabled bundle formats, for status
@@ -563,6 +571,12 @@ fn run_everything(state: &mut BuilderState, ctx: &egui::Context) {
     let Some(dir) = state.export.output_dir.clone() else {
         return;
     };
+    // §V6 — same refuse-on-error gate as the §EX1 bundle: do not write a full
+    // export (bundle + every overlay) for an invalid sector.
+    if let Some(reason) = state.export_block_reason() {
+        state.export.error = Some(reason);
+        return;
+    }
     // The per-overlay writers are small and read `state`, so run them inline on
     // the UI thread; only the heavy sector bundle goes off-thread (with live
     // progress) via `spawn_bundle` below.
@@ -587,7 +601,9 @@ fn run_everything(state: &mut BuilderState, ctx: &egui::Context) {
     let summary = format!("Exported everything ({overlays_note} + bundle: {formats}) to {dir}");
     let sector = state.sector.share();
     let outputs = state.config.outputs.clone();
-    state.export.spawn_bundle(ctx, sector, outputs, dir, summary);
+    state
+        .export
+        .spawn_bundle(ctx, sector, outputs, dir, summary);
 }
 
 /// Derive the requested overlay over the live sector (using the loaded catalog

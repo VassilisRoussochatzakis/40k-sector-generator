@@ -264,9 +264,16 @@ fn write_sector_json_file(
         fs::File::create(&sector_path).map_err(|e| SectorError::io(sector_path.as_str(), e))?;
     // Stream the serialize so a 100 MB+ document reports live byte progress
     // instead of building the whole `String` in memory and writing silently.
-    let mut on_bytes =
-        |written: u64| on_progress(ExportProgress::JsonProgress { bytes_written: written });
-    let mut writer = BufWriter::new(ProgressWriter::new(file, JSON_PROGRESS_STRIDE, &mut on_bytes));
+    let mut on_bytes = |written: u64| {
+        on_progress(ExportProgress::JsonProgress {
+            bytes_written: written,
+        })
+    };
+    let mut writer = BufWriter::new(ProgressWriter::new(
+        file,
+        JSON_PROGRESS_STRIDE,
+        &mut on_bytes,
+    ));
     format
         .render_to_writer(&mut writer, sector)
         .map_err(|e| SectorError::export(sector_path.as_str(), e.to_string()))?;

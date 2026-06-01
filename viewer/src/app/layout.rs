@@ -35,11 +35,13 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
     TopBottomPanel::top("top_bar")
         .frame(
             egui::Frame::none()
-                .fill(palette::PANEL_BG)
+                .fill(palette::chrome_panel())
                 .inner_margin(6.0),
         )
         .show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
+                crate::theme::menu(ui, &mut app.theme);
+                ui.separator();
                 if ui
                     .selectable_label(matches!(app.view, View::Sector), "SECTOR")
                     .clicked()
@@ -124,7 +126,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                 ui.separator();
                 ui.label(
                     RichText::new("ROUTE VIEW")
-                        .color(palette::TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
                 if ui

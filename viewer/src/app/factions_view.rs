@@ -5,11 +5,11 @@ use egui::{RichText, ScrollArea, TopBottomPanel};
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
                 ui.label(
                     RichText::new("no sector loaded")
-                        .color(palette::TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             });
@@ -19,7 +19,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
     TopBottomPanel::top("factions_toolbar")
         .frame(
             egui::Frame::none()
-                .fill(crate::app::palette::PANEL_BG)
+                .fill(crate::app::palette::chrome_panel())
                 .inner_margin(6.0),
         )
         .show(ctx, |ui| {
@@ -41,14 +41,18 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 ui.separator();
                 ui.label(
                     RichText::new("high-level faction state")
-                        .color(palette::TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             });
         });
 
     egui::CentralPanel::default()
-        .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+        .frame(
+            egui::Frame::none()
+                .fill(palette::chrome_bg())
+                .inner_margin(14.0),
+        )
         .show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| match app.factions_mode {
                 FactionsMode::Overview => {

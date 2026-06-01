@@ -1,13 +1,13 @@
 use egui::{RichText, ScrollArea, SidePanel, TopBottomPanel};
 
-use super::{editor, palette, preset_gallery, App, TEXT_DIM};
+use super::{editor, palette, preset_gallery, App};
 
 impl App {
     pub(super) fn draw_edit_layout(&mut self, ctx: &egui::Context) {
         TopBottomPanel::top("edit_toolbar")
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(6.0),
             )
             .show(ctx, |ui| {
@@ -20,7 +20,7 @@ impl App {
             .min_width(300.0)
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(14.0),
             )
             .show(ctx, |ui| {
@@ -34,7 +34,7 @@ impl App {
                             Sel::None => {
                                 ui.label(
                                     RichText::new("click a hex to add or select a system")
-                                        .color(TEXT_DIM)
+                                        .color(palette::chrome_text_dim())
                                         .monospace(),
                                 );
                             }
@@ -51,10 +51,18 @@ impl App {
             });
 
         TopBottomPanel::bottom("edit_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(6.0),
+            )
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
+                    ui.label(
+                        RichText::new("HEX SIZE")
+                            .color(palette::chrome_text_dim())
+                            .monospace(),
+                    );
                     ui.add(
                         egui::Slider::new(&mut self.editor.hex_size, 20.0..=80.0).show_value(false),
                     );
@@ -62,7 +70,7 @@ impl App {
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
                 ScrollArea::both().show(ui, |ui| match self.editor.tab {
                     editor::state::Tab::Map | editor::state::Tab::Routes => {
@@ -71,7 +79,7 @@ impl App {
                     _ => {
                         ui.label(
                             RichText::new("(switch to MAP tab to view the hex grid)")
-                                .color(TEXT_DIM)
+                                .color(palette::chrome_text_dim())
                                 .monospace(),
                         );
                     }
@@ -112,7 +120,7 @@ impl App {
         TopBottomPanel::top("data_toolbar")
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(6.0),
             )
             .show(ctx, |ui| {
@@ -147,7 +155,7 @@ impl App {
                     if let Some(dir) = &self.project_dir {
                         ui.label(
                             RichText::new(dir.display().to_string())
-                                .color(TEXT_DIM)
+                                .color(palette::chrome_text_dim())
                                 .monospace(),
                         );
                     } else {
@@ -155,20 +163,24 @@ impl App {
                             RichText::new(
                                 "no project loaded — pass --project <dir> when launching",
                             )
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                         );
                     }
                     ui.label(
                         RichText::new(&self.data_editor.status)
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(8.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(8.0),
+            )
             .show(ctx, |ui| {
                 crate::data_editor::show(ui, &mut self.data_editor);
             });

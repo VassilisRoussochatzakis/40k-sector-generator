@@ -7,7 +7,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
 use sectorforge::subsectors::SubsectorConfig;
 
-use super::{editor, info_panel, palette, App, PendingExport, View, TEXT, TEXT_DIM};
+use super::{editor, info_panel, palette, App, PendingExport, View};
 use crate::editor::state::SectorEditTool;
 use crate::sector_view::{SectorClick, SectorView};
 
@@ -26,11 +26,11 @@ impl App {
             sector
         } else {
             egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
+                .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
                     ui.label(
                         RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
@@ -64,7 +64,7 @@ impl App {
                 .min_width(260.0)
                 .frame(
                     egui::Frame::none()
-                        .fill(palette::PANEL_BG)
+                        .fill(palette::chrome_panel())
                         .inner_margin(14.0),
                 )
                 .show(ctx, |ui| {
@@ -135,7 +135,7 @@ impl App {
         }
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| self.show_sector_with(ui, &sector));
 
         self.draw_subsector_popup(ctx, &sector);
@@ -205,7 +205,7 @@ impl App {
                         egui::Label::new(
                             RichText::new(region.kind.description())
                                 .monospace()
-                                .color(palette::TEXT_DIM),
+                                .color(palette::chrome_text_dim()),
                         )
                         .wrap(),
                     );
@@ -227,7 +227,11 @@ impl App {
 
     pub(super) fn show_sector_with(&mut self, ui: &mut Ui, sector: &GeneratedSector) {
         TopBottomPanel::bottom("sector_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(6.0),
+            )
             .show_inside(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     if ui
@@ -251,17 +255,25 @@ impl App {
                         self.zoom_to_fit();
                     }
                     ui.separator();
-                    ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
+                    ui.label(
+                        RichText::new("HEX SIZE")
+                            .color(palette::chrome_text_dim())
+                            .monospace(),
+                    );
                     ui.add(
                         egui::Slider::new(&mut self.sector_hex_size, 5.0..=250.0).show_value(false),
                     );
                     ui.separator();
-                    ui.label(RichText::new("HEATMAP").color(TEXT_DIM).monospace());
+                    ui.label(
+                        RichText::new("HEATMAP")
+                            .color(palette::chrome_text_dim())
+                            .monospace(),
+                    );
                     egui::ComboBox::from_id_salt("sector_heatmap")
                         .selected_text(
                             RichText::new(self.heatmap_mode.label())
                                 .monospace()
-                                .color(TEXT),
+                                .color(palette::chrome_text()),
                         )
                         .show_ui(ui, |ui| {
                             for &m in super::HeatmapMode::ALL {

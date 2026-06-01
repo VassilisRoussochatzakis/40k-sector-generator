@@ -2,22 +2,35 @@
 
 use egui::{ComboBox, FontId, Response, RichText, Ui};
 
-use crate::palette::{TEXT, TEXT_DIM};
+use crate::palette;
 
 pub fn mono(size: f32) -> FontId {
     FontId::monospace(size)
 }
 
 pub fn section(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT).font(mono(13.0)).strong());
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text())
+            .font(mono(13.0))
+            .strong(),
+    );
 }
 
 pub fn dim(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT_DIM).font(mono(12.0)));
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text_dim())
+            .font(mono(12.0)),
+    );
 }
 
 pub fn label(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT).font(mono(12.0)));
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text())
+            .font(mono(12.0)),
+    );
 }
 
 /// Dropdown over `&[&str]`; writes selected value into `current`. Returns true

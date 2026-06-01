@@ -1732,6 +1732,38 @@ are accepted by the config parser but the current clustering ignores them.
 
 ## 8. Desktop front ends
 
+### 8.0 GUI chrome theming (`sectorforge-gui-core::theme`)
+
+Both desktop apps share one chrome theme system in
+[gui-core/src/theme.rs](gui-core/src/theme.rs). A `Theme` enum — `Grimdark`
+(default), `Void`, `Abyssal` (three dark presets) and `Light` (parchment +
+crimson) — expands a flat color set into a full egui `Visuals` +
+spacing/rounding/shadow `Style`; `Theme::apply(ctx)` pushes it, and
+`theme::menu(ui, &mut theme)` renders the **Theme:** picker (top bar, left of
+the tabs in both apps). Each app stores `theme` + `applied_theme` and re-applies
+only when the selection changes, never per frame. (Replaces the old duplicated
+`apply_theme` helpers in `builder/src/app.rs` and `viewer/src/app/ui_helpers.rs`.)
+
+**Two color planes.** The map render is a separate, always-dark plane from the
+themeable chrome:
+
+- *Chrome* (panels, windows, widgets, text, selection, dialogs, tables) follows
+  the theme. egui-native widgets pick it up from `Visuals`; the viewer/builder's
+  custom-painted panels read it through the theme-driven accessors
+  `palette::chrome_bg()` / `chrome_panel()` / `chrome_text()` / `chrome_text_dim()`,
+  which `Theme::apply` refreshes via `palette::set_chrome`. This is what lets the
+  `Light` preset work without dark frames bleeding through.
+- *Map canvas + semantics* stay fixed. The on-screen map painters
+  (`gui-core::sector_view` / `system_view`, `viewer::segmentum_view::super_map`),
+  `gui-core::map_theme`, and all semantic colors (faction / hazard / route /
+  star / status) keep the original `palette::BG` / `PANEL_BG` / `TEXT` /
+  `TEXT_DIM` **consts** and `Color32` literals — so the starfield map and its
+  legend never change with the UI theme, even in `Light`.
+
+`gui-core` is *not* in the deterministic PNG/SVG export path (`src/export/`), so
+theming carries no golden-test or determinism risk. A headless smoke test in
+`theme.rs` applies every preset and asserts the chrome store + `dark_mode` flip.
+
 ### 8.1 Viewer/editor (`sectorforge-viewer`)
 
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,

@@ -2,17 +2,17 @@ use egui::{Color32, RichText, ScrollArea, SidePanel};
 
 use sectorforge::sector_model::GeneratedSector;
 
-use super::{palette, App, TEXT, TEXT_DIM};
+use super::{palette, App};
 use crate::route_planner::{self, Metric, PickTarget, Severity};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
                 ui.label(
                     RichText::new("no sector loaded")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             });
@@ -25,20 +25,20 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         .min_width(300.0)
         .frame(
             egui::Frame::none()
-                .fill(palette::PANEL_BG)
+                .fill(palette::chrome_panel())
                 .inner_margin(14.0),
         )
         .show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.label(
                     RichText::new("NAV-PLANNER")
-                        .color(TEXT)
+                        .color(palette::chrome_text())
                         .monospace()
                         .strong(),
                 );
                 ui.label(
                     RichText::new("§3 NEXT — optimal warp routing")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
                 ui.add_space(8.0);
@@ -48,10 +48,14 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
         });
 
     egui::CentralPanel::default()
-        .frame(egui::Frame::none().fill(palette::BG))
+        .frame(egui::Frame::none().fill(palette::chrome_bg()))
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.label(RichText::new("HEX SIZE").color(TEXT_DIM).monospace());
+                ui.label(
+                    RichText::new("HEX SIZE")
+                        .color(palette::chrome_text_dim())
+                        .monospace(),
+                );
                 ui.add(egui::Slider::new(&mut app.planner_hex_size, 5.0..=250.0).show_value(false));
                 ui.separator();
                 if ui.button(RichText::new("RESET VIEW").monospace()).clicked() {
@@ -142,7 +146,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
 fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector) {
     ui.label(
         RichText::new("ROUTE PLANNER")
-            .color(TEXT)
+            .color(palette::chrome_text())
             .monospace()
             .strong(),
     );
@@ -156,7 +160,11 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
 
     let mut dirty = false;
     ui.horizontal(|ui| {
-        ui.label(RichText::new("FROM").color(TEXT_DIM).monospace());
+        ui.label(
+            RichText::new("FROM")
+                .color(palette::chrome_text_dim())
+                .monospace(),
+        );
         let armed = app.planner.picker == PickTarget::From;
         if ui
             .selectable_label(armed, RichText::new("◎ PICK").monospace())
@@ -173,7 +181,11 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
     dirty |= system_combo(ui, "planner_from", &mut app.planner.from, &options);
     ui.add_space(4.0);
     ui.horizontal(|ui| {
-        ui.label(RichText::new("TO").color(TEXT_DIM).monospace());
+        ui.label(
+            RichText::new("TO")
+                .color(palette::chrome_text_dim())
+                .monospace(),
+        );
         let armed = app.planner.picker == PickTarget::To;
         if ui
             .selectable_label(armed, RichText::new("◎ PICK").monospace())
@@ -204,7 +216,11 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
     }
 
     ui.add_space(6.0);
-    ui.label(RichText::new("METRIC").color(TEXT_DIM).monospace());
+    ui.label(
+        RichText::new("METRIC")
+            .color(palette::chrome_text_dim())
+            .monospace(),
+    );
     ui.horizontal(|ui| {
         if ui
             .selectable_label(
@@ -292,7 +308,7 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
         };
         ui.label(
             RichText::new(format!("PATH ({}) — {}", metric_label, cost_label))
-                .color(TEXT)
+                .color(palette::chrome_text())
                 .monospace()
                 .strong(),
         );
@@ -307,7 +323,7 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
             };
             ui.label(
                 RichText::new(format!("{} {}", prefix, name_of(hop)))
-                    .color(TEXT)
+                    .color(palette::chrome_text())
                     .monospace(),
             );
         }
@@ -322,12 +338,16 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
                     .monospace(),
             );
         } else {
-            ui.label(RichText::new("HAZARDS").color(TEXT_DIM).monospace());
+            ui.label(
+                RichText::new("HAZARDS")
+                    .color(palette::chrome_text_dim())
+                    .monospace(),
+            );
             for h in &plan.hazards {
                 let color = match h.severity {
                     Severity::Danger => Color32::from_rgb(235, 90, 90),
                     Severity::Caution => Color32::from_rgb(240, 200, 90),
-                    Severity::Info => TEXT_DIM,
+                    Severity::Info => palette::chrome_text_dim(),
                 };
                 ui.label(
                     RichText::new(format!(
@@ -341,7 +361,7 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
                 );
                 ui.label(
                     RichText::new(format!("   {}", h.note))
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             }
@@ -349,13 +369,13 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
     } else if app.planner.from.is_some() || app.planner.to.is_some() {
         ui.label(
             RichText::new("pick both endpoints to plan a route")
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .monospace(),
         );
     } else {
         ui.label(
             RichText::new("click a system hex to set the origin")
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .monospace(),
         );
     }

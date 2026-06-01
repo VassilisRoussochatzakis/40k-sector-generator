@@ -1,17 +1,17 @@
 use egui::{RichText, ScrollArea, TopBottomPanel};
 
-use super::{dashboard, palette, App, View, TEXT, TEXT_DIM};
+use super::{dashboard, palette, App, View};
 use crate::system_view::SystemSelection;
 
 impl App {
     pub(super) fn draw_dashboard_layout(&mut self, ctx: &egui::Context) {
         let Some(sector) = self.sector.clone() else {
             egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
+                .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
                     ui.label(
                         RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
@@ -20,7 +20,7 @@ impl App {
         TopBottomPanel::top("dashboard_toolbar")
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(6.0),
             )
             .show(ctx, |ui| {
@@ -34,13 +34,17 @@ impl App {
                     }
                     ui.label(
                         RichText::new("§8 NEW.md — analytics dashboard")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
             });
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(14.0),
+            )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     dashboard::show(ui, &sector, &mut self.dashboard);
@@ -51,11 +55,11 @@ impl App {
     pub(super) fn draw_history_layout(&mut self, ctx: &egui::Context) {
         let Some(sector) = self.sector.clone() else {
             egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
+                .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
                     ui.label(
                         RichText::new("no sector loaded")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
@@ -65,39 +69,43 @@ impl App {
         TopBottomPanel::top("history_toolbar")
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(6.0),
             )
             .show(ctx, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.label(
                         RichText::new("SECTOR HISTORY")
-                            .color(TEXT)
+                            .color(palette::chrome_text())
                             .monospace()
                             .strong(),
                     );
                     ui.label(
                         RichText::new("§1 NEW2.md — typed timeline records")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                     ui.separator();
                     ui.label(
                         RichText::new(format!("{} EVENTS", sector.chronicle.events.len()))
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(14.0),
+            )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     if sector.chronicle.events.is_empty() {
                         ui.label(
                             RichText::new("no chronicle events embedded in this sector")
-                                .color(TEXT_DIM)
+                                .color(palette::chrome_text_dim())
                                 .monospace(),
                         );
                         return;
@@ -105,7 +113,12 @@ impl App {
 
                     ui.columns(2, |columns| {
                         columns[0].vertical(|ui| {
-                            ui.label(RichText::new("TIMELINE").color(TEXT).monospace().strong());
+                            ui.label(
+                                RichText::new("TIMELINE")
+                                    .color(palette::chrome_text())
+                                    .monospace()
+                                    .strong(),
+                            );
                             ui.add_space(6.0);
                             let selected = self.history_selected_event.clone();
                             for e in &sector.chronicle.events {
@@ -138,25 +151,36 @@ impl App {
                             if let Some(e) = active {
                                 ui.label(
                                     RichText::new("EVENT DETAIL")
-                                        .color(TEXT)
+                                        .color(palette::chrome_text())
                                         .monospace()
                                         .strong(),
                                 );
-                                ui.label(RichText::new(&e.id).color(TEXT_DIM).monospace());
+                                ui.label(
+                                    RichText::new(&e.id)
+                                        .color(palette::chrome_text_dim())
+                                        .monospace(),
+                                );
                                 ui.add_space(4.0);
                                 ui.label(
                                     RichText::new(format!(
                                         "{} · {} · {:?}",
                                         e.date, e.era_label, e.kind
                                     ))
-                                    .color(TEXT)
+                                    .color(palette::chrome_text())
                                     .monospace(),
                                 );
-                                ui.label(RichText::new(&e.narrative).color(TEXT).monospace());
+                                ui.label(
+                                    RichText::new(&e.narrative)
+                                        .color(palette::chrome_text())
+                                        .monospace(),
+                                );
                                 if !e.entities.is_empty() {
                                     ui.add_space(6.0);
                                     ui.label(
-                                        RichText::new("REFS").color(TEXT_DIM).monospace().strong(),
+                                        RichText::new("REFS")
+                                            .color(palette::chrome_text_dim())
+                                            .monospace()
+                                            .strong(),
                                     );
                                     for ent in &e.entities {
                                         let role = ent.role.as_deref().unwrap_or("");
@@ -165,7 +189,7 @@ impl App {
                                                 "{:?}  {}  {}",
                                                 ent.kind, ent.id, role
                                             ))
-                                            .color(TEXT_DIM)
+                                            .color(palette::chrome_text_dim())
                                             .monospace(),
                                         );
                                     }
@@ -174,7 +198,7 @@ impl App {
                                     ui.add_space(6.0);
                                     ui.label(
                                         RichText::new("CONSEQUENCES")
-                                            .color(TEXT_DIM)
+                                            .color(palette::chrome_text_dim())
                                             .monospace()
                                             .strong(),
                                     );
@@ -184,7 +208,7 @@ impl App {
                                                 "{:?}  sev{}  {}",
                                                 c.kind, c.severity, c.description
                                             ))
-                                            .color(TEXT_DIM)
+                                            .color(palette::chrome_text_dim())
                                             .monospace(),
                                         );
                                     }
@@ -210,7 +234,7 @@ impl App {
                     ui.add_space(8.0);
                     ui.label(
                         RichText::new("SNAPSHOTS / VERSIONING")
-                            .color(TEXT)
+                            .color(palette::chrome_text())
                             .monospace()
                             .strong(),
                     );

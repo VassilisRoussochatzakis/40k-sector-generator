@@ -10,7 +10,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::HexCoord;
 use sectorforge_gui_core::sector_view::{SectorGeom, SectorView};
 
-use crate::palette::{self, HEX_OUTLINE, TEXT_DIM};
+use crate::palette::{self, HEX_OUTLINE};
 
 use super::state::{Dialog, EditorState, RouteEndpoint, SectorEditTool, Selection};
 use super::ui_helpers::mono;
@@ -20,7 +20,10 @@ pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
     let (sector_w, sector_h) = if let Some(s) = &state.sector {
         (s.width, s.height)
     } else {
-        ui.label(RichText::new("no sector loaded — use NEW SECTOR or OPEN").color(TEXT_DIM));
+        ui.label(
+            RichText::new("no sector loaded — use NEW SECTOR or OPEN")
+                .color(palette::chrome_text_dim()),
+        );
         return;
     };
 
@@ -275,7 +278,7 @@ fn draw_toolbox(ui: &mut Ui, state: &mut EditorState) {
         Pos2::new(rect.min.x + 10.0, rect.min.y + 10.0),
         Vec2::new(140.0, 130.0),
     );
-    palette::paint_rect_filled(ui, toolbox_rect, toolbox_rect, 4.0, palette::PANEL_BG);
+    palette::paint_rect_filled(ui, toolbox_rect, toolbox_rect, 4.0, palette::chrome_panel());
     palette::paint_rect_stroke(
         ui,
         toolbox_rect,
@@ -287,7 +290,11 @@ fn draw_toolbox(ui: &mut Ui, state: &mut EditorState) {
     ui.put(toolbox_rect, |ui: &mut Ui| {
         ui.vertical_centered(|ui| {
             ui.add_space(5.0);
-            ui.label(RichText::new("TOOLBOX").font(mono(11.0)).color(TEXT_DIM));
+            ui.label(
+                RichText::new("TOOLBOX")
+                    .font(mono(11.0))
+                    .color(palette::chrome_text_dim()),
+            );
             ui.add_space(5.0);
 
             for (tool, label) in [

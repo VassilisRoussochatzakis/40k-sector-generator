@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use sectorforge::presets::{self, PresetEntry};
 
-use super::palette::{TEXT, TEXT_DIM};
+use super::palette;
 
 #[derive(Debug, Error, Clone)]
 pub enum PresetGalleryError {
@@ -72,7 +72,11 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     state.ensure_loaded();
 
     ui.horizontal(|ui| {
-        ui.label(RichText::new("CREATE:").color(TEXT_DIM).monospace());
+        ui.label(
+            RichText::new("CREATE:")
+                .color(palette::chrome_text_dim())
+                .monospace(),
+        );
         ui.selectable_value(&mut state.target, CreationTarget::Project, "PROJECT");
         ui.selectable_value(&mut state.target, CreationTarget::Segmentum, "SEGMENTUM");
         ui.selectable_value(&mut state.target, CreationTarget::Sector, "SECTOR");
@@ -90,7 +94,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         ui.group(|ui| {
             ui.label(
                 RichText::new("SECTOR DIMENSIONS")
-                    .color(TEXT_DIM)
+                    .color(palette::chrome_text_dim())
                     .monospace(),
             );
             ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
@@ -103,9 +107,17 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
             }
 
             ui.horizontal(|ui| {
-                ui.label(RichText::new("WIDTH").color(TEXT_DIM).monospace());
+                ui.label(
+                    RichText::new("WIDTH")
+                        .color(palette::chrome_text_dim())
+                        .monospace(),
+                );
                 let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
-                ui.label(RichText::new("HEIGHT").color(TEXT_DIM).monospace());
+                ui.label(
+                    RichText::new("HEIGHT")
+                        .color(palette::chrome_text_dim())
+                        .monospace(),
+                );
                 let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
 
                 if !state.irregular_dimensions {
@@ -127,7 +139,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     let dir = state.resolved_dir();
     ui.label(
         RichText::new(format!("PRESETS DIRECTORY: {dir}"))
-            .color(TEXT_DIM)
+            .color(palette::chrome_text_dim())
             .monospace(),
     );
     if ui.button(RichText::new("RELOAD").monospace()).clicked() {
@@ -152,7 +164,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     if entries.is_empty() {
         ui.label(
             RichText::new("no presets found")
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .monospace(),
         );
         return;
@@ -164,14 +176,14 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         } else {
             "DESTINATION DIRECTORY"
         })
-        .color(TEXT_DIM)
+        .color(palette::chrome_text_dim())
         .monospace(),
     );
     ui.text_edit_singleline(&mut state.dest_text);
     ui.add_space(4.0);
     ui.label(
         RichText::new("SEED OVERRIDE (optional)")
-            .color(TEXT_DIM)
+            .color(palette::chrome_text_dim())
             .monospace(),
     );
     ui.text_edit_singleline(&mut state.seed_text);
@@ -180,15 +192,20 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
         for entry in &entries {
             ui.group(|ui| {
-                ui.label(RichText::new(&entry.title).color(TEXT).monospace().strong());
+                ui.label(
+                    RichText::new(&entry.title)
+                        .color(palette::chrome_text())
+                        .monospace()
+                        .strong(),
+                );
                 ui.label(
                     RichText::new(format!("id: {}", entry.id))
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
                 ui.label(
                     RichText::new(&entry.description)
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
                 if ui
@@ -254,7 +271,7 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                 "Next: launch the GUI with `--project <dest>` or run \
                  `cargo run --bin sectorforge -- generate --project <dest>`.",
             )
-            .color(TEXT_DIM)
+            .color(palette::chrome_text_dim())
             .monospace(),
         );
     }

@@ -2,7 +2,7 @@
 
 use egui::{RichText, Ui};
 
-use crate::palette::TEXT;
+use crate::palette;
 
 use super::enums::{star_colour_name, STAR_COLOUR_CODES};
 use super::state::{empty_world, EditorState, Selection};
@@ -28,7 +28,7 @@ pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.label(
         RichText::new(format!("SYSTEM {}", sys.id.to_uppercase()))
-            .color(TEXT)
+            .color(palette::chrome_text())
             .font(mono(15.0)),
     );
 

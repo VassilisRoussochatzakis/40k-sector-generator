@@ -1,39 +1,42 @@
-use crate::palette::{TEXT, TEXT_DIM};
 use crate::{palette, App};
 use egui::{RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
                 ui.label(
                     RichText::new("no sector loaded")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             });
         return;
     };
     egui::CentralPanel::default()
-        .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+        .frame(
+            egui::Frame::none()
+                .fill(palette::chrome_bg())
+                .inner_margin(14.0),
+        )
         .show(ctx, |ui| {
             ui.label(
                 RichText::new("DIPLOMACY MATRIX")
-                    .color(TEXT)
+                    .color(palette::chrome_text())
                     .monospace()
                     .strong(),
             );
             ui.label(
                 RichText::new("§5 NEW2.md — public/secret attitude + relation dimensions")
-                    .color(TEXT_DIM)
+                    .color(palette::chrome_text_dim())
                     .monospace(),
             );
             ui.add_space(8.0);
             if sector.relations.pairs.is_empty() {
                 ui.label(
                     RichText::new("no relations defined")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             } else {

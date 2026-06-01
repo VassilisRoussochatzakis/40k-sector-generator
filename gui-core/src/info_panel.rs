@@ -11,8 +11,8 @@ use sectorforge::sector_model::{
 use sectorforge::subsectors::Subsector;
 
 use super::palette::{
-    darken, draw_route_line, faction_style_by_id, stability_color, star_color, world_type_color,
-    PATH_HIGHLIGHT, TEXT, TEXT_DIM,
+    self, darken, draw_route_line, faction_style_by_id, stability_color, star_color,
+    world_type_color, PATH_HIGHLIGHT,
 };
 use sectorforge::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
@@ -104,12 +104,17 @@ pub fn sector_overview_with_buckets(
     match mode {
         sectorforge::sector_model::RouteViewMode::Detailed => {
             for rtype in sectorforge::sector_model::RouteType::ALL {
-                legend_route_row(ui, TEXT, rtype.pattern(mode), rtype.label());
+                legend_route_row(
+                    ui,
+                    palette::chrome_text(),
+                    rtype.pattern(mode),
+                    rtype.label(),
+                );
             }
         }
         sectorforge::sector_model::RouteViewMode::TopLevel => {
             for kind in sectorforge::sector_model::RouteKind::ALL {
-                legend_route_row(ui, TEXT, kind.patterns()[0], kind.label());
+                legend_route_row(ui, palette::chrome_text(), kind.patterns()[0], kind.label());
             }
         }
         _ => {}
@@ -822,30 +827,51 @@ fn mono(size: f32) -> FontId {
 }
 
 fn title(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT).font(mono(18.0)));
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text())
+            .font(mono(18.0)),
+    );
     ui.add_space(2.0);
 }
 
 fn section(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT).font(mono(13.0)).strong());
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text())
+            .font(mono(13.0))
+            .strong(),
+    );
 }
 
 fn body(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT).font(mono(13.0)));
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text())
+            .font(mono(13.0)),
+    );
 }
 
 fn dim(ui: &mut Ui, s: &str) {
-    ui.label(RichText::new(s).color(TEXT_DIM).font(mono(12.0)));
+    ui.label(
+        RichText::new(s)
+            .color(palette::chrome_text_dim())
+            .font(mono(12.0)),
+    );
 }
 
 fn kv(ui: &mut Ui, k: &str, v: &str) {
     ui.horizontal(|ui| {
         ui.label(
             RichText::new(format!("{k}:"))
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .font(mono(12.0)),
         );
-        ui.label(RichText::new(v).color(TEXT).font(mono(12.0)));
+        ui.label(
+            RichText::new(v)
+                .color(palette::chrome_text())
+                .font(mono(12.0)),
+        );
     });
 }
 
@@ -1035,7 +1061,11 @@ fn legend_row(ui: &mut Ui, color: Color32, text: &str) {
         ui.painter().rect_filled(rect, 1.0, color);
         ui.painter()
             .rect_stroke(rect, 1.0, egui::Stroke::new(1.0, darken(color, 0.5)));
-        ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
+        ui.label(
+            RichText::new(text)
+                .color(palette::chrome_text())
+                .font(mono(12.0)),
+        );
     });
 }
 
@@ -1046,7 +1076,11 @@ fn legend_route_row(ui: &mut Ui, color: Color32, pattern: RoutePattern, text: &s
         let a = Pos2::new(rect.left(), y);
         let b = Pos2::new(rect.right(), y);
         draw_route_line(ui.painter(), a, b, 2.5, color, pattern);
-        ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
+        ui.label(
+            RichText::new(text)
+                .color(palette::chrome_text())
+                .font(mono(12.0)),
+        );
     });
 }
 
@@ -1056,7 +1090,7 @@ fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
         let center = rect.center();
         let size = 10.0;
         let half = size / 2.0;
-        let color = TEXT_DIM;
+        let color = palette::chrome_text_dim();
         let painter = ui.painter();
 
         match kind {
@@ -1095,7 +1129,11 @@ fn legend_control_row(ui: &mut Ui, kind: &str, text: &str) {
             _ => {}
         }
 
-        ui.label(RichText::new(text).color(TEXT).font(mono(12.0)));
+        ui.label(
+            RichText::new(text)
+                .color(palette::chrome_text())
+                .font(mono(12.0)),
+        );
     });
 }
 

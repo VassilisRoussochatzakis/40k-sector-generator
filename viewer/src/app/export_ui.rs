@@ -9,7 +9,7 @@ use rfd::FileDialog;
 
 use sectorforge::export;
 
-use super::super::palette::TEXT_DIM;
+use super::super::palette;
 use super::{App, ExportJobResult, PendingExport};
 
 const SECTOR_PNG_JOB_ID: &str = "export-sector-png";
@@ -54,7 +54,11 @@ impl App {
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                ui.label(RichText::new("Resolution").color(TEXT_DIM).monospace());
+                ui.label(
+                    RichText::new("Resolution")
+                        .color(palette::chrome_text_dim())
+                        .monospace(),
+                );
                 ui.horizontal(|ui| {
                     ui.selectable_value(
                         &mut self.export_scale,
@@ -74,7 +78,11 @@ impl App {
                     );
                 });
                 ui.add_space(8.0);
-                ui.label(RichText::new("Theme").color(TEXT_DIM).monospace());
+                ui.label(
+                    RichText::new("Theme")
+                        .color(palette::chrome_text_dim())
+                        .monospace(),
+                );
                 egui::ComboBox::from_id_salt("png_export_theme")
                     .selected_text(RichText::new(&self.export_theme_name).monospace())
                     .show_ui(ui, |ui| {

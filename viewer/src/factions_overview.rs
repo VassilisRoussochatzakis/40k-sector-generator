@@ -27,7 +27,7 @@ use sectorforge::factions::{FactionDef, FactionsFile};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sector_model::{GeneratedFaction, GeneratedSector};
 
-use super::palette::{draw_faction_chip, faction_style, TEXT, TEXT_DIM};
+use super::palette::{self, draw_faction_chip, faction_style};
 
 #[derive(Debug, Clone, Default)]
 struct PresenceStats {
@@ -420,7 +420,7 @@ pub fn show_designer(
 ) {
     ui.label(
         RichText::new("FACTION DESIGNER")
-            .color(TEXT)
+            .color(palette::chrome_text())
             .monospace()
             .strong()
             .size(18.0),
@@ -431,7 +431,7 @@ pub fn show_designer(
             state.rows.len(),
             sector.factions.len()
         ))
-        .color(TEXT_DIM)
+        .color(palette::chrome_text_dim())
         .monospace(),
     );
     ui.add_space(8.0);
@@ -489,7 +489,7 @@ pub fn show_designer(
 fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
     ui.label(
         RichText::new("FACTIONS")
-            .color(TEXT)
+            .color(palette::chrome_text())
             .monospace()
             .strong()
             .size(18.0),
@@ -503,7 +503,7 @@ fn show_header(ui: &mut Ui, sector: &GeneratedSector, edit_mode: bool) {
             world_count,
             if edit_mode { " - edit mode" } else { "" }
         ))
-        .color(TEXT_DIM)
+        .color(palette::chrome_text_dim())
         .monospace(),
     );
 }
@@ -516,7 +516,7 @@ fn show_kind_summary(ui: &mut Ui, sector: &GeneratedSector) {
     if counts.is_empty() {
         ui.label(
             RichText::new("no factions in sector")
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .monospace(),
         );
         return;
@@ -525,7 +525,7 @@ fn show_kind_summary(ui: &mut Ui, sector: &GeneratedSector) {
         for (kind, count) in counts {
             ui.label(
                 RichText::new(format!("{} {}", kind.to_uppercase(), count))
-                    .color(TEXT_DIM)
+                    .color(palette::chrome_text_dim())
                     .monospace(),
             );
         }
@@ -554,10 +554,10 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
     let observed = observed.cloned().unwrap_or_default();
     ui.horizontal(|ui| {
         draw_faction_chip(ui, style);
-        fixed_text(ui, 180.0, &fac.name.to_uppercase(), TEXT);
-        fixed_text(ui, 150.0, fac.id.as_str(), TEXT_DIM);
-        fixed_text(ui, 120.0, &fac.kind, TEXT_DIM);
-        fixed_text(ui, 120.0, &fac.disposition, TEXT_DIM);
+        fixed_text(ui, 180.0, &fac.name.to_uppercase(), palette::chrome_text());
+        fixed_text(ui, 150.0, fac.id.as_str(), palette::chrome_text_dim());
+        fixed_text(ui, 120.0, &fac.kind, palette::chrome_text_dim());
+        fixed_text(ui, 120.0, &fac.disposition, palette::chrome_text_dim());
         fixed_text(
             ui,
             98.0,
@@ -566,19 +566,19 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
                 fac.system_presence.len(),
                 fac.world_presence.len()
             ),
-            TEXT,
+            palette::chrome_text(),
         );
         fixed_text(
             ui,
             98.0,
             &format!("{}S {}W", observed.system_count(), observed.world_count()),
-            TEXT_DIM,
+            palette::chrome_text_dim(),
         );
         fixed_text(
             ui,
             80.0,
             &format!("{:.0}", fac.power.total_projection()),
-            TEXT_DIM,
+            palette::chrome_text_dim(),
         );
     });
     if !fac.subfactions.is_empty() {
@@ -589,7 +589,7 @@ fn show_readonly_row(ui: &mut Ui, fac: &GeneratedFaction, observed: Option<&Pres
                 fac.subfactions.len(),
                 force_count
             ))
-            .color(TEXT_DIM)
+            .color(palette::chrome_text_dim())
             .monospace(),
         );
     }
@@ -607,10 +607,10 @@ fn show_edit_row(
 
     ui.horizontal(|ui| {
         draw_faction_chip(ui, style);
-        fixed_text(ui, 180.0, &fac.name.to_uppercase(), TEXT);
-        fixed_text(ui, 150.0, fac.id.as_str(), TEXT_DIM);
-        fixed_text(ui, 120.0, &fac.kind, TEXT_DIM);
-        fixed_text(ui, 120.0, &fac.disposition, TEXT_DIM);
+        fixed_text(ui, 180.0, &fac.name.to_uppercase(), palette::chrome_text());
+        fixed_text(ui, 150.0, fac.id.as_str(), palette::chrome_text_dim());
+        fixed_text(ui, 120.0, &fac.kind, palette::chrome_text_dim());
+        fixed_text(ui, 120.0, &fac.disposition, palette::chrome_text_dim());
         fixed_text(
             ui,
             98.0,
@@ -619,19 +619,19 @@ fn show_edit_row(
                 fac.system_presence.len(),
                 fac.world_presence.len()
             ),
-            TEXT,
+            palette::chrome_text(),
         );
         fixed_text(
             ui,
             98.0,
             &format!("{}S {}W", observed.system_count(), observed.world_count()),
-            TEXT_DIM,
+            palette::chrome_text_dim(),
         );
         fixed_text(
             ui,
             80.0,
             &format!("{:.0}", fac.power.total_projection()),
-            TEXT_DIM,
+            palette::chrome_text_dim(),
         );
     });
 
@@ -712,7 +712,7 @@ fn show_edit_row(
                     fac.subfactions.len(),
                     force_count
                 ))
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .monospace(),
             );
         }
@@ -724,7 +724,7 @@ fn show_edit_row(
 fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
     ui.label(
         RichText::new("ADD OVERALL / SUBFACTION")
-            .color(TEXT)
+            .color(palette::chrome_text())
             .monospace()
             .strong(),
     );
@@ -812,7 +812,7 @@ fn show_designer_rows(ui: &mut Ui, state: &mut FactionDesignerState) {
     if state.rows.is_empty() {
         ui.label(
             RichText::new("designer roster empty")
-                .color(TEXT_DIM)
+                .color(palette::chrome_text_dim())
                 .monospace(),
         );
         return;
@@ -823,7 +823,7 @@ fn show_designer_rows(ui: &mut Ui, state: &mut FactionDesignerState) {
         let style = faction_style(&row.kind, &row.id, &row.disposition);
         ui.horizontal(|ui| {
             draw_faction_chip(ui, style);
-            fixed_text(ui, 40.0, &(i + 1).to_string(), TEXT_DIM);
+            fixed_text(ui, 40.0, &(i + 1).to_string(), palette::chrome_text_dim());
             let _ = text_edit(ui, &mut row.id, 170.0);
             let _ = text_edit(ui, &mut row.name, 220.0);
             let _ = text_edit(ui, &mut row.kind, 150.0);
@@ -1268,7 +1268,7 @@ fn slug_id(value: &str) -> String {
 }
 
 fn fixed(ui: &mut Ui, width: f32, text: &str) {
-    fixed_text(ui, width, text, TEXT_DIM);
+    fixed_text(ui, width, text, palette::chrome_text_dim());
 }
 
 fn fixed_text(ui: &mut Ui, width: f32, text: &str, color: Color32) {
@@ -1279,7 +1279,11 @@ fn fixed_text(ui: &mut Ui, width: f32, text: &str, color: Color32) {
 }
 
 fn field_label(ui: &mut Ui, text: &str) {
-    ui.label(RichText::new(text).color(TEXT_DIM).monospace());
+    ui.label(
+        RichText::new(text)
+            .color(palette::chrome_text_dim())
+            .monospace(),
+    );
 }
 
 fn text_edit<T>(ui: &mut Ui, value: &mut T, width: f32) -> bool

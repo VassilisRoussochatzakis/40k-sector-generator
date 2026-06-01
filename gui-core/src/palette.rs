@@ -18,6 +18,79 @@ pub const SELECTION: Color32 = Color32::from_rgb(255, 240, 120);
 pub const PATH_HIGHLIGHT: Color32 = Color32::from_rgb(120, 220, 255);
 pub const PATH_WAYPOINT: Color32 = Color32::from_rgb(255, 200, 90);
 
+/// Theme-driven *chrome* colors — panel/window backgrounds and UI text. Unlike
+/// the consts above (which the map painters and `map_theme` use for the
+/// always-dark canvas + semantic overlays), these flip with the active
+/// [`crate::theme::Theme`] so the surrounding UI can go light. The GUI reads
+/// them through [`chrome_bg`] / [`chrome_panel`] / [`chrome_text`] /
+/// [`chrome_text_dim`]; [`crate::theme::Theme::apply`] pushes a new set via
+/// [`set_chrome`]. The default matches the dark consts, so nothing shifts until
+/// a theme is applied.
+#[derive(Clone, Copy, Debug)]
+pub struct ChromeColors {
+    /// Darkest chrome backdrop (was [`BG`]).
+    pub bg: Color32,
+    /// Panel/surface fill (was [`PANEL_BG`]).
+    pub panel: Color32,
+    /// Primary UI text (was [`TEXT`]).
+    pub text: Color32,
+    /// Secondary / label UI text (was [`TEXT_DIM`]).
+    pub text_dim: Color32,
+}
+
+impl ChromeColors {
+    /// The original dark palette — the process-wide default until a theme runs.
+    pub const DARK: ChromeColors = ChromeColors {
+        bg: BG,
+        panel: PANEL_BG,
+        text: TEXT,
+        text_dim: TEXT_DIM,
+    };
+}
+
+static CHROME: std::sync::RwLock<ChromeColors> = std::sync::RwLock::new(ChromeColors::DARK);
+
+/// Install a new chrome color set (called by [`crate::theme::Theme::apply`]).
+pub fn set_chrome(colors: ChromeColors) {
+    if let Ok(mut guard) = CHROME.write() {
+        *guard = colors;
+    }
+}
+
+/// Snapshot of the active chrome colors.
+#[must_use]
+pub fn chrome() -> ChromeColors {
+    CHROME.read().map_or(ChromeColors::DARK, |c| *c)
+}
+
+/// Active darkest chrome backdrop. Theme-aware replacement for [`BG`] at UI
+/// (non-map) call sites.
+#[must_use]
+pub fn chrome_bg() -> Color32 {
+    chrome().bg
+}
+
+/// Active panel/surface fill. Theme-aware replacement for [`PANEL_BG`] at UI
+/// (non-map) call sites.
+#[must_use]
+pub fn chrome_panel() -> Color32 {
+    chrome().panel
+}
+
+/// Active primary UI text color. Theme-aware replacement for [`TEXT`] at UI
+/// (non-map) call sites.
+#[must_use]
+pub fn chrome_text() -> Color32 {
+    chrome().text
+}
+
+/// Active secondary UI text color. Theme-aware replacement for [`TEXT_DIM`] at
+/// UI (non-map) call sites.
+#[must_use]
+pub fn chrome_text_dim() -> Color32 {
+    chrome().text_dim
+}
+
 pub fn star_color(code: &str) -> Color32 {
     match code.trim().to_ascii_uppercase().as_str() {
         "O" => Color32::from_rgb(255, 150, 70),

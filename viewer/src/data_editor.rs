@@ -109,7 +109,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
             .map_or(0, |c| c.generation.len());
         ui.label(
             RichText::new(format!("{row_count} rows"))
-                .color(super::palette::TEXT_DIM)
+                .color(super::palette::chrome_text_dim())
                 .monospace(),
         );
         if editor.dirty {
@@ -126,7 +126,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     if editor.project_dir.is_none() {
         ui.label(
             RichText::new("load a project from the toolbar to edit world data")
-                .color(super::palette::TEXT_DIM)
+                .color(super::palette::chrome_text_dim())
                 .monospace(),
         );
         return;
@@ -135,7 +135,7 @@ pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     if editor.worlds_toml.is_none() {
         ui.label(
             RichText::new("project has no worlds.toml in its data dir")
-                .color(super::palette::TEXT_DIM)
+                .color(super::palette::chrome_text_dim())
                 .monospace(),
         );
         return;
@@ -180,7 +180,7 @@ fn show_native(ui: &mut egui::Ui, editor: &mut DataEditor) {
                     for h in headers {
                         ui.label(
                             RichText::new(h.to_ascii_uppercase())
-                                .color(super::palette::TEXT)
+                                .color(super::palette::chrome_text())
                                 .strong()
                                 .monospace(),
                         );
@@ -190,7 +190,7 @@ fn show_native(ui: &mut egui::Ui, editor: &mut DataEditor) {
                     for (idx, row) in cfg.generation.iter_mut().enumerate() {
                         ui.label(
                             RichText::new((idx + 1).to_string())
-                                .color(super::palette::TEXT_DIM)
+                                .color(super::palette::chrome_text_dim())
                                 .monospace(),
                         );
                         any_change |= enum_combo(

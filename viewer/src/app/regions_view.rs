@@ -1,33 +1,36 @@
-use crate::palette::{TEXT, TEXT_DIM};
 use crate::{palette, App};
 use egui::{Color32, RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
                 ui.label(
                     RichText::new("no sector loaded")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             });
         return;
     };
     egui::CentralPanel::default()
-        .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+        .frame(
+            egui::Frame::none()
+                .fill(palette::chrome_bg())
+                .inner_margin(14.0),
+        )
         .show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.label(
                     RichText::new("WARP REGIONS")
-                        .color(TEXT)
+                        .color(palette::chrome_text())
                         .monospace()
                         .strong(),
                 );
                 ui.label(
                     RichText::new("§5 NEW.md — regional warp phenomena overlay")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
                 ui.add_space(8.0);
@@ -37,7 +40,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                             "no regions configured — enable in regions.toml or \
                             sectorforge.toml",
                         )
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                     );
                     return;
@@ -46,17 +49,42 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     .num_columns(6)
                     .striped(true)
                     .show(ui, |ui| {
-                        ui.label(RichText::new("ID").color(TEXT_DIM).monospace().strong());
-                        ui.label(RichText::new("NAME").color(TEXT_DIM).monospace().strong());
-                        ui.label(RichText::new("KIND").color(TEXT_DIM).monospace().strong());
                         ui.label(
-                            RichText::new("DESCRIPTION")
-                                .color(TEXT_DIM)
+                            RichText::new("ID")
+                                .color(palette::chrome_text_dim())
                                 .monospace()
                                 .strong(),
                         );
-                        ui.label(RichText::new("HEXES").color(TEXT_DIM).monospace().strong());
-                        ui.label(RichText::new("CENTRE").color(TEXT_DIM).monospace().strong());
+                        ui.label(
+                            RichText::new("NAME")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
+                        ui.label(
+                            RichText::new("KIND")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
+                        ui.label(
+                            RichText::new("DESCRIPTION")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
+                        ui.label(
+                            RichText::new("HEXES")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
+                        ui.label(
+                            RichText::new("CENTRE")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
                         ui.end_row();
                         for r in sector.regions.iter() {
                             ui.label(RichText::new(&r.id).monospace());
@@ -69,7 +97,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                             ui.add(
                                 egui::Label::new(
                                     RichText::new(r.kind.description())
-                                        .color(TEXT_DIM)
+                                        .color(palette::chrome_text_dim())
                                         .monospace(),
                                 )
                                 .wrap(),

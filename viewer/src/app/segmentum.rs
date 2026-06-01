@@ -3,17 +3,17 @@ use egui::{RichText, ScrollArea, SidePanel};
 use crate::segmentum_view::SegmentumAction;
 use crate::system_view::SystemSelection;
 
-use super::{palette, App, View, TEXT_DIM};
+use super::{palette, App, View};
 
 impl App {
     pub(super) fn draw_segmentum_layout(&mut self, ctx: &egui::Context) {
         let Some(bundle) = self.segmentum.clone() else {
             egui::CentralPanel::default()
-                .frame(egui::Frame::none().fill(palette::BG))
+                .frame(egui::Frame::none().fill(palette::chrome_bg()))
                 .show(ctx, |ui| {
                     ui.label(
                         RichText::new("no segmentum loaded")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                 });
@@ -27,7 +27,7 @@ impl App {
             .min_width(300.0)
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(14.0),
             )
             .show(ctx, |ui| {
@@ -46,7 +46,11 @@ impl App {
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(14.0),
+            )
             .show(ctx, |ui| {
                 ScrollArea::both().show(ui, |ui| {
                     let next = crate::segmentum_view::show_overview(

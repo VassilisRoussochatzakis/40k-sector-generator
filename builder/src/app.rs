@@ -3,8 +3,12 @@ use crate::builder::panels::{
 };
 use crate::builder::{project_io, BuilderState, BuilderWorkspace, ModalKind};
 
+use sectorforge_gui_core::theme::{self, Theme};
+
 pub struct BuilderApp {
     pub workspace: BuilderWorkspace,
+    theme: Theme,
+    applied_theme: Option<Theme>,
 }
 
 impl BuilderApp {
@@ -21,6 +25,8 @@ impl BuilderApp {
     pub fn with_initial_state(state: BuilderState) -> Self {
         Self {
             workspace: BuilderWorkspace::new(state),
+            theme: Theme::default(),
+            applied_theme: None,
         }
     }
 }
@@ -33,11 +39,18 @@ impl Default for BuilderApp {
 
 impl eframe::App for BuilderApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        apply_theme(ctx);
+        if self.applied_theme != Some(self.theme) {
+            self.theme.apply(ctx);
+            self.applied_theme = Some(self.theme);
+        }
         self.pump_active_state(ctx);
 
         egui::TopBottomPanel::top("builder_workspace_tabs").show(ctx, |ui| {
-            self.show_workspace_tabs(ui);
+            ui.horizontal(|ui| {
+                theme::menu(ui, &mut self.theme);
+                ui.separator();
+                self.show_workspace_tabs(ui);
+            });
             ui.separator();
             nav::show_top_bar(ui, self.workspace.active_mut());
         });
@@ -163,14 +176,4 @@ impl BuilderApp {
                 _ => {}
             });
     }
-}
-
-fn apply_theme(ctx: &egui::Context) {
-    let mut visuals = egui::Visuals::dark();
-    visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(20, 20, 25);
-    visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(30, 30, 40);
-    visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(45, 45, 60);
-    visuals.widgets.active.bg_fill = egui::Color32::from_rgb(60, 60, 80);
-    visuals.selection.bg_fill = egui::Color32::from_rgb(60, 120, 180);
-    ctx.set_visuals(visuals);
 }

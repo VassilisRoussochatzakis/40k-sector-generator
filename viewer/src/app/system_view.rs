@@ -4,7 +4,7 @@ use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use sectorforge::ids::SystemId;
 
-use super::{editor, info_panel, palette, App, PendingExport, View, TEXT_DIM};
+use super::{editor, info_panel, palette, App, PendingExport, View};
 use crate::editor::state::SectorEditTool;
 use crate::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
 
@@ -21,7 +21,7 @@ impl App {
             .min_width(260.0)
             .frame(
                 egui::Frame::none()
-                    .fill(palette::PANEL_BG)
+                    .fill(palette::chrome_panel())
                     .inner_margin(14.0),
             )
             .show(ctx, |ui| {
@@ -58,7 +58,7 @@ impl App {
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| self.show_system(ui, system_id, selection));
     }
 
@@ -70,15 +70,27 @@ impl App {
     ) {
         let sys_id_owned = system_id.clone();
         TopBottomPanel::bottom("system_controls")
-            .frame(egui::Frame::none().fill(palette::BG).inner_margin(6.0))
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(6.0),
+            )
             .show_inside(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(RichText::new("SIZE").color(TEXT_DIM).monospace());
+                    ui.label(
+                        RichText::new("SIZE")
+                            .color(palette::chrome_text_dim())
+                            .monospace(),
+                    );
                     ui.add(
                         egui::Slider::new(&mut self.system_side, 400.0..=1200.0).show_value(false),
                     );
                     ui.separator();
-                    ui.label(RichText::new("LAYOUT").color(TEXT_DIM).monospace());
+                    ui.label(
+                        RichText::new("LAYOUT")
+                            .color(palette::chrome_text_dim())
+                            .monospace(),
+                    );
                     let mut horiz = matches!(self.system_layout, SystemLayout::Horizontal);
                     if ui
                         .selectable_label(horiz, RichText::new("HORIZ").monospace())

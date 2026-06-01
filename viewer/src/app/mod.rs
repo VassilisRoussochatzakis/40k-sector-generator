@@ -32,16 +32,12 @@ mod planner_view;
 mod sector_view;
 mod segmentum;
 mod system_view;
-mod ui_helpers;
 
 mod export_ui;
 mod factions_view;
 mod regions_view;
 mod relations_view;
 mod trade_view;
-
-pub const TEXT: egui::Color32 = palette::TEXT;
-pub const TEXT_DIM: egui::Color32 = palette::TEXT_DIM;
 
 pub struct App {
     pub(super) sector: Option<Arc<GeneratedSector>>,
@@ -87,6 +83,8 @@ pub struct App {
     pub(super) history_selected_event: Option<std::sync::Arc<str>>,
     pub(super) history_snapshots: Vec<(String, GeneratedSector)>,
     pub route_view_mode: sectorforge::sector_model::RouteViewMode,
+    pub(super) theme: crate::theme::Theme,
+    pub(super) applied_theme: Option<crate::theme::Theme>,
 }
 
 impl Default for App {
@@ -135,6 +133,8 @@ impl Default for App {
             history_selected_event: None,
             history_snapshots: Vec::new(),
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
+            theme: crate::theme::Theme::default(),
+            applied_theme: None,
         }
     }
 }
@@ -175,7 +175,10 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ui_helpers::apply_theme(ctx);
+        if self.applied_theme != Some(self.theme) {
+            self.theme.apply(ctx);
+            self.applied_theme = Some(self.theme);
+        }
 
         self.handle_preview_logic(ctx);
         self.handle_export_job();

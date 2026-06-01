@@ -1,47 +1,50 @@
-use crate::palette::{TEXT, TEXT_DIM};
 use crate::{palette, App};
 use egui::{Color32, RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(palette::BG))
+            .frame(egui::Frame::none().fill(palette::chrome_bg()))
             .show(ctx, |ui| {
                 ui.label(
                     RichText::new("no sector loaded")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
             });
         return;
     };
     egui::CentralPanel::default()
-        .frame(egui::Frame::none().fill(palette::BG).inner_margin(14.0))
+        .frame(
+            egui::Frame::none()
+                .fill(palette::chrome_bg())
+                .inner_margin(14.0),
+        )
         .show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.label(
                     RichText::new("TRADE & ECONOMY")
-                        .color(TEXT)
+                        .color(palette::chrome_text())
                         .monospace()
                         .strong(),
                 );
                 ui.label(
                     RichText::new("§12 NEW.md — trade volume + resource balance")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .monospace(),
                 );
                 ui.add_space(8.0);
                 if !sector.economy.enabled {
                     ui.label(
                         RichText::new("economy derivation disabled — set [economy].enabled = true")
-                            .color(TEXT_DIM)
+                            .color(palette::chrome_text_dim())
                             .monospace(),
                     );
                     return;
                 }
                 ui.label(
                     RichText::new("SECTOR BALANCE")
-                        .color(TEXT)
+                        .color(palette::chrome_text())
                         .monospace()
                         .strong(),
                 );
@@ -50,7 +53,11 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     .show(ui, |ui| {
                         for k in sectorforge::economy::RESOURCE_KEYS {
                             let v = sector.economy.sector_balance.get(k);
-                            ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
+                            ui.label(
+                                RichText::new(*k)
+                                    .color(palette::chrome_text_dim())
+                                    .monospace(),
+                            );
                             ui.label(RichText::new(format!("{:.1}", v)).monospace());
                             ui.end_row();
                         }
@@ -58,7 +65,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 ui.add_space(10.0);
                 ui.label(
                     RichText::new("STRATEGIC OUTPUT")
-                        .color(TEXT)
+                        .color(palette::chrome_text())
                         .monospace()
                         .strong(),
                 );
@@ -67,7 +74,11 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     .show(ui, |ui| {
                         for k in sectorforge::economy::STRATEGIC_RESOURCE_KEYS {
                             let v = sector.economy.strategic_output.get(k);
-                            ui.label(RichText::new(*k).color(TEXT_DIM).monospace());
+                            ui.label(
+                                RichText::new(*k)
+                                    .color(palette::chrome_text_dim())
+                                    .monospace(),
+                            );
                             ui.label(RichText::new(format!("{:.1}", v)).monospace());
                             ui.end_row();
                         }
@@ -98,10 +109,26 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                         .num_columns(4)
                         .striped(true)
                         .show(ui, |ui| {
-                            ui.label(RichText::new("SYSTEM").color(TEXT_DIM).monospace());
-                            ui.label(RichText::new("TITHE").color(TEXT_DIM).monospace());
-                            ui.label(RichText::new("SUPPLY").color(TEXT_DIM).monospace());
-                            ui.label(RichText::new("PRIORITY").color(TEXT_DIM).monospace());
+                            ui.label(
+                                RichText::new("SYSTEM")
+                                    .color(palette::chrome_text_dim())
+                                    .monospace(),
+                            );
+                            ui.label(
+                                RichText::new("TITHE")
+                                    .color(palette::chrome_text_dim())
+                                    .monospace(),
+                            );
+                            ui.label(
+                                RichText::new("SUPPLY")
+                                    .color(palette::chrome_text_dim())
+                                    .monospace(),
+                            );
+                            ui.label(
+                                RichText::new("PRIORITY")
+                                    .color(palette::chrome_text_dim())
+                                    .monospace(),
+                            );
                             ui.end_row();
                             for sy in stressed.iter().take(12) {
                                 ui.label(RichText::new(&sy.system_id).monospace());
@@ -117,7 +144,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                 ui.add_space(10.0);
                 ui.label(
                     RichText::new("TOP TRADE LANES")
-                        .color(TEXT)
+                        .color(palette::chrome_text())
                         .monospace()
                         .strong(),
                 );
@@ -131,12 +158,27 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     .num_columns(4)
                     .striped(true)
                     .show(ui, |ui| {
-                        ui.label(RichText::new("FROM").color(TEXT_DIM).monospace().strong());
-                        ui.label(RichText::new("TO").color(TEXT_DIM).monospace().strong());
-                        ui.label(RichText::new("VOLUME").color(TEXT_DIM).monospace().strong());
+                        ui.label(
+                            RichText::new("FROM")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
+                        ui.label(
+                            RichText::new("TO")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
+                        ui.label(
+                            RichText::new("VOLUME")
+                                .color(palette::chrome_text_dim())
+                                .monospace()
+                                .strong(),
+                        );
                         ui.label(
                             RichText::new("FRICTION")
-                                .color(TEXT_DIM)
+                                .color(palette::chrome_text_dim())
                                 .monospace()
                                 .strong(),
                         );

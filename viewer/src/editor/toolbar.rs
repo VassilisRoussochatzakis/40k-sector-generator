@@ -2,7 +2,7 @@
 
 use egui::{RichText, Ui};
 
-use crate::palette::{TEXT, TEXT_DIM};
+use crate::palette;
 
 use super::state::{Dialog, EditorState, Tab};
 use super::ui_helpers::mono;
@@ -61,7 +61,9 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
             if ui
                 .selectable_label(
                     state.tab == tab,
-                    RichText::new(label).font(mono(12.0)).color(TEXT),
+                    RichText::new(label)
+                        .font(mono(12.0))
+                        .color(palette::chrome_text()),
                 )
                 .clicked()
             {
@@ -81,13 +83,13 @@ pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                         sec.routes.len(),
                         sec.factions.len(),
                     ))
-                    .color(TEXT_DIM)
+                    .color(palette::chrome_text_dim())
                     .font(mono(12.0)),
                 );
             } else {
                 ui.label(
                     RichText::new("NO SECTOR LOADED")
-                        .color(TEXT_DIM)
+                        .color(palette::chrome_text_dim())
                         .font(mono(12.0)),
                 );
             }

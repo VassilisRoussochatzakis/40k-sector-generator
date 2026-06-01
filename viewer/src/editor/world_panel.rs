@@ -2,7 +2,7 @@
 
 use egui::{RichText, Ui};
 
-use crate::palette::TEXT;
+use crate::palette;
 
 use super::enums::{
     star_colour_name, ATMOSPHERES, BIOSPHERES, GOVERNMENTS, NOTABLE_FEATURES, POPULATIONS,
@@ -33,7 +33,7 @@ pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.label(
         RichText::new(format!("WORLD {}", w.id.to_uppercase()))
-            .color(TEXT)
+            .color(palette::chrome_text())
             .font(mono(15.0)),
     );
 

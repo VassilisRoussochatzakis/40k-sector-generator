@@ -4,6 +4,14 @@
 //! writes the modified roster back via [`super::super::project_io::save_project`].
 //! Style overrides and legend-visibility flags persist as optional fields on
 //! [`FactionDef`] so existing factions.toml files round-trip cleanly.
+//!
+//! Inspector invariant: every faction property has exactly one input widget.
+//! `kind` / `default_disposition` use [`editable_combo`] (preset list + a
+//! single in-popup custom row — never a loose text box beside the combo);
+//! `style_fill` / `style_accent` use [`color_override`] (swatch picker only,
+//! hex read-only). This prevents a stray edit from silently retyping `kind`
+//! and, via `top_faction_id()` / `subfaction_id()`, spawning a phantom
+//! top-faction group in the roster.
 
 use std::collections::BTreeSet;
 
@@ -391,14 +399,15 @@ fn identity_grid(ui: &mut Ui, draft: &mut FactionDef) {
             ui.end_row();
 
             ui.label("kind");
-            kind_combo(ui, "faction_kind_combo", &mut draft.kind);
+            editable_combo(ui, "faction_kind_combo", &mut draft.kind, KNOWN_KINDS);
             ui.end_row();
 
             ui.label("default_disposition");
-            disposition_combo(
+            editable_combo(
                 ui,
                 "faction_disposition_combo",
                 &mut draft.default_disposition,
+                KNOWN_DISPOSITIONS,
             );
             ui.end_row();
 
@@ -474,30 +483,36 @@ where
     });
 }
 
-fn kind_combo(ui: &mut Ui, salt: &str, value: &mut String) {
+/// Single-surface editable combo (§F1). The trigger button shows the current
+/// value; the popup lists the known `presets` plus one "custom…" text row for
+/// values outside that list. Collapsing the picker and the free-text entry into
+/// one widget removes the old combo-plus-always-visible-text-box pairing, where
+/// a stray edit to the loose box could silently retype `kind` /
+/// `default_disposition`. Because `top_faction_id()` / `subfaction_id()` fall
+/// back to `kind`, such a stray edit would spawn a brand-new top-faction group
+/// in the roster. Custom values stay reachable, but only from inside the opened
+/// popup, so they can no longer be entered by accident.
+fn editable_combo(ui: &mut Ui, salt: &str, value: &mut String, presets: &[&str]) {
     egui::ComboBox::from_id_salt(salt)
-        .selected_text(value.as_str())
+        .selected_text(if value.is_empty() {
+            "(unset)".to_owned()
+        } else {
+            value.clone()
+        })
         .show_ui(ui, |ui| {
-            for k in KNOWN_KINDS {
-                if ui.selectable_label(value == *k, *k).clicked() {
-                    *value = (*k).into();
+            for p in presets {
+                if ui.selectable_label(value == *p, *p).clicked() {
+                    *value = (*p).into();
                 }
             }
+            ui.separator();
+            ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
+            ui.add(
+                egui::TextEdit::singleline(value)
+                    .hint_text("non-preset value")
+                    .desired_width(160.0),
+            );
         });
-    ui.add(egui::TextEdit::singleline(value).desired_width(140.0));
-}
-
-fn disposition_combo(ui: &mut Ui, salt: &str, value: &mut String) {
-    egui::ComboBox::from_id_salt(salt)
-        .selected_text(value.as_str())
-        .show_ui(ui, |ui| {
-            for d in KNOWN_DISPOSITIONS {
-                if ui.selectable_label(value == *d, *d).clicked() {
-                    *value = (*d).into();
-                }
-            }
-        });
-    ui.add(egui::TextEdit::singleline(value).desired_width(140.0));
 }
 
 // ── preferences (multi-pickers) ─────────────────────────────────────────────
@@ -626,16 +641,11 @@ fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
         .striped(true)
         .show(ui, |ui| {
             ui.label("fill");
-            color_override(ui, "fac_fill_color", &mut draft.style_fill, derived.fill);
+            color_override(ui, &mut draft.style_fill, derived.fill);
             ui.end_row();
 
             ui.label("accent");
-            color_override(
-                ui,
-                "fac_accent_color",
-                &mut draft.style_accent,
-                derived.accent,
-            );
+            color_override(ui, &mut draft.style_accent, derived.accent);
             ui.end_row();
 
             ui.label("glyph");
@@ -667,25 +677,27 @@ fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
     });
 }
 
-fn color_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: (u8, u8, u8)) {
-    let mut rgb = slot.as_deref().and_then(parse_hex_rgb).unwrap_or(derived);
+/// Single-input colour override (§F2). The swatch button is the only editor; it
+/// opens egui's colour-picker popup. The resolved hex is shown read-only beside
+/// it for reference, and `×` clears the override back to the kind-derived
+/// default. Writes are gated on `resp.changed()`, so merely *viewing* a faction
+/// no longer materialises an override equal to the derived colour — which used
+/// to defeat "§F4 Recompute style from kind" and spuriously mark the row dirty.
+fn color_override(ui: &mut Ui, slot: &mut Option<String>, derived: (u8, u8, u8)) {
+    let rgb = slot.as_deref().and_then(parse_hex_rgb).unwrap_or(derived);
     let mut color = [rgb.0, rgb.1, rgb.2];
     ui.horizontal(|ui| {
         let resp = egui::color_picker::color_edit_button_srgb(ui, &mut color);
         if resp.changed() {
-            rgb = (color[0], color[1], color[2]);
-            *slot = Some(rgb_to_hex(rgb));
+            *slot = Some(rgb_to_hex((color[0], color[1], color[2])));
         }
-        let mut buf = slot.clone().unwrap_or_else(|| rgb_to_hex(derived));
-        let _ = ui.add(
-            egui::TextEdit::singleline(&mut buf)
-                .id_source(salt)
-                .desired_width(80.0),
-        );
-        if !buf.trim().is_empty() && parse_hex_rgb(buf.trim()).is_some() {
-            *slot = Some(buf.trim().to_string());
-        }
-        if slot.is_some() && ui.small_button("×").clicked() {
+        ui.monospace(slot.clone().unwrap_or_else(|| rgb_to_hex(derived)));
+        if slot.is_some()
+            && ui
+                .small_button("×")
+                .on_hover_text("clear override")
+                .clicked()
+        {
             *slot = None;
         }
     });

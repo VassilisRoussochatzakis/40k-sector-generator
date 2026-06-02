@@ -5,12 +5,16 @@
 //!        live under `[inputs].personae` -> `data/personae.toml`. Each kind
 //!        exposes editable name prefixes / roots / suffixes / single names /
 //!        titles / traits.
-//! §PER2  Per-anchor persona editor. Lists the derived personae (system
-//!        sovereign / orbital controller / economic hegemon / hidden master /
-//!        per-world presences) and lets users add/remove `[[manual]]`
-//!        entries with name, title, traits, agenda. Manual entries survive
-//!        regenerate because [`sectorforge::personae::derive_with`] appends
-//!        `cfg.manual` last.
+//! §PER2  Per-anchor persona editor. Lists the derived personae — geographic
+//!        anchors (system sovereign / orbital controller / economic hegemon /
+//!        hidden master / per-world presences) plus org-leadership anchors
+//!        (overall faction / sub-faction / force heads) — and lets users
+//!        add/remove `[[manual]]` entries with name, title, traits, agenda.
+//!        Manual entries survive regenerate because
+//!        [`sectorforge::personae::derive_with`] appends `cfg.manual` last.
+//! §PER6  Org-leadership toggle + presence gate (`faction_leaders`,
+//!        `min_faction_presence`) live in the dominance section. They control
+//!        whether/which faction-hierarchy nodes anchor a leader persona.
 //! §PER3  "Auto-derive" button calls [`BuilderState::recompute_personae`]
 //!        which runs `personae::derive_with(&sector, &cfg)`. Auto-recompute-
 //!        on-edit toggle mirrors the History/Relations panels.
@@ -156,10 +160,27 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
             .add(egui::DragValue::new(&mut cfg.max_per_system).range(0..=64))
             .changed();
         ui.end_row();
+        ui.label("faction_leaders");
+        changed |= ui
+            .checkbox(&mut cfg.faction_leaders, "emit org-leadership personae")
+            .changed();
+        ui.end_row();
+        ui.label("min_faction_presence");
+        changed |= ui
+            .add(
+                egui::DragValue::new(&mut cfg.min_faction_presence)
+                    .range(0..=64),
+            )
+            .changed();
+        ui.end_row();
     });
     ui.colored_label(
         Color32::DARK_GRAY,
         "Higher tier ⇒ fewer worlds anchor personae. Per-system cap counts sovereign/orbital/economic/hidden slots.",
+    );
+    ui.colored_label(
+        Color32::DARK_GRAY,
+        "faction_leaders adds the overall/sub-faction/force heads; min_faction_presence gates them by systems-or-worlds present in.",
     );
     if changed {
         on_catalog_edited(state);
@@ -262,6 +283,21 @@ fn show_anchor_link(ui: &mut Ui, state: &mut BuilderState, p: &Persona) {
                 world: world_id.clone(),
             });
         }
+        PersonaAnchor::Faction {
+            faction_id,
+            subfaction_id,
+            force_id,
+            tier,
+        } => {
+            let label = match (subfaction_id, force_id) {
+                (_, Some(force)) => format!("force · {force}"),
+                (Some(sub), None) => format!("sub-faction · {sub}"),
+                (None, None) => format!("{tier} · {faction_id}"),
+            };
+            if ui.link(label).clicked() {
+                state.focus_entity(EntityRef::Faction(faction_id.clone()));
+            }
+        }
         _ => {}
     }
 }
@@ -285,6 +321,16 @@ fn anchor_label(a: &PersonaAnchor) -> String {
             system_id,
             world_id,
         } => format!("world {system_id}/{world_id}"),
+        PersonaAnchor::Faction {
+            faction_id,
+            subfaction_id,
+            force_id,
+            tier,
+        } => match (subfaction_id, force_id) {
+            (_, Some(force)) => format!("force {force} ({faction_id})"),
+            (Some(sub), None) => format!("sub-faction {sub} ({faction_id})"),
+            (None, None) => format!("{faction_id} ({})", tier.as_slug()),
+        },
         _ => "unknown".into(),
     }
 }

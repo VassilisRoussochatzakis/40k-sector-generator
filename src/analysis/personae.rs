@@ -25,7 +25,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::SectorError;
 use crate::rng::stage_rng;
-use crate::sector_model::{DominanceState, FactionInfluence, GeneratedSector, GeneratedSystem};
+use crate::sector_model::{
+    DominanceState, FactionInfluence, GeneratedFaction, GeneratedForce, GeneratedSector,
+    GeneratedSubfaction, GeneratedSystem,
+};
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
@@ -48,6 +51,17 @@ pub struct PersonaeConfig {
     /// §3 NEW.md: manual personae imported from file. Appended to derived set.
     #[serde(default)]
     pub manual: Vec<Persona>,
+    /// Emit organizational-leadership personae — the overall head of each
+    /// faction's sector arm, the head of each sub-faction, and the commander of
+    /// each force — in addition to the geographic (system/world) personae.
+    #[serde(default = "default_faction_leaders")]
+    pub faction_leaders: bool,
+    /// Minimum number of systems-or-worlds an org node (faction / sub-faction /
+    /// force) must be present in to anchor a leadership persona. Gate metric is
+    /// `max(system_presence.len(), world_presence.len())`. A node with no
+    /// placed presence never anchors a leader.
+    #[serde(default = "default_min_faction_presence")]
+    pub min_faction_presence: u32,
 }
 
 impl Default for PersonaeConfig {
@@ -58,6 +72,8 @@ impl Default for PersonaeConfig {
             max_per_system: default_per_system(),
             kinds: BTreeMap::new(),
             manual: Vec::new(),
+            faction_leaders: default_faction_leaders(),
+            min_faction_presence: default_min_faction_presence(),
         }
     }
 }
@@ -70,6 +86,12 @@ fn default_per_world() -> u32 {
 }
 fn default_per_system() -> u32 {
     4
+}
+fn default_faction_leaders() -> bool {
+    true
+}
+fn default_min_faction_presence() -> u32 {
+    1
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -174,6 +196,48 @@ pub enum PersonaAnchor {
         system_id: crate::ids::SystemId,
         world_id: crate::ids::WorldId,
     },
+    /// Organizational-leadership anchor: the head of a faction's whole sector
+    /// presence (`Overall`), of a sub-faction, or of a single force. The id
+    /// fields narrow from top to bottom — `subfaction_id`/`force_id` are
+    /// populated only at their tier and below.
+    Faction {
+        faction_id: crate::ids::FactionId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        subfaction_id: Option<crate::ids::FactionId>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        force_id: Option<crate::ids::FactionId>,
+        tier: FactionTier,
+    },
+}
+
+/// Tier of an organizational-leadership persona (see [`PersonaAnchor::Faction`]).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum FactionTier {
+    /// Head of a top-level faction's entire sector presence.
+    Overall,
+    /// Head of a middle-level sub-faction.
+    Subfaction,
+    /// Commander of a force-level catalogue entry.
+    Force,
+}
+
+impl FactionTier {
+    #[must_use]
+    pub fn as_slug(&self) -> &'static str {
+        match self {
+            Self::Overall => "overall",
+            Self::Subfaction => "subfaction",
+            Self::Force => "force",
+        }
+    }
+}
+
+impl core::fmt::Display for FactionTier {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_slug())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -287,6 +351,11 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &PersonaeConfig) -> PersonaeRe
         }
     }
 
+    // Organizational-leadership personae (overall / sub-faction / force heads).
+    if cfg.faction_leaders {
+        out.extend(derive_faction_leaders(sector, cfg, &mut used_names));
+    }
+
     out.extend(cfg.manual.clone());
 
     PersonaeReport {
@@ -319,6 +388,236 @@ fn system_slot_factions(sys: &GeneratedSystem) -> Vec<(SystemSlot, crate::ids::F
     out
 }
 
+// ── Organizational-leadership personae ──────────────────────────────────────────
+
+/// Presence count used to gate org-leadership personae: the broader of the
+/// node's system and world footprints.
+fn node_presence<S, W>(systems: &[S], worlds: &[W]) -> usize {
+    systems.len().max(worlds.len())
+}
+
+/// Derive one leader per qualifying org node: overall faction, then each
+/// sub-faction, then each force. Nodes below `cfg.min_faction_presence` are
+/// skipped. Iteration is id-sorted at every level for determinism.
+fn derive_faction_leaders(
+    sector: &GeneratedSector,
+    cfg: &PersonaeConfig,
+    used: &mut BTreeSet<String>,
+) -> Vec<Persona> {
+    let min = cfg.min_faction_presence as usize;
+    let mut out: Vec<Persona> = Vec::new();
+
+    let mut factions: Vec<&GeneratedFaction> = sector.factions.iter().collect();
+    factions.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
+
+    for f in factions {
+        let kind = f.kind.as_ref();
+        let fac_id = f.id.as_str();
+
+        if node_presence(&f.system_presence, &f.world_presence) >= min {
+            out.push(build_faction_leader(
+                FactionLeaderParams {
+                    sector,
+                    cfg,
+                    kind,
+                    faction_id: fac_id,
+                    node_name: f.name.as_ref(),
+                    system_count: f.system_presence.len(),
+                    world_count: f.world_presence.len(),
+                    anchor: PersonaAnchor::Faction {
+                        faction_id: f.id.clone(),
+                        subfaction_id: None,
+                        force_id: None,
+                        tier: FactionTier::Overall,
+                    },
+                },
+                used,
+            ));
+        }
+
+        let mut subs: Vec<&GeneratedSubfaction> = f.subfactions.iter().collect();
+        subs.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
+        for sf in subs {
+            if node_presence(&sf.system_presence, &sf.world_presence) >= min {
+                out.push(build_faction_leader(
+                    FactionLeaderParams {
+                        sector,
+                        cfg,
+                        kind,
+                        faction_id: fac_id,
+                        node_name: sf.name.as_ref(),
+                        system_count: sf.system_presence.len(),
+                        world_count: sf.world_presence.len(),
+                        anchor: PersonaAnchor::Faction {
+                            faction_id: f.id.clone(),
+                            subfaction_id: Some(sf.id.clone()),
+                            force_id: None,
+                            tier: FactionTier::Subfaction,
+                        },
+                    },
+                    used,
+                ));
+            }
+
+            let mut forces: Vec<&GeneratedForce> = sf.forces.iter().collect();
+            forces.sort_by(|a, b| a.id.as_str().cmp(b.id.as_str()));
+            for force in forces {
+                if node_presence(&force.system_presence, &force.world_presence) >= min {
+                    out.push(build_faction_leader(
+                        FactionLeaderParams {
+                            sector,
+                            cfg,
+                            kind,
+                            faction_id: fac_id,
+                            node_name: force.name.as_ref(),
+                            system_count: force.system_presence.len(),
+                            world_count: force.world_presence.len(),
+                            anchor: PersonaAnchor::Faction {
+                                faction_id: f.id.clone(),
+                                subfaction_id: Some(sf.id.clone()),
+                                force_id: Some(force.id.clone()),
+                                tier: FactionTier::Force,
+                            },
+                        },
+                        used,
+                    ));
+                }
+            }
+        }
+    }
+    out
+}
+
+struct FactionLeaderParams<'a> {
+    sector: &'a GeneratedSector,
+    cfg: &'a PersonaeConfig,
+    kind: &'a str,
+    faction_id: &'a str,
+    node_name: &'a str,
+    system_count: usize,
+    world_count: usize,
+    anchor: PersonaAnchor,
+}
+
+fn build_faction_leader(params: FactionLeaderParams, used: &mut BTreeSet<String>) -> Persona {
+    let FactionLeaderParams {
+        sector,
+        cfg,
+        kind,
+        faction_id,
+        node_name,
+        system_count,
+        world_count,
+        anchor,
+    } = params;
+    let tier = match &anchor {
+        PersonaAnchor::Faction { tier, .. } => *tier,
+        _ => FactionTier::Overall,
+    };
+    let disc = anchor_id(&anchor);
+    let mut rng = stage_rng(&sector.seed, "personae", &format!("{faction_id}:{disc}"));
+
+    let pools = resolve_pools(cfg, kind);
+    let name = generate_name(&mut rng, &pools, used);
+    let tier_pool = tier_titles(kind, tier);
+    let title = if tier_pool.is_empty() {
+        pick(&pools.titles, &mut rng).unwrap_or_else(|| default_title(kind))
+    } else {
+        pick_str(&tier_pool, &mut rng)
+    };
+    let traits = pick_traits(&pools.traits, &mut rng, None);
+    let agenda = build_faction_agenda(kind, tier, node_name, system_count, world_count);
+
+    Persona {
+        id: format!("persona-{faction_id}-{disc}").into(),
+        faction_id: crate::ids::FactionId::new(faction_id),
+        faction_kind: kind.to_string(),
+        anchor,
+        name,
+        title,
+        traits,
+        agenda,
+    }
+}
+
+/// Deterministic org-leader agenda: tier-appropriate framing over the node's
+/// footprint, closed with the faction-kind verb shared with geographic agendas.
+fn build_faction_agenda(
+    kind: &str,
+    tier: FactionTier,
+    node_name: &str,
+    system_count: usize,
+    world_count: usize,
+) -> String {
+    let verb = agenda_verb(kind);
+    match tier {
+        FactionTier::Overall => format!(
+            "Commands all {node_name} forces across {system_count} system(s); seeks to {verb}."
+        ),
+        FactionTier::Subfaction => {
+            format!("Leads {node_name} across {world_count} world(s); seeks to {verb}.")
+        }
+        FactionTier::Force => {
+            format!("Field commander of {node_name} ({world_count} world(s)); seeks to {verb}.")
+        }
+    }
+}
+
+/// Tier-flavored title pools. `Overall` returns sector-supreme titles and
+/// `Force` returns field-command titles; `Subfaction` returns empty so the
+/// caller falls back to the mid-level [`KindPools::titles`]. Empty result for
+/// an unknown kind also falls back.
+fn tier_titles(kind: &str, tier: FactionTier) -> Vec<&'static str> {
+    let k = kind.to_ascii_lowercase();
+    match tier {
+        FactionTier::Subfaction => Vec::new(),
+        FactionTier::Overall => match k.as_str() {
+            "imperial" => vec!["Lord Sector", "Lord Commander Militant", "Sector Governor"],
+            "mechanicus" => vec!["Fabricator-General", "Archmagos Prime"],
+            "ecclesiarchy" => vec!["Cardinal Astral", "Arch-Cardinal"],
+            "inquisition" | "inquisitorial" => {
+                vec!["Lord Inquisitor", "Inquisitorial Representative"]
+            }
+            "rogue_trader" | "merchant" | "mercantile" => {
+                vec!["Warrant-Holder Paramount", "Lord-Captain Dynast"]
+            }
+            "chaos" | "heretic" | "renegade" => vec!["Warmaster", "Dark Apostle Ascendant"],
+            "rebel" | "separatist" => vec!["Liberation Marshal", "Supreme Commander"],
+            "necron" => vec!["Phaeron", "Supreme Overlord"],
+            "tyranid" => vec!["Hive Tyrant Prime", "Norn-Queen Locus"],
+            "ork" | "orks" => vec!["Warlord", "Big Boss of Bosses"],
+            "tau" | "t'au" => vec!["High Ethereal", "Supreme Commander"],
+            "aeldari" | "eldar" => vec!["Autarch Supreme", "High Farseer"],
+            "drukhari" => vec!["Supreme Archon"],
+            "harlequin" => vec!["Great Harlequin"],
+            "genestealer" | "gsc" => vec!["Patriarch"],
+            _ => vec!["Paramount Leader", "Sector Warlord"],
+        },
+        FactionTier::Force => match k.as_str() {
+            "imperial" => vec!["Colonel", "Lord Captain", "Knight Commander"],
+            "mechanicus" => vec!["Tech-Priest Dominus", "Myrmidon Secutor"],
+            "ecclesiarchy" => vec!["Palatine", "Canoness"],
+            "inquisition" | "inquisitorial" => vec!["Interrogator", "Throne Agent"],
+            "rogue_trader" | "merchant" | "mercantile" => vec!["Captain", "Voidmaster"],
+            "chaos" | "heretic" | "renegade" => vec!["Champion", "Aspiring Lord"],
+            "rebel" | "separatist" => vec!["Field Commander", "Cell Leader"],
+            "necron" => vec!["Lord", "Royal Warden"],
+            "tyranid" => vec!["Alpha Warrior", "Synapse Node"],
+            "ork" | "orks" => vec!["Nob", "Boss"],
+            "tau" | "t'au" => vec!["Shas'o", "Shas'el"],
+            "aeldari" | "eldar" => vec!["Exarch", "Autarch"],
+            "drukhari" => vec!["Dracon", "Sybarite"],
+            "harlequin" => vec!["Troupe Master"],
+            "genestealer" | "gsc" => vec!["Primus", "Acolyte Iconward"],
+            _ => vec!["Commander", "Captain"],
+        },
+    }
+}
+
+fn pick_str(pool: &[&'static str], rng: &mut impl Rng) -> String {
+    pool.choose(rng).map(|s| (*s).to_string()).unwrap_or_default()
+}
+
 struct PersonaParams<'a> {
     sector: &'a GeneratedSector,
     cfg: &'a PersonaeConfig,
@@ -345,6 +644,9 @@ fn build_persona(params: PersonaParams, used: &mut BTreeSet<String>) -> Persona 
             system_id,
             world_id,
         } => format!("{system_id}:{world_id}"),
+        // `build_persona` only handles geographic anchors; org-leadership
+        // anchors go through `build_faction_leader`. Kept for exhaustiveness.
+        PersonaAnchor::Faction { .. } => anchor_id(&anchor),
     };
     let mut rng = stage_rng(
         &sector.seed,
@@ -379,31 +681,50 @@ fn anchor_id(a: &PersonaAnchor) -> String {
             system_id,
             world_id,
         } => format!("{system_id}-{world_id}"),
+        PersonaAnchor::Faction {
+            faction_id,
+            subfaction_id,
+            force_id,
+            tier,
+        } => {
+            let sub = subfaction_id
+                .as_ref()
+                .map(|s| format!("-{s}"))
+                .unwrap_or_default();
+            let force = force_id
+                .as_ref()
+                .map(|s| format!("-{s}"))
+                .unwrap_or_default();
+            format!("faction-{}-{faction_id}{sub}{force}", tier.as_slug()).to_lowercase()
+        }
     }
 }
 
 fn generate_name(rng: &mut impl Rng, pools: &KindPools, used: &mut BTreeSet<String>) -> String {
-    // Prefer single names, then prefix+root+suffix, then a numeral fallback.
+    // Prefer single names, then a personal name (root + suffix, with rank
+    // honorifics dropped so they don't echo the title), then — only to keep
+    // the name unique — the honorific-prefixed form, then a numeral fallback.
     if !pools.single_names.is_empty() {
         if let Some(s) = pick_unique(&pools.single_names, rng, used) {
             return s;
         }
     }
     if !pools.name_roots.is_empty() || !pools.name_prefixes.is_empty() {
-        for _ in 0..8 {
-            let pre = pick(&pools.name_prefixes, rng).unwrap_or_default();
-            let root = pick(&pools.name_roots, rng).unwrap_or_default();
-            let suf = pick(&pools.name_suffixes, rng).unwrap_or_default();
-            let parts: Vec<&str> = [pre.as_str(), root.as_str(), suf.as_str()]
-                .into_iter()
-                .filter(|s| !s.is_empty())
-                .collect();
-            if parts.is_empty() {
-                break;
-            }
-            let candidate = parts.join(" ");
-            if used.insert(candidate.clone()) {
-                return candidate;
+        // Pass 1: personal name only (honorific prefixes suppressed, name
+        // particles such as T'au "Shas'" kept). Pass 2: re-admit the honorific
+        // to recover uniqueness before resorting to a numeral.
+        for allow_honorific in [false, true] {
+            for _ in 0..8 {
+                let pre = pick(&pools.name_prefixes, rng).unwrap_or_default();
+                let root = pick(&pools.name_roots, rng).unwrap_or_default();
+                let suf = pick(&pools.name_suffixes, rng).unwrap_or_default();
+                let candidate = assemble_name(&pre, &root, &suf, allow_honorific);
+                if candidate.is_empty() {
+                    break;
+                }
+                if used.insert(candidate.clone()) {
+                    return candidate;
+                }
             }
         }
     }
@@ -416,6 +737,38 @@ fn generate_name(rng: &mut impl Rng, pools: &KindPools, used: &mut BTreeSet<Stri
         }
         n += 1;
     }
+}
+
+/// Assemble a persona name from its pool parts.
+///
+/// A prefix ending in `'` or `-` is treated as a name *particle* and attaches
+/// directly to the root (e.g. T'au `"Shas'" + "ui"` ⇒ `"Shas'ui"`). Any other
+/// prefix is a rank *honorific* (`"Farseer"`, `"Magos"`, `"Lord"`); it is
+/// dropped unless `allow_honorific` is set, because the persona's title already
+/// carries rank — keeping it produces redundancies like
+/// "Farseer Macha, High Farseer".
+fn assemble_name(prefix: &str, root: &str, suffix: &str, allow_honorific: bool) -> String {
+    let is_particle = prefix.ends_with('\'') || prefix.ends_with('-');
+    let mut name = String::new();
+    if is_particle {
+        name.push_str(prefix);
+        name.push_str(root);
+    } else {
+        if allow_honorific && !prefix.is_empty() {
+            name.push_str(prefix);
+            if !root.is_empty() {
+                name.push(' ');
+            }
+        }
+        name.push_str(root);
+    }
+    if !suffix.is_empty() {
+        if !name.is_empty() {
+            name.push(' ');
+        }
+        name.push_str(suffix);
+    }
+    name.trim().to_string()
 }
 
 fn pick<T: Clone>(pool: &[T], rng: &mut impl Rng) -> Option<T> {
@@ -487,6 +840,9 @@ fn build_agenda(
             .map(|w| w.name.clone())
             .unwrap_or_else(|| world_id.as_str().to_string().into()),
         PersonaAnchor::System { .. } => sys.name.clone(),
+        // Org-leadership agendas are built by `build_faction_agenda`; this arm
+        // exists only for exhaustiveness and is never reached here.
+        PersonaAnchor::Faction { faction_id, .. } => faction_id.as_str().to_string().into(),
     };
     // Inspect competing claims for color.
     let rival = world.and_then(|w| {
@@ -951,6 +1307,16 @@ pub fn render_markdown(report: &PersonaeReport) -> String {
                     system_id,
                     world_id,
                 } => format!("({system_id}/{world_id})"),
+                PersonaAnchor::Faction {
+                    subfaction_id,
+                    force_id,
+                    tier,
+                    ..
+                } => match (subfaction_id, force_id) {
+                    (_, Some(force)) => format!("(force: {force})"),
+                    (Some(sub), None) => format!("(sub-faction: {sub})"),
+                    (None, None) => format!("({})", tier.as_slug()),
+                },
             };
             let _ = writeln!(
                 s,
@@ -1112,5 +1478,85 @@ mod tests {
         );
         assert!(!a.personae.is_empty());
         assert!(a.personae.iter().any(|p| p.faction_id == "imp"));
+    }
+
+    /// A faction with a populated sub-faction/force hierarchy anchors one
+    /// leader per tier; a zero-presence force is gated out.
+    #[test]
+    fn faction_leaders_span_all_tiers_and_honour_presence() {
+        let mut sec = empty_sector();
+        sec.factions.push(GeneratedFaction {
+            id: "imp".into(),
+            name: "Imperium".into(),
+            kind: "imperial".into(),
+            disposition: "lawful".into(),
+            subfactions: vec![crate::sector_model::GeneratedSubfaction {
+                id: "imp-astartes".into(),
+                name: "Adeptus Astartes".into(),
+                disposition: "lawful".into(),
+                forces: vec![
+                    GeneratedForce {
+                        id: "imp-astartes-3rd".into(),
+                        name: "3rd Company".into(),
+                        disposition: "lawful".into(),
+                        system_presence: vec!["sys-0001".into()],
+                        world_presence: vec!["wrld-0001-1".into()],
+                    },
+                    // Zero presence: must be gated out at the default min=1.
+                    GeneratedForce {
+                        id: "imp-astartes-recon".into(),
+                        name: "Recon Detachment".into(),
+                        disposition: "lawful".into(),
+                        system_presence: vec![],
+                        world_presence: vec![],
+                    },
+                ],
+                system_presence: vec!["sys-0001".into()],
+                world_presence: vec!["wrld-0001-1".into()],
+            }],
+            system_presence: vec!["sys-0001".into()],
+            world_presence: vec!["wrld-0001-1".into()],
+            power: PowerProfile::default(),
+        });
+
+        let report = derive(&sec);
+        let tiers: Vec<FactionTier> = report
+            .personae
+            .iter()
+            .filter_map(|p| match &p.anchor {
+                PersonaAnchor::Faction { tier, .. } => Some(*tier),
+                _ => None,
+            })
+            .collect();
+        assert!(tiers.contains(&FactionTier::Overall), "missing overall leader");
+        assert!(
+            tiers.contains(&FactionTier::Subfaction),
+            "missing sub-faction leader"
+        );
+        assert!(tiers.contains(&FactionTier::Force), "missing force leader");
+        // Exactly one force leader — the zero-presence force is skipped.
+        let force_leaders = report.personae.iter().filter(|p| {
+            matches!(
+                &p.anchor,
+                PersonaAnchor::Faction {
+                    force_id: Some(_),
+                    ..
+                }
+            )
+        });
+        assert_eq!(force_leaders.count(), 1, "zero-presence force not gated");
+
+        // Toggling the feature off drops every org-leadership persona.
+        let cfg = PersonaeConfig {
+            faction_leaders: false,
+            ..Default::default()
+        };
+        let off = derive_with(&sec, &cfg);
+        assert!(
+            !off.personae
+                .iter()
+                .any(|p| matches!(p.anchor, PersonaAnchor::Faction { .. })),
+            "faction_leaders=false still emitted org leaders"
+        );
     }
 }

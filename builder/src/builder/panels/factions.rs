@@ -266,7 +266,15 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
     let mut remove_id: Option<sectorforge::ids::FactionId> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (top_id, subs) in &groups {
-            let top_name = display_name_from_id(top_id);
+            // Resolve the group label from the first member's display field
+            // (`faction_name`), matching what the generated legend renders. Fall
+            // back to the id-derived prettyname only when the override is unset.
+            let top_name = subs
+                .values()
+                .flatten()
+                .next()
+                .map(|&i| file.factions[i].top_faction_name())
+                .unwrap_or_else(|| display_name_from_id(top_id).into_owned());
             egui::CollapsingHeader::new(
                 RichText::new(format!("{top_name} ({top_id})"))
                     .strong()
@@ -276,7 +284,12 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
             .default_open(true)
             .show(ui, |ui| {
                 for (sub_id, rows) in subs {
-                    let sub_name = display_name_from_id(sub_id);
+                    // Same as the top group: prefer the member's `subfaction_name`
+                    // override, fall back to the id-derived name.
+                    let sub_name = rows
+                        .first()
+                        .map(|&i| file.factions[i].subfaction_name())
+                        .unwrap_or_else(|| display_name_from_id(sub_id).into_owned());
                     egui::CollapsingHeader::new(format!("{sub_name} — {sub_id} ({})", rows.len()))
                         .id_salt(format!("fac_sub_{top_id}_{sub_id}"))
                         .default_open(true)

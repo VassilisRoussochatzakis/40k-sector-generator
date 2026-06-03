@@ -5,9 +5,18 @@
 //! the [`crate::builder::BuilderState`] selection mailbox so the inspector
 //! tabs can jump to it.
 //!
+//! §COLUMNS — master-detail: the stratum-grouped violation list lives in a
+//! persistent left rail (`SidePanel::left("invariants_list")`, keeping the
+//! per-entity jump); the selected violation's detail, the entity deep-link,
+//! "Re-check now", and the read-only §V5 catalogue live in the filling right
+//! `CentralPanel`. The header summary stays full-width on top. Which violation
+//! is "selected" is pure view state — keyed in `ui.data_mut` temp (no model
+//! state, no command bus); the right pane re-finds the matching violation from
+//! the live report each frame.
+//!
 //! The §V5 invariant catalogue (read-only, list of every code that may fire)
-//! lives in its own sub-section so users can audit what is checked even when
-//! the current sector is clean.
+//! lives in its own sub-section in the right pane so users can audit what is
+//! checked even when the current sector is clean.
 
 use std::collections::BTreeMap;
 
@@ -23,13 +32,13 @@ const STRATA: &[&str] = &[
     "systems", "worlds", "routes", "factions", "regions", "economy", "manifest", "other",
 ];
 
+/// §COLUMNS — view-state key identifying the focused violation. Stored in
+/// `ui.data_mut` temp under this id so the right pane can re-find the matching
+/// violation from the live report; never persisted, never a model field.
+const SELECTED_KEY_ID: &str = "invariants_selected_violation";
+
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui.horizontal(|ui| {
-        ui.heading("Invariants");
-        if ui.button("Re-check now").clicked() {
-            state.invariant_report = Some(sectorforge::invariants::check_sector(&state.sector));
-        }
-    });
+    ui.heading("Invariants");
     ui.separator();
 
     let Some(report) = state.invariant_report.clone() else {
@@ -37,38 +46,44 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         return;
     };
 
+    // Header summary stays full-width on top.
     render_summary(ui, &report);
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            if report.violations.is_empty() {
-                ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
-            } else {
-                let grouped = group_by_stratum(&report.violations);
-                for stratum in STRATA {
-                    let Some(group) = grouped.get(*stratum) else {
-                        continue;
-                    };
-                    ui_kit::collapsing_section(
-                        ui,
-                        ("inv_stratum", stratum),
-                        &format!("{stratum} ({})", group.len()),
-                        true,
-                        |ui| {
-                            for vio in group {
-                                violation_row(ui, state, vio);
-                            }
-                        },
-                    );
-                }
-            }
+    // §COLUMNS — master-detail. Two separate statements so the first &mut state
+    // borrow (the list) ends before the second (the detail).
+    egui::SidePanel::left("invariants_list")
+        .resizable(true)
+        .default_width(320.0)
+        .width_range(220.0..=520.0)
+        .show_inside(ui, |ui| show_violation_list(ui, state, &report));
 
-            ui.separator();
-            render_catalogue(ui);
-        });
+    egui::CentralPanel::default().show_inside(ui, |ui| show_violation_detail(ui, state, &report));
 }
+
+// ── selection key (view state) ──────────────────────────────────────────────
+
+/// Build a stable selection key from a violation's content. `InvariantViolation`
+/// has no unique id and does not derive `Hash`/`Eq`, so we key on code + path +
+/// message together.
+fn violation_key(vio: &InvariantViolation) -> String {
+    format!(
+        "{}|{}|{}",
+        vio.code,
+        vio.path.as_deref().unwrap_or(""),
+        vio.message,
+    )
+}
+
+fn selected_key(ui: &egui::Ui) -> Option<String> {
+    ui.data_mut(|d| d.get_temp::<String>(egui::Id::new(SELECTED_KEY_ID)))
+}
+
+fn set_selected_key(ui: &egui::Ui, key: String) {
+    ui.data_mut(|d| d.insert_temp(egui::Id::new(SELECTED_KEY_ID), key));
+}
+
+// ── header summary (full width) ─────────────────────────────────────────────
 
 fn render_summary(ui: &mut egui::Ui, report: &InvariantReport) {
     ui.horizontal(|ui| {
@@ -81,17 +96,122 @@ fn render_summary(ui: &mut egui::Ui, report: &InvariantReport) {
     });
 }
 
+// ── violation list (left rail) ──────────────────────────────────────────────
+
+fn show_violation_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &InvariantReport) {
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            if report.violations.is_empty() {
+                ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
+                return;
+            }
+            let grouped = group_by_stratum(&report.violations);
+            for stratum in STRATA {
+                let Some(group) = grouped.get(*stratum) else {
+                    continue;
+                };
+                ui_kit::collapsing_section(
+                    ui,
+                    ("inv_stratum", stratum),
+                    &format!("{stratum} ({})", group.len()),
+                    true,
+                    |ui| {
+                        for vio in group {
+                            violation_row(ui, state, vio);
+                        }
+                    },
+                );
+            }
+        });
+}
+
 fn violation_row(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantViolation) {
+    let key = violation_key(vio);
+    let is_selected = selected_key(ui).as_deref() == Some(key.as_str());
     ui.horizontal(|ui| {
         ui.colored_label(egui::Color32::from_rgb(220, 80, 80), &vio.code);
         let label = match &vio.path {
             Some(p) => format!("{p}: {}", vio.message),
             None => vio.message.clone(),
         };
-        if ui.link(label).clicked() {
+        // Selecting a row pins the violation into the right detail pane and also
+        // focuses the offending entity via the selection mailbox (existing jump).
+        if ui.selectable_label(is_selected, label).clicked() {
+            set_selected_key(ui, key.clone());
             jump_to(state, vio);
         }
     });
+}
+
+// ── violation detail + catalogue (right pane) ───────────────────────────────
+
+fn show_violation_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &InvariantReport) {
+    ui.horizontal(|ui| {
+        if ui.button("Re-check now").clicked() {
+            state.invariant_report = Some(sectorforge::invariants::check_sector(&state.sector));
+        }
+    });
+    ui.separator();
+
+    let selected = selected_key(ui);
+    let vio = selected
+        .as_deref()
+        .and_then(|key| report.violations.iter().find(|v| violation_key(v) == key));
+
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            if let Some(vio) = vio {
+                render_detail_card(ui, state, vio);
+            } else if report.violations.is_empty() {
+                ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
+            } else {
+                ui_kit::placeholder(ui, "Select a violation from the list on the left.");
+            }
+
+            ui.separator();
+            render_catalogue(ui);
+        });
+}
+
+fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantViolation) {
+    ui_kit::section(ui, &vio.code, |ui| {
+        ui_kit::reading_column(ui, 720.0, |ui| {
+            ui.horizontal(|ui| {
+                ui.colored_label(egui::Color32::from_rgb(220, 80, 80), "● violation");
+                ui.monospace(&vio.code);
+            });
+            ui.add_space(4.0);
+            ui.label(&vio.message);
+
+            if let Some(path) = &vio.path {
+                ui.add_space(6.0);
+                ui_kit::kv(ui, "path", path);
+
+                // Focus deep-link: jump the relevant inspector tab to the entity.
+                if focusable(path) {
+                    ui.add_space(8.0);
+                    if ui
+                        .button("Focus offending entity")
+                        .on_hover_text("Select this entity in the relevant inspector tab")
+                        .clicked()
+                    {
+                        jump_to(state, vio);
+                    }
+                }
+            }
+        });
+    });
+}
+
+/// Whether a violation `path` resolves to an entity the §V2 jump can focus.
+fn focusable(path: &str) -> bool {
+    parse_system_world(path).is_some()
+        || parse_path(path, "systems.").is_some()
+        || parse_path(path, "routes.").is_some()
+        || parse_path(path, "factions.").is_some()
+        || parse_path(path, "regions.").is_some()
 }
 
 fn jump_to(state: &mut BuilderState, vio: &InvariantViolation) {
@@ -241,5 +361,24 @@ mod tests {
             parse_path("factions.imperial", "factions."),
             Some("imperial".into())
         );
+    }
+
+    #[test]
+    fn violation_key_distinguishes_path() {
+        let a = vio("systems.sys-0001");
+        let b = vio("systems.sys-0002");
+        assert_ne!(violation_key(&a), violation_key(&b));
+        // Stable across re-derive so selection survives a frame.
+        assert_eq!(violation_key(&a), violation_key(&vio("systems.sys-0001")));
+    }
+
+    #[test]
+    fn focusable_matches_known_strata() {
+        assert!(focusable("systems.sys-0001"));
+        assert!(focusable("systems.sys-0001.worlds.sys-0001-w01"));
+        assert!(focusable("routes.route-a-b"));
+        assert!(focusable("factions.imperial"));
+        assert!(focusable("regions.reg-1"));
+        assert!(!focusable("manifest.checksum"));
     }
 }

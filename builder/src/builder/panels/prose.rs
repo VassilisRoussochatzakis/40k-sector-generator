@@ -51,18 +51,43 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
+    // §COLUMNS — RC-2: regenerate / tone / system selector / save controls sit
+    // in the left column; the editable prose bodies (sector overview + the
+    // selected system's paragraphs) fill the right column, width-capped via
+    // `reading_column` so the body text keeps a readable line length on a wide
+    // window. Collapses to a single stacked column on a narrow window. The
+    // system pick is read on the right via `selected_prose_system_id`, which the
+    // left picker writes — both run sequentially so the borrow is clean.
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            show_header_actions(ui, state);
-            ui.separator();
-            show_tone_section(ui, state);
-            ui.separator();
-            show_overview_editor(ui, state);
-            ui.separator();
-            show_system_editor(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                {
+                    // Left: actions + tone + system selector + save.
+                    let left = &mut cols[0];
+                    show_header_actions(left, state);
+                    left.separator();
+                    show_tone_section(left, state);
+                    left.separator();
+                    show_system_selector(left, state);
+                    left.separator();
+                    show_save_row(left, state);
+                }
+                {
+                    // Right — or the same single column when collapsed to one:
+                    // the width-capped prose editors.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    if n == 1 {
+                        right.separator();
+                    }
+                    ui_kit::reading_column(right, 720.0, |ui| {
+                        show_overview_editor(ui, state);
+                        ui.separator();
+                        show_system_editor(ui, state);
+                    });
+                }
+            });
         });
 }
 
@@ -214,9 +239,12 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-// ── §PR1 per-system editor ────────────────────────────────────────────────
+// ── §PR1 per-system selector (left column) ────────────────────────────────
 
-fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
+/// §COLUMNS — the system picker lives in the left config rail; the prose body
+/// for the picked system is rendered by [`show_system_editor`] in the right
+/// reading column. Both run sequentially so each takes `state` fresh.
+fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("per-system prose").strong());
     ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
@@ -277,9 +305,24 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
     if selected != state.selected_prose_system_id {
         state.selected_prose_system_id = selected.clone();
     }
+}
 
-    let Some(sid) = selected else {
-        ui.colored_label(Color32::GRAY, "Pick a system above to edit its prose.");
+// ── §PR1 per-system editor (right reading column) ─────────────────────────
+
+fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
+    ensure_prose_catalog_if_needed(state);
+    let Some(report) = state.prose_report.clone() else {
+        return;
+    };
+    if report.system_entries.is_empty() {
+        return;
+    }
+
+    let Some(sid) = state.selected_prose_system_id.clone() else {
+        ui.colored_label(
+            Color32::GRAY,
+            "Pick a system in the left rail to edit its prose.",
+        );
         return;
     };
     let Some(entry) = report

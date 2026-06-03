@@ -49,24 +49,65 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         return;
     }
 
-    show_system_picker(ui, state);
-    ui.separator();
+    // §COLUMNS — master-detail: a system roster on the left rail, the inspector
+    // (in-system map + RC-2 section grid) filling the rest. The hard 2-column
+    // split is promoted to `columns_responsive` so a narrow window collapses to
+    // one column instead of crushing both.
+    egui::SidePanel::left("system_roster")
+        .resizable(true)
+        .default_width(220.0)
+        .width_range(160.0..=400.0)
+        .show_inside(ui, |ui| show_system_roster(ui, state));
+
+    egui::CentralPanel::default().show_inside(ui, |ui| show_system_inspector(ui, state));
+}
+
+/// §COLUMNS — left-rail system roster (master pane). Selecting mirrors the old
+/// picker: it sets the single selection and resets the §S4 bulk-ops
+/// multi-selection to just this system. Pure view state, so written directly.
+fn show_system_roster(ui: &mut Ui, state: &mut BuilderState) {
+    ui.add_space(2.0);
+    let current = state.selected_system_id.clone();
+    let mut pick = None;
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            for sys in &state.sector.systems {
+                let sel = current.as_ref() == Some(&sys.id);
+                if ui
+                    .selectable_label(sel, format!("{} — {}", sys.name, sys.id))
+                    .clicked()
+                {
+                    pick = Some(sys.id.clone());
+                }
+            }
+        });
+    if let Some(id) = pick {
+        state.selected_system_id = Some(id.clone());
+        state.selected_systems.clear();
+        state.selected_systems.insert(id);
+    }
+}
+
+fn show_system_inspector(ui: &mut Ui, state: &mut BuilderState) {
+    let selected = state.selected_system_id.clone();
+    let Some(sys_id) = selected else {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                ui_kit::placeholder(ui, "Select a system from the roster or the MAP tab.");
+                show_bulk_ops(ui, state);
+            });
+        return;
+    };
+    let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == sys_id) else {
+        state.selected_system_id = None;
+        return;
+    };
 
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            let selected = state.selected_system_id.clone();
-            let Some(sys_id) = selected else {
-                ui_kit::placeholder(ui, "Select a system from the picker or the MAP tab.");
-                show_bulk_ops(ui, state);
-                return;
-            };
-
-            let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == sys_id) else {
-                state.selected_system_id = None;
-                return;
-            };
-
             show_header(ui, state, sys_idx);
             ui.separator();
             show_system_map_section(ui, state, sys_idx);
@@ -76,46 +117,51 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.separator();
             ui.add_space(4.0);
 
-            ui.columns(2, |cols| {
-                // Left column: identity + read-only state.
-                let left = &mut cols[0];
-                show_identity_section(left, state, sys_idx);
-                left.add_space(4.0);
-                let star_resp = show_star_section(left, state, sys_idx);
-                if state.scroll_target == Some(SYS_STAR_GRID_ANCHOR) {
-                    star_resp
-                        .header_response
-                        .scroll_to_me(Some(egui::Align::TOP));
-                    state.scroll_target = None;
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                {
+                    // Left column: identity + read-only state.
+                    let left = &mut cols[0];
+                    show_identity_section(left, state, sys_idx);
+                    left.add_space(4.0);
+                    let star_resp = show_star_section(left, state, sys_idx);
+                    if state.scroll_target == Some(SYS_STAR_GRID_ANCHOR) {
+                        star_resp
+                            .header_response
+                            .scroll_to_me(Some(egui::Align::TOP));
+                        state.scroll_target = None;
+                    }
+                    left.add_space(4.0);
+                    show_tags_notes_section(left, state, sys_idx);
+                    left.add_space(4.0);
+                    show_worlds_link(left, state, sys_idx);
+                    left.add_space(4.0);
+                    show_routes_section(left, state, sys_idx);
+                    left.add_space(4.0);
+                    show_factions_section(left, state, sys_idx);
+                    left.add_space(4.0);
+                    show_control_section(left, state, sys_idx);
                 }
-                left.add_space(4.0);
-                show_tags_notes_section(left, state, sys_idx);
-                left.add_space(4.0);
-                show_worlds_link(left, state, sys_idx);
-                left.add_space(4.0);
-                show_routes_section(left, state, sys_idx);
-                left.add_space(4.0);
-                show_factions_section(left, state, sys_idx);
-                left.add_space(4.0);
-                show_control_section(left, state, sys_idx);
-
-                // Right column: overlays, archetypes, sibling-panel sections.
-                let right = &mut cols[1];
-                show_overlays_section(right, state, sys_idx);
-                right.add_space(4.0);
-                show_archetype_section(right, state, sys_idx);
-                right.add_space(4.0);
-                show_archetype_auto_assign(right, state);
-                right.add_space(4.0);
-                show_archetype_rules(right, state);
-                right.add_space(4.0);
-                crate::builder::panels::orbital::show_orbital_section(right, state, sys_idx);
-                right.add_space(4.0);
-                crate::builder::panels::conflict::show_system_conflict_section(
-                    right, state, sys_idx,
-                );
-                right.add_space(4.0);
-                crate::builder::panels::intel::show_system_intel_section(right, state, sys_idx);
+                {
+                    // Right column — or the same single column when collapsed to
+                    // one: overlays, archetypes, sibling-panel sections.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    show_overlays_section(right, state, sys_idx);
+                    right.add_space(4.0);
+                    show_archetype_section(right, state, sys_idx);
+                    right.add_space(4.0);
+                    show_archetype_auto_assign(right, state);
+                    right.add_space(4.0);
+                    show_archetype_rules(right, state);
+                    right.add_space(4.0);
+                    crate::builder::panels::orbital::show_orbital_section(right, state, sys_idx);
+                    right.add_space(4.0);
+                    crate::builder::panels::conflict::show_system_conflict_section(
+                        right, state, sys_idx,
+                    );
+                    right.add_space(4.0);
+                    crate::builder::panels::intel::show_system_intel_section(right, state, sys_idx);
+                }
             });
 
             ui.add_space(8.0);
@@ -127,29 +173,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         });
 }
 
-// ── picker / header ─────────────────────────────────────────────────────────
-
-fn show_system_picker(ui: &mut Ui, state: &mut BuilderState) {
-    ui.horizontal(|ui| {
-        ui.label("system:");
-        let current = state.selected_system_id.clone();
-        let label = current
-            .as_ref()
-            .map(|id| id.to_string())
-            .unwrap_or_else(|| "(none)".into());
-        ui_kit::combo("system_picker", label).show_ui(ui, |ui| {
-            for sys in &state.sector.systems {
-                let sel = current.as_ref() == Some(&sys.id);
-                let label = format!("{} — {}", sys.id, sys.name);
-                if ui.selectable_label(sel, label).clicked() {
-                    state.selected_system_id = Some(sys.id.clone());
-                    state.selected_systems.clear();
-                    state.selected_systems.insert(sys.id.clone());
-                }
-            }
-        });
-    });
-}
+// ── header ──────────────────────────────────────────────────────────────────
 
 fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     let sys = &state.sector.systems[sys_idx];

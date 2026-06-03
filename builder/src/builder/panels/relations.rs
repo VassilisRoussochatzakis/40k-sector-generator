@@ -72,25 +72,40 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_header_actions(ui, state);
-            ui.separator();
-            show_settings(ui, state);
-            ui.separator();
-            show_matrix_grid(ui, state);
-            ui.separator();
-            show_cell_editor(ui, state);
-            ui.separator();
-            show_pair_overrides(ui, state);
-            ui.separator();
-            show_kind_rules(ui, state);
-            ui.separator();
-            show_disposition_rules(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+    // §COLUMNS — the diplomacy Matrix is the focal surface, so it (plus the
+    // header/settings and the rules editors) fills the central pane while the
+    // per-pair cell editor lives in a resizable right rail. Clicking a row in the
+    // matrix arms `BuilderState::relations_selected_pair` (existing view state),
+    // which the right panel reads — no new model/state fields needed.
+    egui::SidePanel::right("relations_pair_editor")
+        .resizable(true)
+        .default_width(360.0)
+        .width_range(260.0..=560.0)
+        .show_inside(ui, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| show_cell_editor(ui, state));
         });
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                show_header_actions(ui, state);
+                ui.separator();
+                show_settings(ui, state);
+                ui.separator();
+                show_matrix_grid(ui, state);
+                ui.separator();
+                show_pair_overrides(ui, state);
+                ui.separator();
+                show_kind_rules(ui, state);
+                ui.separator();
+                show_disposition_rules(ui, state);
+                ui.separator();
+                show_save_row(ui, state);
+            });
+    });
 }
 
 // ── header actions (§REL9) ──────────────────────────────────────────────────

@@ -345,47 +345,81 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
     };
     let mut draft = original.clone();
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        ui.group(|ui| {
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            // §COLUMNS — heading + style-preview chip stay full-width on top, then
+            // the §F1..§F7 section boxes flow across two responsive columns (RC-2)
+            // that collapse to one when the central pane is narrow. The sections
+            // edit `&mut draft` sequentially (one reborrow at a time per column),
+            // mirroring the system.rs hand-assigned split. `draft != original` is
+            // diffed once after the columns so the commit block is unchanged.
             ui.horizontal_wrapped(|ui| {
                 ui.heading(draft.name.clone());
                 ui.label(RichText::new(format!("id: {}", draft.id)).color(Color32::DARK_GRAY));
             });
-
-            // Style preview chip
             show_style_preview(ui, &draft);
+            ui.add_space(4.0);
 
-            ui_kit::collapsing_section(ui, "fac_identity", "Identity", true, |ui| {
-                identity_grid(ui, &mut draft)
-            });
-
-            ui_kit::collapsing_section(
-                ui,
-                "fac_hierarchy",
-                "Hierarchy (faction > subfaction > force)",
-                true,
-                |ui| hierarchy_grid(ui, &mut draft),
-            );
-
-            ui_kit::collapsing_section(ui, "fac_preferences", "Preferences", false, |ui| {
-                preferred_picker_world_types(ui, &mut draft);
-                preferred_picker_governments(ui, &mut draft);
-                preferred_picker_features(ui, &mut draft);
-            });
-
-            ui_kit::collapsing_section(ui, "fac_style_override", "Style override", true, |ui| {
-                style_overrides(ui, &mut draft)
-            });
-
-            ui_kit::collapsing_section(ui, "fac_presence", "Presence (deep-link)", false, |ui| {
-                presence_link(ui, state, &draft)
-            });
-
-            ui_kit::collapsing_section(ui, "fac_legend", "Legend visibility", false, |ui| {
-                legend_visibility(ui, &mut draft)
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                {
+                    // Left: identity + hierarchy + preferences.
+                    let left = &mut cols[0];
+                    ui_kit::collapsing_section(left, "fac_identity", "Identity", true, |ui| {
+                        identity_grid(ui, &mut draft)
+                    });
+                    left.add_space(4.0);
+                    ui_kit::collapsing_section(
+                        left,
+                        "fac_hierarchy",
+                        "Hierarchy (faction > subfaction > force)",
+                        true,
+                        |ui| hierarchy_grid(ui, &mut draft),
+                    );
+                    left.add_space(4.0);
+                    ui_kit::collapsing_section(
+                        left,
+                        "fac_preferences",
+                        "Preferences",
+                        false,
+                        |ui| {
+                            preferred_picker_world_types(ui, &mut draft);
+                            preferred_picker_governments(ui, &mut draft);
+                            preferred_picker_features(ui, &mut draft);
+                        },
+                    );
+                }
+                {
+                    // Right — or the same single column when collapsed to one:
+                    // style override + presence deep-link + legend visibility.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    ui_kit::collapsing_section(
+                        right,
+                        "fac_style_override",
+                        "Style override",
+                        true,
+                        |ui| style_overrides(ui, &mut draft),
+                    );
+                    right.add_space(4.0);
+                    ui_kit::collapsing_section(
+                        right,
+                        "fac_presence",
+                        "Presence (deep-link)",
+                        false,
+                        |ui| presence_link(ui, state, &draft),
+                    );
+                    right.add_space(4.0);
+                    ui_kit::collapsing_section(
+                        right,
+                        "fac_legend",
+                        "Legend visibility",
+                        false,
+                        |ui| legend_visibility(ui, &mut draft),
+                    );
+                }
             });
         });
-    });
 
     if draft != original {
         let id = draft.id.clone();

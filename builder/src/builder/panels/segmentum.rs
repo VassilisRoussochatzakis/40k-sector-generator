@@ -73,15 +73,22 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         return;
     }
 
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        config_editor(ui, state); // §SG1
-        ui.separator();
-        compose_controls(ui, state); // §SG2
-        if state.segmentum.composed.is_some() {
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            // §COLUMNS — §SG2 compose controls (the off-thread pump + live
+            // progress) stay full-width on top as a control bar; the §SG1 config
+            // sections flow across responsive columns below it; the §SG3/§SG4/§SG5
+            // composed view (which contains its own grid/table renders) stays
+            // full-width underneath.
+            compose_controls(ui, state); // §SG2
             ui.separator();
-            composed_section(ui, state); // §SG3 + §SG4 + §SG5
-        }
-    });
+            config_editor(ui, state); // §SG1
+            if state.segmentum.composed.is_some() {
+                ui.separator();
+                composed_section(ui, state); // §SG3 + §SG4 + §SG5
+            }
+        });
 }
 
 // ── Document controls ─────────────────────────────────────────────────────────
@@ -210,6 +217,36 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
         return;
     };
 
+    // §COLUMNS — RC-2 over the config sections: grid/seed config + [stitch]
+    // policy share the first column (both are short 2-col field grids), the
+    // taller per-child editor takes the second. Hand-assigned so the policy
+    // pair stays grouped; collapse-safe via the `if n > 1` guard. The single
+    // `&mut file` borrow is reused sequentially across the columns, so no two
+    // closures hold it at once.
+    ui_kit::columns_responsive(ui, 2, 360.0, |cols| {
+        let n = cols.len();
+        {
+            let left = &mut cols[0];
+            sg_config_section(left, file);
+            left.add_space(4.0);
+            sg_stitch_policy_section(left, file);
+        }
+        {
+            let right = &mut cols[if n > 1 { 1 } else { 0 }];
+            if n == 1 {
+                right.add_space(4.0);
+            }
+            sg_children_section(right, file);
+        }
+    });
+
+    // §SG1: a quick visual of the super-grid slot occupancy. This is a 2D grid
+    // render that wants the full width, so it stays full-width below the config
+    // columns rather than flowing into one of them.
+    grid_preview(ui, file);
+}
+
+fn sg_config_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFile) {
     ui_kit::collapsing_section(ui, "sg_config", "§SG1 — Segmentum config", true, |ui| {
         egui::Grid::new("seg_cfg_grid")
             .num_columns(2)
@@ -235,7 +272,9 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui.end_row();
             });
     });
+}
 
+fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFile) {
     ui_kit::collapsing_section(
         ui,
         "sg_stitch_policy",
@@ -269,7 +308,9 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
                 });
         },
     );
+}
 
+fn sg_children_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFile) {
     ui_kit::collapsing_section(
         ui,
         "sg_children",
@@ -352,9 +393,6 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         },
     );
-
-    // §SG1: a quick visual of the super-grid slot occupancy.
-    grid_preview(ui, file);
 }
 
 /// A small read-only super-grid map: one cell per `(column, row)`, naming the

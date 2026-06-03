@@ -79,25 +79,102 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         Color32::DARK_GRAY,
         "per-world site editor, auto-derive + manual survive, player-edition toggle, sites.toml round-trip.",
     );
+
+    // §COLUMNS — sector-wide controls stay full-width on top (auto-derive,
+    // player-edition toggle, sites.toml knobs, kind filter), then a master-detail
+    // split: a persistent world roster on the left rail and the per-world site
+    // table + detail + manual editor filling the rest. Replaces the single
+    // horizontally-scrolling grid that stacked everything in one tall column.
+    ui.separator();
+    show_header_actions(ui, state);
+    ui.separator();
+    show_config_section(ui, state);
+    ui.separator();
+    show_filter_row(ui, state);
     ui.separator();
 
+    egui::SidePanel::left("sites_world_roster")
+        .resizable(true)
+        .default_width(240.0)
+        .width_range(180.0..=420.0)
+        .show_inside(ui, |ui| show_world_roster(ui, state));
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                show_site_list(ui, state);
+                ui.separator();
+                show_detail_card(ui, state);
+                ui.separator();
+                show_manual_editor(ui, state);
+                ui.separator();
+                show_save_row(ui, state);
+            });
+    });
+}
+
+// ── §COLUMNS world roster (master pane) ─────────────────────────────────────
+
+/// §COLUMNS — left-rail world roster, grouped by parent system. Selecting a
+/// world sets [`BuilderState::selected_world_id`] (pure view state, written
+/// directly) so the central site table filters to that world. Worlds that
+/// currently have at least one site in the cached report are badged with the
+/// count; the roster always lists every world so empty worlds stay selectable.
+fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
+    ui.add_space(2.0);
+    // Per-world site counts from the cached report (honours the kind filter so
+    // the badge matches what the table will show).
+    let filter = state.sites_filter_kind;
+    let mut counts: std::collections::BTreeMap<WorldId, usize> = std::collections::BTreeMap::new();
+    if let Some(report) = state.sites_report.as_ref() {
+        for s in &report.sites {
+            if filter.is_none_or(|k| s.kind == k) {
+                *counts.entry(s.world_id.clone()).or_default() += 1;
+            }
+        }
+    }
+
+    let current = state.selected_world_id.clone();
+    let mut pick: Option<(SystemId, WorldId)> = None;
+    let total_worlds: usize = state.sector.systems.iter().map(|s| s.worlds.len()).sum();
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            show_header_actions(ui, state);
-            ui.separator();
-            show_config_section(ui, state);
-            ui.separator();
-            show_filter_row(ui, state);
-            ui.separator();
-            show_site_list(ui, state);
-            ui.separator();
-            show_detail_card(ui, state);
-            ui.separator();
-            show_manual_editor(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+            if total_worlds == 0 {
+                ui_kit::placeholder(ui, "No worlds in this sector yet.");
+                return;
+            }
+            for sys in &state.sector.systems {
+                if sys.worlds.is_empty() {
+                    continue;
+                }
+                ui_kit::collapsing_section(
+                    ui,
+                    ("sites_roster_sys", sys.id.as_str()),
+                    &format!("{} ({})", sys.name, sys.worlds.len()),
+                    true,
+                    |ui| {
+                        for w in &sys.worlds {
+                            let sel = current.as_ref() == Some(&w.id);
+                            let n = counts.get(&w.id).copied().unwrap_or(0);
+                            let label = if n > 0 {
+                                format!("{} — {} [{n}]", w.name, w.id)
+                            } else {
+                                format!("{} — {}", w.name, w.id)
+                            };
+                            if ui.selectable_label(sel, label).clicked() {
+                                pick = Some((sys.id.clone(), w.id.clone()));
+                            }
+                        }
+                    },
+                );
+            }
         });
+    if let Some((sid, wid)) = pick {
+        state.selected_world_id = Some(wid);
+        state.selected_system_id = Some(sid);
+    }
 }
 
 // ── §ST2 / §ST3 header actions ─────────────────────────────────────────────
@@ -187,7 +264,22 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST1 ranked list grouped by world ──────────────────────────────────────
 
 fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("per-world sites").strong());
+    // §COLUMNS — the right pane is the selected world's site table. Without a
+    // world selected, prompt the user to pick one from the roster on the left.
+    let Some(world_id) = state.selected_world_id.clone() else {
+        ui.label(RichText::new("per-world sites").strong());
+        ui_kit::placeholder(ui, "Select a world from the roster on the left.");
+        return;
+    };
+    let world_name = state
+        .sector
+        .systems
+        .iter()
+        .flat_map(|s| s.worlds.iter())
+        .find(|w| w.id == world_id)
+        .map(|w| w.name.to_string())
+        .unwrap_or_else(|| world_id.to_string());
+    ui.label(RichText::new(format!("sites — {world_name} ({world_id})")).strong());
     let Some(report) = state.sites_report.clone() else {
         ui.colored_label(
             Color32::GRAY,
@@ -199,12 +291,13 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
     let rows: Vec<&WorldSite> = report
         .sites
         .iter()
+        .filter(|s| s.world_id == world_id)
         .filter(|s| filter.is_none_or(|k| s.kind == k))
         .collect();
     if rows.is_empty() {
         ui.colored_label(
             Color32::GRAY,
-            "No sites matched the current filter / player-edition mask.",
+            "No sites on this world matched the current filter / player-edition mask.",
         );
         return;
     }
@@ -217,7 +310,10 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                 .striped(true)
                 .min_col_width(80.0)
                 .show(ui, |ui| {
-                    ui.label(RichText::new("World").strong());
+                    // §COLUMNS — the table is scoped to the selected world, so the
+                    // old leading "World" column (which repeated the same id on
+                    // every row) is replaced by the per-row site id selector.
+                    ui.label(RichText::new("id").strong());
                     ui.label(RichText::new("Kind").strong());
                     ui.label(RichText::new("Name").strong());
                     ui.label(RichText::new("Controller").strong());
@@ -231,7 +327,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                     for s in &rows {
                         let is_selected = selected.as_deref() == Some(s.id.as_str());
                         if ui
-                            .selectable_label(is_selected, s.world_id.to_string())
+                            .selectable_label(is_selected, RichText::new(s.id.clone()).monospace())
                             .clicked()
                         {
                             state.selected_site_id = Some(s.id.clone());

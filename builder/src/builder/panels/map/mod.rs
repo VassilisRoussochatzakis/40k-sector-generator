@@ -27,43 +27,30 @@ pub(super) use context_menu::menu_anchor_pivot;
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Map");
     ui.add_space(4.0);
-    show_toolbox(ui, state);
-    ui.horizontal(|ui| {
-        ui.label("zoom:");
-        ui.add(egui::Slider::new(&mut state.hex_size, 12.0..=64.0).text("hex"));
-        if !state.selected_systems.is_empty() {
-            ui.label(format!("selected: {}", state.selected_systems.len()));
-        }
-        if let Some(id) = &state.selected_system_id {
-            ui.label(format!("focus: {id}"));
-        }
-        if let Some(id) = &state.pending_route_start {
-            ui.label(format!("route from: {id}"));
-        }
-        // §CTX1 Phase 4 — surface the live partial-regen anchor so the user
-        // can tell why their next primary click will be consumed.
-        if let Some(anchor) = state.partial_regen_anchor {
-            ui.colored_label(
-                egui::Color32::from_rgb(120, 200, 240),
-                format!("partial-regen anchor: ({}, {})", anchor.q, anchor.r),
-            );
-            if ui.small_button("cancel anchor").clicked() {
-                state.partial_regen_anchor = None;
-            }
-        }
-    });
-    crate::builder::panels::intel::show_map_intel_controls(ui, state);
-    // §35 T1/T2/T3/T4 — theme picker, custom editor, heatmap selector, legend.
-    theme::show(ui, state);
-    ui.separator();
 
-    egui::ScrollArea::both().show(ui, |ui| {
-        interactions::show_hex_map(ui, state);
+    // §COLUMNS — move the editor controls (tool rail, zoom/selection status,
+    // intel + theme/heatmap controls) into a resizable left `SidePanel` so the
+    // hex canvas keeps the whole `CentralPanel` and never shrinks to a strip
+    // while a tall toolbox steals its vertical budget. The canvas itself stays
+    // inside the `CentralPanel`'s `ScrollArea::both()` and is allocated exactly
+    // as before (`allocate_exact_size` → `rect.min` origin), so the pointer /
+    // drag / rect-select coordinate math is unchanged — it just gets more room.
+    egui::SidePanel::left("map_tools")
+        .resizable(true)
+        .default_width(280.0)
+        .width_range(220.0..=460.0)
+        .show_inside(ui, |ui| show_tool_rail(ui, state));
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::both().show(ui, |ui| {
+            interactions::show_hex_map(ui, state);
+        });
     });
 
     // §CTX1 — Phase 1: floating right-click menu rendered as a free-standing
     // `egui::Area`. Sits above the canvas; dismissed on Escape / focus-loss /
-    // outside primary click / item activation.
+    // outside primary click / item activation. Rendered at the tab root (not
+    // inside a panel) so its viewport-relative anchoring is unaffected.
     context_menu::show_sector_context_menu(ui.ctx(), state);
 
     dialogs::show_place_dialog(ui.ctx(), state);
@@ -71,6 +58,46 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     dialogs::show_bulk_rename_dialog(ui.ctx(), state);
     dialogs::show_region_rename_dialog(ui.ctx(), state);
     dialogs::show_collision_dialog(ui.ctx(), state);
+}
+
+/// §COLUMNS — left rail holding every MAP editor control. Scrolls vertically so
+/// a tall theme editor never competes with the canvas for the window's height.
+fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            show_toolbox(ui, state);
+            ui.separator();
+            ui.horizontal_wrapped(|ui| {
+                ui.label("zoom:");
+                ui.add(egui::Slider::new(&mut state.hex_size, 12.0..=64.0).text("hex"));
+            });
+            if !state.selected_systems.is_empty() {
+                ui.label(format!("selected: {}", state.selected_systems.len()));
+            }
+            if let Some(id) = &state.selected_system_id {
+                ui.label(format!("focus: {id}"));
+            }
+            if let Some(id) = &state.pending_route_start {
+                ui.label(format!("route from: {id}"));
+            }
+            // §CTX1 Phase 4 — surface the live partial-regen anchor so the user
+            // can tell why their next primary click will be consumed.
+            if let Some(anchor) = state.partial_regen_anchor {
+                ui.colored_label(
+                    egui::Color32::from_rgb(120, 200, 240),
+                    format!("partial-regen anchor: ({}, {})", anchor.q, anchor.r),
+                );
+                if ui.small_button("cancel anchor").clicked() {
+                    state.partial_regen_anchor = None;
+                }
+            }
+            ui.separator();
+            crate::builder::panels::intel::show_map_intel_controls(ui, state);
+            ui.separator();
+            // §35 T1/T2/T3/T4 — theme picker, custom editor, heatmap selector, legend.
+            theme::show(ui, state);
+        });
 }
 
 /// §N3 toolbox: SELECT / ADD / DELETE / MOVE / ADD ROUTE / REGION-PAINT.

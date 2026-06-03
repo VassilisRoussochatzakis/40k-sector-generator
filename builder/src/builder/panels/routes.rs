@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use egui::{Color32, Ui};
+use egui::{Color32, RichText, Ui};
 
 use sectorforge::ids::{self, FactionId, RouteId, SystemId};
 use sectorforge::routes::{RouteCondition, RouteModifier, RouteRules};
@@ -28,29 +28,40 @@ const ROUTE_STABILITIES: [RouteStability; 4] = [
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Routes");
     ui.add_space(4.0);
+    // §COLUMNS — the summary line (route / component / hop counts) stays
+    // full-width on top, above the master-detail split.
     show_summary(ui, state);
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_route_picker(ui, state);
-            ui.add_space(4.0);
-            if let Some(idx) = selected_route_index(state) {
-                show_route_inspector(ui, state, idx);
-            } else {
-                ui.colored_label(Color32::GRAY, "No route selected.");
-            }
+    // §COLUMNS — master-detail: a persistent route roster on the left rail
+    // (`routes_roster`); the route editor + the sector-wide R4..R7 tools fill
+    // the rest. Replaces the combo-picker + single-column stack.
+    egui::SidePanel::left("routes_roster")
+        .resizable(true)
+        .default_width(260.0)
+        .width_range(200.0..=460.0)
+        .show_inside(ui, |ui| show_route_roster(ui, state));
 
-            ui.separator();
-            show_bulk_ops(ui, state);
-            ui.separator();
-            show_route_rules_editor(ui, state);
-            ui.separator();
-            show_hidden_routes_panel(ui, state);
-            ui.separator();
-            show_ensure_connected(ui, state);
-        });
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                if let Some(idx) = selected_route_index(state) {
+                    show_route_inspector(ui, state, idx);
+                } else {
+                    ui_kit::placeholder(ui, "Select a route from the roster on the left.");
+                }
+
+                ui.separator();
+                show_bulk_ops(ui, state);
+                ui.separator();
+                show_route_rules_editor(ui, state);
+                ui.separator();
+                show_hidden_routes_panel(ui, state);
+                ui.separator();
+                show_ensure_connected(ui, state);
+            });
+    });
 }
 
 fn show_summary(ui: &mut Ui, state: &BuilderState) {
@@ -79,30 +90,20 @@ fn selected_route_index(state: &mut BuilderState) -> Option<usize> {
         .and_then(|id| state.index.routes.get(id).copied())
 }
 
-fn show_route_picker(ui: &mut Ui, state: &mut BuilderState) {
+/// §COLUMNS — left-rail route roster (master pane). A vertical selectable list
+/// of every route with a delete affordance at the top; selection is pure view
+/// state, set directly. Replaces the combo picker that hid the list.
+fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
+    ui.add_space(2.0);
     ui.horizontal_wrapped(|ui| {
-        ui.label("route:");
-        let current = state.selected_route_id.clone();
-        let label = current
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_else(|| "(none)".into());
-        ui_kit::combo("route_picker", label).show_ui(ui, |ui| {
-            for route in &state.sector.routes {
-                let text = format!(
-                    "{}  {} -> {}  d={}",
-                    route.id, route.from_system_id, route.to_system_id, route.distance
-                );
-                if ui
-                    .selectable_label(current.as_ref() == Some(&route.id), text)
-                    .clicked()
-                {
-                    state.selected_route_id = Some(route.id.clone());
-                }
-            }
-        });
-
-        if ui.button("Delete").clicked() {
+        ui.label(RichText::new(format!("routes ({})", state.sector.routes.len())).strong());
+        if ui
+            .add_enabled(
+                state.selected_route_id.is_some(),
+                egui::Button::new("Delete selected"),
+            )
+            .clicked()
+        {
             if let Some(id) = state.selected_route_id.clone() {
                 let cmd = BuilderCommand::RemoveRoute { id, before: None };
                 if let Err(e) = state.run(cmd) {
@@ -114,6 +115,34 @@ fn show_route_picker(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
     });
+    ui.separator();
+
+    if state.sector.routes.is_empty() {
+        ui_kit::placeholder(ui, "No routes. Use the MAP tab's ADD ROUTE tool.");
+        return;
+    }
+    let current = state.selected_route_id.clone();
+    let mut pick: Option<RouteId> = None;
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            for route in &state.sector.routes {
+                let text = format!(
+                    "{} -> {}  (d={})",
+                    route.from_system_id, route.to_system_id, route.distance
+                );
+                if ui
+                    .selectable_label(current.as_ref() == Some(&route.id), text)
+                    .on_hover_text(route.id.to_string())
+                    .clicked()
+                {
+                    pick = Some(route.id.clone());
+                }
+            }
+        });
+    if let Some(id) = pick {
+        state.selected_route_id = Some(id);
+    }
 }
 
 fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {

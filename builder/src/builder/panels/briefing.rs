@@ -62,21 +62,40 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
+    // §COLUMNS — RC-2: the profile/config controls (preset / observer /
+    // confidence / generate / export) sit in the left column; the rendered
+    // Markdown preview fills the right column, width-capped via
+    // `reading_column` so the redacted body keeps a readable line length on a
+    // wide window. Collapses to a single stacked column on a narrow window.
     egui::ScrollArea::vertical()
         .id_salt("br_root_scroll")
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            show_preset_row(ui, state);
-            ui.separator();
-            show_observer_row(ui, state);
-            ui.separator();
-            show_confidence_row(ui, state);
-            ui.separator();
-            show_generate_row(ui, state);
-            ui.separator();
-            show_export_row(ui, state);
-            ui.separator();
-            show_preview(ui, state);
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                {
+                    // Left: audience profile + generate/export controls.
+                    let left = &mut cols[0];
+                    show_preset_row(left, state);
+                    left.separator();
+                    show_observer_row(left, state);
+                    left.separator();
+                    show_confidence_row(left, state);
+                    left.separator();
+                    show_generate_row(left, state);
+                    left.separator();
+                    show_export_row(left, state);
+                }
+                {
+                    // Right — or the same single column when collapsed to one:
+                    // the redacted Markdown preview.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    if n == 1 {
+                        right.separator();
+                    }
+                    show_preview(right, state);
+                }
+            });
         });
 }
 
@@ -297,16 +316,20 @@ fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
         );
         return;
     };
+    // §COLUMNS — width-cap the rendered Markdown so the monospace body keeps a
+    // readable line length on a wide window instead of running edge-to-edge.
     egui::ScrollArea::both()
         .id_salt("br_preview_scroll")
         .max_height(360.0)
         .show(ui, |ui| {
-            ui.add(
-                egui::TextEdit::multiline(&mut md.as_str())
-                    .desired_width(f32::INFINITY)
-                    .desired_rows(20)
-                    .font(egui::TextStyle::Monospace),
-            );
+            ui_kit::reading_column(ui, 720.0, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(&mut md.as_str())
+                        .desired_width(f32::INFINITY)
+                        .desired_rows(20)
+                        .font(egui::TextStyle::Monospace),
+                );
+            });
         });
 }
 

@@ -150,19 +150,40 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         .id_salt("export_root_scroll")
         .auto_shrink([false; 2])
         .show(ui, |ui| {
+            // The folder row carries the §EX1/§EX8 bundle buttons + the
+            // disabled-until-folder gating + live progress; it spans the full
+            // width above the two-column body.
             show_folder_row(ui, state);
             ui.separator();
-            show_formats(ui, state);
-            ui.separator();
-            show_bitmap_settings(ui, state);
-            ui.separator();
-            show_html_settings(ui, state);
-            ui.separator();
-            show_overlays(ui, state);
-            ui.separator();
-            show_standalone_system(ui, state);
-            ui.separator();
-            show_markdown_preview(ui, state);
+
+            // §COLUMNS — RC-2 hand-assigned: bundle/format settings on the left
+            // (§EX1/§EX2 formats, §EX3 bitmap, §EX4 HTML, §EX7 overlays, §EX5
+            // standalone), the manifest-driven §EX6 render-markdown preview on
+            // the right (it wants width, but capped to a readable line length).
+            // Hand-assigned (not round-robin) so the settings/preview grouping
+            // survives; collapse-safe via the `if n > 1` guard.
+            ui_kit::columns_responsive(ui, 2, 420.0, |cols| {
+                let n = cols.len();
+                {
+                    let left = &mut cols[0];
+                    show_formats(left, state);
+                    left.add_space(4.0);
+                    show_bitmap_settings(left, state);
+                    left.add_space(4.0);
+                    show_html_settings(left, state);
+                    left.add_space(4.0);
+                    show_overlays(left, state);
+                    left.add_space(4.0);
+                    show_standalone_system(left, state);
+                }
+                {
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    if n == 1 {
+                        right.separator();
+                    }
+                    show_markdown_preview(right, state);
+                }
+            });
 
             if let Some(err) = state.export.error.as_ref() {
                 ui.add_space(4.0);
@@ -507,17 +528,21 @@ fn show_markdown_preview(ui: &mut Ui, state: &mut BuilderState) {
                 ui.colored_label(Color32::GRAY, "No preview yet — click \"Refresh preview\".");
                 return;
             };
-            egui::ScrollArea::both()
-                .id_salt("export_md_preview_scroll")
-                .max_height(360.0)
-                .show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut md.as_str())
-                            .desired_width(f32::INFINITY)
-                            .desired_rows(20)
-                            .font(egui::TextStyle::Monospace),
-                    );
-                });
+            // §COLUMNS — the rendered markdown wants the right column's width but
+            // a capped line length stays readable; `reading_column` bounds it.
+            ui_kit::reading_column(ui, 720.0, |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("export_md_preview_scroll")
+                    .max_height(420.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut md.as_str())
+                                .desired_width(f32::INFINITY)
+                                .desired_rows(24)
+                                .font(egui::TextStyle::Monospace),
+                        );
+                    });
+            });
         },
     );
 }

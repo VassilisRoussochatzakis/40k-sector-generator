@@ -18,8 +18,15 @@ Throughout this document:
   (PROJECT, MAP, SYSTEM, WORLD, FACTIONS, …).
 - A **section** is a titled, framed box inside a tab — most are collapsing
   headers (click the title bar to open or close one), closed by default unless
-  noted. Related controls are grouped into these bordered boxes so each tab
-  reads as a stack of sections rather than one flat wall of widgets.
+  noted. Related controls are grouped into these bordered boxes.
+- A **roster rail** is the scrollable list pinned to the left edge of the
+  list-shaped tabs (World, System, Factions, Sites, Routes, Subsectors,
+  Personae, Hooks, Missions, Search, Validation, Invariants). You pick an entry
+  in the rail and edit it in the **inspector** that fills the rest of the tab.
+  Inspector and report tabs arrange their sections across two or three
+  **columns** when the window is wide and fold them back into a single column
+  when it is narrow, so you rarely scroll past a tall empty margin. The rail and
+  the panel splitters are drag-resizable, and the builder remembers the widths.
 - Coordinates are written `(q, r)` — the axial hex grid coordinates used by the
   sector. `(0, 0)` is the top-left hex.
 
@@ -222,14 +229,14 @@ Before we put anything on the map, get a feel for the layout.
 
 Click **MAP**. The panel now shows:
 
-- A **toolbox row** at the top labelled `tool:` with six selectable buttons:
-  `SELECT`, `ADD SYSTEM`, `DELETE SYSTEM`, `MOVE SYSTEM`, `ADD ROUTE`,
+- A **toolbox rail** down the left edge labelled `tool:` with six selectable
+  buttons: `SELECT`, `ADD SYSTEM`, `DELETE SYSTEM`, `MOVE SYSTEM`, `ADD ROUTE`,
   `REGION PAINT`. Exactly one is highlighted at a time. The default is
-  `SELECT`.
-- A **zoom slider** labelled `hex` ranging 12–64 pixels.
-- A grid of **empty hexes** filling the panel. With width 8 and height 8 you
-  get 64 hexes. Coordinates are not labelled, but the top-left hex is `(0, 0)`,
-  q increases to the right, r increases downward.
+  `SELECT`. The same rail holds the **zoom slider** (`hex`, 12–64 px) and the
+  appearance controls of §2.3, so the map canvas keeps the whole width.
+- A grid of **empty hexes** filling the rest of the panel. With width 8 and
+  height 8 you get 64 hexes. Coordinates are not labelled, but the top-left hex
+  is `(0, 0)`, q increases to the right, r increases downward.
 
 Drag the slider up to roughly `40` so the hexes are comfortably clickable.
 
@@ -249,9 +256,10 @@ Return to **MAP** to continue.
 
 ### 2.3 Map theme, heatmaps, and the route legend (§35)
 
-The MAP tab carries two appearance controls just under the toolbox. They do
-nothing destructive — they only change how the map is *drawn* — so it is a good
-time to learn them before there is anything important on screen.
+The MAP tab carries two appearance controls in the left toolbox rail (§2.1),
+below the tools. They do nothing destructive — they only change how the map is
+*drawn* — so it is a good time to learn them before there is anything important
+on screen.
 
 - **`heatmap:` selector (§T3).** A single dropdown that covers every heatmap
   mode the engine knows: `OFF`, `CONTROL`, `MILITARY`, `TRADE`, `INDUSTRY`,
@@ -309,7 +317,9 @@ accidentally place duplicates.
 
 Click **SYSTEM** in the top tab strip. The tab now shows:
 
-- A **system picker** dropdown defaulting to `Velikan`.
+- A **system roster** in the left rail listing every system, with `Velikan`
+  selected. (The inspector to its right holds the sections below, laid out in
+  two columns on a wide window.)
 - An **Identity** collapsing section with the system id, name, coordinates,
   and a `SystemKind` selector (DeepSpace, Inhabited, Frontier, etc.).
 - A **Star** section with star colour code, colour name, and spectral type.
@@ -348,9 +358,10 @@ named, classified, and faction-tagged.
 
 ### 4.2 Inspect a generated world
 
-Click the **WORLD** tab. The world picker at the top now lists every world
-across every system; pick `Velikan I` (or whichever the generator named the
-first one).
+Click the **WORLD** tab. The world roster in the left rail now lists every
+world grouped by its parent system; click `Velikan I` (or whichever the
+generator named the first one). Its sections open in the inspector on the
+right, flowed across two columns when the window is wide.
 
 Each world has the following sections, each a collapsing header (most
 prefixed with their spec reference):

@@ -69,21 +69,38 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_header_actions(ui, state);
-            ui.separator();
+    // §COLUMNS — global controls (regenerate / player-edition) stay full-width
+    // on top, then master-detail: the ranked hook list pins to a resizable left
+    // rail (filter + rows) and the detail card + manual editor + save fill the
+    // rest. Click-to-highlight is preserved on every rail row and the detail
+    // card. Replaces the single-column stack whose list and detail scrolled
+    // past each other.
+    show_header_actions(ui, state);
+    ui.separator();
+
+    egui::SidePanel::left("hooks_list")
+        .resizable(true)
+        .default_width(320.0)
+        .width_range(220.0..=520.0)
+        .show_inside(ui, |ui| {
             show_filter_row(ui, state);
             ui.separator();
-            show_hook_list(ui, state);
-            ui.separator();
-            show_detail_card(ui, state);
-            ui.separator();
-            show_manual_editor(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| show_hook_list(ui, state));
         });
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                show_detail_card(ui, state);
+                ui.separator();
+                show_manual_editor(ui, state);
+                ui.separator();
+                show_save_row(ui, state);
+            });
+    });
 }
 
 // ── §HK4 / §HK5 header actions ─────────────────────────────────────────────
@@ -165,47 +182,32 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
         return;
     }
     let selected = state.selected_hook_id.clone();
-    egui::ScrollArea::horizontal()
-        .id_salt("hk_grid_scroll")
-        .show(ui, |ui| {
-            egui::Grid::new("hk_grid")
-                .striped(true)
-                .min_col_width(80.0)
-                .show(ui, |ui| {
-                    ui.label(RichText::new("Kind").strong());
-                    ui.label(RichText::new("Weight").strong());
-                    ui.label(RichText::new("Anchor").strong());
-                    ui.label(RichText::new("Title").strong());
-                    ui.label(RichText::new("GM").strong());
-                    ui.label(RichText::new("").strong());
-                    ui.end_row();
-
-                    for h in &rows {
-                        let is_selected = selected.as_deref() == Some(h.id.as_str());
-                        if ui
-                            .selectable_label(is_selected, kind_label(h.kind))
-                            .clicked()
-                        {
-                            state.selected_hook_id = Some(h.id.to_string());
-                            state.hooks_edit_target = Some(h.id.to_string());
-                        }
-                        ui.label(format!("{}", h.weight));
-                        show_anchor_link(ui, state, &h.anchor);
-                        ui.label(RichText::new(h.title.clone()).strong());
-                        if h.gm_only {
-                            ui.colored_label(Color32::from_rgb(200, 90, 90), "GM");
-                        } else {
-                            ui.label("");
-                        }
-                        if ui.button("highlight").clicked() {
-                            state.selected_hook_id = Some(h.id.to_string());
-                            state.hooks_edit_target = Some(h.id.to_string());
-                            focus_anchor(state, &h.anchor);
-                        }
-                        ui.end_row();
-                    }
-                });
+    // §COLUMNS — compact rail rows: a selectable title line per hook with
+    // kind / weight subline + click-to-highlight; full fields and the anchor
+    // deep-link live in the detail card on the right.
+    for h in &rows {
+        let is_selected = selected.as_deref() == Some(h.id.as_str());
+        let resp = ui.selectable_label(is_selected, RichText::new(h.title.clone()).strong());
+        if resp.clicked() {
+            state.selected_hook_id = Some(h.id.to_string());
+            state.hooks_edit_target = Some(h.id.to_string());
+        }
+        ui.horizontal_wrapped(|ui| {
+            ui.colored_label(
+                Color32::DARK_GRAY,
+                format!("{} · w{}", kind_label(h.kind), h.weight),
+            );
+            if h.gm_only {
+                ui.colored_label(Color32::from_rgb(200, 90, 90), "GM");
+            }
+            if ui.small_button("highlight").clicked() {
+                state.selected_hook_id = Some(h.id.to_string());
+                state.hooks_edit_target = Some(h.id.to_string());
+                focus_anchor(state, &h.anchor);
+            }
         });
+        ui.separator();
+    }
 }
 
 // ── §HK2 / §HK6 detail card ────────────────────────────────────────────────

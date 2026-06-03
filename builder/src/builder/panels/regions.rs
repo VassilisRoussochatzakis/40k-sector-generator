@@ -30,31 +30,57 @@ use crate::builder::BuilderState;
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Regions");
     ui.add_space(2.0);
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "region table, paint, grow, live route preview, glyph map, config.",
-    );
-    ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_invariants(ui, state);
-            ui.separator();
-            show_region_picker(ui, state);
-            ui.add_space(4.0);
-            if let Some(idx) = selected_region_index(state) {
-                show_region_inspector(ui, state, idx);
-            } else {
-                ui.colored_label(Color32::GRAY, "No region selected. Use + new region.");
-            }
-            ui.separator();
-            show_grow_seeded(ui, state);
-            show_route_effects(ui, state);
-            show_paint_hint(ui, state);
-            show_glyph_preview(ui, state);
-            show_regions_config_editor(ui, state);
+    // §COLUMNS — 3-pane: the region table + invariants pin to the left rail
+    // (`regions_table`); the §REG5 `regions.toml` config form pins to the right
+    // rail (`regions_config`); the centre `CentralPanel` carries the selected
+    // region editor + paint / grow / route-effect / glyph-map surfaces (the
+    // glyph map wants width). SidePanels claim their width before the central
+    // pane fills the rest, so each is declared before the CentralPanel. Each
+    // closure takes `&mut state` in turn (left, then right, then centre), so
+    // there is never more than one live mutable borrow.
+    egui::SidePanel::left("regions_table")
+        .resizable(true)
+        .default_width(250.0)
+        .width_range(200.0..=420.0)
+        .show_inside(ui, |ui| show_region_table(ui, state));
+
+    egui::SidePanel::right("regions_config")
+        .resizable(true)
+        .default_width(300.0)
+        .width_range(240.0..=480.0)
+        .show_inside(ui, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| show_regions_config_editor(ui, state));
         });
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                if let Some(idx) = selected_region_index(state) {
+                    show_region_inspector(ui, state, idx);
+                } else {
+                    ui_kit::placeholder(ui, "No region selected. Use + new region on the left.");
+                }
+                ui.separator();
+                show_grow_seeded(ui, state);
+                show_route_effects(ui, state);
+                show_paint_hint(ui, state);
+                show_glyph_preview(ui, state);
+            });
+    });
+}
+
+/// §COLUMNS — left-rail region table (master pane): the §REG6 invariant chips
+/// on top, then the §REG1 region list with select + `+ new region`. Selection
+/// is pure view state, set directly.
+fn show_region_table(ui: &mut Ui, state: &mut BuilderState) {
+    ui.add_space(2.0);
+    show_invariants(ui, state);
+    ui.separator();
+    show_region_picker(ui, state);
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────────
@@ -106,10 +132,21 @@ fn show_invariants(ui: &mut Ui, state: &BuilderState) {
 
 fn show_region_picker(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label("region:");
-        let current = state.selected_region_id.clone();
-        let label = current.clone().unwrap_or_else(|| "(none)".into());
-        ui_kit::combo("region_picker", label).show_ui(ui, |ui| {
+        ui.label(RichText::new(format!("regions ({})", state.sector.regions.len())).strong());
+        if ui.button("+ new region").clicked() {
+            let centre = default_new_centre(state);
+            state.add_region("Region", RegionConditionKind::Turbulence, centre);
+        }
+    });
+    if state.sector.regions.is_empty() {
+        ui_kit::placeholder(ui, "No regions yet.");
+        return;
+    }
+    let current = state.selected_region_id.clone();
+    let mut pick: Option<String> = None;
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
             for r in state.sector.regions.iter() {
                 let glyph = r.kind.glyph();
                 let line = format!("{glyph} {} — {}  ({} hex)", r.id, r.name, r.hexes.len());
@@ -117,16 +154,13 @@ fn show_region_picker(ui: &mut Ui, state: &mut BuilderState) {
                     .selectable_label(current.as_deref() == Some(r.id.as_str()), line)
                     .clicked()
                 {
-                    state.selected_region_id = Some(r.id.clone());
+                    pick = Some(r.id.clone());
                 }
             }
         });
-        if ui.button("+ new region").clicked() {
-            let centre = default_new_centre(state);
-            state.add_region("Region", RegionConditionKind::Turbulence, centre);
-        }
-        ui.label(format!("total: {}", state.sector.regions.len()));
-    });
+    if let Some(id) = pick {
+        state.selected_region_id = Some(id);
+    }
 }
 
 fn default_new_centre(state: &BuilderState) -> HexCoord {

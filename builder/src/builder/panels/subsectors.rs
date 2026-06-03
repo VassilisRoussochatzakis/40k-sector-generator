@@ -44,13 +44,18 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     show_recluster_bar(ui, state, &subsectors);
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_cluster_list(ui, state, &subsectors);
-            ui.separator();
-            show_inspector(ui, state, &subsectors);
-        });
+    // §COLUMNS — master-detail: the cluster roster pins to a resizable left
+    // rail (`subsectors_roster`); the per-cluster detail (capital / colour /
+    // §SUB3..§SUB5 reassign) fills the rest. The recluster bar above stays
+    // full-width. `subsectors` is an owned Vec, so both panels borrow it
+    // immutably while each takes `&mut state` in turn (list before detail).
+    egui::SidePanel::left("subsectors_roster")
+        .resizable(true)
+        .default_width(260.0)
+        .width_range(200.0..=440.0)
+        .show_inside(ui, |ui| show_cluster_list(ui, state, &subsectors));
+
+    egui::CentralPanel::default().show_inside(ui, |ui| show_inspector(ui, state, &subsectors));
 }
 
 // ── Public helper used by [`map.rs::refresh_map_cache`] ─────────────────────
@@ -184,90 +189,63 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
     );
 }
 
+/// §COLUMNS — left-rail cluster roster (master pane). Each row is a selectable
+/// summary line (label · name · system count + override flags) that fits the
+/// narrow rail; selection is pure view state, set directly. Replaces the wide
+/// 6-column grid that did not fit a side panel.
 fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
+    ui.add_space(2.0);
     ui.label(RichText::new("clusters").strong());
     if subs.is_empty() {
         ui_kit::placeholder(ui, "No subsectors (sector empty).");
         return;
     }
-    egui::Grid::new("subsectors_list")
-        .num_columns(6)
-        .striped(true)
+    let mut pick: Option<String> = None;
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
         .show(ui, |ui| {
-            ui.label(RichText::new("label").strong());
-            ui.label(RichText::new("name").strong());
-            ui.label(RichText::new("capital").strong());
-            ui.label(RichText::new("systems").strong());
-            ui.label(RichText::new("dominant").strong());
-            ui.label(RichText::new("flags").strong());
-            ui.end_row();
             for s in subs {
                 let selected = state.selected_subsector_id.as_deref() == Some(s.id.as_ref());
-                if ui
-                    .selectable_label(selected, RichText::new(s.label.as_ref()).monospace())
-                    .clicked()
-                {
-                    state.selected_subsector_id = Some(s.id.to_string());
-                }
                 let name_part = s
                     .name
                     .strip_prefix("Subsector")
-                    .unwrap_or_else(|| s.name.as_ref());
-                ui.label(name_part);
-                ui.label(capital_label(state, s));
-                ui.label(format!("{}", s.system_ids.len()));
-                ui.label(dominant_label(s));
-                let mut flags = String::new();
+                    .unwrap_or_else(|| s.name.as_ref())
+                    .trim();
+                let line = format!("{}  {}  ({})", s.label, name_part, s.system_ids.len());
+                if ui.selectable_label(selected, line).clicked() {
+                    pick = Some(s.id.to_string());
+                }
+                let mut flags: Vec<&str> = Vec::new();
                 if state.subsector_manual.contains(s.id.as_ref()) {
-                    flags.push_str("manual");
+                    flags.push("manual");
                 }
                 if state
                     .subsector_capital_overrides
                     .contains_key(s.id.as_ref())
                 {
-                    flags.push_str("cap-override");
+                    flags.push("cap-override");
                 }
                 if state.subsector_colour_overrides.contains_key(s.id.as_ref()) {
-                    flags.push_str("colour");
+                    flags.push("colour");
                 }
-                ui.colored_label(Color32::DARK_GRAY, flags.trim_end());
-                ui.end_row();
+                if !flags.is_empty() {
+                    ui.colored_label(
+                        Color32::DARK_GRAY,
+                        RichText::new(format!("   {}", flags.join(" · "))).size(11.0),
+                    );
+                }
             }
         });
-}
-
-fn capital_label(state: &BuilderState, s: &Subsector) -> String {
-    let cap = s
-        .summary
-        .subsector_capital_system_id
-        .as_deref()
-        .unwrap_or("—");
-    if cap == "—" {
-        return "—".into();
+    if let Some(id) = pick {
+        state.selected_subsector_id = Some(id);
     }
-    let name = state
-        .sector
-        .systems
-        .iter()
-        .find(|sys| sys.id.as_str() == cap)
-        .map(|sys| sys.name.to_string())
-        .unwrap_or_else(|| cap.to_string());
-    name
-}
-
-fn dominant_label(s: &Subsector) -> String {
-    s.summary
-        .controlling_faction_id
-        .as_deref()
-        .map(|id| id.to_string())
-        .unwrap_or_else(|| "—".into())
 }
 
 // ── §SUB3..§SUB5 inspector ───────────────────────────────────────────────────
 
 fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     let Some(selected) = state.selected_subsector_id.clone() else {
-        ui.colored_label(Color32::GRAY, "Pick a subsector above to edit.");
+        ui_kit::placeholder(ui, "Select a subsector from the roster on the left.");
         return;
     };
     let Some(target) = subs.iter().find(|s| s.id.as_ref() == selected.as_str()) else {
@@ -279,6 +257,17 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
         return;
     };
 
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| show_inspector_body(ui, state, target, subs));
+}
+
+fn show_inspector_body(
+    ui: &mut Ui,
+    state: &mut BuilderState,
+    target: &Subsector,
+    subs: &[Subsector],
+) {
     egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.label(RichText::new(&*target.label).strong().monospace());

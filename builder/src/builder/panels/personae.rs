@@ -81,21 +81,39 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_header_actions(ui, state);
-            ui.separator();
-            show_dominance_section(ui, state);
-            ui.separator();
-            show_persona_table(ui, state);
-            ui.separator();
-            show_manual_editor(ui, state);
-            ui.separator();
-            show_kind_pools_section(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+    // §COLUMNS — global controls (auto-derive / player toggle) stay full-width
+    // on top, then master-detail: the derived persona roster pins to a
+    // resizable left rail and the selected-persona detail + dominance / manual /
+    // pool editors + save fill the rest. Replaces the single-column stack whose
+    // wide derived-persona grid forced a horizontal scroll.
+    show_header_actions(ui, state);
+    ui.separator();
+
+    egui::SidePanel::left("personae_roster")
+        .resizable(true)
+        .default_width(300.0)
+        .width_range(220.0..=520.0)
+        .show_inside(ui, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| show_persona_roster(ui, state));
         });
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                show_persona_detail(ui, state);
+                ui.separator();
+                show_dominance_section(ui, state);
+                ui.separator();
+                show_manual_editor(ui, state);
+                ui.separator();
+                show_kind_pools_section(ui, state);
+                ui.separator();
+                show_save_row(ui, state);
+            });
+    });
 }
 
 // ── §PER3 header actions ────────────────────────────────────────────────────
@@ -184,9 +202,12 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-// ── §PER2 + §PER5 persona table ─────────────────────────────────────────────
+// ── §PER2 + §PER5 persona roster (left rail) ─────────────────────────────────
 
-fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
+/// §COLUMNS — left-rail roster of derived personae (master pane). A selectable
+/// name line per persona with a faction/anchor subline; selecting a row sets
+/// `selected_persona_id` (pure view state) and the detail fills the right pane.
+fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("derived personae").strong());
     let Some(report) = state.personae_report.clone() else {
         ui.colored_label(
@@ -203,63 +224,95 @@ fn show_persona_table(ui: &mut Ui, state: &mut BuilderState) {
         return;
     }
     let selected = state.selected_persona_id.clone();
-    egui::ScrollArea::horizontal()
-        .id_salt("per_grid_scroll")
-        .show(ui, |ui| {
-            egui::Grid::new("per_grid")
-                .striped(true)
-                .min_col_width(80.0)
-                .show(ui, |ui| {
-                    ui.label(RichText::new("Faction").strong());
-                    ui.label(RichText::new("Kind").strong());
-                    ui.label(RichText::new("Anchor").strong());
-                    ui.label(RichText::new("Name").strong());
-                    ui.label(RichText::new("Title").strong());
-                    ui.label(RichText::new("Traits").strong());
-                    ui.label(RichText::new("Agenda").strong());
-                    ui.label(RichText::new("").strong());
-                    ui.end_row();
+    for p in &report.personae {
+        let is_selected = selected.as_deref() == Some(p.id.as_str());
+        let name = if p.name.is_empty() {
+            p.faction_id.to_string()
+        } else {
+            p.name.clone()
+        };
+        if ui
+            .selectable_label(is_selected, RichText::new(name).strong())
+            .clicked()
+        {
+            state.selected_persona_id = Some(p.id.to_string());
+        }
+        ui.colored_label(
+            Color32::DARK_GRAY,
+            format!("{} · {}", p.faction_id, anchor_label(&p.anchor)),
+        );
+        ui.separator();
+    }
+}
 
-                    for p in &report.personae {
-                        let is_selected = selected.as_deref() == Some(p.id.as_str());
-                        if ui
-                            .selectable_label(is_selected, p.faction_id.to_string())
-                            .clicked()
-                        {
-                            state.selected_persona_id = Some(p.id.to_string());
-                            state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
-                        }
-                        ui.label(if p.faction_kind.is_empty() {
-                            RichText::new("—").color(Color32::DARK_GRAY)
-                        } else {
-                            RichText::new(p.faction_kind.clone())
-                        });
-                        show_anchor_link(ui, state, p);
-                        ui.label(RichText::new(p.name.clone()).strong());
-                        ui.label(p.title.clone());
-                        ui.label(if p.traits.is_empty() {
-                            RichText::new("—").color(Color32::DARK_GRAY)
-                        } else {
-                            RichText::new(p.traits.join(","))
-                        });
-                        ui.label(p.agenda.clone()).on_hover_text(format!(
-                            "Source: kind = {}\nfaction = {}\nanchor = {}",
-                            if p.faction_kind.is_empty() {
-                                "(unknown)"
-                            } else {
-                                p.faction_kind.as_str()
-                            },
-                            p.faction_id,
-                            anchor_label(&p.anchor),
-                        ));
-                        if ui.button("edit").clicked() {
-                            state.selected_persona_id = Some(p.id.to_string());
-                            state.personae_edit_target = Some(p.id.to_string());
-                        }
-                        ui.end_row();
-                    }
-                });
+// ── §PER2 + §PER5 persona detail (right pane) ───────────────────────────────
+
+/// §COLUMNS — right detail pane for the persona selected in the roster. Mirrors
+/// the old table columns (kind / anchor / name / title / traits / agenda) as a
+/// key/value card plus the faction + anchor deep-links and the "edit manual"
+/// jump that the table's per-row buttons provided.
+fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
+    let Some(report) = state.personae_report.clone() else {
+        ui_kit::placeholder(ui, "Select a persona from the roster on the left.");
+        return;
+    };
+    let Some(sel) = state.selected_persona_id.clone() else {
+        ui_kit::placeholder(ui, "Select a persona from the roster on the left.");
+        return;
+    };
+    let Some(p) = report.personae.iter().find(|p| p.id.as_str() == sel) else {
+        ui.colored_label(
+            Color32::GRAY,
+            "Selected persona is gone — re-derive to refresh.",
+        );
+        return;
+    };
+    ui.label(RichText::new(p.name.clone()).strong().size(ui_kit::SECTION));
+    egui::Grid::new("per_detail_grid")
+        .num_columns(2)
+        .striped(true)
+        .show(ui, |ui| {
+            ui.label("faction");
+            if ui.link(p.faction_id.to_string()).clicked() {
+                state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
+            }
+            ui.end_row();
+            ui.label("kind");
+            if p.faction_kind.is_empty() {
+                ui.colored_label(Color32::DARK_GRAY, "—");
+            } else {
+                ui.label(p.faction_kind.clone());
+            }
+            ui.end_row();
+            ui.label("anchor");
+            show_anchor_link(ui, state, p);
+            ui.end_row();
+            ui.label("title");
+            ui.label(p.title.clone());
+            ui.end_row();
+            ui.label("traits");
+            if p.traits.is_empty() {
+                ui.colored_label(Color32::DARK_GRAY, "—");
+            } else {
+                ui.label(p.traits.join(", "));
+            }
+            ui.end_row();
+            ui.label("agenda");
+            ui.label(p.agenda.clone()).on_hover_text(format!(
+                "Source: kind = {}\nfaction = {}\nanchor = {}",
+                if p.faction_kind.is_empty() {
+                    "(unknown)"
+                } else {
+                    p.faction_kind.as_str()
+                },
+                p.faction_id,
+                anchor_label(&p.anchor),
+            ));
+            ui.end_row();
         });
+    if ui.button("edit as manual persona").clicked() {
+        state.personae_edit_target = Some(p.id.to_string());
+    }
 }
 
 fn show_anchor_link(ui: &mut Ui, state: &mut BuilderState, p: &Persona) {

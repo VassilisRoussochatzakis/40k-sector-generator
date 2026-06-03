@@ -287,105 +287,178 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         ui.colored_label(Color32::from_rgb(220, 80, 80), err);
     }
 
-    let mut apply_seed: Option<String> = None;
-    let mut view_seed: Option<String> = None;
-    if let Some(outcome) = state.search.outcome.clone() {
-        ui.separator();
-        ui.heading("§SR3 — Outcome");
-        ui.label(
-            RichText::new(format!(
-                "base `{}` · budget {} · evaluated {}",
-                outcome.base_seed, outcome.budget, outcome.candidates_evaluated
-            ))
-            .monospace(),
-        );
+    show_outcome(ui, state);
+}
 
-        if !outcome.preflight_errors.is_empty() {
-            for e in &outcome.preflight_errors {
-                ui.colored_label(Color32::from_rgb(220, 80, 80), e);
-            }
-        }
+// ── §SR3 outcome (§COLUMNS master-detail) ────────────────────────────────────
 
-        if let Some(win) = &outcome.winning {
-            ui.add_space(6.0);
-            ui.colored_label(
-                Color32::from_rgb(90, 200, 120),
-                format!("WINNER — candidate #{} · seed `{}`", win.n, win.seed),
-            );
-            ui.horizontal(|ui| {
-                if ui.button("Apply winning seed").clicked() {
-                    apply_seed = Some(win.seed.clone());
-                }
-                if ui.button("View on map").clicked() {
-                    view_seed = Some(win.seed.clone());
-                }
-            });
-            ui_kit::collapsing_section(
-                ui,
-                "sr_winning_constraints",
-                "constraints (all satisfied)",
-                false,
-                |ui| {
-                    for c in &win.constraints {
-                        ui.label(
-                            RichText::new(format!(
-                                "✓ {} · obs {} · req {}",
-                                c.label, c.observed, c.required
-                            ))
-                            .monospace(),
-                        );
-                    }
-                },
-            );
-        } else if outcome.preflight_errors.is_empty() {
+/// §COLUMNS — renders the §SR3 outcome as master-detail: the candidate roster
+/// (winner + near misses) pins to a left rail, the selected hit's full
+/// constraint breakdown + Apply/View controls fill the central pane. Which hit
+/// is shown is pure view state, so it lives in an `ui.data` temp keyed to the
+/// outcome's `base_seed` (no `SearchState` field exists for it). Apply/View are
+/// likewise threaded out through a temp and run after the split closes so the
+/// model edit isn't held across the rail/detail `&mut state` borrows.
+fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
+    let Some(outcome) = state.search.outcome.clone() else {
+        return;
+    };
+    ui.separator();
+    ui.heading("§SR3 — Outcome");
+    ui.label(
+        RichText::new(format!(
+            "base `{}` · budget {} · evaluated {}",
+            outcome.base_seed, outcome.budget, outcome.candidates_evaluated
+        ))
+        .monospace(),
+    );
+    for e in &outcome.preflight_errors {
+        ui.colored_label(Color32::from_rgb(220, 80, 80), e);
+    }
+
+    // Default the selection to the winner, else the first near miss. The temp
+    // is re-seeded whenever the stored selection no longer matches a row in the
+    // current outcome (e.g. a fresh search produced a different candidate set).
+    let sel_id = egui::Id::new(("sr_selected_seed", outcome.base_seed.as_str()));
+    let valid = |seed: &str| -> bool {
+        outcome.winning.as_ref().is_some_and(|w| w.seed == seed)
+            || outcome.near_misses.iter().any(|c| c.seed == seed)
+    };
+    let default_seed = outcome
+        .winning
+        .as_ref()
+        .map(|w| w.seed.clone())
+        .or_else(|| outcome.near_misses.first().map(|c| c.seed.clone()));
+    let mut selected: Option<String> = ui.data_mut(|d| d.get_temp::<String>(sel_id));
+    if selected.as_deref().map(&valid) != Some(true) {
+        selected = default_seed.clone();
+    }
+
+    if outcome.winning.is_none() && outcome.near_misses.is_empty() {
+        if outcome.preflight_errors.is_empty() {
             ui.add_space(6.0);
             ui.colored_label(
                 Color32::from_rgb(235, 180, 50),
                 "No seed satisfied every constraint within the budget.",
             );
         }
+        return;
+    }
 
-        if !outcome.near_misses.is_empty() {
-            ui.add_space(6.0);
-            ui_kit::collapsing_section(
-                ui,
-                "sr_near_misses",
-                &format!("Near misses ({})", outcome.near_misses.len()),
-                true,
-                |ui| {
-                    for cand in &outcome.near_misses {
-                        ui.group(|ui| {
-                            ui.horizontal(|ui| {
-                                ui.label(
+    // Left rail: candidate roster. Right pane: selected-hit detail. The list
+    // closure runs fully (setting the selection temp) before the detail closure,
+    // so each may borrow `&mut state`-free `ui.data` in turn.
+    egui::SidePanel::left("search_results")
+        .resizable(true)
+        .default_width(260.0)
+        .width_range(180.0..=460.0)
+        .show_inside(ui, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    if let Some(win) = &outcome.winning {
+                        let sel = selected.as_deref() == Some(win.seed.as_str());
+                        if ui
+                            .selectable_label(
+                                sel,
+                                RichText::new(format!("★ WINNER #{} · {}", win.n, win.seed))
+                                    .monospace()
+                                    .color(Color32::from_rgb(90, 200, 120)),
+                            )
+                            .clicked()
+                        {
+                            selected = Some(win.seed.clone());
+                        }
+                    }
+                    if !outcome.near_misses.is_empty() {
+                        ui.add_space(4.0);
+                        ui.label(
+                            RichText::new(format!("Near misses ({})", outcome.near_misses.len()))
+                                .strong(),
+                        );
+                        for cand in &outcome.near_misses {
+                            let sel = selected.as_deref() == Some(cand.seed.as_str());
+                            if ui
+                                .selectable_label(
+                                    sel,
                                     RichText::new(format!(
-                                        "#{} · seed `{}` · miss {:.3}",
+                                        "#{} · {} · miss {:.3}",
                                         cand.n, cand.seed, cand.total_miss
                                     ))
                                     .monospace(),
-                                );
-                                if ui.small_button("View").clicked() {
-                                    view_seed = Some(cand.seed.clone());
-                                }
-                                if ui.small_button("Apply").clicked() {
-                                    apply_seed = Some(cand.seed.clone());
-                                }
-                            });
-                            for c in cand.constraints.iter().filter(|c| !c.passed) {
-                                ui.label(
-                                    RichText::new(format!(
-                                        "✗ {} · obs {} · req {}",
-                                        c.label, c.observed, c.required
-                                    ))
-                                    .monospace()
-                                    .color(Color32::from_rgb(200, 120, 120)),
-                                );
+                                )
+                                .clicked()
+                            {
+                                selected = Some(cand.seed.clone());
                             }
-                        });
+                        }
                     }
-                },
-            );
-        }
-    }
+                });
+            if let Some(seed) = &selected {
+                ui.data_mut(|d| d.insert_temp(sel_id, seed.clone()));
+            }
+        });
+
+    let mut apply_seed: Option<String> = None;
+    let mut view_seed: Option<String> = None;
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        let Some(seed) = selected.clone() else {
+            ui_kit::placeholder(ui, "Select a candidate from the roster on the left.");
+            return;
+        };
+        let Some(cand) = outcome
+            .winning
+            .iter()
+            .chain(outcome.near_misses.iter())
+            .find(|c| c.seed == seed)
+        else {
+            ui_kit::placeholder(ui, "Candidate no longer in the current outcome.");
+            return;
+        };
+        let is_winner = outcome.winning.as_ref().is_some_and(|w| w.seed == seed);
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                if is_winner {
+                    ui.colored_label(
+                        Color32::from_rgb(90, 200, 120),
+                        format!("WINNER — candidate #{} · seed `{}`", cand.n, cand.seed),
+                    );
+                } else {
+                    ui.colored_label(
+                        Color32::from_rgb(235, 180, 50),
+                        format!(
+                            "Near miss — candidate #{} · seed `{}` · total miss {:.3}",
+                            cand.n, cand.seed, cand.total_miss
+                        ),
+                    );
+                }
+                ui.horizontal(|ui| {
+                    if ui.button("Apply seed").clicked() {
+                        apply_seed = Some(cand.seed.clone());
+                    }
+                    if ui.button("View on map").clicked() {
+                        view_seed = Some(cand.seed.clone());
+                    }
+                });
+                ui.separator();
+                for c in &cand.constraints {
+                    let (mark, col) = if c.passed {
+                        ("✓", Color32::from_rgb(120, 200, 130))
+                    } else {
+                        ("✗", Color32::from_rgb(200, 120, 120))
+                    };
+                    ui.label(
+                        RichText::new(format!(
+                            "{mark} {} · obs {} · req {}",
+                            c.label, c.observed, c.required
+                        ))
+                        .monospace()
+                        .color(col),
+                    );
+                }
+            });
+    });
 
     // Apply / view regenerate the working sector from the chosen seed. Apply
     // commits (dirty + auto-save) and jumps to MAP; View is a non-destructive

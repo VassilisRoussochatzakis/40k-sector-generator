@@ -1813,6 +1813,20 @@ pre-sized dropdown), and monospace text helpers (`mono`, `mono_title`,
 `&mut Ui` + plain data and has **no** `BuilderState` dependency, so both apps
 share it. `info_panel` already routes its text helpers through it.
 
+The §COLUMNS overhaul (Phase 6) adds two width-driven layout helpers to the
+same module: `ui_kit::columns_responsive(ui, want, min_col_w, |cols| …)` flows
+independent section boxes across as many equal columns as fit (each kept
+≥ `min_col_w`) and **collapses to a single column** on a narrow window — the
+closure receives `cols: &mut [Ui]` and must handle `cols.len() == 1`; and
+`ui_kit::reading_column(ui, max_w, |ui| …)` width-caps prose / markdown to a
+readable line length (callers pass `720.0`). Both keep the same `&mut Ui` +
+plain-data contract and are smoke-covered by `widgets_paint_headless`. (The
+`master_detail` wrapper sketched in COLUMNS.md §4.3 was deliberately **not**
+added: passing two `&mut state`-capturing closures to one helper is two
+simultaneous mutable borrows at the call site and will not compile — panels use
+the inline `SidePanel` + `CentralPanel` pair as two separate statements
+instead, so the first borrow ends before the second begins.)
+
 **App shell + panel migration** (overhaul Phases 2–5, all landed). The shell and
 every panel now read as the three §UO tiers — app chrome → titled section boxes →
 field rows:
@@ -1846,6 +1860,40 @@ field rows:
   [dashboard.rs](viewer/src/dashboard.rs) wraps each analytic block in
   `ui_kit::section`. The planner sits in a framed `SidePanel` and export is a
   modal `Window`, so both are already contained.
+- *Phase 6 — responsive panel layout* (§COLUMNS, [COLUMNS.md](COLUMNS.md)).
+  Every builder tab previously rendered as a single vertical column inside
+  `ScrollArea::vertical().auto_shrink([false; 2])`, stacking full-width section
+  boxes whose narrow contents left ~1000 px of dead gutter at the default
+  1400 px window (`world.rs` alone stacked 18 sections). Each tab now uses one
+  of three shapes **inside that same scroll area** (the scroll area is kept, not
+  removed — the fix is multi-column / bounded content within it):
+  - **Master-detail** — a persistent left `SidePanel` roster + a filling
+    `CentralPanel` inspector, for list-shaped tabs: World, System, Sites,
+    Personae, Hooks, Missions, Search, Validation, Invariants, Subsectors,
+    Routes (Factions already had this shape). Regions uses a three-pane variant
+    (region-table rail · paint/glyph centre · `regions_config` rail). Every
+    `SidePanel` carries a unique, stable string `Id` (never derived from
+    selection, so egui persists its resize width); selection is pure view state,
+    written directly — *not* through the command bus.
+  - **Responsive columns** (`columns_responsive`) — inspector/form tabs flow
+    their section boxes across 2–3 columns and collapse to 1 when narrow: the
+    World / System / Factions inspectors, Control, Economy, History, Prose,
+    Briefing, Export, Project, Interestingness, Diff. The `system.rs` hard
+    `ui.columns(2)` (which panicked-on-`cols[1]` when collapsed) was promoted to
+    this width-gated form. Sections are run sequentially against the column
+    slice (reborrowing `state` / a local `draft` each call) — never collected
+    into a `Vec<Box<dyn FnOnce>>`, which would be a borrow-check error.
+  - **Dashboard** — read-only metric reports lay their cards across a responsive
+    grid instead of a 20-row stack: Analytics (3–4 columns), Segmentum.
+
+  Prose, briefing, the export markdown preview, and the validation / invariant
+  detail panes width-cap their readable text with `reading_column`. The Map tab
+  keeps its hex canvas central and filling, with the `tool:` toolbox + zoom +
+  §35 theme/heatmap controls moved into a left `map_tools` rail (the canvas's
+  pointer/drag math is relative to its self-allocated rect, so it is unaffected
+  by the larger container). As with Phases 2–5 this is presentational only —
+  every mutation still routes through `state.run(BuilderCommand::…)`; no command
+  dispatch, map painter, or export writer changed.
 
 None of this touches the map painters or export writers, so the golden tests stay
 byte-stable throughout (§UO8 guardrail).

@@ -93,6 +93,42 @@ pub fn field(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui)) {
     });
 }
 
+// ── tier-2.5: responsive multi-column + reading-width (§COLUMNS) ─────────────
+
+/// Like [`egui::Ui::columns`] but chooses the column count from the available
+/// width: up to `want` columns while each keeps ≥ `min_col_w`, otherwise fewer,
+/// down to 1. The closure receives a slice of the chosen length — it MUST
+/// handle `cols.len() == 1` (everything stacked on a narrow window).
+///
+/// This is the core fix for the one-column-stack panels: a panel whose sections
+/// are independent framed boxes flows them side-by-side on a wide window and
+/// collapses cleanly to a single column on a laptop, instead of painting a tall
+/// skinny ribbon down the left edge with a vast empty gutter on the right.
+pub fn columns_responsive<R>(
+    ui: &mut Ui,
+    want: usize,
+    min_col_w: f32,
+    add: impl FnOnce(&mut [Ui]) -> R,
+) -> R {
+    let spacing = ui.spacing().item_spacing.x;
+    let avail = ui.available_width();
+    let fit = ((avail + spacing) / (min_col_w + spacing)).floor() as usize;
+    let n = fit.clamp(1, want.max(1));
+    ui.columns(n, add)
+}
+
+/// Constrain `add` to at most `max_w` and left-align it, so prose / markdown /
+/// help text keep a readable line length on a wide window instead of running
+/// edge-to-edge. Callers typically pass `720.0`.
+pub fn reading_column<R>(ui: &mut Ui, max_w: f32, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let w = ui.available_width().min(max_w);
+    ui.allocate_ui(egui::vec2(w, 0.0), |ui| {
+        ui.set_width(w);
+        add(ui)
+    })
+    .inner
+}
+
 // ── dropdowns ───────────────────────────────────────────────────────────────
 
 /// A pre-sized [`egui::ComboBox`]. Caller chains `.show_ui(ui, |ui| { … })`.
@@ -180,6 +216,16 @@ mod tests {
             mono_title(ui, "SECTOR");
             mono_section(ui, "ROUTES (3)");
             mono_body(ui, "→ macragge");
+            // §COLUMNS helpers — both collapse paths exercised by the headless
+            // width; `cols.len()` may be 1, so the closure must not index [1].
+            columns_responsive(ui, 3, 200.0, |cols| {
+                for c in cols.iter_mut() {
+                    c.label("metric");
+                }
+            });
+            reading_column(ui, 720.0, |ui| {
+                ui.label("a width-capped paragraph of readable prose");
+            });
         });
     }
 }

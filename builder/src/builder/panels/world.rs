@@ -40,86 +40,124 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         return;
     }
 
-    show_world_picker(ui, state);
+    // §COLUMNS — master-detail: a persistent world roster on the left rail and
+    // the RC-2 inspector filling the rest. Replaces the picker + 18-section
+    // single-column stack that left ~1000 px of dead gutter at 1400 px wide.
+    egui::SidePanel::left("world_roster")
+        .resizable(true)
+        .default_width(240.0)
+        .width_range(180.0..=420.0)
+        .show_inside(ui, |ui| show_world_roster(ui, state));
+
+    egui::CentralPanel::default().show_inside(ui, |ui| show_world_inspector(ui, state));
+}
+
+// ── roster / inspector / header ─────────────────────────────────────────────
+
+/// §COLUMNS — left-rail world roster (master pane), grouped by parent system.
+/// Clicking a row selects the world; selection is pure view state, so it is set
+/// directly (no command bus needed — only model edits route through `state.run`).
+fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
+    ui.add_space(2.0);
+    let current = state.selected_world_id.clone();
+    let mut pick = None;
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            for sys in &state.sector.systems {
+                if sys.worlds.is_empty() {
+                    continue;
+                }
+                ui_kit::collapsing_section(
+                    ui,
+                    ("world_roster_sys", sys.id.as_str()),
+                    &format!("{} ({})", sys.name, sys.worlds.len()),
+                    true,
+                    |ui| {
+                        for w in &sys.worlds {
+                            let sel = current.as_ref() == Some(&w.id);
+                            if ui
+                                .selectable_label(sel, format!("{} — {}", w.name, w.id))
+                                .clicked()
+                            {
+                                pick = Some((sys.id.clone(), w.id.clone()));
+                            }
+                        }
+                    },
+                );
+            }
+        });
+    if let Some((sid, wid)) = pick {
+        state.selected_world_id = Some(wid);
+        state.selected_system_id = Some(sid);
+    }
+}
+
+/// §COLUMNS — right detail pane: a full-width header, then the §W1..§W7 sections
+/// flowed across responsive columns (2 at 1400 px, collapsing to 1 when narrow).
+/// The injected conflict / surface-region / intel sub-sections just become
+/// columns like any other section.
+fn show_world_inspector(ui: &mut Ui, state: &mut BuilderState) {
+    let selected = state.selected_world_id.clone();
+    let Some(wid) = selected else {
+        ui_kit::placeholder(ui, "Select a world from the roster on the left.");
+        return;
+    };
+    let Some((sys_idx, w_idx)) = state.find_world_indices(&wid) else {
+        state.selected_world_id = None;
+        return;
+    };
+
+    show_header(ui, state, sys_idx, w_idx);
     ui.separator();
 
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            let selected = state.selected_world_id.clone();
-            let Some(wid) = selected else {
-                ui_kit::placeholder(ui, "Select a world from the picker.");
-                return;
-            };
-
-            let Some((sys_idx, w_idx)) = state.find_world_indices(&wid) else {
-                state.selected_world_id = None;
-                return;
-            };
-
-            show_header(ui, state, sys_idx, w_idx);
-            ui.separator();
-            show_identity_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_classification_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_environment_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_society_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_features_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_coupling_warnings(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_tags_notes_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_factions_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_claims_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_control_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_overlays_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            crate::builder::panels::conflict::show_world_conflict_section(
-                ui, state, sys_idx, w_idx,
-            );
-            ui.add_space(4.0);
-            crate::builder::panels::surface_regions::show_surface_regions_section(
-                ui, state, sys_idx, w_idx,
-            );
-            ui.add_space(4.0);
-            crate::builder::panels::intel::show_world_intel_section(ui, state, sys_idx, w_idx);
-            ui.add_space(4.0);
-            show_chronicle_section(ui, state, sys_idx, w_idx);
-            ui.add_space(8.0);
-            show_regen_section(ui, state, sys_idx, w_idx);
-        });
-}
-
-// ── picker / header ─────────────────────────────────────────────────────────
-
-fn show_world_picker(ui: &mut Ui, state: &mut BuilderState) {
-    ui.horizontal(|ui| {
-        ui.label("world:");
-        let current = state.selected_world_id.clone();
-        let label = current
-            .as_ref()
-            .map(|id| id.to_string())
-            .unwrap_or_else(|| "(none)".into());
-        ui_kit::combo("world_picker", label).show_ui(ui, |ui| {
-            for sys in &state.sector.systems {
-                for w in &sys.worlds {
-                    let sel = current.as_ref() == Some(&w.id);
-                    let label = format!("{} — {} ({})", w.id, w.name, sys.name);
-                    if ui.selectable_label(sel, label).clicked() {
-                        state.selected_world_id = Some(w.id.clone());
-                        state.selected_system_id = Some(sys.id.clone());
-                    }
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                let mut next = 0usize;
+                macro_rules! col {
+                    () => {{
+                        let c = &mut cols[next % n];
+                        next += 1;
+                        c
+                    }};
                 }
-            }
+                show_identity_section(col!(), state, sys_idx, w_idx);
+                show_classification_section(col!(), state, sys_idx, w_idx);
+                show_environment_section(col!(), state, sys_idx, w_idx);
+                show_society_section(col!(), state, sys_idx, w_idx);
+                show_features_section(col!(), state, sys_idx, w_idx);
+                show_coupling_warnings(col!(), state, sys_idx, w_idx);
+                show_tags_notes_section(col!(), state, sys_idx, w_idx);
+                show_factions_section(col!(), state, sys_idx, w_idx);
+                show_claims_section(col!(), state, sys_idx, w_idx);
+                show_control_section(col!(), state, sys_idx, w_idx);
+                show_overlays_section(col!(), state, sys_idx, w_idx);
+                crate::builder::panels::conflict::show_world_conflict_section(
+                    col!(),
+                    state,
+                    sys_idx,
+                    w_idx,
+                );
+                crate::builder::panels::surface_regions::show_surface_regions_section(
+                    col!(),
+                    state,
+                    sys_idx,
+                    w_idx,
+                );
+                crate::builder::panels::intel::show_world_intel_section(
+                    col!(),
+                    state,
+                    sys_idx,
+                    w_idx,
+                );
+                show_chronicle_section(col!(), state, sys_idx, w_idx);
+                show_regen_section(col!(), state, sys_idx, w_idx);
+                let _ = next; // final col!() bump is intentionally unread
+            });
         });
-    });
 }
 
 fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {

@@ -92,13 +92,29 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         .id_salt("int_root_scroll")
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            show_profile_row(ui, state);
-            ui.separator();
-            show_score_row(ui, state);
-            ui.separator();
-            show_metrics_chart(ui, state);
-            ui.separator();
-            show_custom_editor(ui, state);
+            // §COLUMNS — RC-2: the §INT1 profile / §INT2 score / §INT4 override
+            // editor flow down the left column; the §INT3 per-metric band chart
+            // (which wants horizontal room for its bars) fills the right column.
+            // Collapses to one stacked column on a narrow window.
+            ui_kit::columns_responsive(ui, 2, 360.0, |cols| {
+                let n = cols.len();
+                {
+                    let left = &mut cols[0];
+                    show_profile_row(left, state);
+                    left.separator();
+                    show_score_row(left, state);
+                    left.separator();
+                    show_custom_editor(left, state);
+                }
+                {
+                    // Right column, or the same single column when collapsed.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    if n == 1 {
+                        right.separator();
+                    }
+                    show_metrics_chart(right, state);
+                }
+            });
         });
 }
 

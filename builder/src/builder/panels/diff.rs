@@ -393,12 +393,29 @@ fn show_report(ui: &mut egui::Ui, state: &mut BuilderState) {
         .id_salt("diff_tree_scroll")
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            show_systems(ui, d);
-            show_routes(ui, d);
-            show_factions(ui, d);
-            show_regions(ui, d);
-            show_relations(ui, d);
-            show_economy(ui, d);
+            // §COLUMNS — the SectorDiff is one unified delta tree (each line is a
+            // baked before→after change, not a naturally two-sided A|B table), so
+            // rather than a side-by-side split we flow the six stratum cards
+            // across a responsive 2-column board. Collapses to one column when
+            // narrow via the `% n` round-robin.
+            ui_kit::columns_responsive(ui, 2, 420.0, |cols| {
+                let n = cols.len();
+                let mut next = 0usize;
+                macro_rules! col {
+                    () => {{
+                        let c = &mut cols[next % n];
+                        next += 1;
+                        c
+                    }};
+                }
+                show_systems(col!(), d);
+                show_routes(col!(), d);
+                show_factions(col!(), d);
+                show_regions(col!(), d);
+                show_relations(col!(), d);
+                show_economy(col!(), d);
+                let _ = next; // final col!() bump is intentionally unread
+            });
         });
 }
 

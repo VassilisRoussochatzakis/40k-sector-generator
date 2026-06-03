@@ -71,6 +71,12 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
+    // §COLUMNS — top actions + sector-balance summary stay full-width, then the
+    // editor surfaces split: per-world / per-system overrides + the economy.toml
+    // editor on the LEFT, and the width-hungry preview surfaces (stranded list,
+    // lifeline lanes, heatmap picker) on the RIGHT. Hand-assigned rather than
+    // round-robin so the override editors stay grouped; collapses to one column
+    // (`cols[if n>1 {1} else {0}]`) on a narrow window.
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
@@ -78,12 +84,30 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.separator();
             show_sector_summary(ui, state);
             ui.separator();
-            show_world_override_editor(ui, state);
-            show_system_override_editor(ui, state);
-            show_stranded_list(ui, state);
-            show_lifeline_panel(ui, state);
-            show_heatmap_picker(ui, state);
-            show_economy_config_editor(ui, state);
+
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                {
+                    // Left column: the per-world / per-system override editors and
+                    // the economy.toml config editor.
+                    let left = &mut cols[0];
+                    show_world_override_editor(left, state);
+                    left.add_space(4.0);
+                    show_system_override_editor(left, state);
+                    left.add_space(4.0);
+                    show_economy_config_editor(left, state);
+                }
+                {
+                    // Right column — or the same single column when collapsed:
+                    // the width-hungry preview surfaces.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    show_stranded_list(right, state);
+                    right.add_space(4.0);
+                    show_lifeline_panel(right, state);
+                    right.add_space(4.0);
+                    show_heatmap_picker(right, state);
+                }
+            });
         });
 }
 

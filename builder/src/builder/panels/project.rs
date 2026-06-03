@@ -13,76 +13,142 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Project");
     ui.add_space(4.0);
 
-    ui.horizontal_wrapped(|ui| {
-        if ui.button("New project…").clicked() {
-            state.modal = Some(ModalKind::NewProject {
-                name: "new-sector".to_string(),
-                title: "New Sector".to_string(),
-                seed: "seed-1".to_string(),
-                width: 8,
-                height: 10,
-            });
-        }
-        if ui.button("Open project…").clicked() {
-            state.modal = Some(ModalKind::OpenProject { path: None });
-        }
-        if ui
-            .button("Random sector…")
-            .on_hover_text(
-                "RANDOM.md — synthesise a fully-complete, fully-randomised sector \
-                 from just a size (every overlay enabled)",
-            )
-            .clicked()
+    // §COLUMNS — RC-2: project actions + read-only metadata on the left, the
+    // project Tree + recent + the §PF2 Files / §PF3 World-data editors on the
+    // right. Hand-assigned (not round-robin) so the action buttons + metadata
+    // stay grouped in column 0 and the heavier editors flow into column 1; when
+    // the window is narrow the two columns collapse to one and everything stacks.
+    ui_kit::columns_responsive(ui, 2, 360.0, |cols| {
+        let n = cols.len();
         {
-            state.modal = Some(ModalKind::GenerateRandom {
-                size: "medium".to_string(),
-                custom_w: 10,
-                custom_h: 12,
-                seed: String::new(),
-                baseline: "_full".to_string(),
-            });
-        }
-        save_project::show(ui, state);
-        // §PF5: single "Save all" — flush every dirty TOML editor buffer, then
-        // run the full project save.
-        let any_dirty = state.dirty || !state.dirty_files.is_empty();
-        if ui
-            .add_enabled(
-                state.project_path.is_some() && any_dirty,
-                egui::Button::new("Save all"),
-            )
-            .on_hover_text("§PF5 — flush every dirty file + save the whole project")
-            .clicked()
-        {
-            if let Err(e) = files::save_all(state) {
-                state.modal = Some(ModalKind::Message(format!("Save all failed: {e}")));
-            }
-        }
-    });
-    ui.separator();
-
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            ui_kit::collapsing_section(ui, "proj_tree", "Tree", true, |ui| {
-                project_tree::show(ui, state)
-            });
-            ui_kit::collapsing_section(ui, "proj_files", "Files (§PF2)", false, |ui| {
-                files::show(ui, state)
-            });
-            ui_kit::collapsing_section(ui, "proj_world_data", "World data (§PF3)", false, |ui| {
-                worlds_editor::show(ui, state)
-            });
-            ui_kit::collapsing_section(ui, "proj_generation", "Generation", false, |ui| {
-                generation::show(ui, state, None)
-            });
-            ui_kit::collapsing_section(ui, "proj_snapshots", "Snapshots", false, |ui| {
+            // Left column: actions + metadata.
+            let left = &mut cols[0];
+            show_actions(left, state);
+            left.add_space(6.0);
+            show_metadata(left, state);
+            left.add_space(6.0);
+            ui_kit::collapsing_section(left, "proj_snapshots", "Snapshots", false, |ui| {
                 show_snapshots(ui, state)
             });
-            ui_kit::collapsing_section(ui, "proj_recent", "Recent projects", false, |ui| {
+            left.add_space(4.0);
+            ui_kit::collapsing_section(left, "proj_recent", "Recent projects", false, |ui| {
                 preferences::show(ui, state)
             });
+        }
+        {
+            // Right column — or the same single column when collapsed to one:
+            // the project tree + file / world-data editors + generation.
+            let right = &mut cols[if n > 1 { 1 } else { 0 }];
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(right, |ui| {
+                    ui_kit::collapsing_section(ui, "proj_tree", "Tree", true, |ui| {
+                        project_tree::show(ui, state)
+                    });
+                    ui_kit::collapsing_section(ui, "proj_files", "Files (§PF2)", false, |ui| {
+                        files::show(ui, state)
+                    });
+                    ui_kit::collapsing_section(
+                        ui,
+                        "proj_world_data",
+                        "World data (§PF3)",
+                        false,
+                        |ui| worlds_editor::show(ui, state),
+                    );
+                    ui_kit::collapsing_section(ui, "proj_generation", "Generation", false, |ui| {
+                        generation::show(ui, state, None)
+                    });
+                });
+        }
+    });
+}
+
+/// §COLUMNS — project I/O action buttons (New / Open / Random / Save / Save all).
+/// Every button keeps its existing modal / command / IO mechanism intact.
+fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
+    ui_kit::section(ui, "Actions", |ui| {
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("New project…").clicked() {
+                state.modal = Some(ModalKind::NewProject {
+                    name: "new-sector".to_string(),
+                    title: "New Sector".to_string(),
+                    seed: "seed-1".to_string(),
+                    width: 8,
+                    height: 10,
+                });
+            }
+            if ui.button("Open project…").clicked() {
+                state.modal = Some(ModalKind::OpenProject { path: None });
+            }
+            if ui
+                .button("Random sector…")
+                .on_hover_text(
+                    "RANDOM.md — synthesise a fully-complete, fully-randomised sector \
+                     from just a size (every overlay enabled)",
+                )
+                .clicked()
+            {
+                state.modal = Some(ModalKind::GenerateRandom {
+                    size: "medium".to_string(),
+                    custom_w: 10,
+                    custom_h: 12,
+                    seed: String::new(),
+                    baseline: "_full".to_string(),
+                });
+            }
+            save_project::show(ui, state);
+            // §PF5: single "Save all" — flush every dirty TOML editor buffer,
+            // then run the full project save.
+            let any_dirty = state.dirty || !state.dirty_files.is_empty();
+            if ui
+                .add_enabled(
+                    state.project_path.is_some() && any_dirty,
+                    egui::Button::new("Save all"),
+                )
+                .on_hover_text("§PF5 — flush every dirty file + save the whole project")
+                .clicked()
+            {
+                if let Err(e) = files::save_all(state) {
+                    state.modal = Some(ModalKind::Message(format!("Save all failed: {e}")));
+                }
+            }
         });
+    });
+}
+
+/// §COLUMNS — read-only project metadata card. Mirrors what the tree / wizard
+/// already own; shown here so the left rail is not just a button strip. No model
+/// writes happen here (editing stays in the wizard + Generation section).
+fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
+    ui_kit::section(ui, "Metadata", |ui| {
+        let proj = &state.config.project;
+        ui_kit::kv(ui, "id", &proj.id);
+        ui_kit::kv(ui, "title", &proj.title);
+        if let Some(version) = proj.version.as_deref() {
+            ui_kit::kv(ui, "version", version);
+        }
+        if let Some(desc) = proj.description.as_deref() {
+            if !desc.is_empty() {
+                ui_kit::kv(ui, "description", desc);
+            }
+        }
+        let gen = &state.config.generation;
+        ui_kit::kv(ui, "seed", &gen.seed);
+        ui_kit::kv(
+            ui,
+            "size",
+            &format!("{} × {}", gen.sector_width, gen.sector_height),
+        );
+        let path = state
+            .project_path
+            .as_ref()
+            .map(|p| p.to_string())
+            .unwrap_or_else(|| "(unsaved)".into());
+        ui_kit::kv(ui, "path", &path);
+        if state.dirty || !state.dirty_files.is_empty() {
+            ui.colored_label(egui::Color32::from_rgb(240, 200, 90), "● unsaved changes");
+        }
+    });
 }
 
 fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {

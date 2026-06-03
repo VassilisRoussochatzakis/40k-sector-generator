@@ -75,23 +75,39 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
-    egui::ScrollArea::vertical()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            show_header_actions(ui, state);
-            ui.separator();
-            show_config_section(ui, state);
-            ui.separator();
+    // §COLUMNS — global controls (regenerate / player-edition / config knobs)
+    // stay full-width on top, then master-detail: the ranked mission list pins
+    // to a resizable left rail (filter + rows) and the detail card + manual
+    // editor + save fill the rest. Replaces the single-column stack whose list
+    // and detail scrolled past each other.
+    show_header_actions(ui, state);
+    ui.separator();
+    show_config_section(ui, state);
+    ui.separator();
+
+    egui::SidePanel::left("missions_list")
+        .resizable(true)
+        .default_width(320.0)
+        .width_range(220.0..=520.0)
+        .show_inside(ui, |ui| {
             show_filter_row(ui, state);
             ui.separator();
-            show_mission_list(ui, state);
-            ui.separator();
-            show_detail_card(ui, state);
-            ui.separator();
-            show_manual_editor(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| show_mission_list(ui, state));
         });
+
+    egui::CentralPanel::default().show_inside(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                show_detail_card(ui, state);
+                ui.separator();
+                show_manual_editor(ui, state);
+                ui.separator();
+                show_save_row(ui, state);
+            });
+    });
 }
 
 // ── §M3 / §M4 header actions ───────────────────────────────────────────────
@@ -207,64 +223,34 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
     }
     let selected = state.selected_mission_id.clone();
     let show_hidden = !state.missions_player_edition;
-    egui::ScrollArea::horizontal()
-        .id_salt("m_grid_scroll")
-        .show(ui, |ui| {
-            egui::Grid::new("m_grid")
-                .striped(true)
-                .min_col_width(80.0)
-                .show(ui, |ui| {
-                    ui.label(RichText::new("Kind").strong());
-                    ui.label(RichText::new("Title").strong());
-                    ui.label(RichText::new("Patron").strong());
-                    ui.label(RichText::new("Target").strong());
-                    ui.label(RichText::new("Primary").strong());
-                    ui.label(RichText::new("Scale").strong());
-                    if show_hidden {
-                        ui.label(RichText::new("GM").strong());
-                    }
-                    ui.label(RichText::new("").strong());
-                    ui.end_row();
-
-                    for m in &rows {
-                        let is_selected = selected.as_deref() == Some(m.id.as_str());
-                        if ui
-                            .selectable_label(is_selected, kind_label(m.kind))
-                            .clicked()
-                        {
-                            select_mission(state, m);
-                        }
-                        ui.label(RichText::new(m.title.clone()).strong());
-                        ui.label(
-                            m.patron
-                                .as_ref()
-                                .map(|f| f.to_string())
-                                .unwrap_or_else(|| "—".to_string()),
-                        );
-                        ui.label(
-                            m.target
-                                .as_ref()
-                                .map(|f| f.to_string())
-                                .unwrap_or_else(|| "—".to_string()),
-                        );
-                        ui.label(RichText::new(m.primary_location.clone()).monospace());
-                        ui.label(format!("{}", m.scale));
-                        if show_hidden {
-                            let gm = if m.gm_only {
-                                RichText::new("GM").color(Color32::from_rgb(220, 170, 80))
-                            } else {
-                                RichText::new("—").color(Color32::DARK_GRAY)
-                            };
-                            ui.label(gm);
-                        }
-                        if ui.button("highlight").clicked() {
-                            select_mission(state, m);
-                            focus_primary_location(state, &m.primary_location, &m.route_ids);
-                        }
-                        ui.end_row();
-                    }
-                });
+    // §COLUMNS — compact rail rows: a selectable title line per mission with
+    // kind / scale subline; full fields live in the detail card on the right.
+    for m in &rows {
+        let is_selected = selected.as_deref() == Some(m.id.as_str());
+        let title = if m.title.is_empty() {
+            kind_label(m.kind).to_string()
+        } else {
+            m.title.clone()
+        };
+        let resp = ui.selectable_label(is_selected, RichText::new(title).strong());
+        if resp.clicked() {
+            select_mission(state, m);
+        }
+        ui.horizontal_wrapped(|ui| {
+            ui.colored_label(
+                Color32::DARK_GRAY,
+                format!("{} · {}", kind_label(m.kind), m.scale),
+            );
+            if show_hidden && m.gm_only {
+                ui.colored_label(Color32::from_rgb(220, 170, 80), "GM");
+            }
+            if ui.small_button("highlight").clicked() {
+                select_mission(state, m);
+                focus_primary_location(state, &m.primary_location, &m.route_ids);
+            }
         });
+        ui.separator();
+    }
 }
 
 // ── §M1 detail card ────────────────────────────────────────────────────────

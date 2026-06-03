@@ -83,23 +83,34 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
+    // §COLUMNS — the MAP-overlay picker stays full-width on top (it is a single
+    // wrapping row of toggles), then the §C1..§C6 / §CL editor sections flow
+    // round-robin through `columns_responsive` (2 columns at 1400 px, collapsing
+    // to 1 when narrow) instead of stacking down the left edge.
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             show_overlay_toggles(ui, state);
             ui.separator();
-            show_world_presence_editor(ui, state);
-            ui.separator();
-            show_system_control_editor(ui, state);
-            ui.separator();
-            show_power_profile_preview(ui, state);
-            ui.separator();
 
-            show_contested_summary(ui, state);
-            ui.separator();
-            show_bulk_convert(ui, state);
-            ui.separator();
-            show_world_list(ui, state);
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                let mut next = 0usize;
+                macro_rules! col {
+                    () => {{
+                        let c = &mut cols[next % n];
+                        next += 1;
+                        c
+                    }};
+                }
+                show_world_presence_editor(col!(), state);
+                show_system_control_editor(col!(), state);
+                show_power_profile_preview(col!(), state);
+                show_contested_summary(col!(), state);
+                show_bulk_convert(col!(), state);
+                show_world_list(col!(), state);
+                let _ = next; // final col!() bump is intentionally unread
+            });
         });
 }
 

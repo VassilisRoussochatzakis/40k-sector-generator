@@ -76,24 +76,45 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     );
     ui.separator();
 
+    // §COLUMNS — "Regenerate chronicle" + the event-count summary stay
+    // full-width on top, then RC-2 (hand-assigned, collapse-safe): the chronicle
+    // config + eras + event-rule editors go in the left column; the event list,
+    // add-event wizard and timeline (which want the width) go in the right
+    // column. Collapses to a single stacked column on a narrow window. Replaces
+    // the single-column stack that pushed the timeline far below the fold.
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             show_header_actions(ui, state);
             ui.separator();
-            show_config_section(ui, state);
-            ui.separator();
-            show_eras_editor(ui, state);
-            ui.separator();
-            show_event_rules_editor(ui, state);
-            ui.separator();
-            show_events_editor(ui, state);
-            ui.separator();
-            show_add_event_wizard(ui, state);
-            ui.separator();
-            show_timeline(ui, state);
-            ui.separator();
-            show_save_row(ui, state);
+
+            ui_kit::columns_responsive(ui, 2, 460.0, |cols| {
+                let n = cols.len();
+                {
+                    // Left: config + eras + event rules.
+                    let left = &mut cols[0];
+                    show_config_section(left, state);
+                    left.separator();
+                    show_eras_editor(left, state);
+                    left.separator();
+                    show_event_rules_editor(left, state);
+                }
+                {
+                    // Right — or the same single column when collapsed to one:
+                    // event list + add-event wizard + timeline + save.
+                    let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                    if n == 1 {
+                        right.separator();
+                    }
+                    show_events_editor(right, state);
+                    right.separator();
+                    show_add_event_wizard(right, state);
+                    right.separator();
+                    show_timeline(right, state);
+                    right.separator();
+                    show_save_row(right, state);
+                }
+            });
         });
 }
 

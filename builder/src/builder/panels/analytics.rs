@@ -267,12 +267,27 @@ fn show_dashboard(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     ui.add_space(4.0);
-    show_faction_balance(ui, a);
-    show_world_stats(ui, a);
-    show_distributions(ui, a);
-    show_connectivity(ui, a);
-    show_subsector_variety(ui, a);
-    show_health_flags(ui, a, strict);
+    // §COLUMNS — flow the metric cards across a responsive 3-column board so a
+    // wide window reads as a dashboard instead of a 6-row vertical stack; the
+    // closure handles `cols.len() == 1` (narrow window) via the `% n` round-robin.
+    ui_kit::columns_responsive(ui, 3, 280.0, |cols| {
+        let n = cols.len();
+        let mut next = 0usize;
+        macro_rules! col {
+            () => {{
+                let c = &mut cols[next % n];
+                next += 1;
+                c
+            }};
+        }
+        show_faction_balance(col!(), a);
+        show_world_stats(col!(), a);
+        show_distributions(col!(), a);
+        show_connectivity(col!(), a);
+        show_subsector_variety(col!(), a);
+        show_health_flags(col!(), a, strict);
+        let _ = next; // final col!() bump is intentionally unread
+    });
 }
 
 fn show_faction_balance(ui: &mut Ui, a: &SectorAnalysis) {

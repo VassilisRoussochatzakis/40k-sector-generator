@@ -1,11 +1,11 @@
 //! Top-level tab router (§N1 / §N2).
 //!
-//! [`show_top_bar`] renders the horizontal tab strip, grouping every
-//! [`BuilderTab`] into the labeled clusters in [`TAB_CLUSTERS`] (§UO6 P2);
-//! selecting one writes to
-//! [`BuilderState::active_tab`]. [`show_active_panel`] dispatches the active
-//! tab to the matching panel module under this directory — the contract every
-//! tab follows per §N2.
+//! [`show_nav_rail`] renders the left cluster nav rail — every [`BuilderTab`]
+//! grouped into the labeled clusters in [`TAB_CLUSTERS`] (§UO6 P2 / §COLUMNS
+//! §6.1); selecting one writes to [`BuilderState::active_tab`]. [`show_top_bar`]
+//! is the slim top bar (rail toggle + back/forward chevrons + a `CLUSTER / Tab`
+//! breadcrumb). [`show_active_panel`] dispatches the active tab to the matching
+//! panel module under this directory — the contract every tab follows per §N2.
 //!
 //! Phase A wires PROJECT (project tree + open/save/new + preferences), MAP
 //! (placeholder with the §N3 toolbox), and the validation / invariants
@@ -19,6 +19,7 @@ use crate::builder::state::BuilderTab;
 use crate::builder::BuilderState;
 
 use sectorforge_gui_core::palette;
+use sectorforge_gui_core::ui_kit;
 
 use super::{
     analytics, briefing, control, diff, economy, export, factions, history, hooks, interestingness,
@@ -83,10 +84,21 @@ const TAB_CLUSTERS: &[(&str, &[BuilderTab])] = &[
     ("CHECK", &[BuilderTab::Validation, BuilderTab::Invariants]),
 ];
 
-/// Render the top tab strip. Mutates [`BuilderState::active_tab`] when the
-/// user clicks a tab. Leftmost two chevrons walk the §LINK3 nav history.
+/// §COLUMNS §6.1 — slim top bar: the nav-rail toggle (`☰`), the §LINK3
+/// back/forward chevrons, and a dim `CLUSTER / Tab` breadcrumb of where you
+/// are. The cluster tab list itself moved to [`show_nav_rail`], so the 26-tab
+/// strip no longer wraps to two or three rows across the top.
 pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui.horizontal_wrapped(|ui| {
+    ui.horizontal(|ui| {
+        let hover = if state.nav_rail_collapsed {
+            "Show the nav rail"
+        } else {
+            "Hide the nav rail"
+        };
+        if ui.button("☰").on_hover_text(hover).clicked() {
+            state.nav_rail_collapsed = !state.nav_rail_collapsed;
+        }
+        ui.separator();
         let can_back = !state.nav_back_stack.is_empty();
         let can_forward = !state.nav_forward_stack.is_empty();
         if ui
@@ -104,26 +116,64 @@ pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.nav_forward();
         }
         ui.separator();
-        // §UO6 P2: walk the labeled clusters instead of the flat `ALL` list. A
-        // dim cluster tag precedes each group and a separator divides them, so
-        // the 26-tab strip reads as six task areas rather than one wall.
-        for (ci, (label, tabs)) in TAB_CLUSTERS.iter().enumerate() {
-            if ci > 0 {
-                ui.separator();
-            }
+        // Breadcrumb: which cluster + tab is active (the rail carries the list).
+        if let Some(cluster) = cluster_of(state.active_tab) {
             ui.label(
-                egui::RichText::new(*label)
+                egui::RichText::new(format!("{cluster} /"))
                     .small()
                     .color(palette::chrome_text_dim()),
             );
-            for tab in *tabs {
-                let selected = state.active_tab == *tab;
-                if ui.selectable_label(selected, tab.label()).clicked() {
-                    state.set_active_tab(*tab);
-                }
-            }
+        }
+        ui.label(egui::RichText::new(state.active_tab.label()).strong());
+    });
+}
+
+/// §COLUMNS §6.1 — the left cluster nav rail. Lists every [`BuilderTab`] under
+/// its [`TAB_CLUSTERS`] group as a collapsible section (default open); the
+/// active tab is highlighted and clicking one sets [`BuilderState::active_tab`].
+/// Replaces the wrapping horizontal strip and reclaims the 2–3 rows it ate.
+/// Hidden while [`BuilderState::nav_rail_collapsed`]; the `☰` button in
+/// [`show_top_bar`] brings it back.
+pub fn show_nav_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
+    ui.horizontal(|ui| {
+        ui.label(
+            egui::RichText::new("NAV")
+                .small()
+                .color(palette::chrome_text_dim()),
+        );
+        if ui
+            .small_button("‹‹")
+            .on_hover_text("Collapse the nav rail (☰ in the top bar reopens it)")
+            .clicked()
+        {
+            state.nav_rail_collapsed = true;
         }
     });
+    ui.separator();
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            for (label, tabs) in TAB_CLUSTERS {
+                ui_kit::collapsing_section(ui, ("nav_cluster", *label), label, true, |ui| {
+                    for tab in *tabs {
+                        let selected = state.active_tab == *tab;
+                        if ui.selectable_label(selected, tab.label()).clicked() {
+                            state.set_active_tab(*tab);
+                        }
+                    }
+                });
+            }
+        });
+}
+
+/// The [`TAB_CLUSTERS`] label that owns `tab`, for the top-bar breadcrumb.
+fn cluster_of(tab: BuilderTab) -> Option<&'static str> {
+    for (label, tabs) in TAB_CLUSTERS {
+        if tabs.contains(&tab) {
+            return Some(*label);
+        }
+    }
+    None
 }
 
 /// Dispatch the active tab to its panel module (§N2).
@@ -199,5 +249,27 @@ mod tests {
         );
         let unique: std::collections::BTreeSet<&str> = seen.iter().map(|t| t.label()).collect();
         assert_eq!(unique.len(), seen.len(), "duplicate tab in TAB_CLUSTERS");
+    }
+
+    #[test]
+    fn cluster_of_is_total_over_every_tab() {
+        // §COLUMNS §6.1: the top-bar breadcrumb must resolve a cluster for every
+        // tab, so `cluster_of` is total over `BuilderTab::ALL`.
+        for tab in BuilderTab::ALL {
+            assert!(cluster_of(*tab).is_some(), "{} has no cluster", tab.label());
+        }
+    }
+
+    #[test]
+    fn nav_rail_and_top_bar_paint_headless() {
+        // §COLUMNS §6.1: the rail + slim top bar must paint without panicking on
+        // a blank state (covers the collapse toggle + cluster sections).
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let ctx = egui::Context::default();
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::SidePanel::left("nav_rail_test").show(ctx, |ui| show_nav_rail(ui, &mut state));
+            egui::TopBottomPanel::top("top_bar_test").show(ctx, |ui| show_top_bar(ui, &mut state));
+        });
+        assert!(!state.nav_rail_collapsed);
     }
 }

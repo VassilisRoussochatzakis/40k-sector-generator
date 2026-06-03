@@ -130,6 +130,7 @@ impl SessionFile {
                 super::state::DEFAULT_VALIDATION_DEBOUNCE_MS,
             ),
             validation_strict: false,
+            nav_rail_collapsed: false,
             selected_system_id: None,
             selected_world_id: None,
             selected_route_id: None,

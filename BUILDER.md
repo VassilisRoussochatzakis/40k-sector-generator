@@ -65,21 +65,21 @@ walkthrough leave it off so we start from the empty splash.
 
 A native desktop window with three obvious regions:
 
-- A **horizontal tab strip** at the very top: `PROJECT MAP SYSTEM WORLD
-  FACTIONS CONTROL REGIONS ROUTES SUBSECTORS ECONOMY RELATIONS HISTORY PERSONAE
-  HOOKS SITES MISSIONS PROSE ANALYTICS INTERESTINGNESS SEARCH DIFF BRIEFING
-  SEGMENTUM EXPORT`. There are 24 tabs total. Don't be alarmed — most of them
-  are derived views over the same sector and you only need a handful for a
-  basic build. The tabs are grouped into **labeled clusters** — each prefixed
-  with a small dim tag and separated by a divider — so the long strip reads as
-  task areas rather than one row: **BUILD** (Project · Map · Subsectors ·
-  Regions · Routes), **ENTITIES** (System · World · Factions · Sites),
-  **POWER** (Control · Economy · Relations), **LORE** (History · Personae ·
-  Hooks · Missions · Prose · Briefing), **ANALYZE** (Analytics ·
+- A **cluster nav rail** down the left edge listing every tab grouped into
+  **labeled clusters**, each a collapsible header: **BUILD** (Project · Map ·
+  Subsectors · Regions · Routes), **ENTITIES** (System · World · Factions ·
+  Sites), **POWER** (Control · Economy · Relations), **LORE** (History ·
+  Personae · Hooks · Missions · Prose · Briefing), **ANALYZE** (Analytics ·
   Interestingness · Search · Diff), **OUTPUT** (Segmentum · Export), and
-  **CHECK** (the VALIDATION / INVARIANTS diagnostics surfaces of §12).
-- The **active tab's panel** below the strip. On a fresh launch it shows the
-  PROJECT tab.
+  **CHECK** (Validation · Invariants — the diagnostics surfaces of §12). That is
+  26 tabs in all; don't be alarmed — most are derived views over the same sector
+  and you only need a handful for a basic build.
+- A **slim top bar** above the workspace with a `☰` button that hides or shows
+  the nav rail (hide it to give a tab's own roster the full width), the
+  back/forward chevrons (§13.2), and a dim `CLUSTER / Tab` breadcrumb of where
+  you are.
+- The **active tab's panel** fills the area to the right of the nav rail. On a
+  fresh launch it shows the PROJECT tab.
 - A **status footer** that surfaces validation, invariants, and the health pip
   (a small coloured dot — green = clean, yellow = warnings, red = error).
 
@@ -1078,7 +1078,7 @@ hit confirm. You can revert to a snapshot later from the same list.
 
 ## 13. Navigating between tabs
 
-The builder is built around 24 tabs that share state. To move quickly
+The builder is built around 26 tabs that share state. To move quickly
 between them, every entity name shown anywhere in the UI is a clickable
 link that jumps you to the tab that owns that entity, with the entity
 already selected.
@@ -1104,7 +1104,7 @@ For example:
 
 ### 13.2 Back / forward
 
-Two chevrons sit to the left of the tab strip (`‹ ›`). They walk a
+Two chevrons sit in the slim top bar (`‹ ›`). They walk a
 per-session navigation history of up to 64 jumps. The same actions are
 bound to **Alt+←** and **Alt+→** (Linux/Win) or **⌥+←** / **⌥+→** (macOS).
 

@@ -229,6 +229,11 @@ pub struct BuilderState {
     /// ([`Self::export_block_reason`]), matching
     /// `sectorforge generate --strict`. Off by default. In-memory only.
     pub validation_strict: bool,
+    /// §COLUMNS §6.1 — when set, the left cluster nav rail is hidden and only a
+    /// `☰` toggle in the top bar brings it back, so a master-detail tab can
+    /// reclaim the full width on a narrow window. In-memory view state, off by
+    /// default (the rail shows).
+    pub nav_rail_collapsed: bool,
     /// §V2: entity selection mailbox — invariant / validation panels write
     /// here so the inspector tabs can focus the offending entity. Each field
     /// is independent so the active inspector reads only the IDs it cares
@@ -735,6 +740,7 @@ impl BuilderState {
             validation_dirty_since: None,
             validation_debounce: Duration::from_millis(DEFAULT_VALIDATION_DEBOUNCE_MS),
             validation_strict: false,
+            nav_rail_collapsed: false,
             selected_system_id: None,
             selected_world_id: None,
             selected_route_id: None,

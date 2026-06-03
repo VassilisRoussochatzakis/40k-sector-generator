@@ -76,6 +76,26 @@ impl eframe::App for BuilderApp {
                 status::show(ui, self.workspace.active_mut());
             });
 
+        // §COLUMNS §6.1: the left cluster nav rail replaces the wrapping 26-tab
+        // top strip. SidePanels must be declared before the CentralPanel so they
+        // claim their edge first; this one sits between the top/bottom bars and
+        // above the active panel's own roster rail. Hidden when collapsed — the
+        // `☰` toggle in `nav::show_top_bar` restores it.
+        if !self.workspace.active().nav_rail_collapsed {
+            egui::SidePanel::left("builder_nav_rail")
+                .resizable(true)
+                .default_width(184.0)
+                .width_range(132.0..=320.0)
+                .frame(
+                    egui::Frame::none()
+                        .fill(palette::chrome_panel())
+                        .inner_margin(egui::Margin::same(8.0)),
+                )
+                .show(ctx, |ui| {
+                    nav::show_nav_rail(ui, self.workspace.active_mut());
+                });
+        }
+
         egui::CentralPanel::default()
             .frame(
                 egui::Frame::none()

@@ -1891,9 +1891,18 @@ field rows:
   keeps its hex canvas central and filling, with the `tool:` toolbox + zoom +
   §35 theme/heatmap controls moved into a left `map_tools` rail (the canvas's
   pointer/drag math is relative to its self-allocated rect, so it is unaffected
-  by the larger container). As with Phases 2–5 this is presentational only —
-  every mutation still routes through `state.run(BuilderCommand::…)`; no command
-  dispatch, map painter, or export writer changed.
+  by the larger container). The chrome half of the overhaul (COLUMNS.md §6.1)
+  replaces the wrapping 26-tab top strip with a left **cluster nav rail**
+  (`nav::show_nav_rail` in a `SidePanel::left("builder_nav_rail")`, mounted in
+  [app.rs](builder/src/app.rs) between the top/bottom bars and before the
+  `CentralPanel`): the seven `TAB_CLUSTERS` render as collapsible groups, the
+  slim top bar (`nav::show_top_bar`) keeps only the `☰` rail toggle, the
+  back/forward chevrons and a `CLUSTER / Tab` breadcrumb, and the view-state
+  `BuilderState::nav_rail_collapsed` flag hides the rail so a master-detail tab
+  can reclaim the full width on a narrow window. As with Phases 2–5 this is
+  presentational only — every mutation still routes through
+  `state.run(BuilderCommand::…)`; no command dispatch, map painter, or export
+  writer changed.
 
 None of this touches the map painters or export writers, so the golden tests stay
 byte-stable throughout (§UO8 guardrail).

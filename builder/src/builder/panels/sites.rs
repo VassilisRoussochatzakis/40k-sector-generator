@@ -26,6 +26,7 @@
 //! recompute pass rewrites the published overlay.
 
 use egui::{Color32, RichText, Ui};
+use sectorforge_gui_core::ui_kit;
 
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sites::{SiteKind, SiteStatus, SitesConfig, WorldSite};
@@ -174,14 +175,12 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
-        egui::ComboBox::from_id_salt("st1_kind")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.sites_filter_kind, None, "all kinds");
-                for k in KIND_VARIANTS {
-                    ui.selectable_value(&mut state.sites_filter_kind, Some(*k), kind_label(*k));
-                }
-            });
+        ui_kit::combo("st1_kind", label).show_ui(ui, |ui| {
+            ui.selectable_value(&mut state.sites_filter_kind, None, "all kinds");
+            for k in KIND_VARIANTS {
+                ui.selectable_value(&mut state.sites_filter_kind, Some(*k), kind_label(*k));
+            }
+        });
     });
 }
 
@@ -284,7 +283,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         .clone()
         .or_else(|| state.selected_site_id.clone());
     let Some(target_id) = target else {
-        ui.colored_label(Color32::GRAY, "Select a site above to see its details.");
+        ui_kit::placeholder(ui, "Select a site above to see its details.");
         return;
     };
     let Some(site) = state
@@ -412,8 +411,10 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, s) in cfg.manual.iter_mut().enumerate() {
-            let header = egui::CollapsingHeader::new(
-                RichText::new(format!(
+            ui_kit::collapsing_section(
+                ui,
+                format!("site_manual_{idx}"),
+                &format!(
                     "[{idx}] {} — {}",
                     if s.name.is_empty() {
                         "(unnamed)"
@@ -421,20 +422,18 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                         s.name.as_str()
                     },
                     kind_label(s.kind),
-                ))
-                .strong(),
-            )
-            .id_salt(format!("st_manual_{idx}"))
-            .default_open(idx == last_idx);
-            header.show(ui, |ui| {
-                changed |= manual_site_editor(ui, idx, s);
-                if ui
-                    .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
-                    .clicked()
-                {
-                    remove_idx = Some(idx);
-                }
-            });
+                ),
+                idx == last_idx,
+                |ui| {
+                    changed |= manual_site_editor(ui, idx, s);
+                    if ui
+                        .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
+                        .clicked()
+                    {
+                        remove_idx = Some(idx);
+                    }
+                },
+            );
         }
     }
     if let Some(idx) = remove_idx {
@@ -455,18 +454,16 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
             changed |= ui.text_edit_singleline(&mut s.id).changed();
             ui.end_row();
             ui.label("kind");
-            egui::ComboBox::from_id_salt(format!("st_manual_kind_{idx}"))
-                .selected_text(kind_label(s.kind))
-                .show_ui(ui, |ui| {
-                    for k in KIND_VARIANTS {
-                        if ui
-                            .selectable_value(&mut s.kind, *k, kind_label(*k))
-                            .changed()
-                        {
-                            changed = true;
-                        }
+            ui_kit::combo(format!("st_manual_kind_{idx}"), kind_label(s.kind)).show_ui(ui, |ui| {
+                for k in KIND_VARIANTS {
+                    if ui
+                        .selectable_value(&mut s.kind, *k, kind_label(*k))
+                        .changed()
+                    {
+                        changed = true;
                     }
-                });
+                }
+            });
             ui.end_row();
             ui.label("system id");
             let mut sys = s.system_id.to_string();
@@ -502,32 +499,36 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
             }
             ui.end_row();
             ui.label("public status");
-            egui::ComboBox::from_id_salt(format!("st_manual_pub_{idx}"))
-                .selected_text(format!("{}", s.public_status))
-                .show_ui(ui, |ui| {
-                    for v in STATUS_VARIANTS {
-                        if ui
-                            .selectable_value(&mut s.public_status, *v, format!("{v}"))
-                            .changed()
-                        {
-                            changed = true;
-                        }
+            ui_kit::combo(
+                format!("st_manual_pub_{idx}"),
+                format!("{}", s.public_status),
+            )
+            .show_ui(ui, |ui| {
+                for v in STATUS_VARIANTS {
+                    if ui
+                        .selectable_value(&mut s.public_status, *v, format!("{v}"))
+                        .changed()
+                    {
+                        changed = true;
                     }
-                });
+                }
+            });
             ui.end_row();
             ui.label("actual status");
-            egui::ComboBox::from_id_salt(format!("st_manual_act_{idx}"))
-                .selected_text(format!("{}", s.actual_status))
-                .show_ui(ui, |ui| {
-                    for v in STATUS_VARIANTS {
-                        if ui
-                            .selectable_value(&mut s.actual_status, *v, format!("{v}"))
-                            .changed()
-                        {
-                            changed = true;
-                        }
+            ui_kit::combo(
+                format!("st_manual_act_{idx}"),
+                format!("{}", s.actual_status),
+            )
+            .show_ui(ui, |ui| {
+                for v in STATUS_VARIANTS {
+                    if ui
+                        .selectable_value(&mut s.actual_status, *v, format!("{v}"))
+                        .changed()
+                    {
+                        changed = true;
                     }
-                });
+                }
+            });
             ui.end_row();
             ui.label("known to (comma)");
             let mut csv = s

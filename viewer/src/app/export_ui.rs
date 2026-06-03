@@ -63,8 +63,7 @@ impl App {
                 });
                 ui.add_space(8.0);
                 ui.label(RichText::new("Theme").color(palette::chrome_text_dim()));
-                egui::ComboBox::from_id_salt("png_export_theme")
-                    .selected_text(RichText::new(&self.export_theme_name))
+                crate::ui_kit::combo("png_export_theme", RichText::new(&self.export_theme_name))
                     .show_ui(ui, |ui| {
                         for name in sectorforge::map_theme::BUILTIN_THEME_NAMES {
                             ui.selectable_value(

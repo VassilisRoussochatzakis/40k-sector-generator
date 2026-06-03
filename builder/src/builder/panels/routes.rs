@@ -11,6 +11,7 @@ use sectorforge::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSector, GeneratedSystem, RouteStability, RouteType,
 };
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::preview::DEFAULT_DEBOUNCE_MS;
@@ -86,22 +87,20 @@ fn show_route_picker(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(ToString::to_string)
             .unwrap_or_else(|| "(none)".into());
-        egui::ComboBox::from_id_salt("route_picker")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                for route in &state.sector.routes {
-                    let text = format!(
-                        "{}  {} -> {}  d={}",
-                        route.id, route.from_system_id, route.to_system_id, route.distance
-                    );
-                    if ui
-                        .selectable_label(current.as_ref() == Some(&route.id), text)
-                        .clicked()
-                    {
-                        state.selected_route_id = Some(route.id.clone());
-                    }
+        ui_kit::combo("route_picker", label).show_ui(ui, |ui| {
+            for route in &state.sector.routes {
+                let text = format!(
+                    "{}  {} -> {}  d={}",
+                    route.id, route.from_system_id, route.to_system_id, route.distance
+                );
+                if ui
+                    .selectable_label(current.as_ref() == Some(&route.id), text)
+                    .clicked()
+                {
+                    state.selected_route_id = Some(route.id.clone());
                 }
-            });
+            }
+        });
 
         if ui.button("Delete").clicked() {
             if let Some(id) = state.selected_route_id.clone() {
@@ -132,9 +131,12 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             }
         });
 
-        egui::CollapsingHeader::new("Identity / endpoints")
-            .default_open(true)
-            .show(ui, |ui| {
+        ui_kit::collapsing_section(
+            ui,
+            "route_identity_endpoints",
+            "Identity / endpoints",
+            true,
+            |ui| {
                 egui::Grid::new("route_identity_grid")
                     .num_columns(2)
                     .show(ui, |ui| {
@@ -171,45 +173,44 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                     }
                     draft.controls = derive_controls(&draft, &state.sector);
                 }
-            });
+            },
+        );
 
-        egui::CollapsingHeader::new("Distance")
-            .default_open(true)
-            .show(ui, |ui| {
-                let auto = route_auto_distance(&state.sector, &draft);
-                ui.horizontal(|ui| {
-                    ui.label("distance");
-                    let mut distance = i64::from(draft.distance);
-                    if ui
-                        .add(egui::DragValue::new(&mut distance).range(0..=999))
-                        .changed()
-                    {
-                        draft.distance = distance.clamp(0, 999) as u32;
-                    }
-                    if let Some(auto) = auto {
-                        ui.label(format!("auto={auto}"));
-                        if ui.button("Use auto").clicked() {
-                            draft.distance = auto;
-                        }
-                    }
-                });
+        ui_kit::collapsing_section(ui, "route_distance", "Distance", true, |ui| {
+            let auto = route_auto_distance(&state.sector, &draft);
+            ui.horizontal(|ui| {
+                ui.label("distance");
+                let mut distance = i64::from(draft.distance);
+                if ui
+                    .add(egui::DragValue::new(&mut distance).range(0..=999))
+                    .changed()
+                {
+                    draft.distance = distance.clamp(0, 999) as u32;
+                }
                 if let Some(auto) = auto {
-                    if draft.distance != auto {
-                        ui.colored_label(
-                            Color32::from_rgb(255, 190, 80),
-                            "ROUTE_DISTANCE_MISMATCH will fire unless distance == hex_distance.",
-                        );
+                    ui.label(format!("auto={auto}"));
+                    if ui.button("Use auto").clicked() {
+                        draft.distance = auto;
                     }
                 }
             });
+            if let Some(auto) = auto {
+                if draft.distance != auto {
+                    ui.colored_label(
+                        Color32::from_rgb(255, 190, 80),
+                        "ROUTE_DISTANCE_MISMATCH will fire unless distance == hex_distance.",
+                    );
+                }
+            }
+        });
 
-        egui::CollapsingHeader::new("Tags")
-            .default_open(false)
-            .show(ui, |ui| show_tags_editor(ui, &mut draft));
+        ui_kit::collapsing_section(ui, "route_tags", "Tags", false, |ui| {
+            show_tags_editor(ui, &mut draft)
+        });
 
-        egui::CollapsingHeader::new("Route control")
-            .default_open(false)
-            .show(ui, |ui| show_controls_editor(ui, state, &mut draft));
+        ui_kit::collapsing_section(ui, "route_control", "Route control", false, |ui| {
+            show_controls_editor(ui, state, &mut draft)
+        });
     });
 
     if draft != original {
@@ -310,13 +311,11 @@ fn percent_drag(ui: &mut Ui, value: &mut f32) {
 }
 
 fn system_combo(ui: &mut Ui, id: &str, value: &mut SystemId, state: &BuilderState) {
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.to_string())
-        .show_ui(ui, |ui| {
-            for sys in &state.sector.systems {
-                ui.selectable_value(value, sys.id.clone(), format!("{} — {}", sys.id, sys.name));
-            }
-        });
+    ui_kit::combo(id, value.to_string()).show_ui(ui, |ui| {
+        for sys in &state.sector.systems {
+            ui.selectable_value(value, sys.id.clone(), format!("{} — {}", sys.id, sys.name));
+        }
+    });
 }
 
 fn faction_combo(
@@ -325,40 +324,34 @@ fn faction_combo(
     value: &mut FactionId,
     state: &BuilderState,
 ) {
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.to_string())
-        .show_ui(ui, |ui| {
-            for faction in &state.sector.factions {
-                ui.selectable_value(
-                    value,
-                    faction.id.clone(),
-                    format!("{} — {}", faction.id, faction.name),
-                );
-            }
-        });
+    ui_kit::combo(id, value.to_string()).show_ui(ui, |ui| {
+        for faction in &state.sector.factions {
+            ui.selectable_value(
+                value,
+                faction.id.clone(),
+                format!("{} — {}", faction.id, faction.name),
+            );
+        }
+    });
 }
 
 fn route_type_combo(ui: &mut Ui, id: &str, value: &mut RouteType) -> bool {
     let before = *value;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.editor_label())
-        .show_ui(ui, |ui| {
-            for option in RouteType::ALL {
-                ui.selectable_value(value, option, option.editor_label());
-            }
-        });
+    ui_kit::combo(id, value.editor_label()).show_ui(ui, |ui| {
+        for option in RouteType::ALL {
+            ui.selectable_value(value, option, option.editor_label());
+        }
+    });
     *value != before
 }
 
 fn stability_combo(ui: &mut Ui, id: &str, value: &mut RouteStability) -> bool {
     let before = *value;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(stability_label(*value))
-        .show_ui(ui, |ui| {
-            for option in ROUTE_STABILITIES {
-                ui.selectable_value(value, option, stability_label(option));
-            }
-        });
+    ui_kit::combo(id, stability_label(*value)).show_ui(ui, |ui| {
+        for option in ROUTE_STABILITIES {
+            ui.selectable_value(value, option, stability_label(option));
+        }
+    });
     *value != before
 }
 
@@ -423,9 +416,12 @@ fn replace_routes(state: &mut BuilderState, mut routes: Vec<GeneratedRoute>) {
 // ── R4 bulk ops ──────────────────────────────────────────────────────────────
 
 fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Bulk operations")
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "route_bulk_operations",
+        "Bulk operations",
+        false,
+        |ui| {
             ui.label("Predicate");
             egui::Grid::new("route_bulk_predicate_grid")
                 .num_columns(2)
@@ -492,7 +488,8 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                     );
                 }
             });
-        });
+        },
+    );
 }
 
 enum BulkRouteAction {
@@ -580,25 +577,21 @@ fn route_crosses_region(sector: &GeneratedSector, route: &GeneratedRoute, region
 }
 
 fn optional_route_type_combo(ui: &mut Ui, id: &str, value: &mut Option<RouteType>) {
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.map_or("(any)", RouteType::editor_label))
-        .show_ui(ui, |ui| {
-            ui.selectable_value(value, None, "(any)");
-            for option in RouteType::ALL {
-                ui.selectable_value(value, Some(option), option.editor_label());
-            }
-        });
+    ui_kit::combo(id, value.map_or("(any)", RouteType::editor_label)).show_ui(ui, |ui| {
+        ui.selectable_value(value, None, "(any)");
+        for option in RouteType::ALL {
+            ui.selectable_value(value, Some(option), option.editor_label());
+        }
+    });
 }
 
 fn optional_stability_combo(ui: &mut Ui, id: &str, value: &mut Option<RouteStability>) {
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.map_or("(any)", stability_label))
-        .show_ui(ui, |ui| {
-            ui.selectable_value(value, None, "(any)");
-            for option in ROUTE_STABILITIES {
-                ui.selectable_value(value, Some(option), stability_label(option));
-            }
-        });
+    ui_kit::combo(id, value.map_or("(any)", stability_label)).show_ui(ui, |ui| {
+        ui.selectable_value(value, None, "(any)");
+        for option in ROUTE_STABILITIES {
+            ui.selectable_value(value, Some(option), stability_label(option));
+        }
+    });
 }
 
 fn optional_region_combo(
@@ -608,78 +601,74 @@ fn optional_region_combo(
     regions: &[(String, String)],
 ) {
     let selected = value.as_deref().unwrap_or("(any)");
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(selected)
-        .show_ui(ui, |ui| {
-            ui.selectable_value(value, None, "(any)");
-            for (region_id, region_name) in regions {
-                ui.selectable_value(
-                    value,
-                    Some(region_id.clone()),
-                    format!("{region_id} — {region_name}"),
-                );
-            }
-        });
+    ui_kit::combo(id, selected).show_ui(ui, |ui| {
+        ui.selectable_value(value, None, "(any)");
+        for (region_id, region_name) in regions {
+            ui.selectable_value(
+                value,
+                Some(region_id.clone()),
+                format!("{region_id} — {region_name}"),
+            );
+        }
+    });
 }
 
 // ── R5 route-rules editor ───────────────────────────────────────────────────
 
 fn show_route_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Route rules")
-        .default_open(false)
-        .show(ui, |ui| {
-            if state.config.inputs.route_rules.is_none() {
-                ui.colored_label(
-                    Color32::from_rgb(255, 190, 80),
-                    "No [inputs].route_rules path; edits stay in memory until a path exists.",
-                );
-            }
+    ui_kit::collapsing_section(ui, "route_rules", "Route rules", false, |ui| {
+        if state.config.inputs.route_rules.is_none() {
+            ui.colored_label(
+                Color32::from_rgb(255, 190, 80),
+                "No [inputs].route_rules path; edits stay in memory until a path exists.",
+            );
+        }
 
-            let mut changed = false;
-            {
-                let rules = state
-                    .data_catalogs
-                    .route_rules
-                    .get_or_insert_with(RouteRules::default);
-                egui::Grid::new("route_rules_grid")
-                    .num_columns(2)
-                    .show(ui, |ui| {
-                        ui.label("default_weight");
-                        changed |= ui
-                            .add(
-                                egui::DragValue::new(&mut rules.default_weight)
-                                    .speed(0.1)
-                                    .range(0.01..=1000.0),
-                            )
-                            .changed();
-                        ui.end_row();
-                        ui.label("max_distance");
-                        changed |= ui
-                            .add(egui::DragValue::new(&mut rules.max_distance).range(1..=64))
-                            .changed();
-                        ui.end_row();
-                        ui.label("prefer_populated_worlds");
-                        changed |= ui
-                            .checkbox(&mut rules.prefer_populated_worlds, "")
-                            .changed();
-                        ui.end_row();
-                        ui.label("prefer_trade_hubs");
-                        changed |= ui.checkbox(&mut rules.prefer_trade_hubs, "").changed();
-                        ui.end_row();
-                        ui.label("avoid_warp_phenomena");
-                        changed |= ui.checkbox(&mut rules.avoid_warp_phenomena, "").changed();
-                        ui.end_row();
-                    });
+        let mut changed = false;
+        {
+            let rules = state
+                .data_catalogs
+                .route_rules
+                .get_or_insert_with(RouteRules::default);
+            egui::Grid::new("route_rules_grid")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label("default_weight");
+                    changed |= ui
+                        .add(
+                            egui::DragValue::new(&mut rules.default_weight)
+                                .speed(0.1)
+                                .range(0.01..=1000.0),
+                        )
+                        .changed();
+                    ui.end_row();
+                    ui.label("max_distance");
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut rules.max_distance).range(1..=64))
+                        .changed();
+                    ui.end_row();
+                    ui.label("prefer_populated_worlds");
+                    changed |= ui
+                        .checkbox(&mut rules.prefer_populated_worlds, "")
+                        .changed();
+                    ui.end_row();
+                    ui.label("prefer_trade_hubs");
+                    changed |= ui.checkbox(&mut rules.prefer_trade_hubs, "").changed();
+                    ui.end_row();
+                    ui.label("avoid_warp_phenomena");
+                    changed |= ui.checkbox(&mut rules.avoid_warp_phenomena, "").changed();
+                    ui.end_row();
+                });
 
-                ui.separator();
-                changed |= show_route_modifiers(ui, rules);
-            }
+            ui.separator();
+            changed |= show_route_modifiers(ui, rules);
+        }
 
-            if changed {
-                mark_route_rules_changed(ui, state);
-            }
-            show_preview_status(ui, state);
-        });
+        if changed {
+            mark_route_rules_changed(ui, state);
+        }
+        show_preview_status(ui, state);
+    });
 }
 
 fn show_route_modifiers(ui: &mut Ui, rules: &mut RouteRules) -> bool {
@@ -756,14 +745,12 @@ fn optional_world_value_combo(
 ) -> bool {
     let before = value.clone();
     let selected = value.as_deref().unwrap_or("(any)");
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(selected)
-        .show_ui(ui, |ui| {
-            ui.selectable_value(value, None, "(any)");
-            for (stored, label) in options {
-                ui.selectable_value(value, Some(stored), label);
-            }
-        });
+    ui_kit::combo(id, selected).show_ui(ui, |ui| {
+        ui.selectable_value(value, None, "(any)");
+        for (stored, label) in options {
+            ui.selectable_value(value, Some(stored), label);
+        }
+    });
     *value != before
 }
 
@@ -774,14 +761,12 @@ fn optional_route_type_key_combo(
 ) -> bool {
     let before = value.clone();
     let selected = value.as_deref().unwrap_or("(any)");
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(selected)
-        .show_ui(ui, |ui| {
-            ui.selectable_value(value, None, "(any)");
-            for option in RouteType::ALL {
-                ui.selectable_value(value, Some(option.key().to_string()), option.editor_label());
-            }
-        });
+    ui_kit::combo(id, selected).show_ui(ui, |ui| {
+        ui.selectable_value(value, None, "(any)");
+        for option in RouteType::ALL {
+            ui.selectable_value(value, Some(option.key().to_string()), option.editor_label());
+        }
+    });
     *value != before
 }
 
@@ -833,116 +818,115 @@ fn show_preview_status(ui: &mut Ui, state: &BuilderState) {
 // ── R6 hidden routes ────────────────────────────────────────────────────────
 
 fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Hidden routes")
-        .default_open(false)
-        .show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label("kind");
-                hidden_kind_combo(ui, &mut state.hidden_route_kind);
-                ui.label("k_nearest");
-                ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
-                ui.checkbox(
-                    &mut state.hidden_route_exclude_blackout,
-                    "exclude Blackout regions",
-                );
-            });
+    ui_kit::collapsing_section(ui, "route_hidden_routes", "Hidden routes", false, |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.label("kind");
+            hidden_kind_combo(ui, &mut state.hidden_route_kind);
+            ui.label("k_nearest");
+            ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
+            ui.checkbox(
+                &mut state.hidden_route_exclude_blackout,
+                "exclude Blackout regions",
+            );
+        });
 
-            ui.horizontal_wrapped(|ui| {
-                if ui.button("Use selected systems").clicked() {
-                    state.hidden_route_endpoints = state.selected_systems.clone();
-                }
-                if ui.button("All systems").clicked() {
-                    state.hidden_route_endpoints =
-                        state.sector.systems.iter().map(|s| s.id.clone()).collect();
-                }
-                if ui.button("Clear").clicked() {
-                    state.hidden_route_endpoints.clear();
-                }
-                ui.label(format!("endpoints: {}", state.hidden_route_endpoints.len()));
-            });
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("Use selected systems").clicked() {
+                state.hidden_route_endpoints = state.selected_systems.clone();
+            }
+            if ui.button("All systems").clicked() {
+                state.hidden_route_endpoints =
+                    state.sector.systems.iter().map(|s| s.id.clone()).collect();
+            }
+            if ui.button("Clear").clicked() {
+                state.hidden_route_endpoints.clear();
+            }
+            ui.label(format!("endpoints: {}", state.hidden_route_endpoints.len()));
+        });
 
-            egui::ScrollArea::vertical()
-                .max_height(160.0)
-                .show(ui, |ui| {
-                    for sys in &state.sector.systems {
-                        let mut selected = state.hidden_route_endpoints.contains(&sys.id);
-                        if ui
-                            .checkbox(&mut selected, format!("{} — {}", sys.id, sys.name))
-                            .changed()
-                        {
-                            if selected {
-                                state.hidden_route_endpoints.insert(sys.id.clone());
-                            } else {
-                                state.hidden_route_endpoints.remove(&sys.id);
-                            }
+        egui::ScrollArea::vertical()
+            .max_height(160.0)
+            .show(ui, |ui| {
+                for sys in &state.sector.systems {
+                    let mut selected = state.hidden_route_endpoints.contains(&sys.id);
+                    if ui
+                        .checkbox(&mut selected, format!("{} — {}", sys.id, sys.name))
+                        .changed()
+                    {
+                        if selected {
+                            state.hidden_route_endpoints.insert(sys.id.clone());
+                        } else {
+                            state.hidden_route_endpoints.remove(&sys.id);
                         }
                     }
-                });
-
-            ui.horizontal_wrapped(|ui| {
-                if ui.button("Build hidden routes").clicked() {
-                    let cfg = sectorforge::hidden_routes::HiddenRoutesConfig {
-                        kind: state.hidden_route_kind,
-                        endpoints: state.hidden_route_endpoints.iter().cloned().collect(),
-                        k_nearest: state.hidden_route_k_nearest.max(1),
-                        exclude_blackout_regions: state.hidden_route_exclude_blackout,
-                    };
-                    let new_routes = sectorforge::hidden_routes::configured_hidden_routes(
-                        &state.sector.systems,
-                        &state.sector.factions,
-                        state.sector.regions.as_ref(),
-                        &state.sector.routes,
-                        &cfg,
-                    );
-                    if new_routes.is_empty() {
-                        state.modal = Some(ModalKind::Message(
-                            "No hidden routes added; endpoints may be too few or already linked."
-                                .into(),
-                        ));
-                    } else {
-                        let mut routes = state.sector.routes.clone();
-                        routes.extend(new_routes);
-                        routes.sort_by(|a, b| a.id.cmp(&b.id));
-                        replace_routes(state, routes);
-                    }
-                }
-                if ui.button("Remove hidden routes of kind").clicked() {
-                    let kind = state.hidden_route_kind;
-                    let mut routes = state.sector.routes.clone();
-                    let before = routes.len();
-                    routes.retain(|route| route.route_type != kind);
-                    if routes.len() == before {
-                        state.modal = Some(ModalKind::Message(
-                            "No matching hidden routes found.".into(),
-                        ));
-                    } else {
-                        replace_routes(state, routes);
-                    }
                 }
             });
+
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("Build hidden routes").clicked() {
+                let cfg = sectorforge::hidden_routes::HiddenRoutesConfig {
+                    kind: state.hidden_route_kind,
+                    endpoints: state.hidden_route_endpoints.iter().cloned().collect(),
+                    k_nearest: state.hidden_route_k_nearest.max(1),
+                    exclude_blackout_regions: state.hidden_route_exclude_blackout,
+                };
+                let new_routes = sectorforge::hidden_routes::configured_hidden_routes(
+                    &state.sector.systems,
+                    &state.sector.factions,
+                    state.sector.regions.as_ref(),
+                    &state.sector.routes,
+                    &cfg,
+                );
+                if new_routes.is_empty() {
+                    state.modal = Some(ModalKind::Message(
+                        "No hidden routes added; endpoints may be too few or already linked."
+                            .into(),
+                    ));
+                } else {
+                    let mut routes = state.sector.routes.clone();
+                    routes.extend(new_routes);
+                    routes.sort_by(|a, b| a.id.cmp(&b.id));
+                    replace_routes(state, routes);
+                }
+            }
+            if ui.button("Remove hidden routes of kind").clicked() {
+                let kind = state.hidden_route_kind;
+                let mut routes = state.sector.routes.clone();
+                let before = routes.len();
+                routes.retain(|route| route.route_type != kind);
+                if routes.len() == before {
+                    state.modal = Some(ModalKind::Message(
+                        "No matching hidden routes found.".into(),
+                    ));
+                } else {
+                    replace_routes(state, routes);
+                }
+            }
         });
+    });
 }
 
 fn hidden_kind_combo(ui: &mut Ui, value: &mut RouteType) {
-    egui::ComboBox::from_id_salt("hidden_route_kind")
-        .selected_text(value.editor_label())
-        .show_ui(ui, |ui| {
-            for option in [
-                RouteType::Webway,
-                RouteType::BlackShip,
-                RouteType::SmugglingLane,
-            ] {
-                ui.selectable_value(value, option, option.editor_label());
-            }
-        });
+    ui_kit::combo("hidden_route_kind", value.editor_label()).show_ui(ui, |ui| {
+        for option in [
+            RouteType::Webway,
+            RouteType::BlackShip,
+            RouteType::SmugglingLane,
+        ] {
+            ui.selectable_value(value, option, option.editor_label());
+        }
+    });
 }
 
 // ── R7 ensure-connected connector ───────────────────────────────────────────
 
 fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new("Ensure connected")
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "route_ensure_connected",
+        "Ensure connected",
+        false,
+        |ui| {
             let mut enabled = state.config.generation.routes.ensure_connected_graph;
             if ui
                 .checkbox(&mut enabled, "ensure_connected_graph")
@@ -968,7 +952,8 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
                     replace_routes(state, routes);
                 }
             }
-        });
+        },
+    );
 }
 
 fn apply_ensure_connected_if_enabled(state: &mut BuilderState) {

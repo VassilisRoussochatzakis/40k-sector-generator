@@ -20,6 +20,7 @@
 
 use camino::Utf8PathBuf;
 use sectorforge::random_sector::{self, SectorSize, MAX_CUSTOM_DIM};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::project_io::open_project;
 use crate::builder::random_run::RandomJobResult;
@@ -108,23 +109,19 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         .num_columns(2)
         .show(ui, |ui| {
             ui.label("Size");
-            egui::ComboBox::from_id_salt("random_size")
-                .selected_text(size_label(&size))
-                .show_ui(ui, |ui| {
-                    for (id, label) in SIZES {
-                        ui.selectable_value(&mut size, (*id).to_string(), *label);
-                    }
-                });
+            ui_kit::combo("random_size", size_label(&size)).show_ui(ui, |ui| {
+                for (id, label) in SIZES {
+                    ui.selectable_value(&mut size, (*id).to_string(), *label);
+                }
+            });
             ui.end_row();
 
             ui.label("Baseline");
-            egui::ComboBox::from_id_salt("random_baseline")
-                .selected_text(baseline_label(&baseline))
-                .show_ui(ui, |ui| {
-                    for (id, label) in BASELINES {
-                        ui.selectable_value(&mut baseline, (*id).to_string(), *label);
-                    }
-                });
+            ui_kit::combo("random_baseline", baseline_label(&baseline)).show_ui(ui, |ui| {
+                for (id, label) in BASELINES {
+                    ui.selectable_value(&mut baseline, (*id).to_string(), *label);
+                }
+            });
             ui.end_row();
 
             if size == "custom" {

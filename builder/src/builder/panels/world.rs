@@ -21,6 +21,7 @@ use sectorforge::worlds::{
     Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
     Temperature, WorldType,
 };
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
@@ -47,7 +48,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         .show(ui, |ui| {
             let selected = state.selected_world_id.clone();
             let Some(wid) = selected else {
-                ui.colored_label(Color32::GRAY, "Select a world from the picker.");
+                ui_kit::placeholder(ui, "Select a world from the picker.");
                 return;
             };
 
@@ -106,20 +107,18 @@ fn show_world_picker(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(|id| id.to_string())
             .unwrap_or_else(|| "(none)".into());
-        egui::ComboBox::from_id_salt("world_picker")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                for sys in &state.sector.systems {
-                    for w in &sys.worlds {
-                        let sel = current.as_ref() == Some(&w.id);
-                        let label = format!("{} — {} ({})", w.id, w.name, sys.name);
-                        if ui.selectable_label(sel, label).clicked() {
-                            state.selected_world_id = Some(w.id.clone());
-                            state.selected_system_id = Some(sys.id.clone());
-                        }
+        ui_kit::combo("world_picker", label).show_ui(ui, |ui| {
+            for sys in &state.sector.systems {
+                for w in &sys.worlds {
+                    let sel = current.as_ref() == Some(&w.id);
+                    let label = format!("{} — {} ({})", w.id, w.name, sys.name);
+                    if ui.selectable_label(sel, label).clicked() {
+                        state.selected_world_id = Some(w.id.clone());
+                        state.selected_system_id = Some(sys.id.clone());
                     }
                 }
-            });
+            }
+        });
     });
 }
 
@@ -150,78 +149,76 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
 // ── identity (W1 / W3) ──────────────────────────────────────────────────────
 
 fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Identity")
-        .default_open(true)
-        .show(ui, |ui| {
-            let w = &state.sector.systems[sys_idx].worlds[w_idx];
-            let wid = w.id.clone();
-            let name_buf_key = egui::Id::new(("world_identity_name_buf", wid.as_str()));
-            let name_src = w.name.to_string();
-            let mut name_buf = name_src.clone();
-            let mut orbit = i32::from(w.orbit);
-            let mut name_changed = false;
-            egui::Grid::new("w_identity_grid")
-                .num_columns(2)
-                .show(ui, |ui| {
-                    ui.label("id");
-                    ui.monospace(wid.to_string());
-                    ui.end_row();
-                    ui.label("index");
-                    ui.monospace(w.index.to_string());
-                    ui.end_row();
-                    ui.label("source_row_index");
-                    ui.monospace(w.source_row_index.to_string());
-                    ui.end_row();
-                    ui.label("name");
-                    let (buf, resp) =
-                        crate::builder::panels::persistent_singleline(ui, name_buf_key, &name_src);
-                    name_buf = buf;
-                    name_changed = resp.lost_focus();
-                    ui.end_row();
-                    ui.label("orbit");
-                    ui.add(egui::DragValue::new(&mut orbit).range(1..=99));
-                    ui.end_row();
-                    ui.label("pinned");
-                    let mut pinned = state.pinned_worlds.contains(&wid);
-                    if ui
-                        .checkbox(&mut pinned, "(pin from regen/preview)")
-                        .changed()
-                    {
-                        if pinned {
-                            state.pinned_worlds.insert(wid.clone());
-                        } else {
-                            state.pinned_worlds.remove(&wid);
-                        }
+    ui_kit::collapsing_section(ui, "world_identity", "Identity", true, |ui| {
+        let w = &state.sector.systems[sys_idx].worlds[w_idx];
+        let wid = w.id.clone();
+        let name_buf_key = egui::Id::new(("world_identity_name_buf", wid.as_str()));
+        let name_src = w.name.to_string();
+        let mut name_buf = name_src.clone();
+        let mut orbit = i32::from(w.orbit);
+        let mut name_changed = false;
+        egui::Grid::new("w_identity_grid")
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.label("id");
+                ui.monospace(wid.to_string());
+                ui.end_row();
+                ui.label("index");
+                ui.monospace(w.index.to_string());
+                ui.end_row();
+                ui.label("source_row_index");
+                ui.monospace(w.source_row_index.to_string());
+                ui.end_row();
+                ui.label("name");
+                let (buf, resp) =
+                    crate::builder::panels::persistent_singleline(ui, name_buf_key, &name_src);
+                name_buf = buf;
+                name_changed = resp.lost_focus();
+                ui.end_row();
+                ui.label("orbit");
+                ui.add(egui::DragValue::new(&mut orbit).range(1..=99));
+                ui.end_row();
+                ui.label("pinned");
+                let mut pinned = state.pinned_worlds.contains(&wid);
+                if ui
+                    .checkbox(&mut pinned, "(pin from regen/preview)")
+                    .changed()
+                {
+                    if pinned {
+                        state.pinned_worlds.insert(wid.clone());
+                    } else {
+                        state.pinned_worlds.remove(&wid);
                     }
-                    ui.end_row();
-                });
-            // §R4: orbit/name now route through the narrow commands so the edit
-            // is undoable. Snapshot the live values, then dispatch with no
-            // borrow of `state.sector` held across `state.run`.
-            let cur_orbit = state.sector.systems[sys_idx].worlds[w_idx].orbit;
-            let cur_name = state.sector.systems[sys_idx].worlds[w_idx].name.to_string();
-            let new_orbit = orbit.clamp(1, 99) as u8;
-            if new_orbit != cur_orbit {
-                if let Err(e) = state.run(BuilderCommand::SetWorldOrbit {
-                    world: wid.clone(),
-                    before: 0,
-                    after: new_orbit,
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
+                ui.end_row();
+            });
+        // §R4: orbit/name now route through the narrow commands so the edit
+        // is undoable. Snapshot the live values, then dispatch with no
+        // borrow of `state.sector` held across `state.run`.
+        let cur_orbit = state.sector.systems[sys_idx].worlds[w_idx].orbit;
+        let cur_name = state.sector.systems[sys_idx].worlds[w_idx].name.to_string();
+        let new_orbit = orbit.clamp(1, 99) as u8;
+        if new_orbit != cur_orbit {
+            if let Err(e) = state.run(BuilderCommand::SetWorldOrbit {
+                world: wid.clone(),
+                before: 0,
+                after: new_orbit,
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
-            if name_changed && name_buf.trim() != cur_name {
-                let after = name_buf.trim().to_string();
-                if let Err(e) = state.run(BuilderCommand::RenameWorld {
-                    world: wid.clone(),
-                    before: String::new(),
-                    after,
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
-                }
-                crate::builder::panels::persistent_text_clear(ui, name_buf_key);
+        }
+        if name_changed && name_buf.trim() != cur_name {
+            let after = name_buf.trim().to_string();
+            if let Err(e) = state.run(BuilderCommand::RenameWorld {
+                world: wid.clone(),
+                before: String::new(),
+                after,
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
-        });
+            crate::builder::panels::persistent_text_clear(ui, name_buf_key);
+        }
+    });
 }
 
 // ── classification ─────────────────────────────────────────────────────────
@@ -232,137 +229,133 @@ fn show_classification_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("Classification")
-        .default_open(true)
-        .show(ui, |ui| {
-            // §R4: edit a clone and dispatch one EditWorld for the whole group
-            // so classification changes are undoable.
-            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            let mut changed = false;
-            egui::Grid::new("w_class_grid")
-                .num_columns(2)
-                .show(ui, |ui| {
-                    ui.label("star_colour");
-                    let current_code = draft.world.star_colour_code.to_string();
-                    let mut selected = StarColour::VARIANTS
-                        .iter()
-                        .copied()
-                        .find(|v| v.code() == current_code)
-                        .unwrap_or(StarColour::Yellow);
-                    let prev = selected;
-                    egui::ComboBox::from_id_salt("w_star")
-                        .selected_text(format!("{} ({})", selected.code(), selected.short_name()))
-                        .show_ui(ui, |ui| {
-                            for v in StarColour::VARIANTS {
-                                ui.selectable_value(
-                                    &mut selected,
-                                    *v,
-                                    format!("{} — {}", v.code(), v.short_name()),
-                                );
-                            }
-                        });
-                    if selected != prev {
-                        draft.world.star_colour_code = Arc::from(selected.code());
-                        draft.world.star_colour = Arc::from(selected.short_name());
-                        changed = true;
+    ui_kit::collapsing_section(ui, "world_classification", "Classification", true, |ui| {
+        // §R4: edit a clone and dispatch one EditWorld for the whole group
+        // so classification changes are undoable.
+        let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+        let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+        let mut changed = false;
+        egui::Grid::new("w_class_grid")
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.label("star_colour");
+                let current_code = draft.world.star_colour_code.to_string();
+                let mut selected = StarColour::VARIANTS
+                    .iter()
+                    .copied()
+                    .find(|v| v.code() == current_code)
+                    .unwrap_or(StarColour::Yellow);
+                let prev = selected;
+                ui_kit::combo(
+                    "w_star",
+                    format!("{} ({})", selected.code(), selected.short_name()),
+                )
+                .show_ui(ui, |ui| {
+                    for v in StarColour::VARIANTS {
+                        ui.selectable_value(
+                            &mut selected,
+                            *v,
+                            format!("{} — {}", v.code(), v.short_name()),
+                        );
                     }
-                    ui.end_row();
-
-                    ui.label("world_type");
-                    if combo_enum::<WorldType>(ui, "w_type", &mut draft.world.world_type) {
-                        changed = true;
-                    }
-                    ui.end_row();
                 });
-            if changed {
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                if selected != prev {
+                    draft.world.star_colour_code = Arc::from(selected.code());
+                    draft.world.star_colour = Arc::from(selected.short_name());
+                    changed = true;
                 }
+                ui.end_row();
+
+                ui.label("world_type");
+                if combo_enum::<WorldType>(ui, "w_type", &mut draft.world.world_type) {
+                    changed = true;
+                }
+                ui.end_row();
+            });
+        if changed {
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
-        });
+        }
+    });
 }
 
 // ── environment ────────────────────────────────────────────────────────────
 
 fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Environment")
-        .default_open(false)
-        .show(ui, |ui| {
-            // §R4: edit a clone and dispatch one EditWorld for the whole group.
-            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            let mut changed = false;
-            egui::Grid::new("w_env_grid").num_columns(2).show(ui, |ui| {
-                ui.label("atmosphere");
-                if combo_enum::<Atmosphere>(ui, "w_atm", &mut draft.world.atmosphere) {
-                    changed = true;
-                }
-                ui.end_row();
-                ui.label("temperature");
-                if combo_enum::<Temperature>(ui, "w_temp", &mut draft.world.temperature) {
-                    changed = true;
-                }
-                ui.end_row();
-                ui.label("biosphere");
-                if combo_enum::<Biosphere>(ui, "w_bio", &mut draft.world.biosphere) {
-                    changed = true;
-                }
-                ui.end_row();
-            });
-            if changed {
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
-                }
+    ui_kit::collapsing_section(ui, "world_environment", "Environment", false, |ui| {
+        // §R4: edit a clone and dispatch one EditWorld for the whole group.
+        let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+        let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+        let mut changed = false;
+        egui::Grid::new("w_env_grid").num_columns(2).show(ui, |ui| {
+            ui.label("atmosphere");
+            if combo_enum::<Atmosphere>(ui, "w_atm", &mut draft.world.atmosphere) {
+                changed = true;
             }
+            ui.end_row();
+            ui.label("temperature");
+            if combo_enum::<Temperature>(ui, "w_temp", &mut draft.world.temperature) {
+                changed = true;
+            }
+            ui.end_row();
+            ui.label("biosphere");
+            if combo_enum::<Biosphere>(ui, "w_bio", &mut draft.world.biosphere) {
+                changed = true;
+            }
+            ui.end_row();
         });
+        if changed {
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+            }
+        }
+    });
 }
 
 // ── society ────────────────────────────────────────────────────────────────
 
 fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Society")
-        .default_open(false)
-        .show(ui, |ui| {
-            // §R4: edit a clone and dispatch one EditWorld for the whole group.
-            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            let mut changed = false;
-            egui::Grid::new("w_soc_grid").num_columns(2).show(ui, |ui| {
-                ui.label("population");
-                if combo_enum::<Population>(ui, "w_pop", &mut draft.world.population) {
-                    changed = true;
-                }
-                ui.end_row();
-                ui.label("tech_level");
-                if combo_enum::<TechLevel>(ui, "w_tech", &mut draft.world.tech_level) {
-                    changed = true;
-                }
-                ui.end_row();
-                ui.label("government");
-                if combo_enum::<Government>(ui, "w_gov", &mut draft.world.government) {
-                    changed = true;
-                }
-                ui.end_row();
-            });
-            if changed {
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
-                }
+    ui_kit::collapsing_section(ui, "world_society", "Society", false, |ui| {
+        // §R4: edit a clone and dispatch one EditWorld for the whole group.
+        let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+        let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+        let mut changed = false;
+        egui::Grid::new("w_soc_grid").num_columns(2).show(ui, |ui| {
+            ui.label("population");
+            if combo_enum::<Population>(ui, "w_pop", &mut draft.world.population) {
+                changed = true;
             }
+            ui.end_row();
+            ui.label("tech_level");
+            if combo_enum::<TechLevel>(ui, "w_tech", &mut draft.world.tech_level) {
+                changed = true;
+            }
+            ui.end_row();
+            ui.label("government");
+            if combo_enum::<Government>(ui, "w_gov", &mut draft.world.government) {
+                changed = true;
+            }
+            ui.end_row();
         });
+        if changed {
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+            }
+        }
+    });
 }
 
 // ── features (W5) ──────────────────────────────────────────────────────────
@@ -374,9 +367,12 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .len();
     let weights = feature_weights_for_world(state, sys_idx, w_idx);
     let weights = &*weights;
-    egui::CollapsingHeader::new(format!("Notable features ({feature_count})"))
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "world_features",
+        &format!("Notable features ({feature_count})"),
+        false,
+        |ui| {
             // §R4: gather the requested mutation (one remove or one add per
             // frame), then apply it to a clone and dispatch one EditWorld below.
             let mut remove: Option<usize> = None;
@@ -462,7 +458,8 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                     state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
             }
-        });
+        },
+    );
 }
 
 /// §W5 + TF-NT-3: cache-backed feature → weight map. The expensive path
@@ -571,14 +568,18 @@ fn show_coupling_warnings(ui: &mut Ui, state: &BuilderState, sys_idx: usize, w_i
     if warnings.is_empty() {
         return;
     }
-    egui::CollapsingHeader::new(format!("Coupling warnings ({})", warnings.len()))
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "world_coupling",
+        &format!("Coupling warnings ({})", warnings.len()),
+        true,
+        |ui| {
             for msg in warnings {
                 ui.colored_label(Color32::from_rgb(220, 180, 60), format!("⚠ {msg}"));
             }
             ui.colored_label(Color32::DARK_GRAY, "non-blocking — adjust if intentional");
-        });
+        },
+    );
 }
 
 fn coupling_warnings(dto: &sectorforge::sector_model::WorldDto) -> Vec<String> {
@@ -632,126 +633,120 @@ fn coupling_warnings(dto: &sectorforge::sector_model::WorldDto) -> Vec<String> {
 // ── tags + notes ────────────────────────────────────────────────────────────
 
 fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Tags + Notes")
-        .default_open(false)
-        .show(ui, |ui| {
-            let wid_key = state.sector.systems[sys_idx].worlds[w_idx]
-                .id
-                .as_str()
-                .to_string();
-            let tags_key = egui::Id::new(("world_tags_buf", wid_key.as_str()));
-            let notes_key = egui::Id::new(("world_notes_buf", wid_key.as_str()));
-            let tags_src = state.sector.systems[sys_idx].worlds[w_idx]
-                .tags
-                .iter()
-                .map(|t| t.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-            let notes_src = state.sector.systems[sys_idx].worlds[w_idx]
-                .notes
-                .iter()
-                .map(|t| t.to_string())
-                .collect::<Vec<_>>()
-                .join("\n");
-            ui.label("tags (comma-separated)");
-            let (tags_buf, tags_resp) =
-                crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
-            let tags_changed = tags_resp.lost_focus();
-            ui.label("notes (one per line)");
-            let (notes_buf, notes_resp) =
-                crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
-            let notes_changed = notes_resp.lost_focus();
-            if tags_changed {
-                // §R4: commit tags via EditWorld on a world clone.
-                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-                draft.tags = tags_buf
-                    .split(',')
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .map(Arc::from)
-                    .collect();
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
-                }
-                crate::builder::panels::persistent_text_clear(ui, tags_key);
+    ui_kit::collapsing_section(ui, "world_tags_notes", "Tags + Notes", false, |ui| {
+        let wid_key = state.sector.systems[sys_idx].worlds[w_idx]
+            .id
+            .as_str()
+            .to_string();
+        let tags_key = egui::Id::new(("world_tags_buf", wid_key.as_str()));
+        let notes_key = egui::Id::new(("world_notes_buf", wid_key.as_str()));
+        let tags_src = state.sector.systems[sys_idx].worlds[w_idx]
+            .tags
+            .iter()
+            .map(|t| t.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let notes_src = state.sector.systems[sys_idx].worlds[w_idx]
+            .notes
+            .iter()
+            .map(|t| t.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+        ui.label("tags (comma-separated)");
+        let (tags_buf, tags_resp) =
+            crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
+        let tags_changed = tags_resp.lost_focus();
+        ui.label("notes (one per line)");
+        let (notes_buf, notes_resp) =
+            crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
+        let notes_changed = notes_resp.lost_focus();
+        if tags_changed {
+            // §R4: commit tags via EditWorld on a world clone.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            draft.tags = tags_buf
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .map(Arc::from)
+                .collect();
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
-            if notes_changed {
-                // §R4: commit notes via EditWorld on a world clone.
-                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-                draft.notes = notes_buf
-                    .lines()
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .map(Arc::from)
-                    .collect();
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
-                }
-                crate::builder::panels::persistent_text_clear(ui, notes_key);
+            crate::builder::panels::persistent_text_clear(ui, tags_key);
+        }
+        if notes_changed {
+            // §R4: commit notes via EditWorld on a world clone.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            draft.notes = notes_buf
+                .lines()
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .map(Arc::from)
+                .collect();
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
-        });
+            crate::builder::panels::persistent_text_clear(ui, notes_key);
+        }
+    });
 }
 
 // ── factions ──────────────────────────────────────────────────────────────
 
 fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Faction presence")
-        .default_open(false)
-        .show(ui, |ui| {
-            let presences = state.sector.systems[sys_idx].worlds[w_idx].factions.clone();
-            if presences.is_empty() {
-                ui.colored_label(Color32::GRAY, "no faction presence on this world");
-            }
-            let mut remove_idx: Option<usize> = None;
-            for (i, p) in presences.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    if sectorforge_gui_core::entity_link(ui, p.faction_id.to_string(), true)
-                        .clicked()
-                    {
-                        state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
-                    }
-                    ui.colored_label(
-                        Color32::DARK_GRAY,
-                        format!(
-                            "infl {:?} · {} · dom {:?}",
-                            p.influence, p.relationship_to_government, p.dominance
-                        ),
-                    );
-                    if ui
-                        .small_button("×")
-                        .on_hover_text("Remove this presence")
-                        .clicked()
-                    {
-                        remove_idx = Some(i);
-                    }
-                });
-            }
-            if let Some(i) = remove_idx {
-                // §R4: remove the presence via EditWorld on a world clone.
-                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-                draft.factions.remove(i);
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+    ui_kit::collapsing_section(ui, "world_presence", "Faction presence", false, |ui| {
+        let presences = state.sector.systems[sys_idx].worlds[w_idx].factions.clone();
+        if presences.is_empty() {
+            ui.colored_label(Color32::GRAY, "no faction presence on this world");
+        }
+        let mut remove_idx: Option<usize> = None;
+        for (i, p) in presences.iter().enumerate() {
+            ui.horizontal(|ui| {
+                if sectorforge_gui_core::entity_link(ui, p.faction_id.to_string(), true).clicked() {
+                    state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
                 }
+                ui.colored_label(
+                    Color32::DARK_GRAY,
+                    format!(
+                        "infl {:?} · {} · dom {:?}",
+                        p.influence, p.relationship_to_government, p.dominance
+                    ),
+                );
+                if ui
+                    .small_button("×")
+                    .on_hover_text("Remove this presence")
+                    .clicked()
+                {
+                    remove_idx = Some(i);
+                }
+            });
+        }
+        if let Some(i) = remove_idx {
+            // §R4: remove the presence via EditWorld on a world clone.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            draft.factions.remove(i);
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
-            ui.separator();
-            show_add_presence_row(ui, state, sys_idx, w_idx);
-        });
+        }
+        ui.separator();
+        show_add_presence_row(ui, state, sys_idx, w_idx);
+    });
 }
 
 const INFLUENCE_TIERS: &[FactionInfluence] = &[
@@ -827,29 +822,30 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
             .find(|(fid, _)| fid == &buf.faction)
             .map(|(_, n)| n.clone())
             .unwrap_or_else(|| candidates[0].1.clone());
-        egui::ComboBox::from_id_salt(("w_add_fac", world_id.as_str()))
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                for (fid, n) in &candidates {
-                    if ui.selectable_label(&buf.faction == fid, n).clicked() {
-                        buf.faction = (*fid).clone();
-                    }
+        ui_kit::combo(("w_add_fac", world_id.as_str()), label).show_ui(ui, |ui| {
+            for (fid, n) in &candidates {
+                if ui.selectable_label(&buf.faction == fid, n).clicked() {
+                    buf.faction = (*fid).clone();
                 }
-            });
-        egui::ComboBox::from_id_salt(("w_add_tier", world_id.as_str()))
-            .selected_text(format!("{}", buf.tier))
-            .show_ui(ui, |ui| {
+            }
+        });
+        ui_kit::combo(("w_add_tier", world_id.as_str()), format!("{}", buf.tier)).show_ui(
+            ui,
+            |ui| {
                 for t in INFLUENCE_TIERS {
                     ui.selectable_value(&mut buf.tier, *t, format!("{t}"));
                 }
-            });
-        egui::ComboBox::from_id_salt(("w_add_dom", world_id.as_str()))
-            .selected_text(format!("{}", buf.dominance))
-            .show_ui(ui, |ui| {
-                for d in DOMINANCE_STATES {
-                    ui.selectable_value(&mut buf.dominance, *d, format!("{d}"));
-                }
-            });
+            },
+        );
+        ui_kit::combo(
+            ("w_add_dom", world_id.as_str()),
+            format!("{}", buf.dominance),
+        )
+        .show_ui(ui, |ui| {
+            for d in DOMINANCE_STATES {
+                ui.selectable_value(&mut buf.dominance, *d, format!("{d}"));
+            }
+        });
         if ui.button("+ presence").clicked() {
             // §R4: add the presence via EditWorld on a world clone.
             let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
@@ -882,9 +878,12 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
 
 fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
     let claim_count = state.sector.systems[sys_idx].worlds[w_idx].claims.len();
-    egui::CollapsingHeader::new(format!("Claims ({claim_count})"))
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "world_claims",
+        &format!("Claims ({claim_count})"),
+        true,
+        |ui| {
             let claims = state.sector.systems[sys_idx].worlds[w_idx].claims.clone();
             let mut remove: Option<usize> = None;
             ui.horizontal_wrapped(|ui| {
@@ -928,7 +927,8 @@ fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_
             }
             ui.add_space(4.0);
             show_add_claim_row(ui, state, sys_idx, w_idx);
-        });
+        },
+    );
 }
 
 fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
@@ -971,28 +971,25 @@ fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
                     .map(|(_, n)| n.clone())
             })
             .unwrap_or_else(|| "(none)".into());
-        egui::ComboBox::from_id_salt(("w_add_claim_fac", sys_idx, w_idx))
-            .selected_text(selected_label)
-            .show_ui(ui, |ui| {
-                for (fid, name) in &factions {
-                    if ui
-                        .selectable_label(buf.faction.as_ref() == Some(fid), name)
-                        .clicked()
-                    {
-                        buf.faction = Some(fid.clone());
-                    }
+        ui_kit::combo(("w_add_claim_fac", sys_idx, w_idx), selected_label).show_ui(ui, |ui| {
+            for (fid, name) in &factions {
+                if ui
+                    .selectable_label(buf.faction.as_ref() == Some(fid), name)
+                    .clicked()
+                {
+                    buf.faction = Some(fid.clone());
                 }
-            });
-        egui::ComboBox::from_id_salt(("w_add_claim_kind", sys_idx, w_idx))
-            .selected_text(format!(
-                "{}",
-                buf.claim_type.unwrap_or(ClaimType::LegalSovereignty)
-            ))
-            .show_ui(ui, |ui| {
-                for c in CLAIM_TYPES {
-                    ui.selectable_value(&mut buf.claim_type, Some(*c), format!("{c}"));
-                }
-            });
+            }
+        });
+        ui_kit::combo(
+            ("w_add_claim_kind", sys_idx, w_idx),
+            format!("{}", buf.claim_type.unwrap_or(ClaimType::LegalSovereignty)),
+        )
+        .show_ui(ui, |ui| {
+            for c in CLAIM_TYPES {
+                ui.selectable_value(&mut buf.claim_type, Some(*c), format!("{c}"));
+            }
+        });
         ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));
         if ui.button("+ claim").clicked() {
             if let (Some(fid), Some(kind)) = (buf.faction.clone(), buf.claim_type) {
@@ -1051,9 +1048,12 @@ fn claim_chip_colours(kind: ClaimType) -> (Color32, Color32) {
 // ── control summary ────────────────────────────────────────────────────────
 
 fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Control summary (read-only)")
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "world_control",
+        "Control summary (read-only)",
+        false,
+        |ui| {
             let c = state.sector.systems[sys_idx].worlds[w_idx].control.clone();
             ui.label(format!("dominant: {:?}", c.dominant));
             ui.label(format!("sovereign: {:?}", c.sovereign));
@@ -1065,26 +1065,25 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
                 "contested: {} · control_score: {:.1}",
                 c.contested, c.control_score
             ));
-        });
+        },
+    );
 }
 
 // ── overlays read-only ─────────────────────────────────────────────────────
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Overlays (summary)")
-        .default_open(false)
-        .show(ui, |ui| {
-            let w = &state.sector.systems[sys_idx].worlds[w_idx];
-            ui.label(format!("surface_regions: {} (edit below)", w.regions.len()));
-            ui.label(format!(
-                "conflict default: {}",
-                sectorforge::conflict::ConflictState::is_default(&w.conflict)
-            ));
-            ui.label(format!(
-                "stability default: {}",
-                sectorforge::stability::StabilityState::is_default(&w.stability)
-            ));
-        });
+    ui_kit::collapsing_section(ui, "world_overlays", "Overlays (summary)", false, |ui| {
+        let w = &state.sector.systems[sys_idx].worlds[w_idx];
+        ui.label(format!("surface_regions: {} (edit below)", w.regions.len()));
+        ui.label(format!(
+            "conflict default: {}",
+            sectorforge::conflict::ConflictState::is_default(&w.conflict)
+        ));
+        ui.label(format!(
+            "stability default: {}",
+            sectorforge::stability::StabilityState::is_default(&w.stability)
+        ));
+    });
 }
 
 // ── §H8 chronicle snippets ─────────────────────────────────────────────────
@@ -1110,9 +1109,12 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
             .collect()
     };
     let count = rows.len();
-    egui::CollapsingHeader::new(format!("Chronicle snippets ({count})"))
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "world_chronicle",
+        &format!("Chronicle snippets ({count})"),
+        false,
+        |ui| {
             if rows.is_empty() {
                 ui.colored_label(
                     Color32::GRAY,
@@ -1141,15 +1143,19 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
             if let Some(id) = jump_to {
                 state.focus_entity(EntityRef::HistoryEvent(id));
             }
-        });
+        },
+    );
 }
 
 // ── W4 regen ───────────────────────────────────────────────────────────────
 
 fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    egui::CollapsingHeader::new("Re-roll from candidate pool")
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "world_reroll",
+        "Re-roll from candidate pool",
+        false,
+        |ui| {
             let pinned = state
                 .pinned_worlds
                 .contains(&state.sector.systems[sys_idx].worlds[w_idx].id);
@@ -1172,7 +1178,8 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
                     state.modal = Some(ModalKind::Message(format!("World re-roll failed: {e}")));
                 }
             }
-        });
+        },
+    );
 }
 
 // ── combo helper ───────────────────────────────────────────────────────────
@@ -1269,13 +1276,11 @@ fn combo_enum<E: EnumPicker>(ui: &mut Ui, salt: &str, target: &mut Arc<str>) -> 
         .cloned()
         .unwrap_or_else(|| E::variants()[0].clone());
     let prev = selected.clone();
-    egui::ComboBox::from_id_salt(salt)
-        .selected_text(selected.display())
-        .show_ui(ui, |ui| {
-            for v in E::variants() {
-                ui.selectable_value(&mut selected, v.clone(), v.display());
-            }
-        });
+    ui_kit::combo(salt, selected.display()).show_ui(ui, |ui| {
+        for v in E::variants() {
+            ui.selectable_value(&mut selected, v.clone(), v.display());
+        }
+    });
     if selected != prev {
         *target = Arc::from(selected.debug_key().as_str());
         true

@@ -300,21 +300,19 @@ where
         .map(&label_of)
         .unwrap_or_else(|| "—".to_string());
     let mut changed = false;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(current_label)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
-                *value = None;
+    crate::ui_kit::combo(id, current_label).show_ui(ui, |ui| {
+        if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
+            *value = None;
+            changed = true;
+        }
+        for v in variants {
+            let label = label_of(v);
+            let selected = value.as_ref() == Some(v);
+            if ui.selectable_label(selected, label).clicked() && !selected {
+                *value = Some(v.clone());
                 changed = true;
             }
-            for v in variants {
-                let label = label_of(v);
-                let selected = value.as_ref() == Some(v);
-                if ui.selectable_label(selected, label).clicked() && !selected {
-                    *value = Some(v.clone());
-                    changed = true;
-                }
-            }
-        });
+        }
+    });
     changed
 }

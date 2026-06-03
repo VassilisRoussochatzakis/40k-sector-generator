@@ -3,6 +3,7 @@ use crate::builder::panels::{
 };
 use crate::builder::{project_io, BuilderState, BuilderWorkspace, ModalKind};
 
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::theme::{self, Theme};
 
 pub struct BuilderApp {
@@ -45,23 +46,45 @@ impl eframe::App for BuilderApp {
         }
         self.pump_active_state(ctx);
 
-        egui::TopBottomPanel::top("builder_workspace_tabs").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                theme::menu(ui, &mut self.theme);
+        // §UO6 P2: tier-1 app chrome. The tab strip and status bar sit on the
+        // themed panel fill with explicit padding; the central workspace gets
+        // the darker window fill so tier-2 `ui_kit::section` boxes (faint_bg)
+        // float against a contrasting backdrop.
+        egui::TopBottomPanel::top("builder_workspace_tabs")
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_panel())
+                    .inner_margin(egui::Margin::symmetric(8.0, 6.0)),
+            )
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    theme::menu(ui, &mut self.theme);
+                    ui.separator();
+                    self.show_workspace_tabs(ui);
+                });
                 ui.separator();
-                self.show_workspace_tabs(ui);
+                nav::show_top_bar(ui, self.workspace.active_mut());
             });
-            ui.separator();
-            nav::show_top_bar(ui, self.workspace.active_mut());
-        });
 
-        egui::TopBottomPanel::bottom("builder_status").show(ctx, |ui| {
-            status::show(ui, self.workspace.active_mut());
-        });
+        egui::TopBottomPanel::bottom("builder_status")
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_panel())
+                    .inner_margin(egui::Margin::symmetric(10.0, 8.0)),
+            )
+            .show(ctx, |ui| {
+                status::show(ui, self.workspace.active_mut());
+            });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            nav::show_active_panel(ui, self.workspace.active_mut());
-        });
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::none()
+                    .fill(palette::chrome_bg())
+                    .inner_margin(egui::Margin::same(10.0)),
+            )
+            .show(ctx, |ui| {
+                nav::show_active_panel(ui, self.workspace.active_mut());
+            });
 
         self.show_modal(ctx);
     }

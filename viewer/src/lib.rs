@@ -15,5 +15,5 @@ pub mod segmentum_view;
 pub use app::App;
 pub use sectorforge_gui_core::jobs::{spawn_job, JobContext, JobHandle};
 pub use sectorforge_gui_core::{
-    heatmap, info_panel, jobs, palette, sector_view, system_view, theme,
+    heatmap, info_panel, jobs, palette, sector_view, system_view, theme, ui_kit,
 };

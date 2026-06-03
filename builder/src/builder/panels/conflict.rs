@@ -21,6 +21,7 @@ use sectorforge::conflict::{
 };
 use sectorforge::ids::FactionId;
 use sectorforge::stability::{derive_world_stability, StabilityState};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{ModalKind, TickLogScope};
@@ -34,9 +35,12 @@ pub fn show_world_conflict_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("Conflict + stability")
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "cf_world_conflict",
+        "Conflict + stability",
+        false,
+        |ui| {
             let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
             let factions: Vec<(FactionId, String)> = state
                 .sector
@@ -55,7 +59,7 @@ pub fn show_world_conflict_section(
                     .button("Re-derive from control")
                     .on_hover_text(
                         "Calls sectorforge::conflict::derive_world_conflict for this world \
-                         and replaces the conflict block with the seed-derived snapshot.",
+                     and replaces the conflict block with the seed-derived snapshot.",
                     )
                     .clicked()
                 {
@@ -93,7 +97,7 @@ pub fn show_world_conflict_section(
                     .button("Re-derive stability")
                     .on_hover_text(
                         "Calls sectorforge::stability::derive_world_stability for this world \
-                         using the live faction roster.",
+                     using the live faction roster.",
                     )
                     .clicked()
                 {
@@ -121,96 +125,95 @@ pub fn show_world_conflict_section(
             ui.add_space(8.0);
             ui.separator();
             advance_ticks_block(ui, state, "world");
-        });
+        },
+    );
 }
 
 // ── §CF2: per-system conflict view + override toggle ──────────────────────
 
 pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Conflict")
-        .default_open(false)
-        .show(ui, |ui| {
-            let sys_id = state.sector.systems[sys_idx].id.clone();
-            let factions: Vec<(FactionId, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.clone(), f.name.to_string()))
-                .collect();
-            let mut override_on = state.system_conflict_override.contains(&sys_id);
+    ui_kit::collapsing_section(ui, "cf_system_conflict", "Conflict", false, |ui| {
+        let sys_id = state.sector.systems[sys_idx].id.clone();
+        let factions: Vec<(FactionId, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.clone(), f.name.to_string()))
+            .collect();
+        let mut override_on = state.system_conflict_override.contains(&sys_id);
 
-            ui.horizontal(|ui| {
-                if ui
-                    .checkbox(&mut override_on, "Override aggregate")
-                    .on_hover_text(
-                        "When off: conflict block re-derives from worlds via \
-                         conflict::derive_system_conflict every frame. When on: edits go \
-                         straight to GeneratedSystem::conflict via SetSystemConflict.",
-                    )
-                    .changed()
-                {
-                    if override_on {
-                        state.system_conflict_override.insert(sys_id.clone());
-                    } else {
-                        state.system_conflict_override.remove(&sys_id);
-                    }
-                }
-                ui.colored_label(
-                    Color32::GRAY,
-                    format!("hysteresis = {} ticks", HYSTERESIS_TICKS),
-                );
-            });
-
-            if !override_on {
-                // Aggregate-from-worlds view: keep `sys.conflict` in sync with
-                // the world rollup so the read-only display matches what
-                // `advance_sector` would write next tick. Only dispatch when
-                // the rollup actually drifts from `sys.conflict`.
-                let sys = &state.sector.systems[sys_idx];
-                let derived = derive_system_conflict(sys);
-                if derived != sys.conflict {
-                    let cmd = BuilderCommand::SetSystemConflict {
-                        system: sys_id.clone(),
-                        before: None,
-                        after: derived,
-                    };
-                    if let Err(e) = state.run(cmd) {
-                        state.last_command_error = Some(format!("aggregate sync: {e}"));
-                    }
-                }
-                let sys = &state.sector.systems[sys_idx];
-                show_conflict_readout(ui, &sys.conflict);
-            } else {
-                let mut working = state.sector.systems[sys_idx].conflict.clone();
-                let original = working.clone();
-                conflict_editor(ui, &format!("s_conf_{sys_id}"), &mut working, &factions);
-                if ui.button("Clear conflict").clicked() {
-                    working = ConflictState::default();
-                }
-                if working != original {
-                    let cmd = BuilderCommand::SetSystemConflict {
-                        system: sys_id.clone(),
-                        before: None,
-                        after: working,
-                    };
-                    if let Err(e) = state.run(cmd) {
-                        state.modal = Some(ModalKind::Message(format!(
-                            "System conflict update failed: {e}"
-                        )));
-                    }
+        ui.horizontal(|ui| {
+            if ui
+                .checkbox(&mut override_on, "Override aggregate")
+                .on_hover_text(
+                    "When off: conflict block re-derives from worlds via \
+                     conflict::derive_system_conflict every frame. When on: edits go \
+                     straight to GeneratedSystem::conflict via SetSystemConflict.",
+                )
+                .changed()
+            {
+                if override_on {
+                    state.system_conflict_override.insert(sys_id.clone());
+                } else {
+                    state.system_conflict_override.remove(&sys_id);
                 }
             }
-
-            ui.add_space(8.0);
-            ui.separator();
-            advance_ticks_block(ui, state, "system");
-            ui.add_space(8.0);
-            ui.separator();
-            show_tick_log(ui, state, Some(&sys_id));
-            ui.add_space(8.0);
-            ui.separator();
-            show_conflict_heatmap_picker(ui, state);
+            ui.colored_label(
+                Color32::GRAY,
+                format!("hysteresis = {} ticks", HYSTERESIS_TICKS),
+            );
         });
+
+        if !override_on {
+            // Aggregate-from-worlds view: keep `sys.conflict` in sync with
+            // the world rollup so the read-only display matches what
+            // `advance_sector` would write next tick. Only dispatch when
+            // the rollup actually drifts from `sys.conflict`.
+            let sys = &state.sector.systems[sys_idx];
+            let derived = derive_system_conflict(sys);
+            if derived != sys.conflict {
+                let cmd = BuilderCommand::SetSystemConflict {
+                    system: sys_id.clone(),
+                    before: None,
+                    after: derived,
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.last_command_error = Some(format!("aggregate sync: {e}"));
+                }
+            }
+            let sys = &state.sector.systems[sys_idx];
+            show_conflict_readout(ui, &sys.conflict);
+        } else {
+            let mut working = state.sector.systems[sys_idx].conflict.clone();
+            let original = working.clone();
+            conflict_editor(ui, &format!("s_conf_{sys_id}"), &mut working, &factions);
+            if ui.button("Clear conflict").clicked() {
+                working = ConflictState::default();
+            }
+            if working != original {
+                let cmd = BuilderCommand::SetSystemConflict {
+                    system: sys_id.clone(),
+                    before: None,
+                    after: working,
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.modal = Some(ModalKind::Message(format!(
+                        "System conflict update failed: {e}"
+                    )));
+                }
+            }
+        }
+
+        ui.add_space(8.0);
+        ui.separator();
+        advance_ticks_block(ui, state, "system");
+        ui.add_space(8.0);
+        ui.separator();
+        show_tick_log(ui, state, Some(&sys_id));
+        ui.add_space(8.0);
+        ui.separator();
+        show_conflict_heatmap_picker(ui, state);
+    });
 }
 
 // ── §CF6: conflict-intensity heatmap toggle ───────────────────────────────
@@ -453,20 +456,18 @@ fn optional_faction_combo(
         .as_ref()
         .map(|f| f.to_string())
         .unwrap_or_else(|| "(none)".into());
-    egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(label)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(current.is_none(), "(none)").clicked() {
-                *current = None;
+    ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
+        if ui.selectable_label(current.is_none(), "(none)").clicked() {
+            *current = None;
+        }
+        for (fid, name) in factions {
+            let sel = current.as_ref() == Some(fid);
+            if ui
+                .selectable_label(sel, format!("{fid} ({name})"))
+                .clicked()
+            {
+                *current = Some(fid.clone());
             }
-            for (fid, name) in factions {
-                let sel = current.as_ref() == Some(fid);
-                if ui
-                    .selectable_label(sel, format!("{fid} ({name})"))
-                    .clicked()
-                {
-                    *current = Some(fid.clone());
-                }
-            }
-        });
+        }
+    });
 }

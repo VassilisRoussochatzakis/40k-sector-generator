@@ -23,6 +23,7 @@ use sectorforge::history::{
 };
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::SystemState;
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{
@@ -183,293 +184,286 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H2 eras editor ─────────────────────────────────────────────────────────
 
 fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("eras").strong())
-        .default_open(false)
-        .show(ui, |ui| {
-            ensure_history_catalog_if_needed(state);
-            let Some(cfg) = state.data_catalogs.history.as_mut() else {
-                return;
-            };
-            let mut changed = false;
-            let mut remove_idx: Option<usize> = None;
-            for (idx, era) in cfg.eras.iter_mut().enumerate() {
-                egui::Frame::group(ui.style()).show(ui, |ui| {
-                    ui.horizontal_wrapped(|ui| {
-                        ui.label(RichText::new(format!("[{idx}]")).monospace());
-                        ui.label("id");
-                        changed |= ui
-                            .add(
-                                egui::TextEdit::singleline(&mut era.id)
-                                    .desired_width(140.0)
-                                    .hint_text("id (snake_case)"),
-                            )
-                            .changed();
-                        ui.label("label");
-                        changed |= ui
-                            .add(
-                                egui::TextEdit::singleline(&mut era.label)
-                                    .desired_width(220.0)
-                                    .hint_text("display label"),
-                            )
-                            .changed();
-                        if ui
-                            .button(RichText::new("× remove").color(Color32::LIGHT_RED))
-                            .clicked()
-                        {
-                            remove_idx = Some(idx);
-                        }
-                    });
-                    ui.horizontal_wrapped(|ui| {
-                        ui.label("relative_start");
-                        changed |= ui
-                            .add(
-                                egui::DragValue::new(&mut era.relative_start)
-                                    .range(-2000..=2000)
-                                    .speed(1),
-                            )
-                            .changed();
-                        ui.label("relative_end");
-                        changed |= ui
-                            .add(
-                                egui::DragValue::new(&mut era.relative_end)
-                                    .range(-2000..=2000)
-                                    .speed(1),
-                            )
-                            .changed();
-                        ui.label("weight");
-                        changed |= ui
-                            .add(
-                                egui::DragValue::new(&mut era.weight)
-                                    .range(0.0..=10.0)
-                                    .speed(0.05),
-                            )
-                            .changed();
-                    });
-                    ui.label("allowed_events (click to toggle)");
-                    egui::ScrollArea::horizontal()
-                        .id_salt(format!("h2_era_kinds_{idx}"))
-                        .show(ui, |ui| {
-                            ui.horizontal_wrapped(|ui| {
-                                for k in EVENT_KINDS {
-                                    let is_in = era.allowed_events.contains(k);
-                                    let resp = ui.selectable_label(is_in, kind_label(*k));
-                                    if resp.clicked() {
-                                        if is_in {
-                                            era.allowed_events.retain(|x| x != k);
-                                        } else {
-                                            era.allowed_events.push(*k);
-                                        }
-                                        changed = true;
+    ui_kit::collapsing_section(ui, "hist_eras", "eras", false, |ui| {
+        ensure_history_catalog_if_needed(state);
+        let Some(cfg) = state.data_catalogs.history.as_mut() else {
+            return;
+        };
+        let mut changed = false;
+        let mut remove_idx: Option<usize> = None;
+        for (idx, era) in cfg.eras.iter_mut().enumerate() {
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new(format!("[{idx}]")).monospace());
+                    ui.label("id");
+                    changed |= ui
+                        .add(
+                            egui::TextEdit::singleline(&mut era.id)
+                                .desired_width(140.0)
+                                .hint_text("id (snake_case)"),
+                        )
+                        .changed();
+                    ui.label("label");
+                    changed |= ui
+                        .add(
+                            egui::TextEdit::singleline(&mut era.label)
+                                .desired_width(220.0)
+                                .hint_text("display label"),
+                        )
+                        .changed();
+                    if ui
+                        .button(RichText::new("× remove").color(Color32::LIGHT_RED))
+                        .clicked()
+                    {
+                        remove_idx = Some(idx);
+                    }
+                });
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("relative_start");
+                    changed |= ui
+                        .add(
+                            egui::DragValue::new(&mut era.relative_start)
+                                .range(-2000..=2000)
+                                .speed(1),
+                        )
+                        .changed();
+                    ui.label("relative_end");
+                    changed |= ui
+                        .add(
+                            egui::DragValue::new(&mut era.relative_end)
+                                .range(-2000..=2000)
+                                .speed(1),
+                        )
+                        .changed();
+                    ui.label("weight");
+                    changed |= ui
+                        .add(
+                            egui::DragValue::new(&mut era.weight)
+                                .range(0.0..=10.0)
+                                .speed(0.05),
+                        )
+                        .changed();
+                });
+                ui.label("allowed_events (click to toggle)");
+                egui::ScrollArea::horizontal()
+                    .id_salt(format!("h2_era_kinds_{idx}"))
+                    .show(ui, |ui| {
+                        ui.horizontal_wrapped(|ui| {
+                            for k in EVENT_KINDS {
+                                let is_in = era.allowed_events.contains(k);
+                                let resp = ui.selectable_label(is_in, kind_label(*k));
+                                if resp.clicked() {
+                                    if is_in {
+                                        era.allowed_events.retain(|x| x != k);
+                                    } else {
+                                        era.allowed_events.push(*k);
                                     }
+                                    changed = true;
                                 }
-                            });
+                            }
                         });
-                });
-            }
-            if let Some(i) = remove_idx {
-                cfg.eras.remove(i);
-                changed = true;
-            }
-            ui.separator();
-            if ui.button("+ era").clicked() {
-                cfg.eras.push(HistoryEra {
-                    id: format!("era_{}", cfg.eras.len() + 1),
-                    label: "New era".into(),
-                    relative_start: 0,
-                    relative_end: 0,
-                    weight: 1.0,
-                    allowed_events: Vec::new(),
-                });
-                changed = true;
-            }
-            if changed {
-                on_catalog_edited(state);
-            }
-        });
+                    });
+            });
+        }
+        if let Some(i) = remove_idx {
+            cfg.eras.remove(i);
+            changed = true;
+        }
+        ui.separator();
+        if ui.button("+ era").clicked() {
+            cfg.eras.push(HistoryEra {
+                id: format!("era_{}", cfg.eras.len() + 1),
+                label: "New era".into(),
+                relative_start: 0,
+                relative_end: 0,
+                weight: 1.0,
+                allowed_events: Vec::new(),
+            });
+            changed = true;
+        }
+        if changed {
+            on_catalog_edited(state);
+        }
+    });
 }
 
 // ── §H3 event rules editor ──────────────────────────────────────────────────
 
 fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("event rules").strong())
-        .default_open(false)
-        .show(ui, |ui| {
-            ensure_history_catalog_if_needed(state);
-            let Some(cfg) = state.data_catalogs.history.as_mut() else {
-                return;
-            };
-            let mut changed = false;
-            let mut remove_idx: Option<usize> = None;
-            for (idx, rule) in cfg.event_rules.iter_mut().enumerate() {
-                egui::Frame::group(ui.style()).show(ui, |ui| {
-                    ui.horizontal_wrapped(|ui| {
-                        ui.label(RichText::new(format!("[{idx}]")).monospace());
-                        ui.label("id");
-                        let mut id_buf = rule.id.clone().unwrap_or_default();
-                        if ui
-                            .add(
-                                egui::TextEdit::singleline(&mut id_buf)
-                                    .hint_text("(optional)")
-                                    .desired_width(140.0),
-                            )
-                            .changed()
-                        {
-                            rule.id = if id_buf.is_empty() {
-                                None
-                            } else {
-                                Some(id_buf)
-                            };
-                            changed = true;
-                        }
-                        if ui
-                            .button(RichText::new("× remove").color(Color32::LIGHT_RED))
-                            .clicked()
-                        {
-                            remove_idx = Some(idx);
+    ui_kit::collapsing_section(ui, "hist_event_rules", "event rules", false, |ui| {
+        ensure_history_catalog_if_needed(state);
+        let Some(cfg) = state.data_catalogs.history.as_mut() else {
+            return;
+        };
+        let mut changed = false;
+        let mut remove_idx: Option<usize> = None;
+        for (idx, rule) in cfg.event_rules.iter_mut().enumerate() {
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new(format!("[{idx}]")).monospace());
+                    ui.label("id");
+                    let mut id_buf = rule.id.clone().unwrap_or_default();
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut id_buf)
+                                .hint_text("(optional)")
+                                .desired_width(140.0),
+                        )
+                        .changed()
+                    {
+                        rule.id = if id_buf.is_empty() {
+                            None
+                        } else {
+                            Some(id_buf)
+                        };
+                        changed = true;
+                    }
+                    if ui
+                        .button(RichText::new("× remove").color(Color32::LIGHT_RED))
+                        .clicked()
+                    {
+                        remove_idx = Some(idx);
+                    }
+                });
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("when_system_state");
+                    let mut state_pick = rule
+                        .when_system_state
+                        .as_deref()
+                        .and_then(parse_system_state);
+                    let picked_before = state_pick;
+                    ui_kit::combo(
+                        format!("h3_when_{idx}"),
+                        match state_pick {
+                            Some(s) => system_state_label(s),
+                            None => "(any)",
+                        },
+                    )
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut state_pick, None, "(any)");
+                        for s in SYSTEM_STATES {
+                            ui.selectable_value(&mut state_pick, Some(*s), system_state_label(*s));
                         }
                     });
-                    ui.horizontal_wrapped(|ui| {
-                        ui.label("when_system_state");
-                        let mut state_pick = rule
-                            .when_system_state
-                            .as_deref()
-                            .and_then(parse_system_state);
-                        let picked_before = state_pick;
-                        egui::ComboBox::from_id_salt(format!("h3_when_{idx}"))
-                            .selected_text(match state_pick {
-                                Some(s) => system_state_label(s),
-                                None => "(any)",
-                            })
-                            .show_ui(ui, |ui| {
-                                ui.selectable_value(&mut state_pick, None, "(any)");
-                                for s in SYSTEM_STATES {
-                                    ui.selectable_value(
-                                        &mut state_pick,
-                                        Some(*s),
-                                        system_state_label(*s),
-                                    );
-                                }
-                            });
-                        if state_pick != picked_before {
-                            rule.when_system_state =
-                                state_pick.map(|s| system_state_key(s).to_string());
-                            changed = true;
-                        }
+                    if state_pick != picked_before {
+                        rule.when_system_state =
+                            state_pick.map(|s| system_state_key(s).to_string());
+                        changed = true;
+                    }
 
-                        ui.label("prefer_event");
-                        let mut kind_pick =
-                            rule.prefer_event.as_deref().and_then(parse_event_kind_str);
-                        let kind_before = kind_pick;
-                        egui::ComboBox::from_id_salt(format!("h3_prefer_{idx}"))
-                            .selected_text(match kind_pick {
-                                Some(k) => kind_label(k),
-                                None => "(none)",
-                            })
-                            .show_ui(ui, |ui| {
-                                ui.selectable_value(&mut kind_pick, None, "(none)");
-                                for k in EVENT_KINDS {
-                                    ui.selectable_value(&mut kind_pick, Some(*k), kind_label(*k));
-                                }
-                            });
-                        if kind_pick != kind_before {
-                            rule.prefer_event = kind_pick.map(|k| kind_slug(k).to_string());
-                            changed = true;
+                    ui.label("prefer_event");
+                    let mut kind_pick = rule.prefer_event.as_deref().and_then(parse_event_kind_str);
+                    let kind_before = kind_pick;
+                    ui_kit::combo(
+                        format!("h3_prefer_{idx}"),
+                        match kind_pick {
+                            Some(k) => kind_label(k),
+                            None => "(none)",
+                        },
+                    )
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut kind_pick, None, "(none)");
+                        for k in EVENT_KINDS {
+                            ui.selectable_value(&mut kind_pick, Some(*k), kind_label(*k));
                         }
-
-                        ui.label("minimum_events");
-                        changed |= ui
-                            .add(
-                                egui::DragValue::new(&mut rule.minimum_events)
-                                    .range(0..=99)
-                                    .speed(1),
-                            )
-                            .changed();
                     });
+                    if kind_pick != kind_before {
+                        rule.prefer_event = kind_pick.map(|k| kind_slug(k).to_string());
+                        changed = true;
+                    }
+
+                    ui.label("minimum_events");
+                    changed |= ui
+                        .add(
+                            egui::DragValue::new(&mut rule.minimum_events)
+                                .range(0..=99)
+                                .speed(1),
+                        )
+                        .changed();
                 });
-            }
-            if let Some(i) = remove_idx {
-                cfg.event_rules.remove(i);
-                changed = true;
-            }
-            ui.separator();
-            if ui.button("+ event rule").clicked() {
-                cfg.event_rules.push(HistoryEventRule {
-                    id: None,
-                    when_system_state: None,
-                    prefer_event: None,
-                    minimum_events: 1,
-                });
-                changed = true;
-            }
-            if changed {
-                on_catalog_edited(state);
-            }
-        });
+            });
+        }
+        if let Some(i) = remove_idx {
+            cfg.event_rules.remove(i);
+            changed = true;
+        }
+        ui.separator();
+        if ui.button("+ event rule").clicked() {
+            cfg.event_rules.push(HistoryEventRule {
+                id: None,
+                when_system_state: None,
+                prefer_event: None,
+                minimum_events: 1,
+            });
+            changed = true;
+        }
+        if changed {
+            on_catalog_edited(state);
+        }
+    });
 }
 
 // ── §H4 events editor ───────────────────────────────────────────────────────
 
 fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("events").strong())
-        .default_open(true)
-        .show(ui, |ui| {
-            if state.sector.chronicle.events.is_empty() {
-                ui.colored_label(
-                    Color32::GRAY,
-                    "No chronicle events. Click Regenerate chronicle above or use the wizard.",
-                );
-                return;
-            }
+    ui_kit::collapsing_section(ui, "hist_events", "events", true, |ui| {
+        if state.sector.chronicle.events.is_empty() {
+            ui.colored_label(
+                Color32::GRAY,
+                "No chronicle events. Click Regenerate chronicle above or use the wizard.",
+            );
+            return;
+        }
 
-            let selected = state.selected_history_event.clone();
-            egui::ScrollArea::vertical()
-                .id_salt("h4_events_scroll")
-                .max_height(320.0)
-                .show(ui, |ui| {
-                    egui::Grid::new("h4_events_grid")
-                        .striped(true)
-                        .num_columns(6)
-                        .show(ui, |ui| {
-                            ui.label(RichText::new("date").strong());
-                            ui.label(RichText::new("kind").strong());
-                            ui.label(RichText::new("anchor").strong());
-                            ui.label(RichText::new("wt").strong());
-                            ui.label(RichText::new("source").strong());
-                            ui.label("");
-                            ui.end_row();
-                            let events = state.sector.chronicle.events.clone();
-                            for ev in &events {
-                                let is_sel = selected.as_deref() == Some(ev.id.as_str());
-                                if ui
-                                    .selectable_label(is_sel, RichText::new(&ev.date).monospace())
-                                    .clicked()
-                                {
-                                    state.selected_history_event = Some(ev.id.clone());
-                                }
-                                ui.label(kind_label(ev.kind));
-                                ui.label(anchor_label(&ev.anchor));
-                                ui.label(format!("{}", ev.weight));
-                                if ev.manual {
-                                    ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
-                                } else {
-                                    ui.colored_label(Color32::DARK_GRAY, "derived");
-                                }
-                                if ui.button("edit").clicked() {
-                                    state.selected_history_event = Some(ev.id.clone());
-                                }
-                                ui.end_row();
+        let selected = state.selected_history_event.clone();
+        egui::ScrollArea::vertical()
+            .id_salt("h4_events_scroll")
+            .max_height(320.0)
+            .show(ui, |ui| {
+                egui::Grid::new("h4_events_grid")
+                    .striped(true)
+                    .num_columns(6)
+                    .show(ui, |ui| {
+                        ui.label(RichText::new("date").strong());
+                        ui.label(RichText::new("kind").strong());
+                        ui.label(RichText::new("anchor").strong());
+                        ui.label(RichText::new("wt").strong());
+                        ui.label(RichText::new("source").strong());
+                        ui.label("");
+                        ui.end_row();
+                        let events = state.sector.chronicle.events.clone();
+                        for ev in &events {
+                            let is_sel = selected.as_deref() == Some(ev.id.as_str());
+                            if ui
+                                .selectable_label(is_sel, RichText::new(&ev.date).monospace())
+                                .clicked()
+                            {
+                                state.selected_history_event = Some(ev.id.clone());
                             }
-                        });
-                });
+                            ui.label(kind_label(ev.kind));
+                            ui.label(anchor_label(&ev.anchor));
+                            ui.label(format!("{}", ev.weight));
+                            if ev.manual {
+                                ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
+                            } else {
+                                ui.colored_label(Color32::DARK_GRAY, "derived");
+                            }
+                            if ui.button("edit").clicked() {
+                                state.selected_history_event = Some(ev.id.clone());
+                            }
+                            ui.end_row();
+                        }
+                    });
+            });
 
-            ui.separator();
-            show_selected_event_inspector(ui, state);
-        });
+        ui.separator();
+        show_selected_event_inspector(ui, state);
+    });
 }
 
 fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     let Some(id) = state.selected_history_event.clone() else {
-        ui.colored_label(Color32::GRAY, "Select an event above to inspect / edit.");
+        ui_kit::placeholder(ui, "Select an event above to inspect / edit.");
         return;
     };
     let Some(idx) = state
@@ -522,13 +516,11 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
                 ui.label("kind");
                 let mut kind = ev.kind;
                 let kind_before = kind;
-                egui::ComboBox::from_id_salt("h4_kind")
-                    .selected_text(kind_label(kind))
-                    .show_ui(ui, |ui| {
-                        for k in EVENT_KINDS {
-                            ui.selectable_value(&mut kind, *k, kind_label(*k));
-                        }
-                    });
+                ui_kit::combo("h4_kind", kind_label(kind)).show_ui(ui, |ui| {
+                    for k in EVENT_KINDS {
+                        ui.selectable_value(&mut kind, *k, kind_label(*k));
+                    }
+                });
                 if kind != kind_before {
                     ev.kind = kind;
                     changed = true;
@@ -581,18 +573,16 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     let mut to_add: Option<FactionId> = None;
     ui.horizontal_wrapped(|ui| {
         ui.label("+ faction");
-        egui::ComboBox::from_id_salt("h4_add_fac")
-            .selected_text("(pick)")
-            .show_ui(ui, |ui| {
-                for (id, name) in &factions_snapshot {
-                    if ui
-                        .selectable_label(false, format!("{id} — {name}"))
-                        .clicked()
-                    {
-                        to_add = Some(id.clone());
-                    }
+        ui_kit::combo("h4_add_fac", "(pick)").show_ui(ui, |ui| {
+            for (id, name) in &factions_snapshot {
+                if ui
+                    .selectable_label(false, format!("{id} — {name}"))
+                    .clicked()
+                {
+                    to_add = Some(id.clone());
                 }
-            });
+            }
+        });
     });
     if let Some(fid) = to_add {
         let ev = &mut chron.events[idx];
@@ -603,40 +593,38 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     // Consequences sub-editor.
-    egui::CollapsingHeader::new("consequences")
-        .default_open(false)
-        .show(ui, |ui| {
-            let ev = &mut chron.events[idx];
-            let mut remove_c: Option<usize> = None;
-            for (ci, c) in ev.consequences.iter_mut().enumerate() {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label(format!("[{ci}]"));
-                    changed |= ui.text_edit_singleline(&mut c.description).changed();
-                    changed |= ui
-                        .add(egui::DragValue::new(&mut c.severity).range(0..=100))
-                        .changed();
-                    if ui
-                        .button(RichText::new("×").color(Color32::LIGHT_RED))
-                        .clicked()
-                    {
-                        remove_c = Some(ci);
-                    }
-                });
-            }
-            if let Some(i) = remove_c {
-                ev.consequences.remove(i);
-                changed = true;
-            }
-            if ui.button("+ consequence").clicked() {
-                ev.consequences.push(HistoryConsequence {
-                    kind: HistoryConsequenceKind::RegionRecorded,
-                    description: String::new(),
-                    severity: 30,
-                    entity_id: None,
-                });
-                changed = true;
-            }
-        });
+    ui_kit::collapsing_section(ui, "hist_consequences", "consequences", false, |ui| {
+        let ev = &mut chron.events[idx];
+        let mut remove_c: Option<usize> = None;
+        for (ci, c) in ev.consequences.iter_mut().enumerate() {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(format!("[{ci}]"));
+                changed |= ui.text_edit_singleline(&mut c.description).changed();
+                changed |= ui
+                    .add(egui::DragValue::new(&mut c.severity).range(0..=100))
+                    .changed();
+                if ui
+                    .button(RichText::new("×").color(Color32::LIGHT_RED))
+                    .clicked()
+                {
+                    remove_c = Some(ci);
+                }
+            });
+        }
+        if let Some(i) = remove_c {
+            ev.consequences.remove(i);
+            changed = true;
+        }
+        if ui.button("+ consequence").clicked() {
+            ev.consequences.push(HistoryConsequence {
+                kind: HistoryConsequenceKind::RegionRecorded,
+                description: String::new(),
+                severity: 30,
+                entity_id: None,
+            });
+            changed = true;
+        }
+    });
 
     if delete {
         // §R4: delete via EditChronicle (was `chronicle.events.remove(idx)`).
@@ -671,285 +659,268 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H5 add-event wizard ────────────────────────────────────────────────────
 
 fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("add event").strong())
-        .default_open(false)
-        .show(ui, |ui| {
-            if state.history_wizard.is_none() {
-                if ui.button("+ event (open wizard)").clicked() {
-                    state.history_wizard = Some(HistoryWizardState::default());
-                }
-                return;
+    ui_kit::collapsing_section(ui, "hist_add_event", "add event", false, |ui| {
+        if state.history_wizard.is_none() {
+            if ui.button("+ event (open wizard)").clicked() {
+                state.history_wizard = Some(HistoryWizardState::default());
             }
-            // Snapshot the bits we need before taking a mutable borrow on the wizard.
-            let systems: Vec<(SystemId, String)> = state
-                .sector
-                .systems
-                .iter()
-                .map(|s| (s.id.clone(), s.name.to_string()))
-                .collect();
-            let worlds: Vec<(WorldId, String, SystemId)> = state
-                .sector
-                .systems
-                .iter()
-                .flat_map(|s| {
-                    let sid = s.id.clone();
-                    s.worlds
-                        .iter()
-                        .map(move |w| (w.id.clone(), w.name.to_string(), sid.clone()))
-                })
-                .collect();
-            let routes: Vec<(RouteId, SystemId, SystemId, String)> = state
-                .sector
-                .routes
-                .iter()
-                .map(|r| {
-                    (
-                        r.id.clone(),
-                        r.from_system_id.clone(),
-                        r.to_system_id.clone(),
-                        format!("{} ↔ {}", r.from_system_id, r.to_system_id),
-                    )
-                })
-                .collect();
-            let regions: Vec<(String, String)> = state
-                .sector
-                .regions
-                .iter()
-                .map(|r| (r.id.clone(), r.name.clone()))
-                .collect();
-            let factions: Vec<(FactionId, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.clone(), f.name.to_string()))
-                .collect();
+            return;
+        }
+        // Snapshot the bits we need before taking a mutable borrow on the wizard.
+        let systems: Vec<(SystemId, String)> = state
+            .sector
+            .systems
+            .iter()
+            .map(|s| (s.id.clone(), s.name.to_string()))
+            .collect();
+        let worlds: Vec<(WorldId, String, SystemId)> = state
+            .sector
+            .systems
+            .iter()
+            .flat_map(|s| {
+                let sid = s.id.clone();
+                s.worlds
+                    .iter()
+                    .map(move |w| (w.id.clone(), w.name.to_string(), sid.clone()))
+            })
+            .collect();
+        let routes: Vec<(RouteId, SystemId, SystemId, String)> = state
+            .sector
+            .routes
+            .iter()
+            .map(|r| {
+                (
+                    r.id.clone(),
+                    r.from_system_id.clone(),
+                    r.to_system_id.clone(),
+                    format!("{} ↔ {}", r.from_system_id, r.to_system_id),
+                )
+            })
+            .collect();
+        let regions: Vec<(String, String)> = state
+            .sector
+            .regions
+            .iter()
+            .map(|r| (r.id.clone(), r.name.clone()))
+            .collect();
+        let factions: Vec<(FactionId, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.clone(), f.name.to_string()))
+            .collect();
 
-            let mut close = false;
-            let mut commit = false;
-            {
-                let w = state.history_wizard.as_mut().unwrap();
-                ui.horizontal_wrapped(|ui| {
-                    ui.label("anchor kind");
-                    egui::ComboBox::from_id_salt("h5_anchor_kind")
-                        .selected_text(w.anchor_kind.label())
-                        .show_ui(ui, |ui| {
-                            for k in HistoryAnchorKind::ALL {
-                                ui.selectable_value(&mut w.anchor_kind, *k, k.label());
-                            }
-                        });
-                    ui.label("event kind");
-                    egui::ComboBox::from_id_salt("h5_event_kind")
-                        .selected_text(kind_label(w.kind))
-                        .show_ui(ui, |ui| {
-                            for k in EVENT_KINDS {
-                                ui.selectable_value(&mut w.kind, *k, kind_label(*k));
-                            }
-                        });
-                });
-
-                match w.anchor_kind {
-                    HistoryAnchorKind::Sector => {}
-                    HistoryAnchorKind::System => {
-                        ui.horizontal_wrapped(|ui| {
-                            ui.label("system");
-                            let cur = w
-                                .anchor_system
-                                .as_ref()
-                                .map(|id| id.to_string())
-                                .unwrap_or_else(|| "(pick)".into());
-                            egui::ComboBox::from_id_salt("h5_sys")
-                                .selected_text(cur)
-                                .show_ui(ui, |ui| {
-                                    for (id, name) in &systems {
-                                        if ui
-                                            .selectable_label(
-                                                w.anchor_system.as_ref() == Some(id),
-                                                format!("{id} — {name}"),
-                                            )
-                                            .clicked()
-                                        {
-                                            w.anchor_system = Some(id.clone());
-                                        }
-                                    }
-                                });
-                        });
-                    }
-                    HistoryAnchorKind::World => {
-                        ui.horizontal_wrapped(|ui| {
-                            ui.label("world");
-                            let cur = w
-                                .anchor_world
-                                .as_ref()
-                                .map(|id| id.to_string())
-                                .unwrap_or_else(|| "(pick)".into());
-                            egui::ComboBox::from_id_salt("h5_wld")
-                                .selected_text(cur)
-                                .show_ui(ui, |ui| {
-                                    for (wid, name, sid) in &worlds {
-                                        if ui
-                                            .selectable_label(
-                                                w.anchor_world.as_ref() == Some(wid),
-                                                format!("{wid} — {name} ({sid})"),
-                                            )
-                                            .clicked()
-                                        {
-                                            w.anchor_world = Some(wid.clone());
-                                            w.anchor_system = Some(sid.clone());
-                                        }
-                                    }
-                                });
-                        });
-                    }
-                    HistoryAnchorKind::Route => {
-                        ui.horizontal_wrapped(|ui| {
-                            ui.label("route");
-                            let cur = w
-                                .anchor_route
-                                .as_ref()
-                                .map(|id| id.to_string())
-                                .unwrap_or_else(|| "(pick)".into());
-                            egui::ComboBox::from_id_salt("h5_route")
-                                .selected_text(cur)
-                                .show_ui(ui, |ui| {
-                                    for (rid, _, _, label) in &routes {
-                                        if ui
-                                            .selectable_label(
-                                                w.anchor_route.as_ref() == Some(rid),
-                                                format!("{rid} — {label}"),
-                                            )
-                                            .clicked()
-                                        {
-                                            w.anchor_route = Some(rid.clone());
-                                        }
-                                    }
-                                });
-                        });
-                    }
-                    HistoryAnchorKind::Region => {
-                        ui.horizontal_wrapped(|ui| {
-                            ui.label("region");
-                            let cur = w.anchor_region.clone().unwrap_or_else(|| "(pick)".into());
-                            egui::ComboBox::from_id_salt("h5_region")
-                                .selected_text(cur)
-                                .show_ui(ui, |ui| {
-                                    for (rid, name) in &regions {
-                                        if ui
-                                            .selectable_label(
-                                                w.anchor_region.as_deref() == Some(rid.as_str()),
-                                                format!("{rid} — {name}"),
-                                            )
-                                            .clicked()
-                                        {
-                                            w.anchor_region = Some(rid.clone());
-                                        }
-                                    }
-                                });
-                        });
-                    }
-                }
-
-                // Auto-suggest participating factions: per-anchor presence
-                // intersected with the global faction roster. Already-picked
-                // factions render with a darker chip.
-                let suggested = suggest_factions_for_wizard(&systems, &worlds, &factions, w);
-                ui.label(RichText::new("participating factions").strong());
-                ui.horizontal_wrapped(|ui| {
-                    if suggested.is_empty() {
-                        ui.colored_label(Color32::GRAY, "(no suggestions for this anchor)");
-                    }
-                    for (fid, _name) in &suggested {
-                        let active = w.selected_factions.contains(fid);
-                        let label = if active {
-                            format!("✓ {fid}")
-                        } else {
-                            format!("+ {fid}")
-                        };
-                        if ui.small_button(label).clicked() {
-                            if active {
-                                w.selected_factions.remove(fid);
-                            } else {
-                                w.selected_factions.insert(fid.clone());
-                            }
-                        }
+        let mut close = false;
+        let mut commit = false;
+        {
+            let w = state.history_wizard.as_mut().unwrap();
+            ui.horizontal_wrapped(|ui| {
+                ui.label("anchor kind");
+                ui_kit::combo("h5_anchor_kind", w.anchor_kind.label()).show_ui(ui, |ui| {
+                    for k in HistoryAnchorKind::ALL {
+                        ui.selectable_value(&mut w.anchor_kind, *k, k.label());
                     }
                 });
-                ui.horizontal_wrapped(|ui| {
-                    ui.label("manual add");
-                    egui::ComboBox::from_id_salt("h5_add_fac")
-                        .selected_text("(pick)")
-                        .show_ui(ui, |ui| {
-                            for (fid, name) in &factions {
+                ui.label("event kind");
+                ui_kit::combo("h5_event_kind", kind_label(w.kind)).show_ui(ui, |ui| {
+                    for k in EVENT_KINDS {
+                        ui.selectable_value(&mut w.kind, *k, kind_label(*k));
+                    }
+                });
+            });
+
+            match w.anchor_kind {
+                HistoryAnchorKind::Sector => {}
+                HistoryAnchorKind::System => {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label("system");
+                        let cur = w
+                            .anchor_system
+                            .as_ref()
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|| "(pick)".into());
+                        ui_kit::combo("h5_sys", cur).show_ui(ui, |ui| {
+                            for (id, name) in &systems {
                                 if ui
                                     .selectable_label(
-                                        w.selected_factions.contains(fid),
-                                        format!("{fid} — {name}"),
+                                        w.anchor_system.as_ref() == Some(id),
+                                        format!("{id} — {name}"),
                                     )
                                     .clicked()
                                 {
-                                    w.selected_factions.insert(fid.clone());
+                                    w.anchor_system = Some(id.clone());
                                 }
                             }
                         });
-                });
+                    });
+                }
+                HistoryAnchorKind::World => {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label("world");
+                        let cur = w
+                            .anchor_world
+                            .as_ref()
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|| "(pick)".into());
+                        ui_kit::combo("h5_wld", cur).show_ui(ui, |ui| {
+                            for (wid, name, sid) in &worlds {
+                                if ui
+                                    .selectable_label(
+                                        w.anchor_world.as_ref() == Some(wid),
+                                        format!("{wid} — {name} ({sid})"),
+                                    )
+                                    .clicked()
+                                {
+                                    w.anchor_world = Some(wid.clone());
+                                    w.anchor_system = Some(sid.clone());
+                                }
+                            }
+                        });
+                    });
+                }
+                HistoryAnchorKind::Route => {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label("route");
+                        let cur = w
+                            .anchor_route
+                            .as_ref()
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|| "(pick)".into());
+                        ui_kit::combo("h5_route", cur).show_ui(ui, |ui| {
+                            for (rid, _, _, label) in &routes {
+                                if ui
+                                    .selectable_label(
+                                        w.anchor_route.as_ref() == Some(rid),
+                                        format!("{rid} — {label}"),
+                                    )
+                                    .clicked()
+                                {
+                                    w.anchor_route = Some(rid.clone());
+                                }
+                            }
+                        });
+                    });
+                }
+                HistoryAnchorKind::Region => {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label("region");
+                        let cur = w.anchor_region.clone().unwrap_or_else(|| "(pick)".into());
+                        ui_kit::combo("h5_region", cur).show_ui(ui, |ui| {
+                            for (rid, name) in &regions {
+                                if ui
+                                    .selectable_label(
+                                        w.anchor_region.as_deref() == Some(rid.as_str()),
+                                        format!("{rid} — {name}"),
+                                    )
+                                    .clicked()
+                                {
+                                    w.anchor_region = Some(rid.clone());
+                                }
+                            }
+                        });
+                    });
+                }
+            }
 
-                ui.horizontal_wrapped(|ui| {
-                    ui.label("date (optional, M{epoch}.{ddd})");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut w.date)
-                            .desired_width(120.0)
-                            .hint_text("M40.500"),
-                    );
+            // Auto-suggest participating factions: per-anchor presence
+            // intersected with the global faction roster. Already-picked
+            // factions render with a darker chip.
+            let suggested = suggest_factions_for_wizard(&systems, &worlds, &factions, w);
+            ui.label(RichText::new("participating factions").strong());
+            ui.horizontal_wrapped(|ui| {
+                if suggested.is_empty() {
+                    ui.colored_label(Color32::GRAY, "(no suggestions for this anchor)");
+                }
+                for (fid, _name) in &suggested {
+                    let active = w.selected_factions.contains(fid);
+                    let label = if active {
+                        format!("✓ {fid}")
+                    } else {
+                        format!("+ {fid}")
+                    };
+                    if ui.small_button(label).clicked() {
+                        if active {
+                            w.selected_factions.remove(fid);
+                        } else {
+                            w.selected_factions.insert(fid.clone());
+                        }
+                    }
+                }
+            });
+            ui.horizontal_wrapped(|ui| {
+                ui.label("manual add");
+                ui_kit::combo("h5_add_fac", "(pick)").show_ui(ui, |ui| {
+                    for (fid, name) in &factions {
+                        if ui
+                            .selectable_label(
+                                w.selected_factions.contains(fid),
+                                format!("{fid} — {name}"),
+                            )
+                            .clicked()
+                        {
+                            w.selected_factions.insert(fid.clone());
+                        }
+                    }
                 });
+            });
 
-                let preview = preview_narrative(w, &systems, &worlds, &routes, &regions);
-                ui.label(RichText::new("narrative (override; blank = preview)").strong());
+            ui.horizontal_wrapped(|ui| {
+                ui.label("date (optional, M{epoch}.{ddd})");
                 ui.add(
-                    egui::TextEdit::multiline(&mut w.narrative)
-                        .desired_rows(3)
-                        .hint_text(preview.clone()),
+                    egui::TextEdit::singleline(&mut w.date)
+                        .desired_width(120.0)
+                        .hint_text("M40.500"),
                 );
-                if !preview.is_empty() {
-                    ui.colored_label(Color32::DARK_GRAY, format!("preview: {preview}"));
-                }
+            });
 
-                ui.horizontal_wrapped(|ui| {
-                    let ready = wizard_anchor_ready(w);
-                    if ui
-                        .add_enabled(ready, egui::Button::new("Commit event"))
-                        .clicked()
-                    {
-                        commit = true;
-                    }
-                    if ui.button("Cancel").clicked() {
-                        close = true;
-                    }
-                });
+            let preview = preview_narrative(w, &systems, &worlds, &routes, &regions);
+            ui.label(RichText::new("narrative (override; blank = preview)").strong());
+            ui.add(
+                egui::TextEdit::multiline(&mut w.narrative)
+                    .desired_rows(3)
+                    .hint_text(preview.clone()),
+            );
+            if !preview.is_empty() {
+                ui.colored_label(Color32::DARK_GRAY, format!("preview: {preview}"));
             }
 
-            if commit {
-                if let Some(w) = state.history_wizard.take() {
-                    let ev = build_manual_event(&w, &systems, &worlds, &routes, &regions);
-                    // §R4: push + re-sort on a clone and commit via
-                    // EditChronicle (was a direct `chronicle.events.push` +
-                    // `.sort_by`). `state.run` handles dirty / invariants /
-                    // validation / auto-save.
-                    let mut chron = state.sector.chronicle.clone();
-                    chron.events.push(ev);
-                    chron
-                        .events
-                        .sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
-                    if let Err(e) = state.run(BuilderCommand::EditChronicle {
-                        before: None,
-                        after: Box::new(chron),
-                    }) {
-                        state.modal =
-                            Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
-                    }
+            ui.horizontal_wrapped(|ui| {
+                let ready = wizard_anchor_ready(w);
+                if ui
+                    .add_enabled(ready, egui::Button::new("Commit event"))
+                    .clicked()
+                {
+                    commit = true;
                 }
-            } else if close {
-                state.history_wizard = None;
+                if ui.button("Cancel").clicked() {
+                    close = true;
+                }
+            });
+        }
+
+        if commit {
+            if let Some(w) = state.history_wizard.take() {
+                let ev = build_manual_event(&w, &systems, &worlds, &routes, &regions);
+                // §R4: push + re-sort on a clone and commit via
+                // EditChronicle (was a direct `chronicle.events.push` +
+                // `.sort_by`). `state.run` handles dirty / invariants /
+                // validation / auto-save.
+                let mut chron = state.sector.chronicle.clone();
+                chron.events.push(ev);
+                chron
+                    .events
+                    .sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
+                if let Err(e) = state.run(BuilderCommand::EditChronicle {
+                    before: None,
+                    after: Box::new(chron),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+                }
             }
-        });
+        } else if close {
+            state.history_wizard = None;
+        }
+    });
 }
 
 fn wizard_anchor_ready(w: &HistoryWizardState) -> bool {
@@ -1167,42 +1138,40 @@ fn suggest_factions_for_wizard(
 // ── §H7 timeline ────────────────────────────────────────────────────────────
 
 fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("timeline").strong())
-        .default_open(true)
-        .show(ui, |ui| {
-            if state.sector.chronicle.events.is_empty() {
-                ui.colored_label(Color32::GRAY, "Empty chronicle. Regenerate above.");
-                return;
-            }
-            let events = state.sector.chronicle.events.clone();
-            egui::ScrollArea::vertical()
-                .id_salt("h7_timeline_scroll")
-                .max_height(280.0)
-                .show(ui, |ui| {
-                    for (i, ev) in events.iter().enumerate() {
-                        ui.horizontal_wrapped(|ui| {
-                            ui.label(RichText::new(&ev.date).monospace().strong());
-                            ui.label(format!("{}", ev.kind));
-                            ui.colored_label(
-                                Color32::DARK_GRAY,
-                                format!("({})", anchor_label(&ev.anchor)),
-                            );
-                            if sectorforge_gui_core::entity_link(
-                                ui,
-                                short_narrative(&ev.narrative),
-                                false,
-                            )
-                            .clicked()
-                            {
-                                state.focus_entity(EntityRef::HistoryEvent(ev.id.clone()));
-                            }
-                            if ui.small_button("focus").clicked() {
-                                focus_anchor(state, i);
-                            }
-                        });
-                    }
-                });
-        });
+    ui_kit::collapsing_section(ui, "hist_timeline", "timeline", true, |ui| {
+        if state.sector.chronicle.events.is_empty() {
+            ui.colored_label(Color32::GRAY, "Empty chronicle. Regenerate above.");
+            return;
+        }
+        let events = state.sector.chronicle.events.clone();
+        egui::ScrollArea::vertical()
+            .id_salt("h7_timeline_scroll")
+            .max_height(280.0)
+            .show(ui, |ui| {
+                for (i, ev) in events.iter().enumerate() {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(RichText::new(&ev.date).monospace().strong());
+                        ui.label(format!("{}", ev.kind));
+                        ui.colored_label(
+                            Color32::DARK_GRAY,
+                            format!("({})", anchor_label(&ev.anchor)),
+                        );
+                        if sectorforge_gui_core::entity_link(
+                            ui,
+                            short_narrative(&ev.narrative),
+                            false,
+                        )
+                        .clicked()
+                        {
+                            state.focus_entity(EntityRef::HistoryEvent(ev.id.clone()));
+                        }
+                        if ui.small_button("focus").clicked() {
+                            focus_anchor(state, i);
+                        }
+                    });
+                }
+            });
+    });
 }
 
 fn short_narrative(s: &str) -> String {

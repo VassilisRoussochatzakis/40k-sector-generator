@@ -44,9 +44,9 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
             dispositions.iter(),
         );
         label(ui, "SORT");
-        egui::ComboBox::from_id_salt("fac_sort")
-            .selected_text(RichText::new(state.faction_sort.label()))
-            .show_ui(ui, |ui| {
+        crate::ui_kit::combo("fac_sort", RichText::new(state.faction_sort.label())).show_ui(
+            ui,
+            |ui| {
                 for s in FactionSort::ALL {
                     if ui
                         .selectable_label(state.faction_sort == s, RichText::new(s.label()))
@@ -55,7 +55,8 @@ pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
                         state.faction_sort = s;
                     }
                 }
-            });
+            },
+        );
         if (state.faction_filter_kind.is_some()
             || state.faction_filter_disposition.is_some()
             || state.faction_sort != FactionSort::default())
@@ -288,22 +289,20 @@ fn filter_combo<'a, I: IntoIterator<Item = &'a String>>(
     options: I,
 ) {
     let label = value.as_deref().unwrap_or("(any)").to_string();
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(label))
-        .show_ui(ui, |ui| {
-            if ui
-                .selectable_label(value.is_none(), RichText::new("(any)"))
-                .clicked()
-            {
-                *value = None;
+    crate::ui_kit::combo(id, RichText::new(label)).show_ui(ui, |ui| {
+        if ui
+            .selectable_label(value.is_none(), RichText::new("(any)"))
+            .clicked()
+        {
+            *value = None;
+        }
+        for opt in options {
+            let sel = value.as_deref() == Some(opt.as_str());
+            if ui.selectable_label(sel, RichText::new(opt)).clicked() {
+                *value = Some(opt.clone());
             }
-            for opt in options {
-                let sel = value.as_deref() == Some(opt.as_str());
-                if ui.selectable_label(sel, RichText::new(opt)).clicked() {
-                    *value = Some(opt.clone());
-                }
-            }
-        });
+        }
+    });
 }
 
 fn palette_dim() -> Color32 {

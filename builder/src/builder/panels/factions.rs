@@ -24,6 +24,7 @@ use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
 use sectorforge_gui_core::palette;
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
@@ -197,27 +198,29 @@ fn show_filter_bar(ui: &mut Ui, _state: &mut BuilderState) {
             ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
         }
         ui.label("kind:");
-        egui::ComboBox::from_id_salt("factions_kind_filter_combo")
-            .selected_text(if kind_filter.is_empty() {
+        ui_kit::combo(
+            "factions_kind_filter_combo",
+            if kind_filter.is_empty() {
                 "(any)"
             } else {
                 kind_filter.as_str()
-            })
-            .show_ui(ui, |ui| {
-                if ui
-                    .selectable_label(kind_filter.is_empty(), "(any)")
-                    .clicked()
-                {
-                    kind_filter.clear();
+            },
+        )
+        .show_ui(ui, |ui| {
+            if ui
+                .selectable_label(kind_filter.is_empty(), "(any)")
+                .clicked()
+            {
+                kind_filter.clear();
+                ui.data_mut(|d| d.insert_temp(kind_id, kind_filter.clone()));
+            }
+            for k in KNOWN_KINDS {
+                if ui.selectable_label(kind_filter == *k, *k).clicked() {
+                    kind_filter = (*k).into();
                     ui.data_mut(|d| d.insert_temp(kind_id, kind_filter.clone()));
                 }
-                for k in KNOWN_KINDS {
-                    if ui.selectable_label(kind_filter == *k, *k).clicked() {
-                        kind_filter = (*k).into();
-                        ui.data_mut(|d| d.insert_temp(kind_id, kind_filter.clone()));
-                    }
-                }
-            });
+            }
+        });
     });
 }
 
@@ -275,48 +278,51 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
                 .next()
                 .map(|&i| file.factions[i].top_faction_name())
                 .unwrap_or_else(|| display_name_from_id(top_id).into_owned());
-            egui::CollapsingHeader::new(
-                RichText::new(format!("{top_name} ({top_id})"))
-                    .strong()
-                    .color(Color32::from_rgb(220, 220, 240)),
-            )
-            .id_salt(format!("fac_top_{top_id}"))
-            .default_open(true)
-            .show(ui, |ui| {
-                for (sub_id, rows) in subs {
-                    // Same as the top group: prefer the member's `subfaction_name`
-                    // override, fall back to the id-derived name.
-                    let sub_name = rows
-                        .first()
-                        .map(|&i| file.factions[i].subfaction_name())
-                        .unwrap_or_else(|| display_name_from_id(sub_id).into_owned());
-                    egui::CollapsingHeader::new(format!("{sub_name} — {sub_id} ({})", rows.len()))
-                        .id_salt(format!("fac_sub_{top_id}_{sub_id}"))
-                        .default_open(true)
-                        .show(ui, |ui| {
-                            for &i in rows {
-                                let f = &file.factions[i];
-                                let is_selected = selected.as_ref() == Some(&f.id);
-                                let mut label = RichText::new(format!("{}  ({})", f.name, f.id));
-                                if f.legend_visible == Some(false) {
-                                    label = label.color(Color32::DARK_GRAY);
+            ui_kit::collapsing_section(
+                ui,
+                format!("fac_top_{top_id}"),
+                &format!("{top_name} ({top_id})"),
+                true,
+                |ui| {
+                    for (sub_id, rows) in subs {
+                        // Same as the top group: prefer the member's `subfaction_name`
+                        // override, fall back to the id-derived name.
+                        let sub_name = rows
+                            .first()
+                            .map(|&i| file.factions[i].subfaction_name())
+                            .unwrap_or_else(|| display_name_from_id(sub_id).into_owned());
+                        ui_kit::collapsing_section(
+                            ui,
+                            format!("fac_sub_{top_id}_{sub_id}"),
+                            &format!("{sub_name} — {sub_id} ({})", rows.len()),
+                            true,
+                            |ui| {
+                                for &i in rows {
+                                    let f = &file.factions[i];
+                                    let is_selected = selected.as_ref() == Some(&f.id);
+                                    let mut label =
+                                        RichText::new(format!("{}  ({})", f.name, f.id));
+                                    if f.legend_visible == Some(false) {
+                                        label = label.color(Color32::DARK_GRAY);
+                                    }
+                                    ui.horizontal(|ui| {
+                                        if ui.selectable_label(is_selected, label).clicked() {
+                                            new_selection = Some(f.id.clone());
+                                        }
+                                        if ui
+                                            .small_button("×")
+                                            .on_hover_text("Remove this faction from the roster")
+                                            .clicked()
+                                        {
+                                            remove_id = Some(f.id.clone());
+                                        }
+                                    });
                                 }
-                                ui.horizontal(|ui| {
-                                    if ui.selectable_label(is_selected, label).clicked() {
-                                        new_selection = Some(f.id.clone());
-                                    }
-                                    if ui
-                                        .small_button("×")
-                                        .on_hover_text("Remove this faction from the roster")
-                                        .clicked()
-                                    {
-                                        remove_id = Some(f.id.clone());
-                                    }
-                                });
-                            }
-                        });
-                }
-            });
+                            },
+                        );
+                    }
+                },
+            );
         }
         if groups.is_empty() {
             ui.colored_label(Color32::GRAY, "No matches.");
@@ -349,33 +355,35 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             // Style preview chip
             show_style_preview(ui, &draft);
 
-            egui::CollapsingHeader::new("Identity")
-                .default_open(true)
-                .show(ui, |ui| identity_grid(ui, &mut draft));
+            ui_kit::collapsing_section(ui, "fac_identity", "Identity", true, |ui| {
+                identity_grid(ui, &mut draft)
+            });
 
-            egui::CollapsingHeader::new("Hierarchy (faction > subfaction > force)")
-                .default_open(true)
-                .show(ui, |ui| hierarchy_grid(ui, &mut draft));
+            ui_kit::collapsing_section(
+                ui,
+                "fac_hierarchy",
+                "Hierarchy (faction > subfaction > force)",
+                true,
+                |ui| hierarchy_grid(ui, &mut draft),
+            );
 
-            egui::CollapsingHeader::new("Preferences")
-                .default_open(false)
-                .show(ui, |ui| {
-                    preferred_picker_world_types(ui, &mut draft);
-                    preferred_picker_governments(ui, &mut draft);
-                    preferred_picker_features(ui, &mut draft);
-                });
+            ui_kit::collapsing_section(ui, "fac_preferences", "Preferences", false, |ui| {
+                preferred_picker_world_types(ui, &mut draft);
+                preferred_picker_governments(ui, &mut draft);
+                preferred_picker_features(ui, &mut draft);
+            });
 
-            egui::CollapsingHeader::new("Style override")
-                .default_open(true)
-                .show(ui, |ui| style_overrides(ui, &mut draft));
+            ui_kit::collapsing_section(ui, "fac_style_override", "Style override", true, |ui| {
+                style_overrides(ui, &mut draft)
+            });
 
-            egui::CollapsingHeader::new("Presence (deep-link)")
-                .default_open(false)
-                .show(ui, |ui| presence_link(ui, state, &draft));
+            ui_kit::collapsing_section(ui, "fac_presence", "Presence (deep-link)", false, |ui| {
+                presence_link(ui, state, &draft)
+            });
 
-            egui::CollapsingHeader::new("Legend visibility")
-                .default_open(false)
-                .show(ui, |ui| legend_visibility(ui, &mut draft));
+            ui_kit::collapsing_section(ui, "fac_legend", "Legend visibility", false, |ui| {
+                legend_visibility(ui, &mut draft)
+            });
         });
     });
 
@@ -506,26 +514,28 @@ where
 /// in the roster. Custom values stay reachable, but only from inside the opened
 /// popup, so they can no longer be entered by accident.
 fn editable_combo(ui: &mut Ui, salt: &str, value: &mut String, presets: &[&str]) {
-    egui::ComboBox::from_id_salt(salt)
-        .selected_text(if value.is_empty() {
+    ui_kit::combo(
+        salt,
+        if value.is_empty() {
             "(unset)".to_owned()
         } else {
             value.clone()
-        })
-        .show_ui(ui, |ui| {
-            for p in presets {
-                if ui.selectable_label(value == *p, *p).clicked() {
-                    *value = (*p).into();
-                }
+        },
+    )
+    .show_ui(ui, |ui| {
+        for p in presets {
+            if ui.selectable_label(value == *p, *p).clicked() {
+                *value = (*p).into();
             }
-            ui.separator();
-            ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
-            ui.add(
-                egui::TextEdit::singleline(value)
-                    .hint_text("non-preset value")
-                    .desired_width(160.0),
-            );
-        });
+        }
+        ui.separator();
+        ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
+        ui.add(
+            egui::TextEdit::singleline(value)
+                .hint_text("non-preset value")
+                .desired_width(160.0),
+        );
+    });
 }
 
 // ── preferences (multi-pickers) ─────────────────────────────────────────────
@@ -743,15 +753,13 @@ fn border_override(ui: &mut Ui, salt: &str, slot: &mut Option<String>, derived: 
     let current = slot.as_deref().and_then(parse_border).unwrap_or(derived);
     let mut next = current;
     ui.horizontal(|ui| {
-        egui::ComboBox::from_id_salt(salt)
-            .selected_text(format!("{current:?}"))
-            .show_ui(ui, |ui| {
-                for (label, value) in KNOWN_BORDERS {
-                    if ui.selectable_label(current == *value, *label).clicked() {
-                        next = *value;
-                    }
+        ui_kit::combo(salt, format!("{current:?}")).show_ui(ui, |ui| {
+            for (label, value) in KNOWN_BORDERS {
+                if ui.selectable_label(current == *value, *label).clicked() {
+                    next = *value;
                 }
-            });
+            }
+        });
         if slot.is_some() && ui.small_button("×").clicked() {
             *slot = None;
         }

@@ -32,6 +32,7 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::briefing::{self, AudiencePreset, BriefingProfile};
 use sectorforge::ids::FactionId;
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::BuilderState;
 use crate::builder::DerivationKind;
@@ -86,13 +87,11 @@ fn show_preset_row(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(RichText::new("preset").strong());
         let label = preset_label(state.briefing_preset);
         let prev = state.briefing_preset;
-        egui::ComboBox::from_id_salt("br1_preset")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                for p in PRESET_VARIANTS {
-                    ui.selectable_value(&mut state.briefing_preset, *p, preset_label(*p));
-                }
-            });
+        ui_kit::combo("br1_preset", label).show_ui(ui, |ui| {
+            for p in PRESET_VARIANTS {
+                ui.selectable_value(&mut state.briefing_preset, *p, preset_label(*p));
+            }
+        });
         if state.briefing_preset != prev {
             invalidate_preview(state);
         }
@@ -111,15 +110,13 @@ fn show_observer_row(ui: &mut Ui, state: &mut BuilderState) {
             .map(|id| observer_label(state, id))
             .unwrap_or_else(|| "(none)".to_string());
         let prev = state.briefing_observer.clone();
-        egui::ComboBox::from_id_salt("br2_observer")
-            .selected_text(selected_text)
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.briefing_observer, None, "(none)");
-                for f in &state.sector.factions {
-                    let label = format!("{} ({})", f.name, f.id);
-                    ui.selectable_value(&mut state.briefing_observer, Some(f.id.clone()), label);
-                }
-            });
+        ui_kit::combo("br2_observer", selected_text).show_ui(ui, |ui| {
+            ui.selectable_value(&mut state.briefing_observer, None, "(none)");
+            for f in &state.sector.factions {
+                let label = format!("{} ({})", f.name, f.id);
+                ui.selectable_value(&mut state.briefing_observer, Some(f.id.clone()), label);
+            }
+        });
         if state.briefing_observer != prev {
             invalidate_preview(state);
         }

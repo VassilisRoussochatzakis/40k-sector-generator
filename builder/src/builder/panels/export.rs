@@ -39,6 +39,7 @@ use sectorforge::config::{HtmlTheme, OutputFormat};
 use sectorforge::heatmap::HeatmapMode;
 use sectorforge::sector_model::HexCoord;
 use sectorforge::SectorError;
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::export_run::ExportJobResult;
 use crate::builder::{BuilderState, ModalKind};
@@ -228,9 +229,12 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
 // ── §EX1 formats + §EX2 manifest ────────────────────────────────────────────
 
 fn show_formats(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§EX1 / §EX2 — formats + manifest").strong())
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "ex_formats",
+        "§EX1 / §EX2 — formats + manifest",
+        true,
+        |ui| {
             let mut changed = false;
             ui.horizontal_wrapped(|ui| {
                 let formats = &mut state.config.outputs.formats;
@@ -269,143 +273,137 @@ fn show_formats(ui: &mut Ui, state: &mut BuilderState) {
             if changed {
                 state.dirty = true;
             }
-        });
+        },
+    );
 }
 
 // ── §EX3 bitmap settings ────────────────────────────────────────────────────
 
 fn show_bitmap_settings(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§EX3 — bitmap settings").strong())
-        .default_open(false)
-        .show(ui, |ui| {
-            let mut changed = false;
-            let bm = &mut state.config.outputs.bitmap;
-            egui::Grid::new("export_bitmap_grid")
-                .num_columns(2)
-                .spacing([12.0, 4.0])
-                .show(ui, |ui| {
-                    ui.label("sector_scale")
-                        .on_hover_text("Integer multiplier over the base sector map size (1..=8).");
-                    changed |= ui
-                        .add(egui::DragValue::new(&mut bm.sector_scale).range(1..=8))
-                        .changed();
-                    ui.end_row();
+    ui_kit::collapsing_section(ui, "ex_bitmap", "§EX3 — bitmap settings", false, |ui| {
+        let mut changed = false;
+        let bm = &mut state.config.outputs.bitmap;
+        egui::Grid::new("export_bitmap_grid")
+            .num_columns(2)
+            .spacing([12.0, 4.0])
+            .show(ui, |ui| {
+                ui.label("sector_scale")
+                    .on_hover_text("Integer multiplier over the base sector map size (1..=8).");
+                changed |= ui
+                    .add(egui::DragValue::new(&mut bm.sector_scale).range(1..=8))
+                    .changed();
+                ui.end_row();
 
-                    ui.label("system_scale")
-                        .on_hover_text("Integer multiplier for per-system maps (1..=8).");
-                    changed |= ui
-                        .add(egui::DragValue::new(&mut bm.system_scale).range(1..=8))
-                        .changed();
-                    ui.end_row();
+                ui.label("system_scale")
+                    .on_hover_text("Integer multiplier for per-system maps (1..=8).");
+                changed |= ui
+                    .add(egui::DragValue::new(&mut bm.system_scale).range(1..=8))
+                    .changed();
+                ui.end_row();
 
-                    ui.label("render_systems");
-                    changed |= ui.checkbox(&mut bm.render_systems, "").changed();
-                    ui.end_row();
+                ui.label("render_systems");
+                changed |= ui.checkbox(&mut bm.render_systems, "").changed();
+                ui.end_row();
 
-                    ui.label("faction_fill");
-                    changed |= ui.checkbox(&mut bm.faction_fill, "").changed();
-                    ui.end_row();
+                ui.label("faction_fill");
+                changed |= ui.checkbox(&mut bm.faction_fill, "").changed();
+                ui.end_row();
 
-                    ui.label("heatmap");
-                    let prev = bm.heatmap;
-                    egui::ComboBox::from_id_salt("export_bitmap_heatmap")
-                        .selected_text(bm.heatmap.label())
-                        .show_ui(ui, |ui| {
-                            for mode in HeatmapMode::ALL {
-                                ui.selectable_value(&mut bm.heatmap, *mode, mode.label());
-                            }
-                        });
-                    changed |= bm.heatmap != prev;
-                    ui.end_row();
+                ui.label("heatmap");
+                let prev = bm.heatmap;
+                ui_kit::combo("export_bitmap_heatmap", bm.heatmap.label()).show_ui(ui, |ui| {
+                    for mode in HeatmapMode::ALL {
+                        ui.selectable_value(&mut bm.heatmap, *mode, mode.label());
+                    }
                 });
-            if changed {
-                state.dirty = true;
-            }
-        });
+                changed |= bm.heatmap != prev;
+                ui.end_row();
+            });
+        if changed {
+            state.dirty = true;
+        }
+    });
 }
 
 // ── §EX4 HTML settings ──────────────────────────────────────────────────────
 
 fn show_html_settings(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§EX4 — HTML settings").strong())
-        .default_open(false)
-        .show(ui, |ui| {
-            let mut changed = false;
-            // Observer combo reads the faction roster, so collect ids first to
-            // avoid borrowing `state.sector` while `state.config.html` is &mut.
-            let factions: Vec<(String, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.to_string(), format!("{} ({})", f.name, f.id)))
-                .collect();
-            let html = &mut state.config.outputs.html;
-            egui::Grid::new("export_html_grid")
-                .num_columns(2)
-                .spacing([12.0, 4.0])
-                .show(ui, |ui| {
-                    ui.label("theme");
-                    let prev = html.theme;
-                    egui::ComboBox::from_id_salt("export_html_theme")
-                        .selected_text(html.theme.as_slug())
-                        .show_ui(ui, |ui| {
-                            for t in HTML_THEMES {
-                                ui.selectable_value(&mut html.theme, *t, t.as_slug());
-                            }
-                        });
-                    changed |= html.theme != prev;
-                    ui.end_row();
-
-                    ui.label("player_observer")
-                        .on_hover_text("Restrict the inlined sector to what this faction can see. (none) = full GM edition.");
-                    let prev = html.player_observer.clone();
-                    let selected = html
-                        .player_observer
-                        .clone()
-                        .unwrap_or_else(|| "(none)".to_string());
-                    egui::ComboBox::from_id_salt("export_html_observer")
-                        .selected_text(selected)
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut html.player_observer, None, "(none)");
-                            for (id, label) in &factions {
-                                ui.selectable_value(
-                                    &mut html.player_observer,
-                                    Some(id.clone()),
-                                    label,
-                                );
-                            }
-                        });
-                    changed |= html.player_observer != prev;
-                    ui.end_row();
-
-                    ui.label("player_min_confidence");
-                    changed |= ui
-                        .add(egui::Slider::new(&mut html.player_min_confidence, 0..=100))
-                        .changed();
-                    ui.end_row();
-
-                    ui.label("size_warn_bytes");
-                    changed |= ui
-                        .add(egui::DragValue::new(&mut html.size_warn_bytes).speed(1024.0))
-                        .changed();
-                    ui.end_row();
-
-                    ui.label("compact_json");
-                    changed |= ui.checkbox(&mut html.compact_json, "").changed();
-                    ui.end_row();
+    ui_kit::collapsing_section(ui, "ex_html", "§EX4 — HTML settings", false, |ui| {
+        let mut changed = false;
+        // Observer combo reads the faction roster, so collect ids first to
+        // avoid borrowing `state.sector` while `state.config.html` is &mut.
+        let factions: Vec<(String, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.to_string(), format!("{} ({})", f.name, f.id)))
+            .collect();
+        let html = &mut state.config.outputs.html;
+        egui::Grid::new("export_html_grid")
+            .num_columns(2)
+            .spacing([12.0, 4.0])
+            .show(ui, |ui| {
+                ui.label("theme");
+                let prev = html.theme;
+                ui_kit::combo("export_html_theme", html.theme.as_slug()).show_ui(ui, |ui| {
+                    for t in HTML_THEMES {
+                        ui.selectable_value(&mut html.theme, *t, t.as_slug());
+                    }
                 });
-            if changed {
-                state.dirty = true;
-            }
-        });
+                changed |= html.theme != prev;
+                ui.end_row();
+
+                ui.label("player_observer")
+                    .on_hover_text("Restrict the inlined sector to what this faction can see. (none) = full GM edition.");
+                let prev = html.player_observer.clone();
+                let selected = html
+                    .player_observer
+                    .clone()
+                    .unwrap_or_else(|| "(none)".to_string());
+                ui_kit::combo("export_html_observer", selected).show_ui(ui, |ui| {
+                    ui.selectable_value(&mut html.player_observer, None, "(none)");
+                    for (id, label) in &factions {
+                        ui.selectable_value(
+                            &mut html.player_observer,
+                            Some(id.clone()),
+                            label,
+                        );
+                    }
+                });
+                changed |= html.player_observer != prev;
+                ui.end_row();
+
+                ui.label("player_min_confidence");
+                changed |= ui
+                    .add(egui::Slider::new(&mut html.player_min_confidence, 0..=100))
+                    .changed();
+                ui.end_row();
+
+                ui.label("size_warn_bytes");
+                changed |= ui
+                    .add(egui::DragValue::new(&mut html.size_warn_bytes).speed(1024.0))
+                    .changed();
+                ui.end_row();
+
+                ui.label("compact_json");
+                changed |= ui.checkbox(&mut html.compact_json, "").changed();
+                ui.end_row();
+            });
+        if changed {
+            state.dirty = true;
+        }
+    });
 }
 
 // ── §EX7 per-overlay export ─────────────────────────────────────────────────
 
 fn show_overlays(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§EX7 — per-overlay export").strong())
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "ex_overlays",
+        "§EX7 — per-overlay export",
+        true,
+        |ui| {
             let has_dir = state.export.output_dir.is_some();
             if !has_dir {
                 ui.colored_label(Color32::GRAY, "Pick an output folder first.");
@@ -424,19 +422,23 @@ fn show_overlays(ui: &mut Ui, state: &mut BuilderState) {
             if let Some(overlay) = clicked {
                 run_overlay(state, overlay);
             }
-        });
+        },
+    );
 }
 
 // ── §EX5 standalone-system export ───────────────────────────────────────────
 
 fn show_standalone_system(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§EX5 — standalone-system export").strong())
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "ex_standalone",
+        "§EX5 — standalone-system export",
+        false,
+        |ui| {
             ui.colored_label(
-                Color32::DARK_GRAY,
-                "Mirrors `generate-system`: generates one system from the project on disk and writes <sys-id>.json.",
-            );
+            Color32::DARK_GRAY,
+            "Mirrors `generate-system`: generates one system from the project on disk and writes <sys-id>.json.",
+        );
             egui::Grid::new("export_sys_grid")
                 .num_columns(2)
                 .spacing([12.0, 4.0])
@@ -466,9 +468,9 @@ fn show_standalone_system(ui: &mut Ui, state: &mut BuilderState) {
             let has_dir = state.export.output_dir.is_some();
             if !has_project {
                 ui.colored_label(
-                    Color32::GRAY,
-                    "Open a project on disk first — standalone generation reads the project's catalogs.",
-                );
+                Color32::GRAY,
+                "Open a project on disk first — standalone generation reads the project's catalogs.",
+            );
             }
             if ui
                 .add_enabled(
@@ -479,15 +481,19 @@ fn show_standalone_system(ui: &mut Ui, state: &mut BuilderState) {
             {
                 run_standalone_system(state);
             }
-        });
+        },
+    );
 }
 
 // ── §EX6 markdown preview ───────────────────────────────────────────────────
 
 fn show_markdown_preview(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§EX6 — render markdown preview").strong())
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "ex_md_preview",
+        "§EX6 — render markdown preview",
+        false,
+        |ui| {
             ui.horizontal(|ui| {
                 if ui.button("Refresh preview").clicked() {
                     state.export.md_preview =
@@ -512,7 +518,8 @@ fn show_markdown_preview(ui: &mut Ui, state: &mut BuilderState) {
                             .font(egui::TextStyle::Monospace),
                     );
                 });
-        });
+        },
+    );
 }
 
 // ── actions ─────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
 use sectorforge::validation::{Severity, ValidationIssue, ValidationReport};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::BuilderState;
 
@@ -111,19 +112,27 @@ fn render_group(
         return;
     }
     let by_file = group_by_file(issues);
-    egui::CollapsingHeader::new(format!("{title} ({})", issues.len()))
-        .default_open(severity == Severity::Error)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        ("val_group", title),
+        &format!("{title} ({})", issues.len()),
+        severity == Severity::Error,
+        |ui| {
             for (path, group) in by_file {
-                egui::CollapsingHeader::new(format!("{} ({})", path, group.len()))
-                    .id_salt(format!("validation-{title}-{path}"))
-                    .show(ui, |ui| {
+                ui_kit::collapsing_section(
+                    ui,
+                    ("val_file", title, path.as_str()),
+                    &format!("{} ({})", path, group.len()),
+                    false,
+                    |ui| {
                         for issue in &group {
                             issue_row(ui, state, issue, colour);
                         }
-                    });
+                    },
+                );
             }
-        });
+        },
+    );
 }
 
 fn issue_row(
@@ -192,7 +201,7 @@ fn bucket_for(path: &str) -> String {
 }
 
 fn render_workbook(ui: &mut egui::Ui, report: &ValidationReport) {
-    egui::CollapsingHeader::new("World workbook").show(ui, |ui| {
+    ui_kit::collapsing_section(ui, "val_workbook", "World workbook", false, |ui| {
         let w = &report.world_workbook;
         ui.label(format!("rows: {}", w.row_count));
         ui.label(format!("usable candidates: {}", w.usable_candidate_count));

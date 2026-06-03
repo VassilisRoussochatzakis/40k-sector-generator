@@ -40,6 +40,7 @@ use sectorforge::interestingness::{
     InterestingnessConfig, InterestingnessReport, MetricScore, MetricTarget, ProfileId,
 };
 use sectorforge_gui_core::palette::{paint_rect_filled, paint_rect_stroke};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::{BuilderState, DerivationKind};
 
@@ -107,13 +108,14 @@ fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label(RichText::new("profile").strong());
         let prev = state.interestingness_profile;
-        egui::ComboBox::from_id_salt("int1_profile")
-            .selected_text(profile_label(state.interestingness_profile))
-            .show_ui(ui, |ui| {
+        ui_kit::combo("int1_profile", profile_label(state.interestingness_profile)).show_ui(
+            ui,
+            |ui| {
                 for p in PROFILE_VARIANTS {
                     ui.selectable_value(&mut state.interestingness_profile, *p, profile_label(*p));
                 }
-            });
+            },
+        );
         if state.interestingness_profile != prev {
             state.interestingness_report = None;
             state.interestingness_custom_pick.clear();
@@ -379,20 +381,14 @@ fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
         } else {
             state.interestingness_custom_pick.clone()
         };
-        egui::ComboBox::from_id_salt("int4_metric_pick")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                for m in METRIC_CATALOG {
-                    if already.contains(m) {
-                        continue;
-                    }
-                    ui.selectable_value(
-                        &mut state.interestingness_custom_pick,
-                        (*m).to_string(),
-                        *m,
-                    );
+        ui_kit::combo("int4_metric_pick", label).show_ui(ui, |ui| {
+            for m in METRIC_CATALOG {
+                if already.contains(m) {
+                    continue;
                 }
-            });
+                ui.selectable_value(&mut state.interestingness_custom_pick, (*m).to_string(), *m);
+            }
+        });
         let pick = state.interestingness_custom_pick.clone();
         let can_add = !pick.is_empty() && !already.iter().any(|m| *m == pick);
         if ui.add_enabled(can_add, egui::Button::new("Add")).clicked() {

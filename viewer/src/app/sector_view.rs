@@ -239,20 +239,19 @@ impl App {
                     );
                     ui.separator();
                     ui.label(RichText::new("HEATMAP").color(palette::chrome_text_dim()));
-                    egui::ComboBox::from_id_salt("sector_heatmap")
-                        .selected_text(
-                            RichText::new(self.heatmap_mode.label()).color(palette::chrome_text()),
-                        )
-                        .show_ui(ui, |ui| {
-                            for &m in super::HeatmapMode::ALL {
-                                let sel = m == self.heatmap_mode;
-                                if ui.selectable_label(sel, RichText::new(m.label())).clicked()
-                                    && !sel
-                                {
-                                    self.heatmap_mode = m;
-                                }
+                    crate::ui_kit::combo(
+                        "sector_heatmap",
+                        RichText::new(self.heatmap_mode.label()).color(palette::chrome_text()),
+                    )
+                    .show_ui(ui, |ui| {
+                        for &m in super::HeatmapMode::ALL {
+                            let sel = m == self.heatmap_mode;
+                            if ui.selectable_label(sel, RichText::new(m.label())).clicked() && !sel
+                            {
+                                self.heatmap_mode = m;
                             }
-                        });
+                        }
+                    });
                     ui.separator();
                     if ui
                         .selectable_label(self.map_edit_mode, RichText::new("EDIT MAP"))

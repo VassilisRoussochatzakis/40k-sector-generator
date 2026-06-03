@@ -615,7 +615,9 @@ fn tier_titles(kind: &str, tier: FactionTier) -> Vec<&'static str> {
 }
 
 fn pick_str(pool: &[&'static str], rng: &mut impl Rng) -> String {
-    pool.choose(rng).map(|s| (*s).to_string()).unwrap_or_default()
+    pool.choose(rng)
+        .map(|s| (*s).to_string())
+        .unwrap_or_default()
 }
 
 struct PersonaParams<'a> {
@@ -1528,7 +1530,10 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert!(tiers.contains(&FactionTier::Overall), "missing overall leader");
+        assert!(
+            tiers.contains(&FactionTier::Overall),
+            "missing overall leader"
+        );
         assert!(
             tiers.contains(&FactionTier::Subfaction),
             "missing sub-faction leader"

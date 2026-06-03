@@ -16,6 +16,7 @@ use sectorforge::worlds::{
     TechLevel, Temperature, WorldType,
 };
 use sectorforge::worlds_toml::{WorldsConfig, DEFAULT_FILENAME as WORLDS_TOML_FILENAME};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::project_io;
 use crate::builder::{BuilderState, ModalKind};
@@ -268,21 +269,19 @@ where
 {
     let current = value.as_ref().map(&label_of).unwrap_or("—");
     let mut changed = false;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(current)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
-                *value = None;
+    ui_kit::combo(id, current).show_ui(ui, |ui| {
+        if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
+            *value = None;
+            changed = true;
+        }
+        for v in variants {
+            let selected = value.as_ref() == Some(v);
+            if ui.selectable_label(selected, label_of(v)).clicked() && !selected {
+                *value = Some(v.clone());
                 changed = true;
             }
-            for v in variants {
-                let selected = value.as_ref() == Some(v);
-                if ui.selectable_label(selected, label_of(v)).clicked() && !selected {
-                    *value = Some(v.clone());
-                    changed = true;
-                }
-            }
-        });
+        }
+    });
     changed
 }
 

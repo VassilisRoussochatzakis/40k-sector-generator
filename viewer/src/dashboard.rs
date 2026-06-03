@@ -67,155 +67,119 @@ pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
         ui.add_space(6.0);
     }
 
-    // ── Faction balance ─────────────────────────────────────────────────────
-    ui.label(
-        RichText::new("FACTION BALANCE")
-            .color(palette::chrome_text())
-            .strong(),
-    );
-    ui.label(
-        RichText::new(format!(
-            "Gini {:.3}   (0 = even, 1 = winner-take-all)",
-            a.faction_balance.gini
-        ))
-        .color(palette::chrome_text_dim()),
-    );
-    ui.add_space(4.0);
-    const TOP: usize = 12;
-    for (i, f) in a.faction_balance.top_factions.iter().take(TOP).enumerate() {
-        share_bar(ui, &sector.factions, &f.name, &f.faction_id, f.share, i);
-    }
-    let total = a.faction_balance.top_factions.len();
-    if total > TOP {
-        ui.label(
-            RichText::new(format!("… {} more factions", total - TOP))
-                .color(palette::chrome_text_dim()),
-        );
-    }
-
-    ui.add_space(10.0);
-    ui.separator();
-
-    // ── Politics ────────────────────────────────────────────────────────────
-    ui.label(
-        RichText::new("POLITICAL STATE")
-            .color(palette::chrome_text())
-            .strong(),
-    );
-    ui.label(
-        RichText::new(format!(
-            "Contested worlds: {:.0}% · Avg claims/world: {:.2}",
-            a.contested_world_ratio * 100.0,
-            a.avg_claims_per_world
-        ))
-        .color(palette::chrome_text_dim()),
-    );
-    if !a.system_state_counts.is_empty() {
-        for (k, v) in &a.system_state_counts {
-            ui.label(RichText::new(format!("  {k}: {v}")).color(palette::chrome_text_dim()));
-        }
-    }
-
-    ui.add_space(10.0);
-    ui.separator();
-
-    // ── Connectivity ────────────────────────────────────────────────────────
-    ui.label(
-        RichText::new("CONNECTIVITY")
-            .color(palette::chrome_text())
-            .strong(),
-    );
-    let c = &a.connectivity;
-    let diameter_text = c
-        .diameter_hops
-        .map(|d| d.to_string())
-        .unwrap_or_else(|| "—".to_string());
-    ui.label(
-        RichText::new(format!(
-            "Components: {} · Largest: {} · Diameter: {}",
-            c.component_count, c.largest_component_size, diameter_text
-        ))
-        .color(palette::chrome_text_dim()),
-    );
-    if !c.articulation_point_ids.is_empty() {
+    // §UO P4: each analytic block is a titled `ui_kit::section` so the dashboard
+    // reads as framed tier-2 boxes instead of one separator-divided wall.
+    crate::ui_kit::section(ui, "FACTION BALANCE", |ui| {
         ui.label(
             RichText::new(format!(
-                "Articulation points: {}",
-                c.articulation_point_ids.join(", ")
+                "Gini {:.3}   (0 = even, 1 = winner-take-all)",
+                a.faction_balance.gini
             ))
-            .color(Color32::from_rgb(235, 200, 90)),
+            .color(palette::chrome_text_dim()),
         );
-    }
-    if !c.isolated_system_ids.is_empty() {
-        ui.label(
-            RichText::new(format!("Isolated: {}", c.isolated_system_ids.join(", ")))
-                .color(palette::chrome_text_dim()),
-        );
-    }
-
-    ui.add_space(10.0);
-    ui.separator();
-
-    // ── Distributions ───────────────────────────────────────────────────────
-    ui.label(
-        RichText::new("DISTRIBUTIONS")
-            .color(palette::chrome_text())
-            .strong(),
-    );
-    dist_block(ui, "World types", &a.world_type_distribution);
-    dist_block(ui, "Star colours", &a.star_colour_distribution);
-    dist_block(ui, "Populations", &a.population_distribution);
-    dist_block(ui, "Route types", &a.route_type_distribution);
-    dist_block(ui, "Route stability", &a.route_stability_distribution);
-
-    ui.add_space(10.0);
-    ui.separator();
-
-    // ── Subsector variety ───────────────────────────────────────────────────
-    if !a.subsector_variety.is_empty() {
-        ui.label(
-            RichText::new("SUBSECTOR VARIETY")
-                .color(palette::chrome_text())
-                .strong(),
-        );
-        for v in &a.subsector_variety {
+        ui.add_space(4.0);
+        const TOP: usize = 12;
+        for (i, f) in a.faction_balance.top_factions.iter().take(TOP).enumerate() {
+            share_bar(ui, &sector.factions, &f.name, &f.faction_id, f.share, i);
+        }
+        let total = a.faction_balance.top_factions.len();
+        if total > TOP {
             ui.label(
-                RichText::new(format!(
-                    "{} {} — {} unique dominants · {} contested",
-                    v.label, v.name, v.unique_dominants, v.contested_count
-                ))
-                .color(palette::chrome_text_dim()),
+                RichText::new(format!("… {} more factions", total - TOP))
+                    .color(palette::chrome_text_dim()),
             );
         }
-        ui.add_space(10.0);
-        ui.separator();
+    });
+
+    crate::ui_kit::section(ui, "POLITICAL STATE", |ui| {
+        ui.label(
+            RichText::new(format!(
+                "Contested worlds: {:.0}% · Avg claims/world: {:.2}",
+                a.contested_world_ratio * 100.0,
+                a.avg_claims_per_world
+            ))
+            .color(palette::chrome_text_dim()),
+        );
+        if !a.system_state_counts.is_empty() {
+            for (k, v) in &a.system_state_counts {
+                ui.label(RichText::new(format!("  {k}: {v}")).color(palette::chrome_text_dim()));
+            }
+        }
+    });
+
+    crate::ui_kit::section(ui, "CONNECTIVITY", |ui| {
+        let c = &a.connectivity;
+        let diameter_text = c
+            .diameter_hops
+            .map(|d| d.to_string())
+            .unwrap_or_else(|| "—".to_string());
+        ui.label(
+            RichText::new(format!(
+                "Components: {} · Largest: {} · Diameter: {}",
+                c.component_count, c.largest_component_size, diameter_text
+            ))
+            .color(palette::chrome_text_dim()),
+        );
+        if !c.articulation_point_ids.is_empty() {
+            ui.label(
+                RichText::new(format!(
+                    "Articulation points: {}",
+                    c.articulation_point_ids.join(", ")
+                ))
+                .color(Color32::from_rgb(235, 200, 90)),
+            );
+        }
+        if !c.isolated_system_ids.is_empty() {
+            ui.label(
+                RichText::new(format!("Isolated: {}", c.isolated_system_ids.join(", ")))
+                    .color(palette::chrome_text_dim()),
+            );
+        }
+    });
+
+    crate::ui_kit::section(ui, "DISTRIBUTIONS", |ui| {
+        dist_block(ui, "World types", &a.world_type_distribution);
+        dist_block(ui, "Star colours", &a.star_colour_distribution);
+        dist_block(ui, "Populations", &a.population_distribution);
+        dist_block(ui, "Route types", &a.route_type_distribution);
+        dist_block(ui, "Route stability", &a.route_stability_distribution);
+    });
+
+    if !a.subsector_variety.is_empty() {
+        crate::ui_kit::section(ui, "SUBSECTOR VARIETY", |ui| {
+            for v in &a.subsector_variety {
+                ui.label(
+                    RichText::new(format!(
+                        "{} {} — {} unique dominants · {} contested",
+                        v.label, v.name, v.unique_dominants, v.contested_count
+                    ))
+                    .color(palette::chrome_text_dim()),
+                );
+            }
+        });
     }
 
-    // ── Flags ───────────────────────────────────────────────────────────────
-    ui.label(
-        RichText::new("HEALTH FLAGS")
-            .color(palette::chrome_text())
-            .strong(),
-    );
-    if a.health_flags.is_empty() {
-        ui.label(RichText::new("(none)").color(palette::chrome_text_dim()));
-    } else {
-        for f in &a.health_flags {
-            let color = match f.severity {
-                FlagSeverity::Error => Color32::from_rgb(235, 90, 90),
-                FlagSeverity::Warning => Color32::from_rgb(240, 200, 90),
-                FlagSeverity::Info => palette::chrome_text_dim(),
-                _ => palette::chrome_text_dim(),
-            };
-            let tag = match f.severity {
-                FlagSeverity::Error => "ERROR",
-                FlagSeverity::Warning => "WARN",
-                FlagSeverity::Info => "INFO",
-                _ => "UNKNOWN",
-            };
-            ui.label(RichText::new(format!("[{tag}] {} — {}", f.code, f.message)).color(color));
+    crate::ui_kit::section(ui, "HEALTH FLAGS", |ui| {
+        if a.health_flags.is_empty() {
+            ui.label(RichText::new("(none)").color(palette::chrome_text_dim()));
+        } else {
+            for f in &a.health_flags {
+                let color = match f.severity {
+                    FlagSeverity::Error => Color32::from_rgb(235, 90, 90),
+                    FlagSeverity::Warning => Color32::from_rgb(240, 200, 90),
+                    FlagSeverity::Info => palette::chrome_text_dim(),
+                    _ => palette::chrome_text_dim(),
+                };
+                let tag = match f.severity {
+                    FlagSeverity::Error => "ERROR",
+                    FlagSeverity::Warning => "WARN",
+                    FlagSeverity::Info => "INFO",
+                    _ => "UNKNOWN",
+                };
+                ui.label(RichText::new(format!("[{tag}] {} — {}", f.code, f.message)).color(color));
+            }
         }
-    }
+    });
 }
 
 fn share_bar(

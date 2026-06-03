@@ -20,7 +20,7 @@ pub enum FactionDesignerError {
     Config(String),
 }
 
-use egui::{Color32, ComboBox, DragValue, RichText, Ui};
+use egui::{Color32, DragValue, RichText, Ui};
 use rfd::FileDialog;
 
 use sectorforge::factions::{FactionDef, FactionsFile};
@@ -710,18 +710,20 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
     let mut picked = selected;
     ui.horizontal_wrapped(|ui| {
         field_label(ui, "OVERALL");
-        ComboBox::from_id_salt("faction_designer_overall")
-            .selected_text(RichText::new(OVERALL_PRESETS[selected].label))
-            .show_ui(ui, |ui| {
-                for (i, p) in OVERALL_PRESETS.iter().enumerate() {
-                    if ui
-                        .selectable_label(i == selected, RichText::new(p.label))
-                        .clicked()
-                    {
-                        picked = i;
-                    }
+        crate::ui_kit::combo(
+            "faction_designer_overall",
+            RichText::new(OVERALL_PRESETS[selected].label),
+        )
+        .show_ui(ui, |ui| {
+            for (i, p) in OVERALL_PRESETS.iter().enumerate() {
+                if ui
+                    .selectable_label(i == selected, RichText::new(p.label))
+                    .clicked()
+                {
+                    picked = i;
                 }
-            });
+            }
+        });
         if picked != state.selected_preset {
             state.selected_preset = picked;
             apply_preset_to_builder(state, OVERALL_PRESETS[picked]);

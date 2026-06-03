@@ -14,6 +14,7 @@ use sectorforge::ids::{FactionId, SystemId};
 use sectorforge::orbital_assets::{
     derive_orbital_assets, BlockadeReport, OrbitalAsset, OrbitalAssetKind, ShipStock,
 };
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
@@ -62,75 +63,73 @@ pub(crate) fn derive_and_apply_orbital_assets(state: &mut BuilderState, system: 
 }
 
 pub fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Orbital assets + blockade")
-        .default_open(false)
-        .show(ui, |ui| {
-            let sys_id = state.sector.systems[sys_idx].id.clone();
-            let factions: Vec<(FactionId, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.clone(), f.name.to_string()))
-                .collect();
+    ui_kit::collapsing_section(ui, "orb_root", "Orbital assets + blockade", false, |ui| {
+        let sys_id = state.sector.systems[sys_idx].id.clone();
+        let factions: Vec<(FactionId, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.clone(), f.name.to_string()))
+            .collect();
 
-            let mut assets_working = state.sector.systems[sys_idx].orbital_assets.clone();
-            let assets_original = assets_working.clone();
-            show_assets_editor(ui, &sys_id, &mut assets_working, &factions);
+        let mut assets_working = state.sector.systems[sys_idx].orbital_assets.clone();
+        let assets_original = assets_working.clone();
+        show_assets_editor(ui, &sys_id, &mut assets_working, &factions);
 
-            ui.add_space(6.0);
-            ui.separator();
-            ui.label(egui::RichText::new("Blockade report").strong());
+        ui.add_space(6.0);
+        ui.separator();
+        ui.label(egui::RichText::new("Blockade report").strong());
 
-            let mut report_working = state.sector.systems[sys_idx].blockade.clone();
-            let report_original = report_working.clone();
-            show_report_editor(ui, &mut report_working, &factions);
+        let mut report_working = state.sector.systems[sys_idx].blockade.clone();
+        let report_original = report_working.clone();
+        show_report_editor(ui, &mut report_working, &factions);
 
-            ui.add_space(6.0);
-            ui.horizontal_wrapped(|ui| {
-                if ui
-                    .button("Derive now")
-                    .on_hover_text(
-                        "Calls sectorforge::orbital_assets::derive_orbital_assets for this \
+        ui.add_space(6.0);
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .button("Derive now")
+                .on_hover_text(
+                    "Calls sectorforge::orbital_assets::derive_orbital_assets for this \
                          system and replaces both the asset list and the blockade report.",
-                    )
-                    .clicked()
-                {
-                    let sys = &state.sector.systems[sys_idx];
-                    let (assets, report) = derive_orbital_assets(sys);
-                    assets_working = assets;
-                    report_working = report;
-                }
-                if ui.button("Clear assets").clicked() {
-                    assets_working.clear();
-                }
-                if ui.button("Clear blockade").clicked() {
-                    report_working = BlockadeReport::default();
-                }
-            });
-
-            if assets_working != assets_original {
-                let cmd = BuilderCommand::SetOrbitalAssets {
-                    system: sys_id.clone(),
-                    before: None,
-                    after: assets_working,
-                };
-                if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!(
-                        "Orbital asset update failed: {e}"
-                    )));
-                }
+                )
+                .clicked()
+            {
+                let sys = &state.sector.systems[sys_idx];
+                let (assets, report) = derive_orbital_assets(sys);
+                assets_working = assets;
+                report_working = report;
             }
-            if report_working != report_original {
-                let cmd = BuilderCommand::SetBlockadeReport {
-                    system: sys_id,
-                    before: None,
-                    after: report_working,
-                };
-                if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!("Blockade update failed: {e}")));
-                }
+            if ui.button("Clear assets").clicked() {
+                assets_working.clear();
+            }
+            if ui.button("Clear blockade").clicked() {
+                report_working = BlockadeReport::default();
             }
         });
+
+        if assets_working != assets_original {
+            let cmd = BuilderCommand::SetOrbitalAssets {
+                system: sys_id.clone(),
+                before: None,
+                after: assets_working,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!(
+                    "Orbital asset update failed: {e}"
+                )));
+            }
+        }
+        if report_working != report_original {
+            let cmd = BuilderCommand::SetBlockadeReport {
+                system: sys_id,
+                before: None,
+                after: report_working,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!("Blockade update failed: {e}")));
+            }
+        }
+    });
 }
 
 fn show_assets_editor(
@@ -151,71 +150,69 @@ fn show_assets_editor(
             fid = asset.faction_id,
             s = asset.strength
         );
-        egui::CollapsingHeader::new(header_label)
-            .id_salt(format!("orbital_asset_{sys_id}_{i}"))
-            .default_open(false)
-            .show(ui, |ui| {
-                egui::Grid::new(format!("orbital_asset_grid_{i}"))
-                    .num_columns(2)
-                    .show(ui, |ui| {
-                        ui.label("id");
-                        ui.monospace(&asset.id);
-                        ui.end_row();
+        ui_kit::collapsing_section(ui, ("orb_asset", sys_id, i), &header_label, false, |ui| {
+            egui::Grid::new(format!("orbital_asset_grid_{i}"))
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label("id");
+                    ui.monospace(&asset.id);
+                    ui.end_row();
 
-                        ui.label("kind");
-                        egui::ComboBox::from_id_salt(format!("orb_kind_{i}"))
-                            .selected_text(format!("{}", asset.kind))
-                            .show_ui(ui, |ui| {
-                                for k in [
-                                    OrbitalAssetKind::Station,
-                                    OrbitalAssetKind::Shipyard,
-                                    OrbitalAssetKind::DefensePlatform,
-                                    OrbitalAssetKind::BlockadeFleet,
-                                ] {
-                                    ui.selectable_value(&mut asset.kind, k, format!("{}", k));
-                                }
-                            });
-                        ui.end_row();
+                    ui.label("kind");
+                    ui_kit::combo(format!("orb_kind_{i}"), format!("{}", asset.kind)).show_ui(
+                        ui,
+                        |ui| {
+                            for k in [
+                                OrbitalAssetKind::Station,
+                                OrbitalAssetKind::Shipyard,
+                                OrbitalAssetKind::DefensePlatform,
+                                OrbitalAssetKind::BlockadeFleet,
+                            ] {
+                                ui.selectable_value(&mut asset.kind, k, format!("{}", k));
+                            }
+                        },
+                    );
+                    ui.end_row();
 
-                        ui.label("faction");
-                        faction_combo(ui, &format!("orb_fac_{i}"), &mut asset.faction_id, factions);
-                        ui.end_row();
+                    ui.label("faction");
+                    faction_combo(ui, &format!("orb_fac_{i}"), &mut asset.faction_id, factions);
+                    ui.end_row();
 
-                        ui.label("strength");
-                        ui.add(egui::Slider::new(&mut asset.strength, 0..=100).text("/100"));
-                        ui.end_row();
-                    });
+                    ui.label("strength");
+                    ui.add(egui::Slider::new(&mut asset.strength, 0..=100).text("/100"));
+                    ui.end_row();
+                });
 
-                ui.add_space(2.0);
-                ui.label("ship inventory");
-                let mut drop_ship: Option<usize> = None;
-                for (si, stock) in asset.ship_inventory.iter_mut().enumerate() {
-                    ui.horizontal(|ui| {
-                        ui.label(format!("{}.", si + 1));
-                        ui.label("hull");
-                        ui.text_edit_singleline(&mut stock.hull_class);
-                        ui.label("count");
-                        ui.add(egui::DragValue::new(&mut stock.count).range(0..=u16::MAX));
-                        if ui.small_button("×").clicked() {
-                            drop_ship = Some(si);
-                        }
-                    });
-                }
-                if let Some(si) = drop_ship {
-                    asset.ship_inventory.remove(si);
-                }
-                if ui.button("+ add ship stock").clicked() {
-                    asset.ship_inventory.push(ShipStock {
-                        hull_class: "escort".into(),
-                        count: 1,
-                    });
-                }
+            ui.add_space(2.0);
+            ui.label("ship inventory");
+            let mut drop_ship: Option<usize> = None;
+            for (si, stock) in asset.ship_inventory.iter_mut().enumerate() {
+                ui.horizontal(|ui| {
+                    ui.label(format!("{}.", si + 1));
+                    ui.label("hull");
+                    ui.text_edit_singleline(&mut stock.hull_class);
+                    ui.label("count");
+                    ui.add(egui::DragValue::new(&mut stock.count).range(0..=u16::MAX));
+                    if ui.small_button("×").clicked() {
+                        drop_ship = Some(si);
+                    }
+                });
+            }
+            if let Some(si) = drop_ship {
+                asset.ship_inventory.remove(si);
+            }
+            if ui.button("+ add ship stock").clicked() {
+                asset.ship_inventory.push(ShipStock {
+                    hull_class: "escort".into(),
+                    count: 1,
+                });
+            }
 
-                ui.add_space(4.0);
-                if ui.button("× remove asset").clicked() {
-                    remove_at = Some(i);
-                }
-            });
+            ui.add_space(4.0);
+            if ui.button("× remove asset").clicked() {
+                remove_at = Some(i);
+            }
+        });
     }
     if let Some(i) = remove_at {
         assets.remove(i);
@@ -266,18 +263,16 @@ fn faction_combo(
     factions: &[(FactionId, String)],
 ) {
     let label = current.to_string();
-    egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(label)
-        .show_ui(ui, |ui| {
-            for (fid, name) in factions {
-                if ui
-                    .selectable_label(fid == current, format!("{fid} ({name})"))
-                    .clicked()
-                {
-                    *current = fid.clone();
-                }
+    ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
+        for (fid, name) in factions {
+            if ui
+                .selectable_label(fid == current, format!("{fid} ({name})"))
+                .clicked()
+            {
+                *current = fid.clone();
             }
-        });
+        }
+    });
 }
 
 fn optional_faction_combo(
@@ -290,20 +285,18 @@ fn optional_faction_combo(
         .as_ref()
         .map(|f| f.to_string())
         .unwrap_or_else(|| "(none)".into());
-    egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(label)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(current.is_none(), "(none)").clicked() {
-                *current = None;
+    ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
+        if ui.selectable_label(current.is_none(), "(none)").clicked() {
+            *current = None;
+        }
+        for (fid, name) in factions {
+            let sel = current.as_ref() == Some(fid);
+            if ui
+                .selectable_label(sel, format!("{fid} ({name})"))
+                .clicked()
+            {
+                *current = Some(fid.clone());
             }
-            for (fid, name) in factions {
-                let sel = current.as_ref() == Some(fid);
-                if ui
-                    .selectable_label(sel, format!("{fid} ({name})"))
-                    .clicked()
-                {
-                    *current = Some(fid.clone());
-                }
-            }
-        });
+        }
+    });
 }

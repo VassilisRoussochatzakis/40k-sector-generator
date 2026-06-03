@@ -25,6 +25,7 @@ use sectorforge::economy::{
 };
 use sectorforge::heatmap::HeatmapMode;
 use sectorforge::ids::{SystemId, WorldId};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
@@ -78,15 +79,10 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
             show_sector_summary(ui, state);
             ui.separator();
             show_world_override_editor(ui, state);
-            ui.separator();
             show_system_override_editor(ui, state);
-            ui.separator();
             show_stranded_list(ui, state);
-            ui.separator();
             show_lifeline_panel(ui, state);
-            ui.separator();
             show_heatmap_picker(ui, state);
-            ui.separator();
             show_economy_config_editor(ui, state);
         });
 }
@@ -163,38 +159,36 @@ fn strategic_badge(key: &str, value: f32) -> RichText {
 // ── §E1 / §E2 per-world editor ──────────────────────────────────────────────
 
 fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("per-world overrides").strong());
-    if state.sector.economy.worlds.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No per-world economy rows. Run Recompute first.",
-        );
-        return;
-    }
+    ui_kit::section(ui, "per-world overrides", |ui| {
+        if state.sector.economy.worlds.is_empty() {
+            ui.colored_label(
+                Color32::GRAY,
+                "No per-world economy rows. Run Recompute first.",
+            );
+            return;
+        }
 
-    let selected = state.selected_world_id.clone();
-    let world_options: Vec<(WorldId, String)> = state
-        .sector
-        .economy
-        .worlds
-        .iter()
-        .map(|w| {
-            (
-                w.world_id.clone(),
-                format!("{} ({})", w.world_id, w.system_id),
-            )
-        })
-        .collect();
+        let selected = state.selected_world_id.clone();
+        let world_options: Vec<(WorldId, String)> = state
+            .sector
+            .economy
+            .worlds
+            .iter()
+            .map(|w| {
+                (
+                    w.world_id.clone(),
+                    format!("{} ({})", w.world_id, w.system_id),
+                )
+            })
+            .collect();
 
-    ui.horizontal_wrapped(|ui| {
-        ui.label("world:");
-        let label = selected
-            .as_ref()
-            .map(|id| id.to_string())
-            .unwrap_or_else(|| "(none)".into());
-        egui::ComboBox::from_id_salt("econ_world_picker")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.label("world:");
+            let label = selected
+                .as_ref()
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "(none)".into());
+            ui_kit::combo("econ_world_picker", label).show_ui(ui, |ui| {
                 for (id, line) in &world_options {
                     let active = selected.as_ref() == Some(id);
                     if ui.selectable_label(active, line).clicked() {
@@ -202,37 +196,37 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     }
                 }
             });
-        if let Some(id) = state.selected_world_id.clone() {
-            if ui.button("→ WORLD inspector").clicked() {
-                if let Some((sys_idx, _)) = state.find_world_indices(&id) {
-                    let sys_id = state.sector.systems[sys_idx].id.clone();
-                    state.focus_entity(EntityRef::World {
-                        system: sys_id,
-                        world: id,
-                    });
+            if let Some(id) = state.selected_world_id.clone() {
+                if ui.button("→ WORLD inspector").clicked() {
+                    if let Some((sys_idx, _)) = state.find_world_indices(&id) {
+                        let sys_id = state.sector.systems[sys_idx].id.clone();
+                        state.focus_entity(EntityRef::World {
+                            system: sys_id,
+                            world: id,
+                        });
+                    }
                 }
             }
-        }
-    });
+        });
 
-    let Some(world_id) = state.selected_world_id.clone() else {
-        ui.colored_label(Color32::GRAY, "Pick a world to edit overrides.");
-        return;
-    };
-    let Some(entry) = state
-        .sector
-        .economy
-        .worlds
-        .iter()
-        .find(|w| w.world_id == world_id)
-        .cloned()
-    else {
-        ui.colored_label(Color32::GRAY, "World not in economy report.");
-        return;
-    };
+        let Some(world_id) = state.selected_world_id.clone() else {
+            ui.colored_label(Color32::GRAY, "Pick a world to edit overrides.");
+            return;
+        };
+        let Some(entry) = state
+            .sector
+            .economy
+            .worlds
+            .iter()
+            .find(|w| w.world_id == world_id)
+            .cloned()
+        else {
+            ui.colored_label(Color32::GRAY, "World not in economy report.");
+            return;
+        };
 
-    // §E1 row.
-    egui::Frame::group(ui.style()).show(ui, |ui| {
+        // §E1 row.
+        egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.label(RichText::new("resource vector (ore / promethium / foodstuffs / manufactured / archeotech / recruits)").italics());
         let pinned = state.world_economy_overrides.contains_key(&world_id);
         let mut vector = state
@@ -282,8 +276,8 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
         }
     });
 
-    // §E2 row.
-    egui::Frame::group(ui.style()).show(ui, |ui| {
+        // §E2 row.
+        egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.label(RichText::new("strategic output (food, ore, manufacturing, arms, ships, pilgrimage, psyker_tithe, manpower, knowledge, xenos_value)").italics());
         let pinned = state.world_strategic_overrides.contains_key(&world_id);
         let mut strat = state
@@ -326,6 +320,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
     });
+    });
 }
 
 fn set_vector_field(v: &mut ResourceVector, key: &str, value: f32) {
@@ -359,103 +354,107 @@ fn set_strategic_field(s: &mut StrategicOutput, key: &str, value: f32) {
 // ── §E3 per-system editor ───────────────────────────────────────────────────
 
 fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("per-system tithe / supply / strategic priority").strong());
-    if state.sector.economy.systems.is_empty() {
-        ui.colored_label(Color32::GRAY, "No per-system economy rows.");
-        return;
-    }
-    egui::Grid::new("econ_system_overrides")
-        .num_columns(7)
-        .striped(true)
-        .show(ui, |ui| {
-            ui.label(RichText::new("system").strong());
-            ui.label(RichText::new("tithe").strong());
-            ui.label(RichText::new("supply").strong());
-            ui.label(RichText::new("priority").strong());
-            ui.label(RichText::new("surplus").strong());
-            ui.label(RichText::new("shortage").strong());
-            ui.label(RichText::new("actions").strong());
-            ui.end_row();
+    ui_kit::section(ui, "per-system tithe / supply / strategic priority", |ui| {
+        if state.sector.economy.systems.is_empty() {
+            ui.colored_label(Color32::GRAY, "No per-system economy rows.");
+            return;
+        }
+        egui::Grid::new("econ_system_overrides")
+            .num_columns(7)
+            .striped(true)
+            .show(ui, |ui| {
+                ui.label(RichText::new("system").strong());
+                ui.label(RichText::new("tithe").strong());
+                ui.label(RichText::new("supply").strong());
+                ui.label(RichText::new("priority").strong());
+                ui.label(RichText::new("surplus").strong());
+                ui.label(RichText::new("shortage").strong());
+                ui.label(RichText::new("actions").strong());
+                ui.end_row();
 
-            let systems: Vec<_> = state.sector.economy.systems.clone();
-            for sy in &systems {
-                let id = sy.system_id.clone();
-                ui.monospace(id.as_str());
+                let systems: Vec<_> = state.sector.economy.systems.clone();
+                for sy in &systems {
+                    let id = sy.system_id.clone();
+                    ui.monospace(id.as_str());
 
-                // tithe
-                let mut tithe = sy.tithe_status;
-                let active_tithe = state.system_tithe_overrides.contains_key(&id);
-                egui::ComboBox::from_id_salt(("tithe_cb", id.as_str()))
-                    .selected_text(tithe_label(tithe))
-                    .show_ui(ui, |ui| {
-                        for t in TITHE_STATES {
-                            ui.selectable_value(&mut tithe, *t, tithe_label(*t));
-                        }
-                    });
-                if tithe != sy.tithe_status {
-                    state.system_tithe_overrides.insert(id.clone(), tithe);
-                    state.recompute_economy();
-                }
-
-                // supply
-                let mut supply = sy.supply_risk;
-                let active_supply = state.system_supply_overrides.contains_key(&id);
-                egui::ComboBox::from_id_salt(("supply_cb", id.as_str()))
-                    .selected_text(supply_label(supply))
-                    .show_ui(ui, |ui| {
-                        for r in SUPPLY_RISKS {
-                            ui.selectable_value(&mut supply, *r, supply_label(*r));
-                        }
-                    });
-                if supply != sy.supply_risk {
-                    state.system_supply_overrides.insert(id.clone(), supply);
-                    state.recompute_economy();
-                }
-
-                // strategic priority
-                let mut prio = sy.strategic_priority;
-                let active_prio = state.system_priority_overrides.contains_key(&id);
-                egui::ComboBox::from_id_salt(("prio_cb", id.as_str()))
-                    .selected_text(priority_label(prio))
-                    .show_ui(ui, |ui| {
-                        for p in PRIORITIES {
-                            ui.selectable_value(&mut prio, *p, priority_label(*p));
-                        }
-                    });
-                if prio != sy.strategic_priority {
-                    state.system_priority_overrides.insert(id.clone(), prio);
-                    state.recompute_economy();
-                }
-
-                ui.label(if sy.surplus_resources.is_empty() {
-                    "—".to_string()
-                } else {
-                    sy.surplus_resources.join(",")
-                });
-                ui.label(if sy.shortage_resources.is_empty() {
-                    "—".to_string()
-                } else {
-                    sy.shortage_resources.join(",")
-                });
-
-                ui.horizontal(|ui| {
-                    if (active_tithe || active_supply || active_prio)
-                        && ui
-                            .button(RichText::new("× clear").color(Color32::LIGHT_RED))
-                            .clicked()
-                    {
-                        state.system_tithe_overrides.remove(&id);
-                        state.system_supply_overrides.remove(&id);
-                        state.system_priority_overrides.remove(&id);
+                    // tithe
+                    let mut tithe = sy.tithe_status;
+                    let active_tithe = state.system_tithe_overrides.contains_key(&id);
+                    ui_kit::combo(("tithe_cb", id.as_str()), tithe_label(tithe)).show_ui(
+                        ui,
+                        |ui| {
+                            for t in TITHE_STATES {
+                                ui.selectable_value(&mut tithe, *t, tithe_label(*t));
+                            }
+                        },
+                    );
+                    if tithe != sy.tithe_status {
+                        state.system_tithe_overrides.insert(id.clone(), tithe);
                         state.recompute_economy();
                     }
-                    if ui.button("→ SYSTEM").clicked() {
-                        state.focus_entity(EntityRef::System(id.clone()));
+
+                    // supply
+                    let mut supply = sy.supply_risk;
+                    let active_supply = state.system_supply_overrides.contains_key(&id);
+                    ui_kit::combo(("supply_cb", id.as_str()), supply_label(supply)).show_ui(
+                        ui,
+                        |ui| {
+                            for r in SUPPLY_RISKS {
+                                ui.selectable_value(&mut supply, *r, supply_label(*r));
+                            }
+                        },
+                    );
+                    if supply != sy.supply_risk {
+                        state.system_supply_overrides.insert(id.clone(), supply);
+                        state.recompute_economy();
                     }
-                });
-                ui.end_row();
-            }
-        });
+
+                    // strategic priority
+                    let mut prio = sy.strategic_priority;
+                    let active_prio = state.system_priority_overrides.contains_key(&id);
+                    ui_kit::combo(("prio_cb", id.as_str()), priority_label(prio)).show_ui(
+                        ui,
+                        |ui| {
+                            for p in PRIORITIES {
+                                ui.selectable_value(&mut prio, *p, priority_label(*p));
+                            }
+                        },
+                    );
+                    if prio != sy.strategic_priority {
+                        state.system_priority_overrides.insert(id.clone(), prio);
+                        state.recompute_economy();
+                    }
+
+                    ui.label(if sy.surplus_resources.is_empty() {
+                        "—".to_string()
+                    } else {
+                        sy.surplus_resources.join(",")
+                    });
+                    ui.label(if sy.shortage_resources.is_empty() {
+                        "—".to_string()
+                    } else {
+                        sy.shortage_resources.join(",")
+                    });
+
+                    ui.horizontal(|ui| {
+                        if (active_tithe || active_supply || active_prio)
+                            && ui
+                                .button(RichText::new("× clear").color(Color32::LIGHT_RED))
+                                .clicked()
+                        {
+                            state.system_tithe_overrides.remove(&id);
+                            state.system_supply_overrides.remove(&id);
+                            state.system_priority_overrides.remove(&id);
+                            state.recompute_economy();
+                        }
+                        if ui.button("→ SYSTEM").clicked() {
+                            state.focus_entity(EntityRef::System(id.clone()));
+                        }
+                    });
+                    ui.end_row();
+                }
+            });
+    });
 }
 
 // ── §E4 stranded list ───────────────────────────────────────────────────────
@@ -469,195 +468,199 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
         .filter(|w| w.stranded)
         .cloned()
         .collect();
-    ui.label(
-        RichText::new(format!(
-            "stranded worlds ({}) — MAP draws red ring on each system",
-            stranded.len()
-        ))
-        .strong(),
+    let title = format!(
+        "stranded worlds ({}) — MAP draws red ring on each system",
+        stranded.len()
     );
-    if stranded.is_empty() {
-        ui.colored_label(Color32::DARK_GREEN, "No stranded worlds.");
-        return;
-    }
-    for w in &stranded {
-        ui.horizontal(|ui| {
-            ui.colored_label(
-                Color32::LIGHT_RED,
-                format!(
-                    "● {} in {} — shortages: {}",
-                    w.world_id,
-                    w.system_id,
-                    if w.shortages.is_empty() {
-                        "(systemic)".into()
-                    } else {
-                        w.shortages.join(",")
-                    }
-                ),
-            );
-            if ui.button("→ WORLD").clicked() {
-                let sys_id = w.system_id.clone();
-                state.focus_entity(EntityRef::World {
-                    system: sys_id,
-                    world: w.world_id.clone(),
-                });
-            }
-        });
-    }
+    ui_kit::section(ui, &title, |ui| {
+        if stranded.is_empty() {
+            ui.colored_label(Color32::DARK_GREEN, "No stranded worlds.");
+            return;
+        }
+        for w in &stranded {
+            ui.horizontal(|ui| {
+                ui.colored_label(
+                    Color32::LIGHT_RED,
+                    format!(
+                        "● {} in {} — shortages: {}",
+                        w.world_id,
+                        w.system_id,
+                        if w.shortages.is_empty() {
+                            "(systemic)".into()
+                        } else {
+                            w.shortages.join(",")
+                        }
+                    ),
+                );
+                if ui.button("→ WORLD").clicked() {
+                    let sys_id = w.system_id.clone();
+                    state.focus_entity(EntityRef::World {
+                        system: sys_id,
+                        world: w.world_id.clone(),
+                    });
+                }
+            });
+        }
+    });
 }
 
 // ── §E6 lifeline-lane panel ─────────────────────────────────────────────────
 
 fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("lifeline lanes").strong());
-    ui.horizontal_wrapped(|ui| {
-        ui.checkbox(
-            &mut state.economy_highlight_lifelines,
-            "highlight lifeline routes on MAP",
-        );
-        ui.label("min score:");
-        ui.add(
-            egui::DragValue::new(&mut state.economy_lifeline_min_score)
-                .range(0.0..=200.0)
-                .speed(1.0),
-        );
-        if ui.button("→ MAP").clicked() {
-            state.focus_entity(EntityRef::Tab(BuilderTab::Map));
-        }
-    });
-    let mut edges: Vec<_> = state
-        .sector
-        .economy
-        .dependency_edges
-        .iter()
-        .filter(|e| e.score >= state.economy_lifeline_min_score)
-        .cloned()
-        .collect();
-    edges.sort_by(|a, b| {
-        b.score
-            .partial_cmp(&a.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-    if edges.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No dependency edges above the score threshold.",
-        );
-        return;
-    }
-    let mut focus_route: Option<sectorforge::ids::RouteId> = None;
-    for e in edges.iter().take(20) {
+    ui_kit::section(ui, "lifeline lanes", |ui| {
         ui.horizontal_wrapped(|ui| {
-            ui.label(format!(
-                "{} → {} ({:>4})  score {:.1}  risk {:?}",
-                e.from_system_id, e.to_system_id, e.resource, e.score, e.risk
-            ));
-            if let Some(route_id) = e.route_id.as_ref() {
-                if ui.small_button("focus route").clicked() {
-                    focus_route = Some(route_id.clone());
-                }
+            ui.checkbox(
+                &mut state.economy_highlight_lifelines,
+                "highlight lifeline routes on MAP",
+            );
+            ui.label("min score:");
+            ui.add(
+                egui::DragValue::new(&mut state.economy_lifeline_min_score)
+                    .range(0.0..=200.0)
+                    .speed(1.0),
+            );
+            if ui.button("→ MAP").clicked() {
+                state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
         });
-    }
-    if let Some(rid) = focus_route {
-        state.focus_entity(EntityRef::Route(rid));
-    }
+        let mut edges: Vec<_> = state
+            .sector
+            .economy
+            .dependency_edges
+            .iter()
+            .filter(|e| e.score >= state.economy_lifeline_min_score)
+            .cloned()
+            .collect();
+        edges.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        if edges.is_empty() {
+            ui.colored_label(
+                Color32::GRAY,
+                "No dependency edges above the score threshold.",
+            );
+            return;
+        }
+        let mut focus_route: Option<sectorforge::ids::RouteId> = None;
+        for e in edges.iter().take(20) {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(format!(
+                    "{} → {} ({:>4})  score {:.1}  risk {:?}",
+                    e.from_system_id, e.to_system_id, e.resource, e.score, e.risk
+                ));
+                if let Some(route_id) = e.route_id.as_ref() {
+                    if ui.small_button("focus route").clicked() {
+                        focus_route = Some(route_id.clone());
+                    }
+                }
+            });
+        }
+        if let Some(rid) = focus_route {
+            state.focus_entity(EntityRef::Route(rid));
+        }
+    });
 }
 
 // ── §E7 heatmap picker ──────────────────────────────────────────────────────
 
 fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("MAP heatmap (trade volume / food / tithe / supply)").strong());
-    ui.horizontal_wrapped(|ui| {
-        ui.label("mode:");
-        let current = state.map_heatmap_mode;
-        egui::ComboBox::from_id_salt("econ_heatmap_mode")
-            .selected_text(current.label())
-            .show_ui(ui, |ui| {
-                for mode in E7_MODES {
-                    ui.selectable_value(&mut state.map_heatmap_mode, *mode, mode.label());
+    ui_kit::section(
+        ui,
+        "MAP heatmap (trade volume / food / tithe / supply)",
+        |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label("mode:");
+                let current = state.map_heatmap_mode;
+                ui_kit::combo("econ_heatmap_mode", current.label()).show_ui(ui, |ui| {
+                    for mode in E7_MODES {
+                        ui.selectable_value(&mut state.map_heatmap_mode, *mode, mode.label());
+                    }
+                });
+                if ui.button("→ MAP").clicked() {
+                    state.focus_entity(EntityRef::Tab(BuilderTab::Map));
                 }
+                ui.colored_label(
+                    Color32::DARK_GRAY,
+                    "Overridden when a control overlay is on.",
+                );
             });
-        if ui.button("→ MAP").clicked() {
-            state.focus_entity(EntityRef::Tab(BuilderTab::Map));
-        }
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            "Overridden when a control overlay is on.",
-        );
-    });
+        },
+    );
 }
 
 // ── §E5 economy.toml editor ─────────────────────────────────────────────────
 
 fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("economy.toml editor").strong());
-    if state.data_catalogs.economy.is_none() {
-        ui.horizontal(|ui| {
-            ui.colored_label(Color32::DARK_GRAY, "No economy catalog loaded.");
-            if ui.button("create defaults").clicked() {
-                state.data_catalogs.economy = Some(EconomyConfig {
-                    enabled: true,
-                    ..EconomyConfig::default()
-                });
-                if state.config.inputs.economy.is_none() {
-                    state.config.inputs.economy = Some("data/worlds/economy.toml".into());
+    ui_kit::section(ui, "economy.toml editor", |ui| {
+        if state.data_catalogs.economy.is_none() {
+            ui.horizontal(|ui| {
+                ui.colored_label(Color32::DARK_GRAY, "No economy catalog loaded.");
+                if ui.button("create defaults").clicked() {
+                    state.data_catalogs.economy = Some(EconomyConfig {
+                        enabled: true,
+                        ..EconomyConfig::default()
+                    });
+                    if state.config.inputs.economy.is_none() {
+                        state.config.inputs.economy = Some("data/worlds/economy.toml".into());
+                    }
+                    state.dirty = true;
                 }
-                state.dirty = true;
+            });
+            return;
+        }
+        let mut cfg = state
+            .data_catalogs
+            .economy
+            .as_ref()
+            .expect("checked above")
+            .clone();
+        let mut changed = false;
+        let mut save_clicked = false;
+        let mut recompute_clicked = false;
+
+        egui::Grid::new("econ_cfg").num_columns(2).show(ui, |ui| {
+            ui.label("enabled");
+            changed |= ui.checkbox(&mut cfg.enabled, "").changed();
+            ui.end_row();
+            ui.label("feed_stability");
+            changed |= ui.checkbox(&mut cfg.feed_stability, "").changed();
+            ui.end_row();
+        });
+
+        show_world_type_rows(ui, &mut cfg, &mut changed);
+        show_tech_rows(ui, &mut cfg, &mut changed);
+        show_pop_rows(ui, &mut cfg, &mut changed);
+
+        ui.horizontal(|ui| {
+            if ui.button("Save economy.toml").clicked() {
+                save_clicked = true;
+            }
+            if ui.button("Apply & recompute").clicked() {
+                recompute_clicked = true;
             }
         });
-        return;
-    }
-    let mut cfg = state
-        .data_catalogs
-        .economy
-        .as_ref()
-        .expect("checked above")
-        .clone();
-    let mut changed = false;
-    let mut save_clicked = false;
-    let mut recompute_clicked = false;
 
-    egui::Grid::new("econ_cfg").num_columns(2).show(ui, |ui| {
-        ui.label("enabled");
-        changed |= ui.checkbox(&mut cfg.enabled, "").changed();
-        ui.end_row();
-        ui.label("feed_stability");
-        changed |= ui.checkbox(&mut cfg.feed_stability, "").changed();
-        ui.end_row();
-    });
-
-    show_world_type_rows(ui, &mut cfg, &mut changed);
-    show_tech_rows(ui, &mut cfg, &mut changed);
-    show_pop_rows(ui, &mut cfg, &mut changed);
-
-    ui.horizontal(|ui| {
-        if ui.button("Save economy.toml").clicked() {
-            save_clicked = true;
+        if changed {
+            state.data_catalogs.economy = Some(cfg);
+            state.dirty = true;
+            if let Some(rel) = state.config.inputs.economy.clone() {
+                state.dirty_files.insert(rel);
+            }
+            state.mark_validation_dirty();
         }
-        if ui.button("Apply & recompute").clicked() {
-            recompute_clicked = true;
+        if save_clicked {
+            if let Err(e) = crate::builder::project_io::save_project(state) {
+                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                    "Save economy.toml failed: {e}"
+                )));
+            }
+        }
+        if recompute_clicked {
+            state.recompute_economy();
         }
     });
-
-    if changed {
-        state.data_catalogs.economy = Some(cfg);
-        state.dirty = true;
-        if let Some(rel) = state.config.inputs.economy.clone() {
-            state.dirty_files.insert(rel);
-        }
-        state.mark_validation_dirty();
-    }
-    if save_clicked {
-        if let Err(e) = crate::builder::project_io::save_project(state) {
-            state.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                "Save economy.toml failed: {e}"
-            )));
-        }
-    }
-    if recompute_clicked {
-        state.recompute_economy();
-    }
 }
 
 fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {

@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::invariants::{InvariantReport, InvariantViolation};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::BuilderState;
 
@@ -50,14 +51,17 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                     let Some(group) = grouped.get(*stratum) else {
                         continue;
                     };
-                    egui::CollapsingHeader::new(format!("{stratum} ({})", group.len()))
-                        .default_open(true)
-                        .id_salt(format!("invariants-{stratum}"))
-                        .show(ui, |ui| {
+                    ui_kit::collapsing_section(
+                        ui,
+                        ("inv_stratum", stratum),
+                        &format!("{stratum} ({})", group.len()),
+                        true,
+                        |ui| {
                             for vio in group {
                                 violation_row(ui, state, vio);
                             }
-                        });
+                        },
+                    );
                 }
             }
 
@@ -178,23 +182,25 @@ fn stratum_of(v: &InvariantViolation) -> &'static str {
 /// engine actually raises.
 fn render_catalogue(ui: &mut egui::Ui) {
     use sectorforge::invariants::INVARIANT_CODES;
-    egui::CollapsingHeader::new(format!(
-        "Invariant catalogue ({} codes)",
-        INVARIANT_CODES.len()
-    ))
-    .show(ui, |ui| {
-        ui.label(
-            egui::RichText::new("Every invariant checked on the live sector:")
-                .small()
-                .color(egui::Color32::GRAY),
-        );
-        for (code, desc) in INVARIANT_CODES {
-            ui.horizontal(|ui| {
-                ui.monospace(*code);
-                ui.colored_label(egui::Color32::GRAY, *desc);
-            });
-        }
-    });
+    ui_kit::collapsing_section(
+        ui,
+        "inv_catalogue",
+        &format!("Invariant catalogue ({} codes)", INVARIANT_CODES.len()),
+        false,
+        |ui| {
+            ui.label(
+                egui::RichText::new("Every invariant checked on the live sector:")
+                    .small()
+                    .color(egui::Color32::GRAY),
+            );
+            for (code, desc) in INVARIANT_CODES {
+                ui.horizontal(|ui| {
+                    ui.monospace(*code);
+                    ui.colored_label(egui::Color32::GRAY, *desc);
+                });
+            }
+        },
+    );
 }
 
 #[cfg(test)]

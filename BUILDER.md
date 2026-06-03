@@ -16,8 +16,10 @@ Throughout this document:
 
 - A **tab** is one of the buttons in the strip across the top of the window
   (PROJECT, MAP, SYSTEM, WORLD, FACTIONS, …).
-- A **section** is a collapsing header inside a tab. They are closed by default
-  unless noted; click the header bar to open or close one.
+- A **section** is a titled, framed box inside a tab — most are collapsing
+  headers (click the title bar to open or close one), closed by default unless
+  noted. Related controls are grouped into these bordered boxes so each tab
+  reads as a stack of sections rather than one flat wall of widgets.
 - Coordinates are written `(q, r)` — the axial hex grid coordinates used by the
   sector. `(0, 0)` is the top-left hex.
 
@@ -61,7 +63,14 @@ A native desktop window with three obvious regions:
   HOOKS SITES MISSIONS PROSE ANALYTICS INTERESTINGNESS SEARCH DIFF BRIEFING
   SEGMENTUM EXPORT`. There are 24 tabs total. Don't be alarmed — most of them
   are derived views over the same sector and you only need a handful for a
-  basic build.
+  basic build. The tabs are grouped into **labeled clusters** — each prefixed
+  with a small dim tag and separated by a divider — so the long strip reads as
+  task areas rather than one row: **BUILD** (Project · Map · Subsectors ·
+  Regions · Routes), **ENTITIES** (System · World · Factions · Sites),
+  **POWER** (Control · Economy · Relations), **LORE** (History · Personae ·
+  Hooks · Missions · Prose · Briefing), **ANALYZE** (Analytics ·
+  Interestingness · Search · Diff), **OUTPUT** (Segmentum · Export), and
+  **CHECK** (the VALIDATION / INVARIANTS diagnostics surfaces of §12).
 - The **active tab's panel** below the strip. On a fresh launch it shows the
   PROJECT tab.
 - A **status footer** that surfaces validation, invariants, and the health pip

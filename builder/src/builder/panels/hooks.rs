@@ -31,6 +31,8 @@
 
 use egui::{Color32, RichText, Ui};
 
+use sectorforge_gui_core::ui_kit;
+
 use sectorforge::hooks::{Hook, HookAnchor, HookKind, HooksConfig};
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 
@@ -129,14 +131,12 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
-        egui::ComboBox::from_id_salt("hk1_kind")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.hooks_filter_kind, None, "all kinds");
-                for k in KIND_VARIANTS {
-                    ui.selectable_value(&mut state.hooks_filter_kind, Some(*k), kind_label(*k));
-                }
-            });
+        ui_kit::combo("hk1_kind", label).show_ui(ui, |ui| {
+            ui.selectable_value(&mut state.hooks_filter_kind, None, "all kinds");
+            for k in KIND_VARIANTS {
+                ui.selectable_value(&mut state.hooks_filter_kind, Some(*k), kind_label(*k));
+            }
+        });
     });
 }
 
@@ -217,7 +217,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         .clone()
         .or_else(|| state.selected_hook_id.clone());
     let Some(target_id) = target else {
-        ui.colored_label(Color32::GRAY, "Select a hook above to see its details.");
+        ui_kit::placeholder(ui, "Select a hook above to see its details.");
         return;
     };
     let Some(hook) = state
@@ -312,28 +312,28 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, h) in cfg.manual.iter_mut().enumerate() {
-            let header = egui::CollapsingHeader::new(
-                RichText::new(format!(
+            ui_kit::collapsing_section(
+                ui,
+                ("hk_manual", idx),
+                &format!(
                     "[{idx}] {}",
                     if h.title.is_empty() {
                         "(untitled)"
                     } else {
                         h.title.as_str()
                     }
-                ))
-                .strong(),
-            )
-            .id_salt(format!("hk_manual_{idx}"))
-            .default_open(idx == last_idx);
-            header.show(ui, |ui| {
-                changed |= manual_hook_editor(ui, idx, h);
-                if ui
-                    .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
-                    .clicked()
-                {
-                    remove_idx = Some(idx);
-                }
-            });
+                ),
+                idx == last_idx,
+                |ui| {
+                    changed |= manual_hook_editor(ui, idx, h);
+                    if ui
+                        .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
+                        .clicked()
+                    {
+                        remove_idx = Some(idx);
+                    }
+                },
+            );
         }
     }
     if let Some(idx) = remove_idx {
@@ -358,57 +358,57 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
             }
             ui.end_row();
             ui.label("kind");
-            egui::ComboBox::from_id_salt(format!("hk_manual_kind_{idx}"))
-                .selected_text(kind_label(h.kind))
-                .show_ui(ui, |ui| {
-                    for k in KIND_VARIANTS {
-                        if ui
-                            .selectable_value(&mut h.kind, *k, kind_label(*k))
-                            .changed()
-                        {
-                            changed = true;
-                        }
+            ui_kit::combo(format!("hk_manual_kind_{idx}"), kind_label(h.kind)).show_ui(ui, |ui| {
+                for k in KIND_VARIANTS {
+                    if ui
+                        .selectable_value(&mut h.kind, *k, kind_label(*k))
+                        .changed()
+                    {
+                        changed = true;
                     }
-                });
+                }
+            });
             ui.end_row();
             ui.label("anchor scope");
             let mut scope = anchor_scope(&h.anchor);
-            egui::ComboBox::from_id_salt(format!("hk_manual_scope_{idx}"))
-                .selected_text(match scope {
+            ui_kit::combo(
+                format!("hk_manual_scope_{idx}"),
+                match scope {
                     AnchorScope::System => "system",
                     AnchorScope::World => "world",
                     AnchorScope::Route => "route",
-                })
-                .show_ui(ui, |ui| {
-                    if ui
-                        .selectable_value(&mut scope, AnchorScope::System, "system")
-                        .changed()
-                    {
-                        h.anchor = HookAnchor::System {
-                            system_id: SystemId::new(""),
-                        };
-                        changed = true;
-                    }
-                    if ui
-                        .selectable_value(&mut scope, AnchorScope::World, "world")
-                        .changed()
-                    {
-                        h.anchor = HookAnchor::World {
-                            system_id: SystemId::new(""),
-                            world_id: WorldId::new(""),
-                        };
-                        changed = true;
-                    }
-                    if ui
-                        .selectable_value(&mut scope, AnchorScope::Route, "route")
-                        .changed()
-                    {
-                        h.anchor = HookAnchor::Route {
-                            route_id: RouteId::new(""),
-                        };
-                        changed = true;
-                    }
-                });
+                },
+            )
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_value(&mut scope, AnchorScope::System, "system")
+                    .changed()
+                {
+                    h.anchor = HookAnchor::System {
+                        system_id: SystemId::new(""),
+                    };
+                    changed = true;
+                }
+                if ui
+                    .selectable_value(&mut scope, AnchorScope::World, "world")
+                    .changed()
+                {
+                    h.anchor = HookAnchor::World {
+                        system_id: SystemId::new(""),
+                        world_id: WorldId::new(""),
+                    };
+                    changed = true;
+                }
+                if ui
+                    .selectable_value(&mut scope, AnchorScope::Route, "route")
+                    .changed()
+                {
+                    h.anchor = HookAnchor::Route {
+                        route_id: RouteId::new(""),
+                    };
+                    changed = true;
+                }
+            });
             ui.end_row();
             match &mut h.anchor {
                 HookAnchor::System { system_id } => {

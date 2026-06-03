@@ -16,6 +16,7 @@ use egui::{Color32, RichText};
 
 use sectorforge::search::{Constraint, WishesFile};
 use sectorforge::worlds::WorldType;
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::search_run::NewConstraintKind;
 use crate::builder::state::BuilderTab;
@@ -101,9 +102,12 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         budget_hint = wishes.search.budget.max(1);
 
         // §SR4: base_seed / budget / report_top.
-        egui::CollapsingHeader::new("§SR4 — Search config")
-            .default_open(true)
-            .show(ui, |ui| {
+        ui_kit::collapsing_section(
+            ui,
+            "sr_sr4_search_config",
+            "§SR4 — Search config",
+            true,
+            |ui| {
                 egui::Grid::new("sr4-search-config")
                     .num_columns(2)
                     .spacing([12.0, 6.0])
@@ -144,12 +148,16 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                         );
                         ui.end_row();
                     });
-            });
+            },
+        );
 
         // §SR1: per-constraint form widgets.
-        egui::CollapsingHeader::new(format!("§SR1 — Constraints ({})", wishes.constraints.len()))
-            .default_open(true)
-            .show(ui, |ui| {
+        ui_kit::collapsing_section(
+            ui,
+            "sr_sr1_constraints",
+            &format!("§SR1 — Constraints ({})", wishes.constraints.len()),
+            true,
+            |ui| {
                 let mut remove_idx: Option<usize> = None;
                 for (i, c) in wishes.constraints.iter_mut().enumerate() {
                     ui.group(|ui| {
@@ -168,8 +176,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
-                    egui::ComboBox::from_id_salt("sr1-add-kind")
-                        .selected_text(state.search.new_constraint_kind.label())
+                    ui_kit::combo("sr1-add-kind", state.search.new_constraint_kind.label())
                         .show_ui(ui, |ui| {
                             for kind in NewConstraintKind::ALL {
                                 if ui
@@ -190,7 +197,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                             .push(state.search.new_constraint_kind.make(&default_faction));
                     }
                 });
-            });
+            },
+        );
 
         // §SR5: live faction-id preflight against the roster.
         for c in &wishes.constraints {
@@ -312,9 +320,12 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                     view_seed = Some(win.seed.clone());
                 }
             });
-            egui::CollapsingHeader::new("constraints (all satisfied)")
-                .default_open(false)
-                .show(ui, |ui| {
+            ui_kit::collapsing_section(
+                ui,
+                "sr_winning_constraints",
+                "constraints (all satisfied)",
+                false,
+                |ui| {
                     for c in &win.constraints {
                         ui.label(
                             RichText::new(format!(
@@ -324,7 +335,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                             .monospace(),
                         );
                     }
-                });
+                },
+            );
         } else if outcome.preflight_errors.is_empty() {
             ui.add_space(6.0);
             ui.colored_label(
@@ -335,9 +347,12 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 
         if !outcome.near_misses.is_empty() {
             ui.add_space(6.0);
-            egui::CollapsingHeader::new(format!("Near misses ({})", outcome.near_misses.len()))
-                .default_open(true)
-                .show(ui, |ui| {
+            ui_kit::collapsing_section(
+                ui,
+                "sr_near_misses",
+                &format!("Near misses ({})", outcome.near_misses.len()),
+                true,
+                |ui| {
                     for cand in &outcome.near_misses {
                         ui.group(|ui| {
                             ui.horizontal(|ui| {
@@ -367,7 +382,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                             }
                         });
                     }
-                });
+                },
+            );
         }
     }
 
@@ -548,15 +564,13 @@ fn faction_combo(ui: &mut egui::Ui, idx: usize, current: &mut String, factions: 
     } else {
         current.clone()
     };
-    egui::ComboBox::from_id_salt(("sr1-faction", idx))
-        .selected_text(selected)
-        .show_ui(ui, |ui| {
-            for f in factions {
-                if ui.selectable_label(current == f, f).clicked() {
-                    *current = f.clone();
-                }
+    ui_kit::combo(("sr1-faction", idx), selected).show_ui(ui, |ui| {
+        for f in factions {
+            if ui.selectable_label(current == f, f).clicked() {
+                *current = f.clone();
             }
-        });
+        }
+    });
 }
 
 fn opt_faction_combo(
@@ -566,49 +580,43 @@ fn opt_faction_combo(
     factions: &[String],
 ) {
     let selected = current.clone().unwrap_or_else(|| "(any)".to_string());
-    egui::ComboBox::from_id_salt(("sr1-opt-faction", idx))
-        .selected_text(selected)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(current.is_none(), "(any)").clicked() {
-                *current = None;
+    ui_kit::combo(("sr1-opt-faction", idx), selected).show_ui(ui, |ui| {
+        if ui.selectable_label(current.is_none(), "(any)").clicked() {
+            *current = None;
+        }
+        for f in factions {
+            if ui
+                .selectable_label(current.as_deref() == Some(f), f)
+                .clicked()
+            {
+                *current = Some(f.clone());
             }
-            for f in factions {
-                if ui
-                    .selectable_label(current.as_deref() == Some(f), f)
-                    .clicked()
-                {
-                    *current = Some(f.clone());
-                }
-            }
-        });
+        }
+    });
 }
 
 fn world_type_combo(ui: &mut egui::Ui, idx: usize, current: &mut String) {
-    egui::ComboBox::from_id_salt(("sr1-worldtype", idx))
-        .selected_text(current.clone())
-        .show_ui(ui, |ui| {
-            for v in WorldType::VARIANTS {
-                let value = v.to_string();
-                if ui
-                    .selectable_label(*current == value, v.display_name())
-                    .clicked()
-                {
-                    *current = value;
-                }
+    ui_kit::combo(("sr1-worldtype", idx), current.clone()).show_ui(ui, |ui| {
+        for v in WorldType::VARIANTS {
+            let value = v.to_string();
+            if ui
+                .selectable_label(*current == value, v.display_name())
+                .clicked()
+            {
+                *current = value;
             }
-        });
+        }
+    });
 }
 
 fn resource_combo(ui: &mut egui::Ui, idx: usize, current: &mut String) {
-    egui::ComboBox::from_id_salt(("sr1-resource", idx))
-        .selected_text(current.clone())
-        .show_ui(ui, |ui| {
-            for r in RESOURCES {
-                if ui.selectable_label(current == r, *r).clicked() {
-                    *current = (*r).to_string();
-                }
+    ui_kit::combo(("sr1-resource", idx), current.clone()).show_ui(ui, |ui| {
+        for r in RESOURCES {
+            if ui.selectable_label(current == r, *r).clicked() {
+                *current = (*r).to_string();
             }
-        });
+        }
+    });
 }
 
 fn system_state_combo(
@@ -626,15 +634,13 @@ fn system_state_combo(
         S::Quarantined,
         S::Uncharted,
     ];
-    egui::ComboBox::from_id_salt(("sr1-sysstate", idx))
-        .selected_text(current.as_slug())
-        .show_ui(ui, |ui| {
-            for v in ALL {
-                if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
-                    *current = *v;
-                }
+    ui_kit::combo(("sr1-sysstate", idx), current.as_slug()).show_ui(ui, |ui| {
+        for v in ALL {
+            if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
+                *current = *v;
             }
-        });
+        }
+    });
 }
 
 fn stance_combo(ui: &mut egui::Ui, idx: usize, current: &mut sectorforge::search::StanceName) {
@@ -647,15 +653,13 @@ fn stance_combo(ui: &mut egui::Ui, idx: usize, current: &mut sectorforge::search
         S::Hostile,
         S::AtWar,
     ];
-    egui::ComboBox::from_id_salt(("sr1-stance", idx))
-        .selected_text(current.as_slug())
-        .show_ui(ui, |ui| {
-            for v in ALL {
-                if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
-                    *current = *v;
-                }
+    ui_kit::combo(("sr1-stance", idx), current.as_slug()).show_ui(ui, |ui| {
+        for v in ALL {
+            if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
+                *current = *v;
             }
-        });
+        }
+    });
 }
 
 fn region_kind_combo(
@@ -671,15 +675,13 @@ fn region_kind_combo(
         R::Blackout,
         R::Anomaly,
     ];
-    egui::ComboBox::from_id_salt(("sr1-region", idx))
-        .selected_text(current.as_slug())
-        .show_ui(ui, |ui| {
-            for v in ALL {
-                if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
-                    *current = *v;
-                }
+    ui_kit::combo(("sr1-region", idx), current.as_slug()).show_ui(ui, |ui| {
+        for v in ALL {
+            if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
+                *current = *v;
             }
-        });
+        }
+    });
 }
 
 // ── Labels + preflight mirror ────────────────────────────────────────────────

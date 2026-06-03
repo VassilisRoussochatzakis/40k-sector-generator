@@ -32,6 +32,8 @@ use egui::{Color32, RichText, Ui};
 use sectorforge::ids::SystemId;
 use sectorforge::prose::{ProseConfig, ProseTone};
 
+use sectorforge_gui_core::ui_kit;
+
 use crate::builder::state::EntityRef;
 use crate::builder::BuilderState;
 
@@ -115,18 +117,16 @@ fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
     ui.horizontal_wrapped(|ui| {
         ui.label("tone");
-        egui::ComboBox::from_id_salt("pr3_tone")
-            .selected_text(tone_label(cfg.tone))
-            .show_ui(ui, |ui| {
-                for t in TONE_VARIANTS {
-                    if ui
-                        .selectable_value(&mut cfg.tone, *t, tone_label(*t))
-                        .changed()
-                    {
-                        changed = true;
-                    }
+        ui_kit::combo("pr3_tone", tone_label(cfg.tone)).show_ui(ui, |ui| {
+            for t in TONE_VARIANTS {
+                if ui
+                    .selectable_value(&mut cfg.tone, *t, tone_label(*t))
+                    .changed()
+                {
+                    changed = true;
                 }
-            });
+            }
+        });
         ui.separator();
         changed |= ui
             .checkbox(&mut cfg.include_overview, "include sector overview")
@@ -255,21 +255,19 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(label_for)
             .unwrap_or_else(|| "select a system".to_string());
-        egui::ComboBox::from_id_salt("pr1_system")
-            .selected_text(current_label)
-            .show_ui(ui, |ui| {
-                for e in &report.system_entries {
-                    if ui
-                        .selectable_label(
-                            selected.as_ref() == Some(&e.system_id),
-                            format!("{} — {}", e.system_id, e.name),
-                        )
-                        .clicked()
-                    {
-                        selected = Some(e.system_id.clone());
-                    }
+        ui_kit::combo("pr1_system", current_label).show_ui(ui, |ui| {
+            for e in &report.system_entries {
+                if ui
+                    .selectable_label(
+                        selected.as_ref() == Some(&e.system_id),
+                        format!("{} — {}", e.system_id, e.name),
+                    )
+                    .clicked()
+                {
+                    selected = Some(e.system_id.clone());
                 }
-            });
+            }
+        });
         if let Some(sid) = selected.as_ref() {
             if ui.link("→ system tab").clicked() {
                 state.focus_entity(EntityRef::System(sid.clone()));

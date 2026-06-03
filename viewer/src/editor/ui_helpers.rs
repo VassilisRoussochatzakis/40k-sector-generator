@@ -1,6 +1,6 @@
 //! Small egui helpers shared across editor panels.
 
-use egui::{ComboBox, Response, RichText, Ui};
+use egui::{Response, RichText, Ui};
 
 use crate::palette;
 
@@ -20,20 +20,20 @@ pub fn label(ui: &mut Ui, s: &str) {
 /// if the value changed.
 pub fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[&str]) -> bool {
     let mut changed = false;
-    ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(current.as_str()))
-        .show_ui(ui, |ui| {
-            for opt in options {
-                if ui
-                    .selectable_label(current == opt, RichText::new(*opt))
-                    .clicked()
-                    && current != opt
-                {
-                    *current = (*opt).to_string();
-                    changed = true;
-                }
+    // §UO P4: route through the shared `ui_kit::combo` so editor dropdowns get
+    // the same width floor / styling as the rest of both apps.
+    crate::ui_kit::combo(id, RichText::new(current.as_str())).show_ui(ui, |ui| {
+        for opt in options {
+            if ui
+                .selectable_label(current == opt, RichText::new(*opt))
+                .clicked()
+                && current != opt
+            {
+                *current = (*opt).to_string();
+                changed = true;
             }
-        });
+        }
+    });
     changed
 }
 
@@ -45,20 +45,18 @@ pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &
         .iter()
         .find(|(v, _)| *v == current.as_str())
         .map_or(current.as_str(), |(_, l)| *l);
-    ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(shown))
-        .show_ui(ui, |ui| {
-            for (v, l) in options {
-                if ui
-                    .selectable_label(current == v, RichText::new(*l))
-                    .clicked()
-                    && current != v
-                {
-                    *current = (*v).to_string();
-                    changed = true;
-                }
+    crate::ui_kit::combo(id, RichText::new(shown)).show_ui(ui, |ui| {
+        for (v, l) in options {
+            if ui
+                .selectable_label(current == v, RichText::new(*l))
+                .clicked()
+                && current != v
+            {
+                *current = (*v).to_string();
+                changed = true;
             }
-        });
+        }
+    });
     changed
 }
 

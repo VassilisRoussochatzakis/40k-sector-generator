@@ -9,6 +9,8 @@
 
 use egui::{Color32, Ui};
 
+use sectorforge_gui_core::ui_kit;
+
 use sectorforge::ids::FactionId;
 use sectorforge::surface_region::{derive_regions, RegionKind, SurfaceRegion};
 
@@ -37,52 +39,50 @@ pub fn show_surface_regions_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("Surface regions")
-        .default_open(false)
-        .show(ui, |ui| {
-            let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let factions: Vec<(FactionId, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.clone(), f.name.to_string()))
-                .collect();
+    ui_kit::collapsing_section(ui, "sreg_surface_regions", "Surface regions", false, |ui| {
+        let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+        let factions: Vec<(FactionId, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.clone(), f.name.to_string()))
+            .collect();
 
-            let mut working = state.sector.systems[sys_idx].worlds[w_idx].regions.clone();
-            let original = working.clone();
-            show_regions_editor(ui, &world_id, &mut working, &factions);
+        let mut working = state.sector.systems[sys_idx].worlds[w_idx].regions.clone();
+        let original = working.clone();
+        show_regions_editor(ui, &world_id, &mut working, &factions);
 
-            ui.add_space(6.0);
-            ui.horizontal_wrapped(|ui| {
-                if ui
-                    .button("Auto-seed")
-                    .on_hover_text(
-                        "Calls sectorforge::surface_region::derive_regions for this world \
-                         and replaces the regions list with the derived split.",
-                    )
-                    .clicked()
-                {
-                    let w = &state.sector.systems[sys_idx].worlds[w_idx];
-                    working = derive_regions(w);
-                }
-                if ui.button("Clear regions").clicked() {
-                    working.clear();
-                }
-            });
-
-            if working != original {
-                let cmd = BuilderCommand::SetSurfaceRegions {
-                    world: world_id,
-                    before: None,
-                    after: working,
-                };
-                if let Err(e) = state.run(cmd) {
-                    state.modal = Some(ModalKind::Message(format!(
-                        "Surface region update failed: {e}"
-                    )));
-                }
+        ui.add_space(6.0);
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .button("Auto-seed")
+                .on_hover_text(
+                    "Calls sectorforge::surface_region::derive_regions for this world \
+                     and replaces the regions list with the derived split.",
+                )
+                .clicked()
+            {
+                let w = &state.sector.systems[sys_idx].worlds[w_idx];
+                working = derive_regions(w);
+            }
+            if ui.button("Clear regions").clicked() {
+                working.clear();
             }
         });
+
+        if working != original {
+            let cmd = BuilderCommand::SetSurfaceRegions {
+                world: world_id,
+                before: None,
+                after: working,
+            };
+            if let Err(e) = state.run(cmd) {
+                state.modal = Some(ModalKind::Message(format!(
+                    "Surface region update failed: {e}"
+                )));
+            }
+        }
+    });
 }
 
 fn show_regions_editor(
@@ -108,10 +108,12 @@ fn show_regions_editor(
             name = region.name,
             fid = dominant_label,
         );
-        egui::CollapsingHeader::new(header_label)
-            .id_salt(format!("surface_region_{world_id}_{i}"))
-            .default_open(false)
-            .show(ui, |ui| {
+        ui_kit::collapsing_section(
+            ui,
+            ("sreg_region", world_id, i),
+            &header_label,
+            false,
+            |ui| {
                 egui::Grid::new(format!("surface_region_grid_{i}"))
                     .num_columns(2)
                     .show(ui, |ui| {
@@ -120,13 +122,14 @@ fn show_regions_editor(
                         ui.end_row();
 
                         ui.label("kind");
-                        egui::ComboBox::from_id_salt(format!("sr_kind_{i}"))
-                            .selected_text(format!("{}", region.kind))
-                            .show_ui(ui, |ui| {
+                        ui_kit::combo(format!("sr_kind_{i}"), format!("{}", region.kind)).show_ui(
+                            ui,
+                            |ui| {
                                 for k in REGION_KINDS {
                                     ui.selectable_value(&mut region.kind, k, format!("{}", k));
                                 }
-                            });
+                            },
+                        );
                         ui.end_row();
 
                         ui.label("dominant faction");
@@ -165,7 +168,8 @@ fn show_regions_editor(
                 if ui.button("× remove region").clicked() {
                     remove_at = Some(i);
                 }
-            });
+            },
+        );
     }
     if let Some(i) = remove_at {
         regions.remove(i);
@@ -202,20 +206,18 @@ fn optional_faction_combo(
         .as_ref()
         .map(|f| f.to_string())
         .unwrap_or_else(|| "(none)".into());
-    egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(label)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(current.is_none(), "(none)").clicked() {
-                *current = None;
+    ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
+        if ui.selectable_label(current.is_none(), "(none)").clicked() {
+            *current = None;
+        }
+        for (fid, name) in factions {
+            let sel = current.as_ref() == Some(fid);
+            if ui
+                .selectable_label(sel, format!("{fid} ({name})"))
+                .clicked()
+            {
+                *current = Some(fid.clone());
             }
-            for (fid, name) in factions {
-                let sel = current.as_ref() == Some(fid);
-                if ui
-                    .selectable_label(sel, format!("{fid} ({name})"))
-                    .clicked()
-                {
-                    *current = Some(fid.clone());
-                }
-            }
-        });
+        }
+    });
 }

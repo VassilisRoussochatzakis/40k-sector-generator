@@ -12,6 +12,7 @@ use egui::{Color32, RichText};
 
 use sectorforge::diff::SectorDiff;
 use sectorforge::sector_model::GeneratedSector;
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::diff_run::{DiffMode, LoadedFile, SlotKind};
 use crate::builder::{BuilderState, ModalKind};
@@ -107,13 +108,11 @@ fn slot_picker(
 ) -> Option<String> {
     let mut error = None;
     ui.horizontal(|ui| {
-        egui::ComboBox::from_id_salt(format!("{id_salt}_kind"))
-            .selected_text(slot_kind_label(*kind))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(kind, SlotKind::Current, "Current sector");
-                ui.selectable_value(kind, SlotKind::Snapshot, "Snapshot");
-                ui.selectable_value(kind, SlotKind::File, "Load file…");
-            });
+        ui_kit::combo(format!("{id_salt}_kind"), slot_kind_label(*kind)).show_ui(ui, |ui| {
+            ui.selectable_value(kind, SlotKind::Current, "Current sector");
+            ui.selectable_value(kind, SlotKind::Snapshot, "Snapshot");
+            ui.selectable_value(kind, SlotKind::File, "Load file…");
+        });
 
         match *kind {
             SlotKind::Current => {
@@ -124,20 +123,22 @@ fn slot_picker(
                     ui.colored_label(Color32::GRAY, "no snapshots — create one in PROJECT");
                 } else {
                     let current = snap.clone().unwrap_or_default();
-                    egui::ComboBox::from_id_salt(format!("{id_salt}_snap"))
-                        .selected_text(if current.is_empty() {
+                    ui_kit::combo(
+                        format!("{id_salt}_snap"),
+                        if current.is_empty() {
                             "(pick snapshot)".to_string()
                         } else {
                             current
-                        })
-                        .show_ui(ui, |ui| {
-                            for name in snap_names {
-                                let sel = snap.as_deref() == Some(name.as_str());
-                                if ui.selectable_label(sel, name).clicked() {
-                                    *snap = Some(name.clone());
-                                }
+                        },
+                    )
+                    .show_ui(ui, |ui| {
+                        for name in snap_names {
+                            let sel = snap.as_deref() == Some(name.as_str());
+                            if ui.selectable_label(sel, name).clicked() {
+                                *snap = Some(name.clone());
                             }
-                        });
+                        }
+                    });
                 }
             }
             SlotKind::File => {
@@ -375,13 +376,17 @@ fn show_report(ui: &mut egui::Ui, state: &mut BuilderState) {
         ui.colored_label(col, txt);
     });
     if !d.schema_warnings.is_empty() {
-        egui::CollapsingHeader::new(format!("Schema warnings ({})", d.schema_warnings.len()))
-            .id_salt("diff_schema_warn")
-            .show(ui, |ui| {
+        ui_kit::collapsing_section(
+            ui,
+            "diff_schema_warn",
+            &format!("Schema warnings ({})", d.schema_warnings.len()),
+            false,
+            |ui| {
                 for w in &d.schema_warnings {
                     ui.colored_label(Color32::from_rgb(200, 140, 0), w);
                 }
-            });
+            },
+        );
     }
 
     egui::ScrollArea::vertical()
@@ -404,113 +409,110 @@ fn show_systems(ui: &mut egui::Ui, d: &SectorDiff) {
         d.systems_removed.len(),
         d.systems_changed.len()
     );
-    egui::CollapsingHeader::new(header)
-        .id_salt("diff_systems")
-        .show(ui, |ui| {
-            for s in &d.systems_added {
-                ui.colored_label(
-                    Color32::from_rgb(40, 160, 40),
-                    format!("+ {} {}", s.id, s.name),
-                );
-            }
-            for s in &d.systems_removed {
-                ui.colored_label(
-                    Color32::from_rgb(190, 60, 60),
-                    format!("− {} {}", s.id, s.name),
-                );
-            }
-            for c in &d.systems_changed {
-                let title = if c.renamed {
-                    format!("~ {} {} → {}", c.id, c.name_before, c.name_after)
-                } else {
-                    format!("~ {} {}", c.id, c.name_after)
-                };
-                egui::CollapsingHeader::new(title)
-                    .id_salt(format!("diff_sys_{}", c.id))
-                    .show(ui, |ui| {
-                        opt_change(
-                            ui,
-                            "state",
-                            c.state_before.map(|s| format!("{s:?}")),
-                            c.state_after.map(|s| format!("{s:?}")),
-                        );
-                        opt_change(
-                            ui,
-                            "dominant",
-                            c.dominant_before.as_ref().map(ToString::to_string),
-                            c.dominant_after.as_ref().map(ToString::to_string),
-                        );
-                        opt_change(
-                            ui,
-                            "sovereign",
-                            c.sovereign_before.as_ref().map(ToString::to_string),
-                            c.sovereign_after.as_ref().map(ToString::to_string),
-                        );
-                        opt_change(
-                            ui,
-                            "occupier",
-                            c.occupier_before.as_ref().map(ToString::to_string),
-                            c.occupier_after.as_ref().map(ToString::to_string),
-                        );
-                        for f in &c.primary_factions_added {
-                            ui.label(format!("  + primary faction {f}"));
+    ui_kit::collapsing_section(ui, "diff_systems", &header, false, |ui| {
+        for s in &d.systems_added {
+            ui.colored_label(
+                Color32::from_rgb(40, 160, 40),
+                format!("+ {} {}", s.id, s.name),
+            );
+        }
+        for s in &d.systems_removed {
+            ui.colored_label(
+                Color32::from_rgb(190, 60, 60),
+                format!("− {} {}", s.id, s.name),
+            );
+        }
+        for c in &d.systems_changed {
+            let title = if c.renamed {
+                format!("~ {} {} → {}", c.id, c.name_before, c.name_after)
+            } else {
+                format!("~ {} {}", c.id, c.name_after)
+            };
+            egui::CollapsingHeader::new(title)
+                .id_salt(format!("diff_sys_{}", c.id))
+                .show(ui, |ui| {
+                    opt_change(
+                        ui,
+                        "state",
+                        c.state_before.map(|s| format!("{s:?}")),
+                        c.state_after.map(|s| format!("{s:?}")),
+                    );
+                    opt_change(
+                        ui,
+                        "dominant",
+                        c.dominant_before.as_ref().map(ToString::to_string),
+                        c.dominant_after.as_ref().map(ToString::to_string),
+                    );
+                    opt_change(
+                        ui,
+                        "sovereign",
+                        c.sovereign_before.as_ref().map(ToString::to_string),
+                        c.sovereign_after.as_ref().map(ToString::to_string),
+                    );
+                    opt_change(
+                        ui,
+                        "occupier",
+                        c.occupier_before.as_ref().map(ToString::to_string),
+                        c.occupier_after.as_ref().map(ToString::to_string),
+                    );
+                    for f in &c.primary_factions_added {
+                        ui.label(format!("  + primary faction {f}"));
+                    }
+                    for f in &c.primary_factions_removed {
+                        ui.label(format!("  − primary faction {f}"));
+                    }
+                    if !c.worlds_added.is_empty()
+                        || !c.worlds_removed.is_empty()
+                        || !c.worlds_changed.is_empty()
+                    {
+                        ui.label(format!(
+                            "  worlds: +{} −{} ~{}",
+                            c.worlds_added.len(),
+                            c.worlds_removed.len(),
+                            c.worlds_changed.len()
+                        ));
+                        for w in &c.worlds_added {
+                            ui.label(format!("    + {} {}", w.id, w.name));
                         }
-                        for f in &c.primary_factions_removed {
-                            ui.label(format!("  − primary faction {f}"));
+                        for w in &c.worlds_removed {
+                            ui.label(format!("    − {} {}", w.id, w.name));
                         }
-                        if !c.worlds_added.is_empty()
-                            || !c.worlds_removed.is_empty()
-                            || !c.worlds_changed.is_empty()
-                        {
-                            ui.label(format!(
-                                "  worlds: +{} −{} ~{}",
-                                c.worlds_added.len(),
-                                c.worlds_removed.len(),
-                                c.worlds_changed.len()
-                            ));
-                            for w in &c.worlds_added {
-                                ui.label(format!("    + {} {}", w.id, w.name));
+                        for w in &c.worlds_changed {
+                            let mut bits: Vec<String> = Vec::new();
+                            if w.renamed {
+                                bits.push(format!("renamed → {}", w.name_after));
                             }
-                            for w in &c.worlds_removed {
-                                ui.label(format!("    − {} {}", w.id, w.name));
+                            if w.contested_before != w.contested_after {
+                                bits.push(format!(
+                                    "contested {} → {}",
+                                    w.contested_before, w.contested_after
+                                ));
                             }
-                            for w in &c.worlds_changed {
-                                let mut bits: Vec<String> = Vec::new();
-                                if w.renamed {
-                                    bits.push(format!("renamed → {}", w.name_after));
-                                }
-                                if w.contested_before != w.contested_after {
-                                    bits.push(format!(
-                                        "contested {} → {}",
-                                        w.contested_before, w.contested_after
-                                    ));
-                                }
-                                if !w.claims_added.is_empty() || !w.claims_removed.is_empty() {
-                                    bits.push(format!(
-                                        "claims +{} −{}",
-                                        w.claims_added.len(),
-                                        w.claims_removed.len()
-                                    ));
-                                }
-                                if !w.presences_added.is_empty() || !w.presences_removed.is_empty()
-                                {
-                                    bits.push(format!(
-                                        "presence +{} −{}",
-                                        w.presences_added.len(),
-                                        w.presences_removed.len()
-                                    ));
-                                }
-                                let detail = if bits.is_empty() {
-                                    "control change".to_string()
-                                } else {
-                                    bits.join(", ")
-                                };
-                                ui.label(format!("    ~ {} {} ({detail})", w.id, w.name_after));
+                            if !w.claims_added.is_empty() || !w.claims_removed.is_empty() {
+                                bits.push(format!(
+                                    "claims +{} −{}",
+                                    w.claims_added.len(),
+                                    w.claims_removed.len()
+                                ));
                             }
+                            if !w.presences_added.is_empty() || !w.presences_removed.is_empty() {
+                                bits.push(format!(
+                                    "presence +{} −{}",
+                                    w.presences_added.len(),
+                                    w.presences_removed.len()
+                                ));
+                            }
+                            let detail = if bits.is_empty() {
+                                "control change".to_string()
+                            } else {
+                                bits.join(", ")
+                            };
+                            ui.label(format!("    ~ {} {} ({detail})", w.id, w.name_after));
                         }
-                    });
-            }
-        });
+                    }
+                });
+        }
+    });
 }
 
 fn show_routes(ui: &mut egui::Ui, d: &SectorDiff) {
@@ -520,40 +522,41 @@ fn show_routes(ui: &mut egui::Ui, d: &SectorDiff) {
         d.routes_removed.len(),
         d.routes_changed.len()
     );
-    egui::CollapsingHeader::new(header)
-        .id_salt("diff_routes")
-        .show(ui, |ui| {
-            for r in &d.routes_added {
-                ui.colored_label(
-                    Color32::from_rgb(40, 160, 40),
-                    format!("+ {} {} → {}", r.id, r.from_system_id, r.to_system_id),
-                );
-            }
-            for r in &d.routes_removed {
-                ui.colored_label(
-                    Color32::from_rgb(190, 60, 60),
-                    format!("− {} {} → {}", r.id, r.from_system_id, r.to_system_id),
-                );
-            }
-            for r in &d.routes_changed {
-                ui.label(format!(
-                    "~ {} {} → {}: stability {:?}→{:?}, type {:?}→{:?}",
-                    r.id,
-                    r.from_system_id,
-                    r.to_system_id,
-                    r.stability_before,
-                    r.stability_after,
-                    r.route_type_before,
-                    r.route_type_after,
-                ));
-            }
-        });
+    ui_kit::collapsing_section(ui, "diff_routes", &header, false, |ui| {
+        for r in &d.routes_added {
+            ui.colored_label(
+                Color32::from_rgb(40, 160, 40),
+                format!("+ {} {} → {}", r.id, r.from_system_id, r.to_system_id),
+            );
+        }
+        for r in &d.routes_removed {
+            ui.colored_label(
+                Color32::from_rgb(190, 60, 60),
+                format!("− {} {} → {}", r.id, r.from_system_id, r.to_system_id),
+            );
+        }
+        for r in &d.routes_changed {
+            ui.label(format!(
+                "~ {} {} → {}: stability {:?}→{:?}, type {:?}→{:?}",
+                r.id,
+                r.from_system_id,
+                r.to_system_id,
+                r.stability_before,
+                r.stability_after,
+                r.route_type_before,
+                r.route_type_after,
+            ));
+        }
+    });
 }
 
 fn show_factions(ui: &mut egui::Ui, d: &SectorDiff) {
-    egui::CollapsingHeader::new(format!("Factions  ({} deltas)", d.faction_deltas.len()))
-        .id_salt("diff_factions")
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "diff_factions",
+        &format!("Factions  ({} deltas)", d.faction_deltas.len()),
+        false,
+        |ui| {
             for f in &d.faction_deltas {
                 let col = if f.delta > 0.0 {
                     Color32::from_rgb(40, 160, 40)
@@ -576,7 +579,8 @@ fn show_factions(ui: &mut egui::Ui, d: &SectorDiff) {
                     ),
                 );
             }
-        });
+        },
+    );
 }
 
 fn show_regions(ui: &mut egui::Ui, d: &SectorDiff) {
@@ -586,41 +590,40 @@ fn show_regions(ui: &mut egui::Ui, d: &SectorDiff) {
         d.regions_removed.len(),
         d.regions_changed.len()
     );
-    egui::CollapsingHeader::new(header)
-        .id_salt("diff_regions")
-        .show(ui, |ui| {
-            for r in &d.regions_added {
-                ui.colored_label(
-                    Color32::from_rgb(40, 160, 40),
-                    format!("+ {} {:?} ({} hex)", r.id, r.kind, r.hex_count),
-                );
-            }
-            for r in &d.regions_removed {
-                ui.colored_label(
-                    Color32::from_rgb(190, 60, 60),
-                    format!("− {} {:?} ({} hex)", r.id, r.kind, r.hex_count),
-                );
-            }
-            for r in &d.regions_changed {
-                ui.label(format!(
-                    "~ {}: kind {:?}→{:?}, hex {}→{}",
-                    r.id, r.kind_before, r.kind_after, r.hex_count_before, r.hex_count_after,
-                ));
-            }
-        });
+    ui_kit::collapsing_section(ui, "diff_regions", &header, false, |ui| {
+        for r in &d.regions_added {
+            ui.colored_label(
+                Color32::from_rgb(40, 160, 40),
+                format!("+ {} {:?} ({} hex)", r.id, r.kind, r.hex_count),
+            );
+        }
+        for r in &d.regions_removed {
+            ui.colored_label(
+                Color32::from_rgb(190, 60, 60),
+                format!("− {} {:?} ({} hex)", r.id, r.kind, r.hex_count),
+            );
+        }
+        for r in &d.regions_changed {
+            ui.label(format!(
+                "~ {}: kind {:?}→{:?}, hex {}→{}",
+                r.id, r.kind_before, r.kind_after, r.hex_count_before, r.hex_count_after,
+            ));
+        }
+    });
 }
 
 fn show_relations(ui: &mut egui::Ui, d: &SectorDiff) {
-    egui::CollapsingHeader::new(format!(
-        "Relations  ({} stance changes)",
-        d.stance_changes.len()
-    ))
-    .id_salt("diff_relations")
-    .show(ui, |ui| {
-        for s in &d.stance_changes {
-            ui.label(format!("{} ↔ {}: {:?} → {:?}", s.a, s.b, s.before, s.after));
-        }
-    });
+    ui_kit::collapsing_section(
+        ui,
+        "diff_relations",
+        &format!("Relations  ({} stance changes)", d.stance_changes.len()),
+        false,
+        |ui| {
+            for s in &d.stance_changes {
+                ui.label(format!("{} ↔ {}: {:?} → {:?}", s.a, s.b, s.before, s.after));
+            }
+        },
+    );
 }
 
 fn show_economy(ui: &mut egui::Ui, d: &SectorDiff) {
@@ -630,22 +633,20 @@ fn show_economy(ui: &mut egui::Ui, d: &SectorDiff) {
         d.stranded_added.len(),
         d.stranded_removed.len()
     );
-    egui::CollapsingHeader::new(header)
-        .id_salt("diff_economy")
-        .show(ui, |ui| {
-            for b in &d.economy_balance_changes {
-                ui.label(format!(
-                    "{}: {:.1} → {:.1} (Δ{:+.1})",
-                    b.resource, b.before, b.after, b.delta
-                ));
-            }
-            for w in &d.stranded_added {
-                ui.colored_label(Color32::from_rgb(190, 60, 60), format!("+ stranded {w}"));
-            }
-            for w in &d.stranded_removed {
-                ui.colored_label(Color32::from_rgb(40, 160, 40), format!("− stranded {w}"));
-            }
-        });
+    ui_kit::collapsing_section(ui, "diff_economy", &header, false, |ui| {
+        for b in &d.economy_balance_changes {
+            ui.label(format!(
+                "{}: {:.1} → {:.1} (Δ{:+.1})",
+                b.resource, b.before, b.after, b.delta
+            ));
+        }
+        for w in &d.stranded_added {
+            ui.colored_label(Color32::from_rgb(190, 60, 60), format!("+ stranded {w}"));
+        }
+        for w in &d.stranded_removed {
+            ui.colored_label(Color32::from_rgb(40, 160, 40), format!("− stranded {w}"));
+        }
+    });
 }
 
 /// Render a `label: before → after` line only when the two differ.

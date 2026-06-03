@@ -3,6 +3,8 @@
 //! single tab. Each sub-panel is its own module under this directory and
 //! follows the R10 contract.
 
+use sectorforge_gui_core::ui_kit;
+
 use crate::builder::{BuilderState, ModalKind};
 
 use super::{files, generation, preferences, project_tree, save_project, worlds_editor};
@@ -62,24 +64,24 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
-            egui::CollapsingHeader::new("Tree")
-                .default_open(true)
-                .show(ui, |ui| project_tree::show(ui, state));
-            egui::CollapsingHeader::new("Files (§PF2)")
-                .default_open(false)
-                .show(ui, |ui| files::show(ui, state));
-            egui::CollapsingHeader::new("World data (§PF3)")
-                .default_open(false)
-                .show(ui, |ui| worlds_editor::show(ui, state));
-            egui::CollapsingHeader::new("Generation")
-                .default_open(false)
-                .show(ui, |ui| generation::show(ui, state, None));
-            egui::CollapsingHeader::new("Snapshots")
-                .default_open(false)
-                .show(ui, |ui| show_snapshots(ui, state));
-            egui::CollapsingHeader::new("Recent projects")
-                .default_open(false)
-                .show(ui, |ui| preferences::show(ui, state));
+            ui_kit::collapsing_section(ui, "proj_tree", "Tree", true, |ui| {
+                project_tree::show(ui, state)
+            });
+            ui_kit::collapsing_section(ui, "proj_files", "Files (§PF2)", false, |ui| {
+                files::show(ui, state)
+            });
+            ui_kit::collapsing_section(ui, "proj_world_data", "World data (§PF3)", false, |ui| {
+                worlds_editor::show(ui, state)
+            });
+            ui_kit::collapsing_section(ui, "proj_generation", "Generation", false, |ui| {
+                generation::show(ui, state, None)
+            });
+            ui_kit::collapsing_section(ui, "proj_snapshots", "Snapshots", false, |ui| {
+                show_snapshots(ui, state)
+            });
+            ui_kit::collapsing_section(ui, "proj_recent", "Recent projects", false, |ui| {
+                preferences::show(ui, state)
+            });
         });
 }
 

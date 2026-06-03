@@ -1811,8 +1811,44 @@ pattern), `ui_kit::field` (aligned label/control row), `ui_kit::combo` (a
 pre-sized dropdown), and monospace text helpers (`mono`, `mono_title`,
 `mono_section`, `kv`, …) for tabular panels. Like `gui-core::nav` it takes
 `&mut Ui` + plain data and has **no** `BuilderState` dependency, so both apps
-share it. `info_panel` already routes its text helpers through it. Builder and
-viewer panels migrate onto it in overhaul Phases 3–4.
+share it. `info_panel` already routes its text helpers through it.
+
+**App shell + panel migration** (overhaul Phases 2–5, all landed). The shell and
+every panel now read as the three §UO tiers — app chrome → titled section boxes →
+field rows:
+
+- *Phase 2 — builder shell* ([builder/src/app.rs](builder/src/app.rs),
+  [panels/nav.rs](builder/src/builder/panels/nav.rs)). The tab strip and status
+  bar sit on explicit chrome `Frame`s (`chrome_panel()` fill + padding); the
+  central workspace uses the darker `chrome_bg()` fill so section boxes
+  (`faint_bg`) float against it. The 26-tab strip is grouped into labeled
+  clusters via `nav::TAB_CLUSTERS` (BUILD · ENTITIES · POWER · LORE · ANALYZE ·
+  OUTPUT · CHECK) with a dim tag + separator between groups; a test asserts the
+  clusters are a total, disjoint partition of `BuilderTab::ALL` (adding an enum
+  variant without a cluster home fails the test).
+- *Phase 3 — builder panels.* Every panel under
+  [builder/src/builder/panels/](builder/src/builder/panels/) routes its
+  `CollapsingHeader`s through `ui_kit::collapsing_section`, its
+  `ComboBox::from_id_salt` through `ui_kit::combo`, and (where the row is a clean
+  single label/control) through `ui_kit::field`; combo id-salts are preserved
+  byte-for-byte so persisted open/closed and selection state survive. Four
+  `CollapsingHeader` sites are deliberately *not* framed-by-helper: the
+  `project_tree` directory node (per-depth framing would nest badly), the
+  `system.rs` Star section and `intel.rs` observer header (both consume the
+  `CollapsingResponse` the helper's `Option<R>` return hides — Star is instead
+  hand-wrapped in a matching `Frame::group`), and the `diff.rs` per-entity tree
+  row (one frame per row would be too heavy). This is presentational only — no
+  `state.run(BuilderCommand::…)` dispatch changed (§R4 / §UO8).
+- *Phase 4 — viewer.* The nine viewer `ComboBox` sites and the
+  `editor/ui_helpers::combo_str` / `combo_kv` helpers now build through
+  `ui_kit::combo` (`gui-core::ui_kit` is re-exported from
+  [viewer/src/lib.rs](viewer/src/lib.rs) as `crate::ui_kit`), and
+  [dashboard.rs](viewer/src/dashboard.rs) wraps each analytic block in
+  `ui_kit::section`. The planner sits in a framed `SidePanel` and export is a
+  modal `Window`, so both are already contained.
+
+None of this touches the map painters or export writers, so the golden tests stay
+byte-stable throughout (§UO8 guardrail).
 
 ### 8.1 Viewer/editor (`sectorforge-viewer`)
 

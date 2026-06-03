@@ -372,8 +372,7 @@ fn system_combo(
                 .map(|(_, name)| name.to_string())
         })
         .unwrap_or_else(|| "—".to_string());
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(RichText::new(label))
+    crate::ui_kit::combo(id, RichText::new(label))
         .width(220.0)
         .show_ui(ui, |ui| {
             if ui.selectable_label(value.is_none(), "— none —").clicked() && value.is_some() {

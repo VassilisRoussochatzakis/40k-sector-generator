@@ -21,6 +21,7 @@ use egui::{Color32, RichText, Ui};
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{RouteStability, RouteType};
 use sectorforge::segmentum::{BorderOrientation, ChildEntry, FactionMode, InterSectorLink};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::project_io;
 use crate::builder::segmentum_run::{progress_label, SegmentumState};
@@ -209,65 +210,72 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
         return;
     };
 
-    egui::CollapsingHeader::new("§SG1 — Segmentum config")
-        .default_open(true)
-        .show(ui, |ui| {
-            egui::Grid::new("seg_cfg_grid")
-                .num_columns(2)
-                .spacing([12.0, 6.0])
-                .show(ui, |ui| {
-                    ui.label("id");
-                    ui.text_edit_singleline(&mut file.segmentum.id);
-                    ui.end_row();
-                    ui.label("title");
-                    ui.text_edit_singleline(&mut file.segmentum.title);
-                    ui.end_row();
-                    ui.label("stitch_seed");
-                    ui.text_edit_singleline(&mut file.segmentum.stitch_seed);
-                    ui.end_row();
-                    ui.label("columns");
-                    ui.add(egui::DragValue::new(&mut file.segmentum.columns).range(1..=64));
-                    ui.end_row();
-                    ui.label("rows");
-                    ui.add(egui::DragValue::new(&mut file.segmentum.rows).range(1..=64));
-                    ui.end_row();
-                    ui.label("faction_mode");
-                    faction_mode_combo(ui, &mut file.segmentum.faction_mode);
-                    ui.end_row();
-                });
-        });
-
-    egui::CollapsingHeader::new("§SG1 — [stitch] policy").show(ui, |ui| {
-        egui::Grid::new("seg_stitch_grid")
+    ui_kit::collapsing_section(ui, "sg_config", "§SG1 — Segmentum config", true, |ui| {
+        egui::Grid::new("seg_cfg_grid")
             .num_columns(2)
             .spacing([12.0, 6.0])
             .show(ui, |ui| {
-                ui.label("max_links_per_pair");
-                ui.add(egui::DragValue::new(&mut file.stitch.max_links_per_pair).range(0..=16));
+                ui.label("id");
+                ui.text_edit_singleline(&mut file.segmentum.id);
                 ui.end_row();
-                ui.label("border_depth");
-                ui.add(egui::DragValue::new(&mut file.stitch.border_depth).range(1..=16));
+                ui.label("title");
+                ui.text_edit_singleline(&mut file.segmentum.title);
                 ui.end_row();
-                ui.label("default_route_type");
-                route_type_combo(
-                    ui,
-                    "seg_stitch_route_type",
-                    &mut file.stitch.default_route_type,
-                );
+                ui.label("stitch_seed");
+                ui.text_edit_singleline(&mut file.segmentum.stitch_seed);
                 ui.end_row();
-                ui.label("default_stability");
-                stability_combo(
-                    ui,
-                    "seg_stitch_stability",
-                    &mut file.stitch.default_stability,
-                );
+                ui.label("columns");
+                ui.add(egui::DragValue::new(&mut file.segmentum.columns).range(1..=64));
+                ui.end_row();
+                ui.label("rows");
+                ui.add(egui::DragValue::new(&mut file.segmentum.rows).range(1..=64));
+                ui.end_row();
+                ui.label("faction_mode");
+                faction_mode_combo(ui, &mut file.segmentum.faction_mode);
                 ui.end_row();
             });
     });
 
-    egui::CollapsingHeader::new(format!("§SG1 — children ({})", file.children.len()))
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "sg_stitch_policy",
+        "§SG1 — [stitch] policy",
+        false,
+        |ui| {
+            egui::Grid::new("seg_stitch_grid")
+                .num_columns(2)
+                .spacing([12.0, 6.0])
+                .show(ui, |ui| {
+                    ui.label("max_links_per_pair");
+                    ui.add(egui::DragValue::new(&mut file.stitch.max_links_per_pair).range(0..=16));
+                    ui.end_row();
+                    ui.label("border_depth");
+                    ui.add(egui::DragValue::new(&mut file.stitch.border_depth).range(1..=16));
+                    ui.end_row();
+                    ui.label("default_route_type");
+                    route_type_combo(
+                        ui,
+                        "seg_stitch_route_type",
+                        &mut file.stitch.default_route_type,
+                    );
+                    ui.end_row();
+                    ui.label("default_stability");
+                    stability_combo(
+                        ui,
+                        "seg_stitch_stability",
+                        &mut file.stitch.default_stability,
+                    );
+                    ui.end_row();
+                });
+        },
+    );
+
+    ui_kit::collapsing_section(
+        ui,
+        "sg_children",
+        &format!("§SG1 — children ({})", file.children.len()),
+        true,
+        |ui| {
             let cols = file.segmentum.columns;
             let rows = file.segmentum.rows;
             let mut remove: Option<usize> = None;
@@ -342,7 +350,8 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
                     title: None,
                 });
             }
-        });
+        },
+    );
 
     // §SG1: a quick visual of the super-grid slot occupancy.
     grid_preview(ui, file);
@@ -351,9 +360,12 @@ fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// A small read-only super-grid map: one cell per `(column, row)`, naming the
 /// child that occupies it (or `·` when empty). Surfaces duplicate slots in red.
 fn grid_preview(ui: &mut Ui, file: &sectorforge::segmentum::SegmentumFile) {
-    egui::CollapsingHeader::new("§SG1 — super-grid preview")
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "sg_grid_preview",
+        "§SG1 — super-grid preview",
+        true,
+        |ui| {
             let cols = file.segmentum.columns.max(1);
             let rows = file.segmentum.rows.max(1);
             egui::Grid::new("seg_grid_preview")
@@ -384,7 +396,8 @@ fn grid_preview(ui: &mut Ui, file: &sectorforge::segmentum::SegmentumFile) {
                         ui.end_row();
                     }
                 });
-        });
+        },
+    );
 }
 
 // ── §SG2 compose controls ──────────────────────────────────────────────────
@@ -502,9 +515,12 @@ fn composed_section(ui: &mut Ui, state: &mut BuilderState) {
             .monospace(),
         );
 
-        egui::CollapsingHeader::new(format!("§SG3 — children ({})", seg.children.len()))
-            .default_open(true)
-            .show(ui, |ui| {
+        ui_kit::collapsing_section(
+            ui,
+            "sg_manifest_children",
+            &format!("§SG3 — children ({})", seg.children.len()),
+            true,
+            |ui| {
                 egui::Grid::new("seg_manifest_children")
                     .num_columns(6)
                     .striped(true)
@@ -527,7 +543,8 @@ fn composed_section(ui: &mut Ui, state: &mut BuilderState) {
                             ui.end_row();
                         }
                     });
-            });
+            },
+        );
     }
 
     // §SG4 link editor + §SG5 re-export — mutable borrow.
@@ -541,9 +558,12 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
         .composed
         .as_ref()
         .map_or(0, |s| s.inter_sector_links.len());
-    egui::CollapsingHeader::new(format!("§SG4 — inter-sector links ({link_count})"))
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "sg_links",
+        &format!("§SG4 — inter-sector links ({link_count})"),
+        true,
+        |ui| {
             if let Some(seg) = state.segmentum.composed.as_mut() {
                 let mut remove: Option<usize> = None;
                 for (i, link) in seg.inter_sector_links.iter_mut().enumerate() {
@@ -602,7 +622,8 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
             ui.separator();
             ui.strong("Add link");
             add_link_form(ui, state);
-        });
+        },
+    );
 }
 
 fn add_link_form(ui: &mut Ui, state: &mut BuilderState) {
@@ -756,33 +777,27 @@ fn optional_text(ui: &mut Ui, value: &mut Option<String>, hint: &str) {
 }
 
 fn faction_mode_combo(ui: &mut Ui, value: &mut FactionMode) {
-    egui::ComboBox::from_id_salt("seg_faction_mode")
-        .selected_text(value.as_slug())
-        .show_ui(ui, |ui| {
-            for mode in FACTION_MODES {
-                ui.selectable_value(value, mode, mode.as_slug());
-            }
-        });
+    ui_kit::combo("seg_faction_mode", value.as_slug()).show_ui(ui, |ui| {
+        for mode in FACTION_MODES {
+            ui.selectable_value(value, mode, mode.as_slug());
+        }
+    });
 }
 
 fn route_type_combo(ui: &mut Ui, id: &str, value: &mut RouteType) {
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.editor_label())
-        .show_ui(ui, |ui| {
-            for option in RouteType::ALL {
-                ui.selectable_value(value, option, option.editor_label());
-            }
-        });
+    ui_kit::combo(id, value.editor_label()).show_ui(ui, |ui| {
+        for option in RouteType::ALL {
+            ui.selectable_value(value, option, option.editor_label());
+        }
+    });
 }
 
 fn stability_combo(ui: &mut Ui, id: &str, value: &mut RouteStability) {
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(value.as_slug())
-        .show_ui(ui, |ui| {
-            for option in STABILITIES {
-                ui.selectable_value(value, option, option.as_slug());
-            }
-        });
+    ui_kit::combo(id, value.as_slug()).show_ui(ui, |ui| {
+        for option in STABILITIES {
+            ui.selectable_value(value, option, option.as_slug());
+        }
+    });
 }
 
 fn child_combo(ui: &mut Ui, id: &str, value: &mut String, child_ids: &[String]) {
@@ -791,13 +806,11 @@ fn child_combo(ui: &mut Ui, id: &str, value: &mut String, child_ids: &[String]) 
     } else {
         value.clone()
     };
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(selected)
-        .show_ui(ui, |ui| {
-            for cid in child_ids {
-                ui.selectable_value(value, cid.clone(), cid);
-            }
-        });
+    ui_kit::combo(id, selected).show_ui(ui, |ui| {
+        for cid in child_ids {
+            ui.selectable_value(value, cid.clone(), cid);
+        }
+    });
 }
 
 /// Render a `blake3:<hex>` digest as the algo tag plus the first 8 hex chars.

@@ -28,6 +28,7 @@ use sectorforge::relations::{
     DispositionRule, KindRule, PairOverride, RelationAttitude, RelationOverride, RelationsConfig,
     Stance, TreatyStatus,
 };
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::EntityRef;
 use crate::builder::BuilderState;
@@ -526,20 +527,18 @@ fn attitude_combo(
     ui.horizontal(|ui| {
         ui.label(label);
         let current_label = field.map(RelationAttitude::label).unwrap_or("(inherit)");
-        egui::ComboBox::from_id_salt(id_salt)
-            .selected_text(current_label)
-            .show_ui(ui, |ui| {
-                if ui.selectable_label(field.is_none(), "(inherit)").clicked() {
-                    *field = None;
+        ui_kit::combo(id_salt, current_label).show_ui(ui, |ui| {
+            if ui.selectable_label(field.is_none(), "(inherit)").clicked() {
+                *field = None;
+                changed = true;
+            }
+            for v in ATTITUDES {
+                if ui.selectable_label(*field == Some(*v), v.label()).clicked() {
+                    *field = Some(*v);
                     changed = true;
                 }
-                for v in ATTITUDES {
-                    if ui.selectable_label(*field == Some(*v), v.label()).clicked() {
-                        *field = Some(*v);
-                        changed = true;
-                    }
-                }
-            });
+            }
+        });
     });
     changed
 }
@@ -549,36 +548,32 @@ fn treaty_combo(ui: &mut Ui, label: &str, id_salt: &str, field: &mut Option<Trea
     ui.horizontal(|ui| {
         ui.label(label);
         let current_label = field.map(TreatyStatus::label).unwrap_or("(inherit)");
-        egui::ComboBox::from_id_salt(id_salt)
-            .selected_text(current_label)
-            .show_ui(ui, |ui| {
-                if ui.selectable_label(field.is_none(), "(inherit)").clicked() {
-                    *field = None;
+        ui_kit::combo(id_salt, current_label).show_ui(ui, |ui| {
+            if ui.selectable_label(field.is_none(), "(inherit)").clicked() {
+                *field = None;
+                changed = true;
+            }
+            for v in TREATIES {
+                if ui.selectable_label(*field == Some(*v), v.label()).clicked() {
+                    *field = Some(*v);
                     changed = true;
                 }
-                for v in TREATIES {
-                    if ui.selectable_label(*field == Some(*v), v.label()).clicked() {
-                        *field = Some(*v);
-                        changed = true;
-                    }
-                }
-            });
+            }
+        });
     });
     changed
 }
 
 fn stance_combo(ui: &mut Ui, id_salt: &str, field: &mut Stance) -> bool {
     let mut changed = false;
-    egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(field.label())
-        .show_ui(ui, |ui| {
-            for v in STANCES {
-                if ui.selectable_label(*field == *v, v.label()).clicked() {
-                    *field = *v;
-                    changed = true;
-                }
+    ui_kit::combo(id_salt, field.label()).show_ui(ui, |ui| {
+        for v in STANCES {
+            if ui.selectable_label(*field == *v, v.label()).clicked() {
+                *field = *v;
+                changed = true;
             }
-        });
+        }
+    });
     changed
 }
 
@@ -692,15 +687,13 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn faction_combo(ui: &mut Ui, id_salt: &str, options: &[FactionId], value: &mut FactionId) {
-    egui::ComboBox::from_id_salt(id_salt)
-        .selected_text(value.to_string())
-        .show_ui(ui, |ui| {
-            for f in options {
-                if ui.selectable_label(value == f, f.as_ref()).clicked() {
-                    *value = f.clone();
-                }
+    ui_kit::combo(id_salt, value.to_string()).show_ui(ui, |ui| {
+        for f in options {
+            if ui.selectable_label(value == f, f.as_ref()).clicked() {
+                *value = f.clone();
             }
-        });
+        }
+    });
 }
 
 // ── §REL3 kind_rules ────────────────────────────────────────────────────────

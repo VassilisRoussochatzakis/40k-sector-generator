@@ -26,6 +26,7 @@ use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::{
     build_subsectors, Subsector, SubsectorConfig, DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
 };
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
@@ -186,7 +187,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
 fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     ui.label(RichText::new("clusters").strong());
     if subs.is_empty() {
-        ui.colored_label(Color32::GRAY, "No subsectors (sector empty).");
+        ui_kit::placeholder(ui, "No subsectors (sector empty).");
         return;
     }
     egui::Grid::new("subsectors_list")
@@ -314,64 +315,66 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
 }
 
 fn show_capital_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsector) {
-    ui.label(RichText::new("capital override").strong());
     let sub_id = target.id.to_string();
     let auto_cap = target.summary.subsector_capital_system_id.clone();
     let current = state
         .subsector_capital_overrides
         .get(sub_id.as_str())
         .cloned();
-    ui.horizontal_wrapped(|ui| {
-        ui.label("capital:");
-        let selected_text = current
-            .as_ref()
-            .map(|id| capital_text(&state.sector, id))
-            .unwrap_or_else(|| {
-                let auto = auto_cap
-                    .as_ref()
-                    .map(|id| capital_text(&state.sector, id))
-                    .unwrap_or_else(|| "—".into());
-                format!("auto: {auto}")
-            });
-        let mut new_choice: Option<Option<SystemId>> = None;
-        egui::ComboBox::from_id_salt(("sub_capital_override", sub_id.as_str()))
-            .selected_text(selected_text)
-            .show_ui(ui, |ui| {
-                if ui.selectable_label(current.is_none(), "(auto)").clicked() {
-                    new_choice = Some(None);
-                }
-                for sid in &target.system_ids {
-                    let label = capital_text(&state.sector, sid);
-                    let sel = current.as_ref() == Some(sid);
-                    if ui.selectable_label(sel, label).clicked() {
-                        new_choice = Some(Some(sid.clone()));
+    ui_kit::section(ui, "capital override", |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.label("capital:");
+            let selected_text = current
+                .as_ref()
+                .map(|id| capital_text(&state.sector, id))
+                .unwrap_or_else(|| {
+                    let auto = auto_cap
+                        .as_ref()
+                        .map(|id| capital_text(&state.sector, id))
+                        .unwrap_or_else(|| "—".into());
+                    format!("auto: {auto}")
+                });
+            let mut new_choice: Option<Option<SystemId>> = None;
+            ui_kit::combo(("sub_capital_override", sub_id.as_str()), selected_text).show_ui(
+                ui,
+                |ui| {
+                    if ui.selectable_label(current.is_none(), "(auto)").clicked() {
+                        new_choice = Some(None);
+                    }
+                    for sid in &target.system_ids {
+                        let label = capital_text(&state.sector, sid);
+                        let sel = current.as_ref() == Some(sid);
+                        if ui.selectable_label(sel, label).clicked() {
+                            new_choice = Some(Some(sid.clone()));
+                        }
+                    }
+                },
+            );
+            if let Some(choice) = new_choice {
+                match choice {
+                    Some(sid) => {
+                        state
+                            .subsector_capital_overrides
+                            .insert(sub_id.clone(), sid);
+                    }
+                    None => {
+                        state.subsector_capital_overrides.remove(sub_id.as_str());
                     }
                 }
-            });
-        if let Some(choice) = new_choice {
-            match choice {
-                Some(sid) => {
-                    state
-                        .subsector_capital_overrides
-                        .insert(sub_id.clone(), sid);
-                }
-                None => {
-                    state.subsector_capital_overrides.remove(sub_id.as_str());
-                }
+                state.subsector_manual.insert(sub_id.clone());
+                state.map_view_cache = None;
+                state.dirty = true;
             }
-            state.subsector_manual.insert(sub_id.clone());
-            state.map_view_cache = None;
-            state.dirty = true;
-        }
-        if current.is_some()
-            && ui
-                .button(RichText::new("clear").color(Color32::LIGHT_RED))
-                .clicked()
-        {
-            state.subsector_capital_overrides.remove(sub_id.as_str());
-            state.map_view_cache = None;
-            state.dirty = true;
-        }
+            if current.is_some()
+                && ui
+                    .button(RichText::new("clear").color(Color32::LIGHT_RED))
+                    .clicked()
+            {
+                state.subsector_capital_overrides.remove(sub_id.as_str());
+                state.map_view_cache = None;
+                state.dirty = true;
+            }
+        });
     });
 }
 
@@ -385,7 +388,6 @@ fn capital_text(sector: &GeneratedSector, sid: &SystemId) -> String {
 }
 
 fn show_colour_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsector) {
-    ui.label(RichText::new("colour override").strong());
     let sub_id = target.id.to_string();
     let default_rgb = default_subsector_colour(&state.sector, target);
     let has_override = state
@@ -396,29 +398,31 @@ fn show_colour_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsecto
         .get(sub_id.as_str())
         .copied()
         .unwrap_or(default_rgb);
-    ui.horizontal_wrapped(|ui| {
-        ui.label("colour:");
-        let response = ui.color_edit_button_srgb(&mut rgb);
-        if response.changed() {
-            state.subsector_colour_overrides.insert(sub_id.clone(), rgb);
-            state.subsector_manual.insert(sub_id.clone());
-            state.dirty = true;
-        }
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            format!(
-                "default: #{:02X}{:02X}{:02X} (FactionStyle)",
-                default_rgb[0], default_rgb[1], default_rgb[2]
-            ),
-        );
-        if has_override
-            && ui
-                .button(RichText::new("reset to FactionStyle").color(Color32::LIGHT_RED))
-                .clicked()
-        {
-            state.subsector_colour_overrides.remove(sub_id.as_str());
-            state.dirty = true;
-        }
+    ui_kit::section(ui, "colour override", |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.label("colour:");
+            let response = ui.color_edit_button_srgb(&mut rgb);
+            if response.changed() {
+                state.subsector_colour_overrides.insert(sub_id.clone(), rgb);
+                state.subsector_manual.insert(sub_id.clone());
+                state.dirty = true;
+            }
+            ui.colored_label(
+                Color32::DARK_GRAY,
+                format!(
+                    "default: #{:02X}{:02X}{:02X} (FactionStyle)",
+                    default_rgb[0], default_rgb[1], default_rgb[2]
+                ),
+            );
+            if has_override
+                && ui
+                    .button(RichText::new("reset to FactionStyle").color(Color32::LIGHT_RED))
+                    .clicked()
+            {
+                state.subsector_colour_overrides.remove(sub_id.as_str());
+                state.dirty = true;
+            }
+        });
     });
 }
 
@@ -477,18 +481,16 @@ fn show_manual_reassign(
                         let name = sys_table.get(sid.as_str()).copied().unwrap_or("?");
                         ui.label(format!("{} ({})", name, sid));
                         let mut chosen: Option<String> = None;
-                        egui::ComboBox::from_id_salt(("sub_move", sid.as_str()))
-                            .selected_text("→ pick")
-                            .show_ui(ui, |ui| {
-                                for (oid, olabel) in &other_clusters {
-                                    if ui
-                                        .selectable_label(false, format!("{olabel} ({oid})"))
-                                        .clicked()
-                                    {
-                                        chosen = Some(oid.to_string());
-                                    }
+                        ui_kit::combo(("sub_move", sid.as_str()), "→ pick").show_ui(ui, |ui| {
+                            for (oid, olabel) in &other_clusters {
+                                if ui
+                                    .selectable_label(false, format!("{olabel} ({oid})"))
+                                    .clicked()
+                                {
+                                    chosen = Some(oid.to_string());
                                 }
-                            });
+                            }
+                        });
                         if let Some(target_id) = chosen {
                             moves.push((sid.clone(), target_id));
                         }

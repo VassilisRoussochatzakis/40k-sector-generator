@@ -31,6 +31,8 @@
 
 use egui::{Color32, RichText, Ui};
 
+use sectorforge_gui_core::ui_kit;
+
 use sectorforge::personae::{
     DominanceTier, KindPools, Persona, PersonaAnchor, PersonaeConfig, SystemSlot,
 };
@@ -137,18 +139,16 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
     egui::Grid::new("per4_grid").num_columns(2).show(ui, |ui| {
         ui.label("min_world_dominance");
-        egui::ComboBox::from_id_salt("per4_dom")
-            .selected_text(format!("{}", cfg.min_world_dominance))
-            .show_ui(ui, |ui| {
-                for tier in DOMINANCE_TIERS {
-                    if ui
-                        .selectable_value(&mut cfg.min_world_dominance, *tier, format!("{tier}"))
-                        .changed()
-                    {
-                        changed = true;
-                    }
+        ui_kit::combo("per4_dom", format!("{}", cfg.min_world_dominance)).show_ui(ui, |ui| {
+            for tier in DOMINANCE_TIERS {
+                if ui
+                    .selectable_value(&mut cfg.min_world_dominance, *tier, format!("{tier}"))
+                    .changed()
+                {
+                    changed = true;
                 }
-            });
+            }
+        });
         ui.end_row();
         ui.label("max_per_world");
         changed |= ui
@@ -462,10 +462,7 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     for kind in &kinds {
-        let header = egui::CollapsingHeader::new(RichText::new(kind).strong())
-            .id_salt(format!("per_kind_{kind}"))
-            .default_open(false);
-        header.show(ui, |ui| {
+        ui_kit::collapsing_section(ui, ("per_kind", kind), kind, false, |ui| {
             let pools = cfg.kinds.entry(kind.clone()).or_default();
             changed |= pool_editor(ui, kind, pools);
             if ui

@@ -132,6 +132,18 @@ pub fn mono_dim(ui: &mut Ui, s: &str) {
     ui.label(RichText::new(s).color(palette::chrome_text_dim()).size(DIM));
 }
 
+/// A consistent empty-state line — dimmed + italic, theme-aware (§UO P5). Use
+/// in place of a bare `ui.colored_label(Color32::GRAY, …)` so "nothing here yet"
+/// messages read uniformly and follow the active preset (notably the `Light`
+/// theme, where a hardcoded grey reads wrong).
+pub fn placeholder(ui: &mut Ui, text: &str) {
+    ui.label(
+        RichText::new(text)
+            .italics()
+            .color(palette::chrome_text_dim()),
+    );
+}
+
 /// A `key: value` row — dimmed key, primary value.
 pub fn kv(ui: &mut Ui, k: &str, v: &str) {
     ui.horizontal(|ui| {
@@ -158,6 +170,7 @@ mod tests {
                 });
                 kv(ui, "id", "cadia-01");
                 mono_dim(ui, "subsector A");
+                placeholder(ui, "No systems yet");
             });
             collapsing_section(ui, "sys_star", "Star", true, |ui| {
                 combo("star_class", "G").show_ui(ui, |ui| {

@@ -11,7 +11,11 @@
 > containers, dropdown sizing, spacing, separators, tab navigation. It must
 > **not** touch the semantic map render or the export writers (see §UO8).
 >
-> **Status:** PROPOSED. No code written yet. Progress checklist in §UO12.
+> **Status:** Phases 0–5 LANDED — theme type-scale/sizing, shared `ui_kit`,
+> builder shell + clustered tabs, every builder panel, the viewer, and the P5
+> empty-state foundation are all in, verified clippy-clean and golden-stable.
+> Remaining: the screenshot-driven spacing/tooltip eyeball pass (§UO9), which
+> needs the app running. Progress checklist in §UO12.
 
 ---
 
@@ -605,13 +609,13 @@ tune the numbers.
 
 - [x] **P0** theme type scale + sizing (`theme.rs`) — `§UO5.1` ✅ landed; golden tests byte-stable, type-scale test added
 - [x] **P1** `ui_kit` module + `lib.rs` wire + `info_panel` dogfood — `§UO5.2` ✅ landed; `gui-core/src/ui_kit.rs` (`section`/`collapsing_section`/`field`/`combo` + mono text helpers), headless smoke test, `info_panel` text helpers now delegate to it
-- [ ] **P2** builder shell: chrome frames + grouped tab strip — `§UO6 P2`
-- [ ] **P3a** `system.rs`, `world.rs`
-- [ ] **P3b** `control.rs`, `history.rs`, `routes.rs`
-- [ ] **P3c** `search.rs`, `economy.rs`, `factions.rs`, `relations.rs`
-- [ ] **P3d** remaining builder panels
-- [ ] **P4** viewer: info/planner/export/dashboard sections + combo dedupe
-- [ ] **P5** polish pass (separators→sections, empty states, tooltips, spacing)
-- [ ] `GUIDE.md` updated
-- [ ] golden tests green throughout; every theme preset eyeballed
+- [x] **P2** builder shell: chrome frames + grouped tab strip — `§UO6 P2` ✅ landed; `app.rs` puts the tab strip + status bar on `chrome_panel()` frames and the central workspace on `chrome_bg()` so section boxes float; `nav.rs` groups all 26 tabs via `TAB_CLUSTERS` (BUILD · ENTITIES · POWER · LORE · ANALYZE · OUTPUT · CHECK) with a partition test.
+- [x] **P3a** `system.rs`, `world.rs` ✅ (15 + 13 sections, 16 combos). Star section hand-wrapped in a matching `Frame::group` to keep `header_response.scroll_to_me`.
+- [x] **P3b** `control.rs`, `history.rs`, `routes.rs` ✅ (21 sections, 32 combos).
+- [x] **P3c** `search.rs`, `economy.rs`, `factions.rs`, `relations.rs` ✅ (combos everywhere; `economy`/`search`/`factions` sectioned; `relations` combos done, its grid already framed).
+- [x] **P3d** remaining builder panels ✅ analytics, diff, export, segmentum, generation, intel, missions, sites, hooks, personae, orbital, conflict, project, surface_regions, validation, invariants, regions, subsectors, briefing, prose, interestingness, generate_random, worlds_editor. Zero raw `ComboBox::from_id_salt` left; 4 `CollapsingHeader`s intentionally kept (project_tree dir-node, system Star + intel observer = captured-response, diff per-row tree).
+- [x] **P4** viewer: combo dedupe + sections ✅ all 9 viewer combos + `editor/ui_helpers::combo_str`/`combo_kv` forward to `ui_kit::combo`; `dashboard.rs` blocks wrapped in `ui_kit::section`; planner (framed SidePanel) + export (modal Window) already contained.
+- [x] **P5** polish — *foundation landed*: `ui_kit::placeholder` empty-state helper added (theme-aware, replaces hardcoded `Color32::GRAY`) and applied to the whole-tab empty/no-selection prompts. ⏳ Remaining spacing/tooltip audit + broader empty-state rollout are the screenshot-driven pass (need the app running — see §UO9).
+- [x] `GUIDE.md` updated (§8.0 documents Phases 2–5); `BUILDER.md` updated (clustered tab strip + framed sections).
+- [x] golden tests byte-stable throughout (`cargo test --test it -- golden` green after every phase; full `cargo test --workspace` green). ⏳ *Every theme preset eyeballed* is the user's visual confirmation pass (can't be done headless).
 ```

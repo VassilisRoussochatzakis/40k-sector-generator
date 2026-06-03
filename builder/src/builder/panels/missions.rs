@@ -33,6 +33,7 @@ use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::missions::{
     MissionKind, MissionScale, MissionSeed, MissionVisibility, MissionsConfig,
 };
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
@@ -171,14 +172,12 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
-        egui::ComboBox::from_id_salt("m1_kind")
-            .selected_text(label)
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut state.missions_filter_kind, None, "all kinds");
-                for k in KIND_VARIANTS {
-                    ui.selectable_value(&mut state.missions_filter_kind, Some(*k), kind_label(*k));
-                }
-            });
+        ui_kit::combo("m1_kind", label).show_ui(ui, |ui| {
+            ui.selectable_value(&mut state.missions_filter_kind, None, "all kinds");
+            for k in KIND_VARIANTS {
+                ui.selectable_value(&mut state.missions_filter_kind, Some(*k), kind_label(*k));
+            }
+        });
     });
 }
 
@@ -277,7 +276,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         .clone()
         .or_else(|| state.selected_mission_id.clone());
     let Some(target_id) = target else {
-        ui.colored_label(Color32::GRAY, "Select a mission above to see its details.");
+        ui_kit::placeholder(ui, "Select a mission above to see its details.");
         return;
     };
     let Some(mission) = state
@@ -419,21 +418,16 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, m) in cfg.manual.iter_mut().enumerate() {
-            let header = egui::CollapsingHeader::new(
-                RichText::new(format!(
-                    "[{idx}] {} — {}",
-                    if m.title.is_empty() {
-                        "(untitled)"
-                    } else {
-                        m.title.as_str()
-                    },
-                    kind_label(m.kind),
-                ))
-                .strong(),
-            )
-            .id_salt(format!("m_manual_{idx}"))
-            .default_open(idx == last_idx);
-            header.show(ui, |ui| {
+            let title = format!(
+                "[{idx}] {} — {}",
+                if m.title.is_empty() {
+                    "(untitled)"
+                } else {
+                    m.title.as_str()
+                },
+                kind_label(m.kind),
+            );
+            ui_kit::collapsing_section(ui, ("mis_manual", idx), &title, idx == last_idx, |ui| {
                 changed |= manual_mission_editor(ui, idx, m);
                 if ui
                     .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
@@ -466,18 +460,16 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
             }
             ui.end_row();
             ui.label("kind");
-            egui::ComboBox::from_id_salt(format!("m_manual_kind_{idx}"))
-                .selected_text(kind_label(m.kind))
-                .show_ui(ui, |ui| {
-                    for k in KIND_VARIANTS {
-                        if ui
-                            .selectable_value(&mut m.kind, *k, kind_label(*k))
-                            .changed()
-                        {
-                            changed = true;
-                        }
+            ui_kit::combo(format!("m_manual_kind_{idx}"), kind_label(m.kind)).show_ui(ui, |ui| {
+                for k in KIND_VARIANTS {
+                    if ui
+                        .selectable_value(&mut m.kind, *k, kind_label(*k))
+                        .changed()
+                    {
+                        changed = true;
                     }
-                });
+                }
+            });
             ui.end_row();
             ui.label("title");
             changed |= ui.text_edit_singleline(&mut m.title).changed();
@@ -560,9 +552,9 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
             changed |= ui.text_edit_multiline(&mut m.if_ignored).changed();
             ui.end_row();
             ui.label("scale");
-            egui::ComboBox::from_id_salt(format!("m_manual_scale_{idx}"))
-                .selected_text(format!("{}", m.scale))
-                .show_ui(ui, |ui| {
+            ui_kit::combo(format!("m_manual_scale_{idx}"), format!("{}", m.scale)).show_ui(
+                ui,
+                |ui| {
                     for v in SCALE_VARIANTS {
                         if ui
                             .selectable_value(&mut m.scale, *v, format!("{v}"))
@@ -571,12 +563,13 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                             changed = true;
                         }
                     }
-                });
+                },
+            );
             ui.end_row();
             ui.label("visibility");
-            egui::ComboBox::from_id_salt(format!("m_manual_vis_{idx}"))
-                .selected_text(format!("{}", m.visibility))
-                .show_ui(ui, |ui| {
+            ui_kit::combo(format!("m_manual_vis_{idx}"), format!("{}", m.visibility)).show_ui(
+                ui,
+                |ui| {
                     for v in VISIBILITY_VARIANTS {
                         if ui
                             .selectable_value(&mut m.visibility, *v, format!("{v}"))
@@ -585,7 +578,8 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                             changed = true;
                         }
                     }
-                });
+                },
+            );
             ui.end_row();
             ui.label("weight");
             changed |= ui

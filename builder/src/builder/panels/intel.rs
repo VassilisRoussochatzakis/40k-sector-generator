@@ -25,6 +25,7 @@ use sectorforge::ids::FactionId;
 use sectorforge::intel::{
     ClassifiedState, IntelSource, ObserverView, PropagandaState, SuspectedPresence, SystemIntel,
 };
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
@@ -42,8 +43,7 @@ pub fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(|id| id.to_string())
             .unwrap_or_else(|| "(omniscient)".into());
-        egui::ComboBox::from_id_salt("intel_observer_picker")
-            .selected_text(label)
+        ui_kit::combo("intel_observer_picker", label)
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut state.intel_observer, None, "(omniscient)");
                 for f in &state.sector.factions {
@@ -100,34 +100,32 @@ pub fn run_baseline_intel(state: &mut BuilderState) {
 /// add / edit / remove observer views, plus their nested
 /// suspected-presence rows.
 pub fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    egui::CollapsingHeader::new("Intel / fog of war")
-        .default_open(false)
-        .show(ui, |ui| {
-            show_baseline_row(ui, state);
-            ui.separator();
-            // Gather the faction roster into an owned Vec *before* cloning the
-            // system, so there is no outstanding `state` borrow when we clone.
-            let factions: Vec<(FactionId, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.clone(), f.name.to_string()))
-                .collect();
-            // §R4 (INT-1): edit a clone of the system, then dispatch EditSystem so
-            // the change is undoable. `state.run` sets dirty + re-runs invariants +
-            // re-arms validation, replacing the old manual flags.
-            let mut draft = state.sector.systems[sys_idx].clone();
-            let dirty = show_observer_editor(ui, &mut draft.intel, "sys_intel", &factions);
-            if dirty {
-                if let Err(e) = state.run(BuilderCommand::EditSystem {
-                    system: draft.id.clone(),
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
-                }
+    ui_kit::collapsing_section(ui, "intel_system_fog", "Intel / fog of war", false, |ui| {
+        show_baseline_row(ui, state);
+        ui.separator();
+        // Gather the faction roster into an owned Vec *before* cloning the
+        // system, so there is no outstanding `state` borrow when we clone.
+        let factions: Vec<(FactionId, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.clone(), f.name.to_string()))
+            .collect();
+        // §R4 (INT-1): edit a clone of the system, then dispatch EditSystem so
+        // the change is undoable. `state.run` sets dirty + re-runs invariants +
+        // re-arms validation, replacing the old manual flags.
+        let mut draft = state.sector.systems[sys_idx].clone();
+        let dirty = show_observer_editor(ui, &mut draft.intel, "sys_intel", &factions);
+        if dirty {
+            if let Err(e) = state.run(BuilderCommand::EditSystem {
+                system: draft.id.clone(),
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
             }
-        });
+        }
+    });
 }
 
 /// §I2 — per-world intel editor (same pattern as §I1, scoped to one world's
@@ -138,43 +136,41 @@ pub fn show_world_intel_section(
     sys_idx: usize,
     w_idx: usize,
 ) {
-    egui::CollapsingHeader::new("Intel / fog of war")
-        .default_open(false)
-        .show(ui, |ui| {
-            show_baseline_row(ui, state);
+    ui_kit::collapsing_section(ui, "intel_world_fog", "Intel / fog of war", false, |ui| {
+        show_baseline_row(ui, state);
+        ui.separator();
+        // Gather the faction roster into an owned Vec *before* cloning the
+        // world, so there is no outstanding `state` borrow when we clone.
+        let factions: Vec<(FactionId, String)> = state
+            .sector
+            .factions
+            .iter()
+            .map(|f| (f.id.clone(), f.name.to_string()))
+            .collect();
+        // §R4 (INT-1): edit a clone of the world, then dispatch EditWorld so
+        // the change is undoable. `state.run` sets dirty + re-runs invariants +
+        // re-arms validation, replacing the old manual flags.
+        let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+        let dirty = show_observer_editor(ui, &mut draft.intel, "world_intel", &factions);
+        if dirty {
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: draft.id.clone(),
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
+            }
+        }
+        if state.intel_player_min_confidence > 0 || state.intel_observer.is_some() {
             ui.separator();
-            // Gather the faction roster into an owned Vec *before* cloning the
-            // world, so there is no outstanding `state` borrow when we clone.
-            let factions: Vec<(FactionId, String)> = state
-                .sector
-                .factions
-                .iter()
-                .map(|f| (f.id.clone(), f.name.to_string()))
-                .collect();
-            // §R4 (INT-1): edit a clone of the world, then dispatch EditWorld so
-            // the change is undoable. `state.run` sets dirty + re-runs invariants +
-            // re-arms validation, replacing the old manual flags.
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            let dirty = show_observer_editor(ui, &mut draft.intel, "world_intel", &factions);
-            if dirty {
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: draft.id.clone(),
-                    before: None,
-                    after: Box::new(draft),
-                }) {
-                    state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
-                }
-            }
-            if state.intel_player_min_confidence > 0 || state.intel_observer.is_some() {
-                ui.separator();
-                show_world_redaction_preview(
-                    ui,
-                    &state.sector.systems[sys_idx].worlds[w_idx],
-                    state.intel_observer.as_ref(),
-                    state.intel_player_min_confidence,
-                );
-            }
-        });
+            show_world_redaction_preview(
+                ui,
+                &state.sector.systems[sys_idx].worlds[w_idx],
+                state.intel_observer.as_ref(),
+                state.intel_player_min_confidence,
+            );
+        }
+    });
 }
 
 fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
@@ -394,19 +390,17 @@ fn show_add_observer_row(
 fn propaganda_combo(ui: &mut Ui, id: &str, value: &mut PropagandaState) -> bool {
     let mut changed = false;
     let before = *value;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(propaganda_label(*value))
-        .show_ui(ui, |ui| {
-            for v in [
-                PropagandaState::None,
-                PropagandaState::OfficialPacified,
-                PropagandaState::OfficialContested,
-                PropagandaState::OfficialLost,
-                PropagandaState::Counterfactual,
-            ] {
-                ui.selectable_value(value, v, propaganda_label(v));
-            }
-        });
+    ui_kit::combo(id, propaganda_label(*value)).show_ui(ui, |ui| {
+        for v in [
+            PropagandaState::None,
+            PropagandaState::OfficialPacified,
+            PropagandaState::OfficialContested,
+            PropagandaState::OfficialLost,
+            PropagandaState::Counterfactual,
+        ] {
+            ui.selectable_value(value, v, propaganda_label(v));
+        }
+    });
     if *value != before {
         changed = true;
     }
@@ -416,18 +410,16 @@ fn propaganda_combo(ui: &mut Ui, id: &str, value: &mut PropagandaState) -> bool 
 fn classified_combo(ui: &mut Ui, id: &str, value: &mut ClassifiedState) -> bool {
     let mut changed = false;
     let before = *value;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(classified_label(*value))
-        .show_ui(ui, |ui| {
-            for v in [
-                ClassifiedState::Public,
-                ClassifiedState::CodexRedactus,
-                ClassifiedState::PurgatusSigillum,
-                ClassifiedState::ExterminatusFlag,
-            ] {
-                ui.selectable_value(value, v, classified_label(v));
-            }
-        });
+    ui_kit::combo(id, classified_label(*value)).show_ui(ui, |ui| {
+        for v in [
+            ClassifiedState::Public,
+            ClassifiedState::CodexRedactus,
+            ClassifiedState::PurgatusSigillum,
+            ClassifiedState::ExterminatusFlag,
+        ] {
+            ui.selectable_value(value, v, classified_label(v));
+        }
+    });
     if *value != before {
         changed = true;
     }
@@ -437,19 +429,17 @@ fn classified_combo(ui: &mut Ui, id: &str, value: &mut ClassifiedState) -> bool 
 fn source_combo(ui: &mut Ui, id: &str, value: &mut IntelSource) -> bool {
     let mut changed = false;
     let before = *value;
-    egui::ComboBox::from_id_salt(id)
-        .selected_text(source_label(*value))
-        .show_ui(ui, |ui| {
-            for v in [
-                IntelSource::DirectObservation,
-                IntelSource::AstropathicReport,
-                IntelSource::InquisitorialAnalysis,
-                IntelSource::Rumor,
-                IntelSource::ImaginedDeduction,
-            ] {
-                ui.selectable_value(value, v, source_label(v));
-            }
-        });
+    ui_kit::combo(id, source_label(*value)).show_ui(ui, |ui| {
+        for v in [
+            IntelSource::DirectObservation,
+            IntelSource::AstropathicReport,
+            IntelSource::InquisitorialAnalysis,
+            IntelSource::Rumor,
+            IntelSource::ImaginedDeduction,
+        ] {
+            ui.selectable_value(value, v, source_label(v));
+        }
+    });
     if *value != before {
         changed = true;
     }

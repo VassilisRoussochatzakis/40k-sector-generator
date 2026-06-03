@@ -33,6 +33,7 @@ use camino::Utf8PathBuf;
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::analytics::{AnalyzeConfig, FlagSeverity, SectorAnalysis};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::{BuilderState, DerivationKind, ModalKind};
 
@@ -67,12 +68,10 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 // ── §A2 config editor ───────────────────────────────────────────────────────
 
 fn show_config(ui: &mut Ui, state: &mut BuilderState) {
-    egui::CollapsingHeader::new(RichText::new("§A2 — [analyze] config").strong())
-        .default_open(true)
-        .show(ui, |ui| {
-            let mut changed = false;
-            let cfg = &mut state.analytics.config;
-            egui::Grid::new("analytics_cfg_grid")
+    ui_kit::collapsing_section(ui, "an_config", "§A2 — [analyze] config", true, |ui| {
+        let mut changed = false;
+        let cfg = &mut state.analytics.config;
+        egui::Grid::new("analytics_cfg_grid")
                 .num_columns(2)
                 .spacing([12.0, 4.0])
                 .show(ui, |ui| {
@@ -115,26 +114,26 @@ fn show_config(ui: &mut Ui, state: &mut BuilderState) {
                     ui.end_row();
                 });
 
-            ui.horizontal(|ui| {
-                if ui
-                    .button("Load project [analyze]")
-                    .on_hover_text("Seed the editor from the open project's [analyze] block.")
-                    .clicked()
-                {
-                    let project = state.config.analyze.clone();
-                    state.analytics.seed_from_project(&project);
-                }
-                if ui.button("Reset to defaults").clicked() {
-                    state.analytics.config = AnalyzeConfig::default();
-                    state.analytics.report = None;
-                }
-            });
-
-            if changed {
-                // A threshold moved — the cached report would no longer match.
+        ui.horizontal(|ui| {
+            if ui
+                .button("Load project [analyze]")
+                .on_hover_text("Seed the editor from the open project's [analyze] block.")
+                .clicked()
+            {
+                let project = state.config.analyze.clone();
+                state.analytics.seed_from_project(&project);
+            }
+            if ui.button("Reset to defaults").clicked() {
+                state.analytics.config = AnalyzeConfig::default();
                 state.analytics.report = None;
             }
         });
+
+        if changed {
+            // A threshold moved — the cached report would no longer match.
+            state.analytics.report = None;
+        }
+    });
 }
 
 // ── §A3 / §A4 actions ─────────────────────────────────────────────────────
@@ -277,129 +276,133 @@ fn show_dashboard(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn show_faction_balance(ui: &mut Ui, a: &SectorAnalysis) {
-    egui::CollapsingHeader::new(format!(
-        "Faction balance — Gini {:.3}",
-        a.faction_balance.gini
-    ))
-    .default_open(true)
-    .show(ui, |ui| {
-        if a.faction_balance.top_factions.is_empty() {
-            ui.colored_label(Color32::GRAY, "no factions");
-            return;
-        }
-        egui::Grid::new("analytics_faction_grid")
-            .num_columns(6)
-            .striped(true)
-            .spacing([12.0, 2.0])
-            .show(ui, |ui| {
-                for h in [
-                    "Faction",
-                    "Kind",
-                    "Share",
-                    "Projection",
-                    "Worlds",
-                    "Systems",
-                ] {
-                    ui.label(RichText::new(h).strong());
-                }
-                ui.end_row();
-                for f in a.faction_balance.top_factions.iter().take(20) {
-                    ui.label(format!("{} ({})", f.name, f.faction_id));
-                    ui.label(f.kind.as_ref());
-                    ui.label(format!("{:.1}%", f.share * 100.0));
-                    ui.label(format!("{:.1}", f.total_projection));
-                    ui.label(f.world_presence_count.to_string());
-                    ui.label(f.system_presence_count.to_string());
+    ui_kit::collapsing_section(
+        ui,
+        "an_faction_balance",
+        &format!("Faction balance — Gini {:.3}", a.faction_balance.gini),
+        true,
+        |ui| {
+            if a.faction_balance.top_factions.is_empty() {
+                ui.colored_label(Color32::GRAY, "no factions");
+                return;
+            }
+            egui::Grid::new("analytics_faction_grid")
+                .num_columns(6)
+                .striped(true)
+                .spacing([12.0, 2.0])
+                .show(ui, |ui| {
+                    for h in [
+                        "Faction",
+                        "Kind",
+                        "Share",
+                        "Projection",
+                        "Worlds",
+                        "Systems",
+                    ] {
+                        ui.label(RichText::new(h).strong());
+                    }
                     ui.end_row();
-                }
-            });
-        if a.faction_balance.top_factions.len() > 20 {
-            ui.colored_label(
-                Color32::DARK_GRAY,
-                format!(
-                    "({} more — full list in analysis.json)",
-                    a.faction_balance.top_factions.len() - 20
-                ),
-            );
-        }
-    });
+                    for f in a.faction_balance.top_factions.iter().take(20) {
+                        ui.label(format!("{} ({})", f.name, f.faction_id));
+                        ui.label(f.kind.as_ref());
+                        ui.label(format!("{:.1}%", f.share * 100.0));
+                        ui.label(format!("{:.1}", f.total_projection));
+                        ui.label(f.world_presence_count.to_string());
+                        ui.label(f.system_presence_count.to_string());
+                        ui.end_row();
+                    }
+                });
+            if a.faction_balance.top_factions.len() > 20 {
+                ui.colored_label(
+                    Color32::DARK_GRAY,
+                    format!(
+                        "({} more — full list in analysis.json)",
+                        a.faction_balance.top_factions.len() - 20
+                    ),
+                );
+            }
+        },
+    );
 }
 
 fn show_world_stats(ui: &mut Ui, a: &SectorAnalysis) {
-    egui::CollapsingHeader::new("World & claim stats")
-        .default_open(false)
-        .show(ui, |ui| {
-            ui.label(format!(
-                "Contested world ratio: {:.1}%",
-                a.contested_world_ratio * 100.0
-            ));
-            ui.label(format!(
-                "Avg claims per world: {:.2}",
-                a.avg_claims_per_world
-            ));
-            count_block(ui, "Claim kinds", &a.claim_kind_counts);
-            count_block(ui, "Dominance buckets", &a.dominance_counts);
-            count_block(ui, "System political states", &a.system_state_counts);
-        });
+    ui_kit::collapsing_section(ui, "an_world_stats", "World & claim stats", false, |ui| {
+        ui.label(format!(
+            "Contested world ratio: {:.1}%",
+            a.contested_world_ratio * 100.0
+        ));
+        ui.label(format!(
+            "Avg claims per world: {:.2}",
+            a.avg_claims_per_world
+        ));
+        count_block(ui, "Claim kinds", &a.claim_kind_counts);
+        count_block(ui, "Dominance buckets", &a.dominance_counts);
+        count_block(ui, "System political states", &a.system_state_counts);
+    });
 }
 
 fn show_distributions(ui: &mut Ui, a: &SectorAnalysis) {
-    egui::CollapsingHeader::new("Distributions")
-        .default_open(false)
-        .show(ui, |ui| {
-            dist_block(ui, "World types", &a.world_type_distribution);
-            dist_block(ui, "Star colours", &a.star_colour_distribution);
-            dist_block(ui, "Populations", &a.population_distribution);
-            dist_block(ui, "Route types", &a.route_type_distribution);
-            dist_block(ui, "Route stability", &a.route_stability_distribution);
-        });
+    ui_kit::collapsing_section(ui, "an_distributions", "Distributions", false, |ui| {
+        dist_block(ui, "World types", &a.world_type_distribution);
+        dist_block(ui, "Star colours", &a.star_colour_distribution);
+        dist_block(ui, "Populations", &a.population_distribution);
+        dist_block(ui, "Route types", &a.route_type_distribution);
+        dist_block(ui, "Route stability", &a.route_stability_distribution);
+    });
 }
 
 fn show_connectivity(ui: &mut Ui, a: &SectorAnalysis) {
     let c = &a.connectivity;
-    egui::CollapsingHeader::new(format!(
-        "Route-graph connectivity — {} component(s)",
-        c.component_count
-    ))
-    .default_open(false)
-    .show(ui, |ui| {
-        ui.label(format!("Largest component: {}", c.largest_component_size));
-        ui.label(match c.diameter_hops {
-            Some(d) => format!("Diameter: {d} hops"),
-            None => "Diameter: — (disconnected)".to_string(),
-        });
-        if c.articulation_point_ids.is_empty() {
-            ui.colored_label(Color32::from_rgb(120, 180, 120), "No articulation points.");
-        } else {
-            ui.colored_label(
-                Color32::from_rgb(210, 170, 90),
-                format!(
-                    "Articulation points ({}): {}",
-                    c.articulation_point_ids.len(),
-                    join_ids(&c.articulation_point_ids)
-                ),
-            );
-        }
-        if !c.isolated_system_ids.is_empty() {
-            ui.colored_label(
-                Color32::from_rgb(210, 170, 90),
-                format!(
-                    "Isolated systems ({}): {}",
-                    c.isolated_system_ids.len(),
-                    join_ids(&c.isolated_system_ids)
-                ),
-            );
-        }
-    });
+    ui_kit::collapsing_section(
+        ui,
+        "an_connectivity",
+        &format!(
+            "Route-graph connectivity — {} component(s)",
+            c.component_count
+        ),
+        false,
+        |ui| {
+            ui.label(format!("Largest component: {}", c.largest_component_size));
+            ui.label(match c.diameter_hops {
+                Some(d) => format!("Diameter: {d} hops"),
+                None => "Diameter: — (disconnected)".to_string(),
+            });
+            if c.articulation_point_ids.is_empty() {
+                ui.colored_label(Color32::from_rgb(120, 180, 120), "No articulation points.");
+            } else {
+                ui.colored_label(
+                    Color32::from_rgb(210, 170, 90),
+                    format!(
+                        "Articulation points ({}): {}",
+                        c.articulation_point_ids.len(),
+                        join_ids(&c.articulation_point_ids)
+                    ),
+                );
+            }
+            if !c.isolated_system_ids.is_empty() {
+                ui.colored_label(
+                    Color32::from_rgb(210, 170, 90),
+                    format!(
+                        "Isolated systems ({}): {}",
+                        c.isolated_system_ids.len(),
+                        join_ids(&c.isolated_system_ids)
+                    ),
+                );
+            }
+        },
+    );
 }
 
 fn show_subsector_variety(ui: &mut Ui, a: &SectorAnalysis) {
     if a.subsector_variety.is_empty() {
         return;
     }
-    egui::CollapsingHeader::new("Subsector political variety")
-        .default_open(false)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "an_subsector_variety",
+        "Subsector political variety",
+        false,
+        |ui| {
             egui::Grid::new("analytics_subsector_grid")
                 .num_columns(3)
                 .striped(true)
@@ -416,13 +419,17 @@ fn show_subsector_variety(ui: &mut Ui, a: &SectorAnalysis) {
                         ui.end_row();
                     }
                 });
-        });
+        },
+    );
 }
 
 fn show_health_flags(ui: &mut Ui, a: &SectorAnalysis, strict: bool) {
-    egui::CollapsingHeader::new(format!("Health flags ({})", a.health_flags.len()))
-        .default_open(true)
-        .show(ui, |ui| {
+    ui_kit::collapsing_section(
+        ui,
+        "an_health_flags",
+        &format!("Health flags ({})", a.health_flags.len()),
+        true,
+        |ui| {
             if a.health_flags.is_empty() {
                 ui.colored_label(Color32::from_rgb(120, 180, 120), "(none)");
                 return;
@@ -444,7 +451,8 @@ fn show_health_flags(ui: &mut Ui, a: &SectorAnalysis, strict: bool) {
                 };
                 ui.colored_label(col, format!("[{tag}] {} — {}", f.code, f.message));
             }
-        });
+        },
+    );
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────────

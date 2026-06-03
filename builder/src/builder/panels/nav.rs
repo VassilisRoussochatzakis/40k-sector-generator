@@ -1,7 +1,8 @@
 //! Top-level tab router (§N1 / §N2).
 //!
-//! [`show_top_bar`] renders the horizontal tab strip listing every
-//! [`BuilderTab`] in [`BuilderTab::ALL`] order; selecting one writes to
+//! [`show_top_bar`] renders the horizontal tab strip, grouping every
+//! [`BuilderTab`] into the labeled clusters in [`TAB_CLUSTERS`] (§UO6 P2);
+//! selecting one writes to
 //! [`BuilderState::active_tab`]. [`show_active_panel`] dispatches the active
 //! tab to the matching panel module under this directory — the contract every
 //! tab follows per §N2.
@@ -17,11 +18,70 @@
 use crate::builder::state::BuilderTab;
 use crate::builder::BuilderState;
 
+use sectorforge_gui_core::palette;
+
 use super::{
     analytics, briefing, control, diff, economy, export, factions, history, hooks, interestingness,
     invariants as invariants_panel, map, missions, personae, project, prose, regions, relations,
     routes, search, segmentum, sites, subsectors, system, validation, world,
 };
+
+/// §UO6 P2: the top tab strip grouped into labeled clusters. Every
+/// [`BuilderTab`] appears in exactly one cluster; the
+/// `clusters_cover_every_tab_exactly_once` test cross-checks this against
+/// [`BuilderTab::ALL`], so adding a tab to the enum without slotting it here is
+/// a compile-green test failure rather than a silently-missing tab.
+const TAB_CLUSTERS: &[(&str, &[BuilderTab])] = &[
+    (
+        "BUILD",
+        &[
+            BuilderTab::Project,
+            BuilderTab::Map,
+            BuilderTab::Subsectors,
+            BuilderTab::Regions,
+            BuilderTab::Routes,
+        ],
+    ),
+    (
+        "ENTITIES",
+        &[
+            BuilderTab::System,
+            BuilderTab::World,
+            BuilderTab::Factions,
+            BuilderTab::Sites,
+        ],
+    ),
+    (
+        "POWER",
+        &[
+            BuilderTab::Control,
+            BuilderTab::Economy,
+            BuilderTab::Relations,
+        ],
+    ),
+    (
+        "LORE",
+        &[
+            BuilderTab::History,
+            BuilderTab::Personae,
+            BuilderTab::Hooks,
+            BuilderTab::Missions,
+            BuilderTab::Prose,
+            BuilderTab::Briefing,
+        ],
+    ),
+    (
+        "ANALYZE",
+        &[
+            BuilderTab::Analytics,
+            BuilderTab::Interestingness,
+            BuilderTab::Search,
+            BuilderTab::Diff,
+        ],
+    ),
+    ("OUTPUT", &[BuilderTab::Segmentum, BuilderTab::Export]),
+    ("CHECK", &[BuilderTab::Validation, BuilderTab::Invariants]),
+];
 
 /// Render the top tab strip. Mutates [`BuilderState::active_tab`] when the
 /// user clicks a tab. Leftmost two chevrons walk the §LINK3 nav history.
@@ -44,10 +104,23 @@ pub fn show_top_bar(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.nav_forward();
         }
         ui.separator();
-        for tab in BuilderTab::ALL {
-            let selected = state.active_tab == *tab;
-            if ui.selectable_label(selected, tab.label()).clicked() {
-                state.set_active_tab(*tab);
+        // §UO6 P2: walk the labeled clusters instead of the flat `ALL` list. A
+        // dim cluster tag precedes each group and a separator divides them, so
+        // the 26-tab strip reads as six task areas rather than one wall.
+        for (ci, (label, tabs)) in TAB_CLUSTERS.iter().enumerate() {
+            if ci > 0 {
+                ui.separator();
+            }
+            ui.label(
+                egui::RichText::new(*label)
+                    .small()
+                    .color(palette::chrome_text_dim()),
+            );
+            for tab in *tabs {
+                let selected = state.active_tab == *tab;
+                if ui.selectable_label(selected, tab.label()).clicked() {
+                    state.set_active_tab(*tab);
+                }
             }
         }
     });
@@ -101,5 +174,30 @@ mod tests {
         for tab in BuilderTab::ALL {
             assert!(!tab.label().is_empty());
         }
+    }
+
+    #[test]
+    fn clusters_cover_every_tab_exactly_once() {
+        // §UO6 P2: the grouped strip must stay a total, disjoint partition of
+        // `BuilderTab::ALL` — no tab dropped, none duplicated. This guards a
+        // new enum variant being added without a home in `TAB_CLUSTERS`.
+        let mut seen: Vec<BuilderTab> = Vec::new();
+        for (_, tabs) in TAB_CLUSTERS {
+            seen.extend(tabs.iter().copied());
+        }
+        for tab in BuilderTab::ALL {
+            assert!(
+                seen.contains(tab),
+                "{} is not in any TAB_CLUSTERS group",
+                tab.label()
+            );
+        }
+        assert_eq!(
+            seen.len(),
+            BuilderTab::ALL.len(),
+            "TAB_CLUSTERS has a duplicate or stray tab"
+        );
+        let unique: std::collections::BTreeSet<&str> = seen.iter().map(|t| t.label()).collect();
+        assert_eq!(unique.len(), seen.len(), "duplicate tab in TAB_CLUSTERS");
     }
 }

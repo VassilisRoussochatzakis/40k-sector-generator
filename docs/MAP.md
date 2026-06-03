@@ -300,7 +300,7 @@ and panels. `builder/src/builder/mod.rs` is the Phase-A foundation facade.
 | File | Purpose |
 |---|---|
 | [builder/src/builder/mod.rs](../builder/src/builder/mod.rs) | GUI builder foundation facade (Phase A of docs/BUILDER_REQS.txt) |
-| [builder/src/builder/command.rs](../builder/src/builder/command.rs) | §U1 command bus: every structural mutation flows through `BuilderCommand` (undo/redo) |
+| [builder/src/builder/command.rs](../builder/src/builder/command.rs) | §U1 command bus: every structural mutation flows through `BuilderCommand` (undo/redo). Includes the coarse §R4 detail-editor commands `EditWorld` / `EditSystem` / `EditChronicle` / `BulkEditWorlds` / `DeriveBaselineIntel` (snapshot-replace; `apply` captures `before`) used by the WORLD/SYSTEM/CONTROL/INTEL/HISTORY inspectors |
 | [builder/src/builder/session.rs](../builder/src/builder/session.rs) | §D6 `.sgforge` session file (load/save round-trip) |
 | [builder/src/builder/snapshot.rs](../builder/src/builder/snapshot.rs) | §U3/§U4 named save points (freeze sector + cursor position) |
 | [builder/src/builder/project_io.rs](../builder/src/builder/project_io.rs) | §P1–§P3 project file I/O for the GUI builder |
@@ -350,7 +350,7 @@ helper.
 | File | Purpose |
 |---|---|
 | [builder/src/builder/panels/mod.rs](../builder/src/builder/panels/mod.rs) | Panel module declarations (R10, §41/§N2) |
-| [builder/src/builder/panels/nav.rs](../builder/src/builder/panels/nav.rs) | Top-level tab router (§N1/§N2) |
+| [builder/src/builder/panels/nav.rs](../builder/src/builder/panels/nav.rs) | Top-level tab router (§N1/§N2). Dispatches the two right-most diagnostics tabs `BuilderTab::Validation` / `Invariants` to `validation::show` / `invariants::show` (XC-1) |
 | [builder/src/builder/panels/placeholder.rs](../builder/src/builder/panels/placeholder.rs) | Shared stub-panel helper (§N2) |
 | [builder/src/builder/panels/text_buf.rs](../builder/src/builder/panels/text_buf.rs) | Persistent-buffer wrappers around `text_edit_singleline`/multiline |
 | [builder/src/builder/panels/shortcuts.rs](../builder/src/builder/panels/shortcuts.rs) | Global keyboard shortcuts (§U2 + §LINK3) |

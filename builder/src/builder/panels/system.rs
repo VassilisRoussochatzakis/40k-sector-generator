@@ -502,10 +502,22 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     });
                 }
                 if kind_choice != kind && ui.button("Apply kind").clicked() {
-                    state.sector.systems[sys_idx].kind = kind_choice;
-                    state.dirty = true;
-                    state.mark_validation_dirty();
-                    ui.data_mut(|d| d.remove::<SystemKind>(kind_choice_key));
+                    // §R4: route the kind change through EditSystem so undo/redo
+                    // and the validation pump pick it up (was a direct field
+                    // write). `worlds` rides through the system clone unchanged.
+                    let sys_id = state.sector.systems[sys_idx].id.clone();
+                    let mut draft = state.sector.systems[sys_idx].clone();
+                    draft.kind = kind_choice;
+                    let cmd = BuilderCommand::EditSystem {
+                        system: sys_id,
+                        before: None,
+                        after: Box::new(draft),
+                    };
+                    if let Err(e) = state.run(cmd) {
+                        state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                    } else {
+                        ui.data_mut(|d| d.remove::<SystemKind>(kind_choice_key));
+                    }
                 }
             });
         });
@@ -611,27 +623,52 @@ fn show_star_section(
                 };
             }
 
-            let sys = &mut state.sector_mut().systems[sys_idx];
+            // §R4: both the present-toggle and the colour/spectral field edits
+            // now funnel through SetStar (was a direct `sector_mut().star`
+            // write). `before: None` lets `apply` snapshot the prior star so
+            // revert is exact. Mirrors the SetStar call shape used by the
+            // in-system right-click menu in `panels/system_map.rs`.
+            let current_star = state.sector.systems[sys_idx].star.clone();
             if toggle_star {
-                if has_star && sys.star.is_none() {
-                    sys.star = Some(sectorforge::sector_model::GeneratedStar {
+                let after = if has_star && current_star.is_none() {
+                    Some(sectorforge::sector_model::GeneratedStar {
                         colour_code: Arc::from("G"),
                         colour_name: Arc::from("Yellow"),
                         spectral_type: None,
                         source_row_index: None,
-                    });
+                    })
                 } else if !has_star {
-                    sys.star = None;
+                    None
+                } else {
+                    current_star.clone()
+                };
+                // Only the present/absent toggle is meaningful here; the no-op
+                // re-check (star already present, still present) leaves `after`
+                // == `current_star` and must not push a command. `GeneratedStar`
+                // has no `PartialEq`, so compare presence rather than value.
+                if after.is_some() != current_star.is_some() {
+                    let cmd = BuilderCommand::SetStar {
+                        system: state.sector.systems[sys_idx].id.clone(),
+                        before: None,
+                        after,
+                    };
+                    if let Err(e) = state.run(cmd) {
+                        state.modal = Some(ModalKind::Message(format!("Star update failed: {e}")));
+                    }
                 }
             } else if field_changed {
-                sys.star = star_buf;
-                crate::builder::panels::persistent_text_clear(ui, code_key);
-                crate::builder::panels::persistent_text_clear(ui, name_key);
-                crate::builder::panels::persistent_text_clear(ui, spectral_key);
-            }
-            if toggle_star || field_changed {
-                state.dirty = true;
-                state.mark_validation_dirty();
+                let cmd = BuilderCommand::SetStar {
+                    system: state.sector.systems[sys_idx].id.clone(),
+                    before: None,
+                    after: star_buf,
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.modal = Some(ModalKind::Message(format!("Star update failed: {e}")));
+                } else {
+                    crate::builder::panels::persistent_text_clear(ui, code_key);
+                    crate::builder::panels::persistent_text_clear(ui, name_key);
+                    crate::builder::panels::persistent_text_clear(ui, spectral_key);
+                }
             }
         })
 }
@@ -666,26 +703,48 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                 crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
             let notes_changed = notes_resp.lost_focus();
             if tags_changed {
-                state.sector.systems[sys_idx].tags = tags_buf
+                // §R4: tags edit rides an EditSystem clone (was a direct
+                // `systems[i].tags` write) so it lands on the undo log.
+                let sys_id = state.sector.systems[sys_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].clone();
+                draft.tags = tags_buf
                     .split(',')
                     .map(|s| s.trim())
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
-                crate::builder::panels::persistent_text_clear(ui, tags_key);
-                state.dirty = true;
-                state.mark_validation_dirty();
+                let cmd = BuilderCommand::EditSystem {
+                    system: sys_id,
+                    before: None,
+                    after: Box::new(draft),
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                } else {
+                    crate::builder::panels::persistent_text_clear(ui, tags_key);
+                }
             }
             if notes_changed {
-                state.sector.systems[sys_idx].notes = notes_buf
+                // §R4: notes edit rides an EditSystem clone (was a direct
+                // `systems[i].notes` write) so it lands on the undo log.
+                let sys_id = state.sector.systems[sys_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].clone();
+                draft.notes = notes_buf
                     .lines()
                     .map(|s| s.trim())
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
-                crate::builder::panels::persistent_text_clear(ui, notes_key);
-                state.dirty = true;
-                state.mark_validation_dirty();
+                let cmd = BuilderCommand::EditSystem {
+                    system: sys_id,
+                    before: None,
+                    after: Box::new(draft),
+                };
+                if let Err(e) = state.run(cmd) {
+                    state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+                } else {
+                    crate::builder::panels::persistent_text_clear(ui, notes_key);
+                }
             }
         });
 }
@@ -736,17 +795,30 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                                 Some(ModalKind::Message(format!("Add world failed: {e}")));
                         }
                         Ok(()) => {
-                            if let Some(sys) =
-                                state.sector.systems.iter_mut().find(|s| s.id == sys_id)
-                            {
-                                if let Some(w) =
-                                    sys.worlds.iter_mut().find(|w| w.index == next_index)
-                                {
-                                    w.orbit = next_orbit;
+                            // §R4: pin the new world's orbit through SetWorldOrbit
+                            // (was a direct `w.orbit` write). The freshly added
+                            // world is the one carrying `next_index`. `before: 0`
+                            // per the command convention — SetWorldOrbit::apply
+                            // re-captures the world's real prior orbit, so revert
+                            // is exact regardless of the placeholder.
+                            let new_world = state
+                                .sector
+                                .systems
+                                .iter()
+                                .find(|s| s.id == sys_id)
+                                .and_then(|s| s.worlds.iter().find(|w| w.index == next_index))
+                                .map(|w| w.id.clone());
+                            if let Some(world) = new_world {
+                                let cmd = BuilderCommand::SetWorldOrbit {
+                                    world,
+                                    before: 0,
+                                    after: next_orbit,
+                                };
+                                if let Err(e) = state.run(cmd) {
+                                    state.modal =
+                                        Some(ModalKind::Message(format!("Set orbit failed: {e}")));
                                 }
                             }
-                            state.dirty = true;
-                            state.mark_validation_dirty();
                         }
                     }
                 }
@@ -1394,29 +1466,64 @@ pub(crate) fn apply_bulk_primary_faction(
     state: &mut BuilderState,
     fid: sectorforge::ids::FactionId,
 ) {
+    // §R4: each affected system rides its own EditSystem (was an in-place
+    // `primary_factions.push`) so the bulk assignment is undoable. One undo
+    // entry per system mutated; systems already carrying `fid` are skipped so
+    // they don't emit no-op commands.
     let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
     for id in ids {
-        if let Some(sys) = state.sector.systems.iter_mut().find(|s| s.id == id) {
-            if !sys.primary_factions.contains(&fid) {
-                sys.primary_factions.push(fid.clone());
-            }
+        let draft = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id)
+            .filter(|s| !s.primary_factions.contains(&fid))
+            .cloned();
+        let Some(mut draft) = draft else {
+            continue;
+        };
+        draft.primary_factions.push(fid.clone());
+        let cmd = BuilderCommand::EditSystem {
+            system: id,
+            before: None,
+            after: Box::new(draft),
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+            return;
         }
     }
-    state.dirty = true;
-    state.mark_validation_dirty();
 }
 
 /// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click
 /// multi-selection menu.
 pub(crate) fn apply_bulk_clear_factions(state: &mut BuilderState) {
+    // §R4: clear each affected system's primary factions through EditSystem
+    // (was an in-place `primary_factions.clear()` over `sector_mut()`).
+    // Systems already empty are skipped so they don't emit no-op commands.
     let ids: BTreeSet<SystemId> = state.selected_systems.clone();
-    for sys in &mut state.sector_mut().systems {
-        if ids.contains(&sys.id) {
-            sys.primary_factions.clear();
+    let targets: Vec<SystemId> = state
+        .sector
+        .systems
+        .iter()
+        .filter(|s| ids.contains(&s.id) && !s.primary_factions.is_empty())
+        .map(|s| s.id.clone())
+        .collect();
+    for id in targets {
+        let Some(mut draft) = state.sector.systems.iter().find(|s| s.id == id).cloned() else {
+            continue;
+        };
+        draft.primary_factions.clear();
+        let cmd = BuilderCommand::EditSystem {
+            system: id,
+            before: None,
+            after: Box::new(draft),
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
+            return;
         }
     }
-    state.dirty = true;
-    state.mark_validation_dirty();
 }
 
 /// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click

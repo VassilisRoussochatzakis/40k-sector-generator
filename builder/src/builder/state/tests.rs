@@ -159,11 +159,13 @@ fn default_map_tool_is_select() {
 
 #[test]
 fn builder_tab_all_is_full_n1_set() {
-    // §N1 lists 24 tabs (PROJECT..EXPORT).
-    assert_eq!(BuilderTab::ALL.len(), 24);
+    // §N1 lists 24 working tabs (PROJECT..EXPORT) plus the two XC-1 diagnostics
+    // tabs (VALIDATION, INVARIANTS) appended at the right edge → 26 total.
+    assert_eq!(BuilderTab::ALL.len(), 26);
     assert_eq!(BuilderTab::ALL[0], BuilderTab::Project);
     assert_eq!(BuilderTab::ALL[1], BuilderTab::Map);
-    assert_eq!(*BuilderTab::ALL.last().unwrap(), BuilderTab::Export);
+    assert_eq!(BuilderTab::ALL[23], BuilderTab::Export);
+    assert_eq!(*BuilderTab::ALL.last().unwrap(), BuilderTab::Invariants);
 }
 
 #[test]

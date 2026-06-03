@@ -11,7 +11,9 @@ use serde::{Deserialize, Serialize};
 use super::derivation_cache::DepClass;
 use sectorforge::archetypes::ArchetypeState;
 use sectorforge::conflict::ConflictState;
+use sectorforge::history::SectorChronicle;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
+use sectorforge::intel::SystemIntel;
 use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
 use sectorforge::regions::RegionConditionKind;
 use sectorforge::sector_model::mutation::MutationError;
@@ -293,6 +295,56 @@ pub enum BuilderCommand {
         before_system: Vec<(SystemId, ConflictState)>,
         before_dominant: Vec<(SystemId, Option<FactionId>)>,
     },
+    /// §R4 (XC-2): replace a single world's full payload. The deep detail
+    /// editors (WORLD / CONTROL / INTEL tabs) build a mutated clone of the
+    /// target world and dispatch this so every field edit — classification,
+    /// environment, notable features, tags, notes, faction presences, claims,
+    /// intel — lands on the undo/redo log. `before` is captured on `apply` so
+    /// `revert` restores the prior world exactly. Use the narrow
+    /// [`Self::RenameWorld`] / [`Self::SetWorldOrbit`] for those two fields.
+    EditWorld {
+        world: WorldId,
+        before: Option<Box<GeneratedWorld>>,
+        after: Box<GeneratedWorld>,
+    },
+    /// §R4 (XC-2): replace a single system's full payload for the
+    /// non-structural fields the inspector edits — kind, tags, notes,
+    /// `primary_factions`, control summary, intel. The panel clones the live
+    /// system, mutates the clone, and dispatches this; the system's `worlds`
+    /// vector rides through unchanged because only system-scope fields are
+    /// touched. `before` is captured on `apply`. Structural world add/remove
+    /// still goes through [`Self::AddWorld`] / [`Self::RemoveWorld`].
+    EditSystem {
+        system: SystemId,
+        before: Option<Box<GeneratedSystem>>,
+        after: Box<GeneratedSystem>,
+    },
+    /// §R4 (XC-2 / §H): replace the sector chronicle. The HISTORY tab clones
+    /// `sector.chronicle`, applies the edit (event field change, delete,
+    /// manual pin, or wizard add), and dispatches this so chronicle edits are
+    /// undoable. `before` is captured on `apply`.
+    EditChronicle {
+        before: Option<Box<SectorChronicle>>,
+        after: Box<SectorChronicle>,
+    },
+    /// §R4 (XC-2 / CTL-4): replace many worlds in a single undo step — the
+    /// CONTROL "bulk convert claim type" action rewrites claims across every
+    /// matching world. `after` carries the post-edit payload per world id;
+    /// `before` is captured on `apply` from the matching live worlds, so
+    /// `revert` restores them all exactly.
+    BulkEditWorlds {
+        before: Vec<(WorldId, GeneratedWorld)>,
+        after: Vec<(WorldId, GeneratedWorld)>,
+    },
+    /// §R4 (XC-2 / §I3): "Generate baseline intel" — runs
+    /// [`sectorforge::intel::derive_intel`] over the whole sector. `observers`
+    /// is stored so `redo` replays the same derivation; `before_systems` /
+    /// `before_worlds` snapshot each entity's prior intel so `revert` is exact.
+    DeriveBaselineIntel {
+        observers: Vec<String>,
+        before_systems: Vec<(SystemId, SystemIntel)>,
+        before_worlds: Vec<(WorldId, SystemIntel)>,
+    },
 }
 
 impl BuilderCommand {
@@ -346,7 +398,12 @@ impl BuilderCommand {
             | Self::SetStarSpectral { .. }
             | Self::RenameWorld { .. }
             | Self::SetWorldOrbit { .. }
-            | Self::AdvanceConflictTicks { .. } => &[D::SystemsWorlds],
+            | Self::AdvanceConflictTicks { .. }
+            | Self::EditWorld { .. }
+            | Self::EditSystem { .. }
+            | Self::EditChronicle { .. }
+            | Self::BulkEditWorlds { .. }
+            | Self::DeriveBaselineIntel { .. } => &[D::SystemsWorlds],
         }
     }
 
@@ -723,6 +780,77 @@ impl BuilderCommand {
                 }
                 Ok(())
             }
+            Self::EditWorld {
+                world,
+                before,
+                after,
+            } => {
+                let w = sector
+                    .systems
+                    .iter_mut()
+                    .flat_map(|s| s.worlds.iter_mut())
+                    .find(|w| w.id == *world)
+                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                *before = Some(Box::new(w.clone()));
+                *w = (**after).clone();
+                Ok(())
+            }
+            Self::EditSystem {
+                system,
+                before,
+                after,
+            } => {
+                let sys = sector
+                    .systems
+                    .iter_mut()
+                    .find(|s| s.id == *system)
+                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                *before = Some(Box::new(sys.clone()));
+                *sys = (**after).clone();
+                // The panel only edits system-scope fields, so `worlds` is
+                // unchanged — but recompute the manifest defensively in case a
+                // future caller diverges, keeping counts coherent.
+                sector.manifest.system_count = sector.systems.len();
+                sector.manifest.world_count = sector.systems.iter().map(|s| s.worlds.len()).sum();
+                Ok(())
+            }
+            Self::EditChronicle { before, after } => {
+                *before = Some(Box::new(sector.chronicle.clone()));
+                sector.chronicle = (**after).clone();
+                Ok(())
+            }
+            Self::BulkEditWorlds { before, after } => {
+                before.clear();
+                for (wid, new_w) in after.iter() {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *wid)
+                    {
+                        before.push((wid.clone(), w.clone()));
+                        *w = new_w.clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::DeriveBaselineIntel {
+                observers,
+                before_systems,
+                before_worlds,
+            } => {
+                before_systems.clear();
+                before_worlds.clear();
+                for sys in &sector.systems {
+                    before_systems.push((sys.id.clone(), sys.intel.clone()));
+                    for w in &sys.worlds {
+                        before_worlds.push((w.id.clone(), w.intel.clone()));
+                    }
+                }
+                let refs: Vec<&str> = observers.iter().map(String::as_str).collect();
+                sectorforge::intel::derive_intel(sector, &refs);
+                Ok(())
+            }
         }
     }
 
@@ -981,6 +1109,71 @@ impl BuilderCommand {
                         .find(|w| w.id == *world_id)
                     {
                         w.conflict = conflict.clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::EditWorld { world, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *world)
+                    {
+                        *w = (**prev).clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::EditSystem { system, before, .. } => {
+                if let Some(prev) = before {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
+                        *sys = (**prev).clone();
+                    }
+                    sector.manifest.system_count = sector.systems.len();
+                    sector.manifest.world_count =
+                        sector.systems.iter().map(|s| s.worlds.len()).sum();
+                }
+                Ok(())
+            }
+            Self::EditChronicle { before, .. } => {
+                if let Some(prev) = before {
+                    sector.chronicle = (**prev).clone();
+                }
+                Ok(())
+            }
+            Self::BulkEditWorlds { before, .. } => {
+                for (wid, prev) in before {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *wid)
+                    {
+                        *w = prev.clone();
+                    }
+                }
+                Ok(())
+            }
+            Self::DeriveBaselineIntel {
+                before_systems,
+                before_worlds,
+                ..
+            } => {
+                for (sid, intel) in before_systems {
+                    if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *sid) {
+                        sys.intel = intel.clone();
+                    }
+                }
+                for (wid, intel) in before_worlds {
+                    if let Some(w) = sector
+                        .systems
+                        .iter_mut()
+                        .flat_map(|s| s.worlds.iter_mut())
+                        .find(|w| w.id == *wid)
+                    {
+                        w.intel = intel.clone();
                     }
                 }
                 Ok(())
@@ -1587,5 +1780,143 @@ mod tests {
         let a = replay();
         let b = replay();
         assert_eq!(a, b, "BuilderCommand log must be byte-stable");
+    }
+
+    #[test]
+    fn edit_world_round_trip() {
+        let mut s = empty();
+        let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let wid = s.add_world_to_system(&sys, "W").unwrap();
+        let mut edited = s.get_world(&wid).unwrap().clone();
+        edited.tags.push(Arc::from("hive"));
+        edited.notes.push(Arc::from("manual edit"));
+        let mut cmd = BuilderCommand::EditWorld {
+            world: wid.clone(),
+            before: None,
+            after: Box::new(edited),
+        };
+        cmd.apply(&mut s).unwrap();
+        let w = s.get_world(&wid).unwrap();
+        assert!(w.tags.iter().any(|t| &**t == "hive"));
+        assert!(w.notes.iter().any(|n| &**n == "manual edit"));
+        cmd.revert(&mut s).unwrap();
+        let w = s.get_world(&wid).unwrap();
+        assert!(w.tags.is_empty());
+        assert!(w.notes.is_empty());
+    }
+
+    #[test]
+    fn edit_system_round_trip() {
+        let mut s = empty();
+        let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        // A world rides along on the system; EditSystem must preserve it.
+        let wid = s.add_world_to_system(&sys, "W").unwrap();
+        let mut edited = s.get_system(&sys).unwrap().clone();
+        edited.tags.push(Arc::from("frontier"));
+        let mut cmd = BuilderCommand::EditSystem {
+            system: sys.clone(),
+            before: None,
+            after: Box::new(edited),
+        };
+        cmd.apply(&mut s).unwrap();
+        let sysref = s.get_system(&sys).unwrap();
+        assert!(sysref.tags.iter().any(|t| &**t == "frontier"));
+        assert!(sysref.worlds.iter().any(|w| w.id == wid));
+        cmd.revert(&mut s).unwrap();
+        let sysref = s.get_system(&sys).unwrap();
+        assert!(sysref.tags.is_empty());
+        assert!(sysref.worlds.iter().any(|w| w.id == wid));
+    }
+
+    #[test]
+    fn edit_chronicle_round_trip() {
+        use sectorforge::history::{EventKind, HistoryAnchor, HistoryEvent};
+        let mut s = empty();
+        assert!(s.chronicle.events.is_empty());
+        let mut chron = s.chronicle.clone();
+        chron.events.push(HistoryEvent {
+            id: "ev-test".into(),
+            date: "M41.000".into(),
+            era_id: String::new(),
+            era_label: String::new(),
+            relative_year: 0,
+            anchor: HistoryAnchor::Sector,
+            kind: EventKind::Foundation,
+            summary: String::new(),
+            narrative: "test event".into(),
+            factions: Vec::new(),
+            entities: Vec::new(),
+            consequences: Vec::new(),
+            weight: 10,
+            manual: true,
+        });
+        let mut cmd = BuilderCommand::EditChronicle {
+            before: None,
+            after: Box::new(chron),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(s.chronicle.events.len(), 1);
+        cmd.revert(&mut s).unwrap();
+        assert!(s.chronicle.events.is_empty());
+    }
+
+    #[test]
+    fn bulk_edit_worlds_round_trip() {
+        let mut s = empty();
+        let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let w1 = s.add_world_to_system(&sys, "W1").unwrap();
+        let w2 = s.add_world_to_system(&sys, "W2").unwrap();
+        let mut e1 = s.get_world(&w1).unwrap().clone();
+        e1.tags.push(Arc::from("x"));
+        let mut e2 = s.get_world(&w2).unwrap().clone();
+        e2.tags.push(Arc::from("y"));
+        let mut cmd = BuilderCommand::BulkEditWorlds {
+            before: Vec::new(),
+            after: vec![(w1.clone(), e1), (w2.clone(), e2)],
+        };
+        cmd.apply(&mut s).unwrap();
+        assert!(s.get_world(&w1).unwrap().tags.iter().any(|t| &**t == "x"));
+        assert!(s.get_world(&w2).unwrap().tags.iter().any(|t| &**t == "y"));
+        cmd.revert(&mut s).unwrap();
+        assert!(s.get_world(&w1).unwrap().tags.is_empty());
+        assert!(s.get_world(&w2).unwrap().tags.is_empty());
+    }
+
+    #[test]
+    fn derive_baseline_intel_round_trip() {
+        let mut s = empty();
+        s.add_faction(FactionId::from("imperium"), "Imperium", "imperial");
+        let sys = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let wid = s.add_world_to_system(&sys, "W").unwrap();
+        let sys_intel_before_empty = s.get_system(&sys).unwrap().intel.is_empty();
+        let world_intel_before_empty = s.get_world(&wid).unwrap().intel.is_empty();
+        let mut cmd = BuilderCommand::DeriveBaselineIntel {
+            observers: vec!["imperium".to_string()],
+            before_systems: Vec::new(),
+            before_worlds: Vec::new(),
+        };
+        cmd.apply(&mut s).unwrap();
+        // Snapshots captured for every system + world.
+        if let BuilderCommand::DeriveBaselineIntel {
+            before_systems,
+            before_worlds,
+            ..
+        } = &cmd
+        {
+            assert_eq!(before_systems.len(), 1);
+            assert_eq!(before_worlds.len(), 1);
+        } else {
+            unreachable!();
+        }
+        cmd.revert(&mut s).unwrap();
+        // Revert restores the pre-derive intel exactly.
+        assert_eq!(
+            s.get_system(&sys).unwrap().intel.is_empty(),
+            sys_intel_before_empty
+        );
+        assert_eq!(
+            s.get_world(&wid).unwrap().intel.is_empty(),
+            world_intel_before_empty
+        );
     }
 }

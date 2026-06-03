@@ -109,7 +109,8 @@ pub struct EditorState {
     pub tool: SectorEditTool,
     pub dialog: Dialog,
     pub hex_size: f32,
-    pub system_side: f32,
+    // VED-1: removed dead `system_side` field — it was shadowed by the live `App.system_side`
+    // (app/mod.rs) which actually drives system_view.rs. This copy was never read.
     pub route_pick: Option<(usize, RouteEndpoint)>,
     /// Factions-panel filter / sort / pin state (§14).
     pub faction_filter_kind: Option<String>,
@@ -144,7 +145,6 @@ impl Default for EditorState {
             tool: SectorEditTool::default(),
             dialog: Dialog::None,
             hex_size: 44.0,
-            system_side: 700.0,
             route_pick: None,
             faction_filter_kind: None,
             faction_filter_disposition: None,

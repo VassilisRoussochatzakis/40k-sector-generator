@@ -127,7 +127,9 @@ pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
             preview_input.config.generation.seed = seed;
             if let Ok(sec) = sectorforge::generation::generate(preview_input) {
                 state.sector = Some(sec);
-                // Previewing doesn't mark dirty, it just shows it.
+                // VED-4: applying a near-miss preview replaces the working sector, so mark dirty
+                // consistently with the APPLY WINNING SEED path above.
+                state.mark_dirty();
             }
         }
     }

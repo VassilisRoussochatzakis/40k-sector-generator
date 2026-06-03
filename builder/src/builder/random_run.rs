@@ -40,8 +40,6 @@ pub struct RandomGenState {
     pub job: Option<JobHandle<RandomJobResult>>,
     /// Live progress snapshot, written by the worker, read by the popup.
     pub progress: Arc<Mutex<Option<RandomProgress>>>,
-    /// Human-readable error from the most recent failed run.
-    pub error: Option<String>,
     /// Bumped on every dispatch / cancel; stale worker results are dropped.
     pub revision: u64,
 }
@@ -74,7 +72,6 @@ impl RandomGenState {
         dest: Utf8PathBuf,
     ) {
         self.revision = self.revision.wrapping_add(1);
-        self.error = None;
         if let Some(job) = self.job.take() {
             job.cancel();
         }
@@ -163,9 +160,9 @@ impl RandomGenState {
             // A newer dispatch / cancel superseded this job; drop the result.
             return None;
         }
-        if let RandomJobResult::Failed(message) = &result {
-            self.error = Some(message.clone());
-        }
+        // RND-1: failures are surfaced by the caller (it routes
+        // `RandomJobResult::Failed` to a `ModalKind::Message`), so there is no
+        // separate `error` field to populate here.
         Some(result)
     }
 }

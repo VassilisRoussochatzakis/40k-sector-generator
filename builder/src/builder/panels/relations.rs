@@ -379,40 +379,30 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
             )
             .italics(),
         );
-        changed |= u8_slider(ui, "trust", "rel_trust", &mut ov.trust, rel.metrics.trust);
-        changed |= u8_slider(ui, "fear", "rel_fear", &mut ov.fear, rel.metrics.fear);
-        changed |= u8_slider(
-            ui,
-            "rivalry",
-            "rel_riv",
-            &mut ov.rivalry,
-            rel.metrics.rivalry,
-        );
+        changed |= u8_slider(ui, "trust", &mut ov.trust, rel.metrics.trust);
+        changed |= u8_slider(ui, "fear", &mut ov.fear, rel.metrics.fear);
+        changed |= u8_slider(ui, "rivalry", &mut ov.rivalry, rel.metrics.rivalry);
         changed |= u8_slider(
             ui,
             "ideological_distance",
-            "rel_ideo",
             &mut ov.ideological_distance,
             rel.metrics.ideological_distance,
         );
         changed |= u8_slider(
             ui,
             "economic_dependency",
-            "rel_econ",
             &mut ov.economic_dependency,
             rel.metrics.economic_dependency,
         );
         changed |= u8_slider(
             ui,
             "military_pressure",
-            "rel_mil",
             &mut ov.military_pressure,
             rel.metrics.military_pressure,
         );
         changed |= u8_slider(
             ui,
             "covert_activity",
-            "rel_cov",
             &mut ov.covert_activity,
             rel.metrics.covert_activity,
         );
@@ -592,7 +582,7 @@ fn stance_combo(ui: &mut Ui, id_salt: &str, field: &mut Stance) -> bool {
     changed
 }
 
-fn u8_slider(ui: &mut Ui, label: &str, id_salt: &str, field: &mut Option<u8>, derived: u8) -> bool {
+fn u8_slider(ui: &mut Ui, label: &str, field: &mut Option<u8>, derived: u8) -> bool {
     let mut changed = false;
     ui.horizontal(|ui| {
         ui.label(label);
@@ -611,7 +601,6 @@ fn u8_slider(ui: &mut Ui, label: &str, id_salt: &str, field: &mut Option<u8>, de
             changed = true;
         }
         ui.colored_label(Color32::DARK_GRAY, format!("derived: {derived}"));
-        let _ = id_salt;
     });
     changed
 }

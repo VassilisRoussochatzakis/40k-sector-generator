@@ -272,11 +272,11 @@ fn cycle_spectral_class(state: &mut BuilderState, system: &SystemId) {
     }
 }
 
-/// §6.7 DUPLICATE WORLD — dispatches [`BuilderCommand::AddWorld`] then patches
-/// the newly added world's payload to mirror `source`. The patch step bypasses
-/// the bus (one-shot mutation + dirty flag) because there is no equivalent
-/// `DuplicateWorld` command yet; the AddWorld itself is undoable so re-undo
-/// removes the duplicate cleanly even if the patch is lost.
+/// §6.7 DUPLICATE WORLD — dispatches [`BuilderCommand::AddWorld`] then an
+/// [`BuilderCommand::EditWorld`] that swaps the new world's full payload to
+/// mirror `source`. §R4: both steps land on the undo log (the old code patched
+/// the new world directly because there was no `DuplicateWorld` command), so
+/// the net effect is two undo entries — add + edit — both reversible.
 fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId) {
     let source_payload = state.sector.all_worlds().find(|w| w.id == *source).cloned();
     let Some(source_payload) = source_payload else {
@@ -298,27 +298,39 @@ fn duplicate_world(state: &mut BuilderState, system: &SystemId, source: &WorldId
         state.modal = Some(ModalKind::Message(format!("Duplicate world failed: {e}")));
         return;
     }
-    if let Some(sys) = state.sector.systems.iter_mut().find(|s| s.id == *system) {
-        if let Some(w) = sys.worlds.iter_mut().find(|w| w.index == next_index) {
-            let new_id = w.id.clone();
-            let new_idx = w.index;
-            let new_name = w.name.clone();
-            *w = source_payload.clone();
-            w.id = new_id;
-            w.index = new_idx;
-            w.name = new_name;
-            // Mirror the source's orbit so the duplicate lands on the same ring.
-            w.orbit = source_payload.orbit;
-        }
+    // The freshly added world is the one carrying `next_index`. Capture its
+    // identity (id / index / name) so the EditWorld preserves them while every
+    // other field is overwritten from the source.
+    let new_world = state
+        .sector
+        .systems
+        .iter()
+        .find(|s| s.id == *system)
+        .and_then(|s| s.worlds.iter().find(|w| w.index == next_index))
+        .map(|w| (w.id.clone(), w.index, w.name.clone()));
+    let Some((new_id, new_idx, new_name)) = new_world else {
+        return;
+    };
+    let mut draft = source_payload.clone();
+    draft.id = new_id.clone();
+    draft.index = new_idx;
+    draft.name = new_name;
+    // Mirror the source's orbit so the duplicate lands on the same ring.
+    draft.orbit = source_payload.orbit;
+    let cmd = BuilderCommand::EditWorld {
+        world: new_id,
+        before: None,
+        after: Box::new(draft),
+    };
+    if let Err(e) = state.run(cmd) {
+        state.modal = Some(ModalKind::Message(format!("Duplicate world failed: {e}")));
     }
-    state.dirty = true;
-    state.mark_validation_dirty();
 }
 
-/// §6.8/§6.9 ADD WORLD — dispatches [`BuilderCommand::AddWorld`] and then
-/// pins the resulting world's orbit. The orbit pin bypasses undo for the same
-/// reason as [`duplicate_world`]: the AddWorld bus entry is the single source
-/// of truth.
+/// §6.8/§6.9 ADD WORLD — dispatches [`BuilderCommand::AddWorld`] and then pins
+/// the resulting world's orbit through [`BuilderCommand::SetWorldOrbit`]. §R4:
+/// the orbit pin now rides the bus too (was a direct `w.orbit` write), so the
+/// add and the orbit land as two undoable entries.
 fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
     let (next_index, sys_name) = state
         .sector
@@ -345,13 +357,26 @@ fn add_world_at_orbit(state: &mut BuilderState, system: SystemId, orbit: u8) {
         state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
         return;
     }
-    if let Some(sys) = state.sector.systems.iter_mut().find(|s| s.id == system) {
-        if let Some(w) = sys.worlds.iter_mut().find(|w| w.index == next_index) {
-            w.orbit = orbit;
+    // The freshly added world is the one carrying `next_index`. `before: 0`
+    // per the command convention — SetWorldOrbit::apply re-captures the world's
+    // real prior orbit, so revert is exact regardless of the placeholder.
+    let new_world = state
+        .sector
+        .systems
+        .iter()
+        .find(|s| s.id == system)
+        .and_then(|s| s.worlds.iter().find(|w| w.index == next_index))
+        .map(|w| w.id.clone());
+    if let Some(world) = new_world {
+        let cmd = BuilderCommand::SetWorldOrbit {
+            world,
+            before: 0,
+            after: orbit,
+        };
+        if let Err(e) = state.run(cmd) {
+            state.modal = Some(ModalKind::Message(format!("Set orbit failed: {e}")));
         }
     }
-    state.dirty = true;
-    state.mark_validation_dirty();
 }
 
 /// §CTX1 Phase 7 — when the in-system right-click menu is open and targets

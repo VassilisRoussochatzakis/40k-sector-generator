@@ -22,6 +22,7 @@ use sectorforge::worlds::{
     Temperature, WorldType,
 };
 
+use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
@@ -194,21 +195,31 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                     }
                     ui.end_row();
                 });
-            let w = &mut state.sector_mut().systems[sys_idx].worlds[w_idx];
-            let mut mutated = false;
+            // §R4: orbit/name now route through the narrow commands so the edit
+            // is undoable. Snapshot the live values, then dispatch with no
+            // borrow of `state.sector` held across `state.run`.
+            let cur_orbit = state.sector.systems[sys_idx].worlds[w_idx].orbit;
+            let cur_name = state.sector.systems[sys_idx].worlds[w_idx].name.to_string();
             let new_orbit = orbit.clamp(1, 99) as u8;
-            if new_orbit != w.orbit {
-                w.orbit = new_orbit;
-                mutated = true;
+            if new_orbit != cur_orbit {
+                if let Err(e) = state.run(BuilderCommand::SetWorldOrbit {
+                    world: wid.clone(),
+                    before: 0,
+                    after: new_orbit,
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
-            if name_changed && name_buf.trim() != w.name.as_ref() {
-                w.name = Arc::from(name_buf.trim());
-                mutated = true;
+            if name_changed && name_buf.trim() != cur_name {
+                let after = name_buf.trim().to_string();
+                if let Err(e) = state.run(BuilderCommand::RenameWorld {
+                    world: wid.clone(),
+                    before: String::new(),
+                    after,
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
                 crate::builder::panels::persistent_text_clear(ui, name_buf_key);
-            }
-            if mutated {
-                state.dirty = true;
-                state.mark_validation_dirty();
             }
         });
 }
@@ -224,13 +235,16 @@ fn show_classification_section(
     egui::CollapsingHeader::new("Classification")
         .default_open(true)
         .show(ui, |ui| {
-            let mut mutated = false;
+            // §R4: edit a clone and dispatch one EditWorld for the whole group
+            // so classification changes are undoable.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            let mut changed = false;
             egui::Grid::new("w_class_grid")
                 .num_columns(2)
                 .show(ui, |ui| {
                     ui.label("star_colour");
-                    let w = &mut state.sector_mut().systems[sys_idx].worlds[w_idx];
-                    let current_code = w.world.star_colour_code.to_string();
+                    let current_code = draft.world.star_colour_code.to_string();
                     let mut selected = StarColour::VARIANTS
                         .iter()
                         .copied()
@@ -249,27 +263,26 @@ fn show_classification_section(
                             }
                         });
                     if selected != prev {
-                        w.world.star_colour_code = Arc::from(selected.code());
-                        w.world.star_colour = Arc::from(selected.short_name());
-                        mutated = true;
+                        draft.world.star_colour_code = Arc::from(selected.code());
+                        draft.world.star_colour = Arc::from(selected.short_name());
+                        changed = true;
                     }
                     ui.end_row();
 
                     ui.label("world_type");
-                    if combo_enum::<WorldType>(
-                        ui,
-                        "w_type",
-                        &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                            .world
-                            .world_type,
-                    ) {
-                        mutated = true;
+                    if combo_enum::<WorldType>(ui, "w_type", &mut draft.world.world_type) {
+                        changed = true;
                     }
                     ui.end_row();
                 });
-            if mutated {
-                state.dirty = true;
-                state.mark_validation_dirty();
+            if changed {
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
         });
 }
@@ -280,45 +293,35 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
     egui::CollapsingHeader::new("Environment")
         .default_open(false)
         .show(ui, |ui| {
-            let mut mutated = false;
+            // §R4: edit a clone and dispatch one EditWorld for the whole group.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            let mut changed = false;
             egui::Grid::new("w_env_grid").num_columns(2).show(ui, |ui| {
                 ui.label("atmosphere");
-                if combo_enum::<Atmosphere>(
-                    ui,
-                    "w_atm",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                        .world
-                        .atmosphere,
-                ) {
-                    mutated = true;
+                if combo_enum::<Atmosphere>(ui, "w_atm", &mut draft.world.atmosphere) {
+                    changed = true;
                 }
                 ui.end_row();
                 ui.label("temperature");
-                if combo_enum::<Temperature>(
-                    ui,
-                    "w_temp",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                        .world
-                        .temperature,
-                ) {
-                    mutated = true;
+                if combo_enum::<Temperature>(ui, "w_temp", &mut draft.world.temperature) {
+                    changed = true;
                 }
                 ui.end_row();
                 ui.label("biosphere");
-                if combo_enum::<Biosphere>(
-                    ui,
-                    "w_bio",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                        .world
-                        .biosphere,
-                ) {
-                    mutated = true;
+                if combo_enum::<Biosphere>(ui, "w_bio", &mut draft.world.biosphere) {
+                    changed = true;
                 }
                 ui.end_row();
             });
-            if mutated {
-                state.dirty = true;
-                state.mark_validation_dirty();
+            if changed {
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
         });
 }
@@ -329,45 +332,35 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
     egui::CollapsingHeader::new("Society")
         .default_open(false)
         .show(ui, |ui| {
-            let mut mutated = false;
+            // §R4: edit a clone and dispatch one EditWorld for the whole group.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            let mut changed = false;
             egui::Grid::new("w_soc_grid").num_columns(2).show(ui, |ui| {
                 ui.label("population");
-                if combo_enum::<Population>(
-                    ui,
-                    "w_pop",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                        .world
-                        .population,
-                ) {
-                    mutated = true;
+                if combo_enum::<Population>(ui, "w_pop", &mut draft.world.population) {
+                    changed = true;
                 }
                 ui.end_row();
                 ui.label("tech_level");
-                if combo_enum::<TechLevel>(
-                    ui,
-                    "w_tech",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                        .world
-                        .tech_level,
-                ) {
-                    mutated = true;
+                if combo_enum::<TechLevel>(ui, "w_tech", &mut draft.world.tech_level) {
+                    changed = true;
                 }
                 ui.end_row();
                 ui.label("government");
-                if combo_enum::<Government>(
-                    ui,
-                    "w_gov",
-                    &mut state.sector_mut().systems[sys_idx].worlds[w_idx]
-                        .world
-                        .government,
-                ) {
-                    mutated = true;
+                if combo_enum::<Government>(ui, "w_gov", &mut draft.world.government) {
+                    changed = true;
                 }
                 ui.end_row();
             });
-            if mutated {
-                state.dirty = true;
-                state.mark_validation_dirty();
+            if changed {
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
         });
 }
@@ -384,8 +377,10 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
     egui::CollapsingHeader::new(format!("Notable features ({feature_count})"))
         .default_open(false)
         .show(ui, |ui| {
+            // §R4: gather the requested mutation (one remove or one add per
+            // frame), then apply it to a clone and dispatch one EditWorld below.
             let mut remove: Option<usize> = None;
-            let mut mutated = false;
+            let mut add: Option<Arc<str>> = None;
             let cur: Vec<String> = state.sector.systems[sys_idx].worlds[w_idx]
                 .world
                 .notable_features
@@ -402,13 +397,6 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                         remove = Some(i);
                     }
                 });
-            }
-            if let Some(i) = remove {
-                state.sector.systems[sys_idx].worlds[w_idx]
-                    .world
-                    .notable_features
-                    .remove(i);
-                mutated = true;
             }
 
             ui.separator();
@@ -450,18 +438,29 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                             None => format!("{display}  (–)"),
                         };
                         if ui.button(label).clicked() {
-                            state.sector.systems[sys_idx].worlds[w_idx]
-                                .world
-                                .notable_features
-                                .push(Arc::from(key.as_str()));
-                            mutated = true;
+                            add = Some(Arc::from(key.as_str()));
                         }
                     }
                 });
 
-            if mutated {
-                state.dirty = true;
-                state.mark_validation_dirty();
+            // §R4: apply the pending add/remove to a world clone and dispatch
+            // one EditWorld so the feature edit is undoable.
+            if remove.is_some() || add.is_some() {
+                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+                if let Some(i) = remove {
+                    draft.world.notable_features.remove(i);
+                }
+                if let Some(key) = add {
+                    draft.world.notable_features.push(key);
+                }
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
         });
 }
@@ -663,26 +662,42 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
                 crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
             let notes_changed = notes_resp.lost_focus();
             if tags_changed {
-                state.sector.systems[sys_idx].worlds[w_idx].tags = tags_buf
+                // §R4: commit tags via EditWorld on a world clone.
+                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+                draft.tags = tags_buf
                     .split(',')
                     .map(|s| s.trim())
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
                 crate::builder::panels::persistent_text_clear(ui, tags_key);
-                state.dirty = true;
-                state.mark_validation_dirty();
             }
             if notes_changed {
-                state.sector.systems[sys_idx].worlds[w_idx].notes = notes_buf
+                // §R4: commit notes via EditWorld on a world clone.
+                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+                draft.notes = notes_buf
                     .lines()
                     .map(|s| s.trim())
                     .filter(|s| !s.is_empty())
                     .map(Arc::from)
                     .collect();
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
                 crate::builder::panels::persistent_text_clear(ui, notes_key);
-                state.dirty = true;
-                state.mark_validation_dirty();
             }
         });
 }
@@ -722,11 +737,17 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 });
             }
             if let Some(i) = remove_idx {
-                state.sector.systems[sys_idx].worlds[w_idx]
-                    .factions
-                    .remove(i);
-                state.dirty = true;
-                state.mark_validation_dirty();
+                // §R4: remove the presence via EditWorld on a world clone.
+                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+                draft.factions.remove(i);
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
             ui.separator();
             show_add_presence_row(ui, state, sys_idx, w_idx);
@@ -830,22 +851,28 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 }
             });
         if ui.button("+ presence").clicked() {
-            state.sector.systems[sys_idx].worlds[w_idx]
-                .factions
-                .push(WorldFactionPresence {
-                    faction_id: buf.faction.clone(),
-                    subfaction_id: None,
-                    subfaction_name: None,
-                    force_id: None,
-                    force_name: None,
-                    influence: buf.tier,
-                    relationship_to_government: "neutral".into(),
-                    dimensions: PresenceDimensions::default(),
-                    dominance: buf.dominance,
-                    intel_confidence: 100,
-                });
-            state.dirty = true;
-            state.mark_validation_dirty();
+            // §R4: add the presence via EditWorld on a world clone.
+            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            draft.factions.push(WorldFactionPresence {
+                faction_id: buf.faction.clone(),
+                subfaction_id: None,
+                subfaction_name: None,
+                force_id: None,
+                force_name: None,
+                influence: buf.tier,
+                relationship_to_government: "neutral".into(),
+                dimensions: PresenceDimensions::default(),
+                dominance: buf.dominance,
+                intel_confidence: 100,
+            });
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: wid,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+            }
         }
     });
     ui.data_mut(|d| d.insert_temp(buf_id, buf));
@@ -887,9 +914,17 @@ fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_
                 }
             });
             if let Some(i) = remove {
-                state.sector.systems[sys_idx].worlds[w_idx].claims.remove(i);
-                state.dirty = true;
-                state.mark_validation_dirty();
+                // §R4: remove the claim via EditWorld on a world clone.
+                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+                draft.claims.remove(i);
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
             ui.add_space(4.0);
             show_add_claim_row(ui, state, sys_idx, w_idx);
@@ -961,15 +996,21 @@ fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
         ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));
         if ui.button("+ claim").clicked() {
             if let (Some(fid), Some(kind)) = (buf.faction.clone(), buf.claim_type) {
-                state.sector.systems[sys_idx].worlds[w_idx]
-                    .claims
-                    .push(FactionClaim {
-                        faction_id: fid,
-                        claim_type: kind,
-                        strength: buf.strength,
-                    });
-                state.dirty = true;
-                state.mark_validation_dirty();
+                // §R4: add the claim via EditWorld on a world clone.
+                let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+                draft.claims.push(FactionClaim {
+                    faction_id: fid,
+                    claim_type: kind,
+                    strength: buf.strength,
+                });
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: wid,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
+                }
             }
         }
     });

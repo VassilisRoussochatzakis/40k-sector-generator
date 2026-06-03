@@ -198,9 +198,6 @@ pub struct BuilderState {
     pub invariant_report: Option<InvariantReport>,
     pub modal: Option<ModalKind>,
     pub pending_jobs: Vec<JobHandle>,
-    /// §49: when true, structural renumbers prefer the stable mode that
-    /// preserves existing IDs.
-    pub stable_ids_on_rename: bool,
     /// §P4: per-file dirty markers keyed by project-relative path. Populated
     /// by panels that edit individual catalogs and cleared on save.
     pub dirty_files: BTreeSet<String>,
@@ -451,12 +448,12 @@ pub struct BuilderState {
     /// §LINK1 — forward stack populated by [`Self::nav_back`]. Cleared by any
     /// new `focus_entity` call.
     pub nav_forward_stack: Vec<EntityRef>,
-    /// §LINK1 — selected persona id used by PERSONAE inbound links. The
-    /// PERSONAE panel is a Phase D stub today; the field exists now so links
-    /// land first-class when the panel ships.
+    /// §LINK1 — selected persona id used by PERSONAE inbound links. Drives the
+    /// row highlight + click-select in `panels/personae.rs` and cross-tab focus
+    /// via `state/selection.rs`.
     pub selected_persona_id: Option<String>,
-    /// §LINK1 — selected hook id used by HOOKS inbound links. Mirrors the
-    /// persona stub above.
+    /// §LINK1 — selected hook id used by HOOKS inbound links. Same wiring as
+    /// [`Self::selected_persona_id`], scoped to `panels/hooks.rs`.
     pub selected_hook_id: Option<String>,
     /// §PER1..§PER5: latest dramatis-personae overlay. Personae are not part
     /// of `GeneratedSector`, so the builder caches the most recent
@@ -730,7 +727,6 @@ impl BuilderState {
             invariant_report: None,
             modal: None,
             pending_jobs: Vec::new(),
-            stable_ids_on_rename: true,
             dirty_files: BTreeSet::new(),
             selected_file: None,
             toml_editor: TomlEditorState::default(),

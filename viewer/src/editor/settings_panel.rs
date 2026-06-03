@@ -90,6 +90,11 @@ pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     section(ui, "EDITOR PREFERENCES");
     ui.checkbox(&mut state.auto_save, "AUTO-SAVE TO sector.json");
     dim(ui, "Background saving on every change.");
+    // VED-2: expose stable_ids_on_rename so it is no longer stuck at its default.
+    ui.checkbox(&mut state.stable_ids_on_rename, "Stable IDs on rename")
+        .on_hover_text(
+            "§49: keep existing system/world IDs stable when renaming (off = compact renumber).",
+        );
 
     ui.add_space(8.0);
     section(ui, "STATS (auto-updated on save)");

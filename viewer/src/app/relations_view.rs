@@ -1,6 +1,9 @@
 use crate::{palette, App};
 use egui::{RichText, ScrollArea};
 
+// VAPP-4: this view is an intentional read-only summary dump of the relation pairs
+// (public/secret attitude via `{:?}`). No filter/sort/selection is provided by design — it is a
+// glanceable diplomacy overview, not an editor. Leave behaviour as-is unless a feature is requested.
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
         egui::CentralPanel::default()

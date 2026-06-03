@@ -165,7 +165,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 .num_columns(2)
                 .show(ui, |ui| {
                     ui.label("mode");
-                    changed |= world_selection_mode_combo(ui, &mut gen.world_selection.mode);
+                    changed |= world_selection_mode_combo(ui, &gen.world_selection.mode);
                     ui.end_row();
                     ui.label("require_complete_rows");
                     changed |= ui
@@ -269,22 +269,16 @@ fn placement_mode_combo(ui: &mut Ui, mode: &mut PlacementMode) -> bool {
     changed
 }
 
-fn world_selection_mode_combo(ui: &mut Ui, mode: &mut WorldSelectionMode) -> bool {
-    let mut changed = false;
-    egui::ComboBox::from_id_salt("world_selection_mode_combo")
-        .selected_text(format!("{mode}"))
-        .show_ui(ui, |ui| {
-            for option in [WorldSelectionMode::WeightedRows] {
-                if ui
-                    .selectable_label(*mode == option, format!("{option}"))
-                    .clicked()
-                {
-                    *mode = option;
-                    changed = true;
-                }
-            }
-        });
-    changed
+/// GEN-1: `WorldSelectionMode` has a single variant (`WeightedRows`) today, so a
+/// combo could only ever offer one option. Render a static label instead of a
+/// no-choice dropdown. Kept as a function (taking `mode` by ref so it can read
+/// the display name) so a real combo drops back in unchanged once a second
+/// variant exists. The return type stays `bool` (`false` — nothing to change)
+/// to keep the caller's `changed |=` accumulation intact.
+fn world_selection_mode_combo(ui: &mut Ui, mode: &WorldSelectionMode) -> bool {
+    ui.label(format!("{mode}"))
+        .on_hover_text("Only one world-selection mode exists today (weighted rows).");
+    false
 }
 
 // ── G2 ──────────────────────────────────────────────────────────────────────

@@ -167,10 +167,7 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
         ui.end_row();
         ui.label("min_faction_presence");
         changed |= ui
-            .add(
-                egui::DragValue::new(&mut cfg.min_faction_presence)
-                    .range(0..=64),
-            )
+            .add(egui::DragValue::new(&mut cfg.min_faction_presence).range(0..=64))
             .changed();
         ui.end_row();
     });
@@ -339,6 +336,10 @@ fn anchor_label(a: &PersonaAnchor) -> String {
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("manual personae").strong());
+    // PER-1: consume the one-shot "edit this persona" request the overlay
+    // list's EDIT button stored in `personae_edit_target`. Read it before the
+    // `data_catalogs` borrow so the matching manual row can scroll into view.
+    let edit_target = state.personae_edit_target.take();
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
@@ -373,7 +374,15 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
 
                 for (idx, p) in cfg.manual.iter_mut().enumerate() {
                     let mut id_buf = p.id.to_string();
-                    if ui.text_edit_singleline(&mut id_buf).changed() {
+                    // PER-1: when this row is the one the user asked to edit,
+                    // scroll it into view so the jump from the overlay list lands
+                    // on the right `[[manual]]` entry.
+                    let is_edit_target = edit_target.as_deref() == Some(id_buf.as_str());
+                    let id_resp = ui.text_edit_singleline(&mut id_buf);
+                    if is_edit_target {
+                        id_resp.scroll_to_me(Some(egui::Align::Center));
+                    }
+                    if id_resp.changed() {
                         p.id = id_buf.into();
                         changed = true;
                     }

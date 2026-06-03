@@ -28,7 +28,8 @@ use sectorforge::sector_model::{
     WorldFactionPresence,
 };
 
-use crate::builder::state::{BuilderTab, ControlOverlay, EntityRef};
+use crate::builder::command::BuilderCommand;
+use crate::builder::state::{BuilderTab, ControlOverlay, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 const CLAIM_TYPES: &[ClaimType] = &[
@@ -310,25 +311,32 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                         .remove(&(world_id.clone(), faction_id));
                 }
             }
-            if !edits.is_empty() {
-                let target = &mut state.sector_mut().systems[sys_idx].worlds[w_idx].factions;
+            // §R4 (CTL-1): per-presence edits + remove route through EditWorld so
+            // dimension/tier/intel/dominance tweaks and row removal are undoable.
+            // The transient `dominance_locked` side-table is written directly
+            // above/below (it is UI lock state, not sector model).
+            if !edits.is_empty() || remove_at.is_some() {
+                let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
                 for (i, p) in edits {
-                    if i < target.len() {
-                        target[i] = p;
+                    if i < draft.factions.len() {
+                        draft.factions[i] = p;
                     }
                 }
-                state.dirty = true;
-                state.mark_validation_dirty();
-            }
-            if let Some(i) = remove_at {
-                let target = &mut state.sector_mut().systems[sys_idx].worlds[w_idx].factions;
-                if i < target.len() {
-                    let removed = target.remove(i);
-                    state
-                        .dominance_locked
-                        .remove(&(world_id.clone(), removed.faction_id));
-                    state.dirty = true;
-                    state.mark_validation_dirty();
+                if let Some(i) = remove_at {
+                    if i < draft.factions.len() {
+                        let removed = draft.factions.remove(i);
+                        state
+                            .dominance_locked
+                            .remove(&(world_id.clone(), removed.faction_id));
+                    }
+                }
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: id,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
                 }
             }
 
@@ -425,22 +433,29 @@ fn show_add_presence_row(
                 }
             });
         if ui.button("+ presence").clicked() {
-            state.sector.systems[sys_idx].worlds[w_idx]
-                .factions
-                .push(WorldFactionPresence {
-                    faction_id: buf.faction.clone(),
-                    subfaction_id: None,
-                    subfaction_name: None,
-                    force_id: None,
-                    force_name: None,
-                    influence: buf.tier,
-                    relationship_to_government: "neutral".into(),
-                    dimensions: PresenceDimensions::default(),
-                    dominance: DominanceState::default(),
-                    intel_confidence: 100,
-                });
-            state.dirty = true;
-            state.mark_validation_dirty();
+            // §R4 (CTL-2): add-presence routes through EditWorld so the new row
+            // is undoable.
+            let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            draft.factions.push(WorldFactionPresence {
+                faction_id: buf.faction.clone(),
+                subfaction_id: None,
+                subfaction_name: None,
+                force_id: None,
+                force_name: None,
+                influence: buf.tier,
+                relationship_to_government: "neutral".into(),
+                dimensions: PresenceDimensions::default(),
+                dominance: DominanceState::default(),
+                intel_confidence: 100,
+            });
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: id,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+            }
         }
     });
     ui.data_mut(|d| d.insert_temp(buf_id, buf));
@@ -502,9 +517,19 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                 });
             }
             if let Some(ns) = new_state {
-                state.sector.systems[sys_idx].control.state = ns;
-                state.dirty = true;
-                state.mark_validation_dirty();
+                // §R4 (CTL-3): §C4 control_state picker routes through EditSystem
+                // so the control-state change is undoable. The system's worlds
+                // ride through the clone unchanged.
+                let id = state.sector.systems[sys_idx].id.clone();
+                let mut draft = state.sector.systems[sys_idx].clone();
+                draft.control.state = ns;
+                if let Err(e) = state.run(BuilderCommand::EditSystem {
+                    system: id,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                }
             }
 
             // §C5 primary_factions: auto-derive top-3 unless locked.
@@ -536,10 +561,20 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                     state.dirty = true;
                 }
                 if ui.small_button("Recompute").clicked() {
-                    state.sector.systems[sys_idx].primary_factions = derived.clone();
+                    // §R4 (CTL-3): Recompute writes derived primary_factions via
+                    // EditSystem so the override-clear is undoable. The transient
+                    // `primary_factions_locked` table is UI lock state (direct).
                     state.primary_factions_locked.remove(&system_id);
-                    state.dirty = true;
-                    state.mark_validation_dirty();
+                    let id = state.sector.systems[sys_idx].id.clone();
+                    let mut draft = state.sector.systems[sys_idx].clone();
+                    draft.primary_factions = derived.clone();
+                    if let Err(e) = state.run(BuilderCommand::EditSystem {
+                        system: id,
+                        before: None,
+                        after: Box::new(draft),
+                    }) {
+                        state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                    }
                 }
             });
             if factions.is_empty() {
@@ -823,11 +858,10 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
                 let disabled = matches == 0 || same;
                 let btn = egui::Button::new(format!("Convert {matches} claims"));
                 if ui.add_enabled(!disabled, btn).clicked() {
-                    let n = apply_bulk_convert(state, &buf.faction, buf.from, buf.to);
-                    if n > 0 {
-                        state.dirty = true;
-                        state.mark_validation_dirty();
-                    }
+                    // §R4 (CTL-4): one undo step across all converted worlds;
+                    // apply_bulk_convert dispatches BulkEditWorlds (sets dirty +
+                    // re-runs invariants), so no manual dirty/validation here.
+                    let _ = apply_bulk_convert(state, &buf.faction, buf.from, buf.to);
                 }
                 if same {
                     ui.colored_label(Color32::GRAY, "X = Z — nothing to do");
@@ -852,6 +886,11 @@ fn count_bulk_matches(state: &BuilderState, faction: &FactionId, from: ClaimType
     n
 }
 
+/// §R4 (CTL-4 / §CL4): rewrite every matching claim across all worlds in a
+/// single undo step via [`BuilderCommand::BulkEditWorlds`]. Read-clones each
+/// affected world, mutates the clone's `claims`, and collects the
+/// `(world_id, draft)` pairs; the live sector is only touched through
+/// `state.run`. Returns the number of claims converted (0 if none).
 fn apply_bulk_convert(
     state: &mut BuilderState,
     faction: &FactionId,
@@ -859,14 +898,33 @@ fn apply_bulk_convert(
     to: ClaimType,
 ) -> usize {
     let mut n = 0usize;
-    for sys in &mut state.sector_mut().systems {
-        for w in &mut sys.worlds {
-            for c in &mut w.claims {
+    let mut after: Vec<(WorldId, sectorforge::sector_model::GeneratedWorld)> = Vec::new();
+    for sys in &state.sector.systems {
+        for w in &sys.worlds {
+            let mut changed = 0usize;
+            for c in &w.claims {
                 if &c.faction_id == faction && c.claim_type == from {
-                    c.claim_type = to;
-                    n += 1;
+                    changed += 1;
                 }
             }
+            if changed > 0 {
+                let mut draft = w.clone();
+                for c in &mut draft.claims {
+                    if &c.faction_id == faction && c.claim_type == from {
+                        c.claim_type = to;
+                    }
+                }
+                after.push((w.id.clone(), draft));
+                n += changed;
+            }
+        }
+    }
+    if !after.is_empty() {
+        if let Err(e) = state.run(BuilderCommand::BulkEditWorlds {
+            before: Vec::new(),
+            after,
+        }) {
+            state.modal = Some(ModalKind::Message(format!("Bulk convert failed: {e}")));
         }
     }
     n
@@ -1012,9 +1070,20 @@ fn show_world_row(
             }
         });
         if let Some(i) = remove {
-            state.sector.systems[sys_idx].worlds[w_idx].claims.remove(i);
-            state.dirty = true;
-            state.mark_validation_dirty();
+            // §R4 (CTL-5): claim removal routes through EditWorld so it is
+            // undoable.
+            let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            if i < draft.claims.len() {
+                draft.claims.remove(i);
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: id,
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+                }
+            }
         }
 
         show_add_claim_row(ui, state, sys_idx, w_idx, &wid, factions);
@@ -1075,15 +1144,21 @@ fn show_add_claim_row(
             });
         ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));
         if ui.button("+ claim").clicked() {
-            state.sector.systems[sys_idx].worlds[w_idx]
-                .claims
-                .push(FactionClaim {
-                    faction_id: buf.faction.clone(),
-                    claim_type: buf.claim_type,
-                    strength: buf.strength,
-                });
-            state.dirty = true;
-            state.mark_validation_dirty();
+            // §R4 (CTL-5): claim add routes through EditWorld so it is undoable.
+            let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            draft.claims.push(FactionClaim {
+                faction_id: buf.faction.clone(),
+                claim_type: buf.claim_type,
+                strength: buf.strength,
+            });
+            if let Err(e) = state.run(BuilderCommand::EditWorld {
+                world: id,
+                before: None,
+                after: Box::new(draft),
+            }) {
+                state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
+            }
         }
     });
     ui.data_mut(|d| d.insert_temp(row_id, buf));

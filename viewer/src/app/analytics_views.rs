@@ -209,9 +209,11 @@ impl App {
                     }
                     ui.add_space(8.0);
                     let mut revert_idx: Option<usize> = None;
-                    for (i, (name, _)) in self.history_snapshots.iter().enumerate() {
+                    // VAPP-5: snapshot names are user-editable (was a read-only auto-generated label).
+                    // Nothing keys off the name — revert uses the index — so in-place rename is safe.
+                    for (i, (name, _)) in self.history_snapshots.iter_mut().enumerate() {
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new(name));
+                            ui.text_edit_singleline(name);
                             if ui.button("REVERT").clicked() {
                                 revert_idx = Some(i);
                             }

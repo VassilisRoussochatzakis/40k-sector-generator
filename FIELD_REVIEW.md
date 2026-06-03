@@ -4,13 +4,55 @@ generated: 2026-06-02
 scope: sectorforge-builder (24 tabs) + sectorforge-viewer (12 app views + 6 editor tabs)
 method: mechanical reference-count over all state fields, then per-tab read of every panel
 invariants_referenced: ["§R4 command-bus", "§U2 undo ring", "§V1/§V2 diagnostics", "CLAUDE.md determinism"]
-status: review-only — no code changed
+status: remediated 2026-06-02 — all findings addressed (see Remediation log)
 ---
 
 # FIELD_REVIEW
 
 A field-level audit of every tab in the **builder** and **viewer** modules, looking for
 (a) **dead/unused fields** and (b) **fields implemented improperly**.
+
+## Remediation log (2026-06-02)
+
+All findings below were implemented. The original audit is preserved unchanged
+beneath this log as the historical record.
+
+**Cross-cutting**
+
+- **XC-1** ✅ `VALIDATION` + `INVARIANTS` are now first-class `BuilderTab` variants
+  (the two right-most entries in `BuilderTab::ALL`); the dead `let _ = …show`
+  references and the misleading "footer" comment are gone (`panels/nav.rs`,
+  `state/types.rs`, `state/tests.rs`).
+- **XC-2** ✅ Every live-sector detail edit now routes through the command bus.
+  Five coarse snapshot-replace commands were added — `EditWorld`, `EditSystem`,
+  `EditChronicle`, `BulkEditWorlds`, `DeriveBaselineIntel` (`command.rs`, each
+  with an `apply`/`revert` round-trip test) — plus reuse of the existing
+  `RenameWorld` / `SetWorldOrbit` / `SetStar` / `SetStarSpectral` / `ReplaceRoutes`
+  where a narrow command already fit. The catalog editors stay off-bus by design.
+- **XC-3** ✅ Stale "Phase D stub" comments on `selected_persona_id` /
+  `selected_hook_id` deleted (`state/mod.rs`).
+- **XC-4** ✅ The viewer gained a "Stable IDs on rename" checkbox
+  (`editor/settings_panel.rs`; the field is consumed at `app/sector_view.rs`).
+  The builder's never-read mirror field was dropped (`state/mod.rs`, `session.rs`).
+
+**Builder per-tab** — WRL-1..7, SYS-1..5, SMAP-1..2, CTL-1..5, INT-1..2, HIS-1..3,
+REG-1, MAP-2 all converted to command dispatch (see XC-2; CTL-6 re-derivations left
+direct as documented). MAP-3 dead `coord` binding removed. GEN-1 single-variant
+combo collapsed to a static label. RND-1 dead `RandomGenState::error` field dropped.
+PER-1 `personae_edit_target` now scrolls the matching manual row into view.
+REL-1 dead `id_salt` parameter removed from `u8_slider` + its callers.
+
+**Viewer** — VED-1 dead `EditorState::system_side` deleted; VED-2 = the XC-4
+checkbox; VED-3 duplicate SEED widget removed; VED-4 near-miss preview now marks
+the project dirty; VAPP-1 "SAVE & EXPORT ALL" renamed honest (`SAVE & EXPORT (PNG)`,
+since `pending_export` is single-shot); VAPP-2 the inert preset-gallery
+target/dimensions/add-to-existing controls disabled with hover notes (`scaffold`
+cannot consume them); VAPP-3 PLAN button documented as an explicit re-trigger;
+VAPP-4 relations dump annotated; VAPP-5 snapshot name made editable.
+
+Verification: `cargo clippy --workspace --all-targets -- -D warnings` clean,
+`cargo test --workspace` + `cargo test --test it -- golden` green (golden
+byte-stability unaffected — no rendering/`src/` code was touched).
 
 ## How to read this document
 

@@ -319,13 +319,29 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
                     state.modal = Some(ModalKind::Message(format!("Add world failed: {e}")));
                 }
                 Ok(()) => {
-                    if let Some(sys) = state.sector.systems.iter_mut().find(|s| s.id == id) {
-                        if let Some(w) = sys.worlds.iter_mut().find(|w| w.index == next_index) {
-                            w.orbit = next_orbit;
+                    // §R4: pin the new world's orbit through the command bus
+                    // rather than writing `w.orbit` directly. Resolve the new
+                    // world's id (found via `next_index`) into an owned value
+                    // first so no `state.sector` borrow is held across the
+                    // dispatch. `SetWorldOrbit::apply` captures `before`.
+                    let new_world = state
+                        .sector
+                        .systems
+                        .iter()
+                        .find(|s| s.id == id)
+                        .and_then(|s| s.worlds.iter().find(|w| w.index == next_index))
+                        .map(|w| w.id.clone());
+                    if let Some(world) = new_world {
+                        let orbit_cmd = BuilderCommand::SetWorldOrbit {
+                            world,
+                            before: 0,
+                            after: next_orbit,
+                        };
+                        if let Err(e) = state.run(orbit_cmd) {
+                            state.modal =
+                                Some(ModalKind::Message(format!("Set world orbit failed: {e}")));
                         }
                     }
-                    state.dirty = true;
-                    state.mark_validation_dirty();
                 }
             }
         }
@@ -604,7 +620,9 @@ fn render_system_menu(
                 },
             );
         }
-        let _ = coord;
+        // §R4: `coord` is used on the main (non-early-return) path below
+        // (REGENERATE SYSTEM, COPY COORD), so the parameter is genuinely
+        // consumed — the stray `let _ = coord;` suppression is removed.
         return close;
     }
 

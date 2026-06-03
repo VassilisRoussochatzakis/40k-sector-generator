@@ -80,12 +80,13 @@ pub fn show_active_panel(ui: &mut egui::Ui, state: &mut BuilderState) {
         BuilderTab::Briefing => briefing::show(ui, state),
         BuilderTab::Segmentum => segmentum::show(ui, state),
         BuilderTab::Export => export::show(ui, state),
+        // XC-1: §V1 / §V2 diagnostics are first-class tabs (the two right-most
+        // entries in `BuilderTab::ALL`) so the per-error / per-violation focus
+        // buttons are reachable. The status-bar health pip still reads
+        // `validation_report` directly for an always-visible summary.
+        BuilderTab::Validation => validation::show(ui, state),
+        BuilderTab::Invariants => invariants_panel::show(ui, state),
     }
-    // Validation + invariants are surfaced as collapsing footers on every
-    // tab so the user never has to leave the working surface to read the
-    // active diagnostics (§V1 / §V2).
-    let _ = validation::show;
-    let _ = invariants_panel::show;
 }
 
 #[cfg(test)]

@@ -26,6 +26,8 @@ use sectorforge::intel::{
     ClassifiedState, IntelSource, ObserverView, PropagandaState, SuspectedPresence, SystemIntel,
 };
 
+use crate::builder::command::BuilderCommand;
+use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
 
 /// §I4 — observer-faction lens combo + §I5 cutoff slider + §I3 baseline button.
@@ -80,10 +82,17 @@ pub fn run_baseline_intel(state: &mut BuilderState) {
         .iter()
         .map(|f| f.id.as_str().to_string())
         .collect();
-    let observer_refs: Vec<&str> = observer_ids.iter().map(|s| s.as_str()).collect();
-    sectorforge::intel::derive_intel(state.sector_mut(), &observer_refs);
-    state.dirty = true;
-    state.mark_validation_dirty();
+    // §R4 (INT-2): route the whole-sector derive through the command bus so it is
+    // undoable. The command's apply() runs `intel::derive_intel`, snapshots the
+    // prior per-entity intel for revert, and sets dirty + re-arms validation — so
+    // the manual `state.dirty = true; state.mark_validation_dirty();` is gone.
+    if let Err(e) = state.run(BuilderCommand::DeriveBaselineIntel {
+        observers: observer_ids,
+        before_systems: Vec::new(),
+        before_worlds: Vec::new(),
+    }) {
+        state.modal = Some(ModalKind::Message(format!("Baseline intel failed: {e}")));
+    }
 }
 
 /// §I1 — per-system intel editor, hosted under a `CollapsingHeader` in the
@@ -96,18 +105,27 @@ pub fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx:
         .show(ui, |ui| {
             show_baseline_row(ui, state);
             ui.separator();
+            // Gather the faction roster into an owned Vec *before* cloning the
+            // system, so there is no outstanding `state` borrow when we clone.
             let factions: Vec<(FactionId, String)> = state
                 .sector
                 .factions
                 .iter()
                 .map(|f| (f.id.clone(), f.name.to_string()))
                 .collect();
-            let intel = &mut state.sector_mut().systems[sys_idx].intel;
-            let mut dirty = false;
-            dirty |= show_observer_editor(ui, intel, "sys_intel", &factions);
+            // §R4 (INT-1): edit a clone of the system, then dispatch EditSystem so
+            // the change is undoable. `state.run` sets dirty + re-runs invariants +
+            // re-arms validation, replacing the old manual flags.
+            let mut draft = state.sector.systems[sys_idx].clone();
+            let dirty = show_observer_editor(ui, &mut draft.intel, "sys_intel", &factions);
             if dirty {
-                state.dirty = true;
-                state.mark_validation_dirty();
+                if let Err(e) = state.run(BuilderCommand::EditSystem {
+                    system: draft.id.clone(),
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
+                }
             }
         });
 }
@@ -125,18 +143,27 @@ pub fn show_world_intel_section(
         .show(ui, |ui| {
             show_baseline_row(ui, state);
             ui.separator();
+            // Gather the faction roster into an owned Vec *before* cloning the
+            // world, so there is no outstanding `state` borrow when we clone.
             let factions: Vec<(FactionId, String)> = state
                 .sector
                 .factions
                 .iter()
                 .map(|f| (f.id.clone(), f.name.to_string()))
                 .collect();
-            let intel = &mut state.sector_mut().systems[sys_idx].worlds[w_idx].intel;
-            let mut dirty = false;
-            dirty |= show_observer_editor(ui, intel, "world_intel", &factions);
+            // §R4 (INT-1): edit a clone of the world, then dispatch EditWorld so
+            // the change is undoable. `state.run` sets dirty + re-runs invariants +
+            // re-arms validation, replacing the old manual flags.
+            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
+            let dirty = show_observer_editor(ui, &mut draft.intel, "world_intel", &factions);
             if dirty {
-                state.dirty = true;
-                state.mark_validation_dirty();
+                if let Err(e) = state.run(BuilderCommand::EditWorld {
+                    world: draft.id.clone(),
+                    before: None,
+                    after: Box::new(draft),
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Intel edit failed: {e}")));
+                }
             }
             if state.intel_player_min_confidence > 0 || state.intel_observer.is_some() {
                 ui.separator();

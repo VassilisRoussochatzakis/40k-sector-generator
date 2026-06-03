@@ -184,13 +184,16 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
                     app.pending_export = Some(crate::app::PendingExport::AllSystemPngs);
                 }
                 if ui
-                    .add_enabled(export_ready, egui::Button::new("SAVE & EXPORT ALL"))
+                    .add_enabled(export_ready, egui::Button::new("SAVE & EXPORT (PNG)"))
                     .clicked()
                 {
                     app.save_sector_to_source();
                     app.pending_export = Some(crate::app::PendingExport::SectorPng);
-                    // We could chain them, but pending_export only holds one.
-                    // For now, let's just do PNG.
+                    // VAPP-1: renamed from "SAVE & EXPORT ALL" — pending_export holds one variant
+                    // drained once per frame, each format opens its own blocking file dialog, PNG
+                    // needs a multi-frame resolution dialog, and only one export_job runs at a time.
+                    // True multi-format export would need an async job queue; out of scope here, so
+                    // the label is now honest about doing PNG only (SVG/HTML have their own buttons).
                 }
                 if ui
                     .add_enabled(export_ready, egui::Button::new("EXPORT BUNDLE"))

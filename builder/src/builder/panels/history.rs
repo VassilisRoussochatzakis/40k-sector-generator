@@ -24,7 +24,10 @@ use sectorforge::history::{
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::SystemState;
 
-use crate::builder::state::{BuilderTab, EntityRef, HistoryAnchorKind, HistoryWizardState};
+use crate::builder::command::BuilderCommand;
+use crate::builder::state::{
+    BuilderTab, EntityRef, HistoryAnchorKind, HistoryWizardState, ModalKind,
+};
 use crate::builder::BuilderState;
 
 const DEFAULT_HISTORY_PATH: &str = "data/history.toml";
@@ -480,11 +483,17 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
         return;
     };
 
+    // §R4: all field edits accumulate on a clone of the chronicle and commit
+    // through `BuilderCommand::EditChronicle` — the widgets bind to
+    // `chron.events[idx].*` so in-frame display is unchanged, but the write is
+    // undoable. `state.run` handles dirty / invariants / validation /
+    // auto-save, so no `on_chronicle_mutated` call is needed afterward.
+    let mut chron = state.sector.chronicle.clone();
     let mut changed = false;
     let mut delete = false;
     let mut highlight = false;
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        let ev = &mut state.sector_mut().chronicle.events[idx];
+        let ev = &mut chron.events[idx];
         ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new("id").strong());
             ui.monospace(&ev.id);
@@ -586,7 +595,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
             });
     });
     if let Some(fid) = to_add {
-        let ev = &mut state.sector_mut().chronicle.events[idx];
+        let ev = &mut chron.events[idx];
         if !ev.factions.iter().any(|f| f == &fid) {
             ev.factions.push(fid);
             changed = true;
@@ -597,7 +606,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     egui::CollapsingHeader::new("consequences")
         .default_open(false)
         .show(ui, |ui| {
-            let ev = &mut state.sector_mut().chronicle.events[idx];
+            let ev = &mut chron.events[idx];
             let mut remove_c: Option<usize> = None;
             for (ci, c) in ev.consequences.iter_mut().enumerate() {
                 ui.horizontal_wrapped(|ui| {
@@ -630,20 +639,32 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
         });
 
     if delete {
-        let anchor = state.sector.chronicle.events[idx].anchor.clone();
-        state.sector.chronicle.events.remove(idx);
-        state.selected_history_event = None;
-        let _ = anchor;
-        on_chronicle_mutated(state);
+        // §R4: delete via EditChronicle (was `chronicle.events.remove(idx)`).
+        chron.events.remove(idx);
+        if let Err(e) = state.run(BuilderCommand::EditChronicle {
+            before: None,
+            after: Box::new(chron),
+        }) {
+            state.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+        } else {
+            state.selected_history_event = None;
+        }
         return;
     }
     if highlight {
         focus_anchor(state, idx);
     }
     if changed {
-        // Hand-edited events are pinned so they survive regeneration.
-        state.sector.chronicle.events[idx].manual = true;
-        on_chronicle_mutated(state);
+        // §R4: commit hand-edits via EditChronicle (was direct field writes +
+        // a manual-pin assignment). Hand-edited events are pinned so they
+        // survive regeneration.
+        chron.events[idx].manual = true;
+        if let Err(e) = state.run(BuilderCommand::EditChronicle {
+            before: None,
+            after: Box::new(chron),
+        }) {
+            state.modal = Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+        }
     }
 }
 
@@ -908,13 +929,22 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
             if commit {
                 if let Some(w) = state.history_wizard.take() {
                     let ev = build_manual_event(&w, &systems, &worlds, &routes, &regions);
-                    state.sector.chronicle.events.push(ev);
-                    state
-                        .sector
-                        .chronicle
+                    // §R4: push + re-sort on a clone and commit via
+                    // EditChronicle (was a direct `chronicle.events.push` +
+                    // `.sort_by`). `state.run` handles dirty / invariants /
+                    // validation / auto-save.
+                    let mut chron = state.sector.chronicle.clone();
+                    chron.events.push(ev);
+                    chron
                         .events
                         .sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
-                    on_chronicle_mutated(state);
+                    if let Err(e) = state.run(BuilderCommand::EditChronicle {
+                        before: None,
+                        after: Box::new(chron),
+                    }) {
+                        state.modal =
+                            Some(ModalKind::Message(format!("Chronicle edit failed: {e}")));
+                    }
                 }
             } else if close {
                 state.history_wizard = None;
@@ -1259,11 +1289,12 @@ fn on_catalog_edited(state: &mut BuilderState) {
     }
 }
 
-fn on_chronicle_mutated(state: &mut BuilderState) {
-    state.dirty = true;
-    state.mark_validation_dirty();
-    state.trigger_auto_save();
-}
+// §R4: `on_chronicle_mutated` (dirty + mark_validation_dirty + trigger_auto_save)
+// was removed — every chronicle edit now goes through
+// `BuilderCommand::EditChronicle`, and `BuilderState::run` performs that exact
+// bookkeeping (plus index rebuild, derivation invalidation, invariant check,
+// and undo-log push). The "Regenerate chronicle" path uses
+// `recompute_chronicle`, a derivation, and is intentionally not a field edit.
 
 pub(crate) fn kind_label(k: EventKind) -> &'static str {
     match k {

@@ -71,15 +71,32 @@ impl PresetGalleryState {
 pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     state.ensure_loaded();
 
+    // VAPP-2: `presets::scaffold` takes only (presets_dir, preset_id, dest, seed) — it copies a
+    // preset's project tree verbatim. It cannot consume target/add_to_existing/width/height, so
+    // these controls are disabled (greyed) with hover notes rather than silently doing nothing.
+    // Wiring them in would require changing the library scaffolder, which is out of viewer scope.
     ui.horizontal(|ui| {
         ui.label(RichText::new("CREATE:").color(palette::chrome_text_dim()));
-        ui.selectable_value(&mut state.target, CreationTarget::Project, "PROJECT");
-        ui.selectable_value(&mut state.target, CreationTarget::Segmentum, "SEGMENTUM");
-        ui.selectable_value(&mut state.target, CreationTarget::Sector, "SECTOR");
-        ui.selectable_value(&mut state.target, CreationTarget::System, "SYSTEM");
+        ui.add_enabled_ui(false, |ui| {
+            ui.selectable_value(&mut state.target, CreationTarget::Project, "PROJECT");
+            ui.selectable_value(&mut state.target, CreationTarget::Segmentum, "SEGMENTUM");
+            ui.selectable_value(&mut state.target, CreationTarget::Sector, "SECTOR");
+            ui.selectable_value(&mut state.target, CreationTarget::System, "SYSTEM");
+        })
+        .response
+        .on_hover_text(
+            "Preset scaffolding copies the preset's project tree as-is; the target kind is not \
+             yet wired to the scaffolder.",
+        );
     });
 
-    ui.checkbox(&mut state.add_to_existing, "Add to existing project");
+    ui.add_enabled(
+        false,
+        egui::Checkbox::new(&mut state.add_to_existing, "Add to existing project"),
+    )
+    .on_hover_text(
+        "Not wired: scaffolding requires a fresh destination that does not already exist.",
+    );
     ui.checkbox(
         &mut state.open_immediately,
         "Open immediately after creation",
@@ -87,35 +104,41 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     ui.add_space(4.0);
 
     if state.target == CreationTarget::Sector {
-        ui.group(|ui| {
-            ui.label(RichText::new("SECTOR DIMENSIONS").color(palette::chrome_text_dim()));
-            ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
+        ui.add_enabled_ui(false, |ui| {
+            ui.group(|ui| {
+                ui.label(RichText::new("SECTOR DIMENSIONS").color(palette::chrome_text_dim()));
+                ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
 
-            if state.irregular_dimensions {
-                ui.colored_label(
-                    Color32::from_rgb(235, 180, 50),
-                    "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
-                );
-            }
-
-            ui.horizontal(|ui| {
-                ui.label(RichText::new("WIDTH").color(palette::chrome_text_dim()));
-                let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
-                ui.label(RichText::new("HEIGHT").color(palette::chrome_text_dim()));
-                let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
-
-                if !state.irregular_dimensions {
-                    if state.width == 0 {
-                        state.width = 8;
-                        state.height = 8;
-                    }
-                    if w_res.changed() {
-                        state.height = state.width;
-                    } else if h_res.changed() {
-                        state.width = state.height;
-                    }
+                if state.irregular_dimensions {
+                    ui.colored_label(
+                        Color32::from_rgb(235, 180, 50),
+                        "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
+                    );
                 }
-            });
+
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("WIDTH").color(palette::chrome_text_dim()));
+                    let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
+                    ui.label(RichText::new("HEIGHT").color(palette::chrome_text_dim()));
+                    let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
+
+                    if !state.irregular_dimensions {
+                        if state.width == 0 {
+                            state.width = 8;
+                            state.height = 8;
+                        }
+                        if w_res.changed() {
+                            state.height = state.width;
+                        } else if h_res.changed() {
+                            state.width = state.height;
+                        }
+                    }
+                });
+            })
+            .response
+            .on_hover_text(
+                "Not wired: the scaffolder copies the preset's sector dimensions as-is.",
+            );
         });
         ui.add_space(8.0);
     }
@@ -194,11 +217,10 @@ pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
                         };
                         let seed_ref = seed.as_deref();
 
-                        // NOTE: For now, segmentum/sector/system creation via preset
-                        // might need specific backend logic. Project scaffolding works.
-                        // If add_to_existing is true, we might need to modify the
-                        // existing project instead of creating a new one.
-
+                        // VAPP-2: scaffold copies the preset tree verbatim into a fresh dest.
+                        // target/add_to_existing/width/height are not parameters of the
+                        // scaffolder (their controls are disabled above), so they are not
+                        // passed here. Adding them would require library-side changes.
                         match presets::scaffold(&dir, &entry.id, &dest, seed_ref) {
                             Ok(_) => {
                                 state.status = format!("OK — scaffolded '{}' at {dest}", entry.id);

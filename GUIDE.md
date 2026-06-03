@@ -2192,6 +2192,32 @@ invalidate the `RelationsCfg` / `EconomyCfg` classes (→ briefing / hooks).
 `invalidate` only flags already-derived overlays, so `stale ⊆ derived` always
 holds and the status-bar "stale" count never includes an unopened tab.
 
+**§R4 detail-editor coverage (FIELD_REVIEW remediation).** The deep entity
+inspectors were historically built with direct `sector_mut()` writes and sat
+*off* the undo log. They now route through five coarse snapshot-replace commands
+in [command.rs](builder/src/builder/command.rs) — `EditWorld`, `EditSystem`,
+`EditChronicle`, `BulkEditWorlds`, and `DeriveBaselineIntel` — each capturing its
+`before` on `apply` so undo/redo restores the prior payload byte-for-byte. The
+WORLD / SYSTEM / CONTROL / INTEL / HISTORY tabs build a mutated *clone* of the
+target entity (or chronicle) and dispatch the matching command; the narrow
+single-field edits keep using `RenameWorld` / `SetWorldOrbit` /
+`SetStar` / `SetStarSpectral` / `ReplaceRoutes`. All five coarse commands
+classify as `SystemsWorlds` in `dep_classes()`. This closes the undo-coverage gap
+the FIELD_REVIEW audit flagged across `world.rs`, `system.rs`, `system_map.rs`,
+`control.rs`, `intel.rs`, `history.rs`, `regions.rs`, and `map/context_menu.rs`.
+Catalog editors (`factions.rs`, `relations.rs`, `personae.rs`, `hooks.rs`,
+`sites.rs`, `missions.rs`, `prose.rs`) remain intentionally off-bus — they edit
+the TOML mirrors in `data_catalogs.*`, not the live sector.
+
+**Diagnostics tabs (§V1 / §V2).** The pre-generation `ValidationReport` and
+post-generation `InvariantReport` panels
+([validation.rs](builder/src/builder/panels/validation.rs) /
+[invariants.rs](builder/src/builder/panels/invariants.rs)) are reachable as the
+two right-most `BuilderTab` entries (`VALIDATION`, `INVARIANTS`); each per-issue
+row is a focus button that jumps the inspector to the offending file or entity.
+The status bar still reads `validation_report` directly for the always-visible
+health pip.
+
 **LD3 — stale tag + refresh (background thread pending).**
 The status bar (`render_derivations`) shows `deriv N` (cached overlays), a yellow
 `stale M` tag (hover lists the kinds), and a blue `deriving K` tag.

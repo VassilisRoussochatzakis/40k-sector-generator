@@ -231,6 +231,8 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
 
     ui.add_space(8.0);
     ui.horizontal(|ui| {
+        // VAPP-3: explicit re-plan trigger. The FROM/TO/metric controls already set `dirty` and
+        // auto-recompute on edit, so this button is a convenience to force a re-plan on demand.
         if ui.button(RichText::new("PLAN")).clicked() {
             dirty = true;
         }

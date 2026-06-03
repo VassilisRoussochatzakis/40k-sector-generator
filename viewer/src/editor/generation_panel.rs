@@ -234,14 +234,11 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
             }
         });
     }
-    let mut input_seed = input.config.generation.seed.clone();
+    // VED-3: removed a duplicate SEED text-edit that was mis-placed in this ROUTES row;
+    // the canonical SEED widget lives in BASIC PARAMETERS above. Only ENSURE CONNECTED remains.
     let mut input_ensure_connected = input.config.generation.routes.ensure_connected_graph;
 
     ui.horizontal(|ui| {
-        ui.label("SEED");
-        if ui.text_edit_singleline(&mut input_seed).changed() {
-            changed = true;
-        }
         if ui
             .checkbox(&mut input_ensure_connected, "ENSURE CONNECTED")
             .changed()
@@ -253,7 +250,6 @@ pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
     // Update back to state
     if changed {
         if let Some(input) = state.project_input.as_mut() {
-            input.config.generation.seed = input_seed;
             input.config.generation.routes.ensure_connected_graph = input_ensure_connected;
         }
     }

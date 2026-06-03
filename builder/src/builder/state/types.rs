@@ -117,6 +117,12 @@ pub enum BuilderTab {
     Briefing,
     Segmentum,
     Export,
+    /// §V1 pre-generation diagnostics surface (XC-1). Renders
+    /// [`crate::builder::panels::validation::show`].
+    Validation,
+    /// §V2 post-generation invariant diagnostics surface (XC-1). Renders
+    /// [`crate::builder::panels::invariants::show`].
+    Invariants,
 }
 
 impl BuilderTab {
@@ -147,6 +153,8 @@ impl BuilderTab {
             Self::Briefing => "BRIEFING",
             Self::Segmentum => "SEGMENTUM",
             Self::Export => "EXPORT",
+            Self::Validation => "VALIDATION",
+            Self::Invariants => "INVARIANTS",
         }
     }
 
@@ -176,6 +184,8 @@ impl BuilderTab {
         Self::Briefing,
         Self::Segmentum,
         Self::Export,
+        Self::Validation,
+        Self::Invariants,
     ];
 }
 

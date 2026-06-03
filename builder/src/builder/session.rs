@@ -35,7 +35,6 @@ pub struct SessionFile {
     pub pinned_systems: BTreeSet<SystemId>,
     pub pinned_worlds: BTreeSet<WorldId>,
     pub project_path: Option<Utf8PathBuf>,
-    pub stable_ids_on_rename: bool,
     /// Embedded mirrors of every project file the builder was editing.
     pub files: Vec<EmbeddedFile>,
 }
@@ -87,7 +86,6 @@ impl SessionFile {
             pinned_systems: state.pinned_systems.clone(),
             pinned_worlds: state.pinned_worlds.clone(),
             project_path: state.project_path.clone(),
-            stable_ids_on_rename: state.stable_ids_on_rename,
             files,
         }
     }
@@ -122,7 +120,6 @@ impl SessionFile {
             invariant_report: None,
             modal: None,
             pending_jobs: Vec::new(),
-            stable_ids_on_rename: self.stable_ids_on_rename,
             dirty_files: std::collections::BTreeSet::new(),
             selected_file: None,
             toml_editor: super::state::TomlEditorState::default(),

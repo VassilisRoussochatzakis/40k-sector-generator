@@ -22,6 +22,7 @@ use sectorforge::regions::{
 };
 use sectorforge::sector_model::HexCoord;
 
+use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, MapTool};
 use crate::builder::BuilderState;
 
@@ -363,18 +364,28 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
             .add_enabled(affected > 0, egui::Button::new("Apply effects to routes"))
             .clicked()
         {
+            // §R4: build the mutated routes vector against owned clones (no
+            // live `state.sector` borrow held across the dispatch), then route
+            // the write through the command bus so the edit is undoable.
+            // `ReplaceRoutes::apply` captures `before`, so we pass an empty Vec.
             let regions_clone = regions.clone();
             let systems_clone = state.sector.systems.clone();
             let max_route_distance = state.config.generation.routes.max_route_distance;
+            let mut after = state.sector.routes.clone();
             apply_route_effects(
                 &regions_clone,
                 &systems_clone,
-                &mut state.sector_mut().routes,
+                &mut after,
                 max_route_distance,
             );
-            state.dirty = true;
-            state.invariant_report = Some(sectorforge::invariants::check_sector(&state.sector));
-            state.mark_validation_dirty();
+            if let Err(e) = state.run(BuilderCommand::ReplaceRoutes {
+                before: Vec::new(),
+                after,
+            }) {
+                state.modal = Some(crate::builder::state::ModalKind::Message(format!(
+                    "Apply route effects failed: {e}"
+                )));
+            }
         }
         ui.colored_label(
             Color32::DARK_GRAY,

@@ -199,9 +199,13 @@ fn editor_body(ui: &mut egui::Ui, state: &mut BuilderState) {
         ui.fonts(|f| f.layout_job(job))
     };
 
+    // §COLUMNS: capped height so the editor, when nested inside the PROJECT
+    // tab's outer page scroll, is a finite box that scrolls internally rather
+    // than expanding to infinite height and overlapping the sections below.
     let resp = egui::ScrollArea::vertical()
         .id_salt(("toml_editor_scroll", active.as_str()))
         .auto_shrink([false, false])
+        .max_height(420.0)
         .show(ui, |ui| {
             let b = state
                 .toml_editor

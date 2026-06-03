@@ -25,8 +25,13 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     };
     ui.label(RichText::new(root.as_str()).monospace());
     ui.separator();
+    // §COLUMNS: capped so this tree, when nested inside the PROJECT tab's outer
+    // page scroll, occupies a finite box and scrolls internally instead of
+    // demanding infinite height and overlapping the sections below it. Height
+    // shrinks to content under the cap.
     ScrollArea::vertical()
-        .auto_shrink([false; 2])
+        .auto_shrink([false, true])
+        .max_height(360.0)
         .show(ui, |ui| {
             render_dir(ui, &root, &root, state);
         });

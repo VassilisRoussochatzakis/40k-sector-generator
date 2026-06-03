@@ -237,6 +237,12 @@ Click **MAP**. The panel now shows:
 - A grid of **empty hexes** filling the rest of the panel. With width 8 and
   height 8 you get 64 hexes. Coordinates are not labelled, but the top-left hex
   is `(0, 0)`, q increases to the right, r increases downward.
+- A **selection inspector** pinned to the right edge. Click a system on the map
+  and its summary (coordinates, kind, star, worlds, primary factions, control)
+  appears here *in place* — no need to leave the MAP tab. Clicking a world in
+  its **Worlds** list shows that world's summary too, and the **Open in SYSTEM
+  tab** / **Open in WORLD tab** buttons jump to the full editor only when you
+  ask for it.
 
 Drag the slider up to roughly `40` so the hexes are comfortably clickable.
 
@@ -1014,7 +1020,8 @@ These are not tabs — they are always-on systems you should know about.
 ### 12.1 The footer
 
 Every tab has a footer that surfaces (left to right): project path, a
-`● dirty` / `clean` indicator, a tri-coloured **health pip** (green /
+`● dirty` / `clean` indicator, a one-line **sector entity-count** readout
+(`N sys · N wld · N rt · N fac`), a tri-coloured **health pip** (green /
 yellow / red) followed by an inline validation + invariant summary
 (`validation: N err / M warn · invariants: K`), the command-bus cursor
 (`cmd P/Q`), the derivation cache size, a **live-derivation freshness**

@@ -19,8 +19,10 @@ mod dialogs;
 mod interactions;
 mod theme;
 
-use crate::builder::state::MapTool;
+use crate::builder::state::{EntityRef, MapTool};
 use crate::builder::BuilderState;
+
+use sectorforge_gui_core::{palette, ui_kit};
 
 pub(super) use context_menu::menu_anchor_pivot;
 
@@ -40,6 +42,17 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         .default_width(280.0)
         .width_range(220.0..=460.0)
         .show_inside(ui, |ui| show_tool_rail(ui, state));
+
+    // §COLUMNS §6.2 — pin the selected-entity inspector to a right rail so a
+    // click on the map shows details in place instead of navigating away to the
+    // SYSTEM / WORLD tab. Declared before the CentralPanel so it claims its edge
+    // first; the canvas still allocates its own rect, so the pointer / drag math
+    // is unchanged.
+    egui::SidePanel::right("map_inspector")
+        .resizable(true)
+        .default_width(260.0)
+        .width_range(200.0..=420.0)
+        .show_inside(ui, |ui| show_map_inspector(ui, state));
 
     egui::CentralPanel::default().show_inside(ui, |ui| {
         egui::ScrollArea::both().show(ui, |ui| {
@@ -123,6 +136,147 @@ pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
     });
 }
 
+/// §COLUMNS §6.2 — right-rail inspector for the entity selected on the map.
+/// Shows a compact read-only summary of the focused system (and the selected
+/// world, when it belongs to that system) plus explicit "Open in … tab"
+/// deep-links, so a map click reveals details in place rather than forcing a
+/// jump to the SYSTEM / WORLD tab. Selecting a world here is pure view state
+/// (`selected_world_id`); only the explicit buttons navigate.
+fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
+    ui.label(
+        egui::RichText::new("INSPECTOR")
+            .small()
+            .color(palette::chrome_text_dim()),
+    );
+    ui.separator();
+    egui::ScrollArea::vertical()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            let multi = state.selected_systems.len();
+            let Some(sys_id) = state.selected_system_id.clone() else {
+                ui_kit::placeholder(ui, "Click a system on the map to inspect it here.");
+                if multi > 1 {
+                    ui.add_space(4.0);
+                    ui.label(format!(
+                        "{multi} systems selected — SYSTEM ▸ Bulk operations."
+                    ));
+                }
+                return;
+            };
+            let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == sys_id) else {
+                return;
+            };
+
+            // Snapshot system facts up-front so the deep-link buttons below can
+            // mutate `state` without holding a `sector` borrow across the click.
+            let (sys_name, coord, kind, star, worlds, primary, control_state) = {
+                let sys = &state.sector.systems[sys_idx];
+                (
+                    sys.name.to_string(),
+                    sys.coord,
+                    sys.kind,
+                    sys.star
+                        .as_ref()
+                        .map(|s| format!("{} ({})", s.colour_code, s.colour_name)),
+                    sys.worlds
+                        .iter()
+                        .map(|w| (w.id.clone(), w.name.to_string()))
+                        .collect::<Vec<_>>(),
+                    sys.primary_factions.to_vec(),
+                    sys.control.state,
+                )
+            };
+
+            let mut open_system = false;
+            let mut pick_world = None;
+            let mut open_world = None;
+            let mut open_faction = None;
+
+            ui_kit::section(ui, &format!("{sys_name}  ·  {sys_id}"), |ui| {
+                ui.label(format!("coord ({}, {}) · {kind}", coord.q, coord.r));
+                if let Some(star) = &star {
+                    ui.label(format!("star {star}"));
+                }
+                if let Some(cs) = control_state {
+                    ui.label(format!("control: {cs}"));
+                }
+                if !primary.is_empty() {
+                    ui.label("primary factions:");
+                    for fid in &primary {
+                        if sectorforge_gui_core::entity_link(ui, fid.to_string(), true).clicked() {
+                            open_faction = Some(fid.clone());
+                        }
+                    }
+                }
+                if ui.button("Open in SYSTEM tab").clicked() {
+                    open_system = true;
+                }
+            });
+
+            ui.add_space(4.0);
+            ui_kit::section(ui, &format!("Worlds ({})", worlds.len()), |ui| {
+                if worlds.is_empty() {
+                    ui_kit::placeholder(ui, "no worlds");
+                }
+                for (wid, wname) in &worlds {
+                    let sel = state.selected_world_id.as_ref() == Some(wid);
+                    if ui
+                        .selectable_label(sel, format!("{wname}  ·  {wid}"))
+                        .clicked()
+                    {
+                        pick_world = Some(wid.clone());
+                    }
+                }
+            });
+
+            // World detail card — only when the selected world is in this system.
+            if let Some(wid) = state.selected_world_id.clone() {
+                if let Some(w_idx) = state.sector.systems[sys_idx]
+                    .worlds
+                    .iter()
+                    .position(|w| w.id == wid)
+                {
+                    let (wname, wtype, pop, gov, fac_n) = {
+                        let w = &state.sector.systems[sys_idx].worlds[w_idx];
+                        (
+                            w.name.to_string(),
+                            w.world.world_type.to_string(),
+                            w.world.population.to_string(),
+                            w.world.government.to_string(),
+                            w.factions.len(),
+                        )
+                    };
+                    ui.add_space(4.0);
+                    ui_kit::section(ui, &format!("World · {wname}"), |ui| {
+                        ui.label(format!("type {wtype}"));
+                        ui.label(format!("pop {pop} · gov {gov}"));
+                        ui.label(format!("faction presence: {fac_n}"));
+                        if ui.button("Open in WORLD tab").clicked() {
+                            open_world = Some(wid.clone());
+                        }
+                    });
+                }
+            }
+
+            // Apply deferred selection / navigation after the borrows above end.
+            if let Some(wid) = pick_world {
+                state.selected_world_id = Some(wid);
+            }
+            if open_system {
+                state.focus_entity(EntityRef::System(sys_id.clone()));
+            }
+            if let Some(wid) = open_world {
+                state.focus_entity(EntityRef::World {
+                    system: sys_id.clone(),
+                    world: wid,
+                });
+            }
+            if let Some(fid) = open_faction {
+                state.focus_entity(EntityRef::Faction(fid));
+            }
+        });
+}
+
 #[cfg(test)]
 mod tests {
     use super::cache::refresh_map_cache;
@@ -144,6 +298,26 @@ mod tests {
     use sectorforge::regions::RegionConditionKind;
     use sectorforge::sector_model::{HexCoord, RouteStability, RouteType, SystemState};
     use sectorforge_gui_core::sector_view::SectorGeom;
+
+    #[test]
+    fn map_inspector_paints_headless_with_selection() {
+        // §COLUMNS §6.2: the right-rail inspector must paint without panicking
+        // when a system + world are focused (exercises the deferred-mutation
+        // borrow pattern: snapshot, render links, apply after the borrows end).
+        let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+        let sid = state
+            .sector
+            .add_system(HexCoord { q: 0, r: 0 }, "A")
+            .unwrap();
+        let wid = state.sector.add_world_to_system(&sid, "W").unwrap();
+        state.selected_system_id = Some(sid);
+        state.selected_world_id = Some(wid);
+        let ctx = egui::Context::default();
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::SidePanel::right("map_inspector_test")
+                .show(ctx, |ui| super::show_map_inspector(ui, &mut state));
+        });
+    }
 
     #[test]
     fn map_tool_labels_are_non_empty() {

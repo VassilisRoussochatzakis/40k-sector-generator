@@ -19,6 +19,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         ui.separator();
         ui.label(if state.dirty { "● dirty" } else { "clean" });
         ui.separator();
+        render_counts(ui, state);
+        ui.separator();
         render_health(ui, state);
         ui.separator();
         ui.label(format!(
@@ -55,6 +57,19 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.colored_label(egui::Color32::RED, format!("subsectors: {err}"));
         }
     });
+}
+
+/// §COLUMNS §6.3 — sector entity counts, surfaced once in the status bar so
+/// individual panels need not each re-render their own summary row.
+fn render_counts(ui: &mut egui::Ui, state: &BuilderState) {
+    let systems = state.sector.systems.len();
+    let worlds: usize = state.sector.systems.iter().map(|s| s.worlds.len()).sum();
+    let routes = state.sector.routes.len();
+    let factions = state.sector.factions.len();
+    ui.label(format!(
+        "{systems} sys · {worlds} wld · {routes} rt · {factions} fac"
+    ))
+    .on_hover_text("Sector entity counts (systems · worlds · routes · factions)");
 }
 
 /// §39 LD3 — live-derivation freshness readout. Shows how many tracked

@@ -1899,8 +1899,14 @@ field rows:
   slim top bar (`nav::show_top_bar`) keeps only the `☰` rail toggle, the
   back/forward chevrons and a `CLUSTER / Tab` breadcrumb, and the view-state
   `BuilderState::nav_rail_collapsed` flag hides the rail so a master-detail tab
-  can reclaim the full width on a narrow window. As with Phases 2–5 this is
-  presentational only — every mutation still routes through
+  can reclaim the full width on a narrow window. The Map tab additionally pins a
+  right `SidePanel("map_inspector")` (§6.2, `map::show_map_inspector`) with a
+  read-only summary of the focused system / world and explicit "Open in … tab"
+  deep-links, so a map click reveals details in place instead of jumping to the
+  SYSTEM / WORLD tab; and the status bar ([status.rs](builder/src/builder/panels/status.rs))
+  gains a one-line sector entity-count segment (`N sys · N wld · N rt · N fac`,
+  §6.3) so panels need not each re-render a summary row. As with Phases 2–5 this
+  is presentational only — every mutation still routes through
   `state.run(BuilderCommand::…)`; no command dispatch, map painter, or export
   writer changed.
 

@@ -921,11 +921,20 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     }
                 });
             if current != state.sector.systems[sys_idx].control.state {
-                if let Err(e) = state.sector.set_system_control_state(&id, current) {
+                // §R4: route the control-state flip through EditSystem so it lands
+                // on the undo/redo log (was a direct `set_system_control_state` over
+                // `sector` that bypassed the command bus). EditSystem explicitly
+                // covers the control summary; the setter is a plain field write with
+                // no cascade, so the clone-mutate-dispatch shape is exact.
+                let mut draft = state.sector.systems[sys_idx].clone();
+                draft.control.state = current;
+                let cmd = BuilderCommand::EditSystem {
+                    system: id,
+                    before: None,
+                    after: Box::new(draft),
+                };
+                if let Err(e) = state.run(cmd) {
                     state.modal = Some(ModalKind::Message(format!("Control update failed: {e}")));
-                } else {
-                    state.dirty = true;
-                    state.mark_validation_dirty();
                 }
             }
             ui.label(format!("dominant: {:?}", summary.dominant));
@@ -1529,15 +1538,32 @@ pub(crate) fn apply_bulk_clear_factions(state: &mut BuilderState) {
 /// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click
 /// multi-selection menu. `value = None` clears the control flag.
 pub(crate) fn apply_bulk_control_state(state: &mut BuilderState, value: Option<SystemState>) {
+    // §R4: flip each selected system's control state through EditSystem (was an
+    // in-place `set_system_control_state` over `sector` that bypassed the bus,
+    // matching the sibling `apply_bulk_clear_factions`). Systems already at
+    // `value` are skipped so they don't emit no-op commands.
     let ids: Vec<SystemId> = state.selected_systems.iter().cloned().collect();
     for id in ids {
-        if let Err(e) = state.sector.set_system_control_state(&id, value) {
+        let Some(mut draft) = state
+            .sector
+            .systems
+            .iter()
+            .find(|s| s.id == id && s.control.state != value)
+            .cloned()
+        else {
+            continue;
+        };
+        draft.control.state = value;
+        let cmd = BuilderCommand::EditSystem {
+            system: id,
+            before: None,
+            after: Box::new(draft),
+        };
+        if let Err(e) = state.run(cmd) {
             state.modal = Some(ModalKind::Message(format!("Control flip failed: {e}")));
             return;
         }
     }
-    state.dirty = true;
-    state.mark_validation_dirty();
 }
 
 /// §CTX1 Phase 3 — promoted to `pub(crate)` for the MAP tab right-click

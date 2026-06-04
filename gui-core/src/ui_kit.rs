@@ -194,16 +194,41 @@ pub fn placeholder(ui: &mut Ui, text: &str) {
     );
 }
 
-/// A `key: value` row — dimmed key, primary value.
+/// A `key   value` row for the info-panel tables (§BEAUTY §6 #4): the key sits in
+/// a fixed left column so stacked rows align into a clean ledger, the value reads
+/// in the primary color, and a hairline separator rules the row. The separator is
+/// very low-alpha so a tall block (stability, control) reads as *ruled*, not
+/// boxed — restrained, theme-aware (lighter rule on dark presets, darker on
+/// `Light`).
 pub fn kv(ui: &mut Ui, k: &str, v: &str) {
-    ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(format!("{k}:"))
-                .color(palette::chrome_text_dim())
-                .size(DIM),
-        );
-        ui.label(RichText::new(v).color(palette::chrome_text()).size(DIM));
-    });
+    /// Fixed key-column width — fits the longest info-panel key
+    /// ("INTERNAL ROUTES") on one line at [`DIM`] without wrapping.
+    const KEY_W: f32 = 120.0;
+    let resp = ui
+        .horizontal(|ui| {
+            ui.add_sized(
+                [KEY_W, ui.spacing().interact_size.y.min(DIM + 8.0)],
+                egui::Label::new(RichText::new(k).color(palette::chrome_text_dim()).size(DIM))
+                    .selectable(false),
+            );
+            ui.label(RichText::new(v).color(palette::chrome_text()).size(DIM));
+        })
+        .response;
+
+    let dark = ui.visuals().dark_mode;
+    let sep = if dark {
+        Color32::from_white_alpha(12)
+    } else {
+        Color32::from_black_alpha(14)
+    };
+    let y = resp.rect.bottom() + 1.0;
+    ui.painter().line_segment(
+        [
+            egui::pos2(resp.rect.left(), y),
+            egui::pos2(resp.rect.right(), y),
+        ],
+        egui::Stroke::new(1.0, sep),
+    );
 }
 
 #[cfg(test)]

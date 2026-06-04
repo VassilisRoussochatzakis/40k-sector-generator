@@ -36,6 +36,7 @@ use egui::{Color32, RichText, Ui};
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use sectorforge::personae::{
     DominanceTier, KindPools, Persona, PersonaAnchor, PersonaeConfig, SystemSlot,
@@ -139,8 +140,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Regenerate")
+        if widgets::primary_button(ui, "🔄  Regenerate")
             .on_hover_text(
                 "Re-derive every persona from current faction presence and the rules below",
             )

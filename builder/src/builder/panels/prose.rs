@@ -34,6 +34,7 @@ use sectorforge::prose::{ProseConfig, ProseTone};
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::state::EntityRef;
 use crate::builder::BuilderState;
@@ -96,8 +97,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Regenerate prose")
+        if widgets::primary_button(ui, "🔄  Regenerate prose")
             .on_hover_text("Rewrite every paragraph from the current sector. Your hand-written overrides are kept.")
             .clicked()
         {

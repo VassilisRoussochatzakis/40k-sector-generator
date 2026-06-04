@@ -23,6 +23,7 @@ use sectorforge::sector_model::{RouteStability, RouteType};
 use sectorforge::segmentum::{BorderOrientation, ChildEntry, FactionMode, InterSectorLink};
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::project_io;
 use crate::builder::segmentum_run::{progress_label, SegmentumState};
@@ -602,7 +603,8 @@ fn compose_controls(ui: &mut Ui, state: &mut BuilderState) {
     let mut cancel_clicked = false;
     ui.horizontal(|ui| {
         if ui
-            .add_enabled(can_compose, egui::Button::new("▶  Compose"))
+            .add_enabled_ui(can_compose, |ui| widgets::primary_button(ui, "▶  Compose"))
+            .inner
             .on_hover_text("Load, generate, validate, and stitch every child sector into one segmentum")
             .clicked()
         {

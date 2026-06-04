@@ -184,6 +184,9 @@ impl BuilderApp {
 
     fn show_modal(&mut self, ctx: &egui::Context) {
         let modal = self.workspace.active().modal.clone();
+        // §BEAUTY §6.7: dim + inert the page behind any open modal. Called every
+        // frame (even with no modal) so the scrim fades out on close.
+        let _ = sectorforge_gui_core::modal::scrim(ctx, modal.is_some());
         let Some(modal) = modal else {
             return;
         };

@@ -23,7 +23,7 @@ use sectorforge::history::{
 };
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::SystemState;
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{palette, ui_kit, widgets};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{
@@ -148,8 +148,7 @@ fn hint_label(ui: &mut Ui, label: &str, help: &str) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Regenerate chronicle")
+        if widgets::primary_button(ui, "🔄  Regenerate chronicle")
             .on_hover_text(
                 "Rebuild the chronicle from the current sector. Events you added or hand-edited are kept.",
             )

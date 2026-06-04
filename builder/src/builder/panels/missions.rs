@@ -38,6 +38,7 @@ use sectorforge::missions::{
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::state::{BuilderTab, ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
@@ -134,8 +135,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Auto-derive missions")
+        if widgets::primary_button(ui, "🔄  Auto-derive missions")
             .on_hover_text("Suggest a fresh set of missions from the current sector. Your hand-written ones are kept.")
             .clicked()
         {

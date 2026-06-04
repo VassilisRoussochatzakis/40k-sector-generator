@@ -7,6 +7,9 @@ use super::state::{Dialog, EditorState};
 use super::ui_helpers::{combo_str, label, section, text_field};
 
 pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
+    // §BEAUTY §6.7: dim + inert the page behind any open dialog. Called every
+    // frame so the scrim animates out on close.
+    let _ = sectorforge_gui_core::modal::scrim(ctx, !matches!(state.dialog, Dialog::None));
     let dialog = std::mem::replace(&mut state.dialog, Dialog::None);
     match dialog {
         Dialog::None => {}

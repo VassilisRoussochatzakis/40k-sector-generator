@@ -41,6 +41,7 @@ use sectorforge::sector_model::HexCoord;
 use sectorforge::SectorError;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::export_run::ExportJobResult;
 use crate::builder::{BuilderState, ModalKind};
@@ -220,11 +221,13 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
         {
             run_bundle(state, ui.ctx());
         }
+        // §BEAUTY §6.6: the marquee action gets the bespoke brass primary button.
+        // `add_enabled_ui` fades the custom painter when disabled.
         if ui
-            .add_enabled(
-                has_dir && !busy,
-                egui::Button::new(RichText::new("⬇  Export everything").strong()),
-            )
+            .add_enabled_ui(has_dir && !busy, |ui| {
+                widgets::primary_button(ui, "⬇  Export everything")
+            })
+            .inner
             .on_hover_text("Write the format bundle and every lore & report file in one pass")
             .clicked()
         {
@@ -371,7 +374,7 @@ fn show_bitmap_settings(ui: &mut Ui, state: &mut BuilderState) {
             "Draw systems",
             "Draw each system on the sector map (schema: render_systems).",
             |ui| {
-                changed |= ui.checkbox(&mut bm.render_systems, "").changed();
+                changed |= widgets::toggle(ui, &mut bm.render_systems).changed();
             },
         );
         labeled(
@@ -379,7 +382,7 @@ fn show_bitmap_settings(ui: &mut Ui, state: &mut BuilderState) {
             "Shade faction areas",
             "Tint each region with its controlling faction's colour (schema: faction_fill).",
             |ui| {
-                changed |= ui.checkbox(&mut bm.faction_fill, "").changed();
+                changed |= widgets::toggle(ui, &mut bm.faction_fill).changed();
             },
         );
         labeled(

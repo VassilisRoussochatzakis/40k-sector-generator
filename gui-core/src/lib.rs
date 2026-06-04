@@ -3,10 +3,12 @@
 pub mod app_icon;
 pub mod card;
 pub mod design;
+pub mod fonts;
 pub mod heatmap;
 pub mod info_panel;
 pub mod jobs;
 pub mod map_theme;
+pub mod modal;
 pub mod nav;
 pub mod palette;
 pub mod sector_view;
@@ -14,6 +16,7 @@ pub mod system_view;
 pub mod theme;
 pub mod ui_kit;
 pub mod visual_tokens;
+pub mod widgets;
 
 pub use nav::entity_link;
 

@@ -34,6 +34,7 @@ use sectorforge::briefing::{self, AudiencePreset, BriefingProfile};
 use sectorforge::ids::FactionId;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::BuilderState;
 use crate::builder::DerivationKind;
@@ -242,8 +243,7 @@ fn preset_apply(preset: AudiencePreset, profile: &mut BriefingProfile) {
 
 fn show_generate_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Generate briefing")
+        if widgets::primary_button(ui, "🔄  Generate briefing")
             .on_hover_text("Build the redacted preview from the settings above")
             .clicked()
         {

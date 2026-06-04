@@ -55,22 +55,61 @@ now **done — do not redo them:**
 - **Nav-rail active indicator (§6 #3) — DONE** via the plate recipe above: the active
   tab now reads as a lit brass-barred plate instead of a flat fill.
 
+**Third pass landed (2026-06-04).** The last three component targets plus the
+typography *wiring* are now **done — do not redo them:**
+
+- **Bespoke buttons & toggles (§6 #6) — DONE.** New shared module
+  `gui-core/src/widgets.rs`: `primary_button` (a hand-painted brass plate — accent
+  glow on hover, a two-tone sheen, a press depress, a hairline accent border, all
+  eased; dark/light ink chosen by accent luma so it reads across presets) and
+  `toggle` / `toggle_with_label` (a sliding pill knob, accent track when on). Both
+  read the accent from the live theme, so they recolor across all 8 presets
+  (verified brass under Grimdark, crimson under Light via the §0 loop). Propagated
+  (Phase D, parallel `panel-implementer` agents) to the one marquee action of each
+  panel: Export *everything* / Apply preview / Regenerate {chronicle, hooks, prose,
+  personae, sites, missions, matrix} / Generate briefing / Auto-derive missions /
+  Score sector / Compute diff / Compose / Run search; `faction_fill` + `render_systems`
+  on EXPORT became sliding toggles. Stock `ui.button` still carries every secondary
+  action, so the brass keeps its hierarchy.
+- **Dialogs / modals (§6 #7) — DONE.** New `gui-core/src/modal.rs::scrim(ctx, open)`:
+  a fading translucent backdrop in `Order::Middle` (below the focused `Window`, above
+  the panels) that dims + inerts the page; its alpha is eased off the `open` flag, so it
+  fades in on open and out on close. It also *returns* that eased factor for an optional
+  per-dialog content fade (`ui.set_opacity(t)`). Wired into the builder's central modal
+  router (`app.rs::show_modal`) and the viewer's (`editor/dialogs.rs`); both currently
+  use the backdrop dim+fade and discard the factor. Windows already carry `elev_high`
+  from the tokens.
+- **Info panel (§6 #4) — DONE.** `ui_kit::kv` now lays its key in a fixed left column
+  (so stacked rows align into a ledger) with a very low-alpha hairline row separator,
+  theme-aware. Lifts every kv table in `info_panel` (control / stability / counts /
+  environment / society) at once.
+- **Typography (§5.5) — WIRED, dormant (one handoff left).** The full registration
+  path landed: `gui-core/src/fonts.rs::install(ctx)` (called once at startup from both
+  apps' eframe creation closure, *before* the first theme apply), `design::FONT_DISPLAY`
+  + `design::display_family()` (a named family titles opt into; resolves to
+  `Proportional` until active), and `theme.rs` routes `Heading` through it. It is gated
+  behind the **`bundled-fonts`** Cargo feature (off by default) so the stock build is
+  byte-for-byte unchanged and never references a missing binary. `design.rs` also gained
+  `vertical_gradient` (a per-vertex `Mesh` quad, §5.6).
+
 **Start a future run here:**
 
-1. **Typography (§5.5)** — still `default_fonts`; the single highest-value untouched
-   primitive, and now the main blocker. Register a display face (titles only), a
-   humanist body, and a mono for tables via `FontDefinitions` + `ctx.set_fonts`; add a
-   font-family token to `design.rs`. **Decision needed first:** it requires shipping a
-   licensed (OFL) font *binary* in-repo — choose the faces and get them committed, then
-   wire them. It touches every pixel — do it before more component polish.
-2. **Info panel (§6 #4)** (`gui-core/src/info_panel.rs`) — refine the kv tables:
-   aligned columns, hairline row separators, restrained accents.
-3. **Bespoke buttons & toggles (§6 #6)** and **dialogs / modals (§6 #7)** — a painted
-   brass primary button (press/hover/glow), a custom sliding toggle, and elevated modal
-   surfaces (scrim + `elev_high` + entrance motion).
+1. **Commit the three OFL font binaries** — the *only* remaining typography step.
+   `gui-core/assets/fonts/FONTS.md` names the exact files (`display.ttf` / `body.ttf` /
+   `mono.ttf`), suggests OFL faces, and gives the one-line build command. Drop them in,
+   build with `--features sectorforge-gui-core/bundled-fonts` (or add it to a crate
+   `default`), screenshot under Grimdark/Light, and the display face lights up every
+   title. No code change needed — only the binaries + flipping the feature on.
+2. **Optional refinements** (nice-to-have, not blockers): glowing route lines /
+   per-system hover halos / a smooth selection ring on the star map (§6.1); a single
+   nav bar that *slides* between tabs vs. the per-row bar today (§6.3); a per-dialog
+   content entrance-fade in both apps (`modal::scrim` already returns the eased factor —
+   wrap the dialog body in `ui.set_opacity(t)`; both apps currently use the backdrop
+   dim+fade only).
 
-The sections below are the full playbook; with the above landed, treat §4, §6.1, §6.2,
-§6.3, and §6.5 as reference rather than to-do.
+The sections below are the full playbook; with the above landed, treat §4 and all of §6
+as reference rather than to-do — the remaining work is the font handoff (#1) and the
+optional polish (#2).
 
 ---
 

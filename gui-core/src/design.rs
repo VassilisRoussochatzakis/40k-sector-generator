@@ -26,7 +26,7 @@
 //! `Color32::lerp` in 0.29). Re-check these on any egui bump.
 
 use egui::epaint::Shadow;
-use egui::{Color32, Rounding, Ui, Vec2};
+use egui::{Color32, FontFamily, Mesh, Painter, Rect, Rounding, Ui, Vec2};
 
 // ── spacing scale — a strict 4px base grid ───────────────────────────────────
 //
@@ -90,6 +90,34 @@ pub const BODY: f32 = 15.0;
 pub const DIM: f32 = 14.0;
 /// 12px — captions / legends (== egui `Small`).
 pub const CAPTION: f32 = 12.0;
+
+// ── type *families* — the registered display face (BEAUTY.md §5.5) ────────────
+//
+// The body / mono faces (when bundled) are registered as the front of egui's
+// `Proportional` / `Monospace` families by [`crate::fonts::install`], so ordinary
+// text picks them up with no call-site change. The *display* face is a named
+// family hero titles opt into via [`display_family`]; reserving it for titles
+// keeps a gothic face where it reads well and out of body copy where it doesn't.
+
+/// Family name the display face registers under (see [`crate::fonts`]).
+pub const FONT_DISPLAY: &str = "display";
+
+/// The [`FontFamily`] hero titles request. Resolves to the registered display
+/// face when the `bundled-fonts` feature is on (the OFL binaries are present and
+/// [`crate::fonts::install`] ran); otherwise it is the proportional default, so
+/// the stock build is byte-for-byte unchanged and never references a missing
+/// family.
+#[must_use]
+pub fn display_family() -> FontFamily {
+    #[cfg(feature = "bundled-fonts")]
+    {
+        FontFamily::Name(FONT_DISPLAY.into())
+    }
+    #[cfg(not(feature = "bundled-fonts"))]
+    {
+        FontFamily::Proportional
+    }
+}
 
 // ── elevation — soft layered shadows, never one harsh black drop ─────────────
 //
@@ -195,6 +223,24 @@ pub fn accent_bright(ui: &Ui, t: f32) -> Color32 {
 pub fn accent_glow(ui: &Ui, alpha: u8) -> Color32 {
     let a = accent(ui);
     Color32::from_rgba_unmultiplied(a.r(), a.g(), a.b(), alpha)
+}
+
+// ── gradients — egui has no gradient-fill primitive (BEAUTY.md §5.6) ──────────
+
+/// Paint `rect` with a vertical two-stop gradient (`top` → `bottom`) as a single
+/// `Mesh` quad. egui 0.29 has no gradient primitive, so a per-vertex-colored mesh
+/// is the cheap stand-in for card sheen / a painted brass button face. Corners
+/// are left square — clip or overlay a hairline-rounded border on top if needed.
+pub fn vertical_gradient(painter: &Painter, rect: Rect, top: Color32, bottom: Color32) {
+    let mut mesh = Mesh::default();
+    mesh.colored_vertex(rect.left_top(), top);
+    mesh.colored_vertex(rect.right_top(), top);
+    mesh.colored_vertex(rect.left_bottom(), bottom);
+    mesh.colored_vertex(rect.right_bottom(), bottom);
+    // Two triangles: (LT, RT, LB) and (RT, RB, LB).
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(1, 3, 2);
+    painter.add(mesh);
 }
 
 #[cfg(test)]

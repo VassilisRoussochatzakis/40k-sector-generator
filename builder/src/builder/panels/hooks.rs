@@ -34,6 +34,7 @@ use egui::{Color32, RichText, Ui};
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use sectorforge::hooks::{Hook, HookAnchor, HookKind, HooksConfig};
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
@@ -109,8 +110,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Regenerate hooks")
+        if widgets::primary_button(ui, "🔄  Regenerate hooks")
             .on_hover_text("Re-derive hooks from the current sector. Your manual hooks are kept.")
             .clicked()
         {

@@ -346,8 +346,11 @@ fn tune_spacing(style: &mut Style) {
 fn tune_typography(style: &mut Style) {
     style.text_styles = [
         (
+            // §BEAUTY §5.5: headings request the registered display face. With the
+            // `bundled-fonts` feature off this resolves to `Proportional`, so the
+            // stock type scale is unchanged.
             TextStyle::Heading,
-            FontId::new(20.0, FontFamily::Proportional),
+            FontId::new(20.0, design::display_family()),
         ),
         (TextStyle::Body, FontId::new(15.0, FontFamily::Proportional)),
         (

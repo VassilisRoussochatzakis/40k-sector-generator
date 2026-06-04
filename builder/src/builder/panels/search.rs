@@ -19,6 +19,7 @@ use sectorforge::worlds::WorldType;
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::search_run::NewConstraintKind;
 use crate::builder::state::BuilderTab;
@@ -266,7 +267,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
         let can_run = !state.search.is_running() && preflight_unknown.is_empty();
         if ui
-            .add_enabled(can_run, egui::Button::new("▶  Run search"))
+            .add_enabled_ui(can_run, |ui| widgets::primary_button(ui, "▶  Run search"))
+            .inner
             .on_hover_text("Try seeds until one matches every requirement")
             .clicked()
         {

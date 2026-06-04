@@ -4,6 +4,13 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.87"
 
+[features]
+# §BEAUTY §5.5 — opt-in custom typography. OFF by default so the stock build
+# runs on egui's `default_fonts` and never references a missing font binary.
+# Enable ONLY after committing the three OFL faces named in
+# `assets/fonts/FONTS.md`; `fonts::install` then embeds them via `include_bytes!`.
+bundled-fonts = []
+
 [dependencies]
 sectorforge = { path = ".." }
 egui = "0.29"

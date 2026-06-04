@@ -14,6 +14,7 @@ use sectorforge::diff::SectorDiff;
 use sectorforge::sector_model::GeneratedSector;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::diff_run::{DiffMode, LoadedFile, SlotKind};
 use crate::builder::{BuilderState, ModalKind};
@@ -278,8 +279,7 @@ fn show_filters(ui: &mut egui::Ui, state: &mut BuilderState) {
 
 fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
-        if ui
-            .button("▶  Compute diff")
+        if widgets::primary_button(ui, "▶  Compute diff")
             .on_hover_text("Compare the two inputs above and show what changed")
             .clicked()
         {

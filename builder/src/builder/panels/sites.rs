@@ -29,6 +29,7 @@ use egui::{Color32, RichText, Ui};
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 use sectorforge::sites::{SiteKind, SiteStatus, SitesConfig, WorldSite};
@@ -215,8 +216,7 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Regenerate sites")
+        if widgets::primary_button(ui, "🔄  Regenerate sites")
             .on_hover_text("Rebuild every world's sites from the current sector. Your hand-added sites are kept.")
             .clicked()
         {

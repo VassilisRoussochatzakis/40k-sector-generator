@@ -34,6 +34,14 @@ Throughout this document:
   **columns** when the window is wide and fold them back into a single column
   when it is narrow, so you rarely scroll past a tall empty margin. The rail and
   the panel splitters are drag-resizable, and the builder remembers the widths.
+- **Bespoke controls.** The single most important action on each panel — the
+  *Regenerate* / *Apply preview* / *Export everything* / *Compose* / *Run search*
+  kind of button — is painted as a **brass primary button**: it lifts and glows on
+  hover and sinks when pressed, in the same accent colour as the plates (amber /
+  crimson / blue by theme). Ordinary secondary actions stay as plain buttons, so
+  the brass one always reads as *the* thing to click. A few prominent on/off
+  settings (on EXPORT, *Draw systems* and *Shade faction areas*) are **sliding
+  toggles** rather than checkboxes.
 - Coordinates are written `(q, r)` — the axial hex grid coordinates used by the
   sector. `(0, 0)` is the top-left hex.
 - Every panel speaks **plain language**. Field labels read in human terms
@@ -49,7 +57,10 @@ Throughout this document:
   "Clear all overrides" on Subsectors, removing a worlds.toml recipe row, removing
   a Segmentum child or warp link, and deleting a hand-written hook / mission /
   persona / site or a Relations rule. Each shows what will be removed and a
-  "This can't be undone." line above **Cancel** / **🗑 Delete**.
+  "This can't be undone." line above **Cancel** / **🗑 Delete**. Whenever any
+  dialog — a confirm, the New project / Random sector wizard, a rename — is open,
+  the page behind it **dims** and stops responding to clicks, so the dialog is
+  unmistakably the focus; the dim fades in and out as the dialog opens and closes.
 
 If you are already comfortable with the broader pipeline, [GUIDE.md](GUIDE.md)
 is the canonical engineering reference. This file is the new-user procedural

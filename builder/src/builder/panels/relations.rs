@@ -30,6 +30,7 @@ use sectorforge::relations::{
 };
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::state::{ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
@@ -129,8 +130,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("🔄  Regenerate matrix")
+        if widgets::primary_button(ui, "🔄  Regenerate matrix")
             .on_hover_text("Rebuild every faction pair from the current rules, pins, and overrides")
             .clicked()
         {

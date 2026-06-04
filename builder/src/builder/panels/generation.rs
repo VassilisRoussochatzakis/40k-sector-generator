@@ -17,7 +17,7 @@ use egui::{RichText, Ui};
 
 use sectorforge::config::{PlacementMode, WorldSelectionMode};
 use sectorforge::sector_model::HexCoord;
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{palette, ui_kit, widgets};
 
 use crate::builder::project_io::{new_project, NewProjectOptions};
 use crate::builder::state::PartialRegenRect;
@@ -509,8 +509,9 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
             );
             // Applying the preview replaces the sector and clears undo history —
             // a deliberate session boundary, so the note spells it out.
-            if ui
-                .add(egui::Button::new("✅  Apply preview").fill(egui::Color32::from_rgb(0, 100, 0)))
+            // §BEAUTY §6.6: the marquee "apply" action gets the bespoke brass
+            // primary button (was a flat green fill).
+            if widgets::primary_button(ui, "✅  Apply preview")
                 .on_hover_text(
                     "Replace the current sector with this preview. This starts a fresh session and clears undo history; pinned systems are kept.",
                 )

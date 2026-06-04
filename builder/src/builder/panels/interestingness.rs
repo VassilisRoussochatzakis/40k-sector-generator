@@ -41,6 +41,7 @@ use sectorforge::interestingness::{
 };
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::{BuilderState, DerivationKind};
 
@@ -156,8 +157,7 @@ fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui
-            .button("▶  Score sector")
+        if widgets::primary_button(ui, "▶  Score sector")
             .on_hover_text("Grade the current sector against the target profile and refresh the metric bands")
             .clicked()
         {

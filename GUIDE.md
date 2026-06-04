@@ -1844,8 +1844,8 @@ simultaneous mutable borrows at the call site and will not compile — panels us
 the inline `SidePanel` + `CentralPanel` pair as two separate statements
 instead, so the first borrow ends before the second begins.)
 
-**Design tokens + showcase plate** (the showcase-quality tier on top of §UO;
-playbook in [BEAUTY.md](BEAUTY.md)).
+**Design tokens, showcase plate, bespoke controls + typography** (the
+showcase-quality tier on top of §UO; playbook in [BEAUTY.md](BEAUTY.md)).
 
 - *Design tokens* ([gui-core/src/design.rs](gui-core/src/design.rs), `§DESIGN`) —
   the single source of truth for *form* primitives, so bespoke components draw
@@ -1864,7 +1864,11 @@ playbook in [BEAUTY.md](BEAUTY.md)).
   `ui_kit::section` / `collapsing_section` through the radius + spacing tokens — both
   now also carry an `elev_low` contact shadow (so every framed section reads as a
   lifted plate), and `section` rules its title with a brass `gilt_rule` (a hairline
-  in the active accent) in place of the flat themed `separator()`.
+  in the active accent) in place of the flat themed `separator()`. `design` also
+  exposes `vertical_gradient(painter, rect, top, bottom)` — a per-vertex `Mesh` quad,
+  the stand-in for egui 0.29's missing gradient-fill primitive (BEAUTY.md §5.6) — and
+  the typography family token `FONT_DISPLAY` + `display_family()` (the named display
+  family hero titles request; see *Typography* below).
   Tokens describe form only — they never carry the semantic map colors (those stay
   in `palette` / `visual_tokens`, §UO8), so this is pure chrome and still outside
   the golden path; three `design` unit tests pin the ease curves, elevation alpha,
@@ -1887,6 +1891,55 @@ playbook in [BEAUTY.md](BEAUTY.md)).
   preserved, just re-hosted in the plate: the faction swatch, the route- and
   validation/invariant-severity dots, the search winner's green, the per-row count
   badges, and the two-line title+sub-label rows (wrapped in a `ui.vertical`).
+
+- *Bespoke controls* ([gui-core/src/widgets.rs](gui-core/src/widgets.rs), `§BEAUTY`) —
+  the two hand-painted controls that get screenshotted. `widgets::primary_button(ui,
+  label) -> Response` is a lit brass plate: a soft accent glow on hover, a two-tone
+  sheen (a darker rounded base + a lighter top-corner sheen, standing in for a
+  gradient), a press depress (`rect.shrink` + darken), a hairline accent border, and
+  label ink chosen by the accent's perceptual luma (dark on amber, light on crimson) so
+  it stays legible across presets — every state eased off `animate_bool_with_time`.
+  `widgets::toggle(ui, &mut bool)` / `toggle_with_label` is a sliding pill knob whose
+  track fills with the accent when on. Same `&mut Ui` + plain-data, no-`BuilderState`
+  contract. Reserved for the *one* marquee action / prominent boolean per panel so the
+  brass keeps its hierarchy; propagated (Phase D) to Export *everything* / Apply preview
+  / the Regenerate-style buttons / Compose / Run search / Compute diff / Score sector,
+  and the EXPORT `render_systems` + `faction_fill` toggles. Gate a disabled look with
+  `ui.add_enabled_ui(cond, |ui| widgets::primary_button(ui, …)).inner` — egui's
+  `disable()` fades the custom painter. A headless paint test covers both.
+
+- *Modal scrim + entrance* ([gui-core/src/modal.rs](gui-core/src/modal.rs), `§BEAUTY`) —
+  `modal::scrim(ctx, open) -> f32` paints a fading translucent backdrop in
+  `Order::Middle` (below the focused `Window`, above the panels) that dims and inerts
+  the page while a modal is open, and returns the eased entrance factor `t` (driven by
+  `open`, so it animates *out* on close and afresh on the next open). The factor is
+  there for an optional per-dialog content fade (`ui.set_opacity(t)`). Wired into the
+  builder's central modal router ([builder/src/app.rs](builder/src/app.rs) `show_modal`)
+  and the viewer's ([viewer/src/editor/dialogs.rs](viewer/src/editor/dialogs.rs)); both
+  currently use the backdrop dim+fade and discard `t`. Windows already inherit
+  `elev_high` from the tokens.
+
+- *Info-panel kv tables* ([gui-core/src/ui_kit.rs](gui-core/src/ui_kit.rs) `kv`,
+  `§BEAUTY §6 #4`) — `kv` now lays the key in a fixed 120 px left column (so stacked
+  rows align into a ledger) and rules each row with a very low-alpha, theme-aware
+  hairline separator. Lifts every kv block in [`info_panel`](gui-core/src/info_panel.rs)
+  (control / stability / counts / environment / society) at once, with no call-site
+  change.
+
+- *Typography* ([gui-core/src/fonts.rs](gui-core/src/fonts.rs), `§BEAUTY §5.5`) — the
+  custom-font registration path, **opt-in behind the `bundled-fonts` Cargo feature**
+  (off by default, so the stock build stays on egui's `default_fonts` and never
+  references a missing binary). `fonts::install(ctx)` — called once from each app's
+  eframe creation closure ([builder](builder/src/main.rs) / [viewer](viewer/src/main.rs)
+  `main.rs`), *before* the first `Theme::apply` — embeds three faces via
+  `FontData::from_static(include_bytes!("../assets/fonts/{display,body,mono}.ttf"))`:
+  the body face becomes the front of egui's `Proportional` family, the mono face the
+  front of `Monospace`, and the display face its own named family
+  (`design::FONT_DISPLAY`) that titles request through `design::display_family()` — which
+  resolves to `Proportional` while the feature is off, so `theme.rs` routing `Heading`
+  through it is a no-op until the binaries land. The three OFL files are **not** in the
+  repo; [gui-core/assets/fonts/FONTS.md](gui-core/assets/fonts/FONTS.md) names the exact
+  filenames + suggested faces + the build command to activate it.
 
 - *Star-map flourishes* ([gui-core/src/sector_view.rs](gui-core/src/sector_view.rs),
   `§BEAUTY`) — a live-only void treatment that turns the flat tactical field into an

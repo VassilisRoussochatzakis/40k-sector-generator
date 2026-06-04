@@ -31,6 +31,7 @@
 
 use egui::{Color32, RichText, Ui};
 
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use sectorforge::hooks::{Hook, HookAnchor, HookKind, HooksConfig};
@@ -65,7 +66,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "ranked hook list, manual hooks, player-edition toggle, click-to-highlight anchor.",
+        "Story seeds for your sector — ranked by drama, with your own hooks mixed in. Click a hook to read it or jump to where it happens on the map.",
     );
     ui.separator();
 
@@ -107,13 +108,21 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Regenerate hooks").clicked() {
+        if ui
+            .button("🔄  Regenerate hooks")
+            .on_hover_text("Re-derive hooks from the current sector. Your manual hooks are kept.")
+            .clicked()
+        {
             ensure_hooks_catalog(state);
             state.recompute_hooks();
         }
-        ui.checkbox(&mut state.hooks_auto_recompute, "auto-recompute on edit");
+        ui.checkbox(&mut state.hooks_auto_recompute, "Auto-refresh on edit")
+            .on_hover_text("Regenerate automatically whenever you change a hook.");
         if ui
-            .checkbox(&mut state.hooks_player_edition, "player edition (--player)")
+            .checkbox(&mut state.hooks_player_edition, "Player edition")
+            .on_hover_text(
+                "Hide GM-only hooks, as in a handout for players (matches the --player export).",
+            )
             .changed()
         {
             state.recompute_hooks();
@@ -129,12 +138,10 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(|c| c.manual.len())
             .unwrap_or(0);
-        ui.label(format!("hooks: {total}  (manual: {manual})"));
+        ui.label(format!("{total} hook(s)  ·  {manual} of yours"));
         if state.data_catalogs.hooks.is_none() {
-            ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
-                "no hooks.toml loaded (defaults apply)",
-            );
+            ui.colored_label(Color32::from_rgb(220, 170, 80), "● using built-in defaults")
+                .on_hover_text("No saved hooks file yet — built-in defaults are in use until you save.");
         }
     });
 }
@@ -143,28 +150,32 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("filter").strong());
+        ui.label(RichText::new("Show").strong());
         let label = match state.hooks_filter_kind {
-            None => "all kinds".to_string(),
+            None => "All kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
         };
-        ui_kit::combo("hk1_kind", label).show_ui(ui, |ui| {
-            ui.selectable_value(&mut state.hooks_filter_kind, None, "all kinds");
-            for k in KIND_VARIANTS {
-                ui.selectable_value(&mut state.hooks_filter_kind, Some(*k), kind_label(*k));
-            }
-        });
+        ui_kit::combo("hk1_kind", label)
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut state.hooks_filter_kind, None, "All kinds");
+                for k in KIND_VARIANTS {
+                    ui.selectable_value(&mut state.hooks_filter_kind, Some(*k), kind_label(*k))
+                        .on_hover_text(format!("schema: {}", k.as_slug()));
+                }
+            })
+            .response
+            .on_hover_text("Narrow the list to one kind of hook.");
     });
 }
 
 // ── §HK1 / §HK2 ranked list ────────────────────────────────────────────────
 
 fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("ranked hooks").strong());
+    ui.label(RichText::new("Ranked by drama").strong());
     let Some(report) = state.hooks_report.clone() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No hooks yet. Click \"Regenerate hooks\" above.",
+        ui_kit::placeholder(
+            ui,
+            "No hooks yet — press “Regenerate hooks” above to build them from your sector.",
         );
         return;
     };
@@ -175,9 +186,9 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
         .filter(|h| filter.is_none_or(|k| h.kind == k))
         .collect();
     if rows.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No hooks matched the current filter / player-edition mask.",
+        ui_kit::placeholder(
+            ui,
+            "Nothing matches — try “All kinds”, or turn off Player edition to show GM-only hooks.",
         );
         return;
     }
@@ -195,12 +206,21 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
         ui.horizontal_wrapped(|ui| {
             ui.colored_label(
                 Color32::DARK_GRAY,
-                format!("{} · w{}", kind_label(h.kind), h.weight),
-            );
+                format!("{} · weight {}", kind_label(h.kind), h.weight),
+            )
+            .on_hover_text(format!(
+                "Kind: {} · higher weight ranks higher in the list.",
+                kind_label(h.kind)
+            ));
             if h.gm_only {
-                ui.colored_label(Color32::from_rgb(200, 90, 90), "GM");
+                ui.colored_label(Color32::from_rgb(200, 90, 90), "GM only")
+                    .on_hover_text("Hidden from the player edition.");
             }
-            if ui.small_button("highlight").clicked() {
+            if ui
+                .small_button("📍 Highlight")
+                .on_hover_text("Select this hook and jump to where it happens on the map.")
+                .clicked()
+            {
                 state.selected_hook_id = Some(h.id.to_string());
                 state.hooks_edit_target = Some(h.id.to_string());
                 focus_anchor(state, &h.anchor);
@@ -213,13 +233,13 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §HK2 / §HK6 detail card ────────────────────────────────────────────────
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("detail").strong());
+    ui.label(RichText::new("Hook details").strong());
     let target = state
         .hooks_edit_target
         .clone()
         .or_else(|| state.selected_hook_id.clone());
     let Some(target_id) = target else {
-        ui_kit::placeholder(ui, "Select a hook above to see its details.");
+        ui_kit::placeholder(ui, "Pick a hook on the left to read its details here.");
         return;
     };
     let Some(hook) = state
@@ -228,40 +248,84 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         .and_then(|r| r.hooks.iter().find(|h| h.id == target_id))
         .cloned()
     else {
-        ui.colored_label(
-            Color32::GRAY,
-            format!("Hook id `{target_id}` is gone — regenerate to refresh."),
+        ui_kit::placeholder(
+            ui,
+            "This hook is no longer in the list — press “Regenerate hooks” to refresh.",
         );
         return;
     };
-    egui::Grid::new("hk_detail_grid")
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("id");
+    labeled(
+        ui,
+        "Reference",
+        "Stable identifier used in saved files and cross-tab links (schema: id).",
+        |ui| {
             ui.label(RichText::new(hook.id.clone()).monospace());
-            ui.end_row();
-            ui.label("kind");
-            ui.label(kind_label(hook.kind));
-            ui.end_row();
-            ui.label("anchor");
-            show_anchor_link(ui, state, &hook.anchor);
-            ui.end_row();
-            ui.label("weight");
+        },
+    );
+    labeled(
+        ui,
+        "Kind",
+        "What sort of mission seed this is (schema: kind).",
+        |ui| {
+            ui.label(kind_label(hook.kind))
+                .on_hover_text(format!("schema: {}", hook.kind.as_slug()));
+        },
+    );
+    labeled(
+        ui,
+        "Happens at",
+        "The place on the map this hook is about (schema: anchor).",
+        |ui| show_anchor_link(ui, state, &hook.anchor),
+    );
+    labeled(
+        ui,
+        "Drama weight",
+        "How prominent this hook is. Higher sorts nearer the top (schema: weight).",
+        |ui| {
             ui.label(format!("{}", hook.weight));
-            ui.end_row();
-            ui.label("gm-only");
-            ui.label(if hook.gm_only { "yes" } else { "no" });
-            ui.end_row();
-            ui.label("title");
+        },
+    );
+    labeled(
+        ui,
+        "Visibility",
+        "Whether players see this hook or only the GM (schema: gm_only).",
+        |ui| {
+            ui.label(if hook.gm_only {
+                "GM only"
+            } else {
+                "Players + GM"
+            });
+        },
+    );
+    labeled(
+        ui,
+        "Title",
+        "One-line name for the hook (schema: title).",
+        |ui| {
             ui.label(RichText::new(hook.title.clone()).strong());
-            ui.end_row();
-            ui.label("situation");
+        },
+    );
+    labeled(
+        ui,
+        "Situation",
+        "What is going on (schema: situation).",
+        |ui| {
             ui.label(hook.situation.clone());
-            ui.end_row();
-            ui.label("stakes");
+        },
+    );
+    labeled(
+        ui,
+        "Stakes",
+        "What is at risk or to be won (schema: stakes).",
+        |ui| {
             ui.label(hook.stakes.clone());
-            ui.end_row();
-            ui.label("factions");
+        },
+    );
+    labeled(
+        ui,
+        "Factions involved",
+        "Factions tied to this hook (schema: factions).",
+        |ui| {
             if hook.factions.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
@@ -270,20 +334,30 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
                         .iter()
                         .map(|f| f.to_string())
                         .collect::<Vec<_>>()
-                        .join(","),
+                        .join(", "),
                 );
             }
-            ui.end_row();
-            ui.label("complications");
+        },
+    );
+    labeled(
+        ui,
+        "Complications",
+        "Twists that can be dropped in (schema: complications).",
+        |ui| {
             if hook.complications.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
                 ui.label(hook.complications.join("\n"));
             }
-            ui.end_row();
-        });
+        },
+    );
+    ui.add_space(4.0);
     ui.horizontal_wrapped(|ui| {
-        if ui.button("highlight on map").clicked() {
+        if ui
+            .button("📍 Highlight on map")
+            .on_hover_text("Jump to where this hook happens on the map.")
+            .clicked()
+        {
             focus_anchor(state, &hook.anchor);
         }
     });
@@ -292,7 +366,11 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
 // ── §HK3 manual entry editor ───────────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("manual hooks").strong());
+    ui.label(RichText::new("Your own hooks").strong());
+    // Read-only snapshot of the ids already in the sector so the anchor pickers
+    // below can offer "choose from existing" instead of bare text entry. Taken
+    // before the `&mut cfg` borrow because the editor closure also needs `cfg`.
+    let anchors = existing_anchor_ids(state);
     ensure_hooks_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.hooks.as_mut() else {
         return;
@@ -300,17 +378,24 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
-        if ui.button("+ manual hook").clicked() {
+        if ui
+            .button("➕  Add manual hook")
+            .on_hover_text("Add a blank hook you can write yourself.")
+            .clicked()
+        {
             cfg.manual.push(blank_manual_hook(cfg.manual.len()));
             changed = true;
         }
         ui.colored_label(
             Color32::DARK_GRAY,
-            "Manual entries are appended after derivation and survive Regenerate.",
+            "Your hooks are kept when you regenerate.",
         );
     });
     if cfg.manual.is_empty() {
-        ui.colored_label(Color32::GRAY, "No manual hooks yet.");
+        ui_kit::placeholder(
+            ui,
+            "None yet — press “Add manual hook” to write your own.",
+        );
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, h) in cfg.manual.iter_mut().enumerate() {
@@ -318,7 +403,8 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui,
                 ("hk_manual", idx),
                 &format!(
-                    "[{idx}] {}",
+                    "Hook {}: {}",
+                    idx + 1,
                     if h.title.is_empty() {
                         "(untitled)"
                     } else {
@@ -327,9 +413,10 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ),
                 idx == last_idx,
                 |ui| {
-                    changed |= manual_hook_editor(ui, idx, h);
+                    changed |= manual_hook_editor(ui, idx, h, &anchors);
                     if ui
-                        .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
+                        .button(RichText::new("🗑  Delete").color(Color32::from_rgb(200, 90, 90)))
+                        .on_hover_text("Remove this hook. This cannot be undone.")
                         .clicked()
                     {
                         remove_idx = Some(idx);
@@ -347,43 +434,55 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
+fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds) -> bool {
     let mut changed = false;
-    egui::Grid::new(format!("hk_manual_grid_{idx}"))
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("id");
+    labeled(
+        ui,
+        "Reference",
+        "Stable identifier for this hook. Lowercase, no spaces (schema: id).",
+        |ui| {
             let mut id_buf = h.id.to_string();
             if ui.text_edit_singleline(&mut id_buf).changed() {
                 h.id = id_buf.into();
                 changed = true;
             }
-            ui.end_row();
-            ui.label("kind");
+        },
+    );
+    labeled(
+        ui,
+        "Kind",
+        "What sort of mission seed this is (schema: kind).",
+        |ui| {
             ui_kit::combo(format!("hk_manual_kind_{idx}"), kind_label(h.kind)).show_ui(ui, |ui| {
                 for k in KIND_VARIANTS {
                     if ui
                         .selectable_value(&mut h.kind, *k, kind_label(*k))
+                        .on_hover_text(format!("schema: {}", k.as_slug()))
                         .changed()
                     {
                         changed = true;
                     }
                 }
             });
-            ui.end_row();
-            ui.label("anchor scope");
+        },
+    );
+    labeled(
+        ui,
+        "Happens at",
+        "Whether this hook is anchored to a system, a world, or a route (schema: anchor).",
+        |ui| {
             let mut scope = anchor_scope(&h.anchor);
             ui_kit::combo(
                 format!("hk_manual_scope_{idx}"),
                 match scope {
-                    AnchorScope::System => "system",
-                    AnchorScope::World => "world",
-                    AnchorScope::Route => "route",
+                    AnchorScope::System => "A system",
+                    AnchorScope::World => "A world",
+                    AnchorScope::Route => "A route",
                 },
             )
             .show_ui(ui, |ui| {
                 if ui
-                    .selectable_value(&mut scope, AnchorScope::System, "system")
+                    .selectable_value(&mut scope, AnchorScope::System, "A system")
                     .changed()
                 {
                     h.anchor = HookAnchor::System {
@@ -392,7 +491,7 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                     changed = true;
                 }
                 if ui
-                    .selectable_value(&mut scope, AnchorScope::World, "world")
+                    .selectable_value(&mut scope, AnchorScope::World, "A world")
                     .changed()
                 {
                     h.anchor = HookAnchor::World {
@@ -402,7 +501,7 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                     changed = true;
                 }
                 if ui
-                    .selectable_value(&mut scope, AnchorScope::Route, "route")
+                    .selectable_value(&mut scope, AnchorScope::Route, "A route")
                     .changed()
                 {
                     h.anchor = HookAnchor::Route {
@@ -411,74 +510,125 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                     changed = true;
                 }
             });
-            ui.end_row();
-            match &mut h.anchor {
-                HookAnchor::System { system_id } => {
-                    ui.label("system id");
+        },
+    );
+    match &mut h.anchor {
+        HookAnchor::System { system_id } => {
+            labeled(
+                ui,
+                "System",
+                "Which system the hook is in. Pick an existing one, or type a custom id (schema: anchor.system_id).",
+                |ui| {
                     let mut s = system_id.to_string();
-                    if ui.text_edit_singleline(&mut s).changed() {
+                    if id_or_custom_combo(ui, format!("hk_sys_{idx}"), &mut s, &anchors.systems) {
                         *system_id = SystemId::new(s.as_str());
                         changed = true;
                     }
-                    ui.end_row();
-                }
-                HookAnchor::World {
-                    system_id,
-                    world_id,
-                } => {
-                    ui.label("system id");
+                },
+            );
+        }
+        HookAnchor::World {
+            system_id,
+            world_id,
+        } => {
+            labeled(
+                ui,
+                "System",
+                "Which system the world is in (schema: anchor.system_id).",
+                |ui| {
                     let mut s = system_id.to_string();
-                    if ui.text_edit_singleline(&mut s).changed() {
+                    if id_or_custom_combo(ui, format!("hk_wsys_{idx}"), &mut s, &anchors.systems) {
                         *system_id = SystemId::new(s.as_str());
                         changed = true;
                     }
-                    ui.end_row();
-                    ui.label("world id");
+                },
+            );
+            labeled(
+                ui,
+                "World",
+                "Which world the hook is on (schema: anchor.world_id).",
+                |ui| {
                     let mut w = world_id.to_string();
-                    if ui.text_edit_singleline(&mut w).changed() {
+                    if id_or_custom_combo(ui, format!("hk_world_{idx}"), &mut w, &anchors.worlds) {
                         *world_id = WorldId::new(w.as_str());
                         changed = true;
                     }
-                    ui.end_row();
-                }
-                HookAnchor::Route { route_id } => {
-                    ui.label("route id");
+                },
+            );
+        }
+        HookAnchor::Route { route_id } => {
+            labeled(
+                ui,
+                "Route",
+                "Which route the hook is along (schema: anchor.route_id).",
+                |ui| {
                     let mut r = route_id.to_string();
-                    if ui.text_edit_singleline(&mut r).changed() {
+                    if id_or_custom_combo(ui, format!("hk_route_{idx}"), &mut r, &anchors.routes) {
                         *route_id = RouteId::new(r.as_str());
                         changed = true;
                     }
-                    ui.end_row();
-                }
-                _ => {}
-            }
-            ui.label("title");
+                },
+            );
+        }
+        _ => {}
+    }
+    labeled(
+        ui,
+        "Title",
+        "One-line name for the hook (schema: title).",
+        |ui| {
             changed |= ui.text_edit_singleline(&mut h.title).changed();
-            ui.end_row();
-            ui.label("situation");
+        },
+    );
+    labeled(
+        ui,
+        "Situation",
+        "What is going on (schema: situation).",
+        |ui| {
             changed |= ui.text_edit_multiline(&mut h.situation).changed();
-            ui.end_row();
-            ui.label("stakes");
+        },
+    );
+    labeled(
+        ui,
+        "Stakes",
+        "What is at risk or to be won (schema: stakes).",
+        |ui| {
             changed |= ui.text_edit_multiline(&mut h.stakes).changed();
-            ui.end_row();
-            ui.label("weight");
+        },
+    );
+    labeled(
+        ui,
+        "Drama weight",
+        "How prominent this hook is. Higher sorts nearer the top (schema: weight).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut h.weight).range(0..=200))
                 .changed();
-            ui.end_row();
-            ui.label("gm-only");
-            changed |= ui
-                .checkbox(&mut h.gm_only, "hidden in player edition")
-                .changed();
-            ui.end_row();
-            ui.label("factions (comma)");
+        },
+    );
+    labeled(
+        ui,
+        "Visibility",
+        "Tick to hide this hook from the player edition (schema: gm_only).",
+        |ui| {
+            changed |= ui.checkbox(&mut h.gm_only, "GM only").changed();
+        },
+    );
+    labeled(
+        ui,
+        "Factions involved",
+        "Faction ids tied to this hook, separated by commas (schema: factions).",
+        |ui| {
             let mut csv = h
                 .factions
                 .iter()
                 .map(|f| f.to_string())
                 .collect::<Vec<_>>()
-                .join(",");
-            if ui.text_edit_singleline(&mut csv).changed() {
+                .join(", ");
+            if ui
+                .add(egui::TextEdit::singleline(&mut csv).hint_text("e.g. imperial, ork"))
+                .changed()
+            {
                 h.factions = csv
                     .split(',')
                     .map(|s| s.trim())
@@ -487,10 +637,18 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                     .collect();
                 changed = true;
             }
-            ui.end_row();
-            ui.label("complications (one per line)");
+        },
+    );
+    labeled(
+        ui,
+        "Complications",
+        "Optional twists, one per line (schema: complications).",
+        |ui| {
             let mut comp = h.complications.join("\n");
-            if ui.text_edit_multiline(&mut comp).changed() {
+            if ui
+                .add(egui::TextEdit::multiline(&mut comp).hint_text("one per line"))
+                .changed()
+            {
                 h.complications = comp
                     .lines()
                     .map(|s| s.trim().to_string())
@@ -498,9 +656,95 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook) -> bool {
                     .collect();
                 changed = true;
             }
-            ui.end_row();
-        });
+        },
+    );
     changed
+}
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Drama weight", "Happens at") while the tooltip
+/// names the underlying field plus a plain-language note, so the schema mapping
+/// stays discoverable. Friendlier replacement for the old bare `egui::Grid`
+/// whose row labels *were* the raw field names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Sorted, de-duplicated ids already present in the sector, used to seed the
+/// "choose from existing" anchor pickers. A read-only snapshot taken before the
+/// `&mut data_catalogs.hooks` borrow, so the editor closure can hold both.
+struct AnchorIds {
+    systems: Vec<String>,
+    worlds: Vec<String>,
+    routes: Vec<String>,
+}
+
+fn existing_anchor_ids(state: &BuilderState) -> AnchorIds {
+    let mut systems: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut worlds: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut routes: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for sys in &state.sector.systems {
+        systems.insert(sys.id.to_string());
+        for w in &sys.worlds {
+            worlds.insert(w.id.to_string());
+        }
+    }
+    for r in &state.sector.routes {
+        routes.insert(r.id.to_string());
+    }
+    AnchorIds {
+        systems: systems.into_iter().collect(),
+        worlds: worlds.into_iter().collect(),
+        routes: routes.into_iter().collect(),
+    }
+}
+
+/// Dropdown over the ids already in the sector, plus an in-popup custom row.
+/// Friendlier than free-typing a raw id: the anchor is usually a place that
+/// already exists, so it becomes one click instead of recalling the exact
+/// string. The custom row keeps brand-new ids reachable. Returns `true` when
+/// `value` changed.
+fn id_or_custom_combo(
+    ui: &mut Ui,
+    salt: impl std::hash::Hash,
+    value: &mut String,
+    options: &[String],
+) -> bool {
+    let before = value.clone();
+    ui_kit::combo(
+        salt,
+        if value.is_empty() {
+            "(choose…)".to_owned()
+        } else {
+            value.clone()
+        },
+    )
+    .show_ui(ui, |ui| {
+        for opt in options {
+            if ui
+                .selectable_label(value.as_str() == opt.as_str(), opt.as_str())
+                .clicked()
+            {
+                *value = opt.clone();
+            }
+        }
+        ui.separator();
+        ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
+        ui.add(
+            egui::TextEdit::singleline(value)
+                .hint_text("type an id")
+                .desired_width(160.0),
+        );
+    });
+    *value != before
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -581,13 +825,31 @@ fn focus_anchor(state: &mut BuilderState, a: &HookAnchor) {
 
 fn anchor_label(a: &HookAnchor) -> String {
     match a {
-        HookAnchor::System { system_id } => format!("system {system_id}"),
+        HookAnchor::System { system_id } => {
+            if system_id.as_ref().is_empty() {
+                "(no system yet)".into()
+            } else {
+                format!("System {system_id}")
+            }
+        }
         HookAnchor::World {
             system_id,
             world_id,
-        } => format!("world {system_id}/{world_id}"),
-        HookAnchor::Route { route_id } => format!("route {route_id}"),
-        _ => "unknown".into(),
+        } => {
+            if system_id.as_ref().is_empty() || world_id.as_ref().is_empty() {
+                "(no world yet)".into()
+            } else {
+                format!("World {world_id} in {system_id}")
+            }
+        }
+        HookAnchor::Route { route_id } => {
+            if route_id.as_ref().is_empty() {
+                "(no route yet)".into()
+            } else {
+                format!("Route {route_id}")
+            }
+        }
+        _ => "(unknown place)".into(),
     }
 }
 
@@ -617,7 +879,8 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.hooks.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save hooks.toml"))
+            .add_enabled(has_catalog, egui::Button::new("💾  Save hooks"))
+            .on_hover_text("Write all hooks back to the project's hooks file.")
             .clicked()
         {
             if state.config.inputs.hooks.is_none() {
@@ -625,17 +888,19 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
                 state.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save hooks.toml failed: {e}"
+                    "Could not save hooks: {e}"
                 )));
             }
         }
-        let path_label = state
-            .config
-            .inputs
-            .hooks
-            .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_HOOKS_PATH})"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
+        match state.config.inputs.hooks.clone() {
+            Some(path) => {
+                ui.colored_label(Color32::DARK_GRAY, format!("file: {path}"));
+            }
+            None => {
+                ui.colored_label(Color32::DARK_GRAY, "not saved yet")
+                    .on_hover_text(format!("Will be written to {DEFAULT_HOOKS_PATH}."));
+            }
+        }
     });
 }
 

@@ -2204,6 +2204,53 @@ cargo sbuild
 cargo run -p sectorforge-builder -- --help
 ```
 
+#### Friendly-panel conventions (docs/FRIENDLY_PANEL_PASS.md)
+
+Every builder panel under [builder/src/builder/panels/](builder/src/builder/panels/)
+follows a shared "friendly panel" idiom so the UI reads in plain language without
+losing the schema mapping power users rely on. The canonical reference is
+[factions.rs](builder/src/builder/panels/factions.rs); the rollout recipe is
+[docs/FRIENDLY_PANEL_PASS.md](docs/FRIENDLY_PANEL_PASS.md). When you add or extend a
+panel, keep these invariants (they are presentational only — never change the data
+model, command set, or determinism to satisfy them):
+
+- **Plain labels + hover help.** Field rows use a local
+  `labeled(ui, label, help, add)` helper (or `ui_kit::field`): the visible label is
+  a human term ("Travel danger", "Spawn weight") and the tooltip carries the
+  underlying field as `(schema: <field>)` plus a one-line note. Raw struct/field
+  names never appear as visible labels.
+- **No dev strings in the UI.** No source paths, module/fn names, `{:?}` dumps, or
+  internal `§`/ticket talk in visible text. Enum dropdowns show `display_name()`
+  (or a locally-humanised slug for `#[non_exhaustive]` model enums that lack one)
+  and move the raw key to a hover. Diagnostic codes (validation rules, invariant
+  codes, analytics health flags) are the exception — they stay, but the human
+  message leads and the code rides along as a dim token/hover.
+- **Themed empty-states.** "Nothing here yet" copy goes through
+  `ui_kit::placeholder(ui, …)` (theme-aware, follows the active preset), never a
+  bare `Color32::GRAY` label. The copy says what is empty and the next step. Dim
+  *secondary* hints (`Color32::DARK_GRAY`) and data-driven status colours stay.
+- **Stable collapse ids.** When renaming a `ui_kit::collapsing_section` /
+  `ui_kit::section` title to a human term, change only the visible title string —
+  keep the `id_source` / id-salt argument byte-identical so persisted collapse
+  state survives.
+- **Pick-from-existing.** A field that references another entity (faction/system/
+  world/route id) offers a dropdown seeded from the project's existing values
+  (+ "(none)" + an in-popup "custom…" row), mirroring factions.rs `id_combo`,
+  rather than a raw text box.
+- **Confirm bus-bypassing deletes.** A destructive edit that bypasses the undo
+  command bus (catalogue/`data_catalogs.*` mutations, direct side-table writes)
+  routes its delete/clear/reset through a `ModalKind::Confirm*` variant rendered in
+  [app.rs](builder/src/app.rs) (see `ConfirmDeleteFaction`). Edits that already go
+  through `state.run(BuilderCommand::…)` are undoable, so a confirm is optional.
+- **No `Ui::painter` in panels.** Swatches/badges/previews call a
+  [gui-core/src/palette.rs](gui-core/src/palette.rs) helper (e.g.
+  `draw_faction_swatch`); `builder/clippy.toml` denies `Ui::painter` /
+  `Ui::painter_at` / raw `egui::Shape` so all pixel-producing code lives in
+  `gui-core`.
+
+To friendly-pass a panel, prompt: **"Follow docs/FRIENDLY_PANEL_PASS.md for
+`<PANEL>`."**
+
 #### Builder foundation (docs/BUILDER_REQS.txt §43 Phase A)
 
 The builder constructs a sector from scratch with full parity to the CLI. Its

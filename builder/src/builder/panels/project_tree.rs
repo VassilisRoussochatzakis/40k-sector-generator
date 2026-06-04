@@ -14,13 +14,17 @@ use std::path::Path;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use egui::{Color32, RichText, ScrollArea};
+use sectorforge_gui_core::ui_kit;
 
 use crate::builder::BuilderState;
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("PROJECT");
     let Some(root) = state.project_path.clone() else {
-        ui.colored_label(Color32::GRAY, "(no project open)");
+        ui_kit::placeholder(
+            ui,
+            "No project open — create or open one to see its files.",
+        );
         return;
     };
     ui.label(RichText::new(root.as_str()).monospace());
@@ -75,7 +79,9 @@ fn render_dir(ui: &mut egui::Ui, dir: &Utf8Path, root: &Utf8Path, state: &mut Bu
             } else {
                 RichText::new(name)
             };
-            let resp = ui.selectable_label(is_selected, label);
+            let resp = ui
+                .selectable_label(is_selected, label)
+                .on_hover_text("Open in the Files editor");
             if resp.clicked() {
                 state.selected_file = Some(Utf8PathBuf::from(&rel));
             }

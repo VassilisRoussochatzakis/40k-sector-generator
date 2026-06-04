@@ -29,6 +29,15 @@ Throughout this document:
   the panel splitters are drag-resizable, and the builder remembers the widths.
 - Coordinates are written `(q, r)` — the axial hex grid coordinates used by the
   sector. `(0, 0)` is the top-left hex.
+- Every panel speaks **plain language**. Field labels read in human terms
+  ("Travel danger", "Spawn weight") — **hover any label** to see the underlying
+  data field it maps to plus a one-line explanation, so you never have to guess
+  what a control does. Dropdowns show friendly names with the raw key on hover.
+  Where a field points at another entity (a faction, a system, a world), you pick
+  from a **dropdown of what already exists** rather than retyping an id. Empty
+  panels show a short italic note telling you what is missing and what to do next.
+  Most edits are undoable with `Cmd+Z` / `Ctrl+Z`; a few destructive catalogue
+  edits (like removing a faction) ask you to confirm first.
 
 If you are already comfortable with the broader pipeline, [GUIDE.md](GUIDE.md)
 is the canonical engineering reference. This file is the new-user procedural

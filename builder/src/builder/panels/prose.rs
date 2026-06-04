@@ -32,6 +32,7 @@ use egui::{Color32, RichText, Ui};
 use sectorforge::ids::SystemId;
 use sectorforge::prose::{ProseConfig, ProseTone};
 
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::EntityRef;
@@ -46,8 +47,8 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "§PR1..§PR4 — per-system + sector overview overrides, tone preset, regenerate. \
-         Manual overrides survive Regenerate prose.",
+        "The flavour text for your sector — a sector overview plus a paragraph for each system. \
+         Regenerate to refresh it; anything you write by hand is kept.",
     );
     ui.separator();
 
@@ -95,11 +96,16 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Regenerate prose").clicked() {
+        if ui
+            .button("🔄  Regenerate prose")
+            .on_hover_text("Rewrite every paragraph from the current sector. Your hand-written overrides are kept.")
+            .clicked()
+        {
             ensure_prose_catalog(state);
             state.recompute_prose();
         }
-        ui.checkbox(&mut state.prose_auto_recompute, "auto-recompute on edit");
+        ui.checkbox(&mut state.prose_auto_recompute, "Auto-refresh on edit")
+            .on_hover_text("Regenerate automatically after each change instead of waiting for the button.");
         let systems = state
             .prose_report
             .as_ref()
@@ -119,14 +125,20 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .map(|t| !t.trim().is_empty())
             .unwrap_or(false);
         ui.label(format!(
-            "systems: {systems}  (system overrides: {overrides_count}{})",
-            if overview_override { "+ overview" } else { "" },
-        ));
+            "{systems} system(s)  ·  {overrides_count} hand-written{}",
+            if overview_override {
+                " (+ overview)"
+            } else {
+                ""
+            },
+        ))
+        .on_hover_text("How many system paragraphs you've overridden by hand, out of the systems in the sector.");
         if state.data_catalogs.prose.is_none() {
             ui.colored_label(
                 Color32::from_rgb(220, 170, 80),
-                "no prose.toml loaded (defaults apply)",
-            );
+                "using defaults — nothing saved yet",
+            )
+            .on_hover_text("No prose has been saved for this project; the generated defaults are shown.");
         }
     });
 }
@@ -134,35 +146,51 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR3 tone preset ──────────────────────────────────────────────────────
 
 fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("tone preset").strong());
+    ui.label(RichText::new("Writing style").strong());
     ensure_prose_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.prose.as_mut() else {
         return;
     };
     let mut changed = false;
-    ui.horizontal_wrapped(|ui| {
-        ui.label("tone");
-        ui_kit::combo("pr3_tone", tone_label(cfg.tone)).show_ui(ui, |ui| {
-            for t in TONE_VARIANTS {
-                if ui
-                    .selectable_value(&mut cfg.tone, *t, tone_label(*t))
-                    .changed()
-                {
-                    changed = true;
+    labeled(
+        ui,
+        "Tone",
+        "How the generated text reads (schema: tone). Florid for evocative gazetteer prose, or Dispatch for a terse Administratum report.",
+        |ui| {
+            ui_kit::combo("pr3_tone", tone_label(cfg.tone)).show_ui(ui, |ui| {
+                for t in TONE_VARIANTS {
+                    if ui
+                        .selectable_value(&mut cfg.tone, *t, tone_label(*t))
+                        .on_hover_text(format!("key: {}", t.as_slug()))
+                        .changed()
+                    {
+                        changed = true;
+                    }
                 }
-            }
-        });
-        ui.separator();
-        changed |= ui
-            .checkbox(&mut cfg.include_overview, "include sector overview")
-            .changed();
-        changed |= ui
-            .checkbox(&mut cfg.include_per_system, "include per-system entries")
-            .changed();
-    });
+            });
+        },
+    );
+    labeled(
+        ui,
+        "Sector overview",
+        "Include the sector-wide overview paragraph in the output (schema: include_overview).",
+        |ui| {
+            changed |= ui.checkbox(&mut cfg.include_overview, "Include").changed();
+        },
+    );
+    labeled(
+        ui,
+        "Per-system entries",
+        "Include a paragraph for each system in the output (schema: include_per_system).",
+        |ui| {
+            changed |= ui
+                .checkbox(&mut cfg.include_per_system, "Include")
+                .changed();
+        },
+    );
     ui.colored_label(
         Color32::DARK_GRAY,
-        "Florid (Gazetteer) ↔ Administratum Dispatch. Overrides are stored verbatim and ignore the tone setting.",
+        "Tone only affects generated text — anything you write by hand is stored as-is and ignores this setting.",
     );
     if changed {
         on_catalog_edited(state);
@@ -172,7 +200,7 @@ fn show_tone_section(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PR2 sector overview editor ───────────────────────────────────────────
 
 fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("sector overview").strong());
+    ui.label(RichText::new("Sector overview").strong());
     ensure_prose_catalog_if_needed(state);
     let report = state.prose_report.clone();
     let Some(cfg) = state.data_catalogs.prose.as_mut() else {
@@ -190,7 +218,11 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     ui.horizontal_wrapped(|ui| {
         let prev = is_override;
-        if ui.checkbox(&mut is_override, "Override").changed() {
+        if ui
+            .checkbox(&mut is_override, "Write my own")
+            .on_hover_text("Replace the generated overview with text you type here.")
+            .changed()
+        {
             if is_override && !prev {
                 // Seed the override with the derived overview so the user
                 // edits in place rather than starts from a blank field.
@@ -203,9 +235,9 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
         if is_override {
-            ui.colored_label(Color32::from_rgb(220, 170, 80), "AUTHORED");
+            ui.colored_label(Color32::from_rgb(220, 170, 80), "Hand-written");
         } else {
-            ui.colored_label(Color32::DARK_GRAY, "derived");
+            ui.colored_label(Color32::DARK_GRAY, "Generated");
         }
     });
 
@@ -215,7 +247,7 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
             egui::TextEdit::multiline(&mut text)
                 .desired_width(f32::INFINITY)
                 .desired_rows(4)
-                .hint_text("Authored overview prose..."),
+                .hint_text("Type the sector overview here..."),
         );
         if resp.changed() {
             cfg.overrides.overview = Some(text);
@@ -228,9 +260,9 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
                 .desired_rows(4),
         );
     } else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No overview yet. Click \"Regenerate prose\" above.",
+        ui_kit::placeholder(
+            ui,
+            "No overview yet — click \"Regenerate prose\" above to create one.",
         );
     }
 
@@ -245,19 +277,19 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// for the picked system is rendered by [`show_system_editor`] in the right
 /// reading column. Both run sequentially so each takes `state` fresh.
 fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("per-system prose").strong());
+    ui.label(RichText::new("Per-system prose").strong());
     ensure_prose_catalog_if_needed(state);
     let Some(report) = state.prose_report.clone() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No prose yet. Click \"Regenerate prose\" above.",
+        ui_kit::placeholder(
+            ui,
+            "No prose yet — click \"Regenerate prose\" above to create it.",
         );
         return;
     };
     if report.system_entries.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "Sector has no systems — generate the sector before authoring prose.",
+        ui_kit::placeholder(
+            ui,
+            "This sector has no systems yet — add some before writing prose.",
         );
         return;
     }
@@ -269,39 +301,47 @@ fn show_system_selector(ui: &mut Ui, state: &mut BuilderState) {
         state.selected_prose_system_id = state.selected_system_id.clone();
     }
     let mut selected = state.selected_prose_system_id.clone();
-    ui.horizontal_wrapped(|ui| {
-        ui.label("system");
-        let label_for = |sid: &SystemId| -> String {
-            report
-                .system_entries
-                .iter()
-                .find(|e| &e.system_id == sid)
-                .map(|e| format!("{} — {}", e.system_id, e.name))
-                .unwrap_or_else(|| sid.to_string())
-        };
-        let current_label = selected
-            .as_ref()
-            .map(label_for)
-            .unwrap_or_else(|| "select a system".to_string());
-        ui_kit::combo("pr1_system", current_label).show_ui(ui, |ui| {
-            for e in &report.system_entries {
+    let label_for = |sid: &SystemId| -> String {
+        report
+            .system_entries
+            .iter()
+            .find(|e| &e.system_id == sid)
+            .map(|e| format!("{} — {}", e.name, e.system_id))
+            .unwrap_or_else(|| sid.to_string())
+    };
+    labeled(
+        ui,
+        "System",
+        "Which system's paragraph you're editing on the right. Pick one to load its prose.",
+        |ui| {
+            let current_label = selected
+                .as_ref()
+                .map(label_for)
+                .unwrap_or_else(|| "Pick a system…".to_string());
+            ui_kit::combo("pr1_system", current_label).show_ui(ui, |ui| {
+                for e in &report.system_entries {
+                    if ui
+                        .selectable_label(
+                            selected.as_ref() == Some(&e.system_id),
+                            format!("{} — {}", e.name, e.system_id),
+                        )
+                        .clicked()
+                    {
+                        selected = Some(e.system_id.clone());
+                    }
+                }
+            });
+            if let Some(sid) = selected.as_ref() {
                 if ui
-                    .selectable_label(
-                        selected.as_ref() == Some(&e.system_id),
-                        format!("{} — {}", e.system_id, e.name),
-                    )
+                    .link("Open in System tab  →")
+                    .on_hover_text("Jump to the System tab to edit this system's data.")
                     .clicked()
                 {
-                    selected = Some(e.system_id.clone());
+                    state.focus_entity(EntityRef::System(sid.clone()));
                 }
             }
-        });
-        if let Some(sid) = selected.as_ref() {
-            if ui.link("→ system tab").clicked() {
-                state.focus_entity(EntityRef::System(sid.clone()));
-            }
-        }
-    });
+        },
+    );
     if selected != state.selected_prose_system_id {
         state.selected_prose_system_id = selected.clone();
     }
@@ -319,10 +359,7 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     let Some(sid) = state.selected_prose_system_id.clone() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "Pick a system in the left rail to edit its prose.",
-        );
+        ui_kit::placeholder(ui, "Pick a system on the left to edit its prose here.");
         return;
     };
     let Some(entry) = report
@@ -331,9 +368,9 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
         .find(|e| e.system_id == sid)
         .cloned()
     else {
-        ui.colored_label(
-            Color32::GRAY,
-            format!("System `{sid}` is gone — regenerate to refresh."),
+        ui_kit::placeholder(
+            ui,
+            &format!("System {sid} is no longer in the sector — click \"Regenerate prose\" to refresh the list."),
         );
         return;
     };
@@ -351,7 +388,11 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     ui.horizontal_wrapped(|ui| {
         let prev = is_override;
-        if ui.checkbox(&mut is_override, "Override").changed() {
+        if ui
+            .checkbox(&mut is_override, "Write my own")
+            .on_hover_text("Replace this system's generated paragraphs with text you type here.")
+            .changed()
+        {
             if is_override && !prev {
                 let seed = entry.paragraphs.join("\n\n");
                 cfg.overrides.systems.insert(sid.clone(), seed);
@@ -362,14 +403,18 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
         if is_override {
-            ui.colored_label(Color32::from_rgb(220, 170, 80), "AUTHORED");
-            if ui.button("Revert to derived").clicked() {
+            ui.colored_label(Color32::from_rgb(220, 170, 80), "Hand-written");
+            if ui
+                .button("↺  Use generated text")
+                .on_hover_text("Discard your edits and go back to the generated paragraphs.")
+                .clicked()
+            {
                 cfg.overrides.systems.remove(&sid);
                 is_override = false;
                 changed = true;
             }
         } else {
-            ui.colored_label(Color32::DARK_GRAY, "derived");
+            ui.colored_label(Color32::DARK_GRAY, "Generated");
         }
     });
 
@@ -379,14 +424,14 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
             egui::TextEdit::multiline(&mut text)
                 .desired_width(f32::INFINITY)
                 .desired_rows(8)
-                .hint_text("Authored system prose..."),
+                .hint_text("Type this system's prose here..."),
         );
         if resp.changed() {
             cfg.overrides.systems.insert(sid.clone(), text);
             changed = true;
         }
         if !entry.derived_paragraphs.is_empty() {
-            ui.collapsing("Derived paragraphs (read-only)", |ui| {
+            ui.collapsing("Generated text (for reference)", |ui| {
                 for p in &entry.derived_paragraphs {
                     ui.add(
                         egui::TextEdit::multiline(&mut p.as_str())
@@ -405,9 +450,9 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
             );
         }
         if entry.paragraphs.is_empty() {
-            ui.colored_label(
-                Color32::GRAY,
-                "No derived paragraphs — system has no political / archetype colour to render.",
+            ui_kit::placeholder(
+                ui,
+                "Nothing to show for this system yet — it has no political or archetype colour to describe.",
             );
         }
     }
@@ -423,7 +468,8 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.prose.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save prose.toml"))
+            .add_enabled(has_catalog, egui::Button::new("💾  Save prose"))
+            .on_hover_text("Write the prose for this project to disk.")
             .clicked()
         {
             if state.config.inputs.prose.is_none() {
@@ -431,21 +477,40 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
                 state.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save prose.toml failed: {e}"
+                    "Couldn't save prose: {e}"
                 )));
             }
         }
-        let path_label = state
-            .config
-            .inputs
-            .prose
-            .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_PROSE_PATH})"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
+        let saved_path = state.config.inputs.prose.clone();
+        let (status, where_hover) = match &saved_path {
+            Some(p) => ("Saves to the project prose file.", p.clone()),
+            None => (
+                "Not saved yet — will create a new prose file.",
+                DEFAULT_PROSE_PATH.to_string(),
+            ),
+        };
+        ui.colored_label(Color32::DARK_GRAY, status)
+            .on_hover_text(format!("File: {where_hover}"));
     });
 }
 
 // ── shared helpers ────────────────────────────────────────────────────────
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Tone", "Sector overview") while the tooltip
+/// names the underlying TOML field plus a plain-language note, so power users
+/// keep the schema mapping. Mirrors the canonical helper in `panels/factions.rs`.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
 
 fn ensure_prose_catalog(state: &mut BuilderState) {
     if state.data_catalogs.prose.is_none() {

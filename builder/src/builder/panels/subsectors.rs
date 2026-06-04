@@ -26,17 +26,37 @@ use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::{
     build_subsectors, Subsector, SubsectorConfig, DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
 };
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Capital", "Region colour") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep
+/// the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Subsectors");
     ui.add_space(2.0);
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "cluster list, recluster, manual reassignment, capital + colour overrides.",
+    ui.label(
+        RichText::new(
+            "Groups of nearby systems on the map. Re-cluster them, move systems between groups, \
+             and override each group's capital and colour.",
+        )
+        .color(Color32::DARK_GRAY),
     );
     ui.separator();
 
@@ -142,26 +162,35 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
 
 fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     ui.horizontal_wrapped(|ui| {
-        ui.label("target systems / subsector:");
+        ui.label("Target systems per group:")
+            .on_hover_text(
+                "Roughly how many systems each subsector should contain (schema: target_systems_per_subsector). Smaller targets make more, smaller groups.",
+            );
         let max = state.sector.systems.len().max(1) as u32;
         let mut value = state.subsector_target_systems.max(1);
         let old = value;
-        let response = ui.add(egui::DragValue::new(&mut value).range(1..=max).speed(0.25));
+        let response = ui
+            .add(egui::DragValue::new(&mut value).range(1..=max).speed(0.25))
+            .on_hover_text("Roughly how many systems each subsector should contain.");
         if response.changed() && value != old {
             state.subsector_target_systems = value;
             state.map_view_cache = None; // force refresh on next MAP-tab tick
         }
         if ui
-            .button("Apply target & refresh")
+            .button("↺  Recluster")
             .on_hover_text(
-                "Stores the target and clears the map-view cache; clustering re-runs on the next MAP-tab tick.",
+                "Re-group the systems using the target above. The map regroups on its next refresh; manual moves and capital overrides are kept on top.",
             )
             .clicked()
         {
             state.subsector_target_systems = value.max(1);
             state.map_view_cache = None;
         }
-        if ui.button("Reset target").clicked() {
+        if ui
+            .button("↺  Reset target")
+            .on_hover_text("Restore the default target and regroup.")
+            .clicked()
+        {
             state.subsector_target_systems = DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR;
             state.map_view_cache = None;
         }
@@ -171,8 +200,9 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             || !state.subsector_manual.is_empty())
             && ui
                 .add(egui::Button::new(
-                    RichText::new("× clear all overrides").color(Color32::LIGHT_RED),
+                    RichText::new("🗑  Clear all overrides").color(Color32::LIGHT_RED),
                 ))
+                .on_hover_text("Drop every manual move, capital, and colour override and regroup from scratch.")
                 .clicked()
         {
             state.subsector_system_overrides.clear();
@@ -181,11 +211,13 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             state.subsector_manual.clear();
             state.map_view_cache = None;
         }
-        ui.label(format!("clusters: {}", subs.len()));
+        ui.label(RichText::new(format!("{} group(s)", subs.len())).color(Color32::DARK_GRAY));
     });
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "Sets the target and clears the map-view cache; the k-means / Lloyd pass re-runs on the next MAP-tab tick. Manual moves and capital overrides are reapplied on top.",
+    ui.label(
+        RichText::new(
+            "Recluster re-groups the systems and refreshes the map. Your manual moves and capital overrides are reapplied on top, so they are never lost.",
+        )
+        .color(Color32::DARK_GRAY),
     );
 }
 
@@ -195,9 +227,12 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
 /// 6-column grid that did not fit a side panel.
 fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     ui.add_space(2.0);
-    ui.label(RichText::new("clusters").strong());
+    ui.label(RichText::new("Subsectors").strong());
     if subs.is_empty() {
-        ui_kit::placeholder(ui, "No subsectors (sector empty).");
+        ui_kit::placeholder(
+            ui,
+            "No subsectors yet — add systems to the sector, then recluster.",
+        );
         return;
     }
     let mut pick: Option<String> = None;
@@ -212,27 +247,35 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
                     .unwrap_or_else(|| s.name.as_ref())
                     .trim();
                 let line = format!("{}  {}  ({})", s.label, name_part, s.system_ids.len());
-                if ui.selectable_label(selected, line).clicked() {
+                if ui
+                    .selectable_label(selected, line)
+                    .on_hover_text(format!(
+                        "{} system(s) in this subsector. Click to edit it.",
+                        s.system_ids.len()
+                    ))
+                    .clicked()
+                {
                     pick = Some(s.id.to_string());
                 }
                 let mut flags: Vec<&str> = Vec::new();
                 if state.subsector_manual.contains(s.id.as_ref()) {
-                    flags.push("manual");
+                    flags.push("edited");
                 }
                 if state
                     .subsector_capital_overrides
                     .contains_key(s.id.as_ref())
                 {
-                    flags.push("cap-override");
+                    flags.push("custom capital");
                 }
                 if state.subsector_colour_overrides.contains_key(s.id.as_ref()) {
-                    flags.push("colour");
+                    flags.push("custom colour");
                 }
                 if !flags.is_empty() {
                     ui.colored_label(
                         Color32::DARK_GRAY,
                         RichText::new(format!("   {}", flags.join(" · "))).size(11.0),
-                    );
+                    )
+                    .on_hover_text("This subsector has manual edits that survive reclustering.");
                 }
             }
         });
@@ -245,13 +288,13 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
 
 fn show_inspector(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     let Some(selected) = state.selected_subsector_id.clone() else {
-        ui_kit::placeholder(ui, "Select a subsector from the roster on the left.");
+        ui_kit::placeholder(ui, "Pick a subsector on the left to edit it.");
         return;
     };
     let Some(target) = subs.iter().find(|s| s.id.as_ref() == selected.as_str()) else {
-        ui.colored_label(
-            Color32::GRAY,
-            "Selected subsector vanished (recluster cleared it).",
+        ui_kit::placeholder(
+            ui,
+            "That subsector no longer exists after reclustering — pick another on the left.",
         );
         state.selected_subsector_id = None;
         return;
@@ -272,13 +315,20 @@ fn show_inspector_body(
         ui.horizontal(|ui| {
             ui.label(RichText::new(&*target.label).strong().monospace());
             ui.label(target.name.as_ref());
-            ui.label(format!("id: {}", target.id));
-            if ui.button("→ MAP").clicked() {
+            ui.label(
+                RichText::new(format!("id: {}", target.id)).color(Color32::DARK_GRAY),
+            )
+            .on_hover_text("Internal identifier for this subsector (schema: id).");
+            if ui
+                .button("🗺  Show on map")
+                .on_hover_text("Switch to the Map tab to see this subsector.")
+                .clicked()
+            {
                 state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
         });
         ui.label(format!(
-            "systems: {}  |  internal routes: {}  |  border routes: {}  |  worlds: {}",
+            "{} system(s)  ·  {} internal route(s)  ·  {} border route(s)  ·  {} world(s)",
             target.summary.system_count,
             target.summary.internal_route_count,
             target.summary.border_route_count,
@@ -291,7 +341,11 @@ fn show_inspector_body(
                 .iter()
                 .map(|f| format!("{} ({})", f.id, f.score))
                 .collect();
-            ui.colored_label(Color32::DARK_GRAY, format!("dominant: {}", chips.join(",")));
+            ui.colored_label(
+                Color32::DARK_GRAY,
+                format!("Strongest factions here: {}", chips.join(", ")),
+            )
+            .on_hover_text("Factions with the most presence in this subsector, with their score.");
         }
     });
 
@@ -310,60 +364,65 @@ fn show_capital_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsect
         .subsector_capital_overrides
         .get(sub_id.as_str())
         .cloned();
-    ui_kit::section(ui, "capital override", |ui| {
-        ui.horizontal_wrapped(|ui| {
-            ui.label("capital:");
-            let selected_text = current
-                .as_ref()
-                .map(|id| capital_text(&state.sector, id))
-                .unwrap_or_else(|| {
-                    let auto = auto_cap
+    ui_kit::section(ui, "Capital (§SUB4)", |ui| {
+        labeled(
+            ui,
+            "Capital system",
+            "Which system is this subsector's capital (schema: subsector_capital_overrides). Leave on Automatic to let the generator pick.",
+            |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    let selected_text = current
                         .as_ref()
                         .map(|id| capital_text(&state.sector, id))
-                        .unwrap_or_else(|| "—".into());
-                    format!("auto: {auto}")
-                });
-            let mut new_choice: Option<Option<SystemId>> = None;
-            ui_kit::combo(("sub_capital_override", sub_id.as_str()), selected_text).show_ui(
-                ui,
-                |ui| {
-                    if ui.selectable_label(current.is_none(), "(auto)").clicked() {
-                        new_choice = Some(None);
-                    }
-                    for sid in &target.system_ids {
-                        let label = capital_text(&state.sector, sid);
-                        let sel = current.as_ref() == Some(sid);
-                        if ui.selectable_label(sel, label).clicked() {
-                            new_choice = Some(Some(sid.clone()));
+                        .unwrap_or_else(|| {
+                            let auto = auto_cap
+                                .as_ref()
+                                .map(|id| capital_text(&state.sector, id))
+                                .unwrap_or_else(|| "—".into());
+                            format!("Automatic: {auto}")
+                        });
+                    let mut new_choice: Option<Option<SystemId>> = None;
+                    ui_kit::combo(("sub_capital_override", sub_id.as_str()), selected_text)
+                        .show_ui(ui, |ui| {
+                            if ui.selectable_label(current.is_none(), "(automatic)").clicked() {
+                                new_choice = Some(None);
+                            }
+                            for sid in &target.system_ids {
+                                let label = capital_text(&state.sector, sid);
+                                let sel = current.as_ref() == Some(sid);
+                                if ui.selectable_label(sel, label).clicked() {
+                                    new_choice = Some(Some(sid.clone()));
+                                }
+                            }
+                        });
+                    if let Some(choice) = new_choice {
+                        match choice {
+                            Some(sid) => {
+                                state
+                                    .subsector_capital_overrides
+                                    .insert(sub_id.clone(), sid);
+                            }
+                            None => {
+                                state.subsector_capital_overrides.remove(sub_id.as_str());
+                            }
                         }
+                        state.subsector_manual.insert(sub_id.clone());
+                        state.map_view_cache = None;
+                        state.dirty = true;
                     }
-                },
-            );
-            if let Some(choice) = new_choice {
-                match choice {
-                    Some(sid) => {
-                        state
-                            .subsector_capital_overrides
-                            .insert(sub_id.clone(), sid);
-                    }
-                    None => {
+                    if current.is_some()
+                        && ui
+                            .button(RichText::new("↺ Reset").color(Color32::LIGHT_RED))
+                            .on_hover_text("Go back to the automatically chosen capital.")
+                            .clicked()
+                    {
                         state.subsector_capital_overrides.remove(sub_id.as_str());
+                        state.map_view_cache = None;
+                        state.dirty = true;
                     }
-                }
-                state.subsector_manual.insert(sub_id.clone());
-                state.map_view_cache = None;
-                state.dirty = true;
-            }
-            if current.is_some()
-                && ui
-                    .button(RichText::new("clear").color(Color32::LIGHT_RED))
-                    .clicked()
-            {
-                state.subsector_capital_overrides.remove(sub_id.as_str());
-                state.map_view_cache = None;
-                state.dirty = true;
-            }
-        });
+                });
+            },
+        );
     });
 }
 
@@ -387,31 +446,38 @@ fn show_colour_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsecto
         .get(sub_id.as_str())
         .copied()
         .unwrap_or(default_rgb);
-    ui_kit::section(ui, "colour override", |ui| {
-        ui.horizontal_wrapped(|ui| {
-            ui.label("colour:");
-            let response = ui.color_edit_button_srgb(&mut rgb);
-            if response.changed() {
-                state.subsector_colour_overrides.insert(sub_id.clone(), rgb);
-                state.subsector_manual.insert(sub_id.clone());
-                state.dirty = true;
-            }
-            ui.colored_label(
-                Color32::DARK_GRAY,
-                format!(
-                    "default: #{:02X}{:02X}{:02X} (FactionStyle)",
-                    default_rgb[0], default_rgb[1], default_rgb[2]
-                ),
-            );
-            if has_override
-                && ui
-                    .button(RichText::new("reset to FactionStyle").color(Color32::LIGHT_RED))
-                    .clicked()
-            {
-                state.subsector_colour_overrides.remove(sub_id.as_str());
-                state.dirty = true;
-            }
-        });
+    ui_kit::section(ui, "Colour (§SUB5)", |ui| {
+        labeled(
+            ui,
+            "Region colour",
+            "Fill colour for this subsector on the map (schema: subsector_colour_overrides). The default comes from the controlling faction's colour.",
+            |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    let response = ui.color_edit_button_srgb(&mut rgb);
+                    if response.changed() {
+                        state.subsector_colour_overrides.insert(sub_id.clone(), rgb);
+                        state.subsector_manual.insert(sub_id.clone());
+                        state.dirty = true;
+                    }
+                    ui.colored_label(
+                        Color32::DARK_GRAY,
+                        format!(
+                            "default: #{:02X}{:02X}{:02X} (controlling faction)",
+                            default_rgb[0], default_rgb[1], default_rgb[2]
+                        ),
+                    );
+                    if has_override
+                        && ui
+                            .button(RichText::new("↺ Reset").color(Color32::LIGHT_RED))
+                            .on_hover_text("Go back to the controlling faction's colour.")
+                            .clicked()
+                    {
+                        state.subsector_colour_overrides.remove(sub_id.as_str());
+                        state.dirty = true;
+                    }
+                });
+            },
+        );
     });
 }
 
@@ -431,9 +497,13 @@ fn show_manual_reassign(
     target: &Subsector,
     subs: &[Subsector],
 ) {
-    ui.label(RichText::new("manual reassignment").strong());
+    ui.label(RichText::new("Move systems (§SUB3)").strong())
+        .on_hover_text("Reassign individual systems to another subsector. Manual moves survive reclustering (schema: subsector_system_overrides).");
     if subs.len() <= 1 {
-        ui.colored_label(Color32::DARK_GRAY, "Need ≥2 clusters to reassign systems.");
+        ui_kit::placeholder(
+            ui,
+            "Need at least two subsectors to move systems between them.",
+        );
         return;
     }
     let sub_id = target.id.to_string();
@@ -443,7 +513,7 @@ fn show_manual_reassign(
         .map(|s| (s.id.as_ref(), s.label.as_ref()))
         .collect();
     if target.system_ids.is_empty() {
-        ui.colored_label(Color32::DARK_GRAY, "Cluster has no systems.");
+        ui_kit::placeholder(ui, "This subsector has no systems to move.");
         return;
     }
     let sys_table: BTreeMap<&str, &str> = state
@@ -462,15 +532,16 @@ fn show_manual_reassign(
                 .num_columns(3)
                 .striped(true)
                 .show(ui, |ui| {
-                    ui.label(RichText::new("system").strong());
-                    ui.label(RichText::new("move to").strong());
-                    ui.label(RichText::new("override").strong());
+                    ui.label(RichText::new("System").strong());
+                    ui.label(RichText::new("Move to subsector").strong());
+                    ui.label(RichText::new("Moved").strong())
+                        .on_hover_text("Whether this system has been manually moved here.");
                     ui.end_row();
                     for sid in &target.system_ids {
                         let name = sys_table.get(sid.as_str()).copied().unwrap_or("?");
                         ui.label(format!("{} ({})", name, sid));
                         let mut chosen: Option<String> = None;
-                        ui_kit::combo(("sub_move", sid.as_str()), "→ pick").show_ui(ui, |ui| {
+                        ui_kit::combo(("sub_move", sid.as_str()), "Choose…").show_ui(ui, |ui| {
                             for (oid, olabel) in &other_clusters {
                                 if ui
                                     .selectable_label(false, format!("{olabel} ({oid})"))
@@ -492,7 +563,12 @@ fn show_manual_reassign(
                             },
                             if has_ov { "yes" } else { "" },
                         );
-                        if has_ov && ui.small_button("clear").clicked() {
+                        if has_ov
+                            && ui
+                                .small_button("↺ Undo")
+                                .on_hover_text("Put this system back where reclustering placed it.")
+                                .clicked()
+                        {
                             clears.push(sid.clone());
                         }
                         ui.end_row();

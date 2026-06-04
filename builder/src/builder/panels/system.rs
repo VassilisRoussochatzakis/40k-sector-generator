@@ -18,7 +18,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
 use sectorforge::system_map::{render_system, SystemRenderOptions};
 use sectorforge_gui_core::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind, SystemBitmapPreview};
@@ -36,8 +36,79 @@ const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
 const SYSTEM_VIEW_SIDE_MIN: f32 = 400.0;
 const SYSTEM_VIEW_SIDE_MAX: f32 = 2400.0;
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Type", "Coordinate") while the tooltip names the
+/// underlying schema field plus a plain-language note, so power users keep the
+/// schema mapping. Matches the `labeled` helper in `panels/factions.rs`.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Human-friendly label for a [`SystemKind`]. The raw `kind` slug (the value
+/// serialised to disk) stays reachable via the combo's per-row hover tooltip.
+fn system_kind_label(kind: SystemKind) -> &'static str {
+    match kind {
+        SystemKind::Star => "Star system",
+        SystemKind::SpecialLocation => "Special location",
+        SystemKind::BlackHole => "Black hole",
+        SystemKind::WarpAnomaly => "Warp anomaly",
+        SystemKind::SpaceStation => "Space station",
+        // `SystemKind` is `#[non_exhaustive]` (defined in `sectorforge`); fall
+        // back to the raw slug for any future variant.
+        _ => kind.as_slug(),
+    }
+}
+
+/// Turn a lower_snake slug into a Title Case label for display, e.g.
+/// `hidden_cell` → `Hidden cell`. Used to humanise the archetype-axis dropdowns
+/// whose enum `Display` emits the raw serialisation slug; the slug itself stays
+/// reachable via each row's hover tooltip.
+fn pretty_slug(slug: &str) -> String {
+    let mut out = String::with_capacity(slug.len());
+    for (i, word) in slug.split('_').enumerate() {
+        if i > 0 {
+            out.push(' ');
+        }
+        let mut chars = word.chars();
+        if let Some(first) = chars.next() {
+            out.extend(first.to_uppercase());
+            out.push_str(chars.as_str());
+        }
+    }
+    out
+}
+
+/// Human-friendly label for a [`SystemState`] control flag. The raw slug stays
+/// reachable via the combo's per-row hover tooltip.
+fn system_state_label(state: SystemState) -> &'static str {
+    match state {
+        SystemState::Pacified => "Pacified",
+        SystemState::Fragmented => "Fragmented",
+        SystemState::Blockaded => "Blockaded",
+        SystemState::Warzone => "Warzone",
+        SystemState::Infiltrated => "Infiltrated",
+        SystemState::Quarantined => "Quarantined",
+        SystemState::Uncharted => "Uncharted",
+        // `SystemState` is `#[non_exhaustive]` (defined in `sectorforge`); fall
+        // back to the raw slug for any future variant.
+        _ => state.as_slug(),
+    }
+}
+
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
+    ui.label(
+        RichText::new("Inspect and edit one system — its star, worlds, factions, and storyline markers.")
+            .color(Color32::DARK_GRAY),
+    );
     ui.add_space(4.0);
 
     let count = state.sector.systems.len();
@@ -183,11 +254,13 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
         ui.heading(sys.name.to_string());
         ui.label(
             RichText::new(sys.id.to_string())
-                .color(Color32::GRAY)
+                .color(palette::chrome_text_dim())
                 .monospace(),
-        );
+        )
+        .on_hover_text("Unique system id (schema: id) — used by routes, presence, and saved files.");
         if pinned {
-            ui.colored_label(Color32::from_rgb(255, 160, 100), "PINNED");
+            ui.colored_label(Color32::from_rgb(255, 160, 100), "📌 Pinned")
+                .on_hover_text("Pinned systems are protected from regeneration and reseeding.");
         }
     });
 }
@@ -328,7 +401,7 @@ fn show_bitmap_preview_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: u
     ui_kit::collapsing_section(
         ui,
         "sys_bitmap_preview",
-        "Bitmap preview (§T5)",
+        "Image preview (§T5)",
         false,
         |ui| {
             let faction_fill = state.config.outputs.bitmap.faction_fill;
@@ -351,11 +424,15 @@ fn show_bitmap_preview_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: u
 
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new("PNG render via the per-system exporter")
+                    RichText::new("How this system will look when exported as an image.")
                         .small()
-                        .color(Color32::GRAY),
+                        .color(palette::chrome_text_dim()),
                 );
-                if ui.button("Refresh").clicked() {
+                if ui
+                    .button("🔄 Refresh")
+                    .on_hover_text("Re-render the preview from the current system and map theme")
+                    .clicked()
+                {
                     state.system_bitmap_preview = None;
                 }
             });
@@ -392,8 +469,10 @@ fn show_bitmap_preview_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: u
                 ui.add(egui::Image::new(sized).max_width(avail));
                 ui.label(
                     RichText::new(format!(
-                        "{}×{} px · theme {theme_name} · faction_fill {faction_fill}",
-                        p.size[0], p.size[1]
+                        "{}×{} px · theme {theme_name} · faction colours {}",
+                        p.size[0],
+                        p.size[1],
+                        if faction_fill { "on" } else { "off" }
                     ))
                     .small()
                     .color(Color32::DARK_GRAY),
@@ -436,16 +515,19 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
         egui::Grid::new("sys_identity_grid")
             .num_columns(2)
             .show(ui, |ui| {
-                ui.label("id");
+                ui.label("ID")
+                    .on_hover_text("Unique system id (schema: id). Read-only — used by routes, presence, and saved files.");
                 ui.monospace(id.to_string());
                 ui.end_row();
-                ui.label("name");
+                ui.label("Name")
+                    .on_hover_text("Display name shown in lists and on the map (schema: name).");
                 let (buf, resp) =
                     crate::builder::panels::persistent_singleline(ui, name_buf_key, &source_name);
                 name_buf = buf;
                 name_changed = resp.lost_focus();
                 ui.end_row();
-                ui.label("coord");
+                ui.label("Coordinate")
+                    .on_hover_text("Sector grid cell, column q / row r (schema: coord). Click Apply coordinate to move.");
                 ui.horizontal(|ui| {
                     ui.add(
                         egui::DragValue::new(&mut q)
@@ -463,8 +545,9 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     d.insert_temp(coord_r_key, r);
                 });
                 ui.end_row();
-                ui.label("kind");
-                ui_kit::combo("sys_kind", format!("{}", kind_choice)).show_ui(ui, |ui| {
+                ui.label("Type")
+                    .on_hover_text("What kind of location this is (schema: kind). Changes the glyph drawn on the map.");
+                ui_kit::combo("sys_kind", system_kind_label(kind_choice)).show_ui(ui, |ui| {
                     for k in [
                         SystemKind::Star,
                         SystemKind::SpecialLocation,
@@ -472,14 +555,19 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                         SystemKind::WarpAnomaly,
                         SystemKind::SpaceStation,
                     ] {
-                        ui.selectable_value(&mut kind_choice, k, format!("{}", k));
+                        ui.selectable_value(&mut kind_choice, k, system_kind_label(k))
+                            .on_hover_text(format!("schema: {}", k.as_slug()));
                     }
                 });
                 ui.data_mut(|d| d.insert_temp(kind_choice_key, kind_choice));
                 ui.end_row();
-                ui.label("pinned");
+                ui.label("Pinned")
+                    .on_hover_text("When on, the generator won't regenerate or reseed this system.");
                 let mut pinned = state.pinned_systems.contains(&id);
-                if ui.checkbox(&mut pinned, "(pin from generator)").changed() {
+                if ui
+                    .checkbox(&mut pinned, "Protect from regeneration")
+                    .changed()
+                {
                     if pinned {
                         state.pinned_systems.insert(id.clone());
                     } else {
@@ -490,7 +578,11 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
             });
 
         ui.horizontal(|ui| {
-            if (ui.button("Apply name").clicked() || name_changed)
+            if (ui
+                .button("Apply name")
+                .on_hover_text("Rename this system")
+                .clicked()
+                || name_changed)
                 && name_buf != *state.sector.systems[sys_idx].name
             {
                 let from = state.sector.systems[sys_idx].name.to_string();
@@ -505,7 +597,11 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     crate::builder::panels::persistent_text_clear(ui, name_buf_key);
                 }
             }
-            if ui.button("Apply coord").clicked() {
+            if ui
+                .button("Apply coordinate")
+                .on_hover_text("Move this system to the entered grid cell")
+                .clicked()
+            {
                 let new_coord = HexCoord { q, r };
                 if new_coord != coord {
                     apply_coord_move(state, id.clone(), coord, new_coord);
@@ -515,7 +611,12 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
                     d.remove::<i32>(coord_r_key);
                 });
             }
-            if kind_choice != kind && ui.button("Apply kind").clicked() {
+            if kind_choice != kind
+                && ui
+                    .button("Apply type")
+                    .on_hover_text("Change this system's type")
+                    .clicked()
+            {
                 // §R4: route the kind change through EditSystem so undo/redo
                 // and the validation pump pick it up (was a direct field
                 // write). `worlds` rides through the system clone unchanged.
@@ -590,7 +691,11 @@ fn show_star_section(
                     let sys_id_key = state.sector.systems[sys_idx].id.as_str().to_string();
                     let mut has_star = state.sector.systems[sys_idx].star.is_some();
                     let mut toggle_star = false;
-                    if ui.checkbox(&mut has_star, "present").changed() {
+                    if ui
+                        .checkbox(&mut has_star, "Has a central star")
+                        .on_hover_text("Whether this system has a star at its centre (schema: star).")
+                        .changed()
+                    {
                         toggle_star = true;
                     }
                     let mut star_buf = state.sector.systems[sys_idx].star.clone();
@@ -614,21 +719,33 @@ fn show_star_section(
                         egui::Grid::new("sys_star_grid")
                             .num_columns(2)
                             .show(ui, |ui| {
-                                ui.label("colour_code");
+                                ui.horizontal(|ui| {
+                                    ui.colored_label(
+                                        palette::star_color(&code_src),
+                                        RichText::new("⬛").small(),
+                                    );
+                                    ui.label("Colour class").on_hover_text(
+                                        "Spectral colour class, e.g. G or M (schema: colour_code). Sets the star's tint on the map.",
+                                    );
+                                });
                                 let (buf, resp) = crate::builder::panels::persistent_singleline(
                                     ui, code_key, &code_src,
                                 );
                                 new_code = buf;
                                 field_changed |= resp.lost_focus();
                                 ui.end_row();
-                                ui.label("colour_name");
+                                ui.label("Colour name").on_hover_text(
+                                    "Human name for the colour, e.g. Yellow (schema: colour_name).",
+                                );
                                 let (buf, resp) = crate::builder::panels::persistent_singleline(
                                     ui, name_key, &name_src,
                                 );
                                 new_name = buf;
                                 field_changed |= resp.lost_focus();
                                 ui.end_row();
-                                ui.label("spectral_type");
+                                ui.label("Spectral type").on_hover_text(
+                                    "Optional detailed spectral type, e.g. G2V (schema: spectral_type). Leave blank if unknown.",
+                                );
                                 let (buf, resp) = crate::builder::panels::persistent_singleline(
                                     ui,
                                     spectral_key,
@@ -720,11 +837,13 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
             .map(|t| t.to_string())
             .collect::<Vec<_>>()
             .join("\n");
-        ui.label("tags (comma-separated)");
+        ui.label("Tags")
+            .on_hover_text("Free-form labels, comma-separated (schema: tags). Used for filtering and flavour.");
         let (tags_buf, tags_resp) =
             crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
         let tags_changed = tags_resp.lost_focus();
-        ui.label("notes (one per line)");
+        ui.label("Notes")
+            .on_hover_text("GM notes, one per line (schema: notes).");
         let (notes_buf, notes_resp) =
             crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
         let notes_changed = notes_resp.lost_focus();
@@ -800,7 +919,7 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
         ui.horizontal(|ui| {
             ui.label(format!("{world_count} world(s)"));
             if ui
-                .button("+ Add world")
+                .button("➕ Add world")
                 .on_hover_text("Append a blank world to this system")
                 .clicked()
             {
@@ -846,12 +965,15 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 }
             }
         });
+        if world_count == 0 {
+            ui_kit::placeholder(ui, "No worlds yet — use Add world above.");
+        }
         for (wid, name) in world_ids {
             ui.horizontal(|ui| {
                 let clicked = sectorforge_gui_core::entity_link(ui, name, true).clicked();
                 ui.label(
                     RichText::new(wid.to_string())
-                        .color(Color32::GRAY)
+                        .color(palette::chrome_text_dim())
                         .monospace()
                         .small(),
                 );
@@ -867,7 +989,7 @@ fn show_worlds_link(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
 }
 
 fn show_routes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    ui_kit::collapsing_section(ui, "sys_routes", "Routes (read-only here)", false, |ui| {
+    ui_kit::collapsing_section(ui, "sys_routes", "Routes (view only)", false, |ui| {
         let id = state.sector.systems[sys_idx].id.clone();
         let touching: Vec<_> = state
             .sector
@@ -883,7 +1005,10 @@ fn show_routes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 )
             })
             .collect();
-        ui.label(format!("{} route(s) touching", touching.len()));
+        ui.label(format!("{} route(s) touching this system", touching.len()));
+        if touching.is_empty() {
+            ui_kit::placeholder(ui, "No routes reach this system — add them on the MAP tab.");
+        }
         for (rid, from, to, dist) in touching {
             if sectorforge_gui_core::entity_link(
                 ui,
@@ -907,7 +1032,10 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) 
             }
         }
         if primary.is_empty() {
-            ui.colored_label(Color32::GRAY, "no primary factions");
+            ui_kit::placeholder(
+                ui,
+                "No primary factions — assign them on the CONTROL tab or via Bulk operations.",
+            );
         }
     });
 }
@@ -917,28 +1045,35 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
         let id = state.sector.systems[sys_idx].id.clone();
         let mut current = state.sector.systems[sys_idx].control.state;
         let summary = state.sector.systems[sys_idx].control.clone();
-        ui.label("control.state");
-        ui_kit::combo(
-            "sys_control_state",
-            match current {
-                None => "(none)".to_string(),
-                Some(s) => format!("{s}"),
+        labeled(
+            ui,
+            "Control status",
+            "Overall political state of the system (schema: control.state). '(none)' leaves it unset.",
+            |ui| {
+                ui_kit::combo(
+                    "sys_control_state",
+                    match current {
+                        None => "(none)",
+                        Some(s) => system_state_label(s),
+                    },
+                )
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut current, None, "(none)");
+                    for s in [
+                        SystemState::Pacified,
+                        SystemState::Fragmented,
+                        SystemState::Blockaded,
+                        SystemState::Warzone,
+                        SystemState::Infiltrated,
+                        SystemState::Quarantined,
+                        SystemState::Uncharted,
+                    ] {
+                        ui.selectable_value(&mut current, Some(s), system_state_label(s))
+                            .on_hover_text(format!("schema: {}", s.as_slug()));
+                    }
+                });
             },
-        )
-        .show_ui(ui, |ui| {
-            ui.selectable_value(&mut current, None, "(none)");
-            for s in [
-                SystemState::Pacified,
-                SystemState::Fragmented,
-                SystemState::Blockaded,
-                SystemState::Warzone,
-                SystemState::Infiltrated,
-                SystemState::Quarantined,
-                SystemState::Uncharted,
-            ] {
-                ui.selectable_value(&mut current, Some(s), format!("{s}"));
-            }
-        });
+        );
         if current != state.sector.systems[sys_idx].control.state {
             // §R4: route the control-state flip through EditSystem so it lands
             // on the undo/redo log (was a direct `set_system_control_state` over
@@ -956,53 +1091,98 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 state.modal = Some(ModalKind::Message(format!("Control update failed: {e}")));
             }
         }
-        ui.label(format!("dominant: {:?}", summary.dominant));
-        ui.label(format!("sovereign: {:?}", summary.sovereign));
-        ui.label(format!(
-            "orbital_controller: {:?}",
-            summary.orbital_controller
-        ));
-        ui.label(format!("economic_hegemon: {:?}", summary.economic_hegemon));
-        ui.label(format!("hidden_master: {:?}", summary.hidden_master));
+        ui.add_space(4.0);
+        ui.label(
+            RichText::new("Who holds power here (derived — assign on the CONTROL tab):")
+                .small()
+                .color(palette::chrome_text_dim()),
+        );
+        let role = |id: &Option<sectorforge::ids::FactionId>| {
+            id.as_ref()
+                .map(|f| f.to_string())
+                .unwrap_or_else(|| "(none)".to_string())
+        };
+        labeled(
+            ui,
+            "Dominant",
+            "Faction with the strongest overall presence (schema: control.dominant).",
+            |ui| {
+                ui.monospace(role(&summary.dominant));
+            },
+        );
+        labeled(
+            ui,
+            "Sovereign",
+            "Recognised ruling authority (schema: control.sovereign).",
+            |ui| {
+                ui.monospace(role(&summary.sovereign));
+            },
+        );
+        labeled(
+            ui,
+            "Orbital controller",
+            "Faction holding the orbital space (schema: control.orbital_controller).",
+            |ui| {
+                ui.monospace(role(&summary.orbital_controller));
+            },
+        );
+        labeled(
+            ui,
+            "Economic hegemon",
+            "Faction dominating trade and industry (schema: control.economic_hegemon).",
+            |ui| {
+                ui.monospace(role(&summary.economic_hegemon));
+            },
+        );
+        labeled(
+            ui,
+            "Hidden master",
+            "Concealed power behind the scenes (schema: control.hidden_master).",
+            |ui| {
+                ui.monospace(role(&summary.hidden_master));
+            },
+        );
     });
 }
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
-    ui_kit::collapsing_section(
-        ui,
-        "sys_overlays",
-        "Overlays (managed elsewhere)",
-        false,
-        |ui| {
-            let sys = &state.sector.systems[sys_idx];
-            ui.label(format!(
-                "orbital_assets: {} (edit below)",
-                sys.orbital_assets.len()
-            ));
-            ui.label(format!(
-                "blockade present: {} (edit below)",
-                !sectorforge::orbital_assets::BlockadeReport::is_default(&sys.blockade)
-            ));
-            ui.label(format!(
-                "conflict default: {}",
-                sectorforge::conflict::ConflictState::is_default(&sys.conflict)
-            ));
-            ui.label(format!(
-                "intel observers: {} (empty? {})",
-                sys.intel.by_observer.len(),
-                sectorforge::intel::SystemIntel::is_empty(&sys.intel)
-            ));
-            ui.label(format!(
-                "archetype default: {} (see Archetypes section)",
-                sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype)
-            ));
-            ui.horizontal(|ui| {
-                if ui.button("Open REGIONS").clicked() {
-                    state.focus_entity(EntityRef::Tab(BuilderTab::Regions));
-                }
-            });
-        },
-    );
+    ui_kit::collapsing_section(ui, "sys_overlays", "Overlays at a glance", false, |ui| {
+        ui.label(
+            RichText::new("Quick read of extra layers on this system — edit each in its own section or tab.")
+                .small()
+                .color(palette::chrome_text_dim()),
+        );
+        ui.add_space(2.0);
+        let sys = &state.sector.systems[sys_idx];
+        let has_blockade =
+            !sectorforge::orbital_assets::BlockadeReport::is_default(&sys.blockade);
+        let has_conflict = !sectorforge::conflict::ConflictState::is_default(&sys.conflict);
+        let has_archetype =
+            !sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype);
+        ui.label(format!("Orbital assets: {}", sys.orbital_assets.len()));
+        ui.label(format!(
+            "Blockade present: {}",
+            if has_blockade { "yes" } else { "no" }
+        ));
+        ui.label(format!(
+            "Active conflict: {}",
+            if has_conflict { "yes" } else { "no" }
+        ));
+        ui.label(format!("Intel observers: {}", sys.intel.by_observer.len()));
+        ui.label(format!(
+            "Archetype set: {}",
+            if has_archetype { "yes" } else { "no" }
+        ));
+        ui.horizontal(|ui| {
+            if ui
+                .button("Open REGIONS tab  →")
+                .on_hover_text("Jump to the REGIONS tab to manage map overlays")
+                .clicked()
+            {
+                state.focus_entity(EntityRef::Tab(BuilderTab::Regions));
+            }
+        });
+    });
 }
 
 // ── AR1 / AR2 / AR3 — Archetypes (§30) ─────────────────────────────────────
@@ -1017,16 +1197,21 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
     let original = working.clone();
 
     ui_kit::collapsing_section(ui, "sys_archetypes", "Archetypes", false, |ui| {
-        ui.colored_label(
-            Color32::GRAY,
-            "per-axis progression markers. flavour notes live in the Tags / Notes section.",
+        ui.label(
+            RichText::new(
+                "How far each faction-themed storyline has progressed here. Flavour notes live in the Tags + Notes section.",
+            )
+            .small()
+            .color(palette::chrome_text_dim()),
         );
         ui.add_space(4.0);
 
         egui::Grid::new("archetype_axes")
             .num_columns(2)
             .show(ui, |ui| {
-                ui.label("imperial co-sovereigns");
+                ui.label("Imperial co-sovereigns").on_hover_text(
+                    "Additional Imperial factions sharing rule here (schema: archetype.imperial_co_sovereigns).",
+                );
                 ui.vertical(|ui| {
                     let mut remove_at: Option<usize> = None;
                     for (i, fid) in working.imperial_co_sovereigns.iter().enumerate() {
@@ -1042,12 +1227,15 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                     }
                     ui.horizontal(|ui| {
                         let mut to_add: Option<sectorforge::ids::FactionId> = None;
-                        ui_kit::combo("arch_imp_add", "+ add").show_ui(ui, |ui| {
+                        ui_kit::combo("arch_imp_add", "➕ Add faction").show_ui(ui, |ui| {
                             for f in &state.sector.factions {
                                 if working.imperial_co_sovereigns.contains(&f.id) {
                                     continue;
                                 }
-                                if ui.button(format!("{} ({})", f.id, f.name)).clicked() {
+                                if ui
+                                    .button(format!("{} ({})", f.name, f.id))
+                                    .clicked()
+                                {
                                     to_add = Some(f.id.clone());
                                 }
                             }
@@ -1059,8 +1247,9 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                 });
                 ui.end_row();
 
-                ui.label("necron phase");
-                ui_kit::combo("arch_necron", format!("{}", working.necron_phase)).show_ui(
+                ui.label("Necron phase")
+                    .on_hover_text("How awake the Necrons are here (schema: archetype.necron_phase).");
+                ui_kit::combo("arch_necron", pretty_slug(working.necron_phase.as_slug())).show_ui(
                     ui,
                     |ui| {
                         for v in [
@@ -1069,14 +1258,20 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                             NecronPhase::Awakening,
                             NecronPhase::Awake,
                         ] {
-                            ui.selectable_value(&mut working.necron_phase, v, format!("{v}"));
+                            ui.selectable_value(
+                                &mut working.necron_phase,
+                                v,
+                                pretty_slug(v.as_slug()),
+                            )
+                            .on_hover_text(format!("schema: {}", v.as_slug()));
                         }
                     },
                 );
                 ui.end_row();
 
-                ui.label("tyranid stage");
-                ui_kit::combo("arch_tyranid", format!("{}", working.tyranid_stage)).show_ui(
+                ui.label("Tyranid stage")
+                    .on_hover_text("Tyranid infestation progress (schema: archetype.tyranid_stage).");
+                ui_kit::combo("arch_tyranid", pretty_slug(working.tyranid_stage.as_slug())).show_ui(
                     ui,
                     |ui| {
                         for v in [
@@ -1085,69 +1280,93 @@ fn show_archetype_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize)
                             TyranidStage::Besieged,
                             TyranidStage::Consumed,
                         ] {
-                            ui.selectable_value(&mut working.tyranid_stage, v, format!("{v}"));
+                            ui.selectable_value(
+                                &mut working.tyranid_stage,
+                                v,
+                                pretty_slug(v.as_slug()),
+                            )
+                            .on_hover_text(format!("schema: {}", v.as_slug()));
                         }
                     },
                 );
                 ui.end_row();
 
-                ui.label("ork waaagh!");
+                ui.label("Ork Waaagh!")
+                    .on_hover_text("Strength of the Ork Waaagh!, 0–100 (schema: archetype.ork_waaagh).");
                 ui.add(egui::Slider::new(&mut working.ork_waaagh, 0..=100).text("/100"));
                 ui.end_row();
 
-                ui.label("genestealer stage");
-                ui_kit::combo("arch_gsc", format!("{}", working.gsc_stage)).show_ui(ui, |ui| {
-                    for v in [
-                        GscStage::None,
-                        GscStage::Rumor,
-                        GscStage::HiddenCell,
-                        GscStage::DistrictControl,
-                        GscStage::ParallelGovernment,
-                        GscStage::Uprising,
-                        GscStage::PlanetarySeizure,
-                    ] {
-                        ui.selectable_value(&mut working.gsc_stage, v, format!("{v}"));
-                    }
-                });
+                ui.label("Genestealer stage").on_hover_text(
+                    "Genestealer cult infiltration progress (schema: archetype.gsc_stage).",
+                );
+                ui_kit::combo("arch_gsc", pretty_slug(working.gsc_stage.as_slug())).show_ui(
+                    ui,
+                    |ui| {
+                        for v in [
+                            GscStage::None,
+                            GscStage::Rumor,
+                            GscStage::HiddenCell,
+                            GscStage::DistrictControl,
+                            GscStage::ParallelGovernment,
+                            GscStage::Uprising,
+                            GscStage::PlanetarySeizure,
+                        ] {
+                            ui.selectable_value(&mut working.gsc_stage, v, pretty_slug(v.as_slug()))
+                                .on_hover_text(format!("schema: {}", v.as_slug()));
+                        }
+                    },
+                );
                 ui.end_row();
 
-                ui.label("tau sphere");
-                ui_kit::combo("arch_tau", format!("{}", working.tau_sphere)).show_ui(ui, |ui| {
-                    for v in [
-                        TauSphereBand::None,
-                        TauSphereBand::Contact,
-                        TauSphereBand::Fringe,
-                        TauSphereBand::Client,
-                        TauSphereBand::Core,
-                    ] {
-                        ui.selectable_value(&mut working.tau_sphere, v, format!("{v}"));
-                    }
-                });
+                ui.label("T'au sphere")
+                    .on_hover_text("How far into the T'au Empire's sphere this sits (schema: archetype.tau_sphere).");
+                ui_kit::combo("arch_tau", pretty_slug(working.tau_sphere.as_slug())).show_ui(
+                    ui,
+                    |ui| {
+                        for v in [
+                            TauSphereBand::None,
+                            TauSphereBand::Contact,
+                            TauSphereBand::Fringe,
+                            TauSphereBand::Client,
+                            TauSphereBand::Core,
+                        ] {
+                            ui.selectable_value(&mut working.tau_sphere, v, pretty_slug(v.as_slug()))
+                                .on_hover_text(format!("schema: {}", v.as_slug()));
+                        }
+                    },
+                );
                 ui.end_row();
 
-                ui.label("aeldari activity");
+                ui.label("Aeldari activity")
+                    .on_hover_text("Level of Aeldari presence, 0–100 (schema: archetype.aeldari_activity).");
                 ui.add(egui::Slider::new(&mut working.aeldari_activity, 0..=100).text("/100"));
                 ui.end_row();
 
-                ui.label("chaos corruption");
+                ui.label("Chaos corruption")
+                    .on_hover_text("Degree of Chaos taint, 0–100 (schema: archetype.chaos_corruption).");
                 ui.add(egui::Slider::new(&mut working.chaos_corruption, 0..=100).text("/100"));
                 ui.end_row();
 
-                ui.label("daemon manifestation");
+                ui.label("Daemon manifestation")
+                    .on_hover_text("Strength of daemonic incursion, 0–100 (schema: archetype.daemon_manifestation).");
                 ui.add(egui::Slider::new(&mut working.daemon_manifestation, 0..=100).text("/100"));
                 ui.end_row();
             });
 
         ui.add_space(4.0);
         ui.horizontal(|ui| {
-            if ui.button("Reset to default").clicked() {
+            if ui
+                .button("↺ Reset to default")
+                .on_hover_text("Clear every archetype marker on this system")
+                .clicked()
+            {
                 working = ArchetypeState::default();
             }
             if ui
-                .button("Auto-assign from sector data (this system only)")
+                .button("🔄 Auto-assign (this system)")
                 .on_hover_text(
-                    "Runs the §AR2 derivation over the full sector and keeps only \
-                         this system's freshly derived archetype.",
+                    "Re-derives archetype markers from the whole sector and keeps only \
+                         this system's result.",
                 )
                 .clicked()
             {
@@ -1180,12 +1399,18 @@ fn show_archetype_auto_assign(ui: &mut Ui, state: &mut BuilderState) {
         "Auto-assign archetypes (sector-wide)",
         false,
         |ui| {
-            ui.colored_label(
-                Color32::GRAY,
-                "runs `sectorforge::archetypes::apply_all` over the whole sector, \
-                 masked by the §AR3 enable flags below. Undoable.",
+            ui.label(
+                RichText::new(
+                    "Derives archetype markers for every system at once, limited to the storylines enabled below. This can be undone.",
+                )
+                .small()
+                .color(palette::chrome_text_dim()),
             );
-            if ui.button("Run apply_all now").clicked() {
+            if ui
+                .button("▶ Run on whole sector")
+                .on_hover_text("Re-derive archetype markers across every system")
+                .clicked()
+            {
                 let flags = state.archetype_flags;
                 let cmd = BuilderCommand::AutoAssignArchetypes {
                     flags,
@@ -1203,30 +1428,39 @@ fn show_archetype_rules(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(
         ui,
         "sys_archetype_rules",
-        "Archetype rules (builder-only defaults)",
+        "Which storylines to auto-assign",
         false,
         |ui| {
-            ui.colored_label(
-                Color32::GRAY,
-                "`src/archetypes.rs` ships no TOML config layer, so these flags \
-                 live on `BuilderState` only and are not serialised into \
-                 `sector.json`. Disabled axes are reset to defaults after §AR2.",
+            ui.label(
+                RichText::new(
+                    "Tick the faction storylines that auto-assign is allowed to set. These choices apply to this session only and aren't saved with the sector; unticked storylines are reset to their defaults when you run it.",
+                )
+                .small()
+                .color(palette::chrome_text_dim()),
             );
             let flags = &mut state.archetype_flags;
-            ui.checkbox(&mut flags.imperial, "imperial governance stack");
-            ui.checkbox(&mut flags.necron, "necron phase");
-            ui.checkbox(&mut flags.tyranid, "tyranid front");
-            ui.checkbox(&mut flags.ork, "ork waaagh!");
-            ui.checkbox(&mut flags.gsc, "genestealer stages");
-            ui.checkbox(&mut flags.tau, "tau sphere");
-            ui.checkbox(&mut flags.aeldari, "aeldari intermittent");
-            ui.checkbox(&mut flags.chaos, "chaos corruption + daemon");
+            ui.checkbox(&mut flags.imperial, "Imperial governance");
+            ui.checkbox(&mut flags.necron, "Necron phase");
+            ui.checkbox(&mut flags.tyranid, "Tyranid front");
+            ui.checkbox(&mut flags.ork, "Ork Waaagh!");
+            ui.checkbox(&mut flags.gsc, "Genestealer stages");
+            ui.checkbox(&mut flags.tau, "T'au sphere");
+            ui.checkbox(&mut flags.aeldari, "Aeldari activity");
+            ui.checkbox(&mut flags.chaos, "Chaos corruption + daemons");
             ui.add_space(4.0);
             ui.horizontal(|ui| {
-                if ui.button("Enable all").clicked() {
+                if ui
+                    .button("Enable all")
+                    .on_hover_text("Turn on every storyline")
+                    .clicked()
+                {
                     *flags = crate::builder::command::ArchetypeApplyFlags::default();
                 }
-                if ui.button("Disable all").clicked() {
+                if ui
+                    .button("Disable all")
+                    .on_hover_text("Turn off every storyline")
+                    .clicked()
+                {
                     *flags = crate::builder::command::ArchetypeApplyFlags {
                         imperial: false,
                         necron: false,
@@ -1272,7 +1506,8 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
         egui::Grid::new("sys_regen_grid")
             .num_columns(2)
             .show(ui, |ui| {
-                ui.label("coord");
+                ui.label("Coordinate")
+                    .on_hover_text("Target grid cell to regenerate at, column q / row r (schema: coord).");
                 ui.horizontal(|ui| {
                     ui.add(
                         egui::DragValue::new(&mut q)
@@ -1286,7 +1521,8 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     );
                 });
                 ui.end_row();
-                ui.label("index");
+                ui.label("Sequence number")
+                    .on_hover_text("System ordering index used while generating (schema: index).");
                 ui.add(egui::DragValue::new(&mut index).range(1..=usize::MAX));
                 ui.data_mut(|d| {
                     d.insert_temp(regen_q_key, q);
@@ -1294,7 +1530,8 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     d.insert_temp(regen_index_key, index);
                 });
                 ui.end_row();
-                ui.label("seed");
+                ui.label("Seed")
+                    .on_hover_text("Random seed for this system. Change it to get a different result; leave it to reproduce the same one (schema: generation.seed).");
                 let (buf, _) =
                     crate::builder::panels::persistent_singleline(ui, seed_key, &seed_src);
                 seed = buf;
@@ -1302,7 +1539,11 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             });
 
         ui.horizontal(|ui| {
-                if ui.button("Regenerate this system").clicked() {
+                if ui
+                    .button("🔄 Regenerate here")
+                    .on_hover_text("Replace this system with a freshly generated one at its current cell")
+                    .clicked()
+                {
                     run_regen(state, original_coord, index, &seed);
                     ui.data_mut(|d| {
                         d.remove::<i32>(regen_q_key);
@@ -1311,7 +1552,10 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     });
                 }
                 if (q, r) != (original_coord.q, original_coord.r)
-                    && ui.button("Regenerate at coord (replace)").clicked()
+                    && ui
+                        .button("🔄 Regenerate at new cell")
+                        .on_hover_text("Generate a fresh system at the entered coordinate instead")
+                        .clicked()
                 {
                     let new_coord = HexCoord { q, r };
                     let occupant = state
@@ -1335,9 +1579,12 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                     }
                 }
             });
-        ui.colored_label(
-            Color32::GRAY,
-            format!("(current id: {id} — pinned systems refuse regen)"),
+        ui.label(
+            RichText::new(format!(
+                "Editing {id}. Regenerating overwrites the current contents. Pinned systems are skipped."
+            ))
+            .small()
+            .color(palette::chrome_text_dim()),
         );
     });
 }
@@ -1365,23 +1612,35 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
         let n = state.selected_systems.len();
         ui.label(format!("{n} system(s) selected"));
         if n == 0 {
-            ui.colored_label(
-                Color32::GRAY,
-                "Shift-click systems or drag a rect on the MAP tab.",
+            ui_kit::placeholder(
+                ui,
+                "Nothing selected — Shift-click systems or drag a box on the MAP tab to act on several at once.",
             );
             return;
         }
 
         ui.horizontal(|ui| {
-            if ui.button("Clear selection").clicked() {
+            if ui
+                .button("Clear selection")
+                .on_hover_text("Deselect every system")
+                .clicked()
+            {
                 state.selected_systems.clear();
             }
-            if ui.button("Pin all").clicked() {
+            if ui
+                .button("📌 Pin all")
+                .on_hover_text("Protect every selected system from regeneration")
+                .clicked()
+            {
                 for id in state.selected_systems.iter().cloned().collect::<Vec<_>>() {
                     state.pinned_systems.insert(id);
                 }
             }
-            if ui.button("Unpin all").clicked() {
+            if ui
+                .button("Unpin all")
+                .on_hover_text("Allow every selected system to be regenerated again")
+                .clicked()
+            {
                 for id in state.selected_systems.iter().cloned().collect::<Vec<_>>() {
                     state.pinned_systems.remove(&id);
                 }
@@ -1389,23 +1648,31 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
         });
 
         ui.separator();
-        ui.label("Rename pattern — `{n}` = sequence, `{id}` = system id, `{name}` = current name");
+        ui.label("Rename all selected")
+            .on_hover_text("Tokens: {n} = sequence number, {id} = system id, {name} = current name");
         let pattern = ui.data_mut(|d| {
             d.get_temp_mut_or::<String>(egui::Id::new("bulk_rename_pat"), "Sys-{n}".into())
                 .clone()
         });
         let mut pattern_buf = pattern;
-        if ui.text_edit_singleline(&mut pattern_buf).changed() {
+        if ui
+            .add(egui::TextEdit::singleline(&mut pattern_buf).hint_text("e.g. Sys-{n}"))
+            .changed()
+        {
             ui.data_mut(|d| {
                 d.insert_temp(egui::Id::new("bulk_rename_pat"), pattern_buf.clone());
             });
         }
-        if ui.button("Apply rename pattern").clicked() {
+        if ui
+            .button("Apply rename pattern")
+            .on_hover_text("Rename every selected system using the pattern above")
+            .clicked()
+        {
             apply_bulk_rename(state, &pattern_buf);
         }
 
         ui.separator();
-        ui.label("Reassign primary faction");
+        ui.label("Set primary faction for all selected");
         let factions: Vec<_> = state
             .sector
             .factions
@@ -1414,7 +1681,11 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
             .collect();
         ui.horizontal_wrapped(|ui| {
             for (fid, name) in &factions {
-                if ui.button(format!("→ {name} ({fid})")).clicked() {
+                if ui
+                    .button(format!("→ {name} ({fid})"))
+                    .on_hover_text("Add this faction as a primary on every selected system")
+                    .clicked()
+                {
                     apply_bulk_primary_faction(state, fid.clone());
                 }
                 if sectorforge_gui_core::entity_link(ui, fid.to_string(), true).clicked() {
@@ -1422,12 +1693,16 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 }
             }
         });
-        if ui.button("Clear primary factions").clicked() {
+        if ui
+            .button("Clear primary factions")
+            .on_hover_text("Remove all primary factions from the selected systems")
+            .clicked()
+        {
             apply_bulk_clear_factions(state);
         }
 
         ui.separator();
-        ui.label("Flip control state");
+        ui.label("Set control status for all selected");
         ui.horizontal_wrapped(|ui| {
             for s in [
                 None,
@@ -1439,19 +1714,24 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 Some(SystemState::Quarantined),
                 Some(SystemState::Uncharted),
             ] {
-                let label = match s {
-                    None => "(none)".to_string(),
-                    Some(v) => format!("{v}"),
+                let (label, hover) = match s {
+                    None => ("(none)", "schema: control.state = unset".to_string()),
+                    Some(v) => (system_state_label(v), format!("schema: {}", v.as_slug())),
                 };
-                if ui.button(label).clicked() {
+                if ui.button(label).on_hover_text(hover).clicked() {
                     apply_bulk_control_state(state, s);
                 }
             }
         });
 
         ui.separator();
-        ui.label("Reseed worlds (drops + re-runs)");
-        if ui.button("Reseed worlds for selection").clicked() {
+        ui.label("Reseed worlds for all selected")
+            .on_hover_text("Drops each selected system's worlds and re-rolls them. Pinned systems are skipped.");
+        if ui
+            .button("🔄 Reseed worlds")
+            .on_hover_text("Re-roll worlds for every selected system")
+            .clicked()
+        {
             apply_bulk_reseed(state);
         }
     });

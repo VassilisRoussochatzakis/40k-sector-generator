@@ -27,12 +27,15 @@
 //!      `EntityRef::Tab(BuilderTab::Map)` so the system / world is selected
 //!      under the existing focus overlay.
 
+use std::collections::BTreeSet;
+
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::missions::{
     MissionKind, MissionScale, MissionSeed, MissionVisibility, MissionsConfig,
 };
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef};
@@ -68,10 +71,9 @@ const VISIBILITY_VARIANTS: &[MissionVisibility] = &[
 
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Missions");
-    ui.add_space(2.0);
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "mission list, manual entries that survive auto-derive, player-edition toggle, click-to-highlight.",
+    ui.label(
+        RichText::new("Jobs the players can take on — auto-suggested from the sector, plus any you write by hand.")
+            .color(Color32::DARK_GRAY),
     );
     ui.separator();
 
@@ -110,19 +112,41 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     });
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Title", "Reward") while the tooltip names the
+/// underlying TOML field plus a plain-language note, so power users keep the
+/// schema mapping. Friendlier replacement for the old bare `egui::Grid` whose
+/// row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── §M3 / §M4 header actions ───────────────────────────────────────────────
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Auto-derive missions").clicked() {
+        if ui
+            .button("🔄  Auto-derive missions")
+            .on_hover_text("Suggest a fresh set of missions from the current sector. Your hand-written ones are kept.")
+            .clicked()
+        {
             ensure_missions_catalog(state);
             state.recompute_missions();
         }
-        ui.checkbox(&mut state.missions_auto_recompute, "auto-recompute on edit");
+        ui.checkbox(&mut state.missions_auto_recompute, "Re-suggest as I edit")
+            .on_hover_text("Re-run the suggestions automatically whenever you change a knob or a manual mission.");
         if ui
-            .checkbox(
-                &mut state.missions_player_edition,
-                "player edition (--player)",
+            .checkbox(&mut state.missions_player_edition, "Player edition")
+            .on_hover_text(
+                "Hide GM-only missions, as a player would see them. Turn off to see everything.",
             )
             .changed()
         {
@@ -139,12 +163,13 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(|c| c.manual.len())
             .unwrap_or(0);
-        ui.label(format!("missions: {total}  (manual: {manual})"));
+        ui.label(format!("{total} mission(s)  ·  {manual} hand-written"));
         if state.data_catalogs.missions.is_none() {
             ui.colored_label(
                 Color32::from_rgb(220, 170, 80),
-                "no missions.toml loaded (defaults apply)",
-            );
+                "● using built-in defaults",
+            )
+            .on_hover_text("No saved mission settings yet — defaults apply until you save.");
         }
     });
 }
@@ -152,27 +177,31 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M3 config knobs ───────────────────────────────────────────────────────
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("missions.toml knobs").strong());
+    ui.label(RichText::new("Mission settings").strong());
     ensure_missions_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.missions.as_mut() else {
         return;
     };
     let mut changed = false;
-    egui::Grid::new("m3_grid").num_columns(2).show(ui, |ui| {
-        ui.label("max_per_anchor");
-        changed |= ui
-            .add(egui::DragValue::new(&mut cfg.max_per_anchor).range(0..=32))
-            .changed();
-        ui.end_row();
-        ui.label("top_n_digest");
-        changed |= ui
-            .add(egui::DragValue::new(&mut cfg.top_n_digest).range(0..=200))
-            .changed();
-        ui.end_row();
-    });
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "Higher max ⇒ more mission seeds per world/system/route. top_n_digest only affects the rendered Markdown digest.",
+    labeled(
+        ui,
+        "Max per location",
+        "Cap on suggested missions for any one world, system, or route (schema: max_per_anchor). Higher means more variety per place.",
+        |ui| {
+            changed |= ui
+                .add(egui::DragValue::new(&mut cfg.max_per_anchor).range(0..=32))
+                .changed();
+        },
+    );
+    labeled(
+        ui,
+        "Digest length",
+        "How many top missions appear in the exported Markdown digest (schema: top_n_digest). Does not change the list here.",
+        |ui| {
+            changed |= ui
+                .add(egui::DragValue::new(&mut cfg.top_n_digest).range(0..=200))
+                .changed();
+        },
     );
     if changed {
         on_catalog_edited(state);
@@ -183,7 +212,7 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("filter").strong());
+        ui.label(RichText::new("Show").strong());
         let label = match state.missions_filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
@@ -191,7 +220,8 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
         ui_kit::combo("m1_kind", label).show_ui(ui, |ui| {
             ui.selectable_value(&mut state.missions_filter_kind, None, "all kinds");
             for k in KIND_VARIANTS {
-                ui.selectable_value(&mut state.missions_filter_kind, Some(*k), kind_label(*k));
+                ui.selectable_value(&mut state.missions_filter_kind, Some(*k), kind_label(*k))
+                    .on_hover_text(format!("key: {}", k.as_slug()));
             }
         });
     });
@@ -200,11 +230,11 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M1 ranked list ────────────────────────────────────────────────────────
 
 fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("mission list").strong());
+    ui.label(RichText::new("Missions").strong());
     let Some(report) = state.missions_report.clone() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No missions yet. Click \"Auto-derive missions\" above.",
+        ui_kit::placeholder(
+            ui,
+            "No missions yet — click \"Auto-derive missions\" above to suggest some.",
         );
         return;
     };
@@ -215,9 +245,9 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
         .filter(|m| filter.is_none_or(|k| m.kind == k))
         .collect();
     if rows.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No missions matched the current filter / player-edition mask.",
+        ui_kit::placeholder(
+            ui,
+            "Nothing matches the current filter. Pick \"all kinds\", or turn off Player edition to reveal GM missions.",
         );
         return;
     }
@@ -239,12 +269,17 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
         ui.horizontal_wrapped(|ui| {
             ui.colored_label(
                 Color32::DARK_GRAY,
-                format!("{} · {}", kind_label(m.kind), m.scale),
+                format!("{} · {}", kind_label(m.kind), scale_label(m.scale)),
             );
             if show_hidden && m.gm_only {
-                ui.colored_label(Color32::from_rgb(220, 170, 80), "GM");
+                ui.colored_label(Color32::from_rgb(220, 170, 80), "GM")
+                    .on_hover_text("GM-only — hidden under Player edition.");
             }
-            if ui.small_button("highlight").clicked() {
+            if ui
+                .small_button("📍 Highlight")
+                .on_hover_text("Select this mission and show its location on the map.")
+                .clicked()
+            {
                 select_mission(state, m);
                 focus_primary_location(state, &m.primary_location, &m.route_ids);
             }
@@ -256,13 +291,13 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M1 detail card ────────────────────────────────────────────────────────
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("detail").strong());
+    ui.label(RichText::new("Mission details").strong());
     let target = state
         .missions_edit_target
         .clone()
         .or_else(|| state.selected_mission_id.clone());
     let Some(target_id) = target else {
-        ui_kit::placeholder(ui, "Select a mission above to see its details.");
+        ui_kit::placeholder(ui, "Pick a mission on the left to see its full details.");
         return;
     };
     let Some(mission) = state
@@ -271,26 +306,44 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         .and_then(|r| r.missions.iter().find(|m| m.id == target_id))
         .cloned()
     else {
-        ui.colored_label(
-            Color32::GRAY,
-            format!("Mission id `{target_id}` is gone — regenerate to refresh."),
+        ui_kit::placeholder(
+            ui,
+            "That mission is no longer in the list — click \"Auto-derive missions\" to refresh.",
         );
         return;
     };
     let show_hidden = !state.missions_player_edition;
-    egui::Grid::new("m_detail_grid")
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("id");
+
+    labeled(
+        ui,
+        "ID",
+        "Stable identifier for this mission (schema: id).",
+        |ui| {
             ui.label(RichText::new(mission.id.clone()).monospace());
-            ui.end_row();
-            ui.label("kind");
-            ui.label(kind_label(mission.kind));
-            ui.end_row();
-            ui.label("title");
+        },
+    );
+    labeled(
+        ui,
+        "Kind",
+        "Mission archetype (schema: kind).",
+        |ui| {
+            ui.label(kind_label(mission.kind))
+                .on_hover_text(format!("key: {}", mission.kind.as_slug()));
+        },
+    );
+    labeled(
+        ui,
+        "Title",
+        "Headline shown to players (schema: title).",
+        |ui| {
             ui.label(RichText::new(mission.title.clone()).strong());
-            ui.end_row();
-            ui.label("patron");
+        },
+    );
+    labeled(
+        ui,
+        "Patron",
+        "Faction offering the job (schema: patron). Click to jump to it.",
+        |ui| {
             if let Some(f) = &mission.patron {
                 if ui.link(f.to_string()).clicked() {
                     state.focus_entity(EntityRef::Faction(f.clone()));
@@ -298,8 +351,13 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             } else {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             }
-            ui.end_row();
-            ui.label("target");
+        },
+    );
+    labeled(
+        ui,
+        "Target",
+        "Faction the job is aimed at (schema: target). Click to jump to it.",
+        |ui| {
             if let Some(f) = &mission.target {
                 if ui.link(f.to_string()).clicked() {
                     state.focus_entity(EntityRef::Faction(f.clone()));
@@ -307,16 +365,26 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             } else {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             }
-            ui.end_row();
-            ui.label("primary location");
+        },
+    );
+    labeled(
+        ui,
+        "Primary location",
+        "Main place the mission happens (schema: primary_location). Click to highlight it on the map.",
+        |ui| {
             if ui
                 .link(RichText::new(mission.primary_location.clone()).monospace())
                 .clicked()
             {
                 focus_primary_location(state, &mission.primary_location, &mission.route_ids);
             }
-            ui.end_row();
-            ui.label("secondary location");
+        },
+    );
+    labeled(
+        ui,
+        "Secondary location",
+        "Optional follow-up place (schema: secondary_location). Click to highlight it.",
+        |ui| {
             if let Some(sec) = &mission.secondary_location {
                 let sec_clone = sec.clone();
                 let route_ids = mission.route_ids.clone();
@@ -326,8 +394,13 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             } else {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             }
-            ui.end_row();
-            ui.label("routes");
+        },
+    );
+    labeled(
+        ui,
+        "Routes",
+        "Travel routes this mission touches (schema: route_ids). Click one to jump to it.",
+        |ui| {
             if mission.route_ids.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
@@ -339,40 +412,83 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
                     }
                 });
             }
-            ui.end_row();
-            ui.label("objective");
+        },
+    );
+    labeled(
+        ui,
+        "Objective",
+        "What the players are openly asked to do (schema: public_objective).",
+        |ui| {
             ui.label(mission.public_objective.clone());
-            ui.end_row();
-            if show_hidden {
-                ui.label("hidden complication");
+        },
+    );
+    if show_hidden {
+        labeled(
+            ui,
+            "Hidden complication",
+            "GM-only twist behind the job (schema: hidden_complication).",
+            |ui| {
                 if let Some(c) = &mission.hidden_complication {
-                    let txt = RichText::new(c.clone()).color(Color32::from_rgb(220, 170, 80));
-                    ui.label(txt);
+                    ui.label(RichText::new(c.clone()).color(Color32::from_rgb(220, 170, 80)));
                 } else {
                     ui.colored_label(Color32::DARK_GRAY, "—");
                 }
-                ui.end_row();
-            }
-            ui.label("reward");
+            },
+        );
+    }
+    labeled(
+        ui,
+        "Reward",
+        "What the patron offers on success (schema: reward).",
+        |ui| {
             ui.label(mission.reward.clone());
-            ui.end_row();
-            ui.label("consequence");
+        },
+    );
+    labeled(
+        ui,
+        "If ignored",
+        "What happens if the players walk away (schema: if_ignored).",
+        |ui| {
             ui.label(mission.if_ignored.clone());
-            ui.end_row();
-            ui.label("scale / visibility");
-            ui.label(format!("{} / {}", mission.scale, mission.visibility));
-            ui.end_row();
-            ui.label("weight");
+        },
+    );
+    labeled(
+        ui,
+        "Scale / visibility",
+        "How long the mission runs and how openly it is known (schema: scale, visibility).",
+        |ui| {
+            ui.label(format!(
+                "{} / {}",
+                scale_label(mission.scale),
+                visibility_label(mission.visibility)
+            ));
+        },
+    );
+    labeled(
+        ui,
+        "Weight",
+        "Ranking priority — higher sorts nearer the top (schema: weight).",
+        |ui| {
             ui.label(mission.weight.to_string());
-            ui.end_row();
-        });
+        },
+    );
+
+    ui.add_space(4.0);
     ui.horizontal_wrapped(|ui| {
-        if ui.button("highlight primary on map").clicked() {
+        if ui
+            .button("📍 Highlight primary")
+            .on_hover_text("Show the primary location on the map.")
+            .clicked()
+        {
             focus_primary_location(state, &mission.primary_location, &mission.route_ids);
         }
         if let Some(sec) = mission.secondary_location.clone() {
             let route_ids = mission.route_ids.clone();
-            if ui.button("highlight secondary on map").clicked() {
+            if ui
+                .button("📍 Highlight secondary")
+                .on_hover_text("Show the secondary location on the map.")
+                .clicked()
+            {
                 focus_primary_location(state, &sec, &route_ids);
             }
         }
@@ -382,7 +498,10 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
 // ── §M2 manual editor ──────────────────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("manual missions").strong());
+    ui.label(RichText::new("Your own missions").strong());
+    // Existing sector ids feed the location / faction pickers below. Built
+    // once here (sorted, deterministic) and shared across every manual row.
+    let existing = ExistingRefs::from_state(state);
     ensure_missions_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.missions.as_mut() else {
         return;
@@ -390,17 +509,24 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
-        if ui.button("+ manual mission").clicked() {
+        if ui
+            .button("➕  Add mission")
+            .on_hover_text("Write a new mission by hand. It survives every Auto-derive.")
+            .clicked()
+        {
             cfg.manual.push(blank_manual_mission(cfg.manual.len()));
             changed = true;
         }
         ui.colored_label(
             Color32::DARK_GRAY,
-            "Manual entries are appended after derivation and survive Auto-derive.",
+            "Hand-written missions are added on top of the suggestions and are never overwritten.",
         );
     });
     if cfg.manual.is_empty() {
-        ui.colored_label(Color32::GRAY, "No manual missions yet.");
+        ui_kit::placeholder(
+            ui,
+            "No hand-written missions yet — use \"Add mission\" to write one.",
+        );
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, m) in cfg.manual.iter_mut().enumerate() {
@@ -414,9 +540,10 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 kind_label(m.kind),
             );
             ui_kit::collapsing_section(ui, ("mis_manual", idx), &title, idx == last_idx, |ui| {
-                changed |= manual_mission_editor(ui, idx, m);
+                changed |= manual_mission_editor(ui, idx, m, &existing);
                 if ui
-                    .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
+                    .button(RichText::new("🗑  Delete mission").color(Color32::from_rgb(200, 90, 90)))
+                    .on_hover_text("Remove this hand-written mission. This cannot be undone.")
                     .clicked()
                 {
                     remove_idx = Some(idx);
@@ -433,63 +560,87 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
+fn manual_mission_editor(
+    ui: &mut Ui,
+    idx: usize,
+    m: &mut MissionSeed,
+    existing: &ExistingRefs,
+) -> bool {
     let mut changed = false;
-    egui::Grid::new(format!("m_manual_grid_{idx}"))
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("id");
+    labeled(
+        ui,
+        "ID",
+        "Stable identifier — keep it unique (schema: id).",
+        |ui| {
             let mut id_buf = m.id.to_string();
             if ui.text_edit_singleline(&mut id_buf).changed() {
                 m.id = id_buf.into();
                 changed = true;
             }
-            ui.end_row();
-            ui.label("kind");
+        },
+    );
+    labeled(
+        ui,
+        "Kind",
+        "Mission archetype (schema: kind).",
+        |ui| {
             ui_kit::combo(format!("m_manual_kind_{idx}"), kind_label(m.kind)).show_ui(ui, |ui| {
                 for k in KIND_VARIANTS {
                     if ui
                         .selectable_value(&mut m.kind, *k, kind_label(*k))
+                        .on_hover_text(format!("key: {}", k.as_slug()))
                         .changed()
                     {
                         changed = true;
                     }
                 }
             });
-            ui.end_row();
-            ui.label("title");
+        },
+    );
+    labeled(
+        ui,
+        "Title",
+        "Headline shown to players (schema: title).",
+        |ui| {
             changed |= ui.text_edit_singleline(&mut m.title).changed();
-            ui.end_row();
-            ui.label("patron faction id");
-            let mut patron = m.patron.as_ref().map(|f| f.to_string()).unwrap_or_default();
-            if ui.text_edit_singleline(&mut patron).changed() {
-                let trimmed = patron.trim();
-                m.patron = if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(FactionId::new(trimmed))
-                };
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("target faction id");
-            let mut target = m.target.as_ref().map(|f| f.to_string()).unwrap_or_default();
-            if ui.text_edit_singleline(&mut target).changed() {
-                let trimmed = target.trim();
-                m.target = if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(FactionId::new(trimmed))
-                };
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("primary location (sys or sys/world)");
-            changed |= ui.text_edit_singleline(&mut m.primary_location).changed();
-            ui.end_row();
-            ui.label("secondary location");
+        },
+    );
+    labeled(
+        ui,
+        "Patron",
+        "Faction offering the job (schema: patron). Pick one from the sector, or type any id.",
+        |ui| {
+            changed |= faction_field(ui, format!("m_patron_{idx}"), &mut m.patron, existing);
+        },
+    );
+    labeled(
+        ui,
+        "Target",
+        "Faction the job is aimed at (schema: target). Pick one from the sector, or type any id.",
+        |ui| {
+            changed |= faction_field(ui, format!("m_target_{idx}"), &mut m.target, existing);
+        },
+    );
+    labeled(
+        ui,
+        "Primary location",
+        "Main place the mission happens, as a system or system/world (schema: primary_location). Pick from the sector, or type one.",
+        |ui| {
+            changed |= location_field(
+                ui,
+                format!("m_primary_{idx}"),
+                &mut m.primary_location,
+                existing,
+            );
+        },
+    );
+    labeled(
+        ui,
+        "Secondary location",
+        "Optional follow-up place (schema: secondary_location). Pick from the sector, or type one.",
+        |ui| {
             let mut sec = m.secondary_location.clone().unwrap_or_default();
-            if ui.text_edit_singleline(&mut sec).changed() {
+            if location_field(ui, format!("m_secondary_{idx}"), &mut sec, existing) {
                 let trimmed = sec.trim();
                 m.secondary_location = if trimmed.is_empty() {
                     None
@@ -498,15 +649,23 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                 };
                 changed = true;
             }
-            ui.end_row();
-            ui.label("route ids (comma)");
+        },
+    );
+    labeled(
+        ui,
+        "Routes",
+        "Travel routes this mission touches, as a comma-separated list of route ids (schema: route_ids).",
+        |ui| {
             let mut csv = m
                 .route_ids
                 .iter()
                 .map(|r| r.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            if ui.text_edit_singleline(&mut csv).changed() {
+            if ui
+                .add(egui::TextEdit::singleline(&mut csv).hint_text("route-1, route-2…"))
+                .changed()
+            {
                 m.route_ids = csv
                     .split(',')
                     .map(|t| t.trim())
@@ -515,11 +674,21 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                     .collect();
                 changed = true;
             }
-            ui.end_row();
-            ui.label("objective");
+        },
+    );
+    labeled(
+        ui,
+        "Objective",
+        "What the players are openly asked to do (schema: public_objective).",
+        |ui| {
             changed |= ui.text_edit_multiline(&mut m.public_objective).changed();
-            ui.end_row();
-            ui.label("hidden complication");
+        },
+    );
+    labeled(
+        ui,
+        "Hidden complication",
+        "GM-only twist behind the job (schema: hidden_complication). Leave blank for none.",
+        |ui| {
             let mut hidden = m.hidden_complication.clone().unwrap_or_default();
             if ui.text_edit_multiline(&mut hidden).changed() {
                 let trimmed = hidden.trim();
@@ -530,35 +699,54 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                 };
                 changed = true;
             }
-            ui.end_row();
-            ui.label("reward");
+        },
+    );
+    labeled(
+        ui,
+        "Reward",
+        "What the patron offers on success (schema: reward).",
+        |ui| {
             changed |= ui.text_edit_singleline(&mut m.reward).changed();
-            ui.end_row();
-            ui.label("if ignored");
+        },
+    );
+    labeled(
+        ui,
+        "If ignored",
+        "What happens if the players walk away (schema: if_ignored).",
+        |ui| {
             changed |= ui.text_edit_multiline(&mut m.if_ignored).changed();
-            ui.end_row();
-            ui.label("scale");
-            ui_kit::combo(format!("m_manual_scale_{idx}"), format!("{}", m.scale)).show_ui(
-                ui,
-                |ui| {
-                    for v in SCALE_VARIANTS {
-                        if ui
-                            .selectable_value(&mut m.scale, *v, format!("{v}"))
-                            .changed()
-                        {
-                            changed = true;
-                        }
+        },
+    );
+    labeled(
+        ui,
+        "Scale",
+        "How long the mission runs (schema: scale).",
+        |ui| {
+            ui_kit::combo(format!("m_manual_scale_{idx}"), scale_label(m.scale)).show_ui(ui, |ui| {
+                for v in SCALE_VARIANTS {
+                    if ui
+                        .selectable_value(&mut m.scale, *v, scale_label(*v))
+                        .on_hover_text(format!("key: {}", v.as_slug()))
+                        .changed()
+                    {
+                        changed = true;
                     }
-                },
-            );
-            ui.end_row();
-            ui.label("visibility");
-            ui_kit::combo(format!("m_manual_vis_{idx}"), format!("{}", m.visibility)).show_ui(
+                }
+            });
+        },
+    );
+    labeled(
+        ui,
+        "Visibility",
+        "How openly the mission is known (schema: visibility).",
+        |ui| {
+            ui_kit::combo(format!("m_manual_vis_{idx}"), visibility_label(m.visibility)).show_ui(
                 ui,
                 |ui| {
                     for v in VISIBILITY_VARIANTS {
                         if ui
-                            .selectable_value(&mut m.visibility, *v, format!("{v}"))
+                            .selectable_value(&mut m.visibility, *v, visibility_label(*v))
+                            .on_hover_text(format!("key: {}", v.as_slug()))
                             .changed()
                         {
                             changed = true;
@@ -566,18 +754,26 @@ fn manual_mission_editor(ui: &mut Ui, idx: usize, m: &mut MissionSeed) -> bool {
                     }
                 },
             );
-            ui.end_row();
-            ui.label("weight");
+        },
+    );
+    labeled(
+        ui,
+        "Weight",
+        "Ranking priority — higher sorts nearer the top (schema: weight).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut m.weight).range(0..=1000))
                 .changed();
-            ui.end_row();
-            ui.label("gm only");
-            changed |= ui
-                .checkbox(&mut m.gm_only, "hidden under player edition")
-                .changed();
-            ui.end_row();
-        });
+        },
+    );
+    labeled(
+        ui,
+        "GM only",
+        "Hide this mission under Player edition (schema: gm_only).",
+        |ui| {
+            changed |= ui.checkbox(&mut m.gm_only, "Hide from players").changed();
+        },
+    );
     changed
 }
 
@@ -602,13 +798,123 @@ fn blank_manual_mission(seq: usize) -> MissionSeed {
     }
 }
 
+// ── pick-from-existing helpers (§M2) ────────────────────────────────────────
+
+/// Sorted, deterministic snapshots of the sector's system / `system/world` /
+/// faction ids, used to seed the manual-editor pickers. Built from
+/// `state.sector`, which is plain `Vec`s — no `FxMap`/`FxSet` iteration.
+struct ExistingRefs {
+    /// `"sys"` system anchors and `"sys/world"` per-world anchors, sorted.
+    locations: Vec<String>,
+    /// Faction ids present in the generated sector, sorted.
+    factions: Vec<String>,
+}
+
+impl ExistingRefs {
+    fn from_state(state: &BuilderState) -> Self {
+        let mut locations: BTreeSet<String> = BTreeSet::new();
+        for sys in &state.sector.systems {
+            locations.insert(sys.id.to_string());
+            for w in &sys.worlds {
+                locations.insert(format!("{}/{}", sys.id, w.id));
+            }
+        }
+        let mut factions: BTreeSet<String> = BTreeSet::new();
+        for f in &state.sector.factions {
+            factions.insert(f.id.to_string());
+        }
+        Self {
+            locations: locations.into_iter().collect(),
+            factions: factions.into_iter().collect(),
+        }
+    }
+}
+
+/// Free-text id box with an adjacent "pick from sector" dropdown. Typing stays
+/// available for ids that don't exist yet; the dropdown turns a known id into a
+/// single click instead of remembering and retyping it. Returns `true` when the
+/// value changed, preserving the caller's existing `changed` bookkeeping.
+fn location_field(ui: &mut Ui, salt: impl std::hash::Hash, value: &mut String, refs: &ExistingRefs) -> bool {
+    let mut changed = false;
+    ui.horizontal(|ui| {
+        changed |= ui
+            .add(egui::TextEdit::singleline(value).hint_text("sys or sys/world"))
+            .changed();
+        ui_kit::combo(salt, "pick…").show_ui(ui, |ui| {
+            if refs.locations.is_empty() {
+                ui_kit::placeholder(ui, "no systems in the sector yet");
+            }
+            for opt in &refs.locations {
+                if ui.selectable_label(value == opt, opt.as_str()).clicked() {
+                    *value = opt.clone();
+                    changed = true;
+                }
+            }
+        });
+    });
+    changed
+}
+
+/// Free-text faction-id box with a "pick from sector" dropdown plus a clear
+/// (`×`) button. Mirrors [`location_field`]; keeps arbitrary ids typeable while
+/// offering the sector's known factions in one click.
+fn faction_field(
+    ui: &mut Ui,
+    salt: impl std::hash::Hash,
+    slot: &mut Option<FactionId>,
+    refs: &ExistingRefs,
+) -> bool {
+    let mut changed = false;
+    let mut buf = slot.as_ref().map(|f| f.to_string()).unwrap_or_default();
+    ui.horizontal(|ui| {
+        if ui
+            .add(egui::TextEdit::singleline(&mut buf).hint_text("faction id"))
+            .changed()
+        {
+            let trimmed = buf.trim();
+            *slot = if trimmed.is_empty() {
+                None
+            } else {
+                Some(FactionId::new(trimmed))
+            };
+            changed = true;
+        }
+        ui_kit::combo(salt, "pick…").show_ui(ui, |ui| {
+            if refs.factions.is_empty() {
+                ui_kit::placeholder(ui, "no factions in the sector yet");
+            }
+            for opt in &refs.factions {
+                let selected = slot.as_ref().map(|f| f.as_str()) == Some(opt.as_str());
+                if ui.selectable_label(selected, opt.as_str()).clicked() {
+                    *slot = Some(FactionId::new(opt.as_str()));
+                    changed = true;
+                }
+            }
+        });
+        if slot.is_some()
+            && ui
+                .small_button("×")
+                .on_hover_text("clear")
+                .clicked()
+        {
+            *slot = None;
+            changed = true;
+        }
+    });
+    changed
+}
+
 // ── save row ──────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.missions.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save missions.toml"))
+            .add_enabled(
+                has_catalog,
+                egui::Button::new("💾  Save missions"),
+            )
+            .on_hover_text("Write the mission settings and hand-written missions to disk.")
             .clicked()
         {
             if state.config.inputs.missions.is_none() {
@@ -616,17 +922,14 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
                 state.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save missions.toml failed: {e}"
+                    "Saving missions failed: {e}"
                 )));
             }
         }
-        let path_label = state
-            .config
-            .inputs
-            .missions
-            .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_MISSIONS_PATH})"));
-        ui.colored_label(Color32::DARK_GRAY, path_label);
+        if state.config.inputs.missions.is_none() {
+            ui.colored_label(Color32::DARK_GRAY, "not saved yet")
+                .on_hover_text(format!("Will be written to {DEFAULT_MISSIONS_PATH}."));
+        }
     });
 }
 
@@ -691,15 +994,34 @@ fn focus_primary_location(state: &mut BuilderState, loc: &str, routes: &[RouteId
 
 fn kind_label(k: MissionKind) -> &'static str {
     match k {
-        MissionKind::Investigate => "investigate",
-        MissionKind::Escort => "escort",
-        MissionKind::Sabotage => "sabotage",
-        MissionKind::Diplomacy => "diplomacy",
-        MissionKind::Assassination => "assassination",
-        MissionKind::Recovery => "recovery",
-        MissionKind::Defense => "defense",
-        MissionKind::Exploration => "exploration",
-        _ => "unknown",
+        MissionKind::Investigate => "Investigate",
+        MissionKind::Escort => "Escort",
+        MissionKind::Sabotage => "Sabotage",
+        MissionKind::Diplomacy => "Diplomacy",
+        MissionKind::Assassination => "Assassination",
+        MissionKind::Recovery => "Recovery",
+        MissionKind::Defense => "Defense",
+        MissionKind::Exploration => "Exploration",
+        _ => "Unknown",
+    }
+}
+
+fn scale_label(s: MissionScale) -> &'static str {
+    match s {
+        MissionScale::OneShot => "One-shot",
+        MissionScale::ShortArc => "Short arc",
+        MissionScale::CampaignArc => "Campaign arc",
+        _ => "Unknown",
+    }
+}
+
+fn visibility_label(v: MissionVisibility) -> &'static str {
+    match v {
+        MissionVisibility::Public => "Public",
+        MissionVisibility::Restricted => "Restricted",
+        MissionVisibility::Secret => "Secret",
+        MissionVisibility::Misinformation => "Misinformation",
+        _ => "Unknown",
     }
 }
 

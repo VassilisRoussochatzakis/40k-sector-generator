@@ -17,6 +17,8 @@
 use egui::text::{LayoutJob, TextFormat};
 use egui::{Color32, FontId, RichText, TextStyle};
 
+use sectorforge_gui_core::{palette, ui_kit};
+
 use crate::builder::project_io;
 use crate::builder::state::{validate_toml, OpenTomlBuffer};
 use crate::builder::{BuilderState, ModalKind};
@@ -37,14 +39,14 @@ fn file_name(rel: &str) -> &str {
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     if state.project_path.is_none() {
-        ui.colored_label(Color32::GRAY, "(open a project to edit its TOML files)");
+        ui_kit::placeholder(ui, "Open a project to edit its TOML files.");
         return;
     }
 
     ui.colored_label(
         Color32::DARK_GRAY,
-        "Raw TOML editor (§PF2). Click any .toml in the Tree to open it as a tab; \
-         edits validate live and Save writes atomically.",
+        "Raw TOML editor. Click any .toml in the Project tree to open it as a tab; \
+         edits are checked as you type and Save writes the file safely.",
     );
     ui.add_space(2.0);
 
@@ -52,9 +54,9 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ensure_selected_open(state);
 
     if state.toml_editor.open.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No file open — select a .toml file in the Tree above.",
+        ui_kit::placeholder(
+            ui,
+            "No file open — click a .toml in the Project tree above to edit it.",
         );
         return;
     }
@@ -124,7 +126,7 @@ fn tab_strip(ui: &mut egui::Ui, state: &mut BuilderState) {
             {
                 new_active = Some(rel.clone());
             }
-            if ui.small_button("×").on_hover_text("close tab").clicked() {
+            if ui.small_button("×").on_hover_text("Close tab").clicked() {
                 to_close = Some(rel.clone());
             }
         }
@@ -165,17 +167,21 @@ fn editor_body(ui: &mut egui::Ui, state: &mut BuilderState) {
     let mut do_save = false;
     let mut do_revert = false;
     ui.horizontal(|ui| {
-        ui.label(RichText::new(&active).monospace().color(Color32::GRAY));
+        ui.label(
+            RichText::new(&active)
+                .monospace()
+                .color(palette::chrome_text_dim()),
+        );
         if ui
-            .add_enabled(dirty, egui::Button::new("Save"))
-            .on_hover_text("Write this file atomically (§PF6) and reload its catalog")
+            .add_enabled(dirty, egui::Button::new("💾  Save"))
+            .on_hover_text("Save this file and refresh the editors that read it")
             .clicked()
         {
             do_save = true;
         }
         if ui
-            .add_enabled(dirty, egui::Button::new("Revert"))
-            .on_hover_text("Discard edits and restore the on-disk text")
+            .add_enabled(dirty, egui::Button::new("↩  Revert"))
+            .on_hover_text("Discard edits and restore the file as it is on disk")
             .clicked()
         {
             do_revert = true;

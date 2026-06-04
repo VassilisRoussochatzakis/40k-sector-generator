@@ -25,10 +25,71 @@ use sectorforge::economy::{
 };
 use sectorforge::heatmap::HeatmapMode;
 use sectorforge::ids::{SystemId, WorldId};
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms while the tooltip names the underlying schema
+/// field plus a plain-language note, so power users keep the mapping. Mirrors
+/// the helper of the same name in `panels/factions.rs`.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Human label for a `ResourceVector` component key (§E1). Falls back to the raw
+/// key for any future field so nothing renders blank.
+fn resource_human(key: &str) -> &'static str {
+    match key {
+        "ore" => "Ore",
+        "promethium" => "Promethium",
+        "foodstuffs" => "Foodstuffs",
+        "manufactured" => "Manufactured goods",
+        "archeotech" => "Archeotech",
+        "recruits" => "Recruits",
+        _ => "Resource",
+    }
+}
+
+/// Human label for a `StrategicOutput` component key (§E2).
+fn strategic_human(key: &str) -> &'static str {
+    match key {
+        "food" => "Food",
+        "ore" => "Ore",
+        "manufacturing" => "Manufacturing",
+        "arms" => "Arms",
+        "ships" => "Ships",
+        "pilgrimage" => "Pilgrimage",
+        "psyker_tithe" => "Psyker tithe",
+        "manpower" => "Manpower",
+        "knowledge" => "Knowledge",
+        "xenos_value" => "Xenos value",
+        _ => "Output",
+    }
+}
+
+/// Friendly label for a heatmap mode shown in the §E7 picker; the raw mode key
+/// goes on hover.
+fn heatmap_human(mode: HeatmapMode) -> &'static str {
+    match mode {
+        HeatmapMode::Off => "Off",
+        HeatmapMode::TradeVolume => "Trade volume",
+        HeatmapMode::FoodOutput => "Food output",
+        HeatmapMode::TitheStress => "Tithe stress",
+        HeatmapMode::SupplyVulnerability => "Supply vulnerability",
+        _ => mode.label(),
+    }
+}
 
 const TITHE_STATES: &[TitheStatus] = &[
     TitheStatus::Surplus,
@@ -67,7 +128,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "per-world / per-system overrides, economy.toml editor, lifelines, heatmaps.",
+        "Tune what each world and system produces, find stranded worlds, and preview supply lines on the map.",
     );
     ui.separator();
 
@@ -115,19 +176,25 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Recompute economy").clicked() {
+        if ui
+            .button("↺  Re-derive economy")
+            .on_hover_text("Recompute every world and system figure from the current map and economy settings")
+            .clicked()
+        {
             state.recompute_economy();
         }
         let enabled = state.sector.economy.enabled;
         let badge = if enabled {
-            RichText::new("derivation: ON").color(Color32::LIGHT_GREEN)
+            RichText::new("● Figures up to date").color(Color32::LIGHT_GREEN)
         } else {
-            RichText::new("derivation: OFF — click Recompute")
+            RichText::new("● Not derived yet — click Re-derive")
                 .color(Color32::from_rgb(220, 170, 80))
         };
-        ui.label(badge);
+        ui.label(badge).on_hover_text(
+            "Whether the economy figures have been computed for this sector (schema: economy.enabled).",
+        );
         ui.label(format!(
-            "worlds: {}  |  systems: {}  |  routes: {}  |  edges: {}",
+            "{} worlds · {} systems · {} routes · {} supply links",
             state.sector.economy.worlds.len(),
             state.sector.economy.systems.len(),
             state.sector.economy.routes.len(),
@@ -138,24 +205,32 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_sector_summary(ui: &mut Ui, state: &BuilderState) {
     let report = &state.sector.economy;
-    ui.label(RichText::new("sector balance").strong());
+    ui.label(RichText::new("Sector balance").strong())
+        .on_hover_text(
+            "Net surplus (+) or shortfall (−) of each raw resource across the whole sector (schema: economy.sector_balance).",
+        );
     ui.horizontal_wrapped(|ui| {
         for k in RESOURCE_KEYS {
             let v = report.sector_balance.get(k);
-            ui.label(resource_badge(k, v));
+            ui.label(resource_badge(k, v))
+                .on_hover_text(format!("{} (schema: {k})", resource_human(k)));
         }
     });
-    ui.label(RichText::new("strategic output").strong());
+    ui.label(RichText::new("Strategic output").strong())
+        .on_hover_text(
+            "Sector-wide strategic production score per category, 0–100 (schema: economy.strategic_output).",
+        );
     ui.horizontal_wrapped(|ui| {
         for k in STRATEGIC_RESOURCE_KEYS {
             let v = report.strategic_output.get(k);
-            ui.label(strategic_badge(k, v));
+            ui.label(strategic_badge(k, v))
+                .on_hover_text(format!("{} (schema: {k})", strategic_human(k)));
         }
     });
 }
 
 fn resource_badge(key: &str, value: f32) -> RichText {
-    let label = format!("{key}: {value:+.0}");
+    let label = format!("{}: {value:+.0}", resource_human(key));
     let colour = if value >= 20.0 {
         Color32::LIGHT_GREEN
     } else if value <= -20.0 {
@@ -167,7 +242,7 @@ fn resource_badge(key: &str, value: f32) -> RichText {
 }
 
 fn strategic_badge(key: &str, value: f32) -> RichText {
-    let label = format!("{key}: {value:.0}");
+    let label = format!("{}: {value:.0}", strategic_human(key));
     let colour = if value >= 80.0 {
         Color32::LIGHT_GREEN
     } else if value >= 35.0 {
@@ -183,11 +258,11 @@ fn strategic_badge(key: &str, value: f32) -> RichText {
 // ── §E1 / §E2 per-world editor ──────────────────────────────────────────────
 
 fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "per-world overrides", |ui| {
+    ui_kit::section(ui, "Per-world production", |ui| {
         if state.sector.economy.worlds.is_empty() {
-            ui.colored_label(
-                Color32::GRAY,
-                "No per-world economy rows. Run Recompute first.",
+            ui_kit::placeholder(
+                ui,
+                "No world figures yet — press “↺ Re-derive economy” above to compute them.",
             );
             return;
         }
@@ -207,21 +282,26 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .collect();
 
         ui.horizontal_wrapped(|ui| {
-            ui.label("world:");
+            ui.label("World:");
             let label = selected
                 .as_ref()
                 .map(|id| id.to_string())
                 .unwrap_or_else(|| "(none)".into());
-            ui_kit::combo("econ_world_picker", label).show_ui(ui, |ui| {
-                for (id, line) in &world_options {
-                    let active = selected.as_ref() == Some(id);
-                    if ui.selectable_label(active, line).clicked() {
-                        state.selected_world_id = Some(id.clone());
+            ui_kit::combo("econ_world_picker", label)
+                .show_ui(ui, |ui| {
+                    for (id, line) in &world_options {
+                        let active = selected.as_ref() == Some(id);
+                        if ui.selectable_label(active, line).clicked() {
+                            state.selected_world_id = Some(id.clone());
+                        }
                     }
-                }
-            });
+                });
             if let Some(id) = state.selected_world_id.clone() {
-                if ui.button("→ WORLD inspector").clicked() {
+                if ui
+                    .button("Open in World tab  →")
+                    .on_hover_text("Jump to the World tab for this world")
+                    .clicked()
+                {
                     if let Some((sys_idx, _)) = state.find_world_indices(&id) {
                         let sys_id = state.sector.systems[sys_idx].id.clone();
                         state.focus_entity(EntityRef::World {
@@ -234,7 +314,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
         });
 
         let Some(world_id) = state.selected_world_id.clone() else {
-            ui.colored_label(Color32::GRAY, "Pick a world to edit overrides.");
+            ui_kit::placeholder(ui, "Pick a world above to tune its production.");
             return;
         };
         let Some(entry) = state
@@ -245,13 +325,19 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .find(|w| w.world_id == world_id)
             .cloned()
         else {
-            ui.colored_label(Color32::GRAY, "World not in economy report.");
+            ui_kit::placeholder(
+                ui,
+                "That world has no economy figures — try re-deriving.",
+            );
             return;
         };
 
         // §E1 row.
         egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("resource vector (ore / promethium / foodstuffs / manufactured / archeotech / recruits)").italics());
+        ui.label(RichText::new("Raw resources").strong())
+            .on_hover_text(
+                "Net production (+) or consumption (−) of each raw resource for this world, −100…100 (schema: ResourceVector).",
+            );
         let pinned = state.world_economy_overrides.contains_key(&world_id);
         let mut vector = state
             .world_economy_overrides
@@ -263,7 +349,8 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .num_columns(2)
             .show(ui, |ui| {
                 for key in RESOURCE_KEYS {
-                    ui.label(*key);
+                    ui.label(resource_human(key))
+                        .on_hover_text(format!("schema: {key}"));
                     let mut v = vector.get(key);
                     if ui
                         .add(egui::Slider::new(&mut v, -100.0..=100.0).fixed_decimals(0))
@@ -277,12 +364,19 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             });
         ui.horizontal(|ui| {
             let badge = if pinned {
-                RichText::new("override pinned").color(Color32::LIGHT_GREEN)
+                RichText::new("● Your values").color(Color32::LIGHT_GREEN)
             } else {
-                RichText::new("derived (no override)").color(Color32::GRAY)
+                RichText::new("● Auto-derived").color(Color32::GRAY)
             };
-            ui.label(badge);
-            if pinned && ui.button("Clear override").clicked() {
+            ui.label(badge).on_hover_text(
+                "“Your values” means this world is pinned to the figures you set; otherwise they follow the economy settings.",
+            );
+            if pinned
+                && ui
+                    .button("↺  Back to auto")
+                    .on_hover_text("Drop your overrides and let these figures derive automatically")
+                    .clicked()
+            {
                 state.world_economy_overrides.remove(&world_id);
                 state.recompute_economy();
                 return;
@@ -295,14 +389,17 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
         if entry.stranded {
             ui.colored_label(
                 Color32::LIGHT_RED,
-                format!("STRANDED — shortages: {}", entry.shortages.join(",")),
+                format!("Stranded — shortages: {}", entry.shortages.join(", ")),
             );
         }
     });
 
         // §E2 row.
         egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("strategic output (food, ore, manufacturing, arms, ships, pilgrimage, psyker_tithe, manpower, knowledge, xenos_value)").italics());
+        ui.label(RichText::new("Strategic output").strong())
+            .on_hover_text(
+                "How much this world contributes to each strategic category, 0…100 (schema: StrategicOutput).",
+            );
         let pinned = state.world_strategic_overrides.contains_key(&world_id);
         let mut strat = state
             .world_strategic_overrides
@@ -314,7 +411,8 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .num_columns(2)
             .show(ui, |ui| {
                 for key in STRATEGIC_RESOURCE_KEYS {
-                    ui.label(*key);
+                    ui.label(strategic_human(key))
+                        .on_hover_text(format!("schema: {key}"));
                     let mut v = strat.get(key);
                     if ui
                         .add(egui::Slider::new(&mut v, 0.0..=100.0).fixed_decimals(0))
@@ -328,12 +426,19 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             });
         ui.horizontal(|ui| {
             let badge = if pinned {
-                RichText::new("override pinned").color(Color32::LIGHT_GREEN)
+                RichText::new("● Your values").color(Color32::LIGHT_GREEN)
             } else {
-                RichText::new("derived (no override)").color(Color32::GRAY)
+                RichText::new("● Auto-derived").color(Color32::GRAY)
             };
-            ui.label(badge);
-            if pinned && ui.button("Clear override").clicked() {
+            ui.label(badge).on_hover_text(
+                "“Your values” means this world is pinned to the figures you set; otherwise they follow the economy settings.",
+            );
+            if pinned
+                && ui
+                    .button("↺  Back to auto")
+                    .on_hover_text("Drop your overrides and let these figures derive automatically")
+                    .clicked()
+            {
                 state.world_strategic_overrides.remove(&world_id);
                 state.recompute_economy();
                 return;
@@ -378,22 +483,30 @@ fn set_strategic_field(s: &mut StrategicOutput, key: &str, value: f32) {
 // ── §E3 per-system editor ───────────────────────────────────────────────────
 
 fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "per-system tithe / supply / strategic priority", |ui| {
+    ui_kit::section(ui, "Per-system tithe, supply & priority", |ui| {
         if state.sector.economy.systems.is_empty() {
-            ui.colored_label(Color32::GRAY, "No per-system economy rows.");
+            ui_kit::placeholder(
+                ui,
+                "No system figures yet — re-derive the economy to populate this table.",
+            );
             return;
         }
         egui::Grid::new("econ_system_overrides")
             .num_columns(7)
             .striped(true)
             .show(ui, |ui| {
-                ui.label(RichText::new("system").strong());
-                ui.label(RichText::new("tithe").strong());
-                ui.label(RichText::new("supply").strong());
-                ui.label(RichText::new("priority").strong());
-                ui.label(RichText::new("surplus").strong());
-                ui.label(RichText::new("shortage").strong());
-                ui.label(RichText::new("actions").strong());
+                ui.label(RichText::new("System").strong());
+                ui.label(RichText::new("Tithe").strong())
+                    .on_hover_text("Tithe-grade owed to the Administratum (schema: tithe_status).");
+                ui.label(RichText::new("Supply").strong())
+                    .on_hover_text("How exposed the system's supply lines are (schema: supply_risk).");
+                ui.label(RichText::new("Priority").strong())
+                    .on_hover_text("Strategic importance to high command (schema: strategic_priority).");
+                ui.label(RichText::new("Surplus").strong())
+                    .on_hover_text("Resources this system produces a surplus of (schema: surplus_resources).");
+                ui.label(RichText::new("Shortage").strong())
+                    .on_hover_text("Resources this system is short on (schema: shortage_resources).");
+                ui.label(RichText::new("Actions").strong());
                 ui.end_row();
 
                 let systems: Vec<_> = state.sector.economy.systems.clone();
@@ -463,7 +576,8 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     ui.horizontal(|ui| {
                         if (active_tithe || active_supply || active_prio)
                             && ui
-                                .button(RichText::new("× clear").color(Color32::LIGHT_RED))
+                                .button(RichText::new("↺  Back to auto").color(Color32::LIGHT_RED))
+                                .on_hover_text("Drop your tithe / supply / priority overrides for this system")
                                 .clicked()
                         {
                             state.system_tithe_overrides.remove(&id);
@@ -471,7 +585,11 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                             state.system_priority_overrides.remove(&id);
                             state.recompute_economy();
                         }
-                        if ui.button("→ SYSTEM").clicked() {
+                        if ui
+                            .button("Open  →")
+                            .on_hover_text("Jump to the System tab for this system")
+                            .clicked()
+                        {
                             state.focus_entity(EntityRef::System(id.clone()));
                         }
                     });
@@ -492,13 +610,14 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
         .filter(|w| w.stranded)
         .cloned()
         .collect();
-    let title = format!(
-        "stranded worlds ({}) — MAP draws red ring on each system",
-        stranded.len()
-    );
+    let title = format!("Stranded worlds ({})", stranded.len());
     ui_kit::section(ui, &title, |ui| {
+        ui.label(
+            RichText::new("Worlds that can't meet their own needs. The map marks each one's system with a red ring.")
+                .color(Color32::DARK_GRAY),
+        );
         if stranded.is_empty() {
-            ui.colored_label(Color32::DARK_GREEN, "No stranded worlds.");
+            ui.colored_label(Color32::DARK_GREEN, "None — every world is supplied.");
             return;
         }
         for w in &stranded {
@@ -512,11 +631,15 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
                         if w.shortages.is_empty() {
                             "(systemic)".into()
                         } else {
-                            w.shortages.join(",")
+                            w.shortages.join(", ")
                         }
                     ),
                 );
-                if ui.button("→ WORLD").clicked() {
+                if ui
+                    .button("Open  →")
+                    .on_hover_text("Jump to the World tab for this stranded world")
+                    .clicked()
+                {
                     let sys_id = w.system_id.clone();
                     state.focus_entity(EntityRef::World {
                         system: sys_id,
@@ -531,19 +654,25 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §E6 lifeline-lane panel ─────────────────────────────────────────────────
 
 fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "lifeline lanes", |ui| {
+    ui_kit::section(ui, "Supply lines (lifelines)", |ui| {
         ui.horizontal_wrapped(|ui| {
             ui.checkbox(
                 &mut state.economy_highlight_lifelines,
-                "highlight lifeline routes on MAP",
-            );
-            ui.label("min score:");
+                "💡  Show supply lines on the map",
+            )
+            .on_hover_text("Highlight the busiest supplier → consumer routes on the map's route layer.");
+            ui.label("Min. importance:")
+                .on_hover_text("Only show supply lines scoring at least this high (schema: economy_lifeline_min_score).");
             ui.add(
                 egui::DragValue::new(&mut state.economy_lifeline_min_score)
                     .range(0.0..=200.0)
                     .speed(1.0),
             );
-            if ui.button("→ MAP").clicked() {
+            if ui
+                .button("Open map  →")
+                .on_hover_text("Jump to the Map tab to see the highlighted supply lines")
+                .clicked()
+            {
                 state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
         });
@@ -561,9 +690,9 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
         if edges.is_empty() {
-            ui.colored_label(
-                Color32::GRAY,
-                "No dependency edges above the score threshold.",
+            ui_kit::placeholder(
+                ui,
+                "No supply lines this important — lower the minimum to see more.",
             );
             return;
         }
@@ -571,11 +700,19 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
         for e in edges.iter().take(20) {
             ui.horizontal_wrapped(|ui| {
                 ui.label(format!(
-                    "{} → {} ({:>4})  score {:.1}  risk {:?}",
-                    e.from_system_id, e.to_system_id, e.resource, e.score, e.risk
+                    "{} → {} ({})  importance {:.1}  ·  {} supply",
+                    e.from_system_id,
+                    e.to_system_id,
+                    resource_human(&e.resource),
+                    e.score,
+                    supply_label(e.risk)
                 ));
                 if let Some(route_id) = e.route_id.as_ref() {
-                    if ui.small_button("focus route").clicked() {
+                    if ui
+                        .small_button("Focus route")
+                        .on_hover_text("Select and centre this route on the map")
+                        .clicked()
+                    {
                         focus_route = Some(route_id.clone());
                     }
                 }
@@ -590,48 +727,57 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
 // ── §E7 heatmap picker ──────────────────────────────────────────────────────
 
 fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(
-        ui,
-        "MAP heatmap (trade volume / food / tithe / supply)",
-        |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label("mode:");
-                let current = state.map_heatmap_mode;
-                ui_kit::combo("econ_heatmap_mode", current.label()).show_ui(ui, |ui| {
-                    for mode in E7_MODES {
-                        ui.selectable_value(&mut state.map_heatmap_mode, *mode, mode.label());
-                    }
-                });
-                if ui.button("→ MAP").clicked() {
-                    state.focus_entity(EntityRef::Tab(BuilderTab::Map));
+    ui_kit::section(ui, "Map heatmap", |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Shade map by:").on_hover_text(
+                "Tint the map by an economy figure (schema: map_heatmap_mode).",
+            );
+            let current = state.map_heatmap_mode;
+            ui_kit::combo("econ_heatmap_mode", heatmap_human(current)).show_ui(ui, |ui| {
+                for mode in E7_MODES {
+                    ui.selectable_value(&mut state.map_heatmap_mode, *mode, heatmap_human(*mode))
+                        .on_hover_text(format!("key: {}", mode.as_slug()));
                 }
-                ui.colored_label(
-                    Color32::DARK_GRAY,
-                    "Overridden when a control overlay is on.",
-                );
             });
-        },
-    );
+            if ui
+                .button("Open map  →")
+                .on_hover_text("Jump to the Map tab to see the shading")
+                .clicked()
+            {
+                state.focus_entity(EntityRef::Tab(BuilderTab::Map));
+            }
+            ui.colored_label(
+                Color32::DARK_GRAY,
+                "A control overlay on the map takes precedence over this.",
+            );
+        });
+    });
 }
 
 // ── §E5 economy.toml editor ─────────────────────────────────────────────────
 
 fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "economy.toml editor", |ui| {
+    ui_kit::section(ui, "Economy rules", |ui| {
         if state.data_catalogs.economy.is_none() {
-            ui.horizontal(|ui| {
-                ui.colored_label(Color32::DARK_GRAY, "No economy catalog loaded.");
-                if ui.button("create defaults").clicked() {
-                    state.data_catalogs.economy = Some(EconomyConfig {
-                        enabled: true,
-                        ..EconomyConfig::default()
-                    });
-                    if state.config.inputs.economy.is_none() {
-                        state.config.inputs.economy = Some("data/worlds/economy.toml".into());
-                    }
-                    state.dirty = true;
+            ui_kit::placeholder(
+                ui,
+                "No economy rules loaded — create a starter set to tune how production is derived.",
+            );
+            ui.add_space(4.0);
+            if ui
+                .button("➕  Create starter rules")
+                .on_hover_text("Start a new economy.toml with sensible defaults you can edit")
+                .clicked()
+            {
+                state.data_catalogs.economy = Some(EconomyConfig {
+                    enabled: true,
+                    ..EconomyConfig::default()
+                });
+                if state.config.inputs.economy.is_none() {
+                    state.config.inputs.economy = Some("data/worlds/economy.toml".into());
                 }
-            });
+                state.dirty = true;
+            }
             return;
         }
         let mut cfg = state
@@ -644,24 +790,40 @@ fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
         let mut save_clicked = false;
         let mut recompute_clicked = false;
 
-        egui::Grid::new("econ_cfg").num_columns(2).show(ui, |ui| {
-            ui.label("enabled");
-            changed |= ui.checkbox(&mut cfg.enabled, "").changed();
-            ui.end_row();
-            ui.label("feed_stability");
-            changed |= ui.checkbox(&mut cfg.feed_stability, "").changed();
-            ui.end_row();
-        });
+        labeled(
+            ui,
+            "Economy on",
+            "Turn the economy derivation on or off for this sector (schema: enabled).",
+            |ui| {
+                changed |= ui.checkbox(&mut cfg.enabled, "").changed();
+            },
+        );
+        labeled(
+            ui,
+            "Feed stability",
+            "Let economic strain feed back into route stability (schema: feed_stability).",
+            |ui| {
+                changed |= ui.checkbox(&mut cfg.feed_stability, "").changed();
+            },
+        );
 
         show_world_type_rows(ui, &mut cfg, &mut changed);
         show_tech_rows(ui, &mut cfg, &mut changed);
         show_pop_rows(ui, &mut cfg, &mut changed);
 
         ui.horizontal(|ui| {
-            if ui.button("Save economy.toml").clicked() {
+            if ui
+                .button("💾  Save rules")
+                .on_hover_text("Write these economy rules back to economy.toml")
+                .clicked()
+            {
                 save_clicked = true;
             }
-            if ui.button("Apply & recompute").clicked() {
+            if ui
+                .button("↺  Apply & re-derive")
+                .on_hover_text("Save in memory and recompute every world and system figure")
+                .clicked()
+            {
                 recompute_clicked = true;
             }
         });
@@ -689,8 +851,12 @@ fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
     ui.collapsing(
-        format!("by_world_type ({} rows)", cfg.by_world_type.len()),
+        format!("Resource bonus by world type ({})", cfg.by_world_type.len()),
         |ui| {
+            ui.label(
+                RichText::new("Per world type, how much it adds to or removes from each raw resource (schema: by_world_type).")
+                    .color(Color32::DARK_GRAY),
+            );
             let mut remove: Option<String> = None;
             for (key, vec) in cfg.by_world_type.iter_mut() {
                 ui.label(RichText::new(key).monospace());
@@ -698,7 +864,8 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                     .num_columns(2)
                     .show(ui, |ui| {
                         for k in RESOURCE_KEYS {
-                            ui.label(*k);
+                            ui.label(resource_human(k))
+                                .on_hover_text(format!("schema: {k}"));
                             let mut v = vec.get(k);
                             if ui
                                 .add(
@@ -715,7 +882,8 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                         }
                     });
                 if ui
-                    .button(RichText::new("× remove row").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑  Remove").color(Color32::LIGHT_RED))
+                    .on_hover_text(format!("Remove the “{key}” row"))
                     .clicked()
                 {
                     remove = Some(key.clone());
@@ -728,8 +896,8 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
             }
             ui.horizontal(|ui| {
                 let key = egui::Id::new("economy_world_type_new_buf");
+                ui.label("Add world type:");
                 let (buf, resp) = crate::builder::panels::persistent_singleline(ui, key, "");
-                ui.label("+ world_type:");
                 if (resp.lost_focus()
                     && ui.input(|i| i.key_pressed(egui::Key::Enter))
                     && !buf.is_empty())
@@ -746,8 +914,12 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
 
 fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
     ui.collapsing(
-        format!("by_tech_level ({})", cfg.by_tech_level.len()),
+        format!("Output multiplier by tech level ({})", cfg.by_tech_level.len()),
         |ui| {
+            ui.label(
+                RichText::new("Per tech level, a multiplier on that world's output (schema: by_tech_level).")
+                    .color(Color32::DARK_GRAY),
+            );
             let mut remove: Option<String> = None;
             for (key, v) in cfg.by_tech_level.iter_mut() {
                 ui.horizontal(|ui| {
@@ -759,7 +931,8 @@ fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
                         *changed = true;
                     }
                     if ui
-                        .button(RichText::new("×").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                        .on_hover_text(format!("Remove the “{key}” row"))
                         .clicked()
                     {
                         remove = Some(key.clone());
@@ -776,8 +949,12 @@ fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
 
 fn show_pop_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
     ui.collapsing(
-        format!("by_population ({})", cfg.by_population.len()),
+        format!("Output multiplier by population ({})", cfg.by_population.len()),
         |ui| {
+            ui.label(
+                RichText::new("Per population band, a multiplier on that world's output (schema: by_population).")
+                    .color(Color32::DARK_GRAY),
+            );
             let mut remove: Option<String> = None;
             for (key, v) in cfg.by_population.iter_mut() {
                 ui.horizontal(|ui| {
@@ -789,7 +966,8 @@ fn show_pop_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
                         *changed = true;
                     }
                     if ui
-                        .button(RichText::new("×").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                        .on_hover_text(format!("Remove the “{key}” row"))
                         .clicked()
                     {
                         remove = Some(key.clone());

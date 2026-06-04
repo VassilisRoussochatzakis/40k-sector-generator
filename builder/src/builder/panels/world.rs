@@ -21,6 +21,7 @@ use sectorforge::worlds::{
     Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
     Temperature, WorldType,
 };
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
@@ -33,9 +34,9 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
     let total_worlds: usize = state.sector.systems.iter().map(|s| s.worlds.len()).sum();
     if total_worlds == 0 {
-        ui.colored_label(
-            Color32::GRAY,
-            "No worlds in this sector — add worlds to a system from the SYSTEM tab.",
+        ui_kit::placeholder(
+            ui,
+            "No worlds yet — open the System tab and add a world to one of your systems.",
         );
         return;
     }
@@ -184,6 +185,23 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
     });
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Star colour", "World type") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep
+/// the schema mapping. Friendlier replacement for the bare `egui::Grid` rows
+/// whose labels *were* the raw schema field names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── identity (W1 / W3) ──────────────────────────────────────────────────────
 
 fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
@@ -193,43 +211,68 @@ fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         let name_buf_key = egui::Id::new(("world_identity_name_buf", wid.as_str()));
         let name_src = w.name.to_string();
         let mut name_buf = name_src.clone();
+        let index_str = w.index.to_string();
+        let source_row_str = w.source_row_index.to_string();
         let mut orbit = i32::from(w.orbit);
         let mut name_changed = false;
-        egui::Grid::new("w_identity_grid")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label("id");
+        labeled(
+            ui,
+            "ID",
+            "Unique identifier (schema: id). Stable handle used by routes, presence, and saved files.",
+            |ui| {
                 ui.monospace(wid.to_string());
-                ui.end_row();
-                ui.label("index");
-                ui.monospace(w.index.to_string());
-                ui.end_row();
-                ui.label("source_row_index");
-                ui.monospace(w.source_row_index.to_string());
-                ui.end_row();
-                ui.label("name");
+            },
+        );
+        labeled(
+            ui,
+            "Order in system",
+            "Position of this world within its system, counting outward (schema: index).",
+            |ui| {
+                ui.monospace(index_str);
+            },
+        );
+        labeled(
+            ui,
+            "Source row",
+            "Row this world came from in the worlds data table (schema: source_row_index).",
+            |ui| {
+                ui.monospace(source_row_str);
+            },
+        );
+        labeled(
+            ui,
+            "Name",
+            "Display name shown in lists and on the map (schema: name).",
+            |ui| {
                 let (buf, resp) =
                     crate::builder::panels::persistent_singleline(ui, name_buf_key, &name_src);
                 name_buf = buf;
                 name_changed = resp.lost_focus();
-                ui.end_row();
-                ui.label("orbit");
+            },
+        );
+        labeled(
+            ui,
+            "Orbit",
+            "Orbital slot of this world around its star (schema: orbit). 1 = innermost.",
+            |ui| {
                 ui.add(egui::DragValue::new(&mut orbit).range(1..=99));
-                ui.end_row();
-                ui.label("pinned");
+            },
+        );
+        labeled(
+            ui,
+            "Pinned",
+            "Protect this world from re-roll and preview regeneration (schema: pinned_worlds).",
+            |ui| {
                 let mut pinned = state.pinned_worlds.contains(&wid);
-                if ui
-                    .checkbox(&mut pinned, "(pin from regen/preview)")
-                    .changed()
-                {
+                if ui.checkbox(&mut pinned, "keep on re-roll").changed() {
                     if pinned {
                         state.pinned_worlds.insert(wid.clone());
                     } else {
                         state.pinned_worlds.remove(&wid);
                     }
                 }
-                ui.end_row();
-            });
+            },
+        );
         // §R4: orbit/name now route through the narrow commands so the edit
         // is undoable. Snapshot the live values, then dispatch with no
         // borrow of `state.sector` held across `state.run`.
@@ -273,10 +316,11 @@ fn show_classification_section(
         let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
         let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
         let mut changed = false;
-        egui::Grid::new("w_class_grid")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label("star_colour");
+        labeled(
+            ui,
+            "Star colour",
+            "Spectral class of the system's star (schema: star_colour_code). Sets the light and habitable band.",
+            |ui| {
                 let current_code = draft.world.star_colour_code.to_string();
                 let mut selected = StarColour::VARIANTS
                     .iter()
@@ -302,14 +346,18 @@ fn show_classification_section(
                     draft.world.star_colour = Arc::from(selected.short_name());
                     changed = true;
                 }
-                ui.end_row();
-
-                ui.label("world_type");
+            },
+        );
+        labeled(
+            ui,
+            "World type",
+            "Overall world archetype (schema: world_type) — e.g. Hive, Agri, Forge, Death.",
+            |ui| {
                 if combo_enum::<WorldType>(ui, "w_type", &mut draft.world.world_type) {
                     changed = true;
                 }
-                ui.end_row();
-            });
+            },
+        );
         if changed {
             if let Err(e) = state.run(BuilderCommand::EditWorld {
                 world: wid,
@@ -330,23 +378,36 @@ fn show_environment_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
         let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
         let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
         let mut changed = false;
-        egui::Grid::new("w_env_grid").num_columns(2).show(ui, |ui| {
-            ui.label("atmosphere");
-            if combo_enum::<Atmosphere>(ui, "w_atm", &mut draft.world.atmosphere) {
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("temperature");
-            if combo_enum::<Temperature>(ui, "w_temp", &mut draft.world.temperature) {
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("biosphere");
-            if combo_enum::<Biosphere>(ui, "w_bio", &mut draft.world.biosphere) {
-                changed = true;
-            }
-            ui.end_row();
-        });
+        labeled(
+            ui,
+            "Atmosphere",
+            "Breathability of the air (schema: atmosphere) — e.g. Breathable, Toxic, Airless.",
+            |ui| {
+                if combo_enum::<Atmosphere>(ui, "w_atm", &mut draft.world.atmosphere) {
+                    changed = true;
+                }
+            },
+        );
+        labeled(
+            ui,
+            "Temperature",
+            "Surface temperature band (schema: temperature) — Burning to Frozen.",
+            |ui| {
+                if combo_enum::<Temperature>(ui, "w_temp", &mut draft.world.temperature) {
+                    changed = true;
+                }
+            },
+        );
+        labeled(
+            ui,
+            "Biosphere",
+            "Native life present on the world (schema: biosphere) — Sterile to Thriving.",
+            |ui| {
+                if combo_enum::<Biosphere>(ui, "w_bio", &mut draft.world.biosphere) {
+                    changed = true;
+                }
+            },
+        );
         if changed {
             if let Err(e) = state.run(BuilderCommand::EditWorld {
                 world: wid,
@@ -367,23 +428,36 @@ fn show_society_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
         let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
         let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
         let mut changed = false;
-        egui::Grid::new("w_soc_grid").num_columns(2).show(ui, |ui| {
-            ui.label("population");
-            if combo_enum::<Population>(ui, "w_pop", &mut draft.world.population) {
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("tech_level");
-            if combo_enum::<TechLevel>(ui, "w_tech", &mut draft.world.tech_level) {
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("government");
-            if combo_enum::<Government>(ui, "w_gov", &mut draft.world.government) {
-                changed = true;
-            }
-            ui.end_row();
-        });
+        labeled(
+            ui,
+            "Population",
+            "How many people live here (schema: population) — Uninhabited to Extremely Dense.",
+            |ui| {
+                if combo_enum::<Population>(ui, "w_pop", &mut draft.world.population) {
+                    changed = true;
+                }
+            },
+        );
+        labeled(
+            ui,
+            "Tech level",
+            "Level of technology available (schema: tech_level) — Primitive to Archaeotech.",
+            |ui| {
+                if combo_enum::<TechLevel>(ui, "w_tech", &mut draft.world.tech_level) {
+                    changed = true;
+                }
+            },
+        );
+        labeled(
+            ui,
+            "Government",
+            "Who rules the world and how (schema: government).",
+            |ui| {
+                if combo_enum::<Government>(ui, "w_gov", &mut draft.world.government) {
+                    changed = true;
+                }
+            },
+        );
         if changed {
             if let Err(e) = state.run(BuilderCommand::EditWorld {
                 world: wid,
@@ -421,26 +495,37 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 .iter()
                 .map(|s| s.to_string())
                 .collect();
+            if cur.is_empty() {
+                ui_kit::placeholder(ui, "None yet — pick from the list below.");
+            }
             for (i, name) in cur.iter().enumerate() {
                 ui.horizontal(|ui| {
-                    ui.monospace(name);
+                    let display = feature_display_name(name);
+                    ui.label(display).on_hover_text(format!("id: {name}"));
                     if let Some(w) = weights.get(name.as_str()) {
-                        ui.colored_label(Color32::DARK_GRAY, format!("(w {w:.2})"));
+                        ui.colored_label(Color32::DARK_GRAY, format!("(weight {w:.2})"));
                     }
-                    if ui.small_button("×").clicked() {
+                    if ui
+                        .small_button("×")
+                        .on_hover_text("Remove this feature")
+                        .clicked()
+                    {
                         remove = Some(i);
                     }
                 });
             }
 
             ui.separator();
-            ui.label("Add feature (searchable):");
+            ui.label("Add a feature:");
             let filter_id = egui::Id::new(("w_feat_filter", w_idx));
             let mut filter = ui.data_mut(|d| {
                 d.get_temp_mut_or::<String>(filter_id, String::new())
                     .clone()
             });
-            if ui.text_edit_singleline(&mut filter).changed() {
+            if ui
+                .add(egui::TextEdit::singleline(&mut filter).hint_text("search features…"))
+                .changed()
+            {
                 ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
             }
             let needle = filter.to_lowercase();
@@ -468,10 +553,10 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                         }
                         let weight = weights.get(key.as_str()).copied();
                         let label = match weight {
-                            Some(w) => format!("{display}  (w {w:.2})"),
+                            Some(w) => format!("{display}  (weight {w:.2})"),
                             None => format!("{display}  (–)"),
                         };
-                        if ui.button(label).clicked() {
+                        if ui.button(label).on_hover_text(format!("id: {key}")).clicked() {
                             add = Some(Arc::from(key.as_str()));
                         }
                     }
@@ -599,6 +684,17 @@ fn feature_weights_for_world(
     arc
 }
 
+/// Human-readable name for a stored notable-feature key (the debug-form variant
+/// name persisted on the world). Falls back to the raw key when it doesn't match
+/// a known variant, so unknown/legacy values still render.
+fn feature_display_name(key: &str) -> String {
+    NotableFeature::VARIANTS
+        .iter()
+        .find(|v| format!("{v:?}") == key)
+        .map(|v| v.display_name().to_string())
+        .unwrap_or_else(|| key.to_string())
+}
+
 // ── coupling warnings (W6) ─────────────────────────────────────────────────
 
 fn show_coupling_warnings(ui: &mut Ui, state: &BuilderState, sys_idx: usize, w_idx: usize) {
@@ -690,11 +786,13 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
             .map(|t| t.to_string())
             .collect::<Vec<_>>()
             .join("\n");
-        ui.label("tags (comma-separated)");
+        ui.label("Tags")
+            .on_hover_text("Comma-separated keywords for filtering and search (schema: tags).");
         let (tags_buf, tags_resp) =
             crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
         let tags_changed = tags_resp.lost_focus();
-        ui.label("notes (one per line)");
+        ui.label("Notes")
+            .on_hover_text("Free-form notes, one per line (schema: notes).");
         let (notes_buf, notes_resp) =
             crate::builder::panels::persistent_multiline(ui, notes_key, &notes_src);
         let notes_changed = notes_resp.lost_focus();
@@ -745,7 +843,10 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
     ui_kit::collapsing_section(ui, "world_presence", "Faction presence", false, |ui| {
         let presences = state.sector.systems[sys_idx].worlds[w_idx].factions.clone();
         if presences.is_empty() {
-            ui.colored_label(Color32::GRAY, "no faction presence on this world");
+            ui_kit::placeholder(
+                ui,
+                "No factions present here yet — add one with the picker below.",
+            );
         }
         let mut remove_idx: Option<usize> = None;
         for (i, p) in presences.iter().enumerate() {
@@ -756,7 +857,7 @@ fn show_factions_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 ui.colored_label(
                     Color32::DARK_GRAY,
                     format!(
-                        "infl {:?} · {} · dom {:?}",
+                        "{} · {} · {}",
                         p.influence, p.relationship_to_government, p.dominance
                     ),
                 );
@@ -811,9 +912,9 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .map(|f| (f.id.clone(), f.name.to_string()))
         .collect();
     if factions.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "no factions in the sector roster — add factions in FACTIONS first.",
+        ui_kit::placeholder(
+            ui,
+            "No factions in the sector roster yet — add some on the Factions tab first.",
         );
         return;
     }
@@ -828,9 +929,9 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
         .filter(|(fid, _)| !already.contains(fid))
         .collect();
     if candidates.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "every faction in the roster already has a presence row here.",
+        ui_kit::placeholder(
+            ui,
+            "Every faction in the roster already has a presence row on this world.",
         );
         return;
     }
@@ -854,7 +955,8 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
     }
 
     ui.horizontal_wrapped(|ui| {
-        ui.label("+ Add presence:");
+        ui.label("Add presence:")
+            .on_hover_text("Place a faction on this world with a chosen influence and dominance.");
         let label = candidates
             .iter()
             .find(|(fid, _)| fid == &buf.faction)
@@ -884,7 +986,11 @@ fn show_add_presence_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 ui.selectable_value(&mut buf.dominance, *d, format!("{d}"));
             }
         });
-        if ui.button("+ presence").clicked() {
+        if ui
+            .button("➕ Add presence")
+            .on_hover_text("Add this faction's presence to the world")
+            .clicked()
+        {
             // §R4: add the presence via EditWorld on a world clone.
             let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
             let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
@@ -947,7 +1053,7 @@ fn show_claims_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_
                         });
                 }
                 if claims.is_empty() {
-                    ui.colored_label(Color32::GRAY, "no claims on this world");
+                    ui_kit::placeholder(ui, "No claims on this world yet — add one below.");
                 }
             });
             if let Some(i) = remove {
@@ -998,7 +1104,8 @@ fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
     }
 
     ui.horizontal(|ui| {
-        ui.label("add:");
+        ui.label("Add claim:")
+            .on_hover_text("Record a faction's claim over this world, with a type and strength.");
         let selected_label = buf
             .faction
             .as_ref()
@@ -1028,8 +1135,13 @@ fn show_add_claim_row(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
                 ui.selectable_value(&mut buf.claim_type, Some(*c), format!("{c}"));
             }
         });
-        ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));
-        if ui.button("+ claim").clicked() {
+        ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100))
+            .on_hover_text("Claim strength 0–100 — how forcefully the faction presses this claim.");
+        if ui
+            .button("➕ Add claim")
+            .on_hover_text("Add this claim to the world")
+            .clicked()
+        {
             if let (Some(fid), Some(kind)) = (buf.faction.clone(), buf.claim_type) {
                 // §R4: add the claim via EditWorld on a world clone.
                 let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
@@ -1089,20 +1201,83 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
     ui_kit::collapsing_section(
         ui,
         "world_control",
-        "Control summary (read-only)",
+        "Who holds power (read-only)",
         false,
         |ui| {
             let c = state.sector.systems[sys_idx].worlds[w_idx].control.clone();
-            ui.label(format!("dominant: {:?}", c.dominant));
-            ui.label(format!("sovereign: {:?}", c.sovereign));
-            ui.label(format!("occupier: {:?}", c.occupier));
-            ui.label(format!("economic_hegemon: {:?}", c.economic_hegemon));
-            ui.label(format!("popular_authority: {:?}", c.popular_authority));
-            ui.label(format!("hidden_master: {:?}", c.hidden_master));
-            ui.label(format!(
-                "contested: {} · control_score: {:.1}",
-                c.contested, c.control_score
-            ));
+            ui_kit::placeholder(
+                ui,
+                "Derived from faction presence and claims. Edit those above to change it.",
+            );
+            let who = |f: &Option<FactionId>| {
+                f.as_ref()
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|| "(none)".to_string())
+            };
+            labeled(
+                ui,
+                "Dominant",
+                "Faction with the strongest overall hold (schema: control.dominant).",
+                |ui| {
+                    ui.label(who(&c.dominant));
+                },
+            );
+            labeled(
+                ui,
+                "Sovereign",
+                "Recognised legal ruler (schema: control.sovereign).",
+                |ui| {
+                    ui.label(who(&c.sovereign));
+                },
+            );
+            labeled(
+                ui,
+                "Occupier",
+                "Faction holding the world by force (schema: control.occupier).",
+                |ui| {
+                    ui.label(who(&c.occupier));
+                },
+            );
+            labeled(
+                ui,
+                "Economic power",
+                "Faction that dominates trade and industry (schema: control.economic_hegemon).",
+                |ui| {
+                    ui.label(who(&c.economic_hegemon));
+                },
+            );
+            labeled(
+                ui,
+                "Popular authority",
+                "Faction with the people's loyalty (schema: control.popular_authority).",
+                |ui| {
+                    ui.label(who(&c.popular_authority));
+                },
+            );
+            labeled(
+                ui,
+                "Hidden master",
+                "Faction secretly pulling the strings (schema: control.hidden_master).",
+                |ui| {
+                    ui.label(who(&c.hidden_master));
+                },
+            );
+            labeled(
+                ui,
+                "Contested",
+                "Whether control is currently in dispute (schema: control.contested).",
+                |ui| {
+                    ui.label(if c.contested { "yes" } else { "no" });
+                },
+            );
+            labeled(
+                ui,
+                "Control score",
+                "Overall strength of the dominant faction's hold (schema: control.control_score).",
+                |ui| {
+                    ui.label(format!("{:.1}", c.control_score));
+                },
+            );
         },
     );
 }
@@ -1110,17 +1285,42 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
 // ── overlays read-only ─────────────────────────────────────────────────────
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    ui_kit::collapsing_section(ui, "world_overlays", "Overlays (summary)", false, |ui| {
+    ui_kit::collapsing_section(ui, "world_overlays", "Map overlays (summary)", false, |ui| {
         let w = &state.sector.systems[sys_idx].worlds[w_idx];
-        ui.label(format!("surface_regions: {} (edit below)", w.regions.len()));
-        ui.label(format!(
-            "conflict default: {}",
-            sectorforge::conflict::ConflictState::is_default(&w.conflict)
-        ));
-        ui.label(format!(
-            "stability default: {}",
-            sectorforge::stability::StabilityState::is_default(&w.stability)
-        ));
+        let conflict_default = sectorforge::conflict::ConflictState::is_default(&w.conflict);
+        let stability_default = sectorforge::stability::StabilityState::is_default(&w.stability);
+        labeled(
+            ui,
+            "Surface regions",
+            "Number of mapped surface regions on this world (schema: regions). Edit them in the section below.",
+            |ui| {
+                ui.label(w.regions.len().to_string());
+            },
+        );
+        labeled(
+            ui,
+            "Conflict",
+            "Whether this world carries custom conflict data (schema: conflict).",
+            |ui| {
+                ui.label(if conflict_default {
+                    "none set (default)"
+                } else {
+                    "customised"
+                });
+            },
+        );
+        labeled(
+            ui,
+            "Stability",
+            "Whether this world carries custom stability data (schema: stability).",
+            |ui| {
+                ui.label(if stability_default {
+                    "none set (default)"
+                } else {
+                    "customised"
+                });
+            },
+        );
     });
 }
 
@@ -1154,11 +1354,11 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
         false,
         |ui| {
             if rows.is_empty() {
-                ui.colored_label(
-                    Color32::GRAY,
-                    "No chronicle events anchored at this world. Open HISTORY → Regenerate.",
+                ui_kit::placeholder(
+                    ui,
+                    "No timeline events set on this world yet. Open the History tab and regenerate to create some.",
                 );
-                if sectorforge_gui_core::entity_link(ui, "HISTORY tab", true).clicked() {
+                if sectorforge_gui_core::entity_link(ui, "History tab", true).clicked() {
                     state.focus_entity(EntityRef::Tab(BuilderTab::History));
                 }
                 return;
@@ -1171,7 +1371,11 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
                     if *manual {
                         ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
                     }
-                    if ui.small_button("→ HISTORY").clicked() {
+                    if ui
+                        .small_button("Open in History →")
+                        .on_hover_text("Jump to this event on the History tab")
+                        .clicked()
+                    {
                         jump_to = Some(id.clone());
                     }
                 });
@@ -1188,36 +1392,33 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
 // ── W4 regen ───────────────────────────────────────────────────────────────
 
 fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    ui_kit::collapsing_section(
-        ui,
-        "world_reroll",
-        "Re-roll from candidate pool",
-        false,
-        |ui| {
-            let pinned = state
-                .pinned_worlds
-                .contains(&state.sector.systems[sys_idx].worlds[w_idx].id);
-            let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            if pinned {
-                ui.colored_label(
-                    Color32::from_rgb(255, 160, 100),
-                    "pinned — unpin to re-roll",
-                );
-                return;
-            }
-            ui.label("Redraws star_colour/world_type/atmosphere/temperature/biosphere/population/tech_level/government and notable_features against the current data catalogs.");
-            ui.label(
-                RichText::new(format!("counter: {}", state.world_reroll_counter))
-                    .color(Color32::DARK_GRAY)
-                    .monospace(),
+    ui_kit::collapsing_section(ui, "world_reroll", "Re-roll this world", false, |ui| {
+        let pinned = state
+            .pinned_worlds
+            .contains(&state.sector.systems[sys_idx].worlds[w_idx].id);
+        let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+        if pinned {
+            ui.colored_label(
+                Color32::from_rgb(255, 160, 100),
+                "Pinned — unpin in Identity above to re-roll.",
             );
-            if ui.button("Re-roll this world").clicked() {
-                if let Err(e) = state.regenerate_world(&wid) {
-                    state.modal = Some(ModalKind::Message(format!("World re-roll failed: {e}")));
-                }
+            return;
+        }
+        ui.label("Randomly redraws star colour, type, atmosphere, temperature, biosphere, population, tech, government and features from your current data tables.");
+        ui.label(
+            RichText::new(format!("re-rolls this session: {}", state.world_reroll_counter))
+                .color(Color32::DARK_GRAY),
+        );
+        if ui
+            .button("🔄 Re-roll this world")
+            .on_hover_text("Generate a fresh random world here, keeping its id and orbit")
+            .clicked()
+        {
+            if let Err(e) = state.regenerate_world(&wid) {
+                state.modal = Some(ModalKind::Message(format!("World re-roll failed: {e}")));
             }
-        },
-    );
+        }
+    });
 }
 
 // ── combo helper ───────────────────────────────────────────────────────────

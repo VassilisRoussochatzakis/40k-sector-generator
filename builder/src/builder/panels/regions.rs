@@ -21,14 +21,37 @@ use sectorforge::regions::{
     RegionConditionKind, RegionsConfig, WarpRegion,
 };
 use sectorforge::sector_model::HexCoord;
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, MapTool};
 use crate::builder::BuilderState;
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Display name", "Phenomenon") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep
+/// the schema mapping. Copied from the FACTIONS panel to match its idiom.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
-    ui.heading("Regions");
+    ui.heading("Warp Regions");
+    ui.label(
+        RichText::new(
+            "Paint warp phenomena over the map — storms, calm corridors, anomalies — that bend nearby routes.",
+        )
+        .color(Color32::DARK_GRAY),
+    );
     ui.add_space(2.0);
 
     // §COLUMNS — 3-pane: the region table + invariants pin to the left rail
@@ -62,7 +85,10 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
                 if let Some(idx) = selected_region_index(state) {
                     show_region_inspector(ui, state, idx);
                 } else {
-                    ui_kit::placeholder(ui, "No region selected. Use + new region on the left.");
+                    ui_kit::placeholder(
+                        ui,
+                        "No region selected yet — pick one on the left, or use ➕ New region to add one.",
+                    );
                 }
                 ui.separator();
                 show_grow_seeded(ui, state);
@@ -102,7 +128,7 @@ fn selected_region_index(state: &mut BuilderState) -> Option<usize> {
 
 fn show_invariants(ui: &mut Ui, state: &BuilderState) {
     let Some(report) = state.invariant_report.as_ref() else {
-        ui.colored_label(Color32::GRAY, "Invariants not yet run.");
+        ui_kit::placeholder(ui, "Checks haven't run yet — edit a region to see warnings here.");
         return;
     };
     let codes = [
@@ -116,15 +142,16 @@ fn show_invariants(ui: &mut Ui, state: &BuilderState) {
         .filter(|v| codes.contains(&v.code.as_str()))
         .collect();
     if hits.is_empty() {
-        ui.colored_label(Color32::DARK_GREEN, "invariants: clean.");
+        ui.colored_label(Color32::DARK_GREEN, "✔ No region problems found.");
         return;
     }
     ui.colored_label(
         Color32::LIGHT_RED,
-        format!("{} region invariant(s):", hits.len()),
+        format!("⚠ {} region problem(s):", hits.len()),
     );
     for v in hits {
-        ui.label(RichText::new(format!("• {} — {}", v.code, v.message)).color(Color32::LIGHT_RED));
+        ui.label(RichText::new(format!("• {}", v.message)).color(Color32::LIGHT_RED))
+            .on_hover_text(format!("check: {}", v.code));
     }
 }
 
@@ -132,14 +159,21 @@ fn show_invariants(ui: &mut Ui, state: &BuilderState) {
 
 fn show_region_picker(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new(format!("regions ({})", state.sector.regions.len())).strong());
-        if ui.button("+ new region").clicked() {
+        ui.label(RichText::new(format!("Regions ({})", state.sector.regions.len())).strong());
+        if ui
+            .button("➕  New region")
+            .on_hover_text("Add a region centred on the map and select it")
+            .clicked()
+        {
             let centre = default_new_centre(state);
             state.add_region("Region", RegionConditionKind::Turbulence, centre);
         }
     });
     if state.sector.regions.is_empty() {
-        ui_kit::placeholder(ui, "No regions yet.");
+        ui_kit::placeholder(
+            ui,
+            "No regions yet — use ➕ New region above, then paint its hexes on the map.",
+        );
         return;
     }
     let current = state.selected_region_id.clone();
@@ -149,9 +183,15 @@ fn show_region_picker(ui: &mut Ui, state: &mut BuilderState) {
         .show(ui, |ui| {
             for r in state.sector.regions.iter() {
                 let glyph = r.kind.glyph();
-                let line = format!("{glyph} {} — {}  ({} hex)", r.id, r.name, r.hexes.len());
+                let line = format!(
+                    "{glyph} {} — {}  ({} hex)",
+                    r.name,
+                    r.kind.label(),
+                    r.hexes.len()
+                );
                 if ui
                     .selectable_label(current.as_deref() == Some(r.id.as_str()), line)
+                    .on_hover_text(format!("id: {}", r.id))
                     .clicked()
                 {
                     pick = Some(r.id.clone());
@@ -177,89 +217,127 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
     let id = region.id.clone();
     egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.horizontal(|ui| {
-            ui.label(RichText::new(&id).strong().monospace());
-            ui.label(format!(
-                "glyph: {}  |  hexes: {}  |  centre: ({},{})",
-                region.kind.glyph(),
+            ui.label(RichText::new(region.name.clone()).strong());
+            ui.label(RichText::new(format!("id: {id}")).color(Color32::DARK_GRAY))
+                .on_hover_text("Stable identifier (schema: id) — used by saved files and the map.");
+        });
+        ui.label(
+            RichText::new(format!(
+                "{} hex(es) · centre ({},{}) · map symbol {}",
                 region.hexes.len(),
                 region.centre.q,
                 region.centre.r,
-            ));
-        });
+                region.kind.glyph(),
+            ))
+            .color(Color32::DARK_GRAY),
+        );
+        ui.add_space(2.0);
 
-        // name
+        // name (schema: name)
         let name_key = egui::Id::new(("region_name_buf", id.as_str()));
         let name_src = region.name.clone();
-        ui.horizontal(|ui| {
-            ui.label("name:");
-            let (name, resp) =
-                crate::builder::panels::persistent_singleline(ui, name_key, &name_src);
-            if resp.lost_focus() && name != name_src {
-                let _ = state.update_region(&id, |r| r.name = name.clone());
-                crate::builder::panels::persistent_text_clear(ui, name_key);
-            }
-        });
-
-        // kind
-        ui.horizontal(|ui| {
-            ui.label("kind:");
-            let mut current = region.kind;
-            ui_kit::combo(("region_kind", &id), current.label()).show_ui(ui, |ui| {
-                for k in RegionConditionKind::ALL {
-                    ui.selectable_value(&mut current, *k, k.label());
+        labeled(
+            ui,
+            "Display name",
+            "Friendly name shown in the region list and tooltips (schema: name).",
+            |ui| {
+                let (name, resp) =
+                    crate::builder::panels::persistent_singleline(ui, name_key, &name_src);
+                if resp.lost_focus() && name != name_src {
+                    let _ = state.update_region(&id, |r| r.name = name.clone());
+                    crate::builder::panels::persistent_text_clear(ui, name_key);
                 }
-            });
-            if current != region.kind {
-                let _ = state.update_region(&id, |r| r.kind = current);
-            }
-            ui.label(RichText::new(current.description()).color(Color32::DARK_GRAY));
-        });
+            },
+        );
 
-        // centre
-        ui.horizontal(|ui| {
-            ui.label("centre q:");
-            let mut q = region.centre.q;
-            let r_old = region.centre.r;
-            let w = state.sector.width.saturating_sub(1) as i32;
-            let h = state.sector.height.saturating_sub(1) as i32;
-            ui.add(egui::DragValue::new(&mut q).range(0..=w));
-            ui.label("r:");
-            let mut r = r_old;
-            ui.add(egui::DragValue::new(&mut r).range(0..=h));
-            if (q, r) != (region.centre.q, region.centre.r) {
-                let _ = state.update_region(&id, |reg| {
-                    reg.centre = HexCoord { q, r };
+        // kind (schema: kind)
+        let mut current = region.kind;
+        labeled(
+            ui,
+            "Phenomenon",
+            "What kind of warp condition this region is (schema: kind). Decides how it affects nearby routes.",
+            |ui| {
+                ui_kit::combo(("region_kind", &id), current.label()).show_ui(ui, |ui| {
+                    for k in RegionConditionKind::ALL {
+                        ui.selectable_value(&mut current, *k, k.label());
+                    }
                 });
-            }
-        });
+            },
+        );
+        if current != region.kind {
+            let _ = state.update_region(&id, |r| r.kind = current);
+        }
+        ui.label(RichText::new(current.description()).color(Color32::DARK_GRAY));
+        ui.add_space(2.0);
 
-        // hex list summary + clear
-        ui.horizontal_wrapped(|ui| {
-            ui.label("hexes:");
-            let preview: String = region
-                .hexes
-                .iter()
-                .take(20)
-                .map(|h| format!("({},{})", h.q, h.r))
-                .collect::<Vec<_>>()
-                .join("");
-            ui.label(RichText::new(preview).monospace().color(Color32::DARK_GRAY));
-            if region.hexes.len() > 20 {
-                ui.label(format!("(+{} more)", region.hexes.len() - 20));
-            }
-        });
+        // centre (schema: centre)
+        labeled(
+            ui,
+            "Centre hex",
+            "Where the region is anchored on the map (schema: centre). Growing seeds outward from here.",
+            |ui| {
+                let mut q = region.centre.q;
+                let r_old = region.centre.r;
+                let w = state.sector.width.saturating_sub(1) as i32;
+                let h = state.sector.height.saturating_sub(1) as i32;
+                ui.label("q");
+                ui.add(egui::DragValue::new(&mut q).range(0..=w));
+                ui.label("r");
+                let mut r = r_old;
+                ui.add(egui::DragValue::new(&mut r).range(0..=h));
+                if (q, r) != (region.centre.q, region.centre.r) {
+                    let _ = state.update_region(&id, |reg| {
+                        reg.centre = HexCoord { q, r };
+                    });
+                }
+            },
+        );
+
+        // hex list summary + clear (schema: hexes)
+        labeled(
+            ui,
+            "Painted hexes",
+            "The map cells this region covers (schema: hexes). Paint them on the map or grow them below.",
+            |ui| {
+                if region.hexes.is_empty() {
+                    ui_kit::placeholder(ui, "none yet — paint on the map or grow below");
+                } else {
+                    let preview: String = region
+                        .hexes
+                        .iter()
+                        .take(20)
+                        .map(|h| format!("({},{})", h.q, h.r))
+                        .collect::<Vec<_>>()
+                        .join("");
+                    ui.label(RichText::new(preview).monospace().color(Color32::DARK_GRAY));
+                    if region.hexes.len() > 20 {
+                        ui.label(format!("(+{} more)", region.hexes.len() - 20));
+                    }
+                }
+            },
+        );
+        ui.add_space(4.0);
         ui.horizontal(|ui| {
-            if ui.button("clear hexes").clicked() {
+            if ui
+                .button("🧹  Clear hexes")
+                .on_hover_text("Empty this region's painted cells (keeps the region)")
+                .clicked()
+            {
                 let _ = state.update_region(&id, |r| r.hexes.clear());
             }
-            if ui.button("paint mode →").clicked() {
+            if ui
+                .button("🖌  Paint on map  →")
+                .on_hover_text("Switch to the map's region brush to paint this region's cells")
+                .clicked()
+            {
                 state.map_tool = MapTool::RegionPaint;
                 state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
             if ui
                 .add(egui::Button::new(
-                    RichText::new("× remove region").color(Color32::LIGHT_RED),
+                    RichText::new("🗑  Delete region").color(Color32::LIGHT_RED),
                 ))
+                .on_hover_text("Remove this region from the sector")
                 .clicked()
             {
                 let _ = state.remove_region(&id);
@@ -271,7 +349,12 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
 // ── §REG3 grow seeded region ────────────────────────────────────────────────
 
 fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "grow seeded region", |ui| {
+    ui_kit::section(ui, "Auto-grow a region blob", |ui| {
+        ui_kit::placeholder(
+            ui,
+            "Pick a centre and a rough size, then Grow to flood-fill a blob of hexes (avoids other regions).",
+        );
+        ui.add_space(4.0);
         let w = state.sector.width.saturating_sub(1) as i32;
         let h = state.sector.height.saturating_sub(1) as i32;
         let seed_state = state
@@ -279,28 +362,53 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
             .clone()
             .unwrap_or_else(|| "new".into());
 
-        ui.horizontal_wrapped(|ui| {
-            ui.label("seed q:");
-            ui.add(egui::DragValue::new(&mut state.region_grow_q).range(0..=w));
-            ui.label("r:");
-            ui.add(egui::DragValue::new(&mut state.region_grow_r).range(0..=h));
-            ui.label("mean_size:");
-            ui.add(egui::DragValue::new(&mut state.region_grow_size).range(1..=200));
-            ui.label("kind:");
-            ui_kit::combo("region_grow_kind", state.region_grow_kind.label()).show_ui(ui, |ui| {
-                for k in RegionConditionKind::ALL {
-                    ui.selectable_value(&mut state.region_grow_kind, *k, k.label());
-                }
-            });
-        });
+        labeled(
+            ui,
+            "Seed hex",
+            "Where the blob starts growing from (schema: centre on the resulting region).",
+            |ui| {
+                ui.label("q");
+                ui.add(egui::DragValue::new(&mut state.region_grow_q).range(0..=w));
+                ui.label("r");
+                ui.add(egui::DragValue::new(&mut state.region_grow_r).range(0..=h));
+            },
+        );
+        labeled(
+            ui,
+            "Target size",
+            "Roughly how many hexes to grow (schema: mean_size). Actual size varies with the layout.",
+            |ui| {
+                ui.add(egui::DragValue::new(&mut state.region_grow_size).range(1..=200));
+            },
+        );
+        labeled(
+            ui,
+            "Phenomenon",
+            "Which warp condition the grown region will be (schema: kind).",
+            |ui| {
+                ui_kit::combo("region_grow_kind", state.region_grow_kind.label()).show_ui(
+                    ui,
+                    |ui| {
+                        for k in RegionConditionKind::ALL {
+                            ui.selectable_value(&mut state.region_grow_kind, *k, k.label());
+                        }
+                    },
+                );
+            },
+        );
+        ui.add_space(4.0);
         ui.horizontal(|ui| {
             let mode_label = if state.selected_region_id.is_some() {
-                "grow → replace hex list of selected region"
+                "Grow will replace the selected region's hexes"
             } else {
-                "grow → create new region"
+                "Grow will create a new region"
             };
             ui.colored_label(Color32::DARK_GRAY, mode_label);
-            if ui.button("Grow").clicked() {
+            if ui
+                .button("🌱  Grow")
+                .on_hover_text("Flood-fill a blob of hexes from the seed")
+                .clicked()
+            {
                 let centre = HexCoord {
                     q: state.region_grow_q,
                     r: state.region_grow_r,
@@ -346,7 +454,7 @@ fn show_grow_seeded(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REG4 live route effects ────────────────────────────────────────────────
 
 fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "route effect preview", |ui| {
+    ui_kit::section(ui, "How regions change routes", |ui| {
         let regions: Vec<WarpRegion> = state.sector.regions.iter().cloned().collect();
         let systems = &state.sector.systems;
         let coord_by_id: BTreeMap<&str, HexCoord> =
@@ -378,18 +486,22 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
         ui.horizontal_wrapped(|ui| {
-            ui.label(format!("routes: {}", state.sector.routes.len()));
-            ui.label(format!("affected: {affected}"));
-            ui.colored_label(Color32::LIGHT_RED, format!("→perilous: {perilous}"));
+            ui.label(format!("{} route(s) total", state.sector.routes.len()));
+            ui.label(format!("· {affected} affected"));
+            ui.colored_label(Color32::LIGHT_RED, format!("→ perilous: {perilous}"));
             ui.colored_label(
                 Color32::from_rgb(220, 160, 90),
-                format!("↓degrade: {degrade}"),
+                format!("↓ worse: {degrade}"),
             );
-            ui.colored_label(Color32::LIGHT_GREEN, format!("↑upgrade: {upgrade}"));
+            ui.colored_label(Color32::LIGHT_GREEN, format!("↑ better: {upgrade}"));
         });
         ui.horizontal(|ui| {
             if ui
-                .add_enabled(affected > 0, egui::Button::new("Apply effects to routes"))
+                .add_enabled(
+                    affected > 0,
+                    egui::Button::new("⚡  Apply effects to routes"),
+                )
+                .on_hover_text("Bake the region effects into the affected routes (undoable)")
                 .clicked()
             {
                 // §R4: build the mutated routes vector against owned clones (no
@@ -417,7 +529,7 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
             }
             ui.colored_label(
                 Color32::DARK_GRAY,
-                "Live tags `region:warp_storm` / `region:turbulence` / `region:calm_corridor` written onto routes.",
+                "Affected routes get tagged with the region that changed them, so the effect is visible later.",
             );
         });
     });
@@ -426,11 +538,12 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REG2 paint hint ────────────────────────────────────────────────────────
 
 fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "paint tool", |ui| {
+    ui_kit::section(ui, "Paint regions on the map", |ui| {
         ui.horizontal_wrapped(|ui| {
             let active = state.map_tool == MapTool::RegionPaint;
             if ui
-                .selectable_label(active, "MAP tool: REGION PAINT")
+                .selectable_label(active, "🖌  Region brush")
+                .on_hover_text("Turn on the map's region brush and jump to the map")
                 .clicked()
             {
                 state.map_tool = MapTool::RegionPaint;
@@ -438,8 +551,8 @@ fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
             }
             ui.colored_label(
                 Color32::DARK_GRAY,
-                "Left-click paints into the selected region. Right-click erases. \
-                 Overlap fires REGION_HEX_OVERLAP under §REG6.",
+                "Left-click paints into the selected region, right-click erases. \
+                 Painting onto another region flags an overlap warning.",
             );
         });
     });
@@ -448,11 +561,11 @@ fn show_paint_hint(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REG7 ASCII glyph preview ───────────────────────────────────────────────
 
 fn show_glyph_preview(ui: &mut Ui, state: &BuilderState) {
-    ui_kit::section(ui, "glyph preview", |ui| {
+    ui_kit::section(ui, "Text map preview", |ui| {
         let w = state.sector.width as usize;
         let h = state.sector.height as usize;
         if w == 0 || h == 0 {
-            ui.colored_label(Color32::GRAY, "Sector has zero extent.");
+            ui_kit::placeholder(ui, "Nothing to preview — the sector has no size yet.");
             return;
         }
         let mut grid: Vec<Vec<char>> = vec![vec!['.'; w]; h];
@@ -502,20 +615,31 @@ fn show_glyph_preview(ui: &mut Ui, state: &BuilderState) {
 // ── §REG5 regions.toml editor ───────────────────────────────────────────────
 
 fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "regions.toml editor", |ui| {
+    ui_kit::section(ui, "Region generation settings", |ui| {
         if state.data_catalogs.regions.is_none() {
-            ui.horizontal(|ui| {
-                ui.colored_label(Color32::DARK_GRAY, "No regions catalog loaded.");
-                if ui.button("create defaults").clicked() {
-                    state.data_catalogs.regions = Some(RegionsConfig::default());
-                    if state.config.inputs.regions.is_none() {
-                        state.config.inputs.regions = Some("data/routes/regions.toml".into());
-                    }
-                    state.dirty = true;
+            ui_kit::placeholder(
+                ui,
+                "No generation settings yet — create defaults to control how regions are auto-generated.",
+            );
+            ui.add_space(4.0);
+            if ui
+                .button("➕  Create defaults")
+                .on_hover_text("Start a region settings file with sensible defaults")
+                .clicked()
+            {
+                state.data_catalogs.regions = Some(RegionsConfig::default());
+                if state.config.inputs.regions.is_none() {
+                    state.config.inputs.regions = Some("data/routes/regions.toml".into());
                 }
-            });
+                state.dirty = true;
+            }
             return;
         }
+        ui_kit::placeholder(
+            ui,
+            "Controls how many regions the generator places and their phenomenon mix.",
+        );
+        ui.add_space(4.0);
         let mut cfg = state
             .data_catalogs
             .regions
@@ -524,28 +648,49 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
             .clone();
         let mut changed = false;
         let mut save_clicked = false;
-        egui::Grid::new("regions_cfg")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label("enabled");
+        labeled(
+            ui,
+            "Generate regions",
+            "Whether the generator places warp regions at all (schema: enabled).",
+            |ui| {
                 changed |= ui.checkbox(&mut cfg.enabled, "").changed();
-                ui.end_row();
-                ui.label("count");
+            },
+        );
+        labeled(
+            ui,
+            "How many",
+            "Number of regions to place when generating (schema: count).",
+            |ui| {
                 changed |= ui
                     .add(egui::DragValue::new(&mut cfg.count).range(0..=2_000u32))
                     .changed();
-                ui.end_row();
-                ui.label("mean_size");
+            },
+        );
+        labeled(
+            ui,
+            "Typical size",
+            "Average hex count per generated region (schema: mean_size).",
+            |ui| {
                 changed |= ui
                     .add(egui::DragValue::new(&mut cfg.mean_size).range(1..=2_000u32))
                     .changed();
-                ui.end_row();
-                ui.label("apply_to_routes");
+            },
+        );
+        labeled(
+            ui,
+            "Affect routes",
+            "Apply region effects to routes during generation (schema: apply_to_routes).",
+            |ui| {
                 changed |= ui.checkbox(&mut cfg.apply_to_routes, "").changed();
-                ui.end_row();
-            });
+            },
+        );
 
-        ui.label(RichText::new("conditions").italics());
+        ui.add_space(4.0);
+        ui.label(RichText::new("Phenomenon mix").strong());
+        ui_kit::placeholder(
+            ui,
+            "Which phenomena can appear, and how likely each is (higher weight = more common).",
+        );
         let mut remove_idx: Option<usize> = None;
         for (i, entry) in cfg.conditions.iter_mut().enumerate() {
             ui.horizontal(|ui| {
@@ -557,7 +702,8 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                         }
                     }
                 });
-                ui.label("weight");
+                ui.label("weight")
+                    .on_hover_text("Relative likelihood of this phenomenon (schema: weight).");
                 changed |= ui
                     .add(
                         egui::DragValue::new(&mut entry.weight)
@@ -565,7 +711,8 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                             .speed(0.1),
                     )
                     .changed();
-                ui.label("label");
+                ui.label("label")
+                    .on_hover_text("Optional custom name for this phenomenon (schema: label).");
                 let label_key = egui::Id::new(("region_cfg_label_buf", i));
                 let label_src = entry.label.clone().unwrap_or_default();
                 let (label_buf, resp) =
@@ -595,7 +742,11 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
             changed = true;
         }
         ui.horizontal(|ui| {
-            if ui.button("+ condition").clicked() {
+            if ui
+                .button("➕  Add phenomenon")
+                .on_hover_text("Add another phenomenon to the generation mix")
+                .clicked()
+            {
                 cfg.conditions.push(ConditionEntry {
                     kind: RegionConditionKind::Turbulence,
                     weight: 1.0,
@@ -603,7 +754,11 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                 });
                 changed = true;
             }
-            if ui.button("Save regions.toml").clicked() {
+            if ui
+                .button("💾  Save settings")
+                .on_hover_text("Write these region settings back to the project")
+                .clicked()
+            {
                 save_clicked = true;
             }
         });

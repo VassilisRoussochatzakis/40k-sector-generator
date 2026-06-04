@@ -8,6 +8,9 @@
 //! undo-able command.
 
 use camino::Utf8PathBuf;
+use egui::{RichText, Ui};
+
+use sectorforge_gui_core::palette;
 
 use crate::builder::project_io::{new_project, NewProjectOptions};
 use crate::builder::{BuilderState, ModalKind};
@@ -44,9 +47,10 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         && height == 8;
     let mut tutorial = tutorial_match;
     if ui
-        .checkbox(
-            &mut tutorial,
-            "Tutorial (fill BUILDER.md walkthrough values)",
+        .checkbox(&mut tutorial, "Start from the tutorial example")
+        .on_hover_text(
+            "Fills every field below with the guided walkthrough's starter values \
+             so you can follow along step by step.",
         )
         .changed()
         && tutorial
@@ -58,47 +62,83 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
         height = 8;
     }
     ui.add_space(4.0);
-    egui::Grid::new("new_project_grid")
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("Project id");
-            ui.text_edit_singleline(&mut name);
-            ui.end_row();
-            ui.label("Title");
-            ui.text_edit_singleline(&mut title);
-            ui.end_row();
-            ui.label("Seed");
-            ui.text_edit_singleline(&mut seed);
-            ui.end_row();
-            // Sectors must be square: editing either dimension mirrors it into
-            // the other so width and height stay locked equal.
-            ui.label("Width");
+    labeled(
+        ui,
+        "Project id",
+        "Short folder-safe name for the project. Lowercase, no spaces — used for the project folder and files.",
+        |ui| {
+            ui.add(
+                egui::TextEdit::singleline(&mut name)
+                    .hint_text("e.g. my-sector")
+                    .desired_width(200.0),
+            );
+        },
+    );
+    labeled(
+        ui,
+        "Title",
+        "Friendly display name for the sector, shown in headings and exports.",
+        |ui| {
+            ui.add(
+                egui::TextEdit::singleline(&mut title)
+                    .hint_text("e.g. My Sector")
+                    .desired_width(200.0),
+            );
+        },
+    );
+    labeled(
+        ui,
+        "Seed",
+        "Any text — it makes generation repeatable. The same seed and settings always produce the same sector.",
+        |ui| {
+            ui.add(
+                egui::TextEdit::singleline(&mut seed)
+                    .hint_text("any text")
+                    .desired_width(200.0),
+            );
+        },
+    );
+    // Sectors must be square: editing either dimension mirrors it into the
+    // other so width and height stay locked equal.
+    labeled(
+        ui,
+        "Width",
+        "Sector size in grid cells. Sectors are always square, so this stays locked equal to Height.",
+        |ui| {
             if ui
                 .add(egui::DragValue::new(&mut width).range(1..=64))
                 .changed()
             {
                 height = width;
             }
-            ui.end_row();
-            ui.label("Height");
+        },
+    );
+    labeled(
+        ui,
+        "Height",
+        "Sector size in grid cells. Sectors are always square, so this stays locked equal to Width.",
+        |ui| {
             if ui
                 .add(egui::DragValue::new(&mut height).range(1..=64))
                 .changed()
             {
                 width = height;
             }
-            ui.end_row();
-            ui.label("");
-            ui.label(
-                egui::RichText::new("🔒 square — width & height locked equal")
-                    .small()
-                    .weak(),
-            );
-            ui.end_row();
-        });
+        },
+    );
+    ui.label(
+        RichText::new("🔒 square — width & height locked equal")
+            .small()
+            .weak(),
+    )
+    .on_hover_text("Sectors must be square, so changing one side updates the other automatically.");
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        if ui.button("Choose folder & create…").clicked() {
+        if ui
+            .button("📁  Choose folder & create…")
+            .on_hover_text("Pick where to save the project, then scaffold and open it")
+            .clicked()
+        {
             if let Some(folder) = rfd::FileDialog::new()
                 .set_title("New project folder")
                 .pick_folder()
@@ -129,7 +169,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                 }
             }
         }
-        if ui.button("Cancel").clicked() {
+        if ui
+            .button("Cancel")
+            .on_hover_text("Close without creating a project")
+            .clicked()
+        {
             close = true;
         }
     });
@@ -156,4 +200,19 @@ fn default_modal() -> impl FnOnce() -> ModalKind {
         width: 8,
         height: 8,
     }
+}
+
+/// Aligned label-left / control-right row with a hover tooltip, matching the
+/// FACTIONS inspector idiom: the visible label reads in human terms while the
+/// tooltip explains what the field does.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
 }

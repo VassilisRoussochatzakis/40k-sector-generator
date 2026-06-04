@@ -5,6 +5,11 @@
 //! [`crate::builder::BuilderState::selected_file`] so the §P4 project tree
 //! and (Phase E) TOML editor can route the user to the offending row.
 //!
+//! Each row leads with the human-readable `message`; the diagnostic rule code
+//! (e.g. `GEN_SECTOR_NOT_SQUARE`) is the real identifier, so it rides along as a
+//! dim secondary token rather than the headline — mirroring the analytics
+//! health-flag idiom.
+//!
 //! §COLUMNS — master-detail: the file-grouped error/rule list lives in a
 //! persistent left rail (`SidePanel::left("validation_list")`); the selected
 //! issue's detail, the focus deep-link, "Re-validate now", and the Strict
@@ -22,7 +27,9 @@
 use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
+use egui::{Color32, RichText};
 use sectorforge::validation::{Severity, ValidationIssue, ValidationReport};
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::BuilderState;
@@ -32,12 +39,26 @@ use crate::builder::BuilderState;
 /// issue from the live report; never persisted, never a model field.
 const SELECTED_KEY_ID: &str = "validation_selected_issue";
 
+/// Severity tint for the "error" rows / pips (red).
+const COLOUR_ERROR: Color32 = Color32::from_rgb(220, 80, 80);
+/// Severity tint for the "warning" rows / pips (amber).
+const COLOUR_WARNING: Color32 = Color32::from_rgb(220, 180, 60);
+/// Positive status tint for a clean report (green).
+const COLOUR_OK: Color32 = Color32::from_rgb(120, 180, 120);
+
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Validation");
+    ui.label(
+        RichText::new("Problems found in your config before generating — fix these for a clean run.")
+            .color(Color32::DARK_GRAY),
+    );
     ui.separator();
 
     let Some(report) = state.validation_report.clone() else {
-        ui.colored_label(egui::Color32::GRAY, "no validation report yet");
+        ui_kit::placeholder(
+            ui,
+            "No checks run yet. Hit Re-validate, or edit any input to kick one off.",
+        );
         return;
     };
 
@@ -84,27 +105,27 @@ fn set_selected_key(ui: &egui::Ui, key: String) {
 fn render_summary(ui: &mut egui::Ui, report: &ValidationReport, strict: bool) {
     // §V4: under strict mode, warnings fail the report just like errors.
     let strict_fail = strict && !report.warnings.is_empty();
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         if report.ok && !strict_fail {
-            ui.colored_label(egui::Color32::GREEN, "✓ ok");
+            ui.colored_label(COLOUR_OK, "✓  All clear");
         } else {
             let txt = if strict_fail && report.errors.is_empty() {
-                "✗ warnings (strict)"
+                "✗  Warnings block (strict mode)"
             } else {
-                "✗ errors"
+                "✗  Problems found"
             };
-            ui.colored_label(egui::Color32::RED, txt);
+            ui.colored_label(COLOUR_ERROR, txt);
         }
-        ui.label(format!(
-            "{} error(s), {} warning(s)",
-            report.errors.len(),
-            report.warnings.len()
-        ));
+        ui.label(
+            RichText::new(format!(
+                "· {} error(s), {} warning(s)",
+                report.errors.len(),
+                report.warnings.len()
+            ))
+            .color(Color32::DARK_GRAY),
+        );
         if strict {
-            ui.colored_label(
-                egui::Color32::from_rgb(220, 180, 60),
-                "· strict: warnings count as errors",
-            );
+            ui.colored_label(COLOUR_WARNING, "· strict: warnings count as errors");
         }
     });
 }
@@ -116,7 +137,7 @@ fn show_issue_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Validat
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             if report.errors.is_empty() && report.warnings.is_empty() {
-                ui.colored_label(egui::Color32::GREEN, "✓ no validation issues");
+                ui_kit::placeholder(ui, "No problems found — your config is coherent.");
             } else {
                 render_group(
                     ui,
@@ -124,7 +145,7 @@ fn show_issue_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Validat
                     "Errors",
                     &report.errors,
                     Severity::Error,
-                    egui::Color32::from_rgb(220, 80, 80),
+                    COLOUR_ERROR,
                 );
                 render_group(
                     ui,
@@ -132,7 +153,7 @@ fn show_issue_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Validat
                     "Warnings",
                     &report.warnings,
                     Severity::Warning,
-                    egui::Color32::from_rgb(220, 180, 60),
+                    COLOUR_WARNING,
                 );
             }
         });
@@ -182,18 +203,30 @@ fn issue_row(
     let key = issue_key(issue);
     let is_selected = selected_key(ui).as_deref() == Some(key.as_str());
     ui.horizontal(|ui| {
-        ui.colored_label(colour, &issue.code);
+        // Severity dot up front; the headline is the human message, with the
+        // file/row anchor prefixed when present. The diagnostic rule code rides
+        // along after as a dim secondary token (real identifier, but not the
+        // thing a reader scans for).
+        ui.colored_label(colour, "●");
         let label = match (&issue.path, issue.row) {
-            (Some(p), Some(r)) => format!("{p} (row {r}): {}", issue.message),
-            (Some(p), None) => format!("{p}: {}", issue.message),
+            (Some(p), Some(r)) => format!("{} ({p}, row {r})", issue.message),
+            (Some(p), None) => format!("{} ({p})", issue.message),
             (None, _) => issue.message.clone(),
         };
         // Selecting a row pins the issue into the right detail pane and also
         // routes the §P4 project tree to the offending .toml (existing jump).
-        if ui.selectable_label(is_selected, label).clicked() {
+        let resp = ui
+            .selectable_label(is_selected, label)
+            .on_hover_text(format!("Rule {} — click to inspect and jump", issue.code));
+        if resp.clicked() {
             set_selected_key(ui, key.clone());
             jump_to(state, issue);
         }
+        ui.label(
+            RichText::new(&issue.code)
+                .small()
+                .color(palette::chrome_text_dim()),
+        );
     });
 }
 
@@ -202,15 +235,19 @@ fn issue_row(
 fn show_issue_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &ValidationReport) {
     // Right-pane controls: re-validate + strict toggle live here now.
     ui.horizontal(|ui| {
-        if ui.button("Re-validate now").clicked() {
+        if ui
+            .button("🔄  Re-validate")
+            .on_hover_text("Re-run the checks now instead of waiting for the auto-refresh")
+            .clicked()
+        {
             state.revalidate_now();
         }
         // §V4 — strict toggle: promote warnings to errors for the health pip
         // and the §V6 pre-export gate (parity with `generate --strict`).
         ui.checkbox(&mut state.validation_strict, "Strict")
             .on_hover_text(
-                "§V4 — treat validation warnings as errors for the health pip \
-                 and the pre-export gate. Mirrors `sectorforge generate --strict`.",
+                "Treat warnings as errors for the health pip and the pre-export gate \
+                 (schema: strict). Mirrors `sectorforge generate --strict`.",
             );
     });
     ui.separator();
@@ -230,9 +267,9 @@ fn show_issue_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &Valid
             if let Some(issue) = issue {
                 render_detail_card(ui, state, issue);
             } else if report.errors.is_empty() && report.warnings.is_empty() {
-                ui.colored_label(egui::Color32::GREEN, "✓ no validation issues");
+                ui_kit::placeholder(ui, "No problems found — your config is coherent.");
             } else {
-                ui_kit::placeholder(ui, "Select an issue from the list on the left.");
+                ui_kit::placeholder(ui, "Pick a problem on the left to see the details.");
             }
 
             ui.separator();
@@ -242,26 +279,33 @@ fn show_issue_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &Valid
 
 fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, issue: &ValidationIssue) {
     let (colour, sev_label) = match issue.severity {
-        Severity::Error => (egui::Color32::from_rgb(220, 80, 80), "error"),
-        Severity::Warning => (egui::Color32::from_rgb(220, 180, 60), "warning"),
-        Severity::Info => (egui::Color32::GRAY, "info"),
-        _ => (egui::Color32::GRAY, "info"),
+        Severity::Error => (COLOUR_ERROR, "Error"),
+        Severity::Warning => (COLOUR_WARNING, "Warning"),
+        Severity::Info => (Color32::GRAY, "Info"),
+        _ => (Color32::GRAY, "Info"),
     };
-    ui_kit::section(ui, &issue.code, |ui| {
+    // The visible section title reads as the severity; the diagnostic code is
+    // surfaced as a dim secondary token inside, not used as the headline.
+    ui_kit::section(ui, sev_label, |ui| {
         ui_kit::reading_column(ui, 720.0, |ui| {
             ui.horizontal(|ui| {
                 ui.colored_label(colour, format!("● {sev_label}"));
-                ui.monospace(&issue.code);
+                ui.label(
+                    RichText::new(&issue.code)
+                        .small()
+                        .color(palette::chrome_text_dim()),
+                )
+                .on_hover_text("Diagnostic rule code");
             });
             ui.add_space(4.0);
             ui.label(&issue.message);
             ui.add_space(6.0);
 
             if let Some(path) = &issue.path {
-                ui_kit::kv(ui, "path", path);
+                ui_kit::kv(ui, "Location", path);
             }
             if let Some(row) = issue.row {
-                ui_kit::kv(ui, "row", &row.to_string());
+                ui_kit::kv(ui, "Line", &row.to_string());
             }
 
             // Focus deep-link: jump the §P4 project tree / TOML editor to the
@@ -273,8 +317,8 @@ fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, issue: &Valid
             {
                 ui.add_space(8.0);
                 if ui
-                    .button(format!("Open {rel}"))
-                    .on_hover_text("Route the project tree / TOML editor to this file")
+                    .button(format!("▸  Open {rel}"))
+                    .on_hover_text("Jump the project tree / TOML editor to this file")
                     .clicked()
                 {
                     state.selected_file = Some(Utf8PathBuf::from(rel));
@@ -331,19 +375,26 @@ fn bucket_for(path: &str) -> String {
 }
 
 fn render_workbook(ui: &mut egui::Ui, report: &ValidationReport) {
-    ui_kit::collapsing_section(ui, "val_workbook", "World workbook", false, |ui| {
+    ui_kit::collapsing_section(ui, "val_workbook", "World pool summary", false, |ui| {
         let w = &report.world_workbook;
-        ui.label(format!("rows: {}", w.row_count));
-        ui.label(format!("usable candidates: {}", w.usable_candidate_count));
-        ui.label(format!("excluded rows: {}", w.excluded_row_count));
+        ui_kit::placeholder(
+            ui,
+            "What the generator drew from your world data — how many rows it kept, and why it dropped the rest.",
+        );
+        ui.add_space(4.0);
+        ui_kit::kv(ui, "Total rows", &w.row_count.to_string());
+        ui_kit::kv(ui, "Usable candidates", &w.usable_candidate_count.to_string());
+        ui_kit::kv(ui, "Excluded rows", &w.excluded_row_count.to_string());
         if !w.exclusion_reasons.is_empty() {
-            ui.label("excluded by reason:");
+            ui.add_space(4.0);
+            ui.label(RichText::new("Excluded because:").color(Color32::DARK_GRAY));
             for (k, v) in &w.exclusion_reasons {
                 ui.label(format!("  {k}: {v}"));
             }
         }
         if !w.key_table_counts.is_empty() {
-            ui.label("key tables:");
+            ui.add_space(4.0);
+            ui.label(RichText::new("Lookup tables:").color(Color32::DARK_GRAY));
             for (k, v) in &w.key_table_counts {
                 ui.label(format!("  {k}: {v}"));
             }

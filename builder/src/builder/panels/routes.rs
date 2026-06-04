@@ -11,7 +11,7 @@ use sectorforge::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSector, GeneratedSystem, RouteStability, RouteType,
 };
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::preview::DEFAULT_DEBOUNCE_MS;
@@ -25,8 +25,29 @@ const ROUTE_STABILITIES: [RouteStability; 4] = [
     RouteStability::Perilous,
 ];
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("From", "Travel danger") while the tooltip names
+/// the underlying field plus a plain-language note, so power users keep the
+/// schema mapping. Friendlier replacement for the old bare `egui::Grid` whose
+/// row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Routes");
+    ui.label(
+        RichText::new("Travel lanes between systems — their danger, who patrols them, and how the network stays connected.")
+            .color(Color32::DARK_GRAY),
+    );
     ui.add_space(4.0);
     // §COLUMNS — the summary line (route / component / hop counts) stays
     // full-width on top, above the master-detail split.
@@ -49,7 +70,10 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                 if let Some(idx) = selected_route_index(state) {
                     show_route_inspector(ui, state, idx);
                 } else {
-                    ui_kit::placeholder(ui, "Select a route from the roster on the left.");
+                    ui_kit::placeholder(
+                        ui,
+                        "Pick a route on the left to edit it — or draw a new one on the Map tab.",
+                    );
                 }
 
                 ui.separator();
@@ -67,14 +91,25 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 fn show_summary(ui: &mut Ui, state: &BuilderState) {
     let components = route_component_count(&state.sector, &state.sector.routes);
     ui.horizontal_wrapped(|ui| {
-        ui.label(format!("routes: {}", state.sector.routes.len()));
-        ui.label(format!("components: {components}"));
-        ui.label(format!(
-            "ensure_connected_graph: {}",
-            state.config.generation.routes.ensure_connected_graph
-        ));
-        ui.label("MAP tool ADD ROUTE supports click-click or drag endpoint creation.");
+        ui.label(RichText::new(format!("{} route(s)", state.sector.routes.len())).strong());
+        ui.label(RichText::new(format!("· {components} connected group(s)")).color(Color32::DARK_GRAY))
+            .on_hover_text(
+                "How many separate clusters the systems form (schema: routes graph components). \
+                 1 means every system can be reached from every other.",
+            );
+        if state.config.generation.routes.ensure_connected_graph {
+            ui.label(RichText::new("· auto-connect on").color(Color32::DARK_GRAY))
+                .on_hover_text(
+                    "New edits automatically add bridge routes so the network stays in one piece \
+                     (schema: ensure_connected_graph). Toggle under \"Keep everything reachable\".",
+                );
+        }
     });
+    ui.label(
+        RichText::new("Tip: draw new routes on the Map tab — click one system then another, or drag between them.")
+            .small()
+            .color(Color32::DARK_GRAY),
+    );
 }
 
 fn selected_route_index(state: &mut BuilderState) -> Option<usize> {
@@ -96,12 +131,13 @@ fn selected_route_index(state: &mut BuilderState) -> Option<usize> {
 fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new(format!("routes ({})", state.sector.routes.len())).strong());
+        ui.label(RichText::new(format!("{} route(s)", state.sector.routes.len())).strong());
         if ui
             .add_enabled(
                 state.selected_route_id.is_some(),
-                egui::Button::new("Delete selected"),
+                egui::Button::new("🗑  Delete"),
             )
+            .on_hover_text("Remove the selected route")
             .clicked()
         {
             if let Some(id) = state.selected_route_id.clone() {
@@ -118,7 +154,10 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
     ui.separator();
 
     if state.sector.routes.is_empty() {
-        ui_kit::placeholder(ui, "No routes. Use the MAP tab's ADD ROUTE tool.");
+        ui_kit::placeholder(
+            ui,
+            "No routes yet. Draw one on the Map tab — click one system, then another.",
+        );
         return;
     }
     let current = state.selected_route_id.clone();
@@ -127,17 +166,24 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             for route in &state.sector.routes {
-                let text = format!(
-                    "{} -> {}  (d={})",
-                    route.from_system_id, route.to_system_id, route.distance
-                );
-                if ui
-                    .selectable_label(current.as_ref() == Some(&route.id), text)
-                    .on_hover_text(route.id.to_string())
-                    .clicked()
-                {
-                    pick = Some(route.id.clone());
-                }
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("●").color(palette::stability_color(route.stability)))
+                        .on_hover_text(format!(
+                            "Travel danger: {}",
+                            stability_label(route.stability)
+                        ));
+                    let text = format!(
+                        "{} → {}  ({} hops)",
+                        route.from_system_id, route.to_system_id, route.distance
+                    );
+                    if ui
+                        .selectable_label(current.as_ref() == Some(&route.id), text)
+                        .on_hover_text(format!("Route id: {}", route.id))
+                        .clicked()
+                    {
+                        pick = Some(route.id.clone());
+                    }
+                });
             }
         });
     if let Some(id) = pick {
@@ -152,10 +198,17 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
     ui.group(|ui| {
         ui.horizontal_wrapped(|ui| {
             ui.heading(draft.id.to_string());
-            if sectorforge_gui_core::entity_link(ui, "from", false).clicked() {
+            ui.label(RichText::new("Jump to endpoint:").color(Color32::DARK_GRAY));
+            if sectorforge_gui_core::entity_link(ui, "from", false)
+                .on_hover_text("Open the system this route starts at")
+                .clicked()
+            {
                 state.focus_entity(EntityRef::System(draft.from_system_id.clone()));
             }
-            if sectorforge_gui_core::entity_link(ui, "to", false).clicked() {
+            if sectorforge_gui_core::entity_link(ui, "to", false)
+                .on_hover_text("Open the system this route ends at")
+                .clicked()
+            {
                 state.focus_entity(EntityRef::System(draft.to_system_id.clone()));
             }
         });
@@ -163,35 +216,48 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
         ui_kit::collapsing_section(
             ui,
             "route_identity_endpoints",
-            "Identity / endpoints",
+            "Endpoints & type",
             true,
             |ui| {
-                egui::Grid::new("route_identity_grid")
-                    .num_columns(2)
-                    .show(ui, |ui| {
-                        ui.label("id");
+                labeled(
+                    ui,
+                    "Route id",
+                    "Unique identifier (schema: id). Derived from the two endpoints; usually leave as-is.",
+                    |ui| {
                         let mut id_buf = draft.id.to_string();
                         if ui.text_edit_singleline(&mut id_buf).changed() {
                             draft.id = RouteId::new(id_buf.trim());
                         }
-                        ui.end_row();
-
-                        ui.label("from_system_id");
-                        system_combo(ui, "route_from_combo", &mut draft.from_system_id, state);
-                        ui.end_row();
-
-                        ui.label("to_system_id");
-                        system_combo(ui, "route_to_combo", &mut draft.to_system_id, state);
-                        ui.end_row();
-
-                        ui.label("route_type");
+                    },
+                );
+                labeled(
+                    ui,
+                    "From",
+                    "System this route starts at (schema: from_system_id).",
+                    |ui| system_combo(ui, "route_from_combo", &mut draft.from_system_id, state),
+                );
+                labeled(
+                    ui,
+                    "To",
+                    "System this route ends at (schema: to_system_id).",
+                    |ui| system_combo(ui, "route_to_combo", &mut draft.to_system_id, state),
+                );
+                labeled(
+                    ui,
+                    "Lane type",
+                    "What kind of travel lane this is (schema: route_type). Sets how it's drawn on the map.",
+                    |ui| {
                         route_type_combo(ui, "route_type_combo", &mut draft.route_type);
-                        ui.end_row();
-
-                        ui.label("stability");
+                    },
+                );
+                labeled(
+                    ui,
+                    "Travel danger",
+                    "How risky the crossing is (schema: stability). Higher danger slows or blocks safe passage.",
+                    |ui| {
                         stability_combo(ui, "route_stability_combo", &mut draft.stability);
-                        ui.end_row();
-                    });
+                    },
+                );
 
                 let endpoints_changed = draft.from_system_id != original.from_system_id
                     || draft.to_system_id != original.to_system_id;
@@ -205,29 +271,40 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             },
         );
 
-        ui_kit::collapsing_section(ui, "route_distance", "Distance", true, |ui| {
+        ui_kit::collapsing_section(ui, "route_distance", "Length", true, |ui| {
             let auto = route_auto_distance(&state.sector, &draft);
-            ui.horizontal(|ui| {
-                ui.label("distance");
-                let mut distance = i64::from(draft.distance);
-                if ui
-                    .add(egui::DragValue::new(&mut distance).range(0..=999))
-                    .changed()
-                {
-                    draft.distance = distance.clamp(0, 999) as u32;
-                }
-                if let Some(auto) = auto {
-                    ui.label(format!("auto={auto}"));
-                    if ui.button("Use auto").clicked() {
-                        draft.distance = auto;
+            labeled(
+                ui,
+                "Length (hops)",
+                "Travel distance in hexes (schema: distance). Should match the straight-line gap between endpoints.",
+                |ui| {
+                    let mut distance = i64::from(draft.distance);
+                    if ui
+                        .add(egui::DragValue::new(&mut distance).range(0..=999))
+                        .changed()
+                    {
+                        draft.distance = distance.clamp(0, 999) as u32;
                     }
-                }
-            });
+                    if let Some(auto) = auto {
+                        ui.label(RichText::new(format!("straight-line: {auto}")).color(Color32::DARK_GRAY));
+                        if ui
+                            .button("Use straight-line")
+                            .on_hover_text("Set length to the hex distance between the two systems")
+                            .clicked()
+                        {
+                            draft.distance = auto;
+                        }
+                    }
+                },
+            );
             if let Some(auto) = auto {
                 if draft.distance != auto {
                     ui.colored_label(
                         Color32::from_rgb(255, 190, 80),
-                        "ROUTE_DISTANCE_MISMATCH will fire unless distance == hex_distance.",
+                        format!(
+                            "⚠  Length doesn't match the {auto}-hop gap between these systems — \
+                             validation will flag it until they agree."
+                        ),
                     );
                 }
             }
@@ -237,7 +314,7 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             show_tags_editor(ui, &mut draft)
         });
 
-        ui_kit::collapsing_section(ui, "route_control", "Route control", false, |ui| {
+        ui_kit::collapsing_section(ui, "route_control", "Who controls this lane", false, |ui| {
             show_controls_editor(ui, state, &mut draft)
         });
     });
@@ -250,6 +327,14 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
 }
 
 fn show_tags_editor(ui: &mut Ui, route: &mut GeneratedRoute) {
+    ui.label(
+        RichText::new("Free-form labels used by bulk operations and filters (schema: tags).")
+            .small()
+            .color(Color32::DARK_GRAY),
+    );
+    if route.tags.is_empty() {
+        ui_kit::placeholder(ui, "No tags yet — add one to group or filter this route.");
+    }
     let mut remove = None;
     for (i, tag) in route.tags.iter_mut().enumerate() {
         ui.horizontal(|ui| {
@@ -257,7 +342,7 @@ fn show_tags_editor(ui: &mut Ui, route: &mut GeneratedRoute) {
             if ui.text_edit_singleline(&mut text).changed() {
                 *tag = Arc::from(text.trim());
             }
-            if ui.button("x").clicked() {
+            if ui.small_button("×").on_hover_text("Remove this tag").clicked() {
                 remove = Some(i);
             }
         });
@@ -265,30 +350,62 @@ fn show_tags_editor(ui: &mut Ui, route: &mut GeneratedRoute) {
     if let Some(i) = remove {
         route.tags.remove(i);
     }
-    if ui.button("Add tag").clicked() {
+    if ui
+        .button("➕  Add tag")
+        .on_hover_text("Add a new label to this route")
+        .clicked()
+    {
         route.tags.push(Arc::from("tag"));
     }
 }
 
 fn show_controls_editor(ui: &mut Ui, state: &BuilderState, route: &mut GeneratedRoute) {
+    ui.label(
+        RichText::new(
+            "Each row is one faction's grip on this lane, as a 0–100% rating (schema: controls).",
+        )
+        .small()
+        .color(Color32::DARK_GRAY),
+    );
     ui.horizontal(|ui| {
-        if ui.button("Re-derive controls").clicked() {
+        if ui
+            .button("↺  Re-derive from systems")
+            .on_hover_text("Recompute every row from the factions present at the two endpoints")
+            .clicked()
+        {
             route.controls = derive_controls(route, &state.sector);
         }
-        ui.label(format!("{} faction row(s)", route.controls.len()));
+        ui.label(
+            RichText::new(format!("{} faction row(s)", route.controls.len()))
+                .color(Color32::DARK_GRAY),
+        );
     });
+    if route.controls.is_empty() {
+        ui_kit::placeholder(
+            ui,
+            "No controlling factions — add a row, or re-derive from the endpoint systems.",
+        );
+    }
     let mut remove = None;
     egui::Grid::new("route_controls_grid")
         .striped(true)
         .num_columns(8)
         .show(ui, |ui| {
-            ui.label("faction");
-            ui.label("patrol");
-            ui.label("toll");
-            ui.label("interdiction");
-            ui.label("piracy");
-            ui.label("secrecy");
-            ui.label("confidence");
+            control_header(ui, "Faction", "Which faction this row describes (schema: faction_id).");
+            control_header(ui, "Patrol", "How heavily the faction patrols this lane (schema: patrol).");
+            control_header(ui, "Toll", "How aggressively it charges passage tolls (schema: toll).");
+            control_header(
+                ui,
+                "Blockade",
+                "How likely it is to interdict / blockade traffic (schema: interdiction).",
+            );
+            control_header(ui, "Piracy", "How much piracy preys on this lane (schema: piracy).");
+            control_header(ui, "Secrecy", "How secret the faction keeps this lane (schema: secrecy).");
+            control_header(
+                ui,
+                "Confidence",
+                "How sure we are of this faction's grip (schema: confidence).",
+            );
             ui.label("");
             ui.end_row();
 
@@ -305,7 +422,7 @@ fn show_controls_editor(ui: &mut Ui, state: &BuilderState, route: &mut Generated
                 percent_drag(ui, &mut control.piracy);
                 percent_drag(ui, &mut control.secrecy);
                 percent_drag(ui, &mut control.confidence);
-                if ui.button("x").clicked() {
+                if ui.small_button("×").on_hover_text("Remove this faction row").clicked() {
                     remove = Some(i);
                 }
                 ui.end_row();
@@ -314,7 +431,11 @@ fn show_controls_editor(ui: &mut Ui, state: &BuilderState, route: &mut Generated
     if let Some(i) = remove {
         route.controls.remove(i);
     }
-    if ui.button("Add control row").clicked() {
+    if ui
+        .button("➕  Add faction row")
+        .on_hover_text("Add a controlling faction to this lane")
+        .clicked()
+    {
         let fid = state
             .sector
             .factions
@@ -328,6 +449,12 @@ fn show_controls_editor(ui: &mut Ui, state: &BuilderState, route: &mut Generated
                 ..Default::default()
             });
     }
+}
+
+/// Grid column header with a hover tooltip naming the underlying schema field.
+fn control_header(ui: &mut Ui, label: &str, help: &str) {
+    ui.label(RichText::new(label).color(palette::chrome_text_dim()))
+        .on_hover_text(help);
 }
 
 fn percent_drag(ui: &mut Ui, value: &mut f32) {
@@ -368,7 +495,8 @@ fn route_type_combo(ui: &mut Ui, id: &str, value: &mut RouteType) -> bool {
     let before = *value;
     ui_kit::combo(id, value.editor_label()).show_ui(ui, |ui| {
         for option in RouteType::ALL {
-            ui.selectable_value(value, option, option.editor_label());
+            ui.selectable_value(value, option, option.editor_label())
+                .on_hover_text(format!("schema key: {}", option.key()));
         }
     });
     *value != before
@@ -448,45 +576,68 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(
         ui,
         "route_bulk_operations",
-        "Bulk operations",
+        "Edit many routes at once",
         false,
         |ui| {
-            ui.label("Predicate");
-            egui::Grid::new("route_bulk_predicate_grid")
-                .num_columns(2)
-                .show(ui, |ui| {
-                    ui.label("route_type");
+            ui.label(
+                RichText::new("1. Pick which routes to match")
+                    .strong()
+                    .color(Color32::DARK_GRAY),
+            );
+            labeled(
+                ui,
+                "Lane type is",
+                "Only match routes of this lane type (schema: route_type). \"(any)\" matches all.",
+                |ui| {
                     optional_route_type_combo(
                         ui,
                         "bulk_filter_type",
                         &mut state.route_bulk_filter_type,
-                    );
-                    ui.end_row();
-                    ui.label("stability");
+                    )
+                },
+            );
+            labeled(
+                ui,
+                "Travel danger is",
+                "Only match routes with this danger level (schema: stability). \"(any)\" matches all.",
+                |ui| {
                     optional_stability_combo(
                         ui,
                         "bulk_filter_stability",
                         &mut state.route_bulk_filter_stability,
+                    )
+                },
+            );
+            labeled(
+                ui,
+                "Tag contains",
+                "Only match routes carrying a tag with this text (schema: tags). Blank matches all.",
+                |ui| {
+                    ui.add(
+                        egui::TextEdit::singleline(&mut state.route_bulk_filter_tag)
+                            .hint_text("e.g. bridge"),
                     );
-                    ui.end_row();
-                    ui.label("tag contains");
-                    ui.text_edit_singleline(&mut state.route_bulk_filter_tag);
-                    ui.end_row();
-                    ui.label("crosses region");
-                    let region_options: Vec<(String, String)> = state
-                        .sector
-                        .regions
-                        .iter()
-                        .map(|region| (region.id.clone(), region.name.clone()))
-                        .collect();
+                },
+            );
+            let region_options: Vec<(String, String)> = state
+                .sector
+                .regions
+                .iter()
+                .map(|region| (region.id.clone(), region.name.clone()))
+                .collect();
+            labeled(
+                ui,
+                "Crosses region",
+                "Only match routes whose path passes through this warp region. \"(any)\" matches all.",
+                |ui| {
                     optional_region_combo(
                         ui,
                         "bulk_filter_region",
                         &mut state.route_bulk_filter_region,
                         &region_options,
-                    );
-                    ui.end_row();
-                });
+                    )
+                },
+            );
 
             let matching = state
                 .sector
@@ -494,23 +645,37 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
                 .iter()
                 .filter(|route| route_matches_bulk(state, route))
                 .count();
-            ui.label(format!("{matching} route(s) match"));
+            ui.label(RichText::new(format!("{matching} route(s) match")).strong());
 
             ui.separator();
-            ui.label("Action");
+            ui.label(
+                RichText::new("2. Apply a change to the matches")
+                    .strong()
+                    .color(Color32::DARK_GRAY),
+            );
             ui.horizontal_wrapped(|ui| {
-                ui.label("type");
+                ui.label("Set lane type to");
                 route_type_combo(ui, "bulk_set_type", &mut state.route_bulk_set_type);
-                if ui.button("Set matching type").clicked() {
+                if ui
+                    .button("Apply")
+                    .on_hover_text("Set the lane type on every matching route")
+                    .clicked()
+                {
                     apply_bulk_routes(state, BulkRouteAction::SetType(state.route_bulk_set_type));
                 }
-                ui.label("stability");
+            });
+            ui.horizontal_wrapped(|ui| {
+                ui.label("Set travel danger to");
                 stability_combo(
                     ui,
                     "bulk_set_stability",
                     &mut state.route_bulk_set_stability,
                 );
-                if ui.button("Set matching stability").clicked() {
+                if ui
+                    .button("Apply")
+                    .on_hover_text("Set the travel danger on every matching route")
+                    .clicked()
+                {
                     apply_bulk_routes(
                         state,
                         BulkRouteAction::SetStability(state.route_bulk_set_stability),
@@ -645,11 +810,16 @@ fn optional_region_combo(
 // ── R5 route-rules editor ───────────────────────────────────────────────────
 
 fn show_route_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "route_rules", "Route rules", false, |ui| {
+    ui_kit::collapsing_section(ui, "route_rules", "How routes are generated", false, |ui| {
+        ui.label(
+            RichText::new("Tuning the generator uses when it draws routes for you.")
+                .small()
+                .color(Color32::DARK_GRAY),
+        );
         if state.config.inputs.route_rules.is_none() {
             ui.colored_label(
                 Color32::from_rgb(255, 190, 80),
-                "No [inputs].route_rules path; edits stay in memory until a path exists.",
+                "No save file is set for these rules yet — changes apply now but won't be saved until the project has a route-rules file.",
             );
         }
 
@@ -659,10 +829,11 @@ fn show_route_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                 .data_catalogs
                 .route_rules
                 .get_or_insert_with(RouteRules::default);
-            egui::Grid::new("route_rules_grid")
-                .num_columns(2)
-                .show(ui, |ui| {
-                    ui.label("default_weight");
+            labeled(
+                ui,
+                "Base likelihood",
+                "Baseline weight for considering any route (schema: default_weight). Higher = more routes drawn.",
+                |ui| {
                     changed |= ui
                         .add(
                             egui::DragValue::new(&mut rules.default_weight)
@@ -670,24 +841,44 @@ fn show_route_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .range(0.01..=1000.0),
                         )
                         .changed();
-                    ui.end_row();
-                    ui.label("max_distance");
+                },
+            );
+            labeled(
+                ui,
+                "Max length (hops)",
+                "Longest route the generator will draw, in hexes (schema: max_distance).",
+                |ui| {
                     changed |= ui
                         .add(egui::DragValue::new(&mut rules.max_distance).range(1..=64))
                         .changed();
-                    ui.end_row();
-                    ui.label("prefer_populated_worlds");
+                },
+            );
+            labeled(
+                ui,
+                "Favour populated worlds",
+                "Prefer linking systems with populated worlds (schema: prefer_populated_worlds).",
+                |ui| {
                     changed |= ui
                         .checkbox(&mut rules.prefer_populated_worlds, "")
                         .changed();
-                    ui.end_row();
-                    ui.label("prefer_trade_hubs");
+                },
+            );
+            labeled(
+                ui,
+                "Favour trade hubs",
+                "Prefer linking trade-hub systems (schema: prefer_trade_hubs).",
+                |ui| {
                     changed |= ui.checkbox(&mut rules.prefer_trade_hubs, "").changed();
-                    ui.end_row();
-                    ui.label("avoid_warp_phenomena");
+                },
+            );
+            labeled(
+                ui,
+                "Avoid warp hazards",
+                "Steer routes around warp phenomena where possible (schema: avoid_warp_phenomena).",
+                |ui| {
                     changed |= ui.checkbox(&mut rules.avoid_warp_phenomena, "").changed();
-                    ui.end_row();
-                });
+                },
+            );
 
             ui.separator();
             changed |= show_route_modifiers(ui, rules);
@@ -701,17 +892,51 @@ fn show_route_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 fn show_route_modifiers(ui: &mut Ui, rules: &mut RouteRules) -> bool {
+    ui.label(
+        RichText::new(
+            "Optional rules that nudge route likelihood when a system matches (schema: modifiers). \
+             Leave a column at \"(any)\" to ignore it.",
+        )
+        .small()
+        .color(Color32::DARK_GRAY),
+    );
+    if rules.modifiers.is_empty() {
+        ui_kit::placeholder(
+            ui,
+            "No modifiers yet — add one to make certain worlds attract or repel routes.",
+        );
+    }
     let mut changed = false;
     let mut remove = None;
     egui::Grid::new("route_modifiers_grid")
         .striped(true)
         .num_columns(6)
         .show(ui, |ui| {
-            ui.label("notable_feature");
-            ui.label("world_type");
-            ui.label("government");
-            ui.label("route_type");
-            ui.label("multiplier");
+            control_header(
+                ui,
+                "Notable feature",
+                "Match systems with this notable feature (schema: when.notable_feature).",
+            );
+            control_header(
+                ui,
+                "World type",
+                "Match systems with this world type (schema: when.world_type).",
+            );
+            control_header(
+                ui,
+                "Government",
+                "Match systems with this government (schema: when.government).",
+            );
+            control_header(
+                ui,
+                "Lane type",
+                "Match only this lane type (schema: when.route_type).",
+            );
+            control_header(
+                ui,
+                "Multiplier",
+                "Multiply route likelihood when the row matches (schema: multiplier). >1 attracts, <1 repels.",
+            );
             ui.label("");
             ui.end_row();
 
@@ -746,7 +971,7 @@ fn show_route_modifiers(ui: &mut Ui, rules: &mut RouteRules) -> bool {
                             .range(0.01..=100.0),
                     )
                     .changed();
-                if ui.button("x").clicked() {
+                if ui.small_button("×").on_hover_text("Remove this modifier").clicked() {
                     remove = Some(i);
                 }
                 ui.end_row();
@@ -756,7 +981,11 @@ fn show_route_modifiers(ui: &mut Ui, rules: &mut RouteRules) -> bool {
         rules.modifiers.remove(i);
         changed = true;
     }
-    if ui.button("Add modifier").clicked() {
+    if ui
+        .button("➕  Add modifier")
+        .on_hover_text("Add a rule that nudges route likelihood for matching systems")
+        .clicked()
+    {
         rules.modifiers.push(RouteModifier {
             when: RouteCondition::default(),
             multiplier: 1.0,
@@ -834,11 +1063,14 @@ fn mark_route_rules_changed(ui: &Ui, state: &mut BuilderState) {
 
 fn show_preview_status(ui: &mut Ui, state: &BuilderState) {
     if state.preview.timer.is_some() {
-        ui.label("preview scheduled");
+        ui.label(RichText::new("Preview update queued…").color(Color32::DARK_GRAY));
     } else if state.preview.job.is_some() {
-        ui.label("preview running");
+        ui.label(RichText::new("Updating preview…").color(Color32::DARK_GRAY));
     } else if let Some(sector) = &state.preview.sector {
-        ui.label(format!("preview ready: {} routes", sector.routes.len()));
+        ui.label(
+            RichText::new(format!("Preview ready: {} route(s).", sector.routes.len()))
+                .color(Color32::DARK_GRAY),
+        );
     } else if let Some(err) = &state.preview.error {
         ui.colored_label(Color32::LIGHT_RED, err);
     }
@@ -847,30 +1079,65 @@ fn show_preview_status(ui: &mut Ui, state: &BuilderState) {
 // ── R6 hidden routes ────────────────────────────────────────────────────────
 
 fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "route_hidden_routes", "Hidden routes", false, |ui| {
-        ui.horizontal_wrapped(|ui| {
-            ui.label("kind");
-            hidden_kind_combo(ui, &mut state.hidden_route_kind);
-            ui.label("k_nearest");
-            ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
-            ui.checkbox(
-                &mut state.hidden_route_exclude_blackout,
-                "exclude Blackout regions",
-            );
-        });
+    ui_kit::collapsing_section(ui, "route_hidden_routes", "Hidden lanes (webway, black-ship, smuggling)", false, |ui| {
+        ui.label(
+            RichText::new("Generate covert links between chosen systems — they bypass the normal route network.")
+                .small()
+                .color(Color32::DARK_GRAY),
+        );
+        labeled(
+            ui,
+            "Lane kind",
+            "Which covert lane type to build (schema: route_type).",
+            |ui| hidden_kind_combo(ui, &mut state.hidden_route_kind),
+        );
+        labeled(
+            ui,
+            "Links per system",
+            "Connect each system to this many nearest neighbours (schema: k_nearest).",
+            |ui| {
+                ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
+            },
+        );
+        ui.checkbox(
+            &mut state.hidden_route_exclude_blackout,
+            "Skip Blackout regions",
+        )
+        .on_hover_text("Don't route covert lanes through Blackout warp regions");
 
+        ui.add_space(2.0);
+        ui.label(
+            RichText::new("Endpoints to link:")
+                .small()
+                .color(Color32::DARK_GRAY),
+        );
         ui.horizontal_wrapped(|ui| {
-            if ui.button("Use selected systems").clicked() {
+            if ui
+                .button("Use map selection")
+                .on_hover_text("Use the systems currently selected on the Map tab")
+                .clicked()
+            {
                 state.hidden_route_endpoints = state.selected_systems.clone();
             }
-            if ui.button("All systems").clicked() {
+            if ui
+                .button("Select all")
+                .on_hover_text("Use every system in the sector")
+                .clicked()
+            {
                 state.hidden_route_endpoints =
                     state.sector.systems.iter().map(|s| s.id.clone()).collect();
             }
-            if ui.button("Clear").clicked() {
+            if ui
+                .button("Clear")
+                .on_hover_text("Deselect every endpoint")
+                .clicked()
+            {
                 state.hidden_route_endpoints.clear();
             }
-            ui.label(format!("endpoints: {}", state.hidden_route_endpoints.len()));
+            ui.label(
+                RichText::new(format!("{} selected", state.hidden_route_endpoints.len()))
+                    .color(Color32::DARK_GRAY),
+            );
         });
 
         egui::ScrollArea::vertical()
@@ -892,7 +1159,11 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
             });
 
         ui.horizontal_wrapped(|ui| {
-            if ui.button("Build hidden routes").clicked() {
+            if ui
+                .button("➕  Build hidden lanes")
+                .on_hover_text("Create the covert links between the selected endpoints")
+                .clicked()
+            {
                 let cfg = sectorforge::hidden_routes::HiddenRoutesConfig {
                     kind: state.hidden_route_kind,
                     endpoints: state.hidden_route_endpoints.iter().cloned().collect(),
@@ -918,7 +1189,11 @@ fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
                     replace_routes(state, routes);
                 }
             }
-            if ui.button("Remove hidden routes of kind").clicked() {
+            if ui
+                .button("🗑  Remove lanes of this kind")
+                .on_hover_text("Delete every route of the selected lane kind")
+                .clicked()
+            {
                 let kind = state.hidden_route_kind;
                 let mut routes = state.sector.routes.clone();
                 let before = routes.len();
@@ -942,7 +1217,8 @@ fn hidden_kind_combo(ui: &mut Ui, value: &mut RouteType) {
             RouteType::BlackShip,
             RouteType::SmugglingLane,
         ] {
-            ui.selectable_value(value, option, option.editor_label());
+            ui.selectable_value(value, option, option.editor_label())
+                .on_hover_text(format!("schema key: {}", option.key()));
         }
     });
 }
@@ -953,12 +1229,21 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(
         ui,
         "route_ensure_connected",
-        "Ensure connected",
+        "Keep everything reachable",
         false,
         |ui| {
+            ui.label(
+                RichText::new("Bridge routes link otherwise-isolated clusters so no system is stranded.")
+                    .small()
+                    .color(Color32::DARK_GRAY),
+            );
             let mut enabled = state.config.generation.routes.ensure_connected_graph;
             if ui
-                .checkbox(&mut enabled, "ensure_connected_graph")
+                .checkbox(&mut enabled, "Auto-connect after every edit")
+                .on_hover_text(
+                    "Automatically add bridge routes whenever an edit splits the network \
+                     (schema: ensure_connected_graph).",
+                )
                 .changed()
             {
                 state.config.generation.routes.ensure_connected_graph = enabled;
@@ -970,10 +1255,24 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
             }
             let components = route_component_count(&state.sector, &state.sector.routes);
             let added = ensure_connected_routes(state, state.sector.routes.clone()).1;
-            ui.label(format!(
-                "components={components}; connector would add {added} bridge route(s)"
-            ));
-            if ui.button("Run connector now").clicked() {
+            if components <= 1 {
+                ui.label(
+                    RichText::new("Everything is reachable — one connected network.")
+                        .color(Color32::DARK_GRAY),
+                );
+            } else {
+                ui.label(
+                    RichText::new(format!(
+                        "{components} separate clusters — connecting would add {added} bridge route(s)."
+                    ))
+                    .color(Color32::from_rgb(255, 190, 80)),
+                );
+            }
+            if ui
+                .button("▶  Connect now")
+                .on_hover_text("Add the bridge routes needed to join every cluster into one network")
+                .clicked()
+            {
                 let (routes, added) = ensure_connected_routes(state, state.sector.routes.clone());
                 if added == 0 {
                     state.modal = Some(ModalKind::Message("Route graph already connected.".into()));

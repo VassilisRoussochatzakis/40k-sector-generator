@@ -28,10 +28,27 @@ use sectorforge::relations::{
     DispositionRule, KindRule, PairOverride, RelationAttitude, RelationOverride, RelationsConfig,
     Stance, TreatyStatus,
 };
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::state::EntityRef;
 use crate::builder::BuilderState;
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Public stance", "Tension") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep
+/// the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
 
 const ATTITUDES: &[RelationAttitude] = &[
     RelationAttitude::Allied,
@@ -68,7 +85,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "diplomacy matrix, per-pair overrides, kind / disposition rules.",
+        "How your factions feel about each other — the diplomacy matrix, per-pair pins, and the rules that drive them.",
     );
     ui.separator();
 
@@ -112,20 +129,22 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Recompute matrix").clicked() {
+        if ui
+            .button("🔄  Regenerate matrix")
+            .on_hover_text("Rebuild every faction pair from the current rules, pins, and overrides")
+            .clicked()
+        {
             state.recompute_relations();
         }
-        ui.checkbox(
-            &mut state.relations_auto_recompute,
-            "auto-recompute on edit",
-        );
+        ui.checkbox(&mut state.relations_auto_recompute, "Auto-rebuild on edit")
+            .on_hover_text("Regenerate the matrix automatically whenever a rule or override changes");
         let pairs = state.sector.relations.pairs.len();
         let facs = state.sector.factions.len();
-        ui.label(format!("factions: {facs}  |  pairs: {pairs}"));
+        ui.label(format!("{facs} faction(s)  |  {pairs} pair(s)"));
         if state.data_catalogs.relations.is_none() {
             ui.colored_label(
                 Color32::from_rgb(220, 170, 80),
-                "no relations.toml loaded (defaults apply)",
+                "●  no relations file yet — built-in defaults apply",
             );
         }
     });
@@ -134,7 +153,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REL7 / §REL8 settings ──────────────────────────────────────────────────
 
 fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("settings").strong());
+    ui.label(RichText::new("Settings").strong());
     let mut feed = state
         .data_catalogs
         .relations
@@ -145,23 +164,35 @@ fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
     let mut cfg_changed = false;
     let mut gen_changed = false;
 
-    ui.horizontal_wrapped(|ui| {
-        if ui
-            .checkbox(&mut feed, "feed_conflict — bias conflict tick by stance")
-            .changed()
-        {
-            cfg_changed = true;
-        }
-        ui.separator();
-        ui.label("min_world_presence");
-        if ui.add(egui::Slider::new(&mut min_pres, 1..=10)).changed() {
-            gen_changed = true;
-        }
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            "matrix scope: factions with ≥ N world presences",
-        );
-    });
+    labeled(
+        ui,
+        "Stance drives conflict",
+        "Let derived stances nudge the conflict simulation — hostile pairs flare up more often (schema: feed_conflict).",
+        |ui| {
+            if ui
+                .checkbox(&mut feed, "Bias the conflict tick by stance")
+                .changed()
+            {
+                cfg_changed = true;
+            }
+        },
+    );
+    labeled(
+        ui,
+        "Matrix scope",
+        "Only factions that appear on at least this many worlds get a row in the matrix (schema: min_world_presence).",
+        |ui| {
+            ui.horizontal(|ui| {
+                if ui.add(egui::Slider::new(&mut min_pres, 1..=10)).changed() {
+                    gen_changed = true;
+                }
+                ui.colored_label(
+                    Color32::DARK_GRAY,
+                    "factions present on ≥ this many worlds",
+                );
+            });
+        },
+    );
 
     if cfg_changed {
         ensure_relations_catalog(state);
@@ -184,11 +215,11 @@ fn show_settings(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REL1 matrix grid ───────────────────────────────────────────────────────
 
 fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("diplomacy matrix").strong());
+    ui.label(RichText::new("Diplomacy matrix").strong());
     if state.sector.relations.pairs.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "Matrix empty. Click Recompute matrix above (need ≥ 2 factions).",
+        ui_kit::placeholder(
+            ui,
+            "No pairs yet — add at least two factions, then press Regenerate matrix above.",
         );
         return;
     }
@@ -200,15 +231,24 @@ fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
                 .striped(true)
                 .min_col_width(64.0)
                 .show(ui, |ui| {
-                    ui.label(RichText::new("A").strong());
-                    ui.label(RichText::new("B").strong());
-                    ui.label(RichText::new("Public").strong());
-                    ui.label(RichText::new("Secret").strong());
-                    ui.label(RichText::new("Treaty").strong());
-                    ui.label(RichText::new("Tension").strong());
-                    ui.label(RichText::new("Trust").strong());
-                    ui.label(RichText::new("Fear").strong());
-                    ui.label(RichText::new("Rivalry").strong());
+                    ui.label(RichText::new("Faction A").strong())
+                        .on_hover_text("First faction in the pair — click to select the row");
+                    ui.label(RichText::new("Faction B").strong())
+                        .on_hover_text("Second faction in the pair — click to select the row");
+                    ui.label(RichText::new("Public").strong())
+                        .on_hover_text("Openly known stance (schema: public_attitude)");
+                    ui.label(RichText::new("Secret").strong())
+                        .on_hover_text("Their true stance behind closed doors (schema: secret_attitude)");
+                    ui.label(RichText::new("Treaty").strong())
+                        .on_hover_text("Formal agreement in force (schema: treaty_status)");
+                    ui.label(RichText::new("Tension").strong())
+                        .on_hover_text("How close to open conflict, 0–100 (schema: tension)");
+                    ui.label(RichText::new("Trust").strong())
+                        .on_hover_text("Mutual trust, 0–100 (schema: metrics.trust)");
+                    ui.label(RichText::new("Fear").strong())
+                        .on_hover_text("Mutual fear, 0–100 (schema: metrics.fear)");
+                    ui.label(RichText::new("Rivalry").strong())
+                        .on_hover_text("Competitive rivalry, 0–100 (schema: metrics.rivalry)");
                     ui.label(RichText::new("").strong());
                     ui.end_row();
 
@@ -240,7 +280,11 @@ fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
                         ui.label(metric_text(rel.metrics.trust));
                         ui.label(metric_text(rel.metrics.fear));
                         ui.label(metric_text(rel.metrics.rivalry));
-                        if ui.button("edit").clicked() {
+                        if ui
+                            .button("✏  Edit")
+                            .on_hover_text("Open this pair in the editor on the right")
+                            .clicked()
+                        {
                             state.relations_selected_pair = Some(pair.clone());
                         }
                         ui.end_row();
@@ -288,9 +332,9 @@ fn metric_text(v: u8) -> RichText {
 // ── §REL1 + §REL2 + §REL6 cell editor ───────────────────────────────────────
 
 fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("pair editor").strong());
+    ui.label(RichText::new("Pair editor").strong());
     let Some(pair) = state.relations_selected_pair.clone() else {
-        ui.colored_label(Color32::GRAY, "Click a pair in the grid to edit.");
+        ui_kit::placeholder(ui, "Pick a pair in the matrix on the left to edit it.");
         return;
     };
     let Some(rel) = state
@@ -301,9 +345,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
         .find(|p| p.a == pair.0 && p.b == pair.1)
         .cloned()
     else {
-        ui.colored_label(
-            Color32::GRAY,
-            "Selected pair not in current matrix. Recompute or pick another.",
+        ui_kit::placeholder(
+            ui,
+            "That pair is no longer in the matrix — press Regenerate matrix, or pick another pair.",
         );
         return;
     };
@@ -313,21 +357,25 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
         ui.colored_label(
             Color32::DARK_GRAY,
             format!(
-                "derived: public {}, secret {}, treaty {}, tension {:.1}",
+                "now: public {}, secret {}, treaty {}, tension {:.1}",
                 rel.public_attitude.label(),
                 rel.secret_attitude.label(),
                 rel.treaty_status.label(),
                 rel.tension,
             ),
         );
-        if ui.button("× clear selection").clicked() {
+        if ui
+            .button("×  Clear selection")
+            .on_hover_text("Stop editing this pair")
+            .clicked()
+        {
             state.relations_selected_pair = None;
         }
     });
     ui.colored_label(
         Color32::DARK_GRAY,
         format!(
-            "cause: {}",
+            "Why: {}",
             if rel.cause.is_empty() {
                 "—"
             } else {
@@ -345,29 +393,57 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
 
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("Symmetric attitude / treaty").italics());
-        changed |= attitude_combo(ui, "public_attitude", "rel_pub", &mut ov.public_attitude);
-        changed |= attitude_combo(ui, "secret_attitude", "rel_sec", &mut ov.secret_attitude);
-        changed |= treaty_combo(ui, "treaty_status", "rel_treaty", &mut ov.treaty_status);
+        ui.label(RichText::new("Both ways (shared stance & treaty)").italics());
+        changed |= attitude_combo(
+            ui,
+            "Public stance",
+            "How they treat each other openly. (inherit) keeps the value the rules derive (schema: public_attitude).",
+            "rel_pub",
+            &mut ov.public_attitude,
+        );
+        changed |= attitude_combo(
+            ui,
+            "Secret stance",
+            "Their true stance behind closed doors (schema: secret_attitude).",
+            "rel_sec",
+            &mut ov.secret_attitude,
+        );
+        changed |= treaty_combo(
+            ui,
+            "Treaty",
+            "Formal agreement in force between the pair (schema: treaty_status).",
+            "rel_treaty",
+            &mut ov.treaty_status,
+        );
     });
 
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("Directional view").italics());
+        ui.label(RichText::new("One way at a time").italics());
         ui.horizontal_wrapped(|ui| {
             ui.vertical(|ui| {
                 ui.label(format!("{} → {}", rel.a, rel.b));
                 ui.colored_label(
                     Color32::DARK_GRAY,
                     format!(
-                        "derived: pub {}, sec {}",
+                        "now: public {}, secret {}",
                         rel.a_to_b.public_attitude.label(),
                         rel.a_to_b.secret_attitude.label()
                     ),
                 );
-                changed |=
-                    attitude_combo(ui, "a→b public", "rel_ab_pub", &mut ov.a_public_attitude);
-                changed |=
-                    attitude_combo(ui, "a→b secret", "rel_ab_sec", &mut ov.a_secret_attitude);
+                changed |= attitude_combo(
+                    ui,
+                    "Public stance",
+                    "How A treats B openly (schema: a_public_attitude).",
+                    "rel_ab_pub",
+                    &mut ov.a_public_attitude,
+                );
+                changed |= attitude_combo(
+                    ui,
+                    "Secret stance",
+                    "A's true stance toward B (schema: a_secret_attitude).",
+                    "rel_ab_sec",
+                    &mut ov.a_secret_attitude,
+                );
             });
             ui.separator();
             ui.vertical(|ui| {
@@ -375,59 +451,96 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui.colored_label(
                     Color32::DARK_GRAY,
                     format!(
-                        "derived: pub {}, sec {}",
+                        "now: public {}, secret {}",
                         rel.b_to_a.public_attitude.label(),
                         rel.b_to_a.secret_attitude.label()
                     ),
                 );
-                changed |=
-                    attitude_combo(ui, "b→a public", "rel_ba_pub", &mut ov.b_public_attitude);
-                changed |=
-                    attitude_combo(ui, "b→a secret", "rel_ba_sec", &mut ov.b_secret_attitude);
+                changed |= attitude_combo(
+                    ui,
+                    "Public stance",
+                    "How B treats A openly (schema: b_public_attitude).",
+                    "rel_ba_pub",
+                    &mut ov.b_public_attitude,
+                );
+                changed |= attitude_combo(
+                    ui,
+                    "Secret stance",
+                    "B's true stance toward A (schema: b_secret_attitude).",
+                    "rel_ba_sec",
+                    &mut ov.b_secret_attitude,
+                );
             });
         });
     });
 
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(
-            RichText::new(
-                "Dimensions (trust / fear / rivalry / ideological / economic / military / covert)",
-            )
-            .italics(),
+        ui.label(RichText::new("Fine-tune (0–100 dials)").italics());
+        ui_kit::placeholder(
+            ui,
+            "Tick a dial to pin it; leave it unticked to keep the derived value.",
         );
-        changed |= u8_slider(ui, "trust", &mut ov.trust, rel.metrics.trust);
-        changed |= u8_slider(ui, "fear", &mut ov.fear, rel.metrics.fear);
-        changed |= u8_slider(ui, "rivalry", &mut ov.rivalry, rel.metrics.rivalry);
         changed |= u8_slider(
             ui,
-            "ideological_distance",
+            "Trust",
+            "How much the pair trusts each other (schema: trust).",
+            &mut ov.trust,
+            rel.metrics.trust,
+        );
+        changed |= u8_slider(
+            ui,
+            "Fear",
+            "How much the pair fears each other (schema: fear).",
+            &mut ov.fear,
+            rel.metrics.fear,
+        );
+        changed |= u8_slider(
+            ui,
+            "Rivalry",
+            "Competitive rivalry between the pair (schema: rivalry).",
+            &mut ov.rivalry,
+            rel.metrics.rivalry,
+        );
+        changed |= u8_slider(
+            ui,
+            "Ideological gap",
+            "Distance between their beliefs and ideals (schema: ideological_distance).",
             &mut ov.ideological_distance,
             rel.metrics.ideological_distance,
         );
         changed |= u8_slider(
             ui,
-            "economic_dependency",
+            "Economic ties",
+            "How much they depend on each other economically (schema: economic_dependency).",
             &mut ov.economic_dependency,
             rel.metrics.economic_dependency,
         );
         changed |= u8_slider(
             ui,
-            "military_pressure",
+            "Military pressure",
+            "Military threat each poses to the other (schema: military_pressure).",
             &mut ov.military_pressure,
             rel.metrics.military_pressure,
         );
         changed |= u8_slider(
             ui,
-            "covert_activity",
+            "Covert activity",
+            "Level of spying and sabotage between the pair (schema: covert_activity).",
             &mut ov.covert_activity,
             rel.metrics.covert_activity,
         );
     });
 
     egui::Frame::group(ui.style()).show(ui, |ui| {
-        ui.label(RichText::new("Cause / reason override").italics());
+        ui.label(RichText::new("Reason for this override").italics());
         let mut buf = ov.reason.clone().unwrap_or_default();
-        if ui.text_edit_singleline(&mut buf).changed() {
+        if ui
+            .add(
+                egui::TextEdit::singleline(&mut buf)
+                    .hint_text("why is this pair pinned? (optional)"),
+            )
+            .changed()
+        {
             ov.reason = if buf.is_empty() { None } else { Some(buf) };
             changed = true;
         }
@@ -435,21 +548,34 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
 
     let pinned = ov_has_any_value(&ov);
     ui.horizontal_wrapped(|ui| {
-        if pinned && ui.button("Clear override for pair").clicked() {
+        if pinned
+            && ui
+                .button("🗑  Clear override")
+                .on_hover_text("Remove all pinned values and let this pair derive from the rules again")
+                .clicked()
+        {
             remove_override(state, &pair);
             on_catalog_edited(state);
             return;
         }
         let badge = if pinned {
-            RichText::new("override pinned").color(Color32::LIGHT_GREEN)
+            RichText::new("● override pinned").color(Color32::LIGHT_GREEN)
         } else {
-            RichText::new("derived (no override)").color(Color32::GRAY)
+            RichText::new("○ following the rules").color(Color32::DARK_GRAY)
         };
         ui.label(badge);
-        if ui.button("Jump to FACTIONS tab (a)").clicked() {
+        if ui
+            .button(format!("Open {}  →", pair.0))
+            .on_hover_text("Jump to this faction in the Factions tab")
+            .clicked()
+        {
             state.focus_entity(EntityRef::Faction(pair.0.clone()));
         }
-        if ui.button("Jump to FACTIONS tab (b)").clicked() {
+        if ui
+            .button(format!("Open {}  →", pair.1))
+            .on_hover_text("Jump to this faction in the Factions tab")
+            .clicked()
+        {
             state.focus_entity(EntityRef::Faction(pair.1.clone()));
         }
     });
@@ -535,20 +661,28 @@ fn matches_pair(a: &str, b: &str, lo: &FactionId, hi: &FactionId) -> bool {
 fn attitude_combo(
     ui: &mut Ui,
     label: &str,
+    help: &str,
     id_salt: &str,
     field: &mut Option<RelationAttitude>,
 ) -> bool {
     let mut changed = false;
-    ui.horizontal(|ui| {
-        ui.label(label);
+    labeled(ui, label, help, |ui| {
         let current_label = field.map(RelationAttitude::label).unwrap_or("(inherit)");
         ui_kit::combo(id_salt, current_label).show_ui(ui, |ui| {
-            if ui.selectable_label(field.is_none(), "(inherit)").clicked() {
+            if ui
+                .selectable_label(field.is_none(), "(inherit)")
+                .on_hover_text("Keep whatever the rules derive for this pair")
+                .clicked()
+            {
                 *field = None;
                 changed = true;
             }
             for v in ATTITUDES {
-                if ui.selectable_label(*field == Some(*v), v.label()).clicked() {
+                if ui
+                    .selectable_label(*field == Some(*v), v.label())
+                    .on_hover_text(format!("key: {}", v.as_slug()))
+                    .clicked()
+                {
                     *field = Some(*v);
                     changed = true;
                 }
@@ -558,18 +692,31 @@ fn attitude_combo(
     changed
 }
 
-fn treaty_combo(ui: &mut Ui, label: &str, id_salt: &str, field: &mut Option<TreatyStatus>) -> bool {
+fn treaty_combo(
+    ui: &mut Ui,
+    label: &str,
+    help: &str,
+    id_salt: &str,
+    field: &mut Option<TreatyStatus>,
+) -> bool {
     let mut changed = false;
-    ui.horizontal(|ui| {
-        ui.label(label);
+    labeled(ui, label, help, |ui| {
         let current_label = field.map(TreatyStatus::label).unwrap_or("(inherit)");
         ui_kit::combo(id_salt, current_label).show_ui(ui, |ui| {
-            if ui.selectable_label(field.is_none(), "(inherit)").clicked() {
+            if ui
+                .selectable_label(field.is_none(), "(inherit)")
+                .on_hover_text("Keep whatever the rules derive for this pair")
+                .clicked()
+            {
                 *field = None;
                 changed = true;
             }
             for v in TREATIES {
-                if ui.selectable_label(*field == Some(*v), v.label()).clicked() {
+                if ui
+                    .selectable_label(*field == Some(*v), v.label())
+                    .on_hover_text(format!("key: {}", v.as_slug()))
+                    .clicked()
+                {
                     *field = Some(*v);
                     changed = true;
                 }
@@ -583,7 +730,11 @@ fn stance_combo(ui: &mut Ui, id_salt: &str, field: &mut Stance) -> bool {
     let mut changed = false;
     ui_kit::combo(id_salt, field.label()).show_ui(ui, |ui| {
         for v in STANCES {
-            if ui.selectable_label(*field == *v, v.label()).clicked() {
+            if ui
+                .selectable_label(*field == *v, v.label())
+                .on_hover_text(format!("key: {}", v.as_slug()))
+                .clicked()
+            {
                 *field = *v;
                 changed = true;
             }
@@ -592,12 +743,15 @@ fn stance_combo(ui: &mut Ui, id_salt: &str, field: &mut Stance) -> bool {
     changed
 }
 
-fn u8_slider(ui: &mut Ui, label: &str, field: &mut Option<u8>, derived: u8) -> bool {
+fn u8_slider(ui: &mut Ui, label: &str, help: &str, field: &mut Option<u8>, derived: u8) -> bool {
     let mut changed = false;
-    ui.horizontal(|ui| {
-        ui.label(label);
+    labeled(ui, label, help, |ui| {
         let mut enabled = field.is_some();
-        if ui.checkbox(&mut enabled, "pin").changed() {
+        if ui
+            .checkbox(&mut enabled, "Pin")
+            .on_hover_text("Lock this dial to a fixed value instead of deriving it")
+            .changed()
+        {
             *field = if enabled { Some(derived) } else { None };
             changed = true;
         }
@@ -610,7 +764,7 @@ fn u8_slider(ui: &mut Ui, label: &str, field: &mut Option<u8>, derived: u8) -> b
             *field = Some(value);
             changed = true;
         }
-        ui.colored_label(Color32::DARK_GRAY, format!("derived: {derived}"));
+        ui.colored_label(Color32::DARK_GRAY, format!("rules say: {derived}"));
     });
     changed
 }
@@ -618,21 +772,22 @@ fn u8_slider(ui: &mut Ui, label: &str, field: &mut Option<u8>, derived: u8) -> b
 // ── §REL5 legacy pair_overrides ─────────────────────────────────────────────
 
 fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("pair_overrides (legacy stance pin)").strong());
+    ui.label(RichText::new("Pinned pairs").strong())
+        .on_hover_text("Force a fixed stance on a specific faction pair (schema: pair_overrides). Bypasses the kind and disposition rules.");
     let factions: Vec<FactionId> = state.sector.factions.iter().map(|f| f.id.clone()).collect();
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
 
     ensure_relations_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.relations.as_mut() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No relations catalog. Load relations.toml or click any edit above.",
+        ui_kit::placeholder(
+            ui,
+            "Nothing pinned yet — edit any pair above, or add a pin below.",
         );
         return;
     };
 
-    ui.collapsing(format!("entries ({})", cfg.pair_overrides.len()), |ui| {
+    ui.collapsing(format!("{} pinned", cfg.pair_overrides.len()), |ui| {
         for (idx, row) in cfg.pair_overrides.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 ui.label(RichText::new(format!("{} ↔ {}", row.a, row.b)).monospace());
@@ -643,7 +798,7 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
                 if ui
                     .add(
                         egui::TextEdit::singleline(&mut cause)
-                            .hint_text("cause")
+                            .hint_text("why? (optional)")
                             .desired_width(220.0),
                     )
                     .changed()
@@ -652,7 +807,8 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
                     changed = true;
                 }
                 if ui
-                    .button(RichText::new("× remove").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .on_hover_text("Remove this pin")
                     .clicked()
                 {
                     remove_idx = Some(idx);
@@ -664,9 +820,9 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
             changed = true;
         }
         ui.separator();
-        ui.label(RichText::new("+ add pin").italics());
+        ui.label(RichText::new("Add a pin").italics());
         if factions.len() < 2 {
-            ui.colored_label(Color32::GRAY, "Need ≥ 2 factions to pin a pair.");
+            ui_kit::placeholder(ui, "Add at least two factions before pinning a pair.");
         } else {
             let a_default = factions[0].clone();
             let b_default = factions[1].clone();
@@ -677,7 +833,12 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
                 faction_combo(ui, "rel_po_add_a", &factions, &mut add_a);
                 faction_combo(ui, "rel_po_add_b", &factions, &mut add_b);
                 stance_combo(ui, "rel_po_add_st", &mut add_stance);
-                if ui.button("add").clicked() && add_a != add_b {
+                if ui
+                    .button("➕  Add")
+                    .on_hover_text("Pin this faction pair to the chosen stance")
+                    .clicked()
+                    && add_a != add_b
+                {
                     let (lo, hi) = if add_a <= add_b {
                         (add_a.to_string(), add_b.to_string())
                     } else {
@@ -714,23 +875,24 @@ fn faction_combo(ui: &mut Ui, id_salt: &str, options: &[FactionId], value: &mut 
 // ── §REL3 kind_rules ────────────────────────────────────────────────────────
 
 fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("kind_rules (kind × kind → base stance)").strong());
+    ui.label(RichText::new("Stance by faction type").strong())
+        .on_hover_text("Base stance for any two faction types, e.g. ork vs tyranid (schema: kind_rules). The first matching rule wins.");
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
 
     ensure_relations_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.relations.as_mut() else {
-        ui.colored_label(Color32::GRAY, "No relations catalog loaded.");
+        ui_kit::placeholder(ui, "No rules yet — edit any pair above to start one.");
         return;
     };
-    ui.collapsing(format!("rules ({})", cfg.kind_rules.len()), |ui| {
+    ui.collapsing(format!("{} rule(s)", cfg.kind_rules.len()), |ui| {
         for (idx, row) in cfg.kind_rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 if ui
                     .add(
                         egui::TextEdit::singleline(&mut row.a)
                             .desired_width(140.0)
-                            .hint_text("kind A"),
+                            .hint_text("type A (e.g. ork)"),
                     )
                     .changed()
                 {
@@ -740,7 +902,7 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
                     .add(
                         egui::TextEdit::singleline(&mut row.b)
                             .desired_width(140.0)
-                            .hint_text("kind B"),
+                            .hint_text("type B (e.g. tyranid)"),
                     )
                     .changed()
                 {
@@ -753,7 +915,7 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
                 if ui
                     .add(
                         egui::TextEdit::singleline(&mut cause)
-                            .hint_text("cause")
+                            .hint_text("why? (optional)")
                             .desired_width(220.0),
                     )
                     .changed()
@@ -762,7 +924,8 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
                     changed = true;
                 }
                 if ui
-                    .button(RichText::new("×").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .on_hover_text("Remove this rule")
                     .clicked()
                 {
                     remove_idx = Some(idx);
@@ -774,7 +937,11 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
             changed = true;
         }
         ui.separator();
-        if ui.button("+ kind_rule").clicked() {
+        if ui
+            .button("➕  Add type rule")
+            .on_hover_text("Add a base stance for a new pair of faction types")
+            .clicked()
+        {
             cfg.kind_rules.push(KindRule {
                 a: String::new(),
                 b: String::new(),
@@ -793,23 +960,24 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
 // ── §REL4 disposition_rules ─────────────────────────────────────────────────
 
 fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("disposition_rules (disposition × disposition → level delta)").strong());
+    ui.label(RichText::new("Stance nudge by disposition").strong())
+        .on_hover_text("Adjust the base stance up or down by faction disposition, e.g. zealous vs heretical (schema: disposition_rules). Deltas add together.");
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
 
     ensure_relations_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.relations.as_mut() else {
-        ui.colored_label(Color32::GRAY, "No relations catalog loaded.");
+        ui_kit::placeholder(ui, "No rules yet — edit any pair above to start one.");
         return;
     };
-    ui.collapsing(format!("rules ({})", cfg.disposition_rules.len()), |ui| {
+    ui.collapsing(format!("{} rule(s)", cfg.disposition_rules.len()), |ui| {
         for (idx, row) in cfg.disposition_rules.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 if ui
                     .add(
                         egui::TextEdit::singleline(&mut row.a)
                             .desired_width(140.0)
-                            .hint_text("disp A"),
+                            .hint_text("disposition A"),
                     )
                     .changed()
                 {
@@ -819,7 +987,7 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                     .add(
                         egui::TextEdit::singleline(&mut row.b)
                             .desired_width(140.0)
-                            .hint_text("disp B"),
+                            .hint_text("disposition B"),
                     )
                     .changed()
                 {
@@ -827,6 +995,7 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 if ui
                     .add(egui::DragValue::new(&mut row.delta).range(-3..=3).speed(1))
+                    .on_hover_text("Stance shift: negative warms them up, positive turns them hostile")
                     .changed()
                 {
                     changed = true;
@@ -835,7 +1004,7 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                 if ui
                     .add(
                         egui::TextEdit::singleline(&mut cause)
-                            .hint_text("cause")
+                            .hint_text("why? (optional)")
                             .desired_width(220.0),
                     )
                     .changed()
@@ -844,7 +1013,8 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                     changed = true;
                 }
                 if ui
-                    .button(RichText::new("×").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .on_hover_text("Remove this rule")
                     .clicked()
                 {
                     remove_idx = Some(idx);
@@ -856,7 +1026,11 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
             changed = true;
         }
         ui.separator();
-        if ui.button("+ disposition_rule").clicked() {
+        if ui
+            .button("➕  Add disposition rule")
+            .on_hover_text("Add a stance nudge for a new pair of dispositions")
+            .clicked()
+        {
             cfg.disposition_rules.push(DispositionRule {
                 a: String::new(),
                 b: String::new(),
@@ -875,12 +1049,13 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
 // ── save row ────────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("relations.toml").strong());
+    ui.label(RichText::new("Save").strong());
     let has_catalog = state.data_catalogs.relations.is_some();
     let has_path = state.config.inputs.relations.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save relations.toml"))
+            .add_enabled(has_catalog, egui::Button::new("💾  Save relations.toml"))
+            .on_hover_text("Write all rules, pins, and overrides back to relations.toml")
             .clicked()
         {
             if state.config.inputs.relations.is_none() {

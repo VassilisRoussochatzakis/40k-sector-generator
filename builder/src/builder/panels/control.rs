@@ -28,6 +28,7 @@ use sectorforge::sector_model::{
     WorldFactionPresence,
 };
 
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
@@ -74,12 +75,161 @@ const SYSTEM_STATES: &[SystemState] = &[
     SystemState::Uncharted,
 ];
 
+/// §C6 power-projection table headers: the compact column heading kept for the
+/// dense grid, paired with a plain-language hover note so the abbreviations are
+/// self-explanatory.
+const POWER_COLUMNS: &[(&str, &str)] = &[
+    ("faction", "Faction id"),
+    ("admin", "Administrative projection"),
+    ("mil", "Military projection"),
+    ("naval", "Naval projection (orbital + military reach)"),
+    ("econ", "Economic / trade projection"),
+    ("ind", "Industrial / forge projection"),
+    ("ideo", "Ideological / faith projection"),
+    ("covert", "Covert / intelligence projection"),
+    ("logi", "Logistical / supply projection"),
+    ("legit", "Legitimacy / recognised authority"),
+    ("total", "Total weighted projection"),
+];
+
+/// Aligned label-left / control-right row with a hover tooltip (mirrors the
+/// FACTIONS panel idiom). The visible label reads in human terms while the
+/// tooltip names the underlying model field plus a one-line note, so power
+/// users keep the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Plain-language name for a [`FactionInfluence`] tier. The raw slug stays
+/// reachable via the dropdown row tooltip.
+fn influence_label(t: FactionInfluence) -> &'static str {
+    match t {
+        FactionInfluence::Dominant => "Dominant",
+        FactionInfluence::Significant => "Significant",
+        FactionInfluence::Minor => "Minor",
+        FactionInfluence::Hidden => "Hidden",
+        _ => "Influence",
+    }
+}
+
+/// One-line explanation of an influence tier for the dropdown row tooltip.
+fn influence_help(t: FactionInfluence) -> &'static str {
+    match t {
+        FactionInfluence::Dominant => "Strongest force here (schema: dominant).",
+        FactionInfluence::Significant => "A major player, not the top (schema: significant).",
+        FactionInfluence::Minor => "A small foothold (schema: minor).",
+        FactionInfluence::Hidden => "Concealed / covert presence (schema: hidden).",
+        _ => "How strong this faction is here (schema: influence).",
+    }
+}
+
+/// Plain-language name for a [`DominanceState`].
+fn dominance_label(d: DominanceState) -> &'static str {
+    match d {
+        DominanceState::Rumored => "Rumored",
+        DominanceState::Presence => "Presence",
+        DominanceState::Influence => "Influence",
+        DominanceState::Contested => "Contested",
+        DominanceState::Controlled => "Controlled",
+        DominanceState::Stronghold => "Stronghold",
+        _ => "Dominance",
+    }
+}
+
+/// Plain-language name for a [`SystemState`].
+fn system_state_label(s: SystemState) -> &'static str {
+    match s {
+        SystemState::Pacified => "Pacified",
+        SystemState::Fragmented => "Fragmented",
+        SystemState::Blockaded => "Blockaded",
+        SystemState::Warzone => "Warzone",
+        SystemState::Infiltrated => "Infiltrated",
+        SystemState::Quarantined => "Quarantined",
+        SystemState::Uncharted => "Uncharted",
+        _ => "State",
+    }
+}
+
+/// Plain-language name for a [`ClaimType`].
+fn claim_label(k: ClaimType) -> &'static str {
+    match k {
+        ClaimType::LegalSovereignty => "Legal sovereignty",
+        ClaimType::ImperialMandate => "Imperial mandate",
+        ClaimType::TreatyRight => "Treaty right",
+        ClaimType::ReligiousMandate => "Religious mandate",
+        ClaimType::DynasticRight => "Dynastic right",
+        ClaimType::CommercialCharter => "Commercial charter",
+        ClaimType::MilitaryOccupation => "Military occupation",
+        ClaimType::AncientDomain => "Ancient domain",
+        ClaimType::HuntingGround => "Hunting ground",
+        ClaimType::CovertWrit => "Covert writ",
+        ClaimType::Rebellion => "Rebellion",
+        _ => "Claim",
+    }
+}
+
+/// Human label for one of the 10 presence dimensions, plus a one-line note for
+/// the row tooltip. Friendlier replacement for the bare slug grid labels.
+fn dimension_label(field: &str) -> (&'static str, &'static str) {
+    match field {
+        "admin" => (
+            "Administrative",
+            "Bureaucratic / governing footprint (schema: admin).",
+        ),
+        "military" => (
+            "Military",
+            "Ground forces and garrison strength (schema: military).",
+        ),
+        "orbital" => (
+            "Orbital",
+            "Void / orbital control above the world (schema: orbital).",
+        ),
+        "economic" => (
+            "Economic",
+            "Trade and commercial reach (schema: economic).",
+        ),
+        "industrial" => (
+            "Industrial",
+            "Forge / manufactory output (schema: industrial).",
+        ),
+        "ideological" => (
+            "Ideological",
+            "Faith / cult / popular authority (schema: ideological).",
+        ),
+        "covert" => (
+            "Covert",
+            "Hidden intelligence and infiltration (schema: covert).",
+        ),
+        "logistics" => (
+            "Logistics",
+            "Supply-chain and resupply reach (schema: logistics).",
+        ),
+        "legitimacy" => (
+            "Legitimacy",
+            "Recognised right to rule here (schema: legitimacy).",
+        ),
+        "visibility" => (
+            "Visibility",
+            "How obvious this presence is to the player (schema: visibility).",
+        ),
+        _ => ("Dimension", "Presence dimension (0..=100)."),
+    }
+}
+
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Control");
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "presence / dominance / control-state + claims.",
+        "Who holds each world and system — presence, dominance, control state, and claims.",
     );
     ui.separator();
 
@@ -117,9 +267,9 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 // ── C7 + C8 overlay toggles ──────────────────────────────────────────────
 
 fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "ctrl_map_overlays", "MAP overlays", true, |ui| {
+    ui_kit::collapsing_section(ui, "ctrl_map_overlays", "Map overlay", true, |ui| {
         ui.horizontal_wrapped(|ui| {
-            ui.label("overlay:");
+            ui.label("Tint the map by:");
             for mode in [
                 ControlOverlay::None,
                 ControlOverlay::PowerProjection,
@@ -136,19 +286,46 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
                 ControlOverlay::Sympathetic,
             ] {
                 let selected = state.control_overlay == mode;
-                if ui.selectable_label(selected, mode.label()).clicked() {
+                if ui
+                    .selectable_label(selected, mode.label())
+                    .on_hover_text(overlay_help(mode))
+                    .clicked()
+                {
                     state.control_overlay = mode;
                 }
             }
-            if ui.small_button("→ MAP").clicked() {
+            if ui
+                .small_button("🗺 Show on map")
+                .on_hover_text("Jump to the MAP tab to see the selected overlay")
+                .clicked()
+            {
                 state.focus_entity(EntityRef::Tab(BuilderTab::Map));
             }
         });
         ui.colored_label(
-                Color32::DARK_GRAY,
-                "Toggles override the MAP heatmap channel. POWER PROJECTION uses src/power_projection.rs; INFLUENCE FIELD samples src/influence_field.rs. The remaining 10 modes aggregate the matching PresenceDimensions axis per system and tint by the top faction.",
-            );
+            Color32::DARK_GRAY,
+            "Recolours the map by the chosen measure: who projects the most reach, whose influence-field dominates a cell, or which faction leads on a single presence axis.",
+        );
     });
+}
+
+/// One-line hover note per overlay mode — plain language, no source paths.
+fn overlay_help(mode: ControlOverlay) -> &'static str {
+    match mode {
+        ControlOverlay::None => "No tint — show the normal map.",
+        ControlOverlay::PowerProjection => "Tint each system by who can project the most reach into it.",
+        ControlOverlay::InfluenceField => "Tint each cell by the faction whose influence-field dominates it.",
+        ControlOverlay::Administrative => "Tint by the top administrative presence per system.",
+        ControlOverlay::Military => "Tint by the top military presence per system.",
+        ControlOverlay::Orbital => "Tint by the top orbital presence per system.",
+        ControlOverlay::Naval => "Tint by combined military + orbital reach per system.",
+        ControlOverlay::Mercantile => "Tint by the top economic / trade presence per system.",
+        ControlOverlay::Industrial => "Tint by the top industrial / forge presence per system.",
+        ControlOverlay::Logistical => "Tint by the top logistics / supply presence per system.",
+        ControlOverlay::Informational => "Tint by the top covert / intel presence per system.",
+        ControlOverlay::Religious => "Tint by the top ideological / faith presence per system.",
+        ControlOverlay::Sympathetic => "Tint by the strongest sympathetic / legitimacy presence per system.",
+    }
 }
 
 // ── C1 + C2 + C3 per-world presence editor ───────────────────────────────
@@ -157,14 +334,17 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "ctrl_world_presence", "World presence", true, |ui| {
         let world_id = state.selected_world_id.clone();
         let Some(world_id) = world_id else {
-            ui.colored_label(
-                Color32::GRAY,
-                "Pick a world in the WORLD tab to edit its presence rows.",
+            ui_kit::placeholder(
+                ui,
+                "No world selected. Pick a world in the WORLD tab to edit which factions are present here.",
             );
             return;
         };
         let Some((sys_idx, w_idx)) = state.find_world_indices(&world_id) else {
-            ui.colored_label(Color32::GRAY, "Selected world not in the sector.");
+            ui_kit::placeholder(
+                ui,
+                "The selected world is no longer in the sector. Pick another in the WORLD tab.",
+            );
             return;
         };
 
@@ -209,29 +389,45 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 RichText::new(p.faction_id.as_str())
                                     .color(Color32::DARK_GRAY)
                                     .monospace(),
-                            );
-                            if ui.small_button("× remove").clicked() {
+                            )
+                            .on_hover_text("Faction id (schema: faction_id).");
+                            if ui
+                                .small_button("🗑 Remove")
+                                .on_hover_text("Remove this faction's presence from the world")
+                                .clicked()
+                            {
                                 row_remove = true;
                             }
                         });
 
                         // §C1 influence tier + intel + dimensions.
                         ui.horizontal(|ui| {
-                            ui.label("tier:");
+                            ui.label("Influence:")
+                                .on_hover_text("How strong this faction is here (schema: influence).");
                             ui_kit::combo(
                                 ("c1_tier", p.faction_id.as_str()),
-                                format!("{}", edit.influence),
+                                influence_label(edit.influence),
                             )
                             .show_ui(ui, |ui| {
                                 for t in INFLUENCE_TIERS {
-                                    ui.selectable_value(&mut edit.influence, *t, format!("{t}"));
+                                    ui.selectable_value(
+                                        &mut edit.influence,
+                                        *t,
+                                        influence_label(*t),
+                                    )
+                                    .on_hover_text(influence_help(*t));
                                 }
                             });
-                            ui.label("intel:");
+                            ui.label("Intel:").on_hover_text(
+                                "How confident the player's intel is, 0..=100 (schema: intel_confidence).",
+                            );
                             ui.add(egui::DragValue::new(&mut edit.intel_confidence).range(0..=100));
                         });
 
-                        ui.label(RichText::new("dimensions (0..=100)").color(Color32::DARK_GRAY));
+                        ui.label(
+                            RichText::new("Presence by dimension (0–100)")
+                                .color(Color32::DARK_GRAY),
+                        );
                         egui::Grid::new(("c1_dim", p.faction_id.as_str()))
                             .num_columns(2)
                             .spacing([8.0, 2.0])
@@ -260,7 +456,9 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
 
                         // §C3 dominance picker + manual lock.
                         ui.horizontal(|ui| {
-                            ui.label("dominance:");
+                            ui.label("Dominance:").on_hover_text(
+                                "How firmly this faction holds the world (schema: dominance). Auto-derived from the dimensions unless you lock it.",
+                            );
                             let score = edit.dimensions.local_control_score();
                             let derived = DominanceState::from_score(score);
                             if !locked {
@@ -268,12 +466,16 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                             }
                             ui_kit::combo(
                                 ("c3_dom", p.faction_id.as_str()),
-                                format!("{}", edit.dominance),
+                                dominance_label(edit.dominance),
                             )
                             .show_ui(ui, |ui| {
                                 for d in DOMINANCE_STATES {
                                     if ui
-                                        .selectable_label(edit.dominance == *d, format!("{d}"))
+                                        .selectable_label(
+                                            edit.dominance == *d,
+                                            dominance_label(*d),
+                                        )
+                                        .on_hover_text(format!("schema: {}", d.as_slug()))
                                         .clicked()
                                     {
                                         edit.dominance = *d;
@@ -282,13 +484,14 @@ fn show_world_presence_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 }
                             });
                             let was_locked = locked;
-                            ui.checkbox(&mut locked, "manual lock");
+                            ui.checkbox(&mut locked, "Lock")
+                                .on_hover_text("Keep this dominance fixed instead of auto-deriving it");
                             if was_locked != locked {
                                 lock_toggles.push((p.faction_id.clone(), locked));
                             }
                             ui.colored_label(
                                 Color32::DARK_GRAY,
-                                format!("auto = {} (score {:.1})", derived, score),
+                                format!("auto = {} (score {:.1})", dominance_label(derived), score),
                             );
                         });
                     });
@@ -358,8 +561,9 @@ fn presence_changed(a: &WorldFactionPresence, b: &WorldFactionPresence) -> bool 
         || a.dimensions != b.dimensions
 }
 
-fn dim_slider(ui: &mut Ui, label: &str, value: &mut f32) {
-    ui.label(label);
+fn dim_slider(ui: &mut Ui, field: &str, value: &mut f32) {
+    let (label, help) = dimension_label(field);
+    ui.label(label).on_hover_text(help);
     ui.add(egui::Slider::new(value, 0.0..=100.0).clamping(egui::SliderClamping::Always));
 }
 
@@ -372,9 +576,9 @@ fn show_add_presence_row(
     factions: &[(FactionId, String)],
 ) {
     if factions.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "no factions in this sector — add factions to enable presence.",
+        ui_kit::placeholder(
+            ui,
+            "No factions in this sector yet. Add some in the FACTIONS tab to assign presence here.",
         );
         return;
     }
@@ -389,9 +593,9 @@ fn show_add_presence_row(
         .filter(|(fid, _)| !already.contains(fid))
         .collect();
     if candidates.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "every faction in this sector already has a presence row here.",
+        ui_kit::placeholder(
+            ui,
+            "Every faction already has a presence row on this world.",
         );
         return;
     }
@@ -409,7 +613,7 @@ fn show_add_presence_row(
     let mut buf: Buf = ui.data_mut(|d| d.get_temp::<Buf>(buf_id).unwrap_or(default));
 
     ui.horizontal(|ui| {
-        ui.label("add presence:");
+        ui.label("Add faction:");
         let label = candidates
             .iter()
             .find(|(fid, _)| fid == &buf.faction)
@@ -420,17 +624,29 @@ fn show_add_presence_row(
         }
         ui_kit::combo(("c2_fac", world_id.as_str()), label).show_ui(ui, |ui| {
             for (fid, n) in &candidates {
-                if ui.selectable_label(&buf.faction == fid, n).clicked() {
+                if ui
+                    .selectable_label(&buf.faction == fid, n)
+                    .on_hover_text(format!("id: {fid}"))
+                    .clicked()
+                {
                     buf.faction = (*fid).clone();
                 }
             }
         });
-        ui_kit::combo(("c2_tier", world_id.as_str()), format!("{}", buf.tier)).show_ui(ui, |ui| {
-            for t in INFLUENCE_TIERS {
-                ui.selectable_value(&mut buf.tier, *t, format!("{t}"));
-            }
-        });
-        if ui.button("+ presence").clicked() {
+        ui_kit::combo(("c2_tier", world_id.as_str()), influence_label(buf.tier)).show_ui(
+            ui,
+            |ui| {
+                for t in INFLUENCE_TIERS {
+                    ui.selectable_value(&mut buf.tier, *t, influence_label(*t))
+                        .on_hover_text(influence_help(*t));
+                }
+            },
+        );
+        if ui
+            .button("➕ Add presence")
+            .on_hover_text("Add this faction's presence row to the world")
+            .clicked()
+        {
             // §R4 (CTL-2): add-presence routes through EditWorld so the new row
             // is undoable.
             let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
@@ -465,14 +681,17 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "ctrl_system_control", "System control", true, |ui| {
         let system_id = state.selected_system_id.clone();
         let Some(system_id) = system_id else {
-            ui.colored_label(
-                Color32::GRAY,
-                "Pick a system in the SYSTEM tab to edit its control state and primary factions.",
+            ui_kit::placeholder(
+                ui,
+                "No system selected. Pick a system in the SYSTEM tab to set its control state and leading factions.",
             );
             return;
         };
         let Some(sys_idx) = state.sector.systems.iter().position(|s| s.id == system_id) else {
-            ui.colored_label(Color32::GRAY, "Selected system not in the sector.");
+            ui_kit::placeholder(
+                ui,
+                "The selected system is no longer in the sector. Pick another in the SYSTEM tab.",
+            );
             return;
         };
         let header = {
@@ -485,28 +704,34 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
         let mut new_state: Option<Option<SystemState>> = None;
         {
             let current = state.sector.systems[sys_idx].control.state;
-            ui_kit::field(ui, "control_state", |ui| {
-                ui_kit::combo(
-                    ("c4_state", system_id.as_str()),
-                    match current {
-                        Some(s) => format!("{s}"),
-                        None => "(none)".to_string(),
-                    },
-                )
-                .show_ui(ui, |ui| {
-                    if ui.selectable_label(current.is_none(), "(none)").clicked() {
-                        new_state = Some(None);
-                    }
-                    for s in SYSTEM_STATES {
-                        if ui
-                            .selectable_label(current == Some(*s), format!("{s}"))
-                            .clicked()
-                        {
-                            new_state = Some(Some(*s));
+            labeled(
+                ui,
+                "Control state",
+                "Overall security situation of the system (schema: control.state). Leave unset to let the map derive it.",
+                |ui| {
+                    ui_kit::combo(
+                        ("c4_state", system_id.as_str()),
+                        match current {
+                            Some(s) => system_state_label(s),
+                            None => "(none)",
+                        },
+                    )
+                    .show_ui(ui, |ui| {
+                        if ui.selectable_label(current.is_none(), "(none)").clicked() {
+                            new_state = Some(None);
                         }
-                    }
-                });
-            });
+                        for s in SYSTEM_STATES {
+                            if ui
+                                .selectable_label(current == Some(*s), system_state_label(*s))
+                                .on_hover_text(format!("schema: {}", s.as_slug()))
+                                .clicked()
+                            {
+                                new_state = Some(Some(*s));
+                            }
+                        }
+                    });
+                },
+            );
         }
         if let Some(ns) = new_state {
             // §R4 (CTL-3): §C4 control_state picker routes through EditSystem
@@ -541,9 +766,13 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
         }
         let factions = &state.sector.systems[sys_idx].primary_factions.clone();
         ui.horizontal(|ui| {
-            ui.label(RichText::new("primary_factions:").strong());
+            ui.label(RichText::new("Leading factions").strong())
+                .on_hover_text(
+                    "The top factions ranked in this system (schema: primary_factions). Auto-derived from presence unless you override it.",
+                );
             let was_locked = locked;
-            ui.checkbox(&mut locked, "manual override");
+            ui.checkbox(&mut locked, "Override")
+                .on_hover_text("Keep this list fixed instead of auto-deriving the top 3");
             if was_locked != locked {
                 if locked {
                     state.primary_factions_locked.insert(system_id.clone());
@@ -552,7 +781,11 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 state.dirty = true;
             }
-            if ui.small_button("Recompute").clicked() {
+            if ui
+                .small_button("↺ Re-derive")
+                .on_hover_text("Clear the override and rank the top factions from presence again")
+                .clicked()
+            {
                 // §R4 (CTL-3): Recompute writes derived primary_factions via
                 // EditSystem so the override-clear is undoable. The transient
                 // `primary_factions_locked` table is UI lock state (direct).
@@ -570,7 +803,10 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         });
         if factions.is_empty() {
-            ui.colored_label(Color32::GRAY, "(no factions ranked here yet)");
+            ui_kit::placeholder(
+                ui,
+                "No factions ranked here yet. Add presence on this system's worlds to populate it.",
+            );
         } else {
             ui.horizontal_wrapped(|ui| {
                 for (rank, fid) in factions.iter().enumerate() {
@@ -578,7 +814,8 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                         RichText::new(format!("{}. {}", rank + 1, fid))
                             .monospace()
                             .color(Color32::LIGHT_BLUE),
-                    );
+                    )
+                    .on_hover_text(format!("id: {fid}"));
                 }
             });
         }
@@ -586,11 +823,15 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
         // Read-only system summary echo.
         ui.add_space(4.0);
         let summary = derive_system_control(&state.sector.systems[sys_idx]);
+        let state_text = summary
+            .state
+            .map(|s| system_state_label(s).to_string())
+            .unwrap_or_else(|| "—".to_string());
         ui.colored_label(
             Color32::DARK_GRAY,
             format!(
-                "derived: state={:?}  dom={}  sov={}  orb={}  econ={}  hidden={}",
-                summary.state,
+                "Derived: state {}  ·  dominant {}  ·  sovereign {}  ·  orbital {}  ·  economic {}  ·  hidden {}",
+                state_text,
                 summary.dominant.as_ref().map(|f| f.as_str()).unwrap_or("-"),
                 summary
                     .sovereign
@@ -613,7 +854,8 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .map(|f| f.as_str())
                     .unwrap_or("-"),
             ),
-        );
+        )
+        .on_hover_text("Live read-only summary derived from the worlds' presence rows.");
 
         // Echo derived world-control for the selected world to make the
         // §C3 dominance loop legible from the system view too.
@@ -625,7 +867,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                     ui.colored_label(
                         Color32::DARK_GRAY,
                         format!(
-                            "world {}: dom={} sov={} occ={} score={:.1} contested={}",
+                            "World {}: dominant {} · sovereign {} · occupier {} · score {:.1} · contested {}",
                             w.name,
                             s.dominant.as_ref().map(|f| f.as_str()).unwrap_or("-"),
                             s.sovereign.as_ref().map(|f| f.as_str()).unwrap_or("-"),
@@ -633,7 +875,8 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                             s.control_score,
                             s.contested
                         ),
-                    );
+                    )
+                    .on_hover_text("Live read-only summary derived from this world's presence rows.");
                 }
             }
         }
@@ -646,12 +889,15 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(
         ui,
         "ctrl_power_profile",
-        "PowerProfile preview",
+        "Power projection preview (§C6)",
         false,
         |ui| {
             let power = aggregate_faction_power(&state.sector.systems);
             if power.is_empty() {
-                ui.colored_label(Color32::GRAY, "no presence rows yet.");
+                ui_kit::placeholder(
+                    ui,
+                    "No presence rows yet. Assign faction presence on worlds above to see projected power here.",
+                );
                 return;
             }
             egui::ScrollArea::vertical()
@@ -662,15 +908,14 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
                         .num_columns(10)
                         .striped(true)
                         .show(ui, |ui| {
-                            for h in [
-                                "faction", "admin", "mil", "naval", "econ", "ind", "ideo",
-                                "covert", "logi", "legit", "total",
-                            ] {
-                                ui.label(RichText::new(h).strong().monospace());
+                            for (h, tip) in POWER_COLUMNS {
+                                ui.label(RichText::new(*h).strong().monospace())
+                                    .on_hover_text(*tip);
                             }
                             ui.end_row();
                             for (fid, p) in &power {
-                                ui.label(RichText::new(fid.as_str()).monospace());
+                                ui.label(RichText::new(fid.as_str()).monospace())
+                                    .on_hover_text(format!("id: {fid}"));
                                 for v in [
                                     p.administrative,
                                     p.military,
@@ -697,7 +942,13 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
                             }
                         });
                 });
-            if ui.small_button("Apply to sector rollups").clicked() {
+            if ui
+                .button("↺ Apply to faction totals")
+                .on_hover_text(
+                    "Write these projected numbers back onto each faction's stored power totals",
+                )
+                .clicked()
+            {
                 let power = aggregate_faction_power(&state.sector.systems);
                 sectorforge::control::apply_faction_power(&mut state.sector_mut().factions, &power);
                 state.dirty = true;
@@ -740,13 +991,13 @@ fn show_contested_summary(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(
         ui,
         "ctrl_contested",
-        &format!("Contested ({})", contested.len()),
+        &format!("Contested worlds ({})", contested.len()),
         false,
         |ui| {
             if contested.is_empty() {
-                ui.colored_label(
-                    Color32::GRAY,
-                    "no contested worlds — every world has ≤ 1 distinct claimant.",
+                ui_kit::placeholder(
+                    ui,
+                    "No contested worlds. A world becomes contested once two or more different factions claim it.",
                 );
                 return;
             }
@@ -765,7 +1016,11 @@ fn show_contested_summary(ui: &mut Ui, state: &mut BuilderState) {
                         let wid = w.id.clone();
                         let sys_id = state.sector.systems[si].id.clone();
                         ui.horizontal(|ui| {
-                            if ui.small_button("→ WORLD").clicked() {
+                            if ui
+                                .small_button("🌐 Open world")
+                                .on_hover_text("Jump to this world in the WORLD tab")
+                                .clicked()
+                            {
                                 state.focus_entity(EntityRef::World {
                                     system: sys_id.clone(),
                                     world: wid,
@@ -795,7 +1050,10 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
                 .map(|f| (f.id.clone(), f.name.to_string()))
                 .collect();
             if factions.is_empty() {
-                ui.colored_label(Color32::GRAY, "no factions in this sector.");
+                ui_kit::placeholder(
+                    ui,
+                    "No factions in this sector yet. Add some in the FACTIONS tab to convert their claims.",
+                );
                 return;
             }
             let id = egui::Id::new("cl4_bulk_buf");
@@ -812,8 +1070,12 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
             };
             let mut buf: Buf = ui.data_mut(|d| d.get_temp::<Buf>(id).unwrap_or(default));
 
+            ui_kit::placeholder(
+                ui,
+                "Rewrite every claim of one kind held by a faction into another kind, across all worlds, in one step.",
+            );
             ui.horizontal(|ui| {
-                ui.label("faction Y:");
+                ui.label("Faction:");
                 let label = factions
                     .iter()
                     .find(|(fid, _)| fid == &buf.faction)
@@ -821,21 +1083,27 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
                     .unwrap_or_else(|| "(none)".into());
                 ui_kit::combo("cl4_faction", label).show_ui(ui, |ui| {
                     for (fid, n) in &factions {
-                        if ui.selectable_label(&buf.faction == fid, n).clicked() {
+                        if ui
+                            .selectable_label(&buf.faction == fid, n)
+                            .on_hover_text(format!("id: {fid}"))
+                            .clicked()
+                        {
                             buf.faction = fid.clone();
                         }
                     }
                 });
-                ui.label("claim X:");
-                ui_kit::combo("cl4_from", format!("{}", buf.from)).show_ui(ui, |ui| {
+                ui.label("From:");
+                ui_kit::combo("cl4_from", claim_label(buf.from)).show_ui(ui, |ui| {
                     for k in CLAIM_TYPES {
-                        ui.selectable_value(&mut buf.from, *k, format!("{k}"));
+                        ui.selectable_value(&mut buf.from, *k, claim_label(*k))
+                            .on_hover_text(format!("schema: {}", k.as_slug()));
                     }
                 });
-                ui.label("→ Z:");
-                ui_kit::combo("cl4_to", format!("{}", buf.to)).show_ui(ui, |ui| {
+                ui.label("Into:");
+                ui_kit::combo("cl4_to", claim_label(buf.to)).show_ui(ui, |ui| {
                     for k in CLAIM_TYPES {
-                        ui.selectable_value(&mut buf.to, *k, format!("{k}"));
+                        ui.selectable_value(&mut buf.to, *k, claim_label(*k))
+                            .on_hover_text(format!("schema: {}", k.as_slug()));
                     }
                 });
             });
@@ -843,21 +1111,24 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
             let matches = count_bulk_matches(state, &buf.faction, buf.from);
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new(format!("matches: {matches}"))
-                        .color(Color32::DARK_GRAY)
-                        .monospace(),
+                    RichText::new(format!("{matches} matching claim(s)"))
+                        .color(Color32::DARK_GRAY),
                 );
                 let same = buf.from == buf.to;
                 let disabled = matches == 0 || same;
-                let btn = egui::Button::new(format!("Convert {matches} claims"));
-                if ui.add_enabled(!disabled, btn).clicked() {
+                let btn = egui::Button::new(format!("🔁 Convert {matches} claim(s)"));
+                if ui
+                    .add_enabled(!disabled, btn)
+                    .on_hover_text("Rewrite every matching claim to the new kind (one undo step)")
+                    .clicked()
+                {
                     // §R4 (CTL-4): one undo step across all converted worlds;
                     // apply_bulk_convert dispatches BulkEditWorlds (sets dirty +
                     // re-runs invariants), so no manual dirty/validation here.
                     let _ = apply_bulk_convert(state, &buf.faction, buf.from, buf.to);
                 }
                 if same {
-                    ui.colored_label(Color32::GRAY, "X = Z — nothing to do");
+                    ui.colored_label(Color32::DARK_GRAY, "From and Into match — nothing to do");
                 }
             });
 
@@ -934,18 +1205,26 @@ fn show_world_list(ui: &mut Ui, state: &mut BuilderState) {
         false,
         |ui| {
             ui.horizontal(|ui| {
-                ui.label("filter:");
+                ui.label("Filter:");
                 let id = egui::Id::new("cl_world_filter");
                 let mut filter: String =
                     ui.data_mut(|d| d.get_temp::<String>(id).unwrap_or_default());
-                let r = ui.add(egui::TextEdit::singleline(&mut filter).desired_width(180.0));
+                let r = ui.add(
+                    egui::TextEdit::singleline(&mut filter)
+                        .hint_text("world name…")
+                        .desired_width(180.0),
+                );
                 if r.changed() {
                     ui.data_mut(|d| d.insert_temp(id, filter.clone()));
                 }
                 let only_contested_id = egui::Id::new("cl_only_contested");
                 let mut only_contested: bool =
                     ui.data_mut(|d| d.get_temp::<bool>(only_contested_id).unwrap_or(false));
-                if ui.checkbox(&mut only_contested, "contested only").changed() {
+                if ui
+                    .checkbox(&mut only_contested, "Contested only")
+                    .on_hover_text("Show only worlds claimed by more than one faction")
+                    .changed()
+                {
                     ui.data_mut(|d| d.insert_temp(only_contested_id, only_contested));
                 }
             });
@@ -988,7 +1267,10 @@ fn show_world_list(ui: &mut Ui, state: &mut BuilderState) {
                 .max_height(360.0)
                 .show(ui, |ui| {
                     if rows.is_empty() {
-                        ui.colored_label(Color32::GRAY, "no worlds match the current filter.");
+                        ui_kit::placeholder(
+                            ui,
+                            "No worlds match the current filter. Clear the search box or the contested-only toggle.",
+                        );
                         return;
                     }
                     for (si, wi) in rows {
@@ -1031,11 +1313,14 @@ fn show_world_row(
                 );
             }
             ui.label(
-                RichText::new(format!("{} claims", claims_snapshot.len()))
-                    .color(Color32::DARK_GRAY)
-                    .monospace(),
+                RichText::new(format!("{} claim(s)", claims_snapshot.len()))
+                    .color(Color32::DARK_GRAY),
             );
-            if ui.small_button("→ WORLD").clicked() {
+            if ui
+                .small_button("🌐 Open world")
+                .on_hover_text("Jump to this world in the WORLD tab")
+                .clicked()
+            {
                 state.focus_entity(EntityRef::World {
                     system: sys_id.clone(),
                     world: wid.clone(),
@@ -1054,17 +1339,30 @@ fn show_world_row(
                     .inner_margin(egui::Margin::symmetric(6.0, 2.0))
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            let label =
-                                format!("{}  {}  {}", c.faction_id, c.claim_type, c.strength);
-                            ui.label(RichText::new(label).color(fg).monospace());
-                            if ui.small_button("×").clicked() {
+                            let label = format!(
+                                "{}  {}  {}",
+                                c.faction_id,
+                                claim_label(c.claim_type),
+                                c.strength
+                            );
+                            ui.label(RichText::new(label).color(fg)).on_hover_text(format!(
+                                "{} · strength {} (schema: {})",
+                                c.faction_id,
+                                c.strength,
+                                c.claim_type.as_slug()
+                            ));
+                            if ui
+                                .small_button("×")
+                                .on_hover_text("Remove this claim")
+                                .clicked()
+                            {
                                 remove = Some(i);
                             }
                         });
                     });
             }
             if claims_snapshot.is_empty() {
-                ui.colored_label(Color32::GRAY, "no claims");
+                ui_kit::placeholder(ui, "No claims yet — add one below.");
             }
         });
         if let Some(i) = remove {
@@ -1097,9 +1395,9 @@ fn show_add_claim_row(
     factions: &[(FactionId, String)],
 ) {
     if factions.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "no factions in this sector — add factions to enable claims.",
+        ui_kit::placeholder(
+            ui,
+            "No factions in this sector yet. Add some in the FACTIONS tab to record claims.",
         );
         return;
     }
@@ -1118,7 +1416,7 @@ fn show_add_claim_row(
     let mut buf: AddBuf = ui.data_mut(|d| d.get_temp::<AddBuf>(row_id).unwrap_or(default));
 
     ui.horizontal(|ui| {
-        ui.label("add:");
+        ui.label("Add claim:");
         let label = factions
             .iter()
             .find(|(fid, _)| fid == &buf.faction)
@@ -1126,21 +1424,34 @@ fn show_add_claim_row(
             .unwrap_or_else(|| "(none)".into());
         ui_kit::combo(("cl_add_fac", wid.as_str()), label).show_ui(ui, |ui| {
             for (fid, n) in factions {
-                if ui.selectable_label(&buf.faction == fid, n).clicked() {
+                if ui
+                    .selectable_label(&buf.faction == fid, n)
+                    .on_hover_text(format!("id: {fid}"))
+                    .clicked()
+                {
                     buf.faction = fid.clone();
                 }
             }
         });
-        ui_kit::combo(("cl_add_kind", wid.as_str()), format!("{}", buf.claim_type)).show_ui(
+        ui_kit::combo(("cl_add_kind", wid.as_str()), claim_label(buf.claim_type)).show_ui(
             ui,
             |ui| {
                 for k in CLAIM_TYPES {
-                    ui.selectable_value(&mut buf.claim_type, *k, format!("{k}"));
+                    ui.selectable_value(&mut buf.claim_type, *k, claim_label(*k))
+                        .on_hover_text(format!("schema: {}", k.as_slug()));
                 }
             },
         );
-        ui.add(egui::DragValue::new(&mut buf.strength).range(0..=100));
-        if ui.button("+ claim").clicked() {
+        ui.add(
+            egui::DragValue::new(&mut buf.strength)
+                .range(0..=100)
+                .prefix("strength "),
+        );
+        if ui
+            .button("➕ Add claim")
+            .on_hover_text("Record this faction's claim on the world")
+            .clicked()
+        {
             // §R4 (CTL-5): claim add routes through EditWorld so it is undoable.
             let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
             let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();

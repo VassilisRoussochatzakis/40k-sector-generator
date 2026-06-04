@@ -12,10 +12,11 @@
 
 use std::collections::BTreeSet;
 
-use egui::{Color32, RichText};
+use egui::{Color32, RichText, Ui};
 
 use sectorforge::search::{Constraint, WishesFile};
 use sectorforge::worlds::WorldType;
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::search_run::NewConstraintKind;
@@ -38,10 +39,12 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         ui.ctx().request_repaint();
     }
 
-    ui.heading("Search (§SR1..§SR5)");
+    ui.heading("Seed search");
     ui.label(
-        RichText::new("Declare what the sector should look like, then enumerate seeds to find one that matches.")
-            .weak(),
+        RichText::new(
+            "Describe what the sector should look like, then try seeds until one matches.",
+        )
+        .color(Color32::DARK_GRAY),
     );
 
     if state.data_catalogs.worlds.is_none() {
@@ -82,14 +85,21 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.separator();
 
     if state.search.wishes.is_none() {
+        ui_kit::placeholder(
+            ui,
+            "No wish list yet. Start one to describe the sector you want, then search for a seed.",
+        );
         ui.add_space(6.0);
-        if ui.button("+ Create wishes.toml").clicked() {
+        if ui
+            .button("➕  Start a wish list")
+            .on_hover_text("Begins an empty wishes.toml you can add constraints to")
+            .clicked()
+        {
             state.search.wishes = Some(WishesFile {
                 search: Default::default(),
                 constraints: Vec::new(),
             });
         }
-        ui.label(RichText::new("No wishes document yet.").weak());
         return;
     }
 
@@ -102,68 +112,87 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         budget_hint = wishes.search.budget.max(1);
 
         // §SR4: base_seed / budget / report_top.
-        ui_kit::collapsing_section(
-            ui,
-            "sr_sr4_search_config",
-            "§SR4 — Search config",
-            true,
-            |ui| {
-                egui::Grid::new("sr4-search-config")
-                    .num_columns(2)
-                    .spacing([12.0, 6.0])
-                    .show(ui, |ui| {
-                        ui.label("base_seed");
-                        ui.horizontal(|ui| {
-                            let mut use_project = wishes.search.base_seed.is_none();
-                            if ui.checkbox(&mut use_project, "use project seed").changed() {
-                                wishes.search.base_seed = if use_project {
-                                    None
-                                } else {
-                                    Some(project_seed.clone())
-                                };
-                            }
-                            if let Some(seed) = wishes.search.base_seed.as_mut() {
-                                ui.text_edit_singleline(seed);
-                            } else {
-                                ui.label(
-                                    RichText::new(format!("(project: {project_seed})")).weak(),
-                                );
-                            }
-                        });
-                        ui.end_row();
-
-                        ui.label("budget");
+        ui_kit::collapsing_section(ui, "sr_sr4_search_config", "Search settings", true, |ui| {
+            labeled(
+                ui,
+                "Starting seed",
+                "Seed the search begins from (schema: base_seed). Tick to follow the project's own seed, or untick to type a fixed one.",
+                |ui| {
+                    let mut use_project = wishes.search.base_seed.is_none();
+                    if ui
+                        .checkbox(&mut use_project, "Use project seed")
+                        .changed()
+                    {
+                        wishes.search.base_seed = if use_project {
+                            None
+                        } else {
+                            Some(project_seed.clone())
+                        };
+                    }
+                    if let Some(seed) = wishes.search.base_seed.as_mut() {
                         ui.add(
-                            egui::DragValue::new(&mut wishes.search.budget)
-                                .range(1..=100_000)
-                                .speed(1.0),
+                            egui::TextEdit::singleline(seed)
+                                .hint_text("seed")
+                                .desired_width(160.0),
                         );
-                        ui.end_row();
-
-                        ui.label("report_top");
-                        ui.add(
-                            egui::DragValue::new(&mut wishes.search.report_top)
-                                .range(1..=50)
-                                .speed(1.0),
+                    } else {
+                        ui.label(
+                            RichText::new(format!("(project: {project_seed})"))
+                                .color(Color32::DARK_GRAY),
                         );
-                        ui.end_row();
-                    });
-            },
-        );
+                    }
+                },
+            );
+            labeled(
+                ui,
+                "Seeds to try",
+                "How many seeds to enumerate before giving up (schema: budget). Higher = a better chance of a match, but slower.",
+                |ui| {
+                    ui.add(
+                        egui::DragValue::new(&mut wishes.search.budget)
+                            .range(1..=100_000)
+                            .speed(1.0),
+                    );
+                },
+            );
+            labeled(
+                ui,
+                "Near misses to keep",
+                "How many close-but-not-perfect seeds to list alongside a winner (schema: report_top).",
+                |ui| {
+                    ui.add(
+                        egui::DragValue::new(&mut wishes.search.report_top)
+                            .range(1..=50)
+                            .speed(1.0),
+                    );
+                },
+            );
+        });
 
         // §SR1: per-constraint form widgets.
         ui_kit::collapsing_section(
             ui,
             "sr_sr1_constraints",
-            &format!("§SR1 — Constraints ({})", wishes.constraints.len()),
+            &format!("What to look for ({})", wishes.constraints.len()),
             true,
             |ui| {
+                if wishes.constraints.is_empty() {
+                    ui_kit::placeholder(
+                        ui,
+                        "No requirements yet — add one below to describe the sector you want.",
+                    );
+                }
                 let mut remove_idx: Option<usize> = None;
                 for (i, c) in wishes.constraints.iter_mut().enumerate() {
                     ui.group(|ui| {
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new(constraint_kind_label(c)).strong().monospace());
-                            if ui.small_button("× remove").clicked() {
+                            ui.label(RichText::new(constraint_kind_human(c)).strong())
+                                .on_hover_text(format!("rule: {}", constraint_kind_label(c)));
+                            if ui
+                                .small_button("🗑")
+                                .on_hover_text("Delete this requirement")
+                                .clicked()
+                            {
                                 remove_idx = Some(i);
                             }
                         });
@@ -176,21 +205,29 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 
                 ui.add_space(6.0);
                 ui.horizontal(|ui| {
-                    ui_kit::combo("sr1-add-kind", state.search.new_constraint_kind.label())
-                        .show_ui(ui, |ui| {
-                            for kind in NewConstraintKind::ALL {
-                                if ui
-                                    .selectable_label(
-                                        state.search.new_constraint_kind == *kind,
-                                        kind.label(),
-                                    )
-                                    .clicked()
-                                {
-                                    state.search.new_constraint_kind = *kind;
-                                }
+                    ui_kit::combo(
+                        "sr1-add-kind",
+                        constraint_kind_human_for(state.search.new_constraint_kind),
+                    )
+                    .show_ui(ui, |ui| {
+                        for kind in NewConstraintKind::ALL {
+                            if ui
+                                .selectable_label(
+                                    state.search.new_constraint_kind == *kind,
+                                    constraint_kind_human_for(*kind),
+                                )
+                                .on_hover_text(format!("rule: {}", kind.label()))
+                                .clicked()
+                            {
+                                state.search.new_constraint_kind = *kind;
                             }
-                        });
-                    if ui.button("+ Add constraint").clicked() {
+                        }
+                    });
+                    if ui
+                        .button("➕  Add constraint")
+                        .on_hover_text("Add this requirement to the wish list")
+                        .clicked()
+                    {
                         let default_faction = factions.first().cloned().unwrap_or_default();
                         wishes
                             .constraints
@@ -216,13 +253,13 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         ui.colored_label(
             Color32::from_rgb(220, 80, 80),
             format!(
-                "§SR5 preflight: unknown faction id(s): {}",
+                "Unknown faction id(s): {}",
                 preflight_unknown.join(", ")
             ),
         );
         ui.label(
             RichText::new("Fix or remove these before running — the search will abort otherwise.")
-                .weak(),
+                .color(Color32::DARK_GRAY),
         );
     }
 
@@ -231,12 +268,18 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
         let can_run = !state.search.is_running() && preflight_unknown.is_empty();
         if ui
-            .add_enabled(can_run, egui::Button::new("▶ Run search"))
+            .add_enabled(can_run, egui::Button::new("▶  Run search"))
+            .on_hover_text("Try seeds until one matches every requirement")
             .clicked()
         {
             run_clicked = true;
         }
-        if state.search.is_running() && ui.button("■ Cancel").clicked() {
+        if state.search.is_running()
+            && ui
+                .button("■  Cancel")
+                .on_hover_text("Stop the running search")
+                .clicked()
+        {
             cancel_clicked = true;
         }
     });
@@ -304,7 +347,7 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
         return;
     };
     ui.separator();
-    ui.heading("§SR3 — Outcome");
+    ui.heading("Results");
     ui.label(
         RichText::new(format!(
             "base `{}` · budget {} · evaluated {}",
@@ -412,7 +455,7 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
             .chain(outcome.near_misses.iter())
             .find(|c| c.seed == seed)
         else {
-            ui_kit::placeholder(ui, "Candidate no longer in the current outcome.");
+            ui_kit::placeholder(ui, "That candidate is no longer in the current results.");
             return;
         };
         let is_winner = outcome.winning.as_ref().is_some_and(|w| w.seed == seed);
@@ -434,10 +477,20 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
                     );
                 }
                 ui.horizontal(|ui| {
-                    if ui.button("Apply seed").clicked() {
+                    if ui
+                        .button("✅  Apply seed")
+                        .on_hover_text(
+                            "Regenerate the sector from this seed and switch to the map (clears undo history)",
+                        )
+                        .clicked()
+                    {
                         apply_seed = Some(cand.seed.clone());
                     }
-                    if ui.button("View on map").clicked() {
+                    if ui
+                        .button("👁  View on map")
+                        .on_hover_text("Preview this seed on the map without saving over your project")
+                        .clicked()
+                    {
                         view_seed = Some(cand.seed.clone());
                     }
                 });
@@ -476,159 +529,317 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Seeds to try", "Starting seed") while the
+/// tooltip names the underlying TOML field plus a plain-language note, so power
+/// users keep the schema mapping. Friendlier replacement for the old bare
+/// `egui::Grid` whose row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── Per-kind constraint widgets (§SR1) ───────────────────────────────────────
 
 fn constraint_editor(ui: &mut egui::Ui, idx: usize, c: &mut Constraint, factions: &[String]) {
-    egui::Grid::new(("sr1-constraint", idx))
-        .num_columns(2)
-        .spacing([10.0, 4.0])
-        .show(ui, |ui| match c {
-            Constraint::FactionShareMin { faction_id, min } => {
-                row_faction(ui, idx, faction_id, factions);
-                row_frac(ui, "min share", min);
-            }
-            Constraint::FactionShareMax { faction_id, max } => {
-                row_faction(ui, idx, faction_id, factions);
-                row_frac(ui, "max share", max);
-            }
-            Constraint::FactionWorldCountMin { faction_id, min } => {
-                row_faction(ui, idx, faction_id, factions);
-                row_u32(ui, "min worlds", min);
-            }
-            Constraint::FactionWorldCountMax { faction_id, max } => {
-                row_faction(ui, idx, faction_id, factions);
-                row_u32(ui, "max worlds", max);
-            }
-            Constraint::FactionSystemCountMin { faction_id, min } => {
-                row_faction(ui, idx, faction_id, factions);
-                row_u32(ui, "min systems", min);
-            }
-            Constraint::FactionSystemCountMax { faction_id, max } => {
-                row_faction(ui, idx, faction_id, factions);
-                row_u32(ui, "max systems", max);
-            }
-            Constraint::WorldTypeExists {
-                world_type,
-                dominant_faction_id,
+    match c {
+        Constraint::FactionShareMin { faction_id, min } => {
+            row_faction(ui, idx, faction_id, factions);
+            row_frac(
+                ui,
+                "Min share",
+                "Smallest fraction of the map this faction may hold (schema: min).",
+                min,
+            );
+        }
+        Constraint::FactionShareMax { faction_id, max } => {
+            row_faction(ui, idx, faction_id, factions);
+            row_frac(
+                ui,
+                "Max share",
+                "Largest fraction of the map this faction may hold (schema: max).",
+                max,
+            );
+        }
+        Constraint::FactionWorldCountMin { faction_id, min } => {
+            row_faction(ui, idx, faction_id, factions);
+            row_u32(
+                ui,
+                "Min worlds",
+                "Fewest worlds this faction must control (schema: min).",
+                min,
+            );
+        }
+        Constraint::FactionWorldCountMax { faction_id, max } => {
+            row_faction(ui, idx, faction_id, factions);
+            row_u32(
+                ui,
+                "Max worlds",
+                "Most worlds this faction may control (schema: max).",
+                max,
+            );
+        }
+        Constraint::FactionSystemCountMin { faction_id, min } => {
+            row_faction(ui, idx, faction_id, factions);
+            row_u32(
+                ui,
+                "Min systems",
+                "Fewest systems this faction must hold (schema: min).",
+                min,
+            );
+        }
+        Constraint::FactionSystemCountMax { faction_id, max } => {
+            row_faction(ui, idx, faction_id, factions);
+            row_u32(
+                ui,
+                "Max systems",
+                "Most systems this faction may hold (schema: max).",
+                max,
+            );
+        }
+        Constraint::WorldTypeExists {
+            world_type,
+            dominant_faction_id,
+            min_count,
+        } => {
+            labeled(
+                ui,
+                "World type",
+                "Which kind of world must appear (schema: world_type).",
+                |ui| world_type_combo(ui, idx, world_type),
+            );
+            labeled(
+                ui,
+                "Held by",
+                "Optionally require these worlds to be dominated by one faction (schema: dominant_faction_id). Leave as any.",
+                |ui| opt_faction_combo(ui, idx, dominant_faction_id, factions),
+            );
+            row_u32(
+                ui,
+                "At least",
+                "How many such worlds must exist (schema: min_count).",
                 min_count,
-            } => {
-                ui.label("world_type");
-                world_type_combo(ui, idx, world_type);
-                ui.end_row();
-                ui.label("dominant faction");
-                opt_faction_combo(ui, idx, dominant_faction_id, factions);
-                ui.end_row();
-                row_u32(ui, "min count", min_count);
-            }
-            Constraint::ContestedWorldMin { min, n_way } => {
-                row_u32(ui, "min contested", min);
-                ui.label("n-way");
-                ui.horizontal(|ui| {
+            );
+        }
+        Constraint::ContestedWorldMin { min, n_way } => {
+            row_u32(
+                ui,
+                "Min contested",
+                "Fewest worlds fought over by two or more factions (schema: min).",
+                min,
+            );
+            labeled(
+                ui,
+                "How many sides",
+                "Optionally require each contested world to have this many claimants (schema: n_way).",
+                |ui| {
                     let mut on = n_way.is_some();
-                    if ui.checkbox(&mut on, "require").changed() {
+                    if ui.checkbox(&mut on, "Require").changed() {
                         *n_way = if on { Some(2) } else { None };
                     }
                     if let Some(k) = n_way.as_mut() {
                         ui.add(egui::DragValue::new(k).range(2..=20));
                     }
-                });
-                ui.end_row();
-            }
-            Constraint::ContestedWorldMax { max } => {
-                row_u32(ui, "max contested", max);
-            }
-            Constraint::SystemStateCountMin { state, min } => {
-                ui.label("state");
-                system_state_combo(ui, idx, state);
-                ui.end_row();
-                row_u32(ui, "min systems", min);
-            }
-            Constraint::SystemStateCountMax { state, max } => {
-                ui.label("state");
-                system_state_combo(ui, idx, state);
-                ui.end_row();
-                row_u32(ui, "max systems", max);
-            }
-            Constraint::RouteGraphConnected => {
-                ui.label(RichText::new("route graph is one component").weak());
-                ui.end_row();
-            }
-            Constraint::NoArticulationPoints => {
-                ui.label(RichText::new("no single point of disconnection").weak());
-                ui.end_row();
-            }
-            Constraint::DiameterMax { max_hops } => {
-                row_u32(ui, "max hops", max_hops);
-            }
-            Constraint::IsolatedSystemsMax { max } => {
-                row_u32(ui, "max isolated", max);
-            }
-            Constraint::ContestedRatioMin { min } => {
-                row_frac(ui, "min ratio", min);
-            }
-            Constraint::ContestedRatioMax { max } => {
-                row_frac(ui, "max ratio", max);
-            }
-            Constraint::StanceCountMin { stance, min } => {
-                ui.label("stance");
-                stance_combo(ui, idx, stance);
-                ui.end_row();
-                row_u32(ui, "min pairs", min);
-            }
-            Constraint::StanceCountMax { stance, max } => {
-                ui.label("stance");
-                stance_combo(ui, idx, stance);
-                ui.end_row();
-                row_u32(ui, "max pairs", max);
-            }
-            Constraint::RegionCountMin { region_kind, min } => {
-                ui.label("region kind");
-                region_kind_combo(ui, idx, region_kind);
-                ui.end_row();
-                row_u32(ui, "min regions", min);
-            }
-            Constraint::RegionCountMax { region_kind, max } => {
-                ui.label("region kind");
-                region_kind_combo(ui, idx, region_kind);
-                ui.end_row();
-                row_u32(ui, "max regions", max);
-            }
-            Constraint::EconomyStrandedMax { max } => {
-                row_u32(ui, "max stranded", max);
-            }
-            Constraint::EconomyResourceMin { resource, min } => {
-                ui.label("resource");
-                resource_combo(ui, idx, resource);
-                ui.end_row();
-                ui.label("min balance");
-                ui.add(egui::DragValue::new(min).speed(1.0));
-                ui.end_row();
-            }
-            // §SR1 ships the constraint kinds listed in the spec; any future
-            // `#[non_exhaustive]` variant falls through to a read-only note.
-            _ => {
-                ui.label(RichText::new("(constraint not editable in this build)").weak());
-                ui.end_row();
-            }
-        });
+                },
+            );
+        }
+        Constraint::ContestedWorldMax { max } => {
+            row_u32(
+                ui,
+                "Max contested",
+                "Most worlds that may be fought over (schema: max).",
+                max,
+            );
+        }
+        Constraint::SystemStateCountMin { state, min } => {
+            labeled(
+                ui,
+                "System state",
+                "Which standing the systems must be in (schema: state).",
+                |ui| system_state_combo(ui, idx, state),
+            );
+            row_u32(
+                ui,
+                "Min systems",
+                "Fewest systems in that state (schema: min).",
+                min,
+            );
+        }
+        Constraint::SystemStateCountMax { state, max } => {
+            labeled(
+                ui,
+                "System state",
+                "Which standing the systems must be in (schema: state).",
+                |ui| system_state_combo(ui, idx, state),
+            );
+            row_u32(
+                ui,
+                "Max systems",
+                "Most systems allowed in that state (schema: max).",
+                max,
+            );
+        }
+        Constraint::RouteGraphConnected => {
+            ui.label(
+                RichText::new("Every system can be reached from every other.")
+                    .color(Color32::DARK_GRAY),
+            );
+        }
+        Constraint::NoArticulationPoints => {
+            ui.label(
+                RichText::new("No single system, if lost, splits the route map in two.")
+                    .color(Color32::DARK_GRAY),
+            );
+        }
+        Constraint::DiameterMax { max_hops } => {
+            row_u32(
+                ui,
+                "Max hops",
+                "Longest shortest-path between any two systems (schema: max_hops).",
+                max_hops,
+            );
+        }
+        Constraint::IsolatedSystemsMax { max } => {
+            row_u32(
+                ui,
+                "Max isolated",
+                "Most systems allowed with no routes at all (schema: max).",
+                max,
+            );
+        }
+        Constraint::ContestedRatioMin { min } => {
+            row_frac(
+                ui,
+                "Min ratio",
+                "Smallest share of worlds that must be contested (schema: min).",
+                min,
+            );
+        }
+        Constraint::ContestedRatioMax { max } => {
+            row_frac(
+                ui,
+                "Max ratio",
+                "Largest share of worlds that may be contested (schema: max).",
+                max,
+            );
+        }
+        Constraint::StanceCountMin { stance, min } => {
+            labeled(
+                ui,
+                "Stance",
+                "Which relationship between faction pairs to count (schema: stance).",
+                |ui| stance_combo(ui, idx, stance),
+            );
+            row_u32(
+                ui,
+                "Min pairs",
+                "Fewest faction pairs that must hold that stance (schema: min).",
+                min,
+            );
+        }
+        Constraint::StanceCountMax { stance, max } => {
+            labeled(
+                ui,
+                "Stance",
+                "Which relationship between faction pairs to count (schema: stance).",
+                |ui| stance_combo(ui, idx, stance),
+            );
+            row_u32(
+                ui,
+                "Max pairs",
+                "Most faction pairs allowed to hold that stance (schema: max).",
+                max,
+            );
+        }
+        Constraint::RegionCountMin { region_kind, min } => {
+            labeled(
+                ui,
+                "Region kind",
+                "Which warp/space region to count (schema: region_kind).",
+                |ui| region_kind_combo(ui, idx, region_kind),
+            );
+            row_u32(
+                ui,
+                "Min regions",
+                "Fewest regions of that kind (schema: min).",
+                min,
+            );
+        }
+        Constraint::RegionCountMax { region_kind, max } => {
+            labeled(
+                ui,
+                "Region kind",
+                "Which warp/space region to count (schema: region_kind).",
+                |ui| region_kind_combo(ui, idx, region_kind),
+            );
+            row_u32(
+                ui,
+                "Max regions",
+                "Most regions of that kind allowed (schema: max).",
+                max,
+            );
+        }
+        Constraint::EconomyStrandedMax { max } => {
+            row_u32(
+                ui,
+                "Max stranded",
+                "Most worlds allowed to be cut off from trade (schema: max).",
+                max,
+            );
+        }
+        Constraint::EconomyResourceMin { resource, min } => {
+            labeled(
+                ui,
+                "Resource",
+                "Which traded good to balance (schema: resource).",
+                |ui| resource_combo(ui, idx, resource),
+            );
+            labeled(
+                ui,
+                "Min balance",
+                "Smallest net surplus required for that good (schema: min).",
+                |ui| {
+                    ui.add(egui::DragValue::new(min).speed(1.0));
+                },
+            );
+        }
+        // §SR1 ships the constraint kinds listed in the spec; any future
+        // `#[non_exhaustive]` variant falls through to a read-only note.
+        _ => {
+            ui.label(
+                RichText::new("This requirement can't be edited in this build.")
+                    .color(Color32::DARK_GRAY),
+            );
+        }
+    }
 }
 
 fn row_faction(ui: &mut egui::Ui, idx: usize, faction_id: &mut String, factions: &[String]) {
-    ui.label("faction");
-    faction_combo(ui, idx, faction_id, factions);
-    ui.end_row();
+    labeled(
+        ui,
+        "Faction",
+        "Which faction this requirement is about (schema: faction_id). Pick from the sector roster.",
+        |ui| faction_combo(ui, idx, faction_id, factions),
+    );
 }
 
-fn row_u32(ui: &mut egui::Ui, label: &str, v: &mut u32) {
-    ui.label(label);
-    ui.add(egui::DragValue::new(v).range(0..=100_000).speed(1.0));
-    ui.end_row();
+fn row_u32(ui: &mut egui::Ui, label: &str, help: &str, v: &mut u32) {
+    labeled(ui, label, help, |ui| {
+        ui.add(egui::DragValue::new(v).range(0..=100_000).speed(1.0));
+    });
 }
 
-fn row_frac(ui: &mut egui::Ui, label: &str, v: &mut f32) {
-    ui.label(label);
-    ui.add(egui::Slider::new(v, 0.0..=1.0).clamping(egui::SliderClamping::Always));
-    ui.end_row();
+fn row_frac(ui: &mut egui::Ui, label: &str, help: &str, v: &mut f32) {
+    labeled(ui, label, help, |ui| {
+        ui.add(egui::Slider::new(v, 0.0..=1.0).clamping(egui::SliderClamping::Always));
+    });
 }
 
 fn faction_combo(ui: &mut egui::Ui, idx: usize, current: &mut String, factions: &[String]) {
@@ -638,6 +849,9 @@ fn faction_combo(ui: &mut egui::Ui, idx: usize, current: &mut String, factions: 
         current.clone()
     };
     ui_kit::combo(("sr1-faction", idx), selected).show_ui(ui, |ui| {
+        if factions.is_empty() {
+            ui_kit::placeholder(ui, "No factions in this project yet.");
+        }
         for f in factions {
             if ui.selectable_label(current == f, f).clicked() {
                 *current = f.clone();
@@ -669,11 +883,17 @@ fn opt_faction_combo(
 }
 
 fn world_type_combo(ui: &mut egui::Ui, idx: usize, current: &mut String) {
-    ui_kit::combo(("sr1-worldtype", idx), current.clone()).show_ui(ui, |ui| {
+    let selected = WorldType::VARIANTS
+        .iter()
+        .find(|v| v.to_string() == *current)
+        .map(|v| v.display_name().to_string())
+        .unwrap_or_else(|| current.clone());
+    ui_kit::combo(("sr1-worldtype", idx), selected).show_ui(ui, |ui| {
         for v in WorldType::VARIANTS {
             let value = v.to_string();
             if ui
                 .selectable_label(*current == value, v.display_name())
+                .on_hover_text(format!("key: {value}"))
                 .clicked()
             {
                 *current = value;
@@ -683,9 +903,13 @@ fn world_type_combo(ui: &mut egui::Ui, idx: usize, current: &mut String) {
 }
 
 fn resource_combo(ui: &mut egui::Ui, idx: usize, current: &mut String) {
-    ui_kit::combo(("sr1-resource", idx), current.clone()).show_ui(ui, |ui| {
+    ui_kit::combo(("sr1-resource", idx), humanize_slug(current.as_str())).show_ui(ui, |ui| {
         for r in RESOURCES {
-            if ui.selectable_label(current == r, *r).clicked() {
+            if ui
+                .selectable_label(current == r, humanize_slug(r))
+                .on_hover_text(format!("key: {r}"))
+                .clicked()
+            {
                 *current = (*r).to_string();
             }
         }
@@ -707,9 +931,13 @@ fn system_state_combo(
         S::Quarantined,
         S::Uncharted,
     ];
-    ui_kit::combo(("sr1-sysstate", idx), current.as_slug()).show_ui(ui, |ui| {
+    ui_kit::combo(("sr1-sysstate", idx), humanize_slug(current.as_slug())).show_ui(ui, |ui| {
         for v in ALL {
-            if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
+            if ui
+                .selectable_label(*current == *v, humanize_slug(v.as_slug()))
+                .on_hover_text(format!("key: {}", v.as_slug()))
+                .clicked()
+            {
                 *current = *v;
             }
         }
@@ -726,9 +954,13 @@ fn stance_combo(ui: &mut egui::Ui, idx: usize, current: &mut sectorforge::search
         S::Hostile,
         S::AtWar,
     ];
-    ui_kit::combo(("sr1-stance", idx), current.as_slug()).show_ui(ui, |ui| {
+    ui_kit::combo(("sr1-stance", idx), humanize_slug(current.as_slug())).show_ui(ui, |ui| {
         for v in ALL {
-            if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
+            if ui
+                .selectable_label(*current == *v, humanize_slug(v.as_slug()))
+                .on_hover_text(format!("key: {}", v.as_slug()))
+                .clicked()
+            {
                 *current = *v;
             }
         }
@@ -748,9 +980,13 @@ fn region_kind_combo(
         R::Blackout,
         R::Anomaly,
     ];
-    ui_kit::combo(("sr1-region", idx), current.as_slug()).show_ui(ui, |ui| {
+    ui_kit::combo(("sr1-region", idx), humanize_slug(current.as_slug())).show_ui(ui, |ui| {
         for v in ALL {
-            if ui.selectable_label(*current == *v, v.as_slug()).clicked() {
+            if ui
+                .selectable_label(*current == *v, humanize_slug(v.as_slug()))
+                .on_hover_text(format!("key: {}", v.as_slug()))
+                .clicked()
+            {
                 *current = *v;
             }
         }
@@ -758,6 +994,70 @@ fn region_kind_combo(
 }
 
 // ── Labels + preflight mirror ────────────────────────────────────────────────
+
+/// Turn an on-disk slug ("warp_storm", "at_war") into a sentence-case label
+/// ("Warp storm", "At war") for display only. The stored value stays the slug;
+/// the raw key is surfaced in a hover next to every option.
+fn humanize_slug(slug: &str) -> String {
+    let mut out = String::with_capacity(slug.len());
+    for (i, word) in slug.split('_').enumerate() {
+        if word.is_empty() {
+            continue;
+        }
+        if i > 0 {
+            out.push(' ');
+        }
+        let mut chars = word.chars();
+        if let Some(first) = chars.next() {
+            if i == 0 {
+                out.extend(first.to_uppercase());
+            } else {
+                out.push(first);
+            }
+            out.push_str(chars.as_str());
+        }
+    }
+    out
+}
+
+/// Human, plain-language name for a constraint's kind, shown as the group
+/// header. The raw slug ([`constraint_kind_label`]) is carried in a hover so the
+/// schema mapping stays one tooltip away.
+fn constraint_kind_human(c: &Constraint) -> &'static str {
+    match c {
+        Constraint::FactionShareMin { .. } => "Faction holds at least",
+        Constraint::FactionShareMax { .. } => "Faction holds at most",
+        Constraint::FactionWorldCountMin { .. } => "Faction has at least N worlds",
+        Constraint::FactionWorldCountMax { .. } => "Faction has at most N worlds",
+        Constraint::FactionSystemCountMin { .. } => "Faction has at least N systems",
+        Constraint::FactionSystemCountMax { .. } => "Faction has at most N systems",
+        Constraint::WorldTypeExists { .. } => "A world type must appear",
+        Constraint::ContestedWorldMin { .. } => "At least N contested worlds",
+        Constraint::ContestedWorldMax { .. } => "At most N contested worlds",
+        Constraint::SystemStateCountMin { .. } => "At least N systems in a state",
+        Constraint::SystemStateCountMax { .. } => "At most N systems in a state",
+        Constraint::RouteGraphConnected => "Route map fully connected",
+        Constraint::NoArticulationPoints => "No single point of failure",
+        Constraint::DiameterMax { .. } => "Route map stays compact",
+        Constraint::IsolatedSystemsMax { .. } => "At most N isolated systems",
+        Constraint::ContestedRatioMin { .. } => "At least this share contested",
+        Constraint::ContestedRatioMax { .. } => "At most this share contested",
+        Constraint::StanceCountMin { .. } => "At least N pairs with a stance",
+        Constraint::StanceCountMax { .. } => "At most N pairs with a stance",
+        Constraint::RegionCountMin { .. } => "At least N regions of a kind",
+        Constraint::RegionCountMax { .. } => "At most N regions of a kind",
+        Constraint::EconomyStrandedMax { .. } => "At most N worlds cut off",
+        Constraint::EconomyResourceMin { .. } => "Resource surplus floor",
+        _ => "Requirement",
+    }
+}
+
+/// Human name for a [`NewConstraintKind`] (the add-constraint picker). Mirrors
+/// [`constraint_kind_human`] by building a default constraint of that kind, so
+/// the two stay in lock-step; the raw slug stays available via `kind.label()`.
+fn constraint_kind_human_for(kind: NewConstraintKind) -> &'static str {
+    constraint_kind_human(&kind.make(""))
+}
 
 fn constraint_kind_label(c: &Constraint) -> &'static str {
     match c {

@@ -1,21 +1,21 @@
 //! PERSONAE tab (§N1 / §N2) — Phase D §PER1..§PER5.
 //!
-//! §PER1  Per-faction-kind persona-pool editor. Loads defaults from
-//!        `src/personae.rs` (built-in [`KindPools`]); per-project overrides
-//!        live under `[inputs].personae` -> `data/personae.toml`. Each kind
-//!        exposes editable name prefixes / roots / suffixes / single names /
-//!        titles / traits.
+//! §PER1  Per-faction-kind persona-pool editor. Loads defaults from the
+//!        built-in [`KindPools`]; per-project overrides live under
+//!        `[inputs].personae` -> `data/personae.toml`. Each kind exposes
+//!        editable name prefixes / roots / suffixes / single names / titles /
+//!        traits.
 //! §PER2  Per-anchor persona editor. Lists the derived personae — geographic
 //!        anchors (system sovereign / orbital controller / economic hegemon /
 //!        hidden master / per-world presences) plus org-leadership anchors
 //!        (overall faction / sub-faction / force heads) — and lets users
-//!        add/remove `[[manual]]` entries with name, title, traits, agenda.
+//!        add/remove manual entries with name, title, traits, agenda.
 //!        Manual entries survive regenerate because
 //!        [`sectorforge::personae::derive_with`] appends `cfg.manual` last.
 //! §PER6  Org-leadership toggle + presence gate (`faction_leaders`,
 //!        `min_faction_presence`) live in the dominance section. They control
 //!        whether/which faction-hierarchy nodes anchor a leader persona.
-//! §PER3  "Auto-derive" button calls [`BuilderState::recompute_personae`]
+//! §PER3  "Regenerate" button calls [`BuilderState::recompute_personae`]
 //!        which runs `personae::derive_with(&sector, &cfg)`. Auto-recompute-
 //!        on-edit toggle mirrors the History/Relations panels.
 //! §PER4  Dominance-tier setting (`min_world_dominance`) controls which
@@ -29,8 +29,11 @@
 //! mutations land in [`BuilderState::data_catalogs::personae`] and the
 //! recompute pass rewrites the published overlay.
 
+use std::collections::BTreeSet;
+
 use egui::{Color32, RichText, Ui};
 
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use sectorforge::personae::{
@@ -43,7 +46,7 @@ use crate::builder::BuilderState;
 const DEFAULT_PERSONAE_PATH: &str = "data/personae.toml";
 
 /// Built-in faction kinds the editor lists by default. Users can add custom
-/// kinds via the "add kind" button — anything not in this list still derives
+/// kinds via the "Add kind" row — anything not in this list still derives
 /// fall-through pools from [`sectorforge::personae`].
 const BUILTIN_KINDS: &[&str] = &[
     "imperial",
@@ -77,11 +80,11 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "kind pool editor, per-anchor personae, dominance tier, agenda derivation.",
+        "The named characters behind your factions — leaders, governors, and rivals derived from who holds what.",
     );
     ui.separator();
 
-    // §COLUMNS — global controls (auto-derive / player toggle) stay full-width
+    // §COLUMNS — global controls (regenerate / player toggle) stay full-width
     // on top, then master-detail: the derived persona roster pins to a
     // resizable left rail and the selected-persona detail + dominance / manual /
     // pool editors + save fill the rest. Replaces the single-column stack whose
@@ -116,15 +119,35 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     });
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms while the tooltip names the underlying TOML
+/// field plus a plain-language note, so power users keep the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── §PER3 header actions ────────────────────────────────────────────────────
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Auto-derive personae").clicked() {
+        if ui
+            .button("🔄  Regenerate")
+            .on_hover_text("Re-derive every persona from current faction presence and the rules below")
+            .clicked()
+        {
             ensure_personae_catalog(state);
             state.recompute_personae();
         }
-        ui.checkbox(&mut state.personae_auto_recompute, "auto-recompute on edit");
+        ui.checkbox(&mut state.personae_auto_recompute, "Auto-update on edit")
+            .on_hover_text("Re-derive automatically whenever you change a setting on this tab");
         let total = state
             .personae_report
             .as_ref()
@@ -136,11 +159,11 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(|c| c.manual.len())
             .unwrap_or(0);
-        ui.label(format!("personae: {total}  (manual: {manual})"));
+        ui.label(format!("{total} personae  (hand-written: {manual})"));
         if state.data_catalogs.personae.is_none() {
             ui.colored_label(
                 Color32::from_rgb(220, 170, 80),
-                "no personae.toml loaded (defaults apply)",
+                "using built-in defaults — Regenerate to start a personae file",
             );
         }
     });
@@ -149,53 +172,75 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §PER4 dominance tier + per-anchor caps ──────────────────────────────────
 
 fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("dominance tier + per-anchor caps").strong());
+    ui.label(RichText::new("Who gets a persona").strong());
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
     };
     let mut changed = false;
-    egui::Grid::new("per4_grid").num_columns(2).show(ui, |ui| {
-        ui.label("min_world_dominance");
-        ui_kit::combo("per4_dom", format!("{}", cfg.min_world_dominance)).show_ui(ui, |ui| {
-            for tier in DOMINANCE_TIERS {
-                if ui
-                    .selectable_value(&mut cfg.min_world_dominance, *tier, format!("{tier}"))
-                    .changed()
-                {
-                    changed = true;
+
+    labeled(
+        ui,
+        "Minimum hold",
+        "Lowest dominance tier on a world that earns a named persona (schema: min_world_dominance). Higher tier means fewer worlds qualify.",
+        |ui| {
+            ui_kit::combo("per4_dom", tier_label(cfg.min_world_dominance)).show_ui(ui, |ui| {
+                for tier in DOMINANCE_TIERS {
+                    if ui
+                        .selectable_value(&mut cfg.min_world_dominance, *tier, tier_label(*tier))
+                        .on_hover_text(format!("key: {}", tier.as_slug()))
+                        .changed()
+                    {
+                        changed = true;
+                    }
                 }
-            }
-        });
-        ui.end_row();
-        ui.label("max_per_world");
-        changed |= ui
-            .add(egui::DragValue::new(&mut cfg.max_per_world).range(0..=64))
-            .changed();
-        ui.end_row();
-        ui.label("max_per_system");
-        changed |= ui
-            .add(egui::DragValue::new(&mut cfg.max_per_system).range(0..=64))
-            .changed();
-        ui.end_row();
-        ui.label("faction_leaders");
-        changed |= ui
-            .checkbox(&mut cfg.faction_leaders, "emit org-leadership personae")
-            .changed();
-        ui.end_row();
-        ui.label("min_faction_presence");
-        changed |= ui
-            .add(egui::DragValue::new(&mut cfg.min_faction_presence).range(0..=64))
-            .changed();
-        ui.end_row();
-    });
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "Higher tier ⇒ fewer worlds anchor personae. Per-system cap counts sovereign/orbital/economic/hidden slots.",
+            });
+        },
     );
+    labeled(
+        ui,
+        "Max per world",
+        "Most personae anchored to a single world (schema: max_per_world).",
+        |ui| {
+            changed |= ui
+                .add(egui::DragValue::new(&mut cfg.max_per_world).range(0..=64))
+                .changed();
+        },
+    );
+    labeled(
+        ui,
+        "Max per system",
+        "Most personae anchored to a single system, across sovereign/orbital/economic/hidden slots (schema: max_per_system).",
+        |ui| {
+            changed |= ui
+                .add(egui::DragValue::new(&mut cfg.max_per_system).range(0..=64))
+                .changed();
+        },
+    );
+    labeled(
+        ui,
+        "Faction leaders",
+        "Also create the overall / sub-faction / force heads, not just world & system personae (schema: faction_leaders).",
+        |ui| {
+            changed |= ui
+                .checkbox(&mut cfg.faction_leaders, "Include leadership personae")
+                .changed();
+        },
+    );
+    labeled(
+        ui,
+        "Leader threshold",
+        "How many systems-or-worlds a faction branch must hold before it earns a leader (schema: min_faction_presence).",
+        |ui| {
+            changed |= ui
+                .add(egui::DragValue::new(&mut cfg.min_faction_presence).range(0..=64))
+                .changed();
+        },
+    );
+
     ui.colored_label(
         Color32::DARK_GRAY,
-        "faction_leaders adds the overall/sub-faction/force heads; min_faction_presence gates them by systems-or-worlds present in.",
+        "Raise the minimum hold for a leaner cast; the per-world and per-system caps keep crowded planets from spawning too many names.",
     );
     if changed {
         on_catalog_edited(state);
@@ -208,18 +253,18 @@ fn show_dominance_section(ui: &mut Ui, state: &mut BuilderState) {
 /// name line per persona with a faction/anchor subline; selecting a row sets
 /// `selected_persona_id` (pure view state) and the detail fills the right pane.
 fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("derived personae").strong());
+    ui.label(RichText::new("Cast").strong());
     let Some(report) = state.personae_report.clone() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No personae yet. Click \"Auto-derive personae\" above.",
+        ui_kit::placeholder(
+            ui,
+            "No personae yet — click Regenerate above to derive them from your factions.",
         );
         return;
     };
     if report.personae.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "Empty roster — lower the dominance tier or generate a sector with faction presence.",
+        ui_kit::placeholder(
+            ui,
+            "No personae qualified — lower the minimum hold, or place faction presence in the sector first.",
         );
         return;
     }
@@ -253,17 +298,17 @@ fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
 /// jump that the table's per-row buttons provided.
 fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
     let Some(report) = state.personae_report.clone() else {
-        ui_kit::placeholder(ui, "Select a persona from the roster on the left.");
+        ui_kit::placeholder(ui, "Pick a persona from the cast on the left to see its details.");
         return;
     };
     let Some(sel) = state.selected_persona_id.clone() else {
-        ui_kit::placeholder(ui, "Select a persona from the roster on the left.");
+        ui_kit::placeholder(ui, "Pick a persona from the cast on the left to see its details.");
         return;
     };
     let Some(p) = report.personae.iter().find(|p| p.id.as_str() == sel) else {
-        ui.colored_label(
-            Color32::GRAY,
-            "Selected persona is gone — re-derive to refresh.",
+        ui_kit::placeholder(
+            ui,
+            "That persona is gone — click Regenerate to refresh the cast.",
         );
         return;
     };
@@ -272,34 +317,34 @@ fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
         .num_columns(2)
         .striped(true)
         .show(ui, |ui| {
-            ui.label("faction");
+            ui.label("Faction");
             if ui.link(p.faction_id.to_string()).clicked() {
                 state.focus_entity(EntityRef::Faction(p.faction_id.clone()));
             }
             ui.end_row();
-            ui.label("kind");
+            ui.label("Type");
             if p.faction_kind.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
                 ui.label(p.faction_kind.clone());
             }
             ui.end_row();
-            ui.label("anchor");
+            ui.label("Anchor");
             show_anchor_link(ui, state, p);
             ui.end_row();
-            ui.label("title");
+            ui.label("Title");
             ui.label(p.title.clone());
             ui.end_row();
-            ui.label("traits");
+            ui.label("Traits");
             if p.traits.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
                 ui.label(p.traits.join(", "));
             }
             ui.end_row();
-            ui.label("agenda");
+            ui.label("Agenda");
             ui.label(p.agenda.clone()).on_hover_text(format!(
-                "Source: kind = {}\nfaction = {}\nanchor = {}",
+                "Derived from\ntype: {}\nfaction: {}\nanchor: {}",
                 if p.faction_kind.is_empty() {
                     "(unknown)"
                 } else {
@@ -310,7 +355,11 @@ fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
             ));
             ui.end_row();
         });
-    if ui.button("edit as manual persona").clicked() {
+    if ui
+        .button("✎  Copy to hand-written persona")
+        .on_hover_text("Open this persona below as an editable manual entry")
+        .clicked()
+    {
         state.personae_edit_target = Some(p.id.to_string());
     }
 }
@@ -362,6 +411,20 @@ fn slot_label(slot: SystemSlot) -> &'static str {
     }
 }
 
+/// Friendly label for a dominance tier. The stored value stays the raw slug
+/// (`min_world_dominance` round-trips unchanged); this only affects what the
+/// reader sees in the dropdown.
+fn tier_label(tier: DominanceTier) -> &'static str {
+    match tier {
+        DominanceTier::Presence => "Presence — a foothold",
+        DominanceTier::Influence => "Influence — a hand on the scales",
+        DominanceTier::Contested => "Contested — disputed ground",
+        DominanceTier::Controlled => "Controlled — firmly held",
+        DominanceTier::Stronghold => "Stronghold — a bastion",
+        _ => "unknown",
+    }
+}
+
 fn anchor_label(a: &PersonaAnchor) -> String {
     match a {
         PersonaAnchor::System { system_id, slot } => {
@@ -388,11 +451,14 @@ fn anchor_label(a: &PersonaAnchor) -> String {
 // ── §PER2 manual entry editor ───────────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("manual personae").strong());
-    // PER-1: consume the one-shot "edit this persona" request the overlay
-    // list's EDIT button stored in `personae_edit_target`. Read it before the
+    ui.label(RichText::new("Hand-written personae").strong());
+    // PER-1: consume the one-shot "edit this persona" request the detail card's
+    // copy button stored in `personae_edit_target`. Read it before the
     // `data_catalogs` borrow so the matching manual row can scroll into view.
     let edit_target = state.personae_edit_target.take();
+    // Snapshot the existing faction ids before the mutable personae borrow so
+    // the per-row faction picker can offer them as a dropdown (transform 6).
+    let faction_ids = existing_faction_ids(state);
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
@@ -400,36 +466,47 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
-        if ui.button("+ manual persona").clicked() {
+        if ui
+            .button("➕  Add persona")
+            .on_hover_text("Add a blank persona you fill in by hand")
+            .clicked()
+        {
             cfg.manual.push(blank_manual_persona(cfg.manual.len()));
             changed = true;
         }
         ui.colored_label(
             Color32::DARK_GRAY,
-            "Manual entries are appended after derivation and survive regenerate.",
+            "Hand-written entries are appended after auto-derivation and survive Regenerate.",
         );
     });
     if cfg.manual.is_empty() {
-        ui.colored_label(Color32::GRAY, "No manual personae yet.");
+        ui_kit::placeholder(ui, "None yet — click Add persona to write one in.");
     } else {
         egui::Grid::new("per_manual_grid")
             .num_columns(7)
             .striped(true)
             .show(ui, |ui| {
-                ui.label(RichText::new("id").strong());
-                ui.label(RichText::new("faction").strong());
-                ui.label(RichText::new("kind").strong());
-                ui.label(RichText::new("name").strong());
-                ui.label(RichText::new("title").strong());
-                ui.label(RichText::new("traits (comma)").strong());
-                ui.label(RichText::new("agenda").strong());
+                ui.label(RichText::new("ID").strong())
+                    .on_hover_text("Unique identifier (schema: id)");
+                ui.label(RichText::new("Faction").strong())
+                    .on_hover_text("Which faction this person belongs to (schema: faction_id)");
+                ui.label(RichText::new("Type").strong())
+                    .on_hover_text("Faction archetype used to flavour name & title (schema: faction_kind)");
+                ui.label(RichText::new("Name").strong())
+                    .on_hover_text("Display name (schema: name)");
+                ui.label(RichText::new("Title").strong())
+                    .on_hover_text("Honorific or rank (schema: title)");
+                ui.label(RichText::new("Traits").strong())
+                    .on_hover_text("Comma-separated descriptors (schema: traits)");
+                ui.label(RichText::new("Agenda").strong())
+                    .on_hover_text("What they are trying to do (schema: agenda)");
                 ui.end_row();
 
                 for (idx, p) in cfg.manual.iter_mut().enumerate() {
                     let mut id_buf = p.id.to_string();
                     // PER-1: when this row is the one the user asked to edit,
-                    // scroll it into view so the jump from the overlay list lands
-                    // on the right `[[manual]]` entry.
+                    // scroll it into view so the jump from the detail card lands
+                    // on the right manual entry.
                     let is_edit_target = edit_target.as_deref() == Some(id_buf.as_str());
                     let id_resp = ui.text_edit_singleline(&mut id_buf);
                     if is_edit_target {
@@ -439,9 +516,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                         p.id = id_buf.into();
                         changed = true;
                     }
-                    let mut fac = p.faction_id.to_string();
-                    if ui.text_edit_singleline(&mut fac).changed() {
-                        p.faction_id = sectorforge::ids::FactionId::new(fac.as_str());
+                    if faction_id_combo(ui, idx, &mut p.faction_id, &faction_ids) {
                         changed = true;
                     }
                     changed |= ui.text_edit_singleline(&mut p.faction_kind).changed();
@@ -457,7 +532,11 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                         changed = true;
                     }
                     changed |= ui.text_edit_singleline(&mut p.agenda).changed();
-                    if ui.button("✕").clicked() {
+                    if ui
+                        .button("🗑")
+                        .on_hover_text("Delete this hand-written persona")
+                        .clicked()
+                    {
                         remove_idx = Some(idx);
                     }
                     ui.end_row();
@@ -471,6 +550,51 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     if changed {
         on_catalog_edited(state);
     }
+}
+
+/// Dropdown over the faction ids already in the project, plus an in-popup custom
+/// row for ids that don't exist yet. Friendlier than free-typing a raw id —
+/// most hand-written personae belong to a faction that already exists, so it
+/// becomes one click. Returns `true` when the value changed.
+fn faction_id_combo(
+    ui: &mut Ui,
+    idx: usize,
+    slot: &mut sectorforge::ids::FactionId,
+    options: &[String],
+) -> bool {
+    let mut changed = false;
+    let current = slot.to_string();
+    let label = if current.is_empty() {
+        "(none)".to_owned()
+    } else {
+        current.clone()
+    };
+    ui_kit::combo(("per_manual_fac", idx), label).show_ui(ui, |ui| {
+        for opt in options {
+            if ui
+                .selectable_label(current == *opt, opt.as_str())
+                .clicked()
+            {
+                *slot = sectorforge::ids::FactionId::new(opt.as_str());
+                changed = true;
+            }
+        }
+        ui.separator();
+        ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
+        let mut buf = current.clone();
+        if ui
+            .add(
+                egui::TextEdit::singleline(&mut buf)
+                    .hint_text("faction id")
+                    .desired_width(160.0),
+            )
+            .changed()
+        {
+            *slot = sectorforge::ids::FactionId::new(buf.trim());
+            changed = true;
+        }
+    });
+    changed
 }
 
 fn blank_manual_persona(seq: usize) -> Persona {
@@ -492,18 +616,16 @@ fn blank_manual_persona(seq: usize) -> Persona {
 // ── §PER1 kind pool editor ──────────────────────────────────────────────────
 
 fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("per-faction-kind pools").strong());
+    ui.label(RichText::new("Name & title pools by faction type").strong());
     ensure_personae_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.personae.as_mut() else {
         return;
     };
     let mut changed = false;
-    ui.horizontal_wrapped(|ui| {
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            "Empty pool fields fall back to built-in defaults from src/personae.rs.",
-        );
-    });
+    ui.colored_label(
+        Color32::DARK_GRAY,
+        "Empty fields fall back to the built-in defaults for that type.",
+    );
 
     // Render one collapsing header per built-in kind plus any custom kinds
     // the user has authored.
@@ -519,7 +641,8 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
             let pools = cfg.kinds.entry(kind.clone()).or_default();
             changed |= pool_editor(ui, kind, pools);
             if ui
-                .button(RichText::new("Reset to defaults").color(Color32::from_rgb(220, 170, 80)))
+                .button(RichText::new("↺  Reset to defaults").color(Color32::from_rgb(220, 170, 80)))
+                .on_hover_text("Clear this type's pools and fall back to the built-in names & titles")
                 .clicked()
             {
                 cfg.kinds.remove(kind);
@@ -529,9 +652,14 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     ui.horizontal_wrapped(|ui| {
-        ui.label("custom kind id:");
+        ui.label("Add type:").on_hover_text(
+            "Create pools for a faction type not listed above (schema: kinds key)",
+        );
         let mut new_kind = String::new();
-        let resp = ui.text_edit_singleline(&mut new_kind);
+        let resp = ui.add(
+            egui::TextEdit::singleline(&mut new_kind)
+                .hint_text("type id, then Enter"),
+        );
         if resp.lost_focus()
             && ui.input(|i| i.key_pressed(egui::Key::Enter))
             && !new_kind.trim().is_empty()
@@ -553,18 +681,48 @@ fn pool_editor(ui: &mut Ui, kind: &str, pools: &mut KindPools) -> bool {
     egui::Grid::new(format!("per_pool_{kind}"))
         .num_columns(2)
         .show(ui, |ui| {
-            changed |= csv_row(ui, "name prefixes", &mut pools.name_prefixes);
-            changed |= csv_row(ui, "name roots", &mut pools.name_roots);
-            changed |= csv_row(ui, "name suffixes", &mut pools.name_suffixes);
-            changed |= csv_row(ui, "single names", &mut pools.single_names);
-            changed |= csv_row(ui, "titles", &mut pools.titles);
-            changed |= csv_row(ui, "traits", &mut pools.traits);
+            changed |= csv_row(
+                ui,
+                "Name prefixes",
+                "Front halves of generated names (schema: name_prefixes)",
+                &mut pools.name_prefixes,
+            );
+            changed |= csv_row(
+                ui,
+                "Name roots",
+                "Core stems of generated names (schema: name_roots)",
+                &mut pools.name_roots,
+            );
+            changed |= csv_row(
+                ui,
+                "Name suffixes",
+                "Tail halves of generated names (schema: name_suffixes)",
+                &mut pools.name_suffixes,
+            );
+            changed |= csv_row(
+                ui,
+                "Whole names",
+                "Complete names used as-is when present (schema: single_names)",
+                &mut pools.single_names,
+            );
+            changed |= csv_row(
+                ui,
+                "Titles",
+                "Honorifics & ranks drawn for this type (schema: titles)",
+                &mut pools.titles,
+            );
+            changed |= csv_row(
+                ui,
+                "Traits",
+                "Descriptors drawn for this type (schema: traits)",
+                &mut pools.traits,
+            );
         });
     changed
 }
 
-fn csv_row(ui: &mut Ui, label: &str, values: &mut Vec<String>) -> bool {
-    ui.label(label);
+fn csv_row(ui: &mut Ui, label: &str, help: &str, values: &mut Vec<String>) -> bool {
+    ui.label(label).on_hover_text(help);
     let mut csv = values.join(",");
     let resp = ui.text_edit_multiline(&mut csv);
     let changed = resp.changed();
@@ -585,7 +743,11 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.personae.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save personae.toml"))
+            .add_enabled(
+                has_catalog,
+                egui::Button::new("💾  Save personae"),
+            )
+            .on_hover_text("Write the personae file to disk")
             .clicked()
         {
             if state.config.inputs.personae.is_none() {
@@ -593,7 +755,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             }
             if let Err(e) = crate::builder::project_io::save_project(state) {
                 state.modal = Some(crate::builder::state::ModalKind::Message(format!(
-                    "Save personae.toml failed: {e}"
+                    "Could not save the personae file: {e}"
                 )));
             }
         }
@@ -602,12 +764,24 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             .inputs
             .personae
             .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_PERSONAE_PATH})"));
+            .unwrap_or_else(|| format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})"));
         ui.colored_label(Color32::DARK_GRAY, path_label);
     });
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────
+
+/// Unique, sorted faction ids currently defined in the project's roster. Feeds
+/// the per-row faction picker in the hand-written persona editor.
+fn existing_faction_ids(state: &BuilderState) -> Vec<String> {
+    let mut ids: BTreeSet<String> = BTreeSet::new();
+    if let Some(file) = state.data_catalogs.factions.as_ref() {
+        for f in &file.factions {
+            ids.insert(f.id.to_string());
+        }
+    }
+    ids.into_iter().collect()
+}
 
 fn ensure_personae_catalog(state: &mut BuilderState) {
     if state.data_catalogs.personae.is_none() {

@@ -3,14 +3,36 @@
 //! single tab. Each sub-panel is its own module under this directory and
 //! follows the R10 contract.
 
+use egui::{RichText, Ui};
+
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::{BuilderState, ModalKind};
 
 use super::{files, generation, preferences, project_tree, save_project, worlds_editor};
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible label
+/// reads in human terms while the tooltip carries the underlying field name plus a
+/// plain-language note, so power users keep the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Project");
+    ui.label(
+        RichText::new("Create, open, and save your sector — plus its files and save points.")
+            .color(egui::Color32::DARK_GRAY),
+    );
     ui.add_space(4.0);
 
     // §COLUMNS — RC-2: project actions + read-only metadata on the left, the
@@ -42,19 +64,15 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             egui::ScrollArea::vertical()
                 .auto_shrink([false; 2])
                 .show(right, |ui| {
-                    ui_kit::collapsing_section(ui, "proj_tree", "Tree", true, |ui| {
+                    ui_kit::collapsing_section(ui, "proj_tree", "Project tree", true, |ui| {
                         project_tree::show(ui, state)
                     });
-                    ui_kit::collapsing_section(ui, "proj_files", "Files (§PF2)", false, |ui| {
+                    ui_kit::collapsing_section(ui, "proj_files", "Files", false, |ui| {
                         files::show(ui, state)
                     });
-                    ui_kit::collapsing_section(
-                        ui,
-                        "proj_world_data",
-                        "World data (§PF3)",
-                        false,
-                        |ui| worlds_editor::show(ui, state),
-                    );
+                    ui_kit::collapsing_section(ui, "proj_world_data", "World data", false, |ui| {
+                        worlds_editor::show(ui, state)
+                    });
                     ui_kit::collapsing_section(ui, "proj_generation", "Generation", false, |ui| {
                         generation::show(ui, state, None)
                     });
@@ -68,7 +86,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui_kit::section(ui, "Actions", |ui| {
         ui.horizontal_wrapped(|ui| {
-            if ui.button("New project…").clicked() {
+            if ui
+                .button("➕  New project…")
+                .on_hover_text("Start a fresh, empty sector from a name, seed, and size")
+                .clicked()
+            {
                 state.modal = Some(ModalKind::NewProject {
                     name: "new-sector".to_string(),
                     title: "New Sector".to_string(),
@@ -77,14 +99,18 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                     height: 10,
                 });
             }
-            if ui.button("Open project…").clicked() {
+            if ui
+                .button("📂  Open project…")
+                .on_hover_text("Open an existing project folder")
+                .clicked()
+            {
                 state.modal = Some(ModalKind::OpenProject { path: None });
             }
             if ui
-                .button("Random sector…")
+                .button("🎲  Random sector…")
                 .on_hover_text(
-                    "RANDOM.md — synthesise a fully-complete, fully-randomised sector \
-                     from just a size (every overlay enabled)",
+                    "Synthesise a fully-complete, fully-randomised sector from just a size \
+                     (every overlay enabled)",
                 )
                 .clicked()
             {
@@ -97,15 +123,15 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                 });
             }
             save_project::show(ui, state);
-            // §PF5: single "Save all" — flush every dirty TOML editor buffer,
-            // then run the full project save.
+            // Single "Save all" — flush every dirty editor buffer, then run the
+            // full project save.
             let any_dirty = state.dirty || !state.dirty_files.is_empty();
             if ui
                 .add_enabled(
                     state.project_path.is_some() && any_dirty,
-                    egui::Button::new("Save all"),
+                    egui::Button::new("💾  Save all"),
                 )
-                .on_hover_text("§PF5 — flush every dirty file + save the whole project")
+                .on_hover_text("Flush every unsaved file, then save the whole project")
                 .clicked()
             {
                 if let Err(e) = files::save_all(state) {
@@ -120,31 +146,76 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
 /// already own; shown here so the left rail is not just a button strip. No model
 /// writes happen here (editing stays in the wizard + Generation section).
 fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui_kit::section(ui, "Metadata", |ui| {
+    ui_kit::section(ui, "Details", |ui| {
         let proj = &state.config.project;
-        ui_kit::kv(ui, "id", &proj.id);
-        ui_kit::kv(ui, "title", &proj.title);
+        labeled(
+            ui,
+            "ID",
+            "Unique project identifier (schema: project.id). Used for file and folder names.",
+            |ui| {
+                ui.label(&proj.id);
+            },
+        );
+        labeled(
+            ui,
+            "Title",
+            "Human-readable name shown on the map and exports (schema: project.title).",
+            |ui| {
+                ui.label(&proj.title);
+            },
+        );
         if let Some(version) = proj.version.as_deref() {
-            ui_kit::kv(ui, "version", version);
+            labeled(
+                ui,
+                "Version",
+                "Optional version tag for this project (schema: project.version).",
+                |ui| {
+                    ui.label(version);
+                },
+            );
         }
         if let Some(desc) = proj.description.as_deref() {
             if !desc.is_empty() {
-                ui_kit::kv(ui, "description", desc);
+                labeled(
+                    ui,
+                    "Description",
+                    "Optional free-text notes about this project (schema: project.description).",
+                    |ui| {
+                        ui.label(desc);
+                    },
+                );
             }
         }
         let gen = &state.config.generation;
-        ui_kit::kv(ui, "seed", &gen.seed);
-        ui_kit::kv(
+        labeled(
             ui,
-            "size",
-            &format!("{} × {}", gen.sector_width, gen.sector_height),
+            "Seed",
+            "Random seed driving generation (schema: generation.seed). Same seed → same sector.",
+            |ui| {
+                ui.label(&gen.seed);
+            },
+        );
+        labeled(
+            ui,
+            "Size",
+            "Sector grid size in hexes (schema: generation.sector_width × sector_height). Always square.",
+            |ui| {
+                ui.label(format!("{} × {}", gen.sector_width, gen.sector_height));
+            },
         );
         let path = state
             .project_path
             .as_ref()
             .map(|p| p.to_string())
             .unwrap_or_else(|| "(unsaved)".into());
-        ui_kit::kv(ui, "path", &path);
+        labeled(
+            ui,
+            "Folder",
+            "Where this project is saved on disk. '(unsaved)' until you save it the first time.",
+            |ui| {
+                ui.label(path);
+            },
+        );
         if state.dirty || !state.dirty_files.is_empty() {
             ui.colored_label(egui::Color32::from_rgb(240, 200, 90), "● unsaved changes");
         }
@@ -154,19 +225,25 @@ fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
 fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.colored_label(
         egui::Color32::DARK_GRAY,
-        "Named save points (U3/U4). Capture before risky edits; revert restores the sector and rewinds the command cursor.",
+        "Named save points. Capture one before risky edits; reverting restores the sector to that point.",
     );
     let buf_id = egui::Id::new("project_snapshot_name");
     let mut name: String = ui.data_mut(|d| d.get_temp::<String>(buf_id).unwrap_or_default());
     let mut take = false;
     ui.horizontal(|ui| {
-        ui.label("name:");
-        if ui.text_edit_singleline(&mut name).lost_focus()
+        ui.label("Name:");
+        if ui
+            .add(egui::TextEdit::singleline(&mut name).hint_text("snapshot name…"))
+            .lost_focus()
             && ui.input(|i| i.key_pressed(egui::Key::Enter))
         {
             take = true;
         }
-        if ui.button("+ snapshot").clicked() {
+        if ui
+            .button("📸  Take snapshot")
+            .on_hover_text("Save the current sector as a named restore point")
+            .clicked()
+        {
             take = true;
         }
     });
@@ -182,7 +259,7 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
     ui.separator();
     if state.snapshots.is_empty() {
-        ui.colored_label(egui::Color32::GRAY, "(no snapshots yet)");
+        ui_kit::placeholder(ui, "No snapshots yet — click Take snapshot to save a restore point.");
         return;
     }
     let names: Vec<String> = state.snapshots.iter().map(|s| s.name.clone()).collect();
@@ -191,12 +268,16 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
     for (i, n) in names.iter().enumerate() {
         ui.horizontal(|ui| {
             ui.label(format!("• {n}"));
-            if ui.small_button("revert").clicked() {
+            if ui
+                .small_button("↩ revert")
+                .on_hover_text("Restore the sector to this save point")
+                .clicked()
+            {
                 revert_to = Some(n.clone());
             }
             if ui
                 .small_button("×")
-                .on_hover_text("Delete snapshot")
+                .on_hover_text("Delete this snapshot")
                 .clicked()
             {
                 delete = Some(i);

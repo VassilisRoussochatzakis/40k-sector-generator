@@ -8,21 +8,37 @@
 //! `min_faction_delta` filters. §DF5 writes `diff.md` + `diff.json`.
 
 use camino::Utf8PathBuf;
-use egui::{Color32, RichText};
+use egui::{Color32, RichText, Ui};
 
 use sectorforge::diff::SectorDiff;
 use sectorforge::sector_model::GeneratedSector;
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::diff_run::{DiffMode, LoadedFile, SlotKind};
 use crate::builder::{BuilderState, ModalKind};
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Show worlds", "Smallest faction change") while
+/// the tooltip names the underlying field plus a plain-language note, so power
+/// users keep the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Diff");
     ui.label(
-        RichText::new("§DF1..§DF5 — compare two sectors or simulate conflict ticks.")
-            .small()
-            .color(Color32::GRAY),
+        RichText::new("Compare two sectors, or simulate conflict and see what changed.")
+            .color(Color32::DARK_GRAY),
     );
     ui.separator();
 
@@ -51,19 +67,21 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 // ── §DF1 / §DF2 mode toggle ────────────────────────────────────────────────
 
 fn show_mode(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui.horizontal(|ui| {
-        ui.label("mode:");
-        ui.selectable_value(
-            &mut state.diff.mode,
-            DiffMode::TwoSector,
-            "Two-sector (§DF1)",
-        );
-        ui.selectable_value(
-            &mut state.diff.mode,
-            DiffMode::Ticks,
-            "Tick simulation (§DF2)",
-        );
-    });
+    labeled(
+        ui,
+        "Compare",
+        "What to diff (schema: mode). Compare two chosen sectors, or simulate conflict turns on the current one and diff the outcome.",
+        |ui| {
+            ui.selectable_value(&mut state.diff.mode, DiffMode::TwoSector, "Two sectors")
+                .on_hover_text("Pick a before and after sector to compare");
+            ui.selectable_value(
+                &mut state.diff.mode,
+                DiffMode::Ticks,
+                "Simulate conflict",
+            )
+            .on_hover_text("Advance the current sector by N conflict turns, then diff against it");
+        },
+    );
 }
 
 // ── §DF1 two-sector slot pickers ───────────────────────────────────────────
@@ -71,7 +89,8 @@ fn show_mode(ui: &mut egui::Ui, state: &mut BuilderState) {
 fn show_two_sector_inputs(ui: &mut egui::Ui, state: &mut BuilderState) {
     let snap_names: Vec<String> = state.snapshots.iter().map(|s| s.name.clone()).collect();
 
-    ui.label(RichText::new("before").strong());
+    ui.label(RichText::new("Before").strong())
+        .on_hover_text("The starting sector — the baseline you compare against");
     let err_before = slot_picker(
         ui,
         "diff_before",
@@ -81,7 +100,8 @@ fn show_two_sector_inputs(ui: &mut egui::Ui, state: &mut BuilderState) {
         &snap_names,
     );
     ui.add_space(4.0);
-    ui.label(RichText::new("after").strong());
+    ui.label(RichText::new("After").strong())
+        .on_hover_text("The sector to compare against the before — additions, removals, and changes are measured from before to after");
     let err_after = slot_picker(
         ui,
         "diff_after",
@@ -116,11 +136,11 @@ fn slot_picker(
 
         match *kind {
             SlotKind::Current => {
-                ui.colored_label(Color32::DARK_GRAY, "live in-memory sector");
+                ui.colored_label(Color32::DARK_GRAY, "the sector you're editing now");
             }
             SlotKind::Snapshot => {
                 if snap_names.is_empty() {
-                    ui.colored_label(Color32::GRAY, "no snapshots — create one in PROJECT");
+                    ui_kit::placeholder(ui, "no snapshots yet — take one from the Project tab first");
                 } else {
                     let current = snap.clone().unwrap_or_default();
                     ui_kit::combo(
@@ -142,7 +162,11 @@ fn slot_picker(
                 }
             }
             SlotKind::File => {
-                if ui.button("Load sector.json…").clicked() {
+                if ui
+                    .button("📂  Choose file…")
+                    .on_hover_text("Load a saved sector (sector.json) from disk")
+                    .clicked()
+                {
                     if let Some(picked) = rfd::FileDialog::new()
                         .set_title("Load sector.json")
                         .add_filter("sector json", &["json"])
@@ -153,15 +177,19 @@ fn slot_picker(
                                 Ok(loaded) => *file = Some(loaded),
                                 Err(e) => error = Some(e),
                             },
-                            Err(_) => error = Some("path is not valid UTF-8".to_string()),
+                            Err(_) => error = Some("That file path isn't valid text.".to_string()),
                         }
                     }
                 }
-                let label = file
-                    .as_ref()
-                    .map(|f| format!("{} (seed {})", f.path, f.sector.seed))
-                    .unwrap_or_else(|| "(no file loaded)".to_string());
-                ui.colored_label(Color32::DARK_GRAY, label);
+                match file.as_ref() {
+                    Some(f) => {
+                        ui.colored_label(
+                            Color32::DARK_GRAY,
+                            format!("{} (seed {})", f.path, f.sector.seed),
+                        );
+                    }
+                    None => ui_kit::placeholder(ui, "no file chosen yet"),
+                }
             }
         }
     });
@@ -177,56 +205,89 @@ fn slot_kind_label(kind: SlotKind) -> &'static str {
 }
 
 fn load_sector_file(path: Utf8PathBuf) -> Result<LoadedFile, String> {
-    let text = std::fs::read_to_string(&path).map_err(|e| format!("read {path}: {e}"))?;
-    let sector: GeneratedSector =
-        serde_json::from_str(&text).map_err(|e| format!("parse {path}: {e}"))?;
+    let text =
+        std::fs::read_to_string(&path).map_err(|e| format!("Couldn't open {path}: {e}"))?;
+    let sector: GeneratedSector = serde_json::from_str(&text)
+        .map_err(|e| format!("{path} isn't a valid sector file: {e}"))?;
     Ok(LoadedFile { path, sector })
 }
 
 // ── §DF2 tick inputs ───────────────────────────────────────────────────────
 
 fn show_tick_inputs(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui.horizontal(|ui| {
-        ui.label("advance");
-        ui.add(egui::DragValue::new(&mut state.diff.ticks).range(1..=1000));
-        ui.label("conflict ticks from the current sector, then diff against it.");
-    });
+    labeled(
+        ui,
+        "Conflict turns",
+        "How many conflict turns to simulate forward from the current sector (schema: ticks), before diffing the outcome against the starting point.",
+        |ui| {
+            ui.add(egui::DragValue::new(&mut state.diff.ticks).range(1..=1000));
+            ui.label(
+                RichText::new("turns to advance, then compare").color(Color32::DARK_GRAY),
+            );
+        },
+    );
     ui.colored_label(
         Color32::DARK_GRAY,
-        "Re-uses src/conflict.rs::advance_sector — hysteresis preserved.",
+        "Runs the same conflict simulation as the rest of the app — nothing is changed permanently.",
     );
 }
 
 // ── §DF4 filters ───────────────────────────────────────────────────────────
 
 fn show_filters(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("filters (§DF4)").strong());
-    ui.horizontal(|ui| {
-        ui.checkbox(&mut state.diff.skip_worlds, "skip worlds");
-        ui.checkbox(&mut state.diff.skip_routes, "skip routes");
-    });
-    ui.horizontal(|ui| {
-        ui.label("min faction Δ:");
-        ui.add(
-            egui::DragValue::new(&mut state.diff.min_faction_delta)
-                .speed(0.1)
-                .range(0.0..=1000.0),
-        );
-        ui.label("top deltas:");
-        ui.add(egui::DragValue::new(&mut state.diff.top_faction_deltas).range(1..=200));
-    });
+    ui.label(RichText::new("What to include").strong());
+    labeled(
+        ui,
+        "World changes",
+        "Leave on to skip per-world changes inside each system (schema: skip_worlds) — useful for a higher-level summary.",
+        |ui| {
+            ui.checkbox(&mut state.diff.skip_worlds, "skip world-level changes");
+        },
+    );
+    labeled(
+        ui,
+        "Route changes",
+        "Leave on to skip route additions, removals, and stability changes (schema: skip_routes).",
+        |ui| {
+            ui.checkbox(&mut state.diff.skip_routes, "skip route changes");
+        },
+    );
+    labeled(
+        ui,
+        "Smallest faction change",
+        "Hide faction power changes smaller than this (schema: min_faction_delta). 0 shows every change.",
+        |ui| {
+            ui.add(
+                egui::DragValue::new(&mut state.diff.min_faction_delta)
+                    .speed(0.1)
+                    .range(0.0..=1000.0),
+            );
+        },
+    );
+    labeled(
+        ui,
+        "Top faction changes",
+        "How many of the biggest faction power changes to list (schema: top_faction_deltas).",
+        |ui| {
+            ui.add(egui::DragValue::new(&mut state.diff.top_faction_deltas).range(1..=200));
+        },
+    );
 }
 
 // ── compute + export actions ───────────────────────────────────────────────
 
 fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
-        if ui.button("Compute diff").clicked() {
+        if ui
+            .button("▶  Compute diff")
+            .on_hover_text("Compare the two inputs above and show what changed")
+            .clicked()
+        {
             compute(state);
         }
         if ui
-            .button("Snapshot current as 'before'")
-            .on_hover_text("Take a snapshot of the live sector and point the before-slot at it.")
+            .button("📸  Snapshot as 'before'")
+            .on_hover_text("Save the current sector as a snapshot and use it as the before")
             .clicked()
         {
             let name = format!("diff-before-{}", state.snapshots.len());
@@ -235,7 +296,11 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.diff.before_snapshot = Some(name);
         }
         ui.separator();
-        if ui.button("Choose export folder…").clicked() {
+        if ui
+            .button("📂  Choose folder…")
+            .on_hover_text("Pick where to save the exported diff files")
+            .clicked()
+        {
             if let Some(folder) = rfd::FileDialog::new()
                 .set_title("Choose diff export folder")
                 .pick_folder()
@@ -250,20 +315,20 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
         if ui
             .add_enabled(
                 has_report && has_dir,
-                egui::Button::new("Export diff.md + diff.json (§DF5)"),
+                egui::Button::new("💾  Export diff"),
             )
+            .on_hover_text("Write the diff as a Markdown report and a JSON file to the chosen folder")
             .clicked()
         {
             export(state);
         }
     });
-    let dir_label = state
-        .diff
-        .export_dir
-        .as_ref()
-        .map(|p| p.to_string())
-        .unwrap_or_else(|| "(no export folder picked)".to_string());
-    ui.colored_label(Color32::DARK_GRAY, dir_label);
+    match state.diff.export_dir.as_ref() {
+        Some(p) => {
+            ui.colored_label(Color32::DARK_GRAY, format!("Saves to: {p}"));
+        }
+        None => ui_kit::placeholder(ui, "no export folder chosen yet"),
+    }
 }
 
 fn compute(state: &mut BuilderState) {
@@ -352,34 +417,35 @@ fn export(state: &mut BuilderState) {
 
 fn show_report(ui: &mut egui::Ui, state: &mut BuilderState) {
     let Some(d) = state.diff.report.as_ref() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No diff yet — pick inputs above and click \"Compute diff\".",
+        ui_kit::placeholder(
+            ui,
+            "No diff yet — pick a before and after above, then click Compute diff.",
         );
         return;
     };
 
-    ui.label(RichText::new("result (§DF3)").strong());
+    ui.label(RichText::new("What changed").strong());
     ui.horizontal(|ui| {
         ui.label(format!(
             "systems {} → {} · routes {} → {}",
             d.system_count_before, d.system_count_after, d.route_count_before, d.route_count_after,
         ));
         let (txt, col) = if d.catalog_compatible {
-            ("catalog compatible", Color32::from_rgb(40, 160, 40))
+            ("comparable", Color32::from_rgb(40, 160, 40))
         } else {
             (
-                "catalog MISMATCH — best effort",
+                "different setups — best-effort comparison",
                 Color32::from_rgb(200, 140, 0),
             )
         };
-        ui.colored_label(col, txt);
+        ui.colored_label(col, txt)
+            .on_hover_text("Whether the two sectors share the same catalogs; if not, some changes are matched by best effort");
     });
     if !d.schema_warnings.is_empty() {
         ui_kit::collapsing_section(
             ui,
             "diff_schema_warn",
-            &format!("Schema warnings ({})", d.schema_warnings.len()),
+            &format!("Warnings ({})", d.schema_warnings.len()),
             false,
             |ui| {
                 for w in &d.schema_warnings {
@@ -450,19 +516,19 @@ fn show_systems(ui: &mut egui::Ui, d: &SectorDiff) {
                 .show(ui, |ui| {
                     opt_change(
                         ui,
-                        "state",
+                        "status",
                         c.state_before.map(|s| format!("{s:?}")),
                         c.state_after.map(|s| format!("{s:?}")),
                     );
                     opt_change(
                         ui,
-                        "dominant",
+                        "dominant faction",
                         c.dominant_before.as_ref().map(ToString::to_string),
                         c.dominant_after.as_ref().map(ToString::to_string),
                     );
                     opt_change(
                         ui,
-                        "sovereign",
+                        "ruler",
                         c.sovereign_before.as_ref().map(ToString::to_string),
                         c.sovereign_after.as_ref().map(ToString::to_string),
                     );

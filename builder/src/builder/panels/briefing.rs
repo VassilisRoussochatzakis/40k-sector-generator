@@ -32,6 +32,7 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::briefing::{self, AudiencePreset, BriefingProfile};
 use sectorforge::ids::FactionId;
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::BuilderState;
@@ -58,7 +59,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "audience preset, observer faction, confidence floor, redacted preview, .md/.json export.",
+        "Build a sector briefing for a given audience: pick who is reading, who is watching, how much they can know, then preview and export the redacted pack.",
     );
     ui.separator();
 
@@ -99,51 +100,76 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         });
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Audience", "Confidence floor") while the tooltip
+/// names the underlying briefing-profile field plus a plain-language note, so
+/// power users keep the schema mapping.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── §BR1 preset picker ────────────────────────────────────────────────────
 
 fn show_preset_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("preset").strong());
-        let label = preset_label(state.briefing_preset);
-        let prev = state.briefing_preset;
-        ui_kit::combo("br1_preset", label).show_ui(ui, |ui| {
-            for p in PRESET_VARIANTS {
-                ui.selectable_value(&mut state.briefing_preset, *p, preset_label(*p));
+    labeled(
+        ui,
+        "Audience",
+        "Who the briefing is written for (schema: preset). Sets how aggressively secrets are redacted.",
+        |ui| {
+            let label = preset_label(state.briefing_preset);
+            let prev = state.briefing_preset;
+            ui_kit::combo("br1_preset", label).show_ui(ui, |ui| {
+                for p in PRESET_VARIANTS {
+                    ui.selectable_value(&mut state.briefing_preset, *p, preset_label(*p))
+                        .on_hover_text(preset_blurb(*p));
+                }
+            });
+            if state.briefing_preset != prev {
+                invalidate_preview(state);
             }
-        });
-        if state.briefing_preset != prev {
-            invalidate_preview(state);
-        }
-        ui.colored_label(Color32::DARK_GRAY, preset_blurb(state.briefing_preset));
-    });
+        },
+    );
+    ui.label(RichText::new(preset_blurb(state.briefing_preset)).color(Color32::DARK_GRAY));
 }
 
 // ── §BR2 observer-faction picker ──────────────────────────────────────────
 
 fn show_observer_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("observer").strong());
-        let selected_text = state
-            .briefing_observer
-            .as_ref()
-            .map(|id| observer_label(state, id))
-            .unwrap_or_else(|| "(none)".to_string());
-        let prev = state.briefing_observer.clone();
-        ui_kit::combo("br2_observer", selected_text).show_ui(ui, |ui| {
-            ui.selectable_value(&mut state.briefing_observer, None, "(none)");
-            for f in &state.sector.factions {
-                let label = format!("{} ({})", f.name, f.id);
-                ui.selectable_value(&mut state.briefing_observer, Some(f.id.clone()), label);
+    labeled(
+        ui,
+        "Seen through",
+        "The faction whose knowledge limits the briefing (schema: observer_faction). Leave as (none) for an audience with no faction of its own.",
+        |ui| {
+            let selected_text = state
+                .briefing_observer
+                .as_ref()
+                .map(|id| observer_label(state, id))
+                .unwrap_or_else(|| "(none)".to_string());
+            let prev = state.briefing_observer.clone();
+            ui_kit::combo("br2_observer", selected_text).show_ui(ui, |ui| {
+                ui.selectable_value(&mut state.briefing_observer, None, "(none)");
+                for f in &state.sector.factions {
+                    let label = format!("{} ({})", f.name, f.id);
+                    ui.selectable_value(&mut state.briefing_observer, Some(f.id.clone()), label);
+                }
+            });
+            if state.briefing_observer != prev {
+                invalidate_preview(state);
             }
-        });
-        if state.briefing_observer != prev {
-            invalidate_preview(state);
-        }
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            "Without an observer every non-observer intel sub-record is dropped.",
-        );
-    });
+        },
+    );
+    ui.label(
+        RichText::new("With no watcher, intel that belongs to another faction is left out.")
+            .color(Color32::DARK_GRAY),
+    );
 }
 
 fn observer_label(state: &BuilderState, id: &FactionId) -> String {
@@ -156,27 +182,31 @@ fn observer_label(state: &BuilderState, id: &FactionId) -> String {
 // ── §BR3 min-confidence slider ────────────────────────────────────────────
 
 fn show_confidence_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("min confidence").strong());
-        let prev = state.briefing_min_confidence;
-        ui.add(
-            egui::Slider::new(&mut state.briefing_min_confidence, 0..=100)
-                .text("0 = show all, 100 = directly observable only"),
-        );
-        if state.briefing_min_confidence != prev {
-            invalidate_preview(state);
-        }
-        let effective = effective_min_confidence(state);
-        if effective != state.briefing_min_confidence {
-            ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
-                format!(
-                    "preset floor clamps to {effective} (preset {} enforces its own minimum)",
-                    preset_label(state.briefing_preset)
-                ),
+    labeled(
+        ui,
+        "Confidence floor",
+        "Lowest certainty an item needs to appear (schema: minimum_intel_confidence). 0 shows everything; 100 keeps only what is directly observed.",
+        |ui| {
+            let prev = state.briefing_min_confidence;
+            ui.add(
+                egui::Slider::new(&mut state.briefing_min_confidence, 0..=100)
+                    .text("0 = show all, 100 = directly observable only"),
             );
-        }
-    });
+            if state.briefing_min_confidence != prev {
+                invalidate_preview(state);
+            }
+        },
+    );
+    let effective = effective_min_confidence(state);
+    if effective != state.briefing_min_confidence {
+        ui.colored_label(
+            Color32::from_rgb(220, 170, 80),
+            format!(
+                "The {} audience raises the floor to {effective}.",
+                preset_label(state.briefing_preset)
+            ),
+        );
+    }
 }
 
 fn effective_min_confidence(state: &BuilderState) -> u8 {
@@ -212,18 +242,20 @@ fn preset_apply(preset: AudiencePreset, profile: &mut BriefingProfile) {
 
 fn show_generate_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Generate briefing").clicked() {
+        if ui
+            .button("🔄  Generate briefing")
+            .on_hover_text("Build the redacted preview from the settings above")
+            .clicked()
+        {
             regenerate_preview(state);
         }
         if state.briefing_preview_md.is_some() {
             ui.colored_label(Color32::DARK_GRAY, "preview ready");
-        } else {
-            ui.colored_label(
-                Color32::GRAY,
-                "no preview yet — click \"Generate briefing\"",
-            );
         }
     });
+    if state.briefing_preview_md.is_none() {
+        ui_kit::placeholder(ui, "No preview yet — click Generate briefing to build one.");
+    }
 }
 
 fn regenerate_preview(state: &mut BuilderState) {
@@ -251,7 +283,11 @@ fn build_profile(state: &BuilderState) -> BriefingProfile {
 
 fn show_export_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Choose export folder…").clicked() {
+        if ui
+            .button("📂  Choose folder…")
+            .on_hover_text("Pick the folder the .md and .json files are written to")
+            .clicked()
+        {
             if let Some(folder) = rfd::FileDialog::new()
                 .set_title("Choose briefing export folder")
                 .pick_folder()
@@ -264,7 +300,11 @@ fn show_export_row(ui: &mut Ui, state: &mut BuilderState) {
         let has_pack = state.briefing_preview_pack.is_some();
         let has_dir = state.briefing_export_dir.is_some();
         if ui
-            .add_enabled(has_pack && has_dir, egui::Button::new("Export .md + .json"))
+            .add_enabled(
+                has_pack && has_dir,
+                egui::Button::new("💾  Export .md + .json"),
+            )
+            .on_hover_text("Write the previewed briefing to the chosen folder")
             .clicked()
         {
             export_pack(state);
@@ -277,8 +317,8 @@ fn show_export_row(ui: &mut Ui, state: &mut BuilderState) {
         ui.colored_label(Color32::DARK_GRAY, dir_label);
     });
     if state.briefing_preview_pack.is_none() {
-        ui.colored_label(
-            Color32::GRAY,
+        ui_kit::placeholder(
+            ui,
             "Generate the briefing first — export writes the previewed pack.",
         );
     }
@@ -308,11 +348,11 @@ fn export_pack(state: &mut BuilderState) {
 // ── §BR4 preview pane ─────────────────────────────────────────────────────
 
 fn show_preview(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("redacted preview").strong());
+    ui.label(RichText::new("Redacted preview").strong());
     let Some(md) = state.briefing_preview_md.as_ref() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No preview yet. Adjust the preset / observer / confidence above and click \"Generate briefing\".",
+        ui_kit::placeholder(
+            ui,
+            "No preview yet — set the audience, watcher, and confidence above, then click Generate briefing.",
         );
         return;
     };

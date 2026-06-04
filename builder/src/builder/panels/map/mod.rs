@@ -82,26 +82,34 @@ fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
             show_toolbox(ui, state);
             ui.separator();
             ui.horizontal_wrapped(|ui| {
-                ui.label("zoom:");
+                ui.label("Zoom:")
+                    .on_hover_text("Hex size on screen — drag to zoom the map in or out.");
                 ui.add(egui::Slider::new(&mut state.hex_size, 12.0..=64.0).text("hex"));
             });
             if !state.selected_systems.is_empty() {
-                ui.label(format!("selected: {}", state.selected_systems.len()));
+                ui.label(format!("Selected: {} system(s)", state.selected_systems.len()));
             }
             if let Some(id) = &state.selected_system_id {
-                ui.label(format!("focus: {id}"));
+                ui.label(format!("Focused: {id}"));
             }
             if let Some(id) = &state.pending_route_start {
-                ui.label(format!("route from: {id}"));
+                ui.label(format!("Drawing route from: {id}"));
             }
-            // §CTX1 Phase 4 — surface the live partial-regen anchor so the user
-            // can tell why their next primary click will be consumed.
+            // Phase 4 — surface the live partial-regen anchor so the user can
+            // tell why their next click on the map will be consumed.
             if let Some(anchor) = state.partial_regen_anchor {
                 ui.colored_label(
                     egui::Color32::from_rgb(120, 200, 240),
-                    format!("partial-regen anchor: ({}, {})", anchor.q, anchor.r),
+                    format!(
+                        "Regenerate region: pick the opposite corner (from {}, {}).",
+                        anchor.q, anchor.r
+                    ),
                 );
-                if ui.small_button("cancel anchor").clicked() {
+                if ui
+                    .small_button("Cancel")
+                    .on_hover_text("Stop picking a region to regenerate.")
+                    .clicked()
+                {
                     state.partial_regen_anchor = None;
                 }
             }
@@ -113,10 +121,10 @@ fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
         });
 }
 
-/// §N3 toolbox: SELECT / ADD / DELETE / MOVE / ADD ROUTE / REGION-PAINT.
+/// Map editing tools: SELECT / ADD / DELETE / MOVE / ADD ROUTE / REGION PAINT.
 pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label("tool:");
+        ui.label("Tool:");
         for tool in [
             MapTool::Select,
             MapTool::AddSystem,
@@ -126,7 +134,11 @@ pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
             MapTool::RegionPaint,
         ] {
             let selected = state.map_tool == tool;
-            if ui.selectable_label(selected, tool.label()).clicked() {
+            if ui
+                .selectable_label(selected, tool.label())
+                .on_hover_text(tool_help(tool))
+                .clicked()
+            {
                 state.map_tool = tool;
                 if tool != MapTool::AddRoute {
                     state.pending_route_start = None;
@@ -134,6 +146,25 @@ pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
             }
         }
     });
+}
+
+/// One-line, plain-language description of what each map tool does, shown on
+/// hover over the tool button.
+fn tool_help(tool: MapTool) -> &'static str {
+    match tool {
+        MapTool::Select => {
+            "Select systems. Click to focus one, Shift-click to add to the selection, \
+             or drag a box to select several."
+        }
+        MapTool::AddSystem => "Add a system. Click an empty hex to place a new system there.",
+        MapTool::DeleteSystem => "Delete a system. Click a system to remove it from the map.",
+        MapTool::MoveSystem => "Move a system. Drag a system to a new hex.",
+        MapTool::AddRoute => "Add a route. Click one system, then another, to link them.",
+        MapTool::RegionPaint => {
+            "Paint a warp region. Brush hexes to add them to the selected region; \
+             Ctrl-click for the right-click menu."
+        }
+    }
 }
 
 /// §COLUMNS §6.2 — right-rail inspector for the entity selected on the map.
@@ -158,7 +189,7 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
                 if multi > 1 {
                     ui.add_space(4.0);
                     ui.label(format!(
-                        "{multi} systems selected — SYSTEM ▸ Bulk operations."
+                        "{multi} systems selected. Use the SYSTEM tab's bulk operations to edit them together."
                     ));
                 }
                 return;
@@ -193,22 +224,56 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
             let mut open_faction = None;
 
             ui_kit::section(ui, &format!("{sys_name}  ·  {sys_id}"), |ui| {
-                ui.label(format!("coord ({}, {}) · {kind}", coord.q, coord.r));
+                labeled(
+                    ui,
+                    "Coordinates",
+                    "Hex grid position of this system (schema: coord), as column, row.",
+                    |ui| {
+                        ui.label(format!("({}, {})", coord.q, coord.r));
+                    },
+                );
+                labeled(
+                    ui,
+                    "Kind",
+                    "What sits at this hex — a star system, deep-space anomaly, and so on (schema: kind).",
+                    |ui| {
+                        ui.label(kind.to_string());
+                    },
+                );
                 if let Some(star) = &star {
-                    ui.label(format!("star {star}"));
+                    labeled(
+                        ui,
+                        "Star",
+                        "Colour class of the system's star (schema: star), shown as code and name.",
+                        |ui| {
+                            ui.label(star);
+                        },
+                    );
                 }
                 if let Some(cs) = control_state {
-                    ui.label(format!("control: {cs}"));
+                    labeled(
+                        ui,
+                        "Control",
+                        "Who holds this system and how contested it is (schema: control.state).",
+                        |ui| {
+                            ui.label(cs.to_string());
+                        },
+                    );
                 }
                 if !primary.is_empty() {
-                    ui.label("primary factions:");
+                    ui.label("Primary factions:")
+                        .on_hover_text("Factions that dominate this system (schema: primary_factions). Click one to open it.");
                     for fid in &primary {
                         if sectorforge_gui_core::entity_link(ui, fid.to_string(), true).clicked() {
                             open_faction = Some(fid.clone());
                         }
                     }
                 }
-                if ui.button("Open in SYSTEM tab").clicked() {
+                if ui
+                    .button("Open in SYSTEM tab")
+                    .on_hover_text("Edit this system's full details in the SYSTEM tab.")
+                    .clicked()
+                {
                     open_system = true;
                 }
             });
@@ -216,7 +281,7 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             ui_kit::section(ui, &format!("Worlds ({})", worlds.len()), |ui| {
                 if worlds.is_empty() {
-                    ui_kit::placeholder(ui, "no worlds");
+                    ui_kit::placeholder(ui, "No worlds in this system yet.");
                 }
                 for (wid, wname) in &worlds {
                     let sel = state.selected_world_id.as_ref() == Some(wid);
@@ -248,10 +313,43 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
                     };
                     ui.add_space(4.0);
                     ui_kit::section(ui, &format!("World · {wname}"), |ui| {
-                        ui.label(format!("type {wtype}"));
-                        ui.label(format!("pop {pop} · gov {gov}"));
-                        ui.label(format!("faction presence: {fac_n}"));
-                        if ui.button("Open in WORLD tab").clicked() {
+                        labeled(
+                            ui,
+                            "Type",
+                            "World classification, e.g. hive, agri, forge (schema: world.world_type).",
+                            |ui| {
+                                ui.label(&wtype);
+                            },
+                        );
+                        labeled(
+                            ui,
+                            "Population",
+                            "Rough population band of the world (schema: world.population).",
+                            |ui| {
+                                ui.label(&pop);
+                            },
+                        );
+                        labeled(
+                            ui,
+                            "Government",
+                            "How the world is governed (schema: world.government).",
+                            |ui| {
+                                ui.label(&gov);
+                            },
+                        );
+                        labeled(
+                            ui,
+                            "Factions present",
+                            "How many factions hold a presence on this world (schema: factions).",
+                            |ui| {
+                                ui.label(fac_n.to_string());
+                            },
+                        );
+                        if ui
+                            .button("Open in WORLD tab")
+                            .on_hover_text("Edit this world's full details in the WORLD tab.")
+                            .clicked()
+                        {
                             open_world = Some(wid.clone());
                         }
                     });
@@ -275,6 +373,23 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
                 state.focus_entity(EntityRef::Faction(fid));
             }
         });
+}
+
+/// Aligned label-left / value-right row with a hover tooltip. The visible label
+/// reads in human terms ("Coordinates", "Population") while the tooltip names the
+/// underlying field plus a plain-language note, so power users keep the schema
+/// mapping. Mirrors the `labeled` helper in the FACTIONS panel; the read-only
+/// inspector feeds it a plain `ui.label(value)` closure.
+fn labeled(ui: &mut egui::Ui, label: &str, help: &str, add: impl FnOnce(&mut egui::Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(egui::RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
 }
 
 #[cfg(test)]

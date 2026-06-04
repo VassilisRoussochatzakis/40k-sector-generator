@@ -1,4 +1,4 @@
-//! SITES tab (§N1 / §N2) — Phase D §ST1..§ST4.
+//! SITES tab (§N1 / §N2) — §ST1..§ST4.
 //!
 //! §ST1  Per-world site editor. The list is the cached [`SitesReport`]
 //!        published by [`BuilderState::recompute_sites`]; `derive_with`
@@ -8,7 +8,7 @@
 //!        Selecting a row populates [`BuilderState::selected_site_id`] and
 //!        [`BuilderState::sites_edit_target`] so cross-tab links land here
 //!        first-class.
-//! §ST2  "Auto-derive sites" calls [`BuilderState::recompute_sites`] which
+//! §ST2  "Regenerate sites" calls [`BuilderState::recompute_sites`] which
 //!        runs `sites::derive_with(&sector, &cfg)`. Manual entries survive
 //!        because [`sectorforge::sites::derive_with`] appends `cfg.manual`
 //!        last after sorting the derived set.
@@ -26,6 +26,7 @@
 //! recompute pass rewrites the published overlay.
 
 use egui::{Color32, RichText, Ui};
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use sectorforge::ids::{FactionId, SystemId, WorldId};
@@ -37,7 +38,7 @@ use crate::builder::BuilderState;
 const DEFAULT_SITES_PATH: &str = "data/sites.toml";
 
 /// Every [`SiteKind`] in panel-display order. Keep in sync with
-/// `src/sites.rs::SiteKind`.
+/// `src/gen/sites.rs::SiteKind`.
 const KIND_VARIANTS: &[SiteKind] = &[
     SiteKind::GovernorsPalace,
     SiteKind::CathedralSpire,
@@ -75,12 +76,15 @@ const STATUS_VARIANTS: &[SiteStatus] = &[
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Sites");
     ui.add_space(2.0);
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "per-world site editor, auto-derive + manual survive, player-edition toggle, sites.toml round-trip.",
+    ui.label(
+        RichText::new(
+            "Notable places on each world — palaces, shrines, ruins. \
+             Regenerate from the sector, hand-add your own, and choose what players are allowed to see.",
+        )
+        .color(Color32::DARK_GRAY),
     );
 
-    // §COLUMNS — sector-wide controls stay full-width on top (auto-derive,
+    // §COLUMNS — sector-wide controls stay full-width on top (regenerate,
     // player-edition toggle, sites.toml knobs, kind filter), then a master-detail
     // split: a persistent world roster on the left rail and the per-world site
     // table + detail + manual editor filling the rest. Replaces the single
@@ -114,6 +118,23 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     });
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Controller", "Cover story") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep the
+/// schema mapping. Friendlier replacement for the old bare `egui::Grid` whose row
+/// labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── §COLUMNS world roster (master pane) ─────────────────────────────────────
 
 /// §COLUMNS — left-rail world roster, grouped by parent system. Selecting a
@@ -142,7 +163,10 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             if total_worlds == 0 {
-                ui_kit::placeholder(ui, "No worlds in this sector yet.");
+                ui_kit::placeholder(
+                    ui,
+                    "No worlds in this sector yet — add systems and worlds in the Map tab first.",
+                );
                 return;
             }
             for sys in &state.sector.systems {
@@ -163,7 +187,11 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
                             } else {
                                 format!("{} — {}", w.name, w.id)
                             };
-                            if ui.selectable_label(sel, label).clicked() {
+                            if ui
+                                .selectable_label(sel, label)
+                                .on_hover_text("Show this world's sites in the table on the right")
+                                .clicked()
+                            {
                                 pick = Some((sys.id.clone(), w.id.clone()));
                             }
                         }
@@ -181,13 +209,22 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Auto-derive sites").clicked() {
+        if ui
+            .button("🔄  Regenerate sites")
+            .on_hover_text("Rebuild every world's sites from the current sector. Your hand-added sites are kept.")
+            .clicked()
+        {
             ensure_sites_catalog(state);
             state.recompute_sites();
         }
-        ui.checkbox(&mut state.sites_auto_recompute, "auto-recompute on edit");
+        ui.checkbox(&mut state.sites_auto_recompute, "Regenerate after every edit")
+            .on_hover_text("Re-run the generator automatically whenever you change a setting or a manual site");
         if ui
-            .checkbox(&mut state.sites_player_edition, "player edition (--player)")
+            .checkbox(&mut state.sites_player_edition, "Players' view")
+            .on_hover_text(
+                "Hide each site's true status, showing only what's publicly known — \
+                 the same as the --player export flag",
+            )
             .changed()
         {
             state.recompute_sites();
@@ -203,11 +240,11 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .as_ref()
             .map(|c| c.manual.len())
             .unwrap_or(0);
-        ui.label(format!("sites: {total}  (manual: {manual})"));
+        ui.label(format!("{total} site(s)  ({manual} hand-added)"));
         if state.data_catalogs.sites.is_none() {
             ui.colored_label(
                 Color32::from_rgb(220, 170, 80),
-                "no sites.toml loaded (defaults apply)",
+                "● using default settings (nothing saved yet)",
             );
         }
     });
@@ -216,27 +253,29 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST4 config knobs ──────────────────────────────────────────────────────
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("sites.toml knobs").strong());
+    ui.label(RichText::new("Generation settings").strong());
     ensure_sites_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.sites.as_mut() else {
         return;
     };
     let mut changed = false;
-    egui::Grid::new("st4_grid").num_columns(2).show(ui, |ui| {
-        ui.label("max_per_world");
-        changed |= ui
-            .add(egui::DragValue::new(&mut cfg.max_per_world).range(0..=32))
-            .changed();
-        ui.end_row();
-        ui.label("skip_uninhabited");
-        changed |= ui
-            .checkbox(&mut cfg.skip_uninhabited, "skip uninhabited worlds")
-            .changed();
-        ui.end_row();
-    });
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "Higher max ⇒ more sites per world. skip_uninhabited still emits sites on Tomb / Dead / Warp-Lost / Daemon worlds.",
+    labeled(
+        ui,
+        "Max per world",
+        "Most sites the generator will place on any single world (schema: max_per_world). Higher means busier worlds.",
+        |ui| {
+            changed |= ui
+                .add(egui::DragValue::new(&mut cfg.max_per_world).range(0..=32))
+                .changed();
+        },
+    );
+    labeled(
+        ui,
+        "Skip empty worlds",
+        "Don't generate sites on uninhabited worlds (schema: skip_uninhabited). Tomb, Dead, Warp-Lost and Daemon worlds still get sites.",
+        |ui| {
+            changed |= ui.checkbox(&mut cfg.skip_uninhabited, "").changed();
+        },
     );
     if changed {
         on_catalog_edited(state);
@@ -247,7 +286,7 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("filter").strong());
+        ui.label(RichText::new("Show only").strong());
         let label = match state.sites_filter_kind {
             None => "all kinds".to_string(),
             Some(k) => kind_label(k).to_string(),
@@ -255,7 +294,8 @@ fn show_filter_row(ui: &mut Ui, state: &mut BuilderState) {
         ui_kit::combo("st1_kind", label).show_ui(ui, |ui| {
             ui.selectable_value(&mut state.sites_filter_kind, None, "all kinds");
             for k in KIND_VARIANTS {
-                ui.selectable_value(&mut state.sites_filter_kind, Some(*k), kind_label(*k));
+                ui.selectable_value(&mut state.sites_filter_kind, Some(*k), kind_label(*k))
+                    .on_hover_text(format!("schema key: {}", k.as_slug()));
             }
         });
     });
@@ -267,8 +307,8 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
     // §COLUMNS — the right pane is the selected world's site table. Without a
     // world selected, prompt the user to pick one from the roster on the left.
     let Some(world_id) = state.selected_world_id.clone() else {
-        ui.label(RichText::new("per-world sites").strong());
-        ui_kit::placeholder(ui, "Select a world from the roster on the left.");
+        ui.label(RichText::new("Sites on this world").strong());
+        ui_kit::placeholder(ui, "Pick a world from the list on the left to see its sites.");
         return;
     };
     let world_name = state
@@ -279,11 +319,11 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
         .find(|w| w.id == world_id)
         .map(|w| w.name.to_string())
         .unwrap_or_else(|| world_id.to_string());
-    ui.label(RichText::new(format!("sites — {world_name} ({world_id})")).strong());
+    ui.label(RichText::new(format!("Sites on {world_name} ({world_id})")).strong());
     let Some(report) = state.sites_report.clone() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No sites yet. Click \"Auto-derive sites\" above.",
+        ui_kit::placeholder(
+            ui,
+            "No sites yet — click Regenerate sites at the top to build them.",
         );
         return;
     };
@@ -295,9 +335,9 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
         .filter(|s| filter.is_none_or(|k| s.kind == k))
         .collect();
     if rows.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No sites on this world matched the current filter / player-edition mask.",
+        ui_kit::placeholder(
+            ui,
+            "No sites on this world match the current filter and view — try \"all kinds\" or turn off Players' view.",
         );
         return;
     }
@@ -313,13 +353,17 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                     // §COLUMNS — the table is scoped to the selected world, so the
                     // old leading "World" column (which repeated the same id on
                     // every row) is replaced by the per-row site id selector.
-                    ui.label(RichText::new("id").strong());
+                    ui.label(RichText::new("ID").strong())
+                        .on_hover_text("Stable site identifier (schema: id). Click to select.");
                     ui.label(RichText::new("Kind").strong());
                     ui.label(RichText::new("Name").strong());
-                    ui.label(RichText::new("Controller").strong());
-                    ui.label(RichText::new("Public").strong());
+                    ui.label(RichText::new("Controller").strong())
+                        .on_hover_text("Faction in charge of the site (schema: controlling_faction)");
+                    ui.label(RichText::new("Known status").strong())
+                        .on_hover_text("Status everyone can see (schema: public_status)");
                     if show_actual {
-                        ui.label(RichText::new("Actual").strong());
+                        ui.label(RichText::new("True status").strong())
+                            .on_hover_text("Real status, hidden in Players' view (schema: actual_status)");
                     }
                     ui.label(RichText::new("").strong());
                     ui.end_row();
@@ -337,7 +381,8 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                                 world: s.world_id.clone(),
                             });
                         }
-                        ui.label(kind_label(s.kind));
+                        ui.label(kind_label(s.kind))
+                            .on_hover_text(format!("schema key: {}", s.kind.as_slug()));
                         ui.label(RichText::new(s.name.clone()).strong());
                         ui.label(
                             s.controlling_faction
@@ -346,17 +391,23 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                                 .unwrap_or_else(|| "—".to_string()),
                         );
                         let public_diff = s.public_status != s.actual_status;
-                        let public_text = RichText::new(format!("{}", s.public_status));
+                        let public_text = RichText::new(status_label(s.public_status));
                         let public_text = if public_diff && show_actual {
                             public_text.color(Color32::from_rgb(220, 170, 80))
                         } else {
                             public_text
                         };
-                        ui.label(public_text);
+                        ui.label(public_text)
+                            .on_hover_text(format!("schema key: {}", s.public_status.as_slug()));
                         if show_actual {
-                            ui.label(format!("{}", s.actual_status));
+                            ui.label(status_label(s.actual_status))
+                                .on_hover_text(format!("schema key: {}", s.actual_status.as_slug()));
                         }
-                        if ui.button("highlight").clicked() {
+                        if ui
+                            .button("Show on map")
+                            .on_hover_text("Select this site and highlight its world on the map")
+                            .clicked()
+                        {
                             state.selected_site_id = Some(s.id.clone());
                             state.sites_edit_target = Some(s.id.clone());
                             state.focus_entity(EntityRef::World {
@@ -373,13 +424,13 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST1 detail card ───────────────────────────────────────────────────────
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("detail").strong());
+    ui.label(RichText::new("Selected site").strong());
     let target = state
         .sites_edit_target
         .clone()
         .or_else(|| state.selected_site_id.clone());
     let Some(target_id) = target else {
-        ui_kit::placeholder(ui, "Select a site above to see its details.");
+        ui_kit::placeholder(ui, "Select a site in the table above to see its full details.");
         return;
     };
     let Some(site) = state
@@ -388,23 +439,30 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
         .and_then(|r| r.sites.iter().find(|s| s.id == target_id))
         .cloned()
     else {
-        ui.colored_label(
-            Color32::GRAY,
-            format!("Site id `{target_id}` is gone — regenerate to refresh."),
+        ui_kit::placeholder(
+            ui,
+            "That site is no longer in the report — click Regenerate sites to refresh.",
         );
         return;
     };
     let show_actual = !state.sites_player_edition;
-    egui::Grid::new("st_detail_grid")
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("id");
+    labeled(
+        ui,
+        "ID",
+        "Stable site identifier (schema: id).",
+        |ui| {
             ui.label(RichText::new(site.id.clone()).monospace());
-            ui.end_row();
-            ui.label("kind");
-            ui.label(kind_label(site.kind));
-            ui.end_row();
-            ui.label("system / world");
+        },
+    );
+    labeled(ui, "Kind", "What sort of site this is (schema: kind).", |ui| {
+        ui.label(kind_label(site.kind))
+            .on_hover_text(format!("schema key: {}", site.kind.as_slug()));
+    });
+    labeled(
+        ui,
+        "System / world",
+        "Where the site sits (schema: system_id / world_id). Click to jump to it.",
+        |ui| {
             if ui
                 .link(format!("{}/{}", site.system_id, site.world_id))
                 .clicked()
@@ -414,18 +472,28 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
                     world: site.world_id.clone(),
                 });
             }
-            ui.end_row();
-            ui.label("region");
+        },
+    );
+    labeled(
+        ui,
+        "Region",
+        "Map region the site falls in, if any (schema: region_kind).",
+        |ui| {
             ui.label(
                 site.region_kind
                     .map(|r| format!("{r}"))
                     .unwrap_or_else(|| "—".to_string()),
             );
-            ui.end_row();
-            ui.label("name");
-            ui.label(RichText::new(site.name.clone()).strong());
-            ui.end_row();
-            ui.label("controller");
+        },
+    );
+    labeled(ui, "Name", "Display name of the site (schema: name).", |ui| {
+        ui.label(RichText::new(site.name.clone()).strong());
+    });
+    labeled(
+        ui,
+        "Controller",
+        "Faction in charge of the site (schema: controlling_faction). Click to jump to it.",
+        |ui| {
             if let Some(f) = &site.controlling_faction {
                 if ui.link(f.to_string()).clicked() {
                     state.focus_entity(EntityRef::Faction(f.clone()));
@@ -433,22 +501,39 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             } else {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             }
-            ui.end_row();
-            ui.label("public status");
-            ui.label(format!("{}", site.public_status));
-            ui.end_row();
-            if show_actual {
-                ui.label("actual status");
-                let txt = RichText::new(format!("{}", site.actual_status));
+        },
+    );
+    labeled(
+        ui,
+        "Known status",
+        "Status everyone can see (schema: public_status).",
+        |ui| {
+            ui.label(status_label(site.public_status))
+                .on_hover_text(format!("schema key: {}", site.public_status.as_slug()));
+        },
+    );
+    if show_actual {
+        labeled(
+            ui,
+            "True status",
+            "Real status, hidden in Players' view (schema: actual_status).",
+            |ui| {
+                let txt = RichText::new(status_label(site.actual_status));
                 let txt = if site.public_status != site.actual_status {
                     txt.color(Color32::from_rgb(220, 170, 80))
                 } else {
                     txt
                 };
-                ui.label(txt);
-                ui.end_row();
-            }
-            ui.label("known to");
+                ui.label(txt)
+                    .on_hover_text(format!("schema key: {}", site.actual_status.as_slug()));
+            },
+        );
+    }
+    labeled(
+        ui,
+        "Known to",
+        "Factions that secretly know the true status (schema: known_to).",
+        |ui| {
             if site.known_to.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
@@ -457,23 +542,37 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
                         .iter()
                         .map(|f| f.to_string())
                         .collect::<Vec<_>>()
-                        .join(","),
+                        .join(", "),
                 );
             }
-            ui.end_row();
-            ui.label("tags");
+        },
+    );
+    labeled(
+        ui,
+        "Tags",
+        "Free-form labels for filtering and flavour (schema: tags).",
+        |ui| {
             if site.tags.is_empty() {
                 ui.colored_label(Color32::DARK_GRAY, "—");
             } else {
-                ui.label(site.tags.join(","));
+                ui.label(site.tags.join(", "));
             }
-            ui.end_row();
-            ui.label("hook");
+        },
+    );
+    labeled(
+        ui,
+        "Adventure hook",
+        "One-line story seed for the site (schema: hook).",
+        |ui| {
             ui.label(site.hook.clone());
-            ui.end_row();
-        });
+        },
+    );
     ui.horizontal_wrapped(|ui| {
-        if ui.button("highlight world on map").clicked() {
+        if ui
+            .button("Show world on map")
+            .on_hover_text("Highlight this site's world on the map")
+            .clicked()
+        {
             state.focus_entity(EntityRef::World {
                 system: site.system_id.clone(),
                 world: site.world_id.clone(),
@@ -485,25 +584,38 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
 // ── §ST1 / §ST2 manual entry editor ────────────────────────────────────────
 
 fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("manual sites").strong());
+    ui.label(RichText::new("Hand-added sites").strong());
     ensure_sites_catalog_if_needed(state);
+    // Faction ids already present in the sector, for the controller dropdown.
+    let faction_ids: Vec<FactionId> = state.sector.factions.iter().map(|f| f.id.clone()).collect();
+    // World / system ids present in the sector, for the location dropdowns.
+    let mut world_choices: Vec<(SystemId, WorldId, String)> = Vec::new();
+    for sys in &state.sector.systems {
+        for w in &sys.worlds {
+            world_choices.push((sys.id.clone(), w.id.clone(), w.name.to_string()));
+        }
+    }
     let Some(cfg) = state.data_catalogs.sites.as_mut() else {
         return;
     };
     let mut changed = false;
     let mut remove_idx: Option<usize> = None;
     ui.horizontal_wrapped(|ui| {
-        if ui.button("+ manual site").clicked() {
+        if ui
+            .button("➕  Add site")
+            .on_hover_text("Add a blank hand-made site you can fill in below")
+            .clicked()
+        {
             cfg.manual.push(blank_manual_site(cfg.manual.len()));
             changed = true;
         }
         ui.colored_label(
             Color32::DARK_GRAY,
-            "Manual entries are appended after derivation and survive Auto-derive.",
+            "Hand-added sites are kept whenever you regenerate.",
         );
     });
     if cfg.manual.is_empty() {
-        ui.colored_label(Color32::GRAY, "No manual sites yet.");
+        ui_kit::placeholder(ui, "No hand-added sites yet — click Add site to make one.");
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, s) in cfg.manual.iter_mut().enumerate() {
@@ -511,7 +623,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui,
                 format!("site_manual_{idx}"),
                 &format!(
-                    "[{idx}] {} — {}",
+                    "{} — {}",
                     if s.name.is_empty() {
                         "(unnamed)"
                     } else {
@@ -521,9 +633,10 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ),
                 idx == last_idx,
                 |ui| {
-                    changed |= manual_site_editor(ui, idx, s);
+                    changed |= manual_site_editor(ui, idx, s, &faction_ids, &world_choices);
                     if ui
-                        .button(RichText::new("✕ remove").color(Color32::from_rgb(200, 90, 90)))
+                        .button(RichText::new("🗑  Delete site").color(Color32::from_rgb(200, 90, 90)))
+                        .on_hover_text("Remove this hand-added site")
                         .clicked()
                     {
                         remove_idx = Some(idx);
@@ -541,99 +654,118 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
     }
 }
 
-fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
+fn manual_site_editor(
+    ui: &mut Ui,
+    idx: usize,
+    s: &mut WorldSite,
+    faction_ids: &[FactionId],
+    world_choices: &[(SystemId, WorldId, String)],
+) -> bool {
     let mut changed = false;
-    egui::Grid::new(format!("st_manual_grid_{idx}"))
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("id");
+    labeled(
+        ui,
+        "ID",
+        "Stable identifier for this site (schema: id). Lowercase, no spaces.",
+        |ui| {
             changed |= ui.text_edit_singleline(&mut s.id).changed();
-            ui.end_row();
-            ui.label("kind");
-            ui_kit::combo(format!("st_manual_kind_{idx}"), kind_label(s.kind)).show_ui(ui, |ui| {
-                for k in KIND_VARIANTS {
-                    if ui
-                        .selectable_value(&mut s.kind, *k, kind_label(*k))
-                        .changed()
-                    {
-                        changed = true;
-                    }
+        },
+    );
+    labeled(ui, "Kind", "What sort of site this is (schema: kind).", |ui| {
+        ui_kit::combo(format!("st_manual_kind_{idx}"), kind_label(s.kind)).show_ui(ui, |ui| {
+            for k in KIND_VARIANTS {
+                if ui
+                    .selectable_value(&mut s.kind, *k, kind_label(*k))
+                    .on_hover_text(format!("schema key: {}", k.as_slug()))
+                    .changed()
+                {
+                    changed = true;
                 }
-            });
-            ui.end_row();
-            ui.label("system id");
-            let mut sys = s.system_id.to_string();
-            if ui.text_edit_singleline(&mut sys).changed() {
-                s.system_id = SystemId::new(sys.as_str());
-                changed = true;
             }
-            ui.end_row();
-            ui.label("world id");
-            let mut w = s.world_id.to_string();
-            if ui.text_edit_singleline(&mut w).changed() {
-                s.world_id = WorldId::new(w.as_str());
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("name");
-            changed |= ui.text_edit_singleline(&mut s.name).changed();
-            ui.end_row();
-            ui.label("controller faction id");
-            let mut ctrl = s
-                .controlling_faction
-                .as_ref()
-                .map(|f| f.to_string())
-                .unwrap_or_default();
-            if ui.text_edit_singleline(&mut ctrl).changed() {
-                let trimmed = ctrl.trim();
-                s.controlling_faction = if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(FactionId::new(trimmed))
-                };
-                changed = true;
-            }
-            ui.end_row();
-            ui.label("public status");
+        });
+    });
+    labeled(
+        ui,
+        "Location",
+        "Which system and world the site sits on (schema: system_id / world_id). Pick an existing world, or type ids for one not yet in the sector.",
+        |ui| {
+            changed |= location_combo(ui, idx, s, world_choices);
+        },
+    );
+    labeled(ui, "Name", "Display name of the site (schema: name).", |ui| {
+        changed |= ui.text_edit_singleline(&mut s.name).changed();
+    });
+    labeled(
+        ui,
+        "Controller",
+        "Faction in charge of the site (schema: controlling_faction). Leave blank for none.",
+        |ui| {
+            changed |= faction_combo(
+                ui,
+                format!("st_manual_ctrl_{idx}"),
+                &mut s.controlling_faction,
+                faction_ids,
+            );
+        },
+    );
+    labeled(
+        ui,
+        "Known status",
+        "Status everyone can see (schema: public_status).",
+        |ui| {
             ui_kit::combo(
                 format!("st_manual_pub_{idx}"),
-                format!("{}", s.public_status),
+                status_label(s.public_status),
             )
             .show_ui(ui, |ui| {
                 for v in STATUS_VARIANTS {
                     if ui
-                        .selectable_value(&mut s.public_status, *v, format!("{v}"))
+                        .selectable_value(&mut s.public_status, *v, status_label(*v))
+                        .on_hover_text(format!("schema key: {}", v.as_slug()))
                         .changed()
                     {
                         changed = true;
                     }
                 }
             });
-            ui.end_row();
-            ui.label("actual status");
+        },
+    );
+    labeled(
+        ui,
+        "True status",
+        "Real status (schema: actual_status). Make it differ from the known status to hide something from players.",
+        |ui| {
             ui_kit::combo(
                 format!("st_manual_act_{idx}"),
-                format!("{}", s.actual_status),
+                status_label(s.actual_status),
             )
             .show_ui(ui, |ui| {
                 for v in STATUS_VARIANTS {
                     if ui
-                        .selectable_value(&mut s.actual_status, *v, format!("{v}"))
+                        .selectable_value(&mut s.actual_status, *v, status_label(*v))
+                        .on_hover_text(format!("schema key: {}", v.as_slug()))
                         .changed()
                     {
                         changed = true;
                     }
                 }
             });
-            ui.end_row();
-            ui.label("known to (comma)");
+        },
+    );
+    labeled(
+        ui,
+        "Known to",
+        "Factions that secretly know the true status, separated by commas (schema: known_to).",
+        |ui| {
             let mut csv = s
                 .known_to
                 .iter()
                 .map(|f| f.to_string())
                 .collect::<Vec<_>>()
                 .join(",");
-            if ui.text_edit_singleline(&mut csv).changed() {
+            if ui
+                .add(egui::TextEdit::singleline(&mut csv).hint_text("faction ids, comma-separated"))
+                .changed()
+            {
                 s.known_to = csv
                     .split(',')
                     .map(|t| t.trim())
@@ -642,10 +774,18 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
                     .collect();
                 changed = true;
             }
-            ui.end_row();
-            ui.label("tags (comma)");
+        },
+    );
+    labeled(
+        ui,
+        "Tags",
+        "Free-form labels for filtering and flavour, separated by commas (schema: tags).",
+        |ui| {
             let mut tags = s.tags.join(",");
-            if ui.text_edit_singleline(&mut tags).changed() {
+            if ui
+                .add(egui::TextEdit::singleline(&mut tags).hint_text("tags, comma-separated"))
+                .changed()
+            {
                 s.tags = tags
                     .split(',')
                     .map(|t| t.trim().to_string())
@@ -653,11 +793,131 @@ fn manual_site_editor(ui: &mut Ui, idx: usize, s: &mut WorldSite) -> bool {
                     .collect();
                 changed = true;
             }
-            ui.end_row();
-            ui.label("hook");
+        },
+    );
+    labeled(
+        ui,
+        "Adventure hook",
+        "One-line story seed for the site (schema: hook).",
+        |ui| {
             changed |= ui.text_edit_multiline(&mut s.hook).changed();
-            ui.end_row();
+        },
+    );
+    changed
+}
+
+/// Dropdown over the sector's worlds (+ "(custom…)" rows for ids not yet in the
+/// sector). Friendlier than two raw id boxes: a manual site usually targets a
+/// world that already exists, so it becomes one click instead of retyping the
+/// system + world id pair. The custom rows keep off-sector targets reachable.
+fn location_combo(
+    ui: &mut Ui,
+    idx: usize,
+    s: &mut WorldSite,
+    world_choices: &[(SystemId, WorldId, String)],
+) -> bool {
+    let mut changed = false;
+    let current = if s.world_id.as_str().is_empty() && s.system_id.as_str().is_empty() {
+        "(choose a world)".to_string()
+    } else {
+        let name = world_choices
+            .iter()
+            .find(|(sid, wid, _)| *sid == s.system_id && *wid == s.world_id)
+            .map(|(_, _, name)| name.clone());
+        match name {
+            Some(name) => format!("{name} — {}/{}", s.system_id, s.world_id),
+            None => format!("{}/{}", s.system_id, s.world_id),
+        }
+    };
+    ui.vertical(|ui| {
+        ui_kit::combo(format!("st_manual_loc_{idx}"), current).show_ui(ui, |ui| {
+            for (sid, wid, name) in world_choices {
+                let selected = *sid == s.system_id && *wid == s.world_id;
+                if ui
+                    .selectable_label(selected, format!("{name} — {sid}/{wid}"))
+                    .clicked()
+                {
+                    s.system_id = sid.clone();
+                    s.world_id = wid.clone();
+                    changed = true;
+                }
+            }
         });
+        // Free-text fall-through for a world / system not in the sector yet.
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("or type ids:").small().color(Color32::DARK_GRAY));
+            let mut sys = s.system_id.to_string();
+            if ui
+                .add(egui::TextEdit::singleline(&mut sys).hint_text("system id").desired_width(90.0))
+                .changed()
+            {
+                s.system_id = SystemId::new(sys.as_str());
+                changed = true;
+            }
+            let mut w = s.world_id.to_string();
+            if ui
+                .add(egui::TextEdit::singleline(&mut w).hint_text("world id").desired_width(90.0))
+                .changed()
+            {
+                s.world_id = WorldId::new(w.as_str());
+                changed = true;
+            }
+        });
+    });
+    changed
+}
+
+/// Dropdown over the faction ids present in the sector, plus "(none)" and an
+/// in-popup custom row. Friendlier than free-typing a raw id: the controller is
+/// almost always a faction that already exists. Mirrors the factions panel's
+/// `id_combo`.
+fn faction_combo(
+    ui: &mut Ui,
+    salt: String,
+    slot: &mut Option<FactionId>,
+    faction_ids: &[FactionId],
+) -> bool {
+    let mut changed = false;
+    let current = slot.as_ref().map(|f| f.to_string());
+    let label = current.clone().unwrap_or_else(|| "(none)".to_owned());
+    ui.horizontal(|ui| {
+        ui_kit::combo(salt, label).show_ui(ui, |ui| {
+            if ui.selectable_label(slot.is_none(), "(none)").clicked() {
+                *slot = None;
+                changed = true;
+            }
+            for fid in faction_ids {
+                let selected = current.as_deref() == Some(fid.as_str());
+                if ui.selectable_label(selected, fid.as_str()).clicked() {
+                    *slot = Some(fid.clone());
+                    changed = true;
+                }
+            }
+            ui.separator();
+            ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
+            let mut buf = current.clone().unwrap_or_default();
+            if ui
+                .add(
+                    egui::TextEdit::singleline(&mut buf)
+                        .hint_text("faction id not in sector")
+                        .desired_width(160.0),
+                )
+                .changed()
+            {
+                let trimmed = buf.trim();
+                *slot = if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(FactionId::new(trimmed))
+                };
+                changed = true;
+            }
+        });
+        if slot.is_some() && ui.small_button("×").on_hover_text("clear").clicked() {
+            *slot = None;
+            changed = true;
+        }
+    });
     changed
 }
 
@@ -684,7 +944,8 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.sites.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save sites.toml"))
+            .add_enabled(has_catalog, egui::Button::new("💾  Save sites"))
+            .on_hover_text("Write all site settings and hand-added sites back to sites.toml")
             .clicked()
         {
             if state.config.inputs.sites.is_none() {
@@ -701,7 +962,8 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             .inputs
             .sites
             .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_SITES_PATH})"));
+            .map(|p| format!("file: {p}"))
+            .unwrap_or_else(|| format!("file: {DEFAULT_SITES_PATH} (will be created on save)"));
         ui.colored_label(Color32::DARK_GRAY, path_label);
     });
 }
@@ -759,6 +1021,22 @@ fn kind_label(k: SiteKind) -> &'static str {
         SiteKind::ForgeReactor => "forge reactor",
         SiteKind::TombComplex => "tomb complex",
         SiteKind::NavalAnchorage => "naval anchorage",
+        _ => "unknown",
+    }
+}
+
+/// Human label for a status. The `SiteStatus` `Display` impl emits the raw
+/// snake_case slug (e.g. `under_construction`); this gives the friendlier text
+/// for visible widgets while the slug stays reachable via `as_slug()` tooltips.
+fn status_label(s: SiteStatus) -> &'static str {
+    match s {
+        SiteStatus::Active => "active",
+        SiteStatus::Restricted => "restricted",
+        SiteStatus::Abandoned => "abandoned",
+        SiteStatus::Quarantined => "quarantined",
+        SiteStatus::Sealed => "sealed",
+        SiteStatus::Contested => "contested",
+        SiteStatus::UnderConstruction => "under construction",
         _ => "unknown",
     }
 }

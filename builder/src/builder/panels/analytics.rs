@@ -33,6 +33,7 @@ use camino::Utf8PathBuf;
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::analytics::{AnalyzeConfig, FlagSeverity, SectorAnalysis};
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::{BuilderState, DerivationKind, ModalKind};
@@ -47,10 +48,10 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     }
     ui.heading("Analytics");
     ui.label(
-        RichText::new("§A1..§A4 — faction balance, connectivity, distributions, health flags.")
-            .small()
-            .color(Color32::GRAY),
+        RichText::new("Score the live sector: faction balance, connectivity, distributions, and health flags.")
+            .color(Color32::DARK_GRAY),
     );
+    ui.add_space(4.0);
     ui.separator();
 
     egui::ScrollArea::vertical()
@@ -68,62 +69,80 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 // ── §A2 config editor ───────────────────────────────────────────────────────
 
 fn show_config(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "an_config", "§A2 — [analyze] config", true, |ui| {
+    ui_kit::collapsing_section(ui, "an_config", "Warning thresholds (§A2)", true, |ui| {
         let mut changed = false;
         let cfg = &mut state.analytics.config;
-        egui::Grid::new("analytics_cfg_grid")
-                .num_columns(2)
-                .spacing([12.0, 4.0])
-                .show(ui, |ui| {
-                    ui.label("warn_faction_share")
-                        .on_hover_text("Flag any faction whose share of total projection exceeds this.");
-                    changed |= ui
-                        .add(
-                            egui::DragValue::new(&mut cfg.warn_faction_share)
-                                .speed(0.01)
-                                .range(0.0..=1.0),
-                        )
-                        .changed();
-                    ui.end_row();
 
-                    ui.label("warn_contested_ratio")
-                        .on_hover_text("Flag if the contested-world ratio exceeds this.");
-                    changed |= ui
-                        .add(
-                            egui::DragValue::new(&mut cfg.warn_contested_ratio)
-                                .speed(0.01)
-                                .range(0.0..=1.0),
-                        )
-                        .changed();
-                    ui.end_row();
+        labeled(
+            ui,
+            "Max faction share",
+            "Flag any faction whose share of total projection rises above this fraction (schema: warn_faction_share). 0.5 = half the sector.",
+            |ui| {
+                changed |= ui
+                    .add(
+                        egui::DragValue::new(&mut cfg.warn_faction_share)
+                            .speed(0.01)
+                            .range(0.0..=1.0),
+                    )
+                    .changed();
+            },
+        );
+        labeled(
+            ui,
+            "Max contested ratio",
+            "Flag when the share of worlds claimed by more than one faction rises above this (schema: warn_contested_ratio).",
+            |ui| {
+                changed |= ui
+                    .add(
+                        egui::DragValue::new(&mut cfg.warn_contested_ratio)
+                            .speed(0.01)
+                            .range(0.0..=1.0),
+                    )
+                    .changed();
+            },
+        );
+        labeled(
+            ui,
+            "Tiny-sector size",
+            "Sectors with fewer systems than this mark their connectivity metrics as low-confidence (schema: tiny_sector_threshold).",
+            |ui| {
+                changed |= ui
+                    .add(egui::DragValue::new(&mut cfg.tiny_sector_threshold).range(0..=10_000))
+                    .changed();
+            },
+        );
+        labeled(
+            ui,
+            "Flag if disconnected",
+            "Raise a flag when the route graph splits into more than one piece (schema: warn_if_disconnected).",
+            |ui| {
+                changed |= ui.checkbox(&mut cfg.warn_if_disconnected, "").changed();
+            },
+        );
+        labeled(
+            ui,
+            "Flag choke points",
+            "Raise a flag when removing a single system would split the route graph (schema: warn_if_articulation).",
+            |ui| {
+                changed |= ui.checkbox(&mut cfg.warn_if_articulation, "").changed();
+            },
+        );
 
-                    ui.label("tiny_sector_threshold").on_hover_text(
-                        "Sectors with fewer systems than this mark connectivity metrics low-confidence.",
-                    );
-                    changed |= ui
-                        .add(egui::DragValue::new(&mut cfg.tiny_sector_threshold).range(0..=10_000))
-                        .changed();
-                    ui.end_row();
-
-                    ui.label("warn_if_disconnected");
-                    changed |= ui.checkbox(&mut cfg.warn_if_disconnected, "").changed();
-                    ui.end_row();
-
-                    ui.label("warn_if_articulation");
-                    changed |= ui.checkbox(&mut cfg.warn_if_articulation, "").changed();
-                    ui.end_row();
-                });
-
+        ui.add_space(6.0);
         ui.horizontal(|ui| {
             if ui
-                .button("Load project [analyze]")
-                .on_hover_text("Seed the editor from the open project's [analyze] block.")
+                .button("📥  Load from project")
+                .on_hover_text("Copy the thresholds saved in the open project into this editor.")
                 .clicked()
             {
                 let project = state.config.analyze.clone();
                 state.analytics.seed_from_project(&project);
             }
-            if ui.button("Reset to defaults").clicked() {
+            if ui
+                .button("↺  Reset to defaults")
+                .on_hover_text("Restore the standard thresholds and clear the current report.")
+                .clicked()
+            {
                 state.analytics.config = AnalyzeConfig::default();
                 state.analytics.report = None;
             }
@@ -140,18 +159,24 @@ fn show_config(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Analyze").clicked() {
+        if ui
+            .button("📊  Analyze")
+            .on_hover_text("Score the live sector with the thresholds above.")
+            .clicked()
+        {
             recompute(state);
         }
-        // §A3 strict toggle — display-only failure gate.
+        // Strict toggle — display-only failure gate.
         ui.checkbox(&mut state.analytics.strict, "Strict")
-            .on_hover_text(
-                "Treat every health flag as a failure (CI parity with `analyze --strict`).",
-            );
+            .on_hover_text("Treat every health flag as a failure, so even warnings show as errors.");
 
         ui.separator();
 
-        if ui.button("Choose export folder…").clicked() {
+        if ui
+            .button("📂  Choose folder…")
+            .on_hover_text("Pick where to save the exported report.")
+            .clicked()
+        {
             if let Some(folder) = rfd::FileDialog::new()
                 .set_title("Choose analysis export folder")
                 .pick_folder()
@@ -164,14 +189,13 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
         let has_report = state.analytics.report.is_some();
         let has_dir = state.analytics.export_dir.is_some();
         if ui
-            .add_enabled(
-                has_report && has_dir,
-                egui::Button::new("Export analysis.md + analysis.json (§A4)"),
-            )
-            .on_hover_text(if has_report {
-                "Write the cached analysis to the chosen folder."
+            .add_enabled(has_report && has_dir, egui::Button::new("💾  Export report"))
+            .on_hover_text(if !has_report {
+                "Run Analyze first."
+            } else if !has_dir {
+                "Choose an export folder first."
             } else {
-                "Click Analyze first."
+                "Save the report as analysis.md and analysis.json in the chosen folder."
             })
             .clicked()
         {
@@ -184,7 +208,7 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
         .export_dir
         .as_ref()
         .map(camino::Utf8PathBuf::to_string)
-        .unwrap_or_else(|| "(no export folder picked)".to_string());
+        .unwrap_or_else(|| "No export folder chosen yet.".to_string());
     ui.colored_label(Color32::DARK_GRAY, dir_label);
 
     if let Some(err) = state.analytics.error.as_ref() {
@@ -224,9 +248,9 @@ fn show_dashboard(ui: &mut Ui, state: &mut BuilderState) {
     let strict = state.analytics.strict;
     let failing = state.analytics.failing_flag_count();
     let Some(a) = state.analytics.report.as_ref() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "No analysis yet — click \"Analyze\" to score the live sector.",
+        ui_kit::placeholder(
+            ui,
+            "No report yet — click Analyze to score the live sector.",
         );
         return;
     };
@@ -242,28 +266,28 @@ fn show_dashboard(ui: &mut Ui, state: &mut BuilderState) {
     if a.low_confidence {
         ui.colored_label(
             Color32::from_rgb(210, 170, 90),
-            "⚠ Low-confidence sector (small system count); structural metrics may be degenerate.",
+            "⚠ Few systems — connectivity numbers below may not mean much yet.",
         );
     }
 
-    // §A3 strict banner.
+    // Strict banner — a count of flags currently treated as failures.
     if failing > 0 {
-        let (col, word) = if strict {
-            (Color32::from_rgb(220, 90, 90), "strict")
+        let detail = if strict {
+            "(every flag counts while Strict is on)"
         } else {
-            (Color32::from_rgb(220, 90, 90), "error")
+            "(error-level)"
         };
         ui.colored_label(
-            col,
-            format!("✖ {failing} {word}-level health flag(s) — sector would FAIL CI."),
+            Color32::from_rgb(220, 90, 90),
+            format!("✖ {failing} failing health flag(s) {detail}."),
         );
     } else if !a.health_flags.is_empty() {
         ui.colored_label(
             Color32::from_rgb(120, 180, 120),
-            "✔ no failing flags (warnings/info only).",
+            "✔ No failing flags — only warnings and notes.",
         );
     } else {
-        ui.colored_label(Color32::from_rgb(120, 180, 120), "✔ no health flags.");
+        ui.colored_label(Color32::from_rgb(120, 180, 120), "✔ No health flags.");
     }
 
     ui.add_space(4.0);
@@ -298,7 +322,7 @@ fn show_faction_balance(ui: &mut Ui, a: &SectorAnalysis) {
         true,
         |ui| {
             if a.faction_balance.top_factions.is_empty() {
-                ui.colored_label(Color32::GRAY, "no factions");
+                ui_kit::placeholder(ui, "No factions with map presence yet.");
                 return;
             }
             egui::Grid::new("analytics_faction_grid")
@@ -446,7 +470,10 @@ fn show_health_flags(ui: &mut Ui, a: &SectorAnalysis, strict: bool) {
         true,
         |ui| {
             if a.health_flags.is_empty() {
-                ui.colored_label(Color32::from_rgb(120, 180, 120), "(none)");
+                ui.colored_label(
+                    Color32::from_rgb(120, 180, 120),
+                    "No health flags — the sector looks clean.",
+                );
                 return;
             }
             for f in &a.health_flags {
@@ -471,6 +498,23 @@ fn show_health_flags(ui: &mut Ui, a: &SectorAnalysis, strict: bool) {
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────────
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Max faction share") while the tooltip names the
+/// underlying `[analyze]` field plus a plain-language note, so power users keep
+/// the schema mapping. Friendlier replacement for the old bare `egui::Grid`
+/// whose row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
 
 fn count_block(ui: &mut Ui, title: &str, map: &BTreeMap<Arc<str>, u32>) {
     if map.is_empty() {

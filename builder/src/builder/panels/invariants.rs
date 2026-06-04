@@ -8,7 +8,7 @@
 //! §COLUMNS — master-detail: the stratum-grouped violation list lives in a
 //! persistent left rail (`SidePanel::left("invariants_list")`, keeping the
 //! per-entity jump); the selected violation's detail, the entity deep-link,
-//! "Re-check now", and the read-only §V5 catalogue live in the filling right
+//! "Re-run checks", and the read-only §V5 catalogue live in the filling right
 //! `CentralPanel`. The header summary stays full-width on top. Which violation
 //! is "selected" is pure view state — keyed in `ui.data_mut` temp (no model
 //! state, no command bus); the right pane re-finds the matching violation from
@@ -20,11 +20,49 @@
 
 use std::collections::BTreeMap;
 
+use egui::{Color32, RichText, Ui};
+
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::invariants::{InvariantReport, InvariantViolation};
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::BuilderState;
+
+/// Red used for the severity dot / code token on a violation. Severity colour —
+/// left untouched by the friendly pass.
+const SEVERITY_RED: Color32 = Color32::from_rgb(220, 80, 80);
+
+/// Aligned label-left / value-right row with a hover tooltip, mirroring the
+/// canonical FACTIONS panel. The visible label reads in human terms while the
+/// tooltip carries the underlying locator and a plain-language note. Here the
+/// "fields" are not schema columns but the diagnostic's raw code and entity
+/// path, so power users keep the exact tokens behind the hover.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Humanize a stratum key for display. The raw key stays the section id-salt so
+/// collapse state persists; only the visible title changes.
+fn stratum_title(stratum: &str) -> &'static str {
+    match stratum {
+        "systems" => "Systems",
+        "worlds" => "Worlds",
+        "routes" => "Routes",
+        "factions" => "Factions",
+        "regions" => "Regions",
+        "economy" => "Economy",
+        "manifest" => "Manifest / metadata",
+        _ => "Other",
+    }
+}
 
 /// Stratum groupings used for the panel tree. Order matters — it controls the
 /// display order in the panel.
@@ -39,10 +77,17 @@ const SELECTED_KEY_ID: &str = "invariants_selected_violation";
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Invariants");
+    ui.label(
+        RichText::new("Automatic structural checks on the generated sector — anything broken shows up here, with a one-click jump to the culprit.")
+            .color(Color32::DARK_GRAY),
+    );
     ui.separator();
 
     let Some(report) = state.invariant_report.clone() else {
-        ui.colored_label(egui::Color32::GRAY, "no invariant report yet");
+        ui_kit::placeholder(
+            ui,
+            "No checks have run yet. Generate the sector, then re-run the checks.",
+        );
         return;
     };
 
@@ -88,11 +133,13 @@ fn set_selected_key(ui: &egui::Ui, key: String) {
 fn render_summary(ui: &mut egui::Ui, report: &InvariantReport) {
     ui.horizontal(|ui| {
         if report.ok {
-            ui.colored_label(egui::Color32::GREEN, "✓ ok");
+            ui.colored_label(Color32::from_rgb(120, 200, 120), "✓ Sector is sound");
         } else {
-            ui.colored_label(egui::Color32::RED, "✗ violations");
+            ui.colored_label(
+                SEVERITY_RED,
+                format!("✗ {} problem(s) found", report.violations.len()),
+            );
         }
-        ui.label(format!("{} violation(s)", report.violations.len()));
     });
 }
 
@@ -103,7 +150,10 @@ fn show_violation_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Inv
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             if report.violations.is_empty() {
-                ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
+                ui_kit::placeholder(
+                    ui,
+                    "No invariant violations — the sector is structurally sound.",
+                );
                 return;
             }
             let grouped = group_by_stratum(&report.violations);
@@ -114,7 +164,7 @@ fn show_violation_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Inv
                 ui_kit::collapsing_section(
                     ui,
                     ("inv_stratum", stratum),
-                    &format!("{stratum} ({})", group.len()),
+                    &format!("{} ({})", stratum_title(stratum), group.len()),
                     true,
                     |ui| {
                         for vio in group {
@@ -130,14 +180,15 @@ fn violation_row(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantVio
     let key = violation_key(vio);
     let is_selected = selected_key(ui).as_deref() == Some(key.as_str());
     ui.horizontal(|ui| {
-        ui.colored_label(egui::Color32::from_rgb(220, 80, 80), &vio.code);
-        let label = match &vio.path {
-            Some(p) => format!("{p}: {}", vio.message),
-            None => vio.message.clone(),
-        };
-        // Selecting a row pins the violation into the right detail pane and also
-        // focuses the offending entity via the selection mailbox (existing jump).
-        if ui.selectable_label(is_selected, label).clicked() {
+        // Severity dot keeps the at-a-glance "this is a problem" signal.
+        ui.colored_label(SEVERITY_RED, "●");
+        // Lead with the human-readable message; selecting a row pins the
+        // violation into the right detail pane and also focuses the offending
+        // entity via the selection mailbox (existing jump).
+        let resp = ui
+            .selectable_label(is_selected, &vio.message)
+            .on_hover_text(format!("check: {}", vio.code));
+        if resp.clicked() {
             set_selected_key(ui, key.clone());
             jump_to(state, vio);
         }
@@ -148,7 +199,11 @@ fn violation_row(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantVio
 
 fn show_violation_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &InvariantReport) {
     ui.horizontal(|ui| {
-        if ui.button("Re-check now").clicked() {
+        if ui
+            .button("🔄  Re-run checks")
+            .on_hover_text("Re-run every structural check against the current sector")
+            .clicked()
+        {
             state.invariant_report = Some(sectorforge::invariants::check_sector(&state.sector));
         }
     });
@@ -165,9 +220,12 @@ fn show_violation_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &I
             if let Some(vio) = vio {
                 render_detail_card(ui, state, vio);
             } else if report.violations.is_empty() {
-                ui.colored_label(egui::Color32::GREEN, "✓ no invariant violations");
+                ui_kit::placeholder(
+                    ui,
+                    "No invariant violations — the sector is structurally sound.",
+                );
             } else {
-                ui_kit::placeholder(ui, "Select a violation from the list on the left.");
+                ui_kit::placeholder(ui, "Pick a problem from the list on the left to see details.");
             }
 
             ui.separator();
@@ -176,24 +234,40 @@ fn show_violation_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &I
 }
 
 fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantViolation) {
-    ui_kit::section(ui, &vio.code, |ui| {
+    ui_kit::section(ui, "Problem details", |ui| {
         ui_kit::reading_column(ui, 720.0, |ui| {
+            // Lead with the plain-language description of what's wrong.
             ui.horizontal(|ui| {
-                ui.colored_label(egui::Color32::from_rgb(220, 80, 80), "● violation");
-                ui.monospace(&vio.code);
+                ui.colored_label(SEVERITY_RED, "●");
+                ui.label(RichText::new(&vio.message).strong());
             });
-            ui.add_space(4.0);
-            ui.label(&vio.message);
+            ui.add_space(8.0);
+
+            // Raw check id, demoted to a dim secondary token behind a hover.
+            labeled(
+                ui,
+                "Check",
+                "The invariant code that fired (schema: code). See the catalogue below for what each code means.",
+                |ui| {
+                    ui.monospace(&vio.code);
+                },
+            );
 
             if let Some(path) = &vio.path {
-                ui.add_space(6.0);
-                ui_kit::kv(ui, "path", path);
+                labeled(
+                    ui,
+                    "Located at",
+                    "Where in the sector the problem sits (schema: path) — the entity the jump below selects.",
+                    |ui| {
+                        ui.monospace(path);
+                    },
+                );
 
                 // Focus deep-link: jump the relevant inspector tab to the entity.
                 if focusable(path) {
                     ui.add_space(8.0);
                     if ui
-                        .button("Focus offending entity")
+                        .button("▸  Jump to entity")
                         .on_hover_text("Select this entity in the relevant inspector tab")
                         .clicked()
                     {
@@ -305,18 +379,21 @@ fn render_catalogue(ui: &mut egui::Ui) {
     ui_kit::collapsing_section(
         ui,
         "inv_catalogue",
-        &format!("Invariant catalogue ({} codes)", INVARIANT_CODES.len()),
+        &format!(
+            "Invariant catalogue — what gets checked ({} codes)",
+            INVARIANT_CODES.len()
+        ),
         false,
         |ui| {
             ui.label(
-                egui::RichText::new("Every invariant checked on the live sector:")
+                RichText::new("Every structural check the sector is held to:")
                     .small()
-                    .color(egui::Color32::GRAY),
+                    .color(palette::chrome_text_dim()),
             );
             for (code, desc) in INVARIANT_CODES {
                 ui.horizontal(|ui| {
                     ui.monospace(*code);
-                    ui.colored_label(egui::Color32::GRAY, *desc);
+                    ui.colored_label(palette::chrome_text_dim(), *desc);
                 });
             }
         },

@@ -25,11 +25,29 @@ use sectorforge::ids::FactionId;
 use sectorforge::intel::{
     ClassifiedState, IntelSource, ObserverView, PropagandaState, SuspectedPresence, SystemIntel,
 };
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Confidence", "Last confirmed") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep the
+/// schema mapping. Friendlier replacement for the bare `egui::Grid` whose row
+/// labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
 
 /// §I4 — observer-faction lens combo + §I5 cutoff slider + §I3 baseline button.
 /// Rendered above the hex map. Mutates `BuilderState::intel_observer` and
@@ -37,7 +55,8 @@ use crate::builder::BuilderState;
 /// full sector and writes both layers.
 pub fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        ui.label("observer:");
+        ui.label("Seen through:")
+            .on_hover_text("Which faction's knowledge to view the map through. (omniscient) shows everything.");
         let current = state.intel_observer.clone();
         let label = current
             .as_ref()
@@ -56,17 +75,23 @@ pub fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
         ui.separator();
-        ui.label("cutoff:");
-        ui.add(egui::Slider::new(&mut state.intel_player_min_confidence, 0..=100).text("min conf"));
+        ui.label("Hide below:")
+            .on_hover_text("Confidence cutoff. Presences this faction is less sure of than the cutoff are hidden from the map.");
+        ui.add(egui::Slider::new(&mut state.intel_player_min_confidence, 0..=100).text("min confidence"));
         ui.separator();
         if ui
-            .button("Generate baseline intel")
-            .on_hover_text("Walks every system + world and overwrites their intel records with derive_intel(observer_ids = sector factions).")
+            .button("↺  Re-derive baseline intel")
+            .on_hover_text("Recomputes what every faction would know about each system and world from the current map. Replaces existing intel records.")
             .clicked()
         {
             run_baseline_intel(state);
         }
-        if state.intel_observer.is_some() && ui.button("clear lens").clicked() {
+        if state.intel_observer.is_some()
+            && ui
+                .button("🚫  Clear lens")
+                .on_hover_text("Stop viewing through a faction — show the omniscient map.")
+                .clicked()
+        {
             state.intel_observer = None;
         }
     });
@@ -176,8 +201,8 @@ pub fn show_world_intel_section(
 fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         if ui
-            .button("Generate baseline intel")
-            .on_hover_text("Overwrites every system + world intel record from the live sector.")
+            .button("↺  Re-derive baseline intel")
+            .on_hover_text("Recomputes what every faction would know about each system and world from the current map. Replaces existing intel records.")
             .clicked()
         {
             run_baseline_intel(state);
@@ -185,14 +210,14 @@ fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
         if let Some(obs) = state.intel_observer.clone() {
             ui.colored_label(
                 Color32::from_rgb(150, 200, 255),
-                format!("observer lens: {obs}"),
+                format!("Viewing as: {obs}"),
             );
         } else {
-            ui.colored_label(Color32::GRAY, "lens: (omniscient)");
+            ui.colored_label(Color32::DARK_GRAY, "Viewing as: everyone (omniscient)");
         }
         ui.colored_label(
-            Color32::GRAY,
-            format!("cutoff: {}", state.intel_player_min_confidence),
+            Color32::DARK_GRAY,
+            format!("Hide below confidence: {}", state.intel_player_min_confidence),
         );
     });
 }
@@ -205,15 +230,15 @@ fn show_observer_editor(
 ) -> bool {
     let mut dirty = false;
     if intel.by_observer.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "No observer records — run above or add one below.",
+        ui_kit::placeholder(
+            ui,
+            "Nobody is tracking this yet. Re-derive baseline intel above, or add a faction's view below.",
         );
     }
     let observers: Vec<String> = intel.by_observer.keys().cloned().collect();
     let mut remove_observer: Option<String> = None;
     for observer in observers {
-        let header_label = format!("observer: {observer}");
+        let header_label = format!("Known to: {observer}");
         let response = egui::CollapsingHeader::new(header_label)
             .id_salt(format!("{id_salt}_{observer}"))
             .default_open(false)
@@ -224,7 +249,11 @@ fn show_observer_editor(
                 let mut local_dirty = false;
                 local_dirty |= show_view_editor(ui, view, id_salt, &observer, factions);
                 ui.horizontal(|ui| {
-                    if ui.button("× remove observer").clicked() {
+                    if ui
+                        .button("🗑  Remove this view")
+                        .on_hover_text("Forget what this faction knows about this entity.")
+                        .clicked()
+                    {
                         remove_observer = Some(observer.clone());
                     }
                 });
@@ -252,55 +281,81 @@ fn show_view_editor(
     factions: &[(FactionId, String)],
 ) -> bool {
     let mut dirty = false;
-    egui::Grid::new(format!("{id_salt}_{observer}_meta"))
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("last_verified_tick");
+    labeled(
+        ui,
+        "Last confirmed (tick)",
+        "Game tick when this faction last verified what's here (schema: last_verified_tick). 0 means never confirmed.",
+        |ui| {
             dirty |= ui
                 .add(egui::DragValue::new(&mut view.last_verified_tick).range(0..=u32::MAX))
                 .changed();
-            ui.end_row();
-            ui.label("confidence");
+        },
+    );
+    labeled(
+        ui,
+        "Confidence",
+        "How sure this faction is of the current picture, 0–100 (schema: confidence).",
+        |ui| {
             dirty |= ui
                 .add(egui::Slider::new(&mut view.confidence, 0..=100))
                 .changed();
-            ui.end_row();
-            ui.label("propaganda_state");
+        },
+    );
+    labeled(
+        ui,
+        "Public stance",
+        "The story this faction tells in public about who holds this place (schema: propaganda_state).",
+        |ui| {
             dirty |= propaganda_combo(
                 ui,
                 &format!("{id_salt}_{observer}_prop"),
                 &mut view.propaganda_state,
             );
-            ui.end_row();
-            ui.label("classified_state");
+        },
+    );
+    labeled(
+        ui,
+        "Secrecy",
+        "How tightly this faction restricts the truth internally (schema: classified_state).",
+        |ui| {
             dirty |= classified_combo(
                 ui,
                 &format!("{id_salt}_{observer}_cls"),
                 &mut view.classified_state,
             );
-            ui.end_row();
-        });
+        },
+    );
 
     ui.add_space(2.0);
-    ui.label(RichText::new("suspected presences").strong());
+    ui.label(RichText::new("Factions believed present").strong())
+        .on_hover_text("Who this observer thinks is here, and how good their information is (schema: suspected_presences).");
+    if view.suspected_presences.is_empty() {
+        ui_kit::placeholder(ui, "None suspected yet — add one from the list below.");
+    }
     let mut remove_idx: Option<usize> = None;
     for (i, sus) in view.suspected_presences.iter_mut().enumerate() {
         ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new(format!("{}.", i + 1)).monospace());
-            ui.label(format!("faction: {}", sus.faction_id));
+            ui.label(sus.faction_id.to_string())
+                .on_hover_text("Suspected faction (schema: faction_id).");
             ui.separator();
-            ui.label("source:");
+            ui.label("via").on_hover_text("How they learned of it (schema: source).");
             dirty |= source_combo(
                 ui,
                 &format!("{id_salt}_{observer}_src_{i}"),
                 &mut sus.source,
             );
             ui.separator();
-            ui.label("conf:");
+            ui.label("confidence")
+                .on_hover_text("Certainty for this one faction, 0–100 (schema: confidence).");
             dirty |= ui
                 .add(egui::Slider::new(&mut sus.confidence, 0..=100))
                 .changed();
-            if ui.small_button("×").clicked() {
+            if ui
+                .small_button("🗑")
+                .on_hover_text("Remove this suspected faction.")
+                .clicked()
+            {
                 remove_idx = Some(i);
             }
         });
@@ -311,12 +366,13 @@ fn show_view_editor(
     }
 
     ui.horizontal_wrapped(|ui| {
-        ui.label("+ suspected:");
+        ui.label("➕  Suspect:");
         let existing: std::collections::BTreeSet<_> = view
             .suspected_presences
             .iter()
             .map(|s| s.faction_id.clone())
             .collect();
+        let mut any = false;
         for (fid, name) in factions {
             if existing.contains(fid) {
                 continue;
@@ -324,9 +380,10 @@ fn show_view_editor(
             if fid.as_str() == observer {
                 continue;
             }
+            any = true;
             if ui
                 .small_button(format!("+{name}"))
-                .on_hover_text(fid.as_str())
+                .on_hover_text(format!("Mark {} as suspected here ({}).", name, fid.as_str()))
                 .clicked()
             {
                 view.suspected_presences.push(SuspectedPresence {
@@ -336,6 +393,9 @@ fn show_view_editor(
                 });
                 dirty = true;
             }
+        }
+        if !any {
+            ui_kit::placeholder(ui, "every other faction is already suspected");
         }
     });
     dirty
@@ -349,14 +409,14 @@ fn show_add_observer_row(
     dirty: &mut bool,
 ) {
     ui.horizontal_wrapped(|ui| {
-        ui.label("+ observer:");
+        ui.label("➕  Add a faction's view:");
         for (fid, name) in factions {
             if intel.by_observer.contains_key(fid.as_str()) {
                 continue;
             }
             if ui
                 .small_button(format!("+{name}"))
-                .on_hover_text(fid.as_str())
+                .on_hover_text(format!("Start tracking what {} knows ({}).", name, fid.as_str()))
                 .clicked()
             {
                 intel
@@ -371,10 +431,22 @@ fn show_add_observer_row(
         let mut text = ui
             .data_mut(|d| d.get_temp::<String>(id).clone())
             .unwrap_or_default();
-        if ui.text_edit_singleline(&mut text).changed() {
+        if ui
+            .add(
+                egui::TextEdit::singleline(&mut text)
+                    .id(id)
+                    .desired_width(140.0)
+                    .hint_text("other observer id…"),
+            )
+            .changed()
+        {
             ui.data_mut(|d| d.insert_temp(id, text.clone()));
         }
-        if ui.small_button("+ free").clicked() {
+        if ui
+            .small_button("➕  Add")
+            .on_hover_text("Track an observer that isn't in the faction roster (e.g. an outside power).")
+            .clicked()
+        {
             let key = text.trim();
             if !key.is_empty() && !intel.by_observer.contains_key(key) {
                 intel
@@ -388,7 +460,6 @@ fn show_add_observer_row(
 }
 
 fn propaganda_combo(ui: &mut Ui, id: &str, value: &mut PropagandaState) -> bool {
-    let mut changed = false;
     let before = *value;
     ui_kit::combo(id, propaganda_label(*value)).show_ui(ui, |ui| {
         for v in [
@@ -398,17 +469,19 @@ fn propaganda_combo(ui: &mut Ui, id: &str, value: &mut PropagandaState) -> bool 
             PropagandaState::OfficialLost,
             PropagandaState::Counterfactual,
         ] {
-            ui.selectable_value(value, v, propaganda_label(v));
+            if ui
+                .selectable_label(*value == v, propaganda_label(v))
+                .on_hover_text(format!("key: {}", propaganda_slug(v)))
+                .clicked()
+            {
+                *value = v;
+            }
         }
     });
-    if *value != before {
-        changed = true;
-    }
-    changed
+    *value != before
 }
 
 fn classified_combo(ui: &mut Ui, id: &str, value: &mut ClassifiedState) -> bool {
-    let mut changed = false;
     let before = *value;
     ui_kit::combo(id, classified_label(*value)).show_ui(ui, |ui| {
         for v in [
@@ -417,17 +490,19 @@ fn classified_combo(ui: &mut Ui, id: &str, value: &mut ClassifiedState) -> bool 
             ClassifiedState::PurgatusSigillum,
             ClassifiedState::ExterminatusFlag,
         ] {
-            ui.selectable_value(value, v, classified_label(v));
+            if ui
+                .selectable_label(*value == v, classified_label(v))
+                .on_hover_text(format!("key: {}", classified_slug(v)))
+                .clicked()
+            {
+                *value = v;
+            }
         }
     });
-    if *value != before {
-        changed = true;
-    }
-    changed
+    *value != before
 }
 
 fn source_combo(ui: &mut Ui, id: &str, value: &mut IntelSource) -> bool {
-    let mut changed = false;
     let before = *value;
     ui_kit::combo(id, source_label(*value)).show_ui(ui, |ui| {
         for v in [
@@ -437,16 +512,54 @@ fn source_combo(ui: &mut Ui, id: &str, value: &mut IntelSource) -> bool {
             IntelSource::Rumor,
             IntelSource::ImaginedDeduction,
         ] {
-            ui.selectable_value(value, v, source_label(v));
+            if ui
+                .selectable_label(*value == v, source_label(v))
+                .on_hover_text(format!("key: {}", source_slug(v)))
+                .clicked()
+            {
+                *value = v;
+            }
         }
     });
-    if *value != before {
-        changed = true;
-    }
-    changed
+    *value != before
 }
 
+// Human-readable labels for the dropdowns; the raw serialization key is carried
+// in each item's hover via the `*_slug` helpers below. Both arms cover the
+// `#[non_exhaustive]` `sectorforge::intel` enums with a trailing wildcard.
 fn propaganda_label(v: PropagandaState) -> &'static str {
+    match v {
+        PropagandaState::None => "No public line",
+        PropagandaState::OfficialPacified => "Officially pacified",
+        PropagandaState::OfficialContested => "Officially contested",
+        PropagandaState::OfficialLost => "Officially lost",
+        PropagandaState::Counterfactual => "Contradicts reality",
+        _ => "Unknown",
+    }
+}
+
+fn classified_label(v: ClassifiedState) -> &'static str {
+    match v {
+        ClassifiedState::Public => "Public",
+        ClassifiedState::CodexRedactus => "Restricted (Codex Redactus)",
+        ClassifiedState::PurgatusSigillum => "Sealed (Purgatus Sigillum)",
+        ClassifiedState::ExterminatusFlag => "Exterminatus flag",
+        _ => "Unknown",
+    }
+}
+
+fn source_label(v: IntelSource) -> &'static str {
+    match v {
+        IntelSource::DirectObservation => "Direct observation",
+        IntelSource::AstropathicReport => "Astropathic report",
+        IntelSource::InquisitorialAnalysis => "Inquisitorial analysis",
+        IntelSource::Rumor => "Rumour",
+        IntelSource::ImaginedDeduction => "Guesswork",
+        _ => "Unknown",
+    }
+}
+
+fn propaganda_slug(v: PropagandaState) -> &'static str {
     match v {
         PropagandaState::None => "none",
         PropagandaState::OfficialPacified => "official_pacified",
@@ -457,7 +570,7 @@ fn propaganda_label(v: PropagandaState) -> &'static str {
     }
 }
 
-fn classified_label(v: ClassifiedState) -> &'static str {
+fn classified_slug(v: ClassifiedState) -> &'static str {
     match v {
         ClassifiedState::Public => "public",
         ClassifiedState::CodexRedactus => "codex_redactus",
@@ -467,7 +580,7 @@ fn classified_label(v: ClassifiedState) -> &'static str {
     }
 }
 
-fn source_label(v: IntelSource) -> &'static str {
+fn source_slug(v: IntelSource) -> &'static str {
     match v {
         IntelSource::DirectObservation => "direct_observation",
         IntelSource::AstropathicReport => "astropathic_report",
@@ -488,22 +601,23 @@ fn show_world_redaction_preview(
     cutoff: u8,
 ) {
     let observer_str = observer.map(|f| f.as_str()).unwrap_or("");
-    ui.label(RichText::new("redacted view").strong());
+    ui.label(RichText::new("What the player would see here").strong())
+        .on_hover_text("Preview of this world after hiding presences below the cutoff, from the chosen faction's view.");
     if observer_str.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            format!("(omniscient — cutoff {cutoff} ignored)"),
+        ui_kit::placeholder(
+            ui,
+            &format!("Showing everyone's knowledge — cutoff {cutoff} not applied. Pick a faction in 'Seen through' to redact."),
         );
         return;
     }
     let kept = sectorforge::intel::redact_world_for_observer(world, observer_str, cutoff);
     if kept.is_empty() {
-        ui.colored_label(Color32::DARK_GRAY, "redacted: nothing visible");
+        ui_kit::placeholder(ui, "Nothing visible at this cutoff — all presences are hidden.");
         return;
     }
     for p in kept {
         ui.label(format!(
-            "{} ({:?}, vis {}, intel {})",
+            "{} — {} influence · visibility {} · confidence {}",
             p.faction_id, p.influence, p.dimensions.visibility as i32, p.intel_confidence
         ));
     }

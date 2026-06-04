@@ -16,10 +16,60 @@ use sectorforge::worlds::{
     TechLevel, Temperature, WorldType,
 };
 use sectorforge::worlds_toml::{WorldsConfig, DEFAULT_FILENAME as WORLDS_TOML_FILENAME};
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::project_io;
 use crate::builder::{BuilderState, ModalKind};
+
+/// Per-column help shown on the generation-grid headers. Tuple is
+/// `(visible header, hover text)`; the hover names the underlying `worlds.toml`
+/// field plus a one-line note so the schema mapping stays discoverable behind a
+/// friendlier label. Order matches the grid's columns left-to-right.
+const COLUMN_HELP: &[(&str, &str)] = &[
+    ("#", "Row number (display only)."),
+    (
+        "Star colour",
+        "Star colour for worlds rolled from this row (schema: star_colour). Leave as — to allow any.",
+    ),
+    (
+        "World type",
+        "Kind of world (schema: world_type), e.g. hive, agri, death world. Leave as — to allow any.",
+    ),
+    (
+        "Atmosphere",
+        "Breathability of the air (schema: atmosphere). Leave as — to allow any.",
+    ),
+    (
+        "Temperature",
+        "Surface climate band (schema: temperature). Leave as — to allow any.",
+    ),
+    (
+        "Biosphere",
+        "Native life present on the world (schema: biosphere). Leave as — to allow any.",
+    ),
+    (
+        "Population",
+        "Rough headcount band (schema: population). Leave as — to allow any.",
+    ),
+    (
+        "Tech level",
+        "Level of technology (schema: tech). Leave as — to allow any.",
+    ),
+    (
+        "Government",
+        "How the world is ruled (schema: government). Leave as — to allow any.",
+    ),
+    (
+        "Notable feature",
+        "Special trait or landmark (schema: notable_feature). Leave as — for none.",
+    ),
+    (
+        "Weight",
+        "How often this row is picked (schema: weight). Higher = more common; 0 or blank means unset.",
+    ),
+    ("", "Insert a new blank row above this one."),
+    ("", "Delete this row."),
+];
 
 /// Project-relative path of the worlds catalog given the active config's
 /// `[inputs] world_data_dir`.
@@ -29,15 +79,25 @@ fn worlds_rel(state: &BuilderState) -> String {
 }
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+    ui.heading("World data");
+    ui.label(
+        RichText::new(
+            "The pool of world recipes the generator draws from — one row per \
+             possible combination, weighted by how often it appears.",
+        )
+        .color(Color32::DARK_GRAY),
+    );
+    ui.add_space(4.0);
+
     if state.project_path.is_none() {
-        ui.colored_label(Color32::GRAY, "(open a project to edit world data)");
+        ui_kit::placeholder(ui, "Open a project to edit its world data.");
         return;
     }
     if state.data_catalogs.worlds.is_none() {
-        ui.colored_label(
-            Color32::GRAY,
-            "This project has no worlds catalog. Add a worlds.toml under its \
-             data dir, then reopen the project.",
+        ui_kit::placeholder(
+            ui,
+            "This project has no world catalog yet. Add a worlds.toml under its \
+             data folder, then reopen the project.",
         );
         return;
     }
@@ -52,21 +112,21 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 
     ui.horizontal(|ui| {
         ui.label(
-            RichText::new(format!("{row_count} generation rows"))
-                .monospace()
-                .color(Color32::GRAY),
+            RichText::new(format!("{row_count} world recipe(s)"))
+                .strong()
+                .color(palette::chrome_text_dim()),
         );
         if dirty {
-            ui.colored_label(Color32::from_rgb(240, 200, 90), "● unsaved");
+            ui.colored_label(Color32::from_rgb(240, 200, 90), "●  unsaved changes");
         }
     });
 
-    // §PF3 validation surface: round-trip the config (serialise → re-parse) and
+    // Validation surface: round-trip the config (serialise → re-parse) and
     // report the first error, if any.
     let validation = validate(state.data_catalogs.worlds.as_ref().unwrap());
     match &validation {
         Ok(()) => {
-            ui.colored_label(Color32::from_rgb(120, 200, 120), "✓ valid worlds.toml");
+            ui.colored_label(Color32::from_rgb(120, 200, 120), "✓ valid world data");
         }
         Err(msg) => {
             ui.colored_label(
@@ -80,8 +140,8 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
         let can_save = dirty && validation.is_ok();
         if ui
-            .add_enabled(can_save, egui::Button::new("Save worlds.toml"))
-            .on_hover_text("Write the worlds catalog atomically (§PF6)")
+            .add_enabled(can_save, egui::Button::new("💾  Save worlds.toml"))
+            .on_hover_text("Write all changes back to the world catalog on disk")
             .clicked()
         {
             do_save = true;
@@ -122,30 +182,25 @@ fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
                 .striped(true)
                 .min_col_width(86.0)
                 .show(ui, |ui| {
-                    for h in [
-                        "#",
-                        "STAR",
-                        "WORLD TYPE",
-                        "ATMOSPHERE",
-                        "TEMPERATURE",
-                        "BIOSPHERE",
-                        "POPULATION",
-                        "TECH",
-                        "GOVERNMENT",
-                        "FEATURE",
-                        "WEIGHT",
-                        "",
-                        "",
-                    ] {
-                        ui.label(RichText::new(h).strong().monospace());
+                    for (header, help) in COLUMN_HELP {
+                        ui.label(RichText::new(*header).strong())
+                            .on_hover_text(*help);
                     }
                     ui.end_row();
+
+                    if cfg.generation.is_empty() {
+                        ui_kit::placeholder(
+                            ui,
+                            "No world recipes yet — use “➕ Add row” below to start.",
+                        );
+                        ui.end_row();
+                    }
 
                     for (idx, row) in cfg.generation.iter_mut().enumerate() {
                         ui.label(
                             RichText::new((idx + 1).to_string())
                                 .monospace()
-                                .color(Color32::GRAY),
+                                .color(palette::chrome_text_dim()),
                         );
                         *any_change |= enum_combo(
                             ui,
@@ -223,12 +278,16 @@ fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
 
                         if ui
                             .small_button("＋")
-                            .on_hover_text("insert row above")
+                            .on_hover_text("Insert a new blank row above this one")
                             .clicked()
                         {
                             insert_above = Some(idx);
                         }
-                        if ui.small_button("✕").on_hover_text("delete row").clicked() {
+                        if ui
+                            .small_button("✕")
+                            .on_hover_text("Delete this row")
+                            .clicked()
+                        {
                             delete_row = Some(idx);
                         }
                         ui.end_row();
@@ -236,7 +295,11 @@ fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
                 });
 
             ui.add_space(6.0);
-            if ui.button("+ Add row").clicked() {
+            if ui
+                .button("➕  Add row")
+                .on_hover_text("Append a new blank world recipe to the end of the list")
+                .clicked()
+            {
                 cfg.generation.push(GenerationRow::default());
                 *any_change = true;
             }
@@ -253,9 +316,9 @@ fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
 }
 
 /// Generic enum dropdown over `Enum::VARIANTS`, binding an `Option<T>` (None =
-/// the unset `—` sentinel). `label_of` maps a variant to its display label
-/// (forwarding to each enum's inherent `display_name`). Returns whether the
-/// selection changed.
+/// the unset `—` sentinel). `label_of` maps a variant to its friendly display
+/// label (forwarding to each enum's inherent `display_name`); the raw schema key
+/// stays reachable on each item's hover. Returns whether the selection changed.
 fn enum_combo<T, F>(
     ui: &mut egui::Ui,
     id: impl std::hash::Hash,
@@ -264,19 +327,29 @@ fn enum_combo<T, F>(
     label_of: F,
 ) -> bool
 where
-    T: Clone + PartialEq,
+    T: Clone + PartialEq + std::fmt::Debug,
     F: Fn(&T) -> &'static str,
 {
     let current = value.as_ref().map(&label_of).unwrap_or("—");
     let mut changed = false;
     ui_kit::combo(id, current).show_ui(ui, |ui| {
-        if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
+        if ui
+            .selectable_label(value.is_none(), "—")
+            .on_hover_text("Any — leave this field unset")
+            .clicked()
+            && value.is_some()
+        {
             *value = None;
             changed = true;
         }
         for v in variants {
             let selected = value.as_ref() == Some(v);
-            if ui.selectable_label(selected, label_of(v)).clicked() && !selected {
+            if ui
+                .selectable_label(selected, label_of(v))
+                .on_hover_text(format!("key: {v:?}"))
+                .clicked()
+                && !selected
+            {
                 *value = Some(v.clone());
                 changed = true;
             }

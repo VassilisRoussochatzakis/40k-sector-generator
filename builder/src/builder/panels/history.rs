@@ -23,7 +23,7 @@ use sectorforge::history::{
 };
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::sector_model::SystemState;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{
@@ -72,7 +72,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "chronicle config, eras, rules, events, add wizard, regenerate, timeline.",
+        "The story of your sector — set the timeframe, shape the eras, then build a chronicle of events.",
     );
     ui.separator();
 
@@ -118,14 +118,49 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
         });
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Start millennium") while the tooltip names the
+/// underlying TOML field plus a plain-language note, so power users keep the
+/// schema mapping. Friendlier replacement for the old bare `egui::Grid` whose
+/// row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Compact inline label with a hover tooltip, for the wrapped multi-field rows
+/// (eras / rules / consequences) where a fixed-width column would break the
+/// side-by-side editing layout. Same intent as [`labeled`]: a human word on
+/// screen, the raw schema field + note in the tooltip.
+fn hint_label(ui: &mut Ui, label: &str, help: &str) {
+    ui.label(RichText::new(label).color(palette::chrome_text_dim()))
+        .on_hover_text(help);
+}
+
 // ── §H6 header actions ──────────────────────────────────────────────────────
 
 fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Regenerate chronicle").clicked() {
+        if ui
+            .button("🔄  Regenerate chronicle")
+            .on_hover_text(
+                "Rebuild the chronicle from the current sector. Events you added or hand-edited are kept.",
+            )
+            .clicked()
+        {
             state.recompute_chronicle();
         }
-        ui.checkbox(&mut state.history_auto_recompute, "auto-recompute on edit");
+        ui.checkbox(&mut state.history_auto_recompute, "Rebuild after every edit")
+            .on_hover_text(
+                "Regenerate the chronicle automatically whenever you change settings, eras, or rules.",
+            );
         let total = state.sector.chronicle.events.len();
         let manual = state
             .sector
@@ -134,11 +169,14 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .iter()
             .filter(|e| e.manual)
             .count();
-        ui.label(format!("events: {total}  (manual: {manual})"));
+        ui.label(format!("{total} event(s)  ({manual} hand-added)"));
         if state.data_catalogs.history.is_none() {
             ui.colored_label(
                 Color32::from_rgb(220, 170, 80),
-                "no history.toml loaded (defaults apply)",
+                "● using default history settings",
+            )
+            .on_hover_text(
+                "No history settings file is loaded yet — sensible defaults apply. Editing here creates one.",
             );
         }
     });
@@ -147,56 +185,92 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H1 config ──────────────────────────────────────────────────────────────
 
 fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("chronicle config").strong());
+    ui.label(RichText::new("Chronicle settings").strong());
     ensure_history_catalog_if_needed(state);
     let Some(cfg) = state.data_catalogs.history.as_mut() else {
         return;
     };
     let mut changed = false;
-    egui::Grid::new("h1_cfg_grid")
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("enabled");
+    labeled(
+        ui,
+        "Save with sector",
+        "Embed the generated chronicle in the exported sector (schema: enabled).",
+        |ui| {
             changed |= ui
-                .checkbox(&mut cfg.enabled, "embed chronicle in sector.json")
+                .checkbox(&mut cfg.enabled, "Include in sector export")
                 .changed();
-            ui.end_row();
-            ui.label("epoch_start (millennium)");
+        },
+    );
+    labeled(
+        ui,
+        "Start millennium",
+        "First millennium the chronicle can place events in (schema: epoch_start). 40 = M40.",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.epoch_start).range(1..=99))
                 .changed();
-            ui.end_row();
-            ui.label("epoch_end (millennium)");
+        },
+    );
+    labeled(
+        ui,
+        "End millennium",
+        "Last millennium the chronicle can place events in (schema: epoch_end).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.epoch_end).range(1..=99))
                 .changed();
-            ui.end_row();
-            ui.label("max_events_per_world");
+        },
+    );
+    labeled(
+        ui,
+        "Max events / world",
+        "Most chronicle events kept for any single world (schema: max_events_per_world).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.max_events_per_world).range(0..=99))
                 .changed();
-            ui.end_row();
-            ui.label("max_events_per_system");
+        },
+    );
+    labeled(
+        ui,
+        "Max events / system",
+        "Most chronicle events kept for any single system (schema: max_events_per_system).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.max_events_per_system).range(0..=99))
                 .changed();
-            ui.end_row();
-            ui.label("max_events_per_route");
+        },
+    );
+    labeled(
+        ui,
+        "Max events / route",
+        "Most chronicle events kept for any single route (schema: max_events_per_route).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.max_events_per_route).range(0..=99))
                 .changed();
-            ui.end_row();
-            ui.label("key_events_top_n");
+        },
+    );
+    labeled(
+        ui,
+        "Key events shown",
+        "How many top-weighted events to surface as sector highlights (schema: key_events_top_n).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.key_events_top_n).range(0..=200))
                 .changed();
-            ui.end_row();
-            ui.label("max_subsector_events");
+        },
+    );
+    labeled(
+        ui,
+        "Max subsector events",
+        "Most chronicle events kept per subsector (schema: max_subsector_events).",
+        |ui| {
             changed |= ui
                 .add(egui::DragValue::new(&mut cfg.max_subsector_events).range(0..=1024))
                 .changed();
-            ui.end_row();
-        });
+        },
+    );
     if changed {
         on_catalog_edited(state);
     }
@@ -205,42 +279,53 @@ fn show_config_section(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H2 eras editor ─────────────────────────────────────────────────────────
 
 fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "hist_eras", "eras", false, |ui| {
+    ui_kit::collapsing_section(ui, "hist_eras", "Eras", false, |ui| {
         ensure_history_catalog_if_needed(state);
         let Some(cfg) = state.data_catalogs.history.as_mut() else {
             return;
         };
+        if cfg.eras.is_empty() {
+            ui_kit::placeholder(
+                ui,
+                "No eras yet — add one to carve the timeline into named ages.",
+            );
+        }
         let mut changed = false;
         let mut remove_idx: Option<usize> = None;
         for (idx, era) in cfg.eras.iter_mut().enumerate() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.label(RichText::new(format!("[{idx}]")).monospace());
-                    ui.label("id");
+                    hint_label(ui, "ID", "Unique identifier for this era (schema: id).");
                     changed |= ui
                         .add(
                             egui::TextEdit::singleline(&mut era.id)
                                 .desired_width(140.0)
-                                .hint_text("id (snake_case)"),
+                                .hint_text("lowercase, no spaces"),
                         )
                         .changed();
-                    ui.label("label");
+                    hint_label(ui, "Name", "Display name for this era (schema: label).");
                     changed |= ui
                         .add(
                             egui::TextEdit::singleline(&mut era.label)
                                 .desired_width(220.0)
-                                .hint_text("display label"),
+                                .hint_text("e.g. Age of Discovery"),
                         )
                         .changed();
                     if ui
-                        .button(RichText::new("× remove").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑  Remove").color(Color32::LIGHT_RED))
+                        .on_hover_text("Remove this era")
                         .clicked()
                     {
                         remove_idx = Some(idx);
                     }
                 });
                 ui.horizontal_wrapped(|ui| {
-                    ui.label("relative_start");
+                    hint_label(
+                        ui,
+                        "Starts (years)",
+                        "Era start, in years relative to the epoch (schema: relative_start).",
+                    );
                     changed |= ui
                         .add(
                             egui::DragValue::new(&mut era.relative_start)
@@ -248,7 +333,11 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .speed(1),
                         )
                         .changed();
-                    ui.label("relative_end");
+                    hint_label(
+                        ui,
+                        "Ends (years)",
+                        "Era end, in years relative to the epoch (schema: relative_end).",
+                    );
                     changed |= ui
                         .add(
                             egui::DragValue::new(&mut era.relative_end)
@@ -256,7 +345,11 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                                 .speed(1),
                         )
                         .changed();
-                    ui.label("weight");
+                    hint_label(
+                        ui,
+                        "Weight",
+                        "How heavily events cluster in this era (schema: weight). Higher = busier.",
+                    );
                     changed |= ui
                         .add(
                             egui::DragValue::new(&mut era.weight)
@@ -265,14 +358,20 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                         )
                         .changed();
                 });
-                ui.label("allowed_events (click to toggle)");
+                hint_label(
+                    ui,
+                    "Allowed event types (click to toggle)",
+                    "Only these event types may occur during this era (schema: allowed_events). None selected = all allowed.",
+                );
                 egui::ScrollArea::horizontal()
                     .id_salt(format!("h2_era_kinds_{idx}"))
                     .show(ui, |ui| {
                         ui.horizontal_wrapped(|ui| {
                             for k in EVENT_KINDS {
                                 let is_in = era.allowed_events.contains(k);
-                                let resp = ui.selectable_label(is_in, kind_label(*k));
+                                let resp = ui
+                                    .selectable_label(is_in, kind_label(*k))
+                                    .on_hover_text(format!("key: {}", k.as_slug()));
                                 if resp.clicked() {
                                     if is_in {
                                         era.allowed_events.retain(|x| x != k);
@@ -291,7 +390,11 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
             changed = true;
         }
         ui.separator();
-        if ui.button("+ era").clicked() {
+        if ui
+            .button("➕  Era")
+            .on_hover_text("Add a new era to the timeline")
+            .clicked()
+        {
             cfg.eras.push(HistoryEra {
                 id: format!("era_{}", cfg.eras.len() + 1),
                 label: "New era".into(),
@@ -311,23 +414,29 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H3 event rules editor ──────────────────────────────────────────────────
 
 fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "hist_event_rules", "event rules", false, |ui| {
+    ui_kit::collapsing_section(ui, "hist_event_rules", "Event rules", false, |ui| {
         ensure_history_catalog_if_needed(state);
         let Some(cfg) = state.data_catalogs.history.as_mut() else {
             return;
         };
+        if cfg.event_rules.is_empty() {
+            ui_kit::placeholder(
+                ui,
+                "No rules yet — add one to nudge which events appear in which systems.",
+            );
+        }
         let mut changed = false;
         let mut remove_idx: Option<usize> = None;
         for (idx, rule) in cfg.event_rules.iter_mut().enumerate() {
             egui::Frame::group(ui.style()).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     ui.label(RichText::new(format!("[{idx}]")).monospace());
-                    ui.label("id");
+                    hint_label(ui, "Name", "Optional label for this rule (schema: id).");
                     let mut id_buf = rule.id.clone().unwrap_or_default();
                     if ui
                         .add(
                             egui::TextEdit::singleline(&mut id_buf)
-                                .hint_text("(optional)")
+                                .hint_text("optional")
                                 .desired_width(140.0),
                         )
                         .changed()
@@ -340,14 +449,19 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                         changed = true;
                     }
                     if ui
-                        .button(RichText::new("× remove").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑  Remove").color(Color32::LIGHT_RED))
+                        .on_hover_text("Remove this rule")
                         .clicked()
                     {
                         remove_idx = Some(idx);
                     }
                 });
                 ui.horizontal_wrapped(|ui| {
-                    ui.label("when_system_state");
+                    hint_label(
+                        ui,
+                        "When system is",
+                        "Apply this rule only to systems in this state (schema: when_system_state). (any) = always.",
+                    );
                     let mut state_pick = rule
                         .when_system_state
                         .as_deref()
@@ -363,7 +477,8 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .show_ui(ui, |ui| {
                         ui.selectable_value(&mut state_pick, None, "(any)");
                         for s in SYSTEM_STATES {
-                            ui.selectable_value(&mut state_pick, Some(*s), system_state_label(*s));
+                            ui.selectable_value(&mut state_pick, Some(*s), system_state_label(*s))
+                                .on_hover_text(format!("key: {}", system_state_key(*s)));
                         }
                     });
                     if state_pick != picked_before {
@@ -372,7 +487,11 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                         changed = true;
                     }
 
-                    ui.label("prefer_event");
+                    hint_label(
+                        ui,
+                        "Prefer event",
+                        "Favour this event type when the rule matches (schema: prefer_event).",
+                    );
                     let mut kind_pick = rule.prefer_event.as_deref().and_then(parse_event_kind_str);
                     let kind_before = kind_pick;
                     ui_kit::combo(
@@ -385,7 +504,8 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .show_ui(ui, |ui| {
                         ui.selectable_value(&mut kind_pick, None, "(none)");
                         for k in EVENT_KINDS {
-                            ui.selectable_value(&mut kind_pick, Some(*k), kind_label(*k));
+                            ui.selectable_value(&mut kind_pick, Some(*k), kind_label(*k))
+                                .on_hover_text(format!("key: {}", k.as_slug()));
                         }
                     });
                     if kind_pick != kind_before {
@@ -393,7 +513,11 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                         changed = true;
                     }
 
-                    ui.label("minimum_events");
+                    hint_label(
+                        ui,
+                        "At least",
+                        "Guarantee at least this many matching events (schema: minimum_events).",
+                    );
                     changed |= ui
                         .add(
                             egui::DragValue::new(&mut rule.minimum_events)
@@ -409,7 +533,11 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
             changed = true;
         }
         ui.separator();
-        if ui.button("+ event rule").clicked() {
+        if ui
+            .button("➕  Event rule")
+            .on_hover_text("Add a new event rule")
+            .clicked()
+        {
             cfg.event_rules.push(HistoryEventRule {
                 id: None,
                 when_system_state: None,
@@ -427,11 +555,11 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H4 events editor ───────────────────────────────────────────────────────
 
 fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "hist_events", "events", true, |ui| {
+    ui_kit::collapsing_section(ui, "hist_events", "Chronicle events", true, |ui| {
         if state.sector.chronicle.events.is_empty() {
-            ui.colored_label(
-                Color32::GRAY,
-                "No chronicle events. Click Regenerate chronicle above or use the wizard.",
+            ui_kit::placeholder(
+                ui,
+                "No events yet — use Regenerate chronicle above, or add one with the wizard below.",
             );
             return;
         }
@@ -445,11 +573,11 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .striped(true)
                     .num_columns(6)
                     .show(ui, |ui| {
-                        ui.label(RichText::new("date").strong());
-                        ui.label(RichText::new("kind").strong());
-                        ui.label(RichText::new("anchor").strong());
-                        ui.label(RichText::new("wt").strong());
-                        ui.label(RichText::new("source").strong());
+                        ui.label(RichText::new("Date").strong());
+                        ui.label(RichText::new("Type").strong());
+                        ui.label(RichText::new("Where").strong());
+                        ui.label(RichText::new("Weight").strong());
+                        ui.label(RichText::new("Source").strong());
                         ui.label("");
                         ui.end_row();
                         let events = state.sector.chronicle.events.clone();
@@ -465,11 +593,17 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                             ui.label(anchor_label(&ev.anchor));
                             ui.label(format!("{}", ev.weight));
                             if ev.manual {
-                                ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
+                                ui.colored_label(Color32::from_rgb(200, 220, 120), "hand-added")
+                                    .on_hover_text("You added or edited this event; it survives regeneration.");
                             } else {
-                                ui.colored_label(Color32::DARK_GRAY, "derived");
+                                ui.colored_label(Color32::DARK_GRAY, "generated")
+                                    .on_hover_text("Produced by Regenerate chronicle; may change on the next run.");
                             }
-                            if ui.button("edit").clicked() {
+                            if ui
+                                .button("✏  Edit")
+                                .on_hover_text("Select this event to edit it below")
+                                .clicked()
+                            {
                                 state.selected_history_event = Some(ev.id.clone());
                             }
                             ui.end_row();
@@ -510,70 +644,114 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     egui::Frame::group(ui.style()).show(ui, |ui| {
         let ev = &mut chron.events[idx];
         ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("id").strong());
+            ui.label(RichText::new("ID").strong())
+                .on_hover_text("Unique identifier for this event (schema: id).");
             ui.monospace(&ev.id);
             if ev.manual {
-                ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
+                ui.colored_label(Color32::from_rgb(200, 220, 120), "hand-added")
+                    .on_hover_text("You added or edited this event; it survives regeneration.");
             } else {
-                ui.colored_label(Color32::DARK_GRAY, "derived (regen-overwrites)");
+                ui.colored_label(Color32::DARK_GRAY, "generated")
+                    .on_hover_text("Produced by Regenerate chronicle; editing it pins it so it is kept.");
             }
             if ui
-                .button(RichText::new("× delete").color(Color32::LIGHT_RED))
+                .button(RichText::new("🗑  Delete").color(Color32::LIGHT_RED))
+                .on_hover_text("Remove this event from the chronicle")
                 .clicked()
             {
                 delete = true;
             }
-            if ui.button("highlight on map").clicked() {
+            if ui
+                .button("◎  Show on map")
+                .on_hover_text("Jump to and highlight this event's location")
+                .clicked()
+            {
                 highlight = true;
             }
         });
 
-        egui::Grid::new("h4_inspector_grid")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label("date");
+        labeled(
+            ui,
+            "Date",
+            "When it happened (schema: date). Imperial dating, e.g. M40.500.",
+            |ui| {
                 changed |= ui.text_edit_singleline(&mut ev.date).changed();
-                ui.end_row();
-                ui.label("kind");
+            },
+        );
+        labeled(
+            ui,
+            "Type",
+            "What kind of event this is (schema: kind).",
+            |ui| {
                 let mut kind = ev.kind;
                 let kind_before = kind;
                 ui_kit::combo("h4_kind", kind_label(kind)).show_ui(ui, |ui| {
                     for k in EVENT_KINDS {
-                        ui.selectable_value(&mut kind, *k, kind_label(*k));
+                        ui.selectable_value(&mut kind, *k, kind_label(*k))
+                            .on_hover_text(format!("key: {}", k.as_slug()));
                     }
                 });
                 if kind != kind_before {
                     ev.kind = kind;
                     changed = true;
                 }
-                ui.end_row();
-                ui.label("era_label");
+            },
+        );
+        labeled(
+            ui,
+            "Era name",
+            "Name of the era this event falls in (schema: era_label).",
+            |ui| {
                 changed |= ui.text_edit_singleline(&mut ev.era_label).changed();
-                ui.end_row();
-                ui.label("weight (0..=100)");
+            },
+        );
+        labeled(
+            ui,
+            "Weight",
+            "Prominence of the event (schema: weight, 0–100). Higher = more likely to be a highlight.",
+            |ui| {
                 changed |= ui
                     .add(egui::DragValue::new(&mut ev.weight).range(0..=100))
                     .changed();
-                ui.end_row();
-                ui.label("summary");
+            },
+        );
+        labeled(
+            ui,
+            "Summary",
+            "One-line summary (schema: summary).",
+            |ui| {
                 changed |= ui.text_edit_singleline(&mut ev.summary).changed();
-                ui.end_row();
-                ui.label("narrative");
+            },
+        );
+        labeled(
+            ui,
+            "Narrative",
+            "Full prose for this event (schema: narrative).",
+            |ui| {
                 changed |= ui
                     .add(egui::TextEdit::multiline(&mut ev.narrative).desired_rows(3))
                     .changed();
-                ui.end_row();
-            });
+            },
+        );
 
-        ui.label(RichText::new("anchor").strong());
+        ui.label(RichText::new("Location").strong())
+            .on_hover_text("Where this event is anchored (schema: anchor).");
         ui.monospace(anchor_label(&ev.anchor));
 
-        ui.label(RichText::new("factions").strong());
+        ui.label(RichText::new("Factions involved").strong())
+            .on_hover_text("Factions taking part (schema: factions). Click a chip to remove it.");
+        if ev.factions.is_empty() {
+            ui_kit::placeholder(ui, "none — add one below");
+        }
         let mut remove_f: Option<usize> = None;
         ui.horizontal_wrapped(|ui| {
             for (fi, f) in ev.factions.iter().enumerate() {
                 let chip = format!("{f} ×");
-                if ui.small_button(chip).clicked() {
+                if ui
+                    .small_button(chip)
+                    .on_hover_text("Remove this faction")
+                    .clicked()
+                {
                     remove_f = Some(fi);
                 }
             }
@@ -593,11 +771,11 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
         .collect();
     let mut to_add: Option<FactionId> = None;
     ui.horizontal_wrapped(|ui| {
-        ui.label("+ faction");
-        ui_kit::combo("h4_add_fac", "(pick)").show_ui(ui, |ui| {
+        ui.label("Add faction");
+        ui_kit::combo("h4_add_fac", "(pick one)").show_ui(ui, |ui| {
             for (id, name) in &factions_snapshot {
                 if ui
-                    .selectable_label(false, format!("{id} — {name}"))
+                    .selectable_label(false, format!("{name} ({id})"))
                     .clicked()
                 {
                     to_add = Some(id.clone());
@@ -614,18 +792,32 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     // Consequences sub-editor.
-    ui_kit::collapsing_section(ui, "hist_consequences", "consequences", false, |ui| {
+    ui_kit::collapsing_section(ui, "hist_consequences", "Consequences", false, |ui| {
         let ev = &mut chron.events[idx];
+        if ev.consequences.is_empty() {
+            ui_kit::placeholder(ui, "none yet — add a lasting effect of this event below");
+        }
         let mut remove_c: Option<usize> = None;
         for (ci, c) in ev.consequences.iter_mut().enumerate() {
             ui.horizontal_wrapped(|ui| {
-                ui.label(format!("[{ci}]"));
-                changed |= ui.text_edit_singleline(&mut c.description).changed();
+                ui.label(RichText::new(format!("[{ci}]")).monospace());
+                changed |= ui
+                    .add(
+                        egui::TextEdit::singleline(&mut c.description)
+                            .hint_text("what changed"),
+                    )
+                    .changed();
+                hint_label(
+                    ui,
+                    "Severity",
+                    "How serious the consequence is (schema: severity, 0–100).",
+                );
                 changed |= ui
                     .add(egui::DragValue::new(&mut c.severity).range(0..=100))
                     .changed();
                 if ui
-                    .button(RichText::new("×").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .on_hover_text("Remove this consequence")
                     .clicked()
                 {
                     remove_c = Some(ci);
@@ -636,7 +828,11 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
             ev.consequences.remove(i);
             changed = true;
         }
-        if ui.button("+ consequence").clicked() {
+        if ui
+            .button("➕  Consequence")
+            .on_hover_text("Add a lasting effect of this event")
+            .clicked()
+        {
             ev.consequences.push(HistoryConsequence {
                 kind: HistoryConsequenceKind::RegionRecorded,
                 description: String::new(),
@@ -680,9 +876,17 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
 // ── §H5 add-event wizard ────────────────────────────────────────────────────
 
 fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "hist_add_event", "add event", false, |ui| {
+    ui_kit::collapsing_section(ui, "hist_add_event", "Add an event", false, |ui| {
         if state.history_wizard.is_none() {
-            if ui.button("+ event (open wizard)").clicked() {
+            ui_kit::placeholder(
+                ui,
+                "Write your own chronicle event — pick where and what, then commit.",
+            );
+            if ui
+                .button("➕  New event…")
+                .on_hover_text("Open the guided event builder")
+                .clicked()
+            {
                 state.history_wizard = Some(HistoryWizardState::default());
             }
             return;
@@ -736,16 +940,21 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
         {
             let w = state.history_wizard.as_mut().unwrap();
             ui.horizontal_wrapped(|ui| {
-                ui.label("anchor kind");
+                hint_label(
+                    ui,
+                    "Happens to",
+                    "What the event is anchored to — the whole sector, a system, world, route, or region.",
+                );
                 ui_kit::combo("h5_anchor_kind", w.anchor_kind.label()).show_ui(ui, |ui| {
                     for k in HistoryAnchorKind::ALL {
                         ui.selectable_value(&mut w.anchor_kind, *k, k.label());
                     }
                 });
-                ui.label("event kind");
+                hint_label(ui, "Event type", "What kind of event this is.");
                 ui_kit::combo("h5_event_kind", kind_label(w.kind)).show_ui(ui, |ui| {
                     for k in EVENT_KINDS {
-                        ui.selectable_value(&mut w.kind, *k, kind_label(*k));
+                        ui.selectable_value(&mut w.kind, *k, kind_label(*k))
+                            .on_hover_text(format!("key: {}", k.as_slug()));
                     }
                 });
             });
@@ -754,7 +963,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                 HistoryAnchorKind::Sector => {}
                 HistoryAnchorKind::System => {
                     ui.horizontal_wrapped(|ui| {
-                        ui.label("system");
+                        ui.label("System");
                         let cur = w
                             .anchor_system
                             .as_ref()
@@ -765,7 +974,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                                 if ui
                                     .selectable_label(
                                         w.anchor_system.as_ref() == Some(id),
-                                        format!("{id} — {name}"),
+                                        format!("{name} ({id})"),
                                     )
                                     .clicked()
                                 {
@@ -777,7 +986,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 HistoryAnchorKind::World => {
                     ui.horizontal_wrapped(|ui| {
-                        ui.label("world");
+                        ui.label("World");
                         let cur = w
                             .anchor_world
                             .as_ref()
@@ -788,7 +997,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                                 if ui
                                     .selectable_label(
                                         w.anchor_world.as_ref() == Some(wid),
-                                        format!("{wid} — {name} ({sid})"),
+                                        format!("{name} ({wid}, in {sid})"),
                                     )
                                     .clicked()
                                 {
@@ -801,7 +1010,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 HistoryAnchorKind::Route => {
                     ui.horizontal_wrapped(|ui| {
-                        ui.label("route");
+                        ui.label("Route");
                         let cur = w
                             .anchor_route
                             .as_ref()
@@ -812,7 +1021,7 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                                 if ui
                                     .selectable_label(
                                         w.anchor_route.as_ref() == Some(rid),
-                                        format!("{rid} — {label}"),
+                                        format!("{label}  ({rid})"),
                                     )
                                     .clicked()
                                 {
@@ -824,14 +1033,14 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 HistoryAnchorKind::Region => {
                     ui.horizontal_wrapped(|ui| {
-                        ui.label("region");
+                        ui.label("Region");
                         let cur = w.anchor_region.clone().unwrap_or_else(|| "(pick)".into());
                         ui_kit::combo("h5_region", cur).show_ui(ui, |ui| {
                             for (rid, name) in &regions {
                                 if ui
                                     .selectable_label(
                                         w.anchor_region.as_deref() == Some(rid.as_str()),
-                                        format!("{rid} — {name}"),
+                                        format!("{name} ({rid})"),
                                     )
                                     .clicked()
                                 {
@@ -847,10 +1056,11 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
             // intersected with the global faction roster. Already-picked
             // factions render with a darker chip.
             let suggested = suggest_factions_for_wizard(&systems, &worlds, &factions, w);
-            ui.label(RichText::new("participating factions").strong());
+            ui.label(RichText::new("Factions involved").strong())
+                .on_hover_text("Click to add or remove a faction as a participant.");
             ui.horizontal_wrapped(|ui| {
                 if suggested.is_empty() {
-                    ui.colored_label(Color32::GRAY, "(no suggestions for this anchor)");
+                    ui_kit::placeholder(ui, "no suggestions here — add one below");
                 }
                 for (fid, _name) in &suggested {
                     let active = w.selected_factions.contains(fid);
@@ -869,13 +1079,13 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
             ui.horizontal_wrapped(|ui| {
-                ui.label("manual add");
-                ui_kit::combo("h5_add_fac", "(pick)").show_ui(ui, |ui| {
+                ui.label("Add another");
+                ui_kit::combo("h5_add_fac", "(pick one)").show_ui(ui, |ui| {
                     for (fid, name) in &factions {
                         if ui
                             .selectable_label(
                                 w.selected_factions.contains(fid),
-                                format!("{fid} — {name}"),
+                                format!("{name} ({fid})"),
                             )
                             .clicked()
                         {
@@ -886,7 +1096,11 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
             });
 
             ui.horizontal_wrapped(|ui| {
-                ui.label("date (optional, M{epoch}.{ddd})");
+                hint_label(
+                    ui,
+                    "Date",
+                    "Optional. Imperial dating — millennium then fraction, e.g. M40.500. Left blank, a default is used.",
+                );
                 ui.add(
                     egui::TextEdit::singleline(&mut w.date)
                         .desired_width(120.0)
@@ -895,7 +1109,8 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
             });
 
             let preview = preview_narrative(w, &systems, &worlds, &routes, &regions);
-            ui.label(RichText::new("narrative (override; blank = preview)").strong());
+            ui.label(RichText::new("Narrative").strong())
+                .on_hover_text("Optional prose. Leave blank to use the auto-generated preview below.");
             ui.add(
                 egui::TextEdit::multiline(&mut w.narrative)
                     .desired_rows(3)
@@ -908,12 +1123,17 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
             ui.horizontal_wrapped(|ui| {
                 let ready = wizard_anchor_ready(w);
                 if ui
-                    .add_enabled(ready, egui::Button::new("Commit event"))
+                    .add_enabled(ready, egui::Button::new("✔  Add event"))
+                    .on_hover_text("Add this event to the chronicle")
                     .clicked()
                 {
                     commit = true;
                 }
-                if ui.button("Cancel").clicked() {
+                if ui
+                    .button("Cancel")
+                    .on_hover_text("Discard this draft and close the builder")
+                    .clicked()
+                {
                     close = true;
                 }
             });
@@ -1159,9 +1379,12 @@ fn suggest_factions_for_wizard(
 // ── §H7 timeline ────────────────────────────────────────────────────────────
 
 fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "hist_timeline", "timeline", true, |ui| {
+    ui_kit::collapsing_section(ui, "hist_timeline", "Timeline", true, |ui| {
         if state.sector.chronicle.events.is_empty() {
-            ui.colored_label(Color32::GRAY, "Empty chronicle. Regenerate above.");
+            ui_kit::placeholder(
+                ui,
+                "Nothing on the timeline yet — regenerate the chronicle or add an event above.",
+            );
             return;
         }
         let events = state.sector.chronicle.events.clone();
@@ -1172,7 +1395,7 @@ fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
                 for (i, ev) in events.iter().enumerate() {
                     ui.horizontal_wrapped(|ui| {
                         ui.label(RichText::new(&ev.date).monospace().strong());
-                        ui.label(format!("{}", ev.kind));
+                        ui.label(kind_label(ev.kind));
                         ui.colored_label(
                             Color32::DARK_GRAY,
                             format!("({})", anchor_label(&ev.anchor)),
@@ -1182,11 +1405,16 @@ fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
                             short_narrative(&ev.narrative),
                             false,
                         )
+                        .on_hover_text("Open this event")
                         .clicked()
                         {
                             state.focus_entity(EntityRef::HistoryEvent(ev.id.clone()));
                         }
-                        if ui.small_button("focus").clicked() {
+                        if ui
+                            .small_button("◎")
+                            .on_hover_text("Show this event's location on the map")
+                            .clicked()
+                        {
                             focus_anchor(state, i);
                         }
                     });
@@ -1208,11 +1436,12 @@ fn short_narrative(s: &str) -> String {
 // ── save row ────────────────────────────────────────────────────────────────
 
 fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("history.toml").strong());
+    ui.label(RichText::new("Save history settings").strong());
     let has_catalog = state.data_catalogs.history.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(has_catalog, egui::Button::new("Save history.toml"))
+            .add_enabled(has_catalog, egui::Button::new("💾  Save"))
+            .on_hover_text("Write the chronicle settings, eras, and rules to disk")
             .clicked()
         {
             if state.config.inputs.history.is_none() {
@@ -1229,7 +1458,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
             .inputs
             .history
             .clone()
-            .unwrap_or_else(|| format!("(unset; will write to {DEFAULT_HISTORY_PATH})"));
+            .unwrap_or_else(|| format!("will be saved to {DEFAULT_HISTORY_PATH}"));
         ui.colored_label(Color32::DARK_GRAY, path_label);
     });
 }

@@ -19,40 +19,67 @@
 //! [`RandomProgress`]: sectorforge::random_sector::RandomProgress
 
 use camino::Utf8PathBuf;
+use egui::{RichText, Ui};
 use sectorforge::random_sector::{self, SectorSize, MAX_CUSTOM_DIM};
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::project_io::open_project;
 use crate::builder::random_run::RandomJobResult;
 use crate::builder::{BuilderState, ModalKind};
 
-/// `(id, label)` for the size dropdown. Every preset is square (N × N) — the
-/// square-sector invariant. `custom` reveals the (locked-equal) width/height
-/// fields.
-const SIZES: &[(&str, &str)] = &[
-    ("small", "Small — 8 × 8"),
-    ("medium", "Medium — 16 × 16"),
-    ("large", "Large — 32 × 32"),
-    ("vast", "Vast — 48 × 48"),
-    ("massive", "Massive — 64 × 64"),
-    ("huge", "Huge — 80 × 80"),
-    ("custom", "Custom…"),
+/// `(id, label, hover)` for the size dropdown. Every preset is square (N × N) —
+/// the square-sector invariant. `custom` reveals the (locked-equal) width/height
+/// fields. The `id` is carried in the per-item hover so the human label stays
+/// front-and-centre.
+const SIZES: &[(&str, &str, &str)] = &[
+    ("small", "Small — 8 × 8", "8 × 8 sectors (id: small)"),
+    ("medium", "Medium — 16 × 16", "16 × 16 sectors (id: medium)"),
+    ("large", "Large — 32 × 32", "32 × 32 sectors (id: large)"),
+    ("vast", "Vast — 48 × 48", "48 × 48 sectors (id: vast)"),
+    (
+        "massive",
+        "Massive — 64 × 64",
+        "64 × 64 sectors (id: massive)",
+    ),
+    ("huge", "Huge — 80 × 80", "80 × 80 sectors (id: huge)"),
+    (
+        "custom",
+        "Custom…",
+        "Choose your own size — width and height stay locked equal (sectors are square)",
+    ),
 ];
 
-/// `(id, label)` for the baseline dropdown. `_full` is the balanced
-/// "everything on" reference; the rest are the themed gallery presets. The
-/// chosen baseline supplies the content/overlay data tree, while the layout is
-/// still rolled from the seed (RANDOM.md §6: pick a themed baseline, fully roll
-/// the rest).
-const BASELINES: &[(&str, &str)] = &[
-    ("_full", "Everything — balanced, all features"),
-    ("m42-classic", "M42 Classic — balanced Imperium"),
+/// `(id, label, hover)` for the baseline dropdown. The first entry is the
+/// balanced "everything on" reference; the rest are the themed gallery presets.
+/// The chosen baseline supplies the content/overlay data tree, while the layout
+/// is still rolled from the seed (pick a themed baseline, fully roll the rest).
+/// The `id` is carried in the per-item hover so the human label stays primary.
+const BASELINES: &[(&str, &str, &str)] = &[
+    (
+        "_full",
+        "Everything — balanced, all features",
+        "Balanced reference with every feature enabled (id: _full)",
+    ),
+    (
+        "m42-classic",
+        "M42 Classic — balanced Imperium",
+        "A balanced Imperium-led sector (id: m42-classic)",
+    ),
     (
         "embattled-frontier",
         "Embattled Frontier — Imperium vs Orks",
+        "A contested warzone, Imperium against Orks (id: embattled-frontier)",
     ),
-    ("dead-sector", "Dead Sector — ruins & Necrons"),
-    ("mercantile-crossroads", "Mercantile Crossroads — trade hub"),
+    (
+        "dead-sector",
+        "Dead Sector — ruins & Necrons",
+        "Silent ruins stalked by Necrons (id: dead-sector)",
+    ),
+    (
+        "mercantile-crossroads",
+        "Mercantile Crossroads — trade hub",
+        "A bustling trade hub (id: mercantile-crossroads)",
+    ),
 ];
 
 /// Render the wizard. Returns `true` when the modal should be dismissed
@@ -93,74 +120,98 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     ui.heading("Random sector");
     ui.add_space(2.0);
     ui.label(
-        "Pick a size and a themed baseline. The layout — systems, worlds, \
-         routes, regions — is rolled from the seed, while the baseline seeds the \
-         content (factions, history, personae, sites, prose). Every overlay is \
-         enabled.",
+        "Pick a size and a theme. The layout — systems, worlds, routes, regions \
+         — is rolled from the seed, while the theme seeds the content (factions, \
+         history, personae, sites, prose). Every feature is switched on.",
     );
     ui.label(
-        egui::RichText::new("Sectors are square — every size is N × N.")
+        RichText::new("Sectors are square — every size is N × N.")
             .italics()
             .weak(),
     );
     ui.add_space(6.0);
 
-    egui::Grid::new("generate_random_grid")
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("Size");
+    labeled(
+        ui,
+        "Size",
+        "How big the sector is. Every option is square (N × N) — sectors can't be wider than they are tall.",
+        |ui| {
             ui_kit::combo("random_size", size_label(&size)).show_ui(ui, |ui| {
-                for (id, label) in SIZES {
-                    ui.selectable_value(&mut size, (*id).to_string(), *label);
+                for (id, label, hover) in SIZES {
+                    ui.selectable_value(&mut size, (*id).to_string(), *label)
+                        .on_hover_text(*hover);
                 }
             });
-            ui.end_row();
+        },
+    );
 
-            ui.label("Baseline");
+    labeled(
+        ui,
+        "Theme",
+        "Sets the flavour — which factions, history, and prose seed the sector. The layout is still rolled from the seed.",
+        |ui| {
             ui_kit::combo("random_baseline", baseline_label(&baseline)).show_ui(ui, |ui| {
-                for (id, label) in BASELINES {
-                    ui.selectable_value(&mut baseline, (*id).to_string(), *label);
+                for (id, label, hover) in BASELINES {
+                    ui.selectable_value(&mut baseline, (*id).to_string(), *label)
+                        .on_hover_text(*hover);
                 }
             });
-            ui.end_row();
+        },
+    );
 
-            if size == "custom" {
-                // Sectors must be square: editing either dimension mirrors it
-                // into the other so the two fields stay locked equal.
-                ui.label("Width");
+    if size == "custom" {
+        // Sectors must be square: editing either dimension mirrors it into the
+        // other so the two fields stay locked equal.
+        labeled(
+            ui,
+            "Width",
+            "Sector width in cells. Locked equal to height — sectors are square, so changing one updates the other.",
+            |ui| {
                 if ui
                     .add(egui::DragValue::new(&mut custom_w).range(1..=MAX_CUSTOM_DIM))
                     .changed()
                 {
                     custom_h = custom_w;
                 }
-                ui.end_row();
-                ui.label("Height");
+            },
+        );
+        labeled(
+            ui,
+            "Height",
+            "Sector height in cells. Locked equal to width — sectors are square, so changing one updates the other.",
+            |ui| {
                 if ui
                     .add(egui::DragValue::new(&mut custom_h).range(1..=MAX_CUSTOM_DIM))
                     .changed()
                 {
                     custom_w = custom_h;
                 }
-                ui.end_row();
-                ui.label("");
-                ui.label(
-                    egui::RichText::new("🔒 square — width & height locked equal")
-                        .small()
-                        .weak(),
-                );
-                ui.end_row();
-            }
+            },
+        );
+        ui.label(
+            RichText::new("🔒 square — width & height stay locked equal")
+                .small()
+                .weak(),
+        );
+    }
 
-            ui.label("Seed");
-            ui.text_edit_singleline(&mut seed);
-            ui.end_row();
-        });
+    labeled(
+        ui,
+        "Seed",
+        "Word or number that makes the result repeatable — the same seed always rolls the same sector. Leave blank to mint a fresh one.",
+        |ui| {
+            ui.add(egui::TextEdit::singleline(&mut seed).hint_text("blank = random"));
+        },
+    );
     ui.small("Leave the seed blank to mint a fresh random one (echoed in the project title).");
     ui.add_space(6.0);
 
     ui.horizontal(|ui| {
-        if ui.button("Choose folder & create…").clicked() {
+        if ui
+            .button("📂  Choose folder & create…")
+            .on_hover_text("Pick a parent folder, then roll and save the new sector there")
+            .clicked()
+        {
             if let Some(folder) = rfd::FileDialog::new()
                 .set_title("Random sector parent folder")
                 .pick_folder()
@@ -181,7 +232,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
                 }
             }
         }
-        if ui.button("Cancel").clicked() {
+        if ui
+            .button("Cancel")
+            .on_hover_text("Close without creating a sector")
+            .clicked()
+        {
             close = true;
         }
     });
@@ -250,7 +305,11 @@ fn show_progress(ui: &mut egui::Ui, state: &mut BuilderState) -> bool {
     ui.add_space(8.0);
 
     let mut dismiss = false;
-    if ui.button("Cancel").clicked() {
+    if ui
+        .button("Cancel")
+        .on_hover_text("Stop generating and close — anything created so far is discarded")
+        .clicked()
+    {
         // Detach the worker (it finishes in the background; its result is
         // dropped on the next pump because the revision no longer matches) and
         // close the wizard — `show_modal` only dismisses via `state.modal`.
@@ -283,15 +342,33 @@ fn resolve_size(size: &str, custom_w: u32, custom_h: u32) -> SectorSize {
 fn size_label(id: &str) -> &'static str {
     SIZES
         .iter()
-        .find(|(s, _)| *s == id)
-        .map_or("Medium — 16 × 16", |(_, label)| *label)
+        .find(|(s, ..)| *s == id)
+        .map_or("Medium — 16 × 16", |(_, label, _)| *label)
 }
 
 fn baseline_label(id: &str) -> &'static str {
     BASELINES
         .iter()
-        .find(|(s, _)| *s == id)
-        .map_or("Everything — balanced, all features", |(_, label)| *label)
+        .find(|(s, ..)| *s == id)
+        .map_or("Everything — balanced, all features", |(_, label, _)| {
+            *label
+        })
+}
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in plain terms ("Size", "Theme", "Seed") while the tooltip
+/// explains what it does — mirroring the FACTIONS inspector idiom so the wizard
+/// is self-explanatory without a manual.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
 }
 
 fn dir_slug(seed: &str) -> String {

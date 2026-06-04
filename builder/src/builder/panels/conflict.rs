@@ -21,11 +21,29 @@ use sectorforge::conflict::{
 };
 use sectorforge::ids::FactionId;
 use sectorforge::stability::{derive_world_stability, StabilityState};
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{ModalKind, TickLogScope};
 use crate::builder::BuilderState;
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Momentum", "Public order") while the tooltip
+/// names the underlying field plus a plain-language note, so power users keep
+/// the schema mapping. Friendlier replacement for the old bare `egui::Grid`
+/// whose row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
 
 // ── §CF1 + §CF3: per-world conflict + stability editor ─────────────────────
 
@@ -38,7 +56,7 @@ pub fn show_world_conflict_section(
     ui_kit::collapsing_section(
         ui,
         "cf_world_conflict",
-        "Conflict + stability",
+        "Conflict & stability",
         false,
         |ui| {
             let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
@@ -52,21 +70,25 @@ pub fn show_world_conflict_section(
             // §CF1 — conflict editor.
             let mut working = state.sector.systems[sys_idx].worlds[w_idx].conflict.clone();
             let original = working.clone();
-            ui.label(RichText::new("Conflict state").strong());
+            ui.label(RichText::new("Who is fighting here").strong());
             conflict_editor(ui, &format!("w_conf_{world_id}"), &mut working, &factions);
             ui.horizontal_wrapped(|ui| {
                 if ui
-                    .button("Re-derive from control")
+                    .button("↺  Re-derive from control")
                     .on_hover_text(
-                        "Calls sectorforge::conflict::derive_world_conflict for this world \
-                     and replaces the conflict block with the seed-derived snapshot.",
+                        "Replace the conflict block with a fresh snapshot calculated from \
+                         who currently controls this world.",
                     )
                     .clicked()
                 {
                     let w = &state.sector.systems[sys_idx].worlds[w_idx];
                     working = derive_world_conflict(w);
                 }
-                if ui.button("Clear conflict").clicked() {
+                if ui
+                    .button("🗑  Clear conflict")
+                    .on_hover_text("Reset every conflict field back to peaceful defaults.")
+                    .clicked()
+                {
                     working = ConflictState::default();
                 }
             });
@@ -86,7 +108,12 @@ pub fn show_world_conflict_section(
 
             ui.add_space(8.0);
             ui.separator();
-            ui.label(RichText::new("Stability (7 dimensions)").strong());
+            ui.label(RichText::new("Stability").strong());
+            ui.label(
+                RichText::new("Seven pressures on this world, each 0–100.")
+                    .small()
+                    .color(Color32::DARK_GRAY),
+            );
 
             // §CF3 — stability editor.
             let mut stab = state.sector.systems[sys_idx].worlds[w_idx].stability;
@@ -94,17 +121,21 @@ pub fn show_world_conflict_section(
             stability_editor(ui, &format!("w_stab_{world_id}"), &mut stab);
             ui.horizontal_wrapped(|ui| {
                 if ui
-                    .button("Re-derive stability")
+                    .button("↺  Re-derive stability")
                     .on_hover_text(
-                        "Calls sectorforge::stability::derive_world_stability for this world \
-                     using the live faction roster.",
+                        "Recalculate all seven dimensions from this world's profile and the \
+                         live faction roster.",
                     )
                     .clicked()
                 {
                     let w = &state.sector.systems[sys_idx].worlds[w_idx];
                     stab = derive_world_stability(w, &state.sector.factions);
                 }
-                if ui.button("Clear stability").clicked() {
+                if ui
+                    .button("🗑  Clear stability")
+                    .on_hover_text("Reset every stability dimension back to defaults.")
+                    .clicked()
+                {
                     stab = StabilityState::default();
                 }
             });
@@ -144,11 +175,10 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
 
         ui.horizontal(|ui| {
             if ui
-                .checkbox(&mut override_on, "Override aggregate")
+                .checkbox(&mut override_on, "Edit system conflict directly")
                 .on_hover_text(
-                    "When off: conflict block re-derives from worlds via \
-                     conflict::derive_system_conflict every frame. When on: edits go \
-                     straight to GeneratedSystem::conflict via SetSystemConflict.",
+                    "Off: the system's conflict is rolled up automatically from its worlds. \
+                     On: you set the system's conflict by hand, ignoring the rollup.",
                 )
                 .changed()
             {
@@ -159,8 +189,12 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                 }
             }
             ui.colored_label(
-                Color32::GRAY,
-                format!("hysteresis = {} ticks", HYSTERESIS_TICKS),
+                Color32::DARK_GRAY,
+                format!("controller flips after {HYSTERESIS_TICKS} steady ticks"),
+            )
+            .on_hover_text(
+                "Hysteresis: the public controller only changes once a takeover has held for \
+                 this many ticks (schema: HYSTERESIS_TICKS).",
             );
         });
 
@@ -181,13 +215,22 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                     state.last_command_error = Some(format!("aggregate sync: {e}"));
                 }
             }
+            ui.label(
+                RichText::new("Rolled up from this system's worlds (read-only).")
+                    .small()
+                    .color(Color32::DARK_GRAY),
+            );
             let sys = &state.sector.systems[sys_idx];
             show_conflict_readout(ui, &sys.conflict);
         } else {
             let mut working = state.sector.systems[sys_idx].conflict.clone();
             let original = working.clone();
             conflict_editor(ui, &format!("s_conf_{sys_id}"), &mut working, &factions);
-            if ui.button("Clear conflict").clicked() {
+            if ui
+                .button("🗑  Clear conflict")
+                .on_hover_text("Reset every conflict field back to peaceful defaults.")
+                .clicked()
+            {
                 working = ConflictState::default();
             }
             if working != original {
@@ -220,15 +263,14 @@ pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_i
 
 fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
     use sectorforge::heatmap::HeatmapMode;
-    ui.label(RichText::new("MAP conflict heatmap").strong());
+    ui.label(RichText::new("Conflict heatmap on the map").strong());
     let mut on = matches!(state.map_heatmap_mode, HeatmapMode::ConflictIntensity);
     ui.horizontal_wrapped(|ui| {
         if ui
-            .checkbox(&mut on, "Show conflict intensity on MAP")
+            .checkbox(&mut on, "Tint systems by fighting intensity")
             .on_hover_text(
-                "Wires state.map_heatmap_mode = HeatmapMode::ConflictIntensity so the MAP \
-                 tab tints each system by its per-system conflict.intensity (0..=100). \
-                 Overridden by §C7/§C8 when a control overlay is on.",
+                "Shades each system on the Map tab by how heavy its fighting is (0–100). \
+                 A control overlay, if one is active, takes priority over this.",
             )
             .changed()
         {
@@ -238,7 +280,11 @@ fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
                 HeatmapMode::Off
             };
         }
-        if ui.button("→ MAP").clicked() {
+        if ui
+            .button("Open Map  →")
+            .on_hover_text("Jump to the Map tab to see the heatmap")
+            .clicked()
+        {
             state.focus_entity(crate::builder::state::EntityRef::Tab(
                 crate::builder::state::BuilderTab::Map,
             ));
@@ -249,21 +295,21 @@ fn show_conflict_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
 // ── §CF4 advance ticks + §CF5 tick log shared widgets ─────────────────────
 
 fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
-    ui.label(RichText::new("Advance ticks").strong());
+    ui.label(RichText::new("Advance time").strong());
     ui.horizontal(|ui| {
-        ui.label("ticks:");
+        ui.label("Ticks:");
         ui.add(
             egui::DragValue::new(&mut state.conflict_ticks_to_advance)
                 .range(1..=u32::MAX)
                 .speed(1.0),
         );
-        let label = format!("Advance N ticks ({scope_id})");
+        let label = format!("▶  Advance {scope_id}");
         if ui
             .button(label)
             .on_hover_text(
-                "Calls sectorforge::conflict::advance_sector once per tick. Hysteresis \
-                 (HYSTERESIS_TICKS) is preserved — the visible controller only flips after a \
-                 control change has held that many ticks.",
+                "Step the simulation forward by the chosen number of ticks. Each tick updates \
+                 momentum, intensity, and — once a takeover holds long enough — the visible \
+                 controller.",
             )
             .clicked()
         {
@@ -278,12 +324,16 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
 pub fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Option<&str>) {
     ui.label(RichText::new("Tick log").strong());
     if state.tick_log.is_empty() {
-        ui.colored_label(Color32::GRAY, "(empty — run Advance N ticks above)");
+        ui_kit::placeholder(ui, "No ticks yet — use Advance time above to step the simulation.");
         return;
     }
     ui.horizontal(|ui| {
         ui.label(format!("{} entries", state.tick_log.len()));
-        if ui.small_button("× clear").clicked() {
+        if ui
+            .small_button("🗑  Clear log")
+            .on_hover_text("Discard all recorded tick history")
+            .clicked()
+        {
             state.tick_log.clear();
         }
     });
@@ -322,7 +372,7 @@ pub fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Optio
                         opt_id(&entry.visible_after),
                     ));
                 }
-                ui.monospace(format!("t{:>4}  {}", entry.tick_index, bits.join("")));
+                ui.monospace(format!("t{:>4}  {}", entry.tick_index, bits.join("  ")));
             }
         });
 }
@@ -341,106 +391,177 @@ fn conflict_editor(
     state: &mut ConflictState,
     factions: &[(FactionId, String)],
 ) {
-    egui::Grid::new(format!("{salt}_grid"))
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("momentum");
+    labeled(
+        ui,
+        "Momentum",
+        "Which side is winning, -100..100 (schema: momentum). Positive favours the attacker, \
+         negative the defender.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.momentum, -100..=100));
-            ui.end_row();
-
-            ui.label("intensity");
+        },
+    );
+    labeled(
+        ui,
+        "Intensity",
+        "Overall ferocity of the fighting / unrest, 0..100 (schema: intensity).",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.intensity, 0..=100).text("/100"));
-            ui.end_row();
-
-            ui.label("mobilisation");
+        },
+    );
+    labeled(
+        ui,
+        "Mobilisation",
+        "How fully each side has committed its forces, 0..100 (schema: mobilisation).",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.mobilisation, 0..=100).text("/100"));
-            ui.end_row();
-
-            ui.label("attacker");
-            optional_faction_combo(ui, &format!("{salt}_att"), &mut state.attacker, factions);
-            ui.end_row();
-
-            ui.label("defender");
-            optional_faction_combo(ui, &format!("{salt}_def"), &mut state.defender, factions);
-            ui.end_row();
-
-            ui.label("visible_controller");
+        },
+    );
+    labeled(
+        ui,
+        "Attacker",
+        "Faction pressing the attack, if any (schema: attacker).",
+        |ui| optional_faction_combo(ui, &format!("{salt}_att"), &mut state.attacker, factions),
+    );
+    labeled(
+        ui,
+        "Defender",
+        "Faction holding the ground, usually the current controller (schema: defender).",
+        |ui| optional_faction_combo(ui, &format!("{salt}_def"), &mut state.defender, factions),
+    );
+    labeled(
+        ui,
+        "Visible controller",
+        "Who appears to be in charge publicly — only flips after a takeover holds for several \
+         ticks (schema: visible_controller).",
+        |ui| {
             optional_faction_combo(
                 ui,
                 &format!("{salt}_vis"),
                 &mut state.visible_controller,
                 factions,
-            );
-            ui.end_row();
-
-            ui.label("started_tick");
+            )
+        },
+    );
+    labeled(
+        ui,
+        "Started on tick",
+        "Tick on which the current fight began; 0 means pristine (schema: started_tick).",
+        |ui| {
             ui.add(egui::DragValue::new(&mut state.started_tick).range(0..=u32::MAX));
-            ui.end_row();
-
-            ui.label("last_change_tick");
+        },
+    );
+    labeled(
+        ui,
+        "Last change tick",
+        "Tick of the most recent control change (schema: last_change_tick).",
+        |ui| {
             ui.add(egui::DragValue::new(&mut state.last_change_tick).range(0..=u32::MAX));
-            ui.end_row();
-
-            ui.label("age");
+        },
+    );
+    labeled(
+        ui,
+        "Age",
+        "Total ticks elapsed since this conflict was last reset (schema: age).",
+        |ui| {
             ui.add(egui::DragValue::new(&mut state.age).range(0..=u32::MAX));
-            ui.end_row();
-        });
+        },
+    );
 }
 
-fn stability_editor(ui: &mut Ui, salt: &str, state: &mut StabilityState) {
-    egui::Grid::new(format!("{salt}_grid"))
-        .num_columns(2)
-        .show(ui, |ui| {
-            ui.label("public_order");
+fn stability_editor(ui: &mut Ui, _salt: &str, state: &mut StabilityState) {
+    labeled(
+        ui,
+        "Public order",
+        "How calm and well-policed the world is (schema: public_order). Higher is calmer.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.public_order, 0.0..=100.0));
-            ui.end_row();
-            ui.label("corruption");
+        },
+    );
+    labeled(
+        ui,
+        "Corruption",
+        "Extent of Chaos taint and graft (schema: corruption). Higher is worse.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.corruption, 0.0..=100.0));
-            ui.end_row();
-            ui.label("fear");
+        },
+    );
+    labeled(
+        ui,
+        "Fear",
+        "Level of dread gripping the populace (schema: fear). Higher is worse.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.fear, 0.0..=100.0));
-            ui.end_row();
-            ui.label("rebellion_risk");
+        },
+    );
+    labeled(
+        ui,
+        "Rebellion risk",
+        "Chance of open revolt against the rulers (schema: rebellion_risk). Higher is worse.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.rebellion_risk, 0.0..=100.0));
-            ui.end_row();
-            ui.label("xenos_threat");
+        },
+    );
+    labeled(
+        ui,
+        "Xenos threat",
+        "Pressure from alien forces (schema: xenos_threat). Higher is worse.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.xenos_threat, 0.0..=100.0));
-            ui.end_row();
-            ui.label("warp_instability");
+        },
+    );
+    labeled(
+        ui,
+        "Warp instability",
+        "Severity of warp storms and psychic turbulence (schema: warp_instability). Higher is \
+         worse.",
+        |ui| {
             ui.add(egui::Slider::new(&mut state.warp_instability, 0.0..=100.0));
-            ui.end_row();
-            ui.label("famine_or_resource_stress");
+        },
+    );
+    labeled(
+        ui,
+        "Famine / resource stress",
+        "Strain on food and supplies (schema: famine_or_resource_stress). Higher is worse.",
+        |ui| {
             ui.add(egui::Slider::new(
                 &mut state.famine_or_resource_stress,
                 0.0..=100.0,
             ));
-            ui.end_row();
-        });
+        },
+    );
 }
 
 fn show_conflict_readout(ui: &mut Ui, c: &ConflictState) {
     egui::Grid::new("conflict_readout_grid")
         .num_columns(2)
         .show(ui, |ui| {
-            ui.label("momentum");
+            ui.label("Momentum")
+                .on_hover_text("Which side is winning, -100..100 (schema: momentum).");
             ui.monospace(c.momentum.to_string());
             ui.end_row();
-            ui.label("intensity");
+            ui.label("Intensity")
+                .on_hover_text("Overall ferocity of the fighting, 0..100 (schema: intensity).");
             ui.monospace(format!("{}/100", c.intensity));
             ui.end_row();
-            ui.label("mobilisation");
+            ui.label("Mobilisation").on_hover_text(
+                "How fully each side has committed its forces, 0..100 (schema: mobilisation).",
+            );
             ui.monospace(format!("{}/100", c.mobilisation));
             ui.end_row();
-            ui.label("attacker");
+            ui.label("Attacker")
+                .on_hover_text("Faction pressing the attack (schema: attacker).");
             ui.monospace(opt_id(&c.attacker));
             ui.end_row();
-            ui.label("defender");
+            ui.label("Defender")
+                .on_hover_text("Faction holding the ground (schema: defender).");
             ui.monospace(opt_id(&c.defender));
             ui.end_row();
-            ui.label("visible_controller");
+            ui.label("Visible controller")
+                .on_hover_text("Who appears to be in charge publicly (schema: visible_controller).");
             ui.monospace(opt_id(&c.visible_controller));
             ui.end_row();
-            ui.label("age");
+            ui.label("Age")
+                .on_hover_text("Ticks elapsed since last reset (schema: age).");
             ui.monospace(c.age.to_string());
             ui.end_row();
         });
@@ -463,7 +584,7 @@ fn optional_faction_combo(
         for (fid, name) in factions {
             let sel = current.as_ref() == Some(fid);
             if ui
-                .selectable_label(sel, format!("{fid} ({name})"))
+                .selectable_label(sel, format!("{name}  ({fid})"))
                 .clicked()
             {
                 *current = Some(fid.clone());

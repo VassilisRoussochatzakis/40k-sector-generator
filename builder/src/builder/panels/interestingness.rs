@@ -39,7 +39,7 @@ use egui::{Color32, Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
 use sectorforge::interestingness::{
     InterestingnessConfig, InterestingnessReport, MetricScore, MetricTarget, ProfileId,
 };
-use sectorforge_gui_core::palette::{paint_rect_filled, paint_rect_stroke};
+use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::{BuilderState, DerivationKind};
@@ -84,7 +84,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.add_space(2.0);
     ui.colored_label(
         Color32::DARK_GRAY,
-        "profile picker, score, per-metric chart, per-profile threshold overrides.",
+        "Pick a target feel, score your sector against it, and tune the bands each metric should fall in.",
     );
     ui.separator();
 
@@ -121,33 +121,46 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 // ── §INT1 profile picker ──────────────────────────────────────────────────
 
 fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
-    ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new("profile").strong());
-        let prev = state.interestingness_profile;
-        ui_kit::combo("int1_profile", profile_label(state.interestingness_profile)).show_ui(
-            ui,
-            |ui| {
-                for p in PROFILE_VARIANTS {
-                    ui.selectable_value(&mut state.interestingness_profile, *p, profile_label(*p));
-                }
-            },
-        );
-        if state.interestingness_profile != prev {
-            state.interestingness_report = None;
-            state.interestingness_custom_pick.clear();
-        }
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            profile_blurb(state.interestingness_profile),
-        );
-    });
+    labeled(
+        ui,
+        "Target profile",
+        "The overall feel to aim for (schema: profile). Switching profiles clears the current score and starts a fresh override table.",
+        |ui| {
+            let prev = state.interestingness_profile;
+            ui_kit::combo("int1_profile", profile_label(state.interestingness_profile))
+                .show_ui(ui, |ui| {
+                    for p in PROFILE_VARIANTS {
+                        ui.selectable_value(
+                            &mut state.interestingness_profile,
+                            *p,
+                            profile_label(*p),
+                        )
+                        .on_hover_text(profile_key(*p));
+                    }
+                })
+                .response
+                .on_hover_text(profile_key(state.interestingness_profile));
+            if state.interestingness_profile != prev {
+                state.interestingness_report = None;
+                state.interestingness_custom_pick.clear();
+            }
+        },
+    );
+    ui.colored_label(
+        Color32::DARK_GRAY,
+        profile_blurb(state.interestingness_profile),
+    );
 }
 
 // ── §INT2 score sector ────────────────────────────────────────────────────
 
 fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Score sector").clicked() {
+        if ui
+            .button("▶  Score sector")
+            .on_hover_text("Grade the current sector against the target profile and refresh the metric bands")
+            .clicked()
+        {
             rescore(state);
         }
         match state.interestingness_report.as_ref() {
@@ -159,7 +172,7 @@ fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
                 );
             }
             None => {
-                ui.colored_label(Color32::GRAY, "no scorecard yet — click \"Score sector\"");
+                ui_kit::placeholder(ui, "no score yet — click Score sector");
             }
         }
     });
@@ -206,16 +219,16 @@ fn build_config(state: &BuilderState) -> InterestingnessConfig {
 // ── §INT3 per-metric bar chart ────────────────────────────────────────────
 
 fn show_metrics_chart(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("metric bands").strong());
+    ui.label(RichText::new("Metric bands").strong());
     let Some(report) = state.interestingness_report.as_ref() else {
-        ui.colored_label(
-            Color32::GRAY,
-            "Score the sector to see per-metric bands and observed values.",
+        ui_kit::placeholder(
+            ui,
+            "no score yet — click Score sector to see each metric's target band and where your sector lands.",
         );
         return;
     };
     if report.metric_scores.is_empty() {
-        ui.colored_label(Color32::GRAY, "No metrics in the active profile.");
+        ui_kit::placeholder(ui, "this profile has no metric bands to show.");
         return;
     }
     for score in &report.metric_scores {
@@ -225,17 +238,15 @@ fn show_metrics_chart(ui: &mut Ui, state: &mut BuilderState) {
 
 fn draw_metric_row(ui: &mut Ui, score: &MetricScore) {
     ui.horizontal(|ui| {
-        ui.add_sized(
-            [200.0, 18.0],
-            egui::Label::new(RichText::new(&score.name).monospace()).wrap(),
-        );
+        ui.add_sized([200.0, 18.0], egui::Label::new(metric_label(&score.name)).wrap())
+            .on_hover_text(format!("metric id: {}", score.name));
         let bar_size = Vec2::new(320.0, 18.0);
         let (rect, _) = ui.allocate_exact_size(bar_size, Sense::hover());
 
         let vmax = (score.target_high * 1.5)
             .max(score.observed * 1.2)
             .max(1.0_f32);
-        paint_rect_filled(ui, rect, rect, 2.0, Color32::from_gray(45));
+        palette::paint_rect_filled(ui, rect, rect, 2.0, Color32::from_gray(45));
 
         let band_left = lerp_x(rect, score.target_low / vmax);
         let band_right = lerp_x(rect, score.target_high / vmax);
@@ -243,16 +254,16 @@ fn draw_metric_row(ui: &mut Ui, score: &MetricScore) {
             Pos2::new(band_left.min(band_right), rect.min.y),
             Pos2::new(band_left.max(band_right), rect.max.y),
         );
-        paint_rect_filled(ui, rect, band_rect, 2.0, Color32::from_rgb(60, 130, 75));
+        palette::paint_rect_filled(ui, rect, band_rect, 2.0, Color32::from_rgb(60, 130, 75));
 
         let obs_x = lerp_x(rect, (score.observed / vmax).clamp(0.0, 1.0));
         let tick_rect = Rect::from_min_max(
             Pos2::new(obs_x - 1.0, rect.min.y),
             Pos2::new(obs_x + 1.0, rect.max.y),
         );
-        paint_rect_filled(ui, rect, tick_rect, 0.0, Color32::WHITE);
+        palette::paint_rect_filled(ui, rect, tick_rect, 0.0, Color32::WHITE);
 
-        paint_rect_stroke(
+        palette::paint_rect_stroke(
             ui,
             rect,
             rect,
@@ -262,7 +273,7 @@ fn draw_metric_row(ui: &mut Ui, score: &MetricScore) {
 
         ui.label(
             RichText::new(format!(
-                "obs {:.2} · band {:.2}..={:.2} · fit {:>3.0}% · w {:.1}",
+                "now {:.2} · ideal {:.2}..={:.2} · fit {:>3.0}% · weight {:.1}",
                 score.observed,
                 score.target_low,
                 score.target_high,
@@ -271,6 +282,9 @@ fn draw_metric_row(ui: &mut Ui, score: &MetricScore) {
             ))
             .monospace()
             .color(fit_color(score.fit)),
+        )
+        .on_hover_text(
+            "now = your sector's value · ideal = the target band · fit = how close (100% is inside the band) · weight = how much this metric counts toward the overall score",
         );
     });
 }
@@ -283,10 +297,10 @@ fn lerp_x(rect: Rect, t: f32) -> f32 {
 // ── §INT4 custom profile editor ───────────────────────────────────────────
 
 fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
-    ui.label(RichText::new("threshold overrides for this profile").strong());
+    ui.label(RichText::new("Tune metric targets").strong());
     ui.colored_label(
         Color32::DARK_GRAY,
-        "Overrides survive switching profiles — each profile keeps its own table.",
+        "Nudge the ideal band for any metric. Each target profile keeps its own tweaks when you switch away and back.",
     );
 
     show_add_override_row(ui, state);
@@ -299,9 +313,9 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
         .unwrap_or_default();
 
     if entries.is_empty() {
-        ui.colored_label(
-            Color32::GRAY,
-            "no overrides yet — use the picker above to seed the profile's first override.",
+        ui_kit::placeholder(
+            ui,
+            "no tweaks yet — pick a metric above and Add it to set a custom target band.",
         );
         return;
     }
@@ -311,34 +325,49 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
     for (name, target) in &entries {
         let mut current = *target;
         ui.horizontal(|ui| {
-            ui.add_sized(
-                [200.0, 18.0],
-                egui::Label::new(RichText::new(name).monospace()).wrap(),
-            );
-            ui.label("low");
+            ui.add_sized([200.0, 18.0], egui::Label::new(metric_label(name)).wrap())
+                .on_hover_text(format!("metric id: {name}"));
+            ui.label("low")
+                .on_hover_text("Bottom of the ideal band (schema: low). Below this the fit starts dropping.");
             ui.add(egui::DragValue::new(&mut current.low).speed(0.05));
-            ui.label("high");
+            ui.label("high")
+                .on_hover_text("Top of the ideal band (schema: high). Above this the fit starts dropping.");
             ui.add(egui::DragValue::new(&mut current.high).speed(0.05));
-            ui.label("floor");
+            ui.label("floor")
+                .on_hover_text("Value where fit reaches zero on the low side (schema: floor).");
             ui.add(egui::DragValue::new(&mut current.floor).speed(0.05));
-            ui.label("ceil");
+            ui.label("ceil")
+                .on_hover_text("Value where fit reaches zero on the high side (schema: ceil). ∞ means no upper limit.");
             if current.ceil.is_infinite() {
-                if ui.button("set finite ceil").clicked() {
+                if ui
+                    .button("set limit")
+                    .on_hover_text("Replace the unlimited ceiling with a finite value you can edit")
+                    .clicked()
+                {
                     current.ceil = (current.high * 2.0).max(current.high + 1.0);
                 }
             } else {
                 ui.add(egui::DragValue::new(&mut current.ceil).speed(0.05));
-                if ui.button("∞").clicked() {
+                if ui
+                    .button("∞")
+                    .on_hover_text("Remove the upper limit (no ceiling)")
+                    .clicked()
+                {
                     current.ceil = f32::INFINITY;
                 }
             }
-            ui.label("weight");
+            ui.label("weight")
+                .on_hover_text("How much this metric counts toward the overall score (schema: weight). Higher = more influence.");
             ui.add(
                 egui::DragValue::new(&mut current.weight)
                     .speed(0.05)
                     .range(0.0..=10.0),
             );
-            if ui.button("Remove").clicked() {
+            if ui
+                .button("↺  Reset")
+                .on_hover_text("Drop this tweak and use the profile's built-in band again")
+                .clicked()
+            {
                 removed = Some(name.clone());
             }
         });
@@ -379,7 +408,7 @@ fn show_custom_editor(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal(|ui| {
-        ui.label("Add override:");
+        ui.label("Tweak a metric:");
         let key = profile_key(state.interestingness_profile).to_string();
         let already: Vec<&'static str> = METRIC_CATALOG
             .iter()
@@ -393,21 +422,30 @@ fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
             })
             .collect();
         let label = if state.interestingness_custom_pick.is_empty() {
-            "(pick a metric)".to_string()
+            RichText::new("(pick a metric)")
         } else {
-            state.interestingness_custom_pick.clone()
+            metric_label(&state.interestingness_custom_pick)
         };
         ui_kit::combo("int4_metric_pick", label).show_ui(ui, |ui| {
             for m in METRIC_CATALOG {
                 if already.contains(m) {
                     continue;
                 }
-                ui.selectable_value(&mut state.interestingness_custom_pick, (*m).to_string(), *m);
+                ui.selectable_value(
+                    &mut state.interestingness_custom_pick,
+                    (*m).to_string(),
+                    metric_label(m),
+                )
+                .on_hover_text(format!("metric id: {m}"));
             }
         });
         let pick = state.interestingness_custom_pick.clone();
         let can_add = !pick.is_empty() && !already.iter().any(|m| *m == pick);
-        if ui.add_enabled(can_add, egui::Button::new("Add")).clicked() {
+        if ui
+            .add_enabled(can_add, egui::Button::new("➕  Add"))
+            .on_hover_text("Start tuning the chosen metric, seeded from this profile's built-in band")
+            .clicked()
+        {
             let seed = seed_target(state.interestingness_profile, pick.as_str());
             state
                 .interestingness_custom_overrides
@@ -458,6 +496,46 @@ fn empty_sector() -> sectorforge::sector_model::GeneratedSector {
 }
 
 // ── label / colour helpers ────────────────────────────────────────────────
+
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms while the tooltip names the underlying field plus
+/// a plain-language note, so power users keep the schema mapping. Matches the
+/// canonical FACTIONS panel helper.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
+/// Human-readable label for a metric slug (e.g. `faction_gini` →
+/// "Faction Gini"). The library exposes no display name for metrics, so we
+/// title-case the slug here; the raw key is always carried in a hover at the
+/// call site. A couple of words are special-cased to keep their conventional
+/// capitalisation.
+fn metric_label(name: &str) -> RichText {
+    let pretty = name
+        .split('_')
+        .map(|word| match word {
+            "gini" => "Gini".to_string(),
+            "avg" => "Avg".to_string(),
+            other => {
+                let mut chars = other.chars();
+                match chars.next() {
+                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                    None => String::new(),
+                }
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    RichText::new(pretty)
+}
 
 fn profile_label(p: ProfileId) -> &'static str {
     match p {

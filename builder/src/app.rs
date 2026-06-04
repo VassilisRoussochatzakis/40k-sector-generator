@@ -14,12 +14,14 @@ pub struct BuilderApp {
 
 impl BuilderApp {
     pub fn new() -> Self {
+        // Sectors must be square (CLAUDE.md): blank scratch state is 8×8, the
+        // "Small" preset, so a fresh workspace never starts non-square.
         Self::with_initial_state(BuilderState::new_blank(
             "new-sector",
             "New Sector",
             "seed-1",
             8,
-            10,
+            8,
         ))
     }
 
@@ -29,6 +31,13 @@ impl BuilderApp {
             theme: Theme::default(),
             applied_theme: None,
         }
+    }
+
+    /// Override the active chrome theme before the first frame — equivalent to
+    /// picking it from the in-app `Theme:` menu. Used by the builder's
+    /// `--theme` capture flag to verify a component across presets.
+    pub fn set_theme(&mut self, theme: Theme) {
+        self.theme = theme;
     }
 }
 
@@ -153,7 +162,7 @@ impl BuilderApp {
                     &format!("New Sector {n}"),
                     "seed-1",
                     8,
-                    10,
+                    8,
                 ));
             }
             if self.workspace.len() > 1

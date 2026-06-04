@@ -13,6 +13,49 @@
 
 ---
 
+## Status — what has landed, and where a future run picks up
+
+This playbook was executed once (2026-06-04). The scaffolding and the first hero
+are **done — do not redo them:**
+
+- **Visual loop (§0):** the builder's dev capture mode exists —
+  `cargo run -p sectorforge-builder -- --project <dir> --tab <TAB> --theme <THEME>
+  --screenshot <png>` (plus `--screenshot-frames N`, `--select-faction <id>`). It
+  renders a few frames, writes a PNG, and exits; **Read** that PNG to see the
+  result. Use it every round — do not beautify blind.
+- **Token foundation (§4, Phase B):** `gui-core/src/design.rs` (`§DESIGN`) holds
+  the spacing / radius / elevation / motion / type / accent primitives; `theme.rs`
+  + `ui_kit.rs` route through it. *Extend* it — never reintroduce literals.
+- **First hero + recipe (§5, §6.2, Phase C):**
+  `gui-core/src/card.rs::selectable_plate` (`§BEAUTY`) — an animated selectable
+  plate — is landed and **propagated to the Factions / World / System / Routes
+  rosters** (Phase D). Verified across Grimdark / Light / Slate.
+
+**Start a future run here (skip Phases A–C for the above — they exist):**
+
+1. **Finish Phase-D propagation** of `card::selectable_plate` to the remaining list
+   rails: Sites, Subsectors, Personae, Hooks, Missions, Search, Validation,
+   Invariants. Same recipe, keep any meaning-carrying glyph/swatch, screenshot each
+   (§9). Mechanical breadth → fan out `panel-implementer` agents (§3 Phase D),
+   edit-only, compile + screenshot centrally.
+2. **Typography (§5.5)** — still `default_fonts`; the single highest-value untouched
+   primitive. Register a display face (titles only), a humanist body, and a mono for
+   tables via `FontDefinitions` + `ctx.set_fonts`; add a font-family token to
+   `design.rs`. It touches every pixel — do it before more component polish.
+3. **Next hero (§6.1): the star-map frame & star field**
+   (`gui-core/src/sector_view.rs`, `map_theme.rs`) — the highest-impact surface
+   still untouched. **Read §8 first:** recon confirmed the live view is decoupled
+   from the golden-tested exporters (separate types + painters), but route/region
+   *colors* are only loosely synced — keep those stable and run the golden suite if
+   any shared code moves.
+4. Then §6 #3–#7 — nav-rail active indicator, info-panel tables, section plates,
+   bespoke buttons/toggles, dialogs.
+
+The sections below are the full playbook; with the above landed, treat §4 and §6.2
+as reference rather than to-do.
+
+---
+
 ## 0. The one rule that matters most: close the visual feedback loop FIRST
 
 You cannot see rendered pixels. Iterating on visuals **blind** produces
@@ -26,11 +69,19 @@ single component, establish a way to *look at the result*. In priority order:
    Capture a screenshot each iteration. This is an egui/eframe app — it boots to
    a window; the skills know how to launch the builder (`cargo run -p
    sectorforge-builder`) and viewer (`cargo run -p sectorforge-viewer`).
-2. **In-app screenshot.** eframe 0.29 supports
-   `ctx.send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()))` and
-   delivers the image back via `egui::Event::Screenshot`. If no quick capture
-   path exists, it is worth adding a dev-only "📸 screenshot" affordance to
-   shorten the loop.
+2. **In-app screenshot — already wired (this is the loop that's actually used).**
+   The builder has a dev-only capture mode:
+   `cargo run -p sectorforge-builder -- --project <dir> --tab FACTIONS --theme
+   Grimdark --screenshot /tmp/shot.png` renders a few frames, captures the window
+   to a PNG, and exits (`--screenshot-frames N` tunes the settle delay;
+   `--select-faction <id>` pre-selects a row). A session then **Reads** that PNG to
+   see the result. Implementation: `builder/src/main.rs` wraps `BuilderApp`, sends
+   `ctx.send_viewport_cmd(ViewportCommand::Screenshot)` — a **unit** variant in
+   egui 0.29 (it gained a `UserData` argument only in 0.30; `UserData` does **not**
+   exist here, so any `Screenshot(UserData::default())` snippet you remember is
+   wrong for this version) — reads the image back via
+   `egui::Event::Screenshot { image, .. }`, and encodes it with
+   `gui_core::save_color_image_png`.
 3. **Ask the user to paste screenshots.** Slowest, but always available. Tell
    them exactly which panel + theme + window size you need.
 
@@ -78,13 +129,17 @@ Read these before designing. Exact ownership:
 | `builder/src/builder/panels/*.rs` | ~50 builder panels (factions, world, system, routes, regions, economy, briefing, export…). Each `show()` takes `&mut BuilderState`. | Where most chrome lives. Beautify via the shared kit, not per-panel snowflakes. **Independent files → safe to fan out across agents (§3).** |
 | `docs/UI_OVERHAUL.md` | The **§UO playbook** — the earlier "make panels coherent" pass (sections, fields, spacing). | **Read it** (or have an agent summarize it). BEAUTY.md is the *next tier up* (showcase, not merely coherent). Reference §UO; don't duplicate or contradict it. |
 
-**What does NOT exist yet and should:** a real **design-token module** (spacing /
-radius / elevation / **motion** / type scale as named primitives). Today radii
-are scattered literals (`4.0`, `6.0`, `7.0`) and there is **no animation
-anywhere**. Creating this module is task #1 (see §4). Name it
-`gui-core/src/design.rs` (NOT `visual_tokens.rs` — that name is taken and means
-something else). Fold `ui_kit`'s `TITLE/SECTION/BODY/DIM` into it or re-export,
-so there's one source of truth.
+**Design-token module — LANDED.** `gui-core/src/design.rs` (`§DESIGN`) now holds
+the named primitives: a 4 px **spacing** grid, one **radius** family
+(`RADIUS_SM/MD/LG`), **elevation** presets (`elev_low/med/high`), **motion**
+durations (`MOTION_FAST/BASE/SLOW`) + `ease_*` curves, the **type scale**
+(`DISPLAY/TITLE/SECTION/BODY/DIM/CAPTION`, re-exported by `ui_kit` so there is one
+source of truth), and a theme-derived **accent ramp** (`accent` / `lerp_color` /
+`accent_bright` / `accent_glow`). `theme.rs` + `ui_kit.rs` route through it, the
+scattered radius literals (`4.0`/`6.0`/`7.0`) are gone, and the first motion lives
+in `card.rs`. **Extend this module** when a component needs a new primitive — do
+not reintroduce literals, and do not recreate it. (The one §5.5 primitive still
+missing: a registered display font — type is still `default_fonts`.)
 
 ---
 
@@ -107,8 +162,8 @@ at screenshots and judge beauty**.
 
 ### Three hard rules (violating these corrupts the work)
 
-1. **Shared files are single-writer.** `gui-core/src/design.rs`, `theme.rs`,
-   `ui_kit.rs`, `palette.rs` are touched by **exactly one writer at a time**
+1. **Shared files are single-writer.** `gui-core/src/design.rs`, `card.rs`,
+   `theme.rs`, `ui_kit.rs`, `palette.rs` are touched by **exactly one writer at a time**
    (normally the main thread). Never dispatch two agents that both edit a shared
    module — they will clobber each other. Parallelism is **only** across
    *independent* files (one builder panel per agent).
@@ -181,6 +236,10 @@ at screenshots and judge beauty**.
 ---
 
 ## 4. The token foundation — do this before any component (Phase B, serial)
+
+> **Status: landed.** `gui-core/src/design.rs` already exposes everything below —
+> extend it, don't recreate it. The spec is kept for reference and for the few
+> primitives still worth adding (e.g. a registered display font, §5.5).
 
 Beauty is *consistency in primitives*. Stunning UIs are stunning because every
 radius, gap, shadow, and motion duration is drawn from a tiny disciplined set.
@@ -289,11 +348,16 @@ recipe exists.
    crisp legible system glyphs with hover halos and a smooth selection ring.
    **Read §8 first — the *live* view may share code with the deterministic
    exporters.**
-2. **Faction card** (`builder/src/builder/panels/factions.rs`, swatch helpers in
-   `palette.rs`) — the easiest self-contained win, and the best **first hero**
-   because the recipe it yields propagates to the most panels. Showcase = a
-   parchment plate with brass edge, faction sigil/swatch, animated hover-lift,
-   selection glow.
+2. **Faction card — DONE (the first hero).** The recipe landed as
+   `gui-core/src/card.rs::selectable_plate` (`§BEAUTY`): a custom-painted,
+   hover-/selection-animated plate (soft accent glow + brass selection bar +
+   two-tone depth edge + hairline border), the accent read from the live theme so
+   it works across all 8 presets. Applied to the Factions roster
+   (`builder/src/builder/panels/factions.rs`) and propagated to the **World /
+   System / Routes** rails (Phase D). The remaining list rails (Sites, Subsectors,
+   Personae, Hooks, Missions, Search, Validation, Invariants) are straightforward
+   propagation with the *same* recipe — call `card::selectable_plate`, keep any
+   meaning-carrying glyph/swatch, don't reinvent the visual.
 3. **Nav rail** (`gui-core/src/nav.rs`, `builder/.../panels/nav.rs`) — fixed-
    width §COLUMNS rail. Showcase = icon+label tabs with an animated active
    indicator (a sliding brass bar), hover wash, crisp grouping rules.
@@ -319,7 +383,11 @@ silently fake-and-fall-short. (Have a Phase-A agent confirm each signature.)
   Names drift between releases (`Rounding`→`CornerRadius`, shadow fields,
   `id_salt` vs `id_source`). **Invoke the `egui` and `eframe` skills** to
   confirm exact 0.29 signatures before coding. Do not trust memory of a newer
-  API.
+  API. (Gotchas confirmed this pass, for reuse: `ViewportCommand::Screenshot` is a
+  **unit** variant in 0.29 — `UserData` is 0.30+; `Color32` has **no** `lerp` — use
+  `Color32::lerp_to_gamma`; `epaint::Shadow` fields are `Vec2`/`f32`, not `i8`;
+  `Ui::allocate_ui_at_rect` is deprecated for `allocate_new_ui`; corner radius is
+  still `Rounding`, not `CornerRadius`.)
 - **What's native & easy:** `Frame` (fill/stroke/rounding/shadow/margin),
   painter shapes, `Mesh` gradients, `animate_*` motion, custom fonts, scrims,
   per-vertex color, clip rects.
@@ -420,16 +488,18 @@ agents are blind, so a uniform recipe can still land wrong in an odd layout.
 ## 11. Ready-to-paste kickoff prompt (fill the brackets)
 
 > Read `BEAUTY.md` fully, including the §3 multi-agent execution model. We're
-> making the **[faction card / star-map frame / nav rail]** showcase-beautiful,
+> making the **[star-map frame / nav rail / info panel]** showcase-beautiful,
 > Grimdark theme first. Aesthetic reference: **[paste screenshot / link, or
 > "Imperial cartographic instrument: parchment + brass + void-black"]**.
 >
 > 1. **Phase A (parallel agents):** dispatch `rust-explorer`/`Explore` to map the
 >    target's paint path, summarize `docs/UI_OVERHAUL.md §UO`, and verify the
 >    egui-0.29 APIs I'll need. Merge findings here.
-> 2. **Phase B (main thread):** land `gui-core/src/design.rs`
->    (spacing/radius/elevation/motion/type per §4) and route
->    `theme.rs`/`ui_kit.rs` through it. Screenshot to confirm no regression.
+> 2. **Phase B — already landed.** `gui-core/src/design.rs` (tokens) and
+>    `gui-core/src/card.rs` (the `selectable_plate` recipe) exist, and
+>    `theme.rs`/`ui_kit.rs` route through them. Don't rebuild them — *extend*
+>    `design.rs` if your component needs a new primitive (e.g. a display-font
+>    family, §5.5).
 > 3. **Phase C (main thread):** hand-paint the **[component]** per §5 — custom
 >    painter, eased hover + selection motion, elevation, a real display font.
 >    Bespoke, not restyled stock. Screenshot every round via `/run`; critique

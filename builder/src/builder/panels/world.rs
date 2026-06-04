@@ -21,6 +21,7 @@ use sectorforge::worlds::{
     Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
     Temperature, WorldType,
 };
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -77,10 +78,21 @@ fn show_world_roster(ui: &mut Ui, state: &mut BuilderState) {
                     |ui| {
                         for w in &sys.worlds {
                             let sel = current.as_ref() == Some(&w.id);
-                            if ui
-                                .selectable_label(sel, format!("{} — {}", w.name, w.id))
-                                .clicked()
-                            {
+                            // §BEAUTY: animated selectable plate (card::selectable_plate).
+                            let (resp, _) =
+                                card::selectable_plate(ui, ("world_row", &w.id), sel, |ui| {
+                                    ui.label(
+                                        RichText::new(w.name.to_string())
+                                            .color(palette::chrome_text())
+                                            .strong(),
+                                    );
+                                    ui.label(
+                                        RichText::new(format!("({})", w.id))
+                                            .color(palette::chrome_text_dim())
+                                            .small(),
+                                    );
+                                });
+                            if resp.clicked() {
                                 pick = Some((sys.id.clone(), w.id.clone()));
                             }
                         }

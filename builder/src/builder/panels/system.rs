@@ -18,7 +18,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
 use sectorforge::system_map::{render_system, SystemRenderOptions};
 use sectorforge_gui_core::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{card, palette, ui_kit};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind, SystemBitmapPreview};
@@ -145,10 +145,20 @@ fn show_system_roster(ui: &mut Ui, state: &mut BuilderState) {
         .show(ui, |ui| {
             for sys in &state.sector.systems {
                 let sel = current.as_ref() == Some(&sys.id);
-                if ui
-                    .selectable_label(sel, format!("{} — {}", sys.name, sys.id))
-                    .clicked()
-                {
+                // §BEAUTY: animated selectable plate (card::selectable_plate).
+                let (resp, _) = card::selectable_plate(ui, ("system_row", &sys.id), sel, |ui| {
+                    ui.label(
+                        RichText::new(sys.name.to_string())
+                            .color(palette::chrome_text())
+                            .strong(),
+                    );
+                    ui.label(
+                        RichText::new(format!("({})", sys.id))
+                            .color(palette::chrome_text_dim())
+                            .small(),
+                    );
+                });
+                if resp.clicked() {
                     pick = Some(sys.id.clone());
                 }
             }

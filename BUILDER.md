@@ -23,6 +23,11 @@ Throughout this document:
   list-shaped tabs (World, System, Factions, Sites, Routes, Subsectors,
   Personae, Hooks, Missions, Search, Validation, Invariants). You pick an entry
   in the rail and edit it in the **inspector** that fills the rest of the tab.
+  On the World, System, Factions and Routes rails each entry is a selectable
+  *plate*: it lifts subtly as the pointer passes over it and, once picked, carries
+  a brass (accent-coloured) selection bar and a soft glow, so the current
+  selection reads at a glance. (The colour follows the active theme — amber under
+  Grimdark, crimson under Light, blue under Slate.)
   Inspector and report tabs arrange their sections across two or three
   **columns** when the window is wide and fold them back into a single column
   when it is narrow, so you rarely scroll past a tall empty margin. The rail and

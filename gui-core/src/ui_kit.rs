@@ -20,20 +20,15 @@
 //!
 //! [docs/UI_OVERHAUL.md]: the UI overhaul playbook.
 
-use egui::{Frame, Margin, RichText, Rounding, Ui, WidgetText};
+use egui::{Frame, Margin, RichText, Ui, WidgetText};
 
-use crate::palette;
+use crate::{design, palette};
 
-/// Proportional text scale, aligned with the theme type scale (`§UO3.1`). The
-/// tabular helpers use these explicit sizes for a consistent hierarchy;
-/// everything else should just use plain `ui.label(..)` and inherit `Body`.
-pub const TITLE: f32 = 20.0;
-/// Section-header size.
-pub const SECTION: f32 = 15.0;
-/// Body / value size.
-pub const BODY: f32 = 15.0;
-/// Dimmed / key size.
-pub const DIM: f32 = 14.0;
+/// Proportional text scale (`§UO3.1`), now sourced from [`crate::design`] (the
+/// §DESIGN token module) so there is a single scale across the global chrome and
+/// bespoke components. Re-exported here so the existing `ui_kit::TITLE` call
+/// sites (e.g. [`crate::info_panel`]) keep working unchanged.
+pub use crate::design::{BODY, DIM, SECTION, TITLE};
 
 // ── tier-2: section containers ──────────────────────────────────────────────
 
@@ -43,13 +38,13 @@ pub const DIM: f32 = 14.0;
 /// theme via `Frame::group`.
 pub fn section<R>(ui: &mut Ui, title: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
     Frame::group(ui.style())
-        .inner_margin(Margin::same(10.0))
-        .rounding(Rounding::same(6.0))
+        .inner_margin(Margin::same(design::SPACE_MD))
+        .rounding(design::rounding_md())
         .show(ui, |ui| {
             ui.label(RichText::new(title).strong().color(palette::chrome_text()));
-            ui.add_space(4.0);
+            ui.add_space(design::SPACE_XS);
             ui.separator();
-            ui.add_space(6.0);
+            ui.add_space(design::SPACE_SM);
             add(ui)
         })
         .inner
@@ -66,8 +61,8 @@ pub fn collapsing_section<R>(
     add: impl FnOnce(&mut Ui) -> R,
 ) -> Option<R> {
     Frame::group(ui.style())
-        .inner_margin(Margin::same(8.0))
-        .rounding(Rounding::same(6.0))
+        .inner_margin(Margin::same(design::SPACE_SM))
+        .rounding(design::rounding_md())
         .show(ui, |ui| {
             egui::CollapsingHeader::new(RichText::new(title).strong())
                 .id_salt(id_source)

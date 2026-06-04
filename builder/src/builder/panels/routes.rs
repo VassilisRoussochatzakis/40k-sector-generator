@@ -11,7 +11,7 @@ use sectorforge::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSector, GeneratedSystem, RouteStability, RouteType,
 };
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{card, palette, ui_kit};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::preview::DEFAULT_DEBOUNCE_MS;
@@ -166,24 +166,26 @@ fn show_route_roster(ui: &mut Ui, state: &mut BuilderState) {
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             for route in &state.sector.routes {
-                ui.horizontal(|ui| {
+                let sel = current.as_ref() == Some(&route.id);
+                // §BEAUTY: animated selectable plate; the stability dot keeps its
+                // meaning-carrying colour and tooltip inside the plate content.
+                let (resp, _) = card::selectable_plate(ui, ("route_row", &route.id), sel, |ui| {
                     ui.label(RichText::new("●").color(palette::stability_color(route.stability)))
                         .on_hover_text(format!(
                             "Travel danger: {}",
                             stability_label(route.stability)
                         ));
-                    let text = format!(
+                    ui.label(RichText::new(format!(
                         "{} → {}  ({} hops)",
                         route.from_system_id, route.to_system_id, route.distance
-                    );
-                    if ui
-                        .selectable_label(current.as_ref() == Some(&route.id), text)
-                        .on_hover_text(format!("Route id: {}", route.id))
-                        .clicked()
-                    {
-                        pick = Some(route.id.clone());
-                    }
+                    )));
                 });
+                if resp
+                    .on_hover_text(format!("Route id: {}", route.id))
+                    .clicked()
+                {
+                    pick = Some(route.id.clone());
+                }
             }
         });
     if let Some(id) = pick {

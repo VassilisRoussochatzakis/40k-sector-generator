@@ -23,6 +23,7 @@ use sectorforge::faction_style::{
 use sectorforge::factions::{display_name_from_id, FactionDef, FactionsFile};
 use sectorforge::ids::FactionId;
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -334,24 +335,45 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
                                 for &i in rows {
                                     let f = &file.factions[i];
                                     let is_selected = selected.as_ref() == Some(&f.id);
-                                    let mut label =
-                                        RichText::new(format!("{}  ({})", f.name, f.id));
-                                    if f.legend_visible == Some(false) {
-                                        label = label.color(Color32::DARK_GRAY);
+                                    let dimmed = f.legend_visible == Some(false);
+                                    let name_color = if dimmed {
+                                        palette::chrome_text_dim()
+                                    } else {
+                                        palette::chrome_text()
+                                    };
+                                    // §BEAUTY hero: each roster entry is a custom-painted
+                                    // selectable plate (hover lift + brass selection bar +
+                                    // accent glow) rather than a stock selectable_label.
+                                    let (resp, del_clicked) = card::selectable_plate(
+                                        ui,
+                                        ("fac_row", &f.id),
+                                        is_selected,
+                                        |ui| {
+                                            palette::draw_faction_swatch(ui, resolve_style(f));
+                                            ui.label(
+                                                RichText::new(f.name.as_str())
+                                                    .color(name_color)
+                                                    .strong(),
+                                            );
+                                            ui.label(
+                                                RichText::new(format!("({})", f.id))
+                                                    .color(palette::chrome_text_dim())
+                                                    .small(),
+                                            );
+                                            let rem = ui.available_width();
+                                            ui.add_space((rem - 22.0).max(0.0));
+                                            ui.small_button("×")
+                                                .on_hover_text(
+                                                    "Remove this faction from the roster",
+                                                )
+                                                .clicked()
+                                        },
+                                    );
+                                    if del_clicked {
+                                        confirm_delete = Some((f.id.clone(), f.name.clone()));
+                                    } else if resp.clicked() {
+                                        new_selection = Some(f.id.clone());
                                     }
-                                    ui.horizontal(|ui| {
-                                        palette::draw_faction_swatch(ui, resolve_style(f));
-                                        if ui.selectable_label(is_selected, label).clicked() {
-                                            new_selection = Some(f.id.clone());
-                                        }
-                                        if ui
-                                            .small_button("×")
-                                            .on_hover_text("Remove this faction from the roster")
-                                            .clicked()
-                                        {
-                                            confirm_delete = Some((f.id.clone(), f.name.clone()));
-                                        }
-                                    });
                                 }
                             },
                         );

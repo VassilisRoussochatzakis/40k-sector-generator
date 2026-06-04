@@ -14,12 +14,11 @@
 //! violet base in [`crate::palette`] so themed standard panels remain coherent
 //! with the viewer's custom-framed surfaces.
 
-use egui::epaint::Shadow;
 use egui::{
     Color32, Context, FontFamily, FontId, Margin, Rounding, Stroke, Style, TextStyle, Ui, Visuals,
 };
 
-use crate::palette;
+use crate::{design, palette};
 
 /// A selectable GUI chrome preset.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -269,7 +268,8 @@ fn build_visuals(p: &Pal) -> Visuals {
     } else {
         Visuals::light()
     };
-    let round = Rounding::same(4.0);
+    // §DESIGN: one radius family + soft layered elevation, derived from tokens.
+    let round = Rounding::same(design::RADIUS_SM);
 
     v.override_text_color = Some(p.text);
     v.hyperlink_color = p.accent;
@@ -280,19 +280,9 @@ fn build_visuals(p: &Pal) -> Visuals {
     v.window_fill = p.window;
     v.panel_fill = p.panel;
     v.window_stroke = Stroke::new(1.0, p.border);
-    v.window_rounding = Rounding::same(7.0);
-    v.window_shadow = Shadow {
-        offset: egui::vec2(0.0, 6.0),
-        blur: 20.0,
-        spread: 0.0,
-        color: Color32::from_black_alpha(if p.dark { 140 } else { 45 }),
-    };
-    v.popup_shadow = Shadow {
-        offset: egui::vec2(0.0, 4.0),
-        blur: 12.0,
-        spread: 0.0,
-        color: Color32::from_black_alpha(if p.dark { 120 } else { 35 }),
-    };
+    v.window_rounding = design::rounding_md();
+    v.window_shadow = design::elev_high(p.dark);
+    v.popup_shadow = design::elev_med(p.dark);
 
     v.selection.bg_fill = p.sel;
     v.selection.stroke = Stroke::new(1.0, p.accent);

@@ -1844,6 +1844,54 @@ simultaneous mutable borrows at the call site and will not compile — panels us
 the inline `SidePanel` + `CentralPanel` pair as two separate statements
 instead, so the first borrow ends before the second begins.)
 
+**Design tokens + showcase plate** (the showcase-quality tier on top of §UO;
+playbook in [BEAUTY.md](BEAUTY.md)).
+
+- *Design tokens* ([gui-core/src/design.rs](gui-core/src/design.rs), `§DESIGN`) —
+  the single source of truth for *form* primitives, so bespoke components draw
+  every value from a small disciplined set rather than scattered literals: a 4 px
+  **spacing** grid (`SPACE_XS`…`SPACE_XXL`), one **radius** family (`RADIUS_SM/MD/LG`
+  = 4/8/12 with `rounding_*()` helpers), three **elevation** shadow presets
+  (`elev_low/med/high`, each taking `dark` so the alpha tracks the preset),
+  **motion** durations (`MOTION_FAST/BASE/SLOW` = 0.08/0.14/0.24 s) with
+  `ease_out_cubic` / `ease_in_out_cubic`, the **type scale** (`DISPLAY`/`TITLE`/
+  `SECTION`/`BODY`/`DIM`/`CAPTION` — `ui_kit` now re-exports `TITLE/SECTION/BODY/DIM`
+  from here so there is exactly one scale), and an **accent ramp** (`accent(ui)`
+  reads the active theme's accent; `lerp_color` wraps `Color32::lerp_to_gamma`;
+  `accent_bright` / `accent_glow` derive hover/glow tints) so a component recolors
+  across all 8 presets without hardcoding amber. `theme.rs` routes its rounding +
+  window/popup shadows through these (`elev_high` / `elev_med` / `rounding_md`), and
+  `ui_kit::section` / `collapsing_section` through the radius + spacing tokens.
+  Tokens describe form only — they never carry the semantic map colors (those stay
+  in `palette` / `visual_tokens`, §UO8), so this is pure chrome and still outside
+  the golden path; three `design` unit tests pin the ease curves, elevation alpha,
+  and blend clamp.
+
+- *Showcase plate* ([gui-core/src/card.rs](gui-core/src/card.rs), `§BEAUTY`) —
+  `card::selectable_plate(ui, id_salt, selected, content) -> (Response, R)`, the
+  hand-painted, hover-/selection-animated row the BEAUTY.md "faction card" hero
+  yielded. It paints a layered background (soft accent glow → hover/selection wash →
+  two-tone hairline depth edge → a growing brass selection bar → a hairline accent
+  border), every layer eased off `animate_bool_with_time`, with the accent read
+  from the live theme so it works in every preset. It runs `content` *inside* the
+  plate so callers add ordinary widgets (a swatch, labels, a delete button), and
+  returns the plate's click `Response`. Same `&mut Ui` + plain-data,
+  no-`BuilderState` contract as `ui_kit` / `nav`. It replaces the stock
+  `selectable_label` roster rows on the **Factions / World / System / Routes** rails
+  (the meaning-carrying faction swatch and route-stability dot are preserved, just
+  re-hosted in the plate) and is the recipe to propagate to the remaining list rails.
+
+- *Dev capture loop.* So a beautification pass can *look at* its output instead of
+  working blind (BEAUTY.md §0), the builder takes dev-only flags: `--screenshot <PNG>`
+  (render a few frames, capture the window, exit; `--screenshot-frames N` tunes the
+  settle delay), `--tab <NAME>` (open straight to a tab), `--theme <NAME>` (start in a
+  preset), and `--select-faction <ID>`. Capture sends egui's
+  `ViewportCommand::Screenshot` (a **unit** variant in 0.29 — it gained a `UserData`
+  argument only in 0.30), reads the `Event::Screenshot` framebuffer back, and writes
+  a PNG via `gui_core::save_color_image_png`. The wrapper lives in
+  [builder/src/main.rs](builder/src/main.rs) so the shipping `BuilderApp` carries none
+  of the capture machinery.
+
 **App shell + panel migration** (overhaul Phases 2–5, all landed). The shell and
 every panel now read as the three §UO tiers — app chrome → titled section boxes →
 field rows:

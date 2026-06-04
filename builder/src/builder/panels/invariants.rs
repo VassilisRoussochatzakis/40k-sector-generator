@@ -24,7 +24,7 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::invariants::{InvariantReport, InvariantViolation};
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{card, palette, ui_kit};
 
 use crate::builder::BuilderState;
 
@@ -167,8 +167,8 @@ fn show_violation_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Inv
                     &format!("{} ({})", stratum_title(stratum), group.len()),
                     true,
                     |ui| {
-                        for vio in group {
-                            violation_row(ui, state, vio);
+                        for (idx, vio) in group.iter().enumerate() {
+                            violation_row(ui, state, vio, idx);
                         }
                     },
                 );
@@ -176,23 +176,31 @@ fn show_violation_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Inv
         });
 }
 
-fn violation_row(ui: &mut egui::Ui, state: &mut BuilderState, vio: &InvariantViolation) {
+fn violation_row(
+    ui: &mut egui::Ui,
+    state: &mut BuilderState,
+    vio: &InvariantViolation,
+    idx: usize,
+) {
     let key = violation_key(vio);
     let is_selected = selected_key(ui).as_deref() == Some(key.as_str());
-    ui.horizontal(|ui| {
-        // Severity dot keeps the at-a-glance "this is a problem" signal.
-        ui.colored_label(SEVERITY_RED, "●");
+    // §BEAUTY: animated selectable plate. The severity dot keeps its
+    // meaning-carrying colour, the message text leads, and the raw check code
+    // stays behind the hover — all inside the plate content. The salt combines
+    // the violation key with its stratum index so it is unique even if two rows
+    // somehow shared a key.
+    let (resp, _) = card::selectable_plate(ui, ("inv_row", &key, idx), is_selected, |ui| {
+        ui.label(RichText::new("●").color(SEVERITY_RED));
         // Lead with the human-readable message; selecting a row pins the
         // violation into the right detail pane and also focuses the offending
         // entity via the selection mailbox (existing jump).
-        let resp = ui
-            .selectable_label(is_selected, &vio.message)
+        ui.label(RichText::new(&vio.message))
             .on_hover_text(format!("check: {}", vio.code));
-        if resp.clicked() {
-            set_selected_key(ui, key.clone());
-            jump_to(state, vio);
-        }
     });
+    if resp.clicked() {
+        set_selected_key(ui, key.clone());
+        jump_to(state, vio);
+    }
 }
 
 // ── violation detail + catalogue (right pane) ───────────────────────────────
@@ -225,7 +233,10 @@ fn show_violation_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &I
                     "No invariant violations — the sector is structurally sound.",
                 );
             } else {
-                ui_kit::placeholder(ui, "Pick a problem from the list on the left to see details.");
+                ui_kit::placeholder(
+                    ui,
+                    "Pick a problem from the list on the left to see details.",
+                );
             }
 
             ui.separator();

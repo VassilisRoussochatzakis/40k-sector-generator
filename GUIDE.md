@@ -1861,7 +1861,10 @@ playbook in [BEAUTY.md](BEAUTY.md)).
   `accent_bright` / `accent_glow` derive hover/glow tints) so a component recolors
   across all 8 presets without hardcoding amber. `theme.rs` routes its rounding +
   window/popup shadows through these (`elev_high` / `elev_med` / `rounding_md`), and
-  `ui_kit::section` / `collapsing_section` through the radius + spacing tokens.
+  `ui_kit::section` / `collapsing_section` through the radius + spacing tokens — both
+  now also carry an `elev_low` contact shadow (so every framed section reads as a
+  lifted plate), and `section` rules its title with a brass `gilt_rule` (a hairline
+  in the active accent) in place of the flat themed `separator()`.
   Tokens describe form only — they never carry the semantic map colors (those stay
   in `palette` / `visual_tokens`, §UO8), so this is pure chrome and still outside
   the golden path; three `design` unit tests pin the ease curves, elevation alpha,
@@ -1876,10 +1879,28 @@ playbook in [BEAUTY.md](BEAUTY.md)).
   from the live theme so it works in every preset. It runs `content` *inside* the
   plate so callers add ordinary widgets (a swatch, labels, a delete button), and
   returns the plate's click `Response`. Same `&mut Ui` + plain-data,
-  no-`BuilderState` contract as `ui_kit` / `nav`. It replaces the stock
-  `selectable_label` roster rows on the **Factions / World / System / Routes** rails
-  (the meaning-carrying faction swatch and route-stability dot are preserved, just
-  re-hosted in the plate) and is the recipe to propagate to the remaining list rails.
+  no-`BuilderState` contract as `ui_kit` / `nav`. It now hosts **every** roster rail —
+  Factions, World, System, Routes, Sites, Subsectors, Personae, Hooks, Missions,
+  Search, Validation, Invariants — *and* the left **nav-rail** tab entries (so the
+  active tab reads as a lit brass-barred plate, not a flat fill), one consistent
+  selection vocabulary across the whole app. Each meaning-carrying decoration is
+  preserved, just re-hosted in the plate: the faction swatch, the route- and
+  validation/invariant-severity dots, the search winner's green, the per-row count
+  badges, and the two-line title+sub-label rows (wrapped in a `ui.vertical`).
+
+- *Star-map flourishes* ([gui-core/src/sector_view.rs](gui-core/src/sector_view.rs),
+  `§BEAUTY`) — a live-only void treatment that turns the flat tactical field into an
+  "Imperial cartographic instrument", painted only on the egui `RenderMapTheme` path:
+  deterministic **star dust** behind the chart (positions hashed from a stable index —
+  no shimmer, no drift on regen), a soft radial **vignette** (an 8-point triangle fan,
+  transparent centre → darker corners), and a gilded **chart frame** (hairline border +
+  brass corner brackets and rivets in the active accent). All three are gated on a dark
+  map theme (`is_dark(theme.bg)` — `print_mono` and friends skip them) and a minimum
+  canvas size (so small embedded previews stay clean). The live view is **decoupled**
+  from the byte-stable PNG/SVG exporters (separate `MapTheme` + `Canvas`, separate hex
+  geometry), so the export golden suite stays green; the flourishes do, however, move
+  gui-core's own live-render `map_snapshots` goldens, which were re-blessed with
+  `UPDATE_MAP_SNAPSHOTS=1` (the dust is deterministic, so the new snapshots are stable).
 
 - *Dev capture loop.* So a beautification pass can *look at* its output instead of
   working blind (BEAUTY.md §0), the builder takes dev-only flags: `--screenshot <PNG>`

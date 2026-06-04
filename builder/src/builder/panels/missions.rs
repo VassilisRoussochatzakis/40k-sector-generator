@@ -35,6 +35,7 @@ use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::missions::{
     MissionKind, MissionScale, MissionSeed, MissionVisibility, MissionsConfig,
 };
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -262,29 +263,36 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
         } else {
             m.title.clone()
         };
-        let resp = ui.selectable_label(is_selected, RichText::new(title).strong());
+        // §BEAUTY — each rail entry is a custom-painted selectable plate (hover
+        // lift + brass selection bar + accent glow) rather than a stock
+        // selectable_label; the trailing 📍 highlights the mission's location.
+        let (resp, focus_clicked) =
+            card::selectable_plate(ui, ("mission_row", &m.id), is_selected, |ui| {
+                ui.vertical(|ui| {
+                    ui.label(RichText::new(title).strong());
+                    ui.label(
+                        RichText::new(format!("{} · {}", kind_label(m.kind), scale_label(m.scale)))
+                            .color(palette::chrome_text_dim())
+                            .small(),
+                    );
+                });
+                if show_hidden && m.gm_only {
+                    ui.colored_label(Color32::from_rgb(220, 170, 80), "GM")
+                        .on_hover_text("GM-only — hidden under Player edition.");
+                }
+                let rem = ui.available_width();
+                ui.add_space((rem - 22.0).max(0.0));
+                ui.small_button("📍")
+                    .on_hover_text("Select this mission and show its location on the map.")
+                    .clicked()
+            });
+        if focus_clicked {
+            select_mission(state, m);
+            focus_primary_location(state, &m.primary_location, &m.route_ids);
+        }
         if resp.clicked() {
             select_mission(state, m);
         }
-        ui.horizontal_wrapped(|ui| {
-            ui.colored_label(
-                Color32::DARK_GRAY,
-                format!("{} · {}", kind_label(m.kind), scale_label(m.scale)),
-            );
-            if show_hidden && m.gm_only {
-                ui.colored_label(Color32::from_rgb(220, 170, 80), "GM")
-                    .on_hover_text("GM-only — hidden under Player edition.");
-            }
-            if ui
-                .small_button("📍 Highlight")
-                .on_hover_text("Select this mission and show its location on the map.")
-                .clicked()
-            {
-                select_mission(state, m);
-                focus_primary_location(state, &m.primary_location, &m.route_ids);
-            }
-        });
-        ui.separator();
     }
 }
 
@@ -322,15 +330,10 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             ui.label(RichText::new(mission.id.clone()).monospace());
         },
     );
-    labeled(
-        ui,
-        "Kind",
-        "Mission archetype (schema: kind).",
-        |ui| {
-            ui.label(kind_label(mission.kind))
-                .on_hover_text(format!("key: {}", mission.kind.as_slug()));
-        },
-    );
+    labeled(ui, "Kind", "Mission archetype (schema: kind).", |ui| {
+        ui.label(kind_label(mission.kind))
+            .on_hover_text(format!("key: {}", mission.kind.as_slug()));
+    });
     labeled(
         ui,
         "Title",
@@ -542,7 +545,9 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
             ui_kit::collapsing_section(ui, ("mis_manual", idx), &title, idx == last_idx, |ui| {
                 changed |= manual_mission_editor(ui, idx, m, &existing);
                 if ui
-                    .button(RichText::new("🗑  Delete mission").color(Color32::from_rgb(200, 90, 90)))
+                    .button(
+                        RichText::new("🗑  Delete mission").color(Color32::from_rgb(200, 90, 90)),
+                    )
                     .on_hover_text("Remove this hand-written mission. This cannot be undone.")
                     .clicked()
                 {
@@ -611,24 +616,19 @@ fn manual_mission_editor(
             }
         },
     );
-    labeled(
-        ui,
-        "Kind",
-        "Mission archetype (schema: kind).",
-        |ui| {
-            ui_kit::combo(format!("m_manual_kind_{idx}"), kind_label(m.kind)).show_ui(ui, |ui| {
-                for k in KIND_VARIANTS {
-                    if ui
-                        .selectable_value(&mut m.kind, *k, kind_label(*k))
-                        .on_hover_text(format!("key: {}", k.as_slug()))
-                        .changed()
-                    {
-                        changed = true;
-                    }
+    labeled(ui, "Kind", "Mission archetype (schema: kind).", |ui| {
+        ui_kit::combo(format!("m_manual_kind_{idx}"), kind_label(m.kind)).show_ui(ui, |ui| {
+            for k in KIND_VARIANTS {
+                if ui
+                    .selectable_value(&mut m.kind, *k, kind_label(*k))
+                    .on_hover_text(format!("key: {}", k.as_slug()))
+                    .changed()
+                {
+                    changed = true;
                 }
-            });
-        },
-    );
+            }
+        });
+    });
     labeled(
         ui,
         "Title",
@@ -754,30 +754,12 @@ fn manual_mission_editor(
         "Scale",
         "How long the mission runs (schema: scale).",
         |ui| {
-            ui_kit::combo(format!("m_manual_scale_{idx}"), scale_label(m.scale)).show_ui(ui, |ui| {
-                for v in SCALE_VARIANTS {
-                    if ui
-                        .selectable_value(&mut m.scale, *v, scale_label(*v))
-                        .on_hover_text(format!("key: {}", v.as_slug()))
-                        .changed()
-                    {
-                        changed = true;
-                    }
-                }
-            });
-        },
-    );
-    labeled(
-        ui,
-        "Visibility",
-        "How openly the mission is known (schema: visibility).",
-        |ui| {
-            ui_kit::combo(format!("m_manual_vis_{idx}"), visibility_label(m.visibility)).show_ui(
+            ui_kit::combo(format!("m_manual_scale_{idx}"), scale_label(m.scale)).show_ui(
                 ui,
                 |ui| {
-                    for v in VISIBILITY_VARIANTS {
+                    for v in SCALE_VARIANTS {
                         if ui
-                            .selectable_value(&mut m.visibility, *v, visibility_label(*v))
+                            .selectable_value(&mut m.scale, *v, scale_label(*v))
                             .on_hover_text(format!("key: {}", v.as_slug()))
                             .changed()
                         {
@@ -786,6 +768,28 @@ fn manual_mission_editor(
                     }
                 },
             );
+        },
+    );
+    labeled(
+        ui,
+        "Visibility",
+        "How openly the mission is known (schema: visibility).",
+        |ui| {
+            ui_kit::combo(
+                format!("m_manual_vis_{idx}"),
+                visibility_label(m.visibility),
+            )
+            .show_ui(ui, |ui| {
+                for v in VISIBILITY_VARIANTS {
+                    if ui
+                        .selectable_value(&mut m.visibility, *v, visibility_label(*v))
+                        .on_hover_text(format!("key: {}", v.as_slug()))
+                        .changed()
+                    {
+                        changed = true;
+                    }
+                }
+            });
         },
     );
     labeled(
@@ -866,7 +870,12 @@ impl ExistingRefs {
 /// available for ids that don't exist yet; the dropdown turns a known id into a
 /// single click instead of remembering and retyping it. Returns `true` when the
 /// value changed, preserving the caller's existing `changed` bookkeeping.
-fn location_field(ui: &mut Ui, salt: impl std::hash::Hash, value: &mut String, refs: &ExistingRefs) -> bool {
+fn location_field(
+    ui: &mut Ui,
+    salt: impl std::hash::Hash,
+    value: &mut String,
+    refs: &ExistingRefs,
+) -> bool {
     let mut changed = false;
     ui.horizontal(|ui| {
         changed |= ui
@@ -923,12 +932,7 @@ fn faction_field(
                 }
             }
         });
-        if slot.is_some()
-            && ui
-                .small_button("×")
-                .on_hover_text("clear")
-                .clicked()
-        {
+        if slot.is_some() && ui.small_button("×").on_hover_text("clear").clicked() {
             *slot = None;
             changed = true;
         }
@@ -942,10 +946,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.missions.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(
-                has_catalog,
-                egui::Button::new("💾  Save missions"),
-            )
+            .add_enabled(has_catalog, egui::Button::new("💾  Save missions"))
             .on_hover_text("Write the mission settings and hand-written missions to disk.")
             .clicked()
         {

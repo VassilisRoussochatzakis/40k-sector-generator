@@ -31,28 +31,46 @@ are **done — do not redo them:**
   plate — is landed and **propagated to the Factions / World / System / Routes
   rosters** (Phase D). Verified across Grimdark / Light / Slate.
 
-**Start a future run here (skip Phases A–C for the above — they exist):**
+**Second pass landed (2026-06-04).** Phase-D propagation plus three more heroes are
+now **done — do not redo them:**
 
-1. **Finish Phase-D propagation** of `card::selectable_plate` to the remaining list
-   rails: Sites, Subsectors, Personae, Hooks, Missions, Search, Validation,
-   Invariants. Same recipe, keep any meaning-carrying glyph/swatch, screenshot each
-   (§9). Mechanical breadth → fan out `panel-implementer` agents (§3 Phase D),
-   edit-only, compile + screenshot centrally.
-2. **Typography (§5.5)** — still `default_fonts`; the single highest-value untouched
-   primitive. Register a display face (titles only), a humanist body, and a mono for
-   tables via `FontDefinitions` + `ctx.set_fonts`; add a font-family token to
-   `design.rs`. It touches every pixel — do it before more component polish.
-3. **Next hero (§6.1): the star-map frame & star field**
-   (`gui-core/src/sector_view.rs`, `map_theme.rs`) — the highest-impact surface
-   still untouched. **Read §8 first:** recon confirmed the live view is decoupled
-   from the golden-tested exporters (separate types + painters), but route/region
-   *colors* are only loosely synced — keep those stable and run the golden suite if
-   any shared code moves.
-4. Then §6 #3–#7 — nav-rail active indicator, info-panel tables, section plates,
-   bespoke buttons/toggles, dialogs.
+- **Phase-D propagation — COMPLETE.** `card::selectable_plate` now hosts *every*
+  roster rail — Factions, World, System, Routes **plus** the formerly-pending Sites,
+  Subsectors, Personae, Hooks, Missions, Search, Validation, Invariants — **and** the
+  left nav-rail tab entries. Each rail keeps its meaning-carrying decoration inside
+  the plate (severity dots, the search winner's green, per-row count badges, two-line
+  title+sub-label rows wrapped in a `ui.vertical`). Verified across Grimdark / Light /
+  Slate via the §0 capture loop.
+- **Star-map hero (§6.1) — DONE.** Live-only void flourishes in
+  `gui-core/src/sector_view.rs`: deterministic **star dust** (hashed positions, no
+  shimmer), a radial **vignette** (8-point triangle fan), and a gilded **chart frame**
+  (hairline border + brass corner brackets/rivets in the active accent). Gated on a
+  dark map theme (`is_dark`) + a min canvas size. Decoupled from the golden exporters
+  (separate `MapTheme`/`Canvas`/geometry — **export goldens stay green**); the gui-core
+  *live-render* `map_snapshots` did move and were re-blessed (`UPDATE_MAP_SNAPSHOTS=1`;
+  the dust is deterministic, so the new snapshots are stable).
+- **Section plates (§6 #5) — DONE.** `ui_kit::section` / `collapsing_section` now carry
+  an `elev_low` contact shadow, and `section` rules its title with a brass `gilt_rule`
+  in the active accent — lifts every panel at once.
+- **Nav-rail active indicator (§6 #3) — DONE** via the plate recipe above: the active
+  tab now reads as a lit brass-barred plate instead of a flat fill.
 
-The sections below are the full playbook; with the above landed, treat §4 and §6.2
-as reference rather than to-do.
+**Start a future run here:**
+
+1. **Typography (§5.5)** — still `default_fonts`; the single highest-value untouched
+   primitive, and now the main blocker. Register a display face (titles only), a
+   humanist body, and a mono for tables via `FontDefinitions` + `ctx.set_fonts`; add a
+   font-family token to `design.rs`. **Decision needed first:** it requires shipping a
+   licensed (OFL) font *binary* in-repo — choose the faces and get them committed, then
+   wire them. It touches every pixel — do it before more component polish.
+2. **Info panel (§6 #4)** (`gui-core/src/info_panel.rs`) — refine the kv tables:
+   aligned columns, hairline row separators, restrained accents.
+3. **Bespoke buttons & toggles (§6 #6)** and **dialogs / modals (§6 #7)** — a painted
+   brass primary button (press/hover/glow), a custom sliding toggle, and elevated modal
+   surfaces (scrim + `elev_high` + entrance motion).
+
+The sections below are the full playbook; with the above landed, treat §4, §6.1, §6.2,
+§6.3, and §6.5 as reference rather than to-do.
 
 ---
 
@@ -343,11 +361,12 @@ Pick **one** as the Phase C hero; the rest become Phase D propagation once the
 recipe exists.
 
 1. **The star-map frame & star field** (`gui-core/src/sector_view.rs`,
-   `map_theme.rs`) — the hero. Showcase = a gilded/riveted cartographic frame,
-   a void field with subtle vignette + faint star dust, glowing route lines,
-   crisp legible system glyphs with hover halos and a smooth selection ring.
-   **Read §8 first — the *live* view may share code with the deterministic
-   exporters.**
+   `map_theme.rs`) — the hero. **Partly DONE:** the gilded corner-bracket frame,
+   the void vignette, and the faint deterministic star dust have landed (live-only
+   in `sector_view.rs`; export goldens green, live `map_snapshots` re-blessed).
+   *Still open:* glowing route lines, per-system hover halos, and a smooth selection
+   ring. **§8 confirmed:** the live view is fully decoupled from the deterministic
+   exporters (separate `MapTheme`/`Canvas`/geometry) — flourishes there are safe.
 2. **Faction card — DONE (the first hero).** The recipe landed as
    `gui-core/src/card.rs::selectable_plate` (`§BEAUTY`): a custom-painted,
    hover-/selection-animated plate (soft accent glow + brass selection bar +
@@ -359,13 +378,16 @@ recipe exists.
    propagation with the *same* recipe — call `card::selectable_plate`, keep any
    meaning-carrying glyph/swatch, don't reinvent the visual.
 3. **Nav rail** (`gui-core/src/nav.rs`, `builder/.../panels/nav.rs`) — fixed-
-   width §COLUMNS rail. Showcase = icon+label tabs with an animated active
-   indicator (a sliding brass bar), hover wash, crisp grouping rules.
+   width §COLUMNS rail. **DONE:** the tab entries now route through
+   `card::selectable_plate`, so the active tab is a lit brass-barred plate with a
+   hover wash, consistent with every roster. *Optional refinement left:* a single
+   bar that *slides* between tabs (vs. the per-row bar that grows in place today).
 4. **Info panel** (`gui-core/src/info_panel.rs`) — tabular. Showcase = refined
    kv typography, aligned columns, hairline row separators, restrained accents.
 5. **Section containers** (`ui_kit::section`) — lifts every panel at once.
-   Showcase = a titled plate with a gilt header rule, proper inner margin from
-   tokens, `elev_low` shadow.
+   **DONE:** `section` / `collapsing_section` now carry an `elev_low` contact
+   shadow, and `section` rules its title with a brass `gilt_rule` (active accent)
+   in place of the flat `separator()`.
 6. **Primary buttons & toggles** — bespoke painted variants (filled brass
    primary with press/hover/glow states; a custom sliding toggle) to replace the
    stock look on prominent actions.

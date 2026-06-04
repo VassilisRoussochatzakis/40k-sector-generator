@@ -26,6 +26,7 @@ use sectorforge::sector_model::GeneratedSector;
 use sectorforge::subsectors::{
     build_subsectors, Subsector, SubsectorConfig, DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR,
 };
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -261,16 +262,6 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
                     .unwrap_or_else(|| s.name.as_ref())
                     .trim();
                 let line = format!("{}  {}  ({})", s.label, name_part, s.system_ids.len());
-                if ui
-                    .selectable_label(selected, line)
-                    .on_hover_text(format!(
-                        "{} system(s) in this subsector. Click to edit it.",
-                        s.system_ids.len()
-                    ))
-                    .clicked()
-                {
-                    pick = Some(s.id.to_string());
-                }
                 let mut flags: Vec<&str> = Vec::new();
                 if state.subsector_manual.contains(s.id.as_ref()) {
                     flags.push("edited");
@@ -284,12 +275,31 @@ fn show_cluster_list(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) 
                 if state.subsector_colour_overrides.contains_key(s.id.as_ref()) {
                     flags.push("custom colour");
                 }
-                if !flags.is_empty() {
-                    ui.colored_label(
-                        Color32::DARK_GRAY,
-                        RichText::new(format!("   {}", flags.join(" · "))).size(11.0),
-                    )
-                    .on_hover_text("This subsector has manual edits that survive reclustering.");
+                // §BEAUTY: animated selectable plate. Two-line row — the summary
+                // line over a dim override-flags subline — so the closure opens a
+                // vertical. Flag text/colour are meaning-bearing and preserved.
+                let (resp, _) = card::selectable_plate(ui, ("sub_row", &s.id), selected, |ui| {
+                    ui.vertical(|ui| {
+                        ui.label(RichText::new(line));
+                        if !flags.is_empty() {
+                            ui.colored_label(
+                                Color32::DARK_GRAY,
+                                RichText::new(format!("   {}", flags.join(" · "))).size(11.0),
+                            )
+                            .on_hover_text(
+                                "This subsector has manual edits that survive reclustering.",
+                            );
+                        }
+                    });
+                });
+                if resp
+                    .on_hover_text(format!(
+                        "{} system(s) in this subsector. Click to edit it.",
+                        s.system_ids.len()
+                    ))
+                    .clicked()
+                {
+                    pick = Some(s.id.to_string());
                 }
             }
         });
@@ -329,10 +339,8 @@ fn show_inspector_body(
         ui.horizontal(|ui| {
             ui.label(RichText::new(&*target.label).strong().monospace());
             ui.label(target.name.as_ref());
-            ui.label(
-                RichText::new(format!("id: {}", target.id)).color(Color32::DARK_GRAY),
-            )
-            .on_hover_text("Internal identifier for this subsector (schema: id).");
+            ui.label(RichText::new(format!("id: {}", target.id)).color(Color32::DARK_GRAY))
+                .on_hover_text("Internal identifier for this subsector (schema: id).");
             if ui
                 .button("🗺  Show on map")
                 .on_hover_text("Switch to the Map tab to see this subsector.")

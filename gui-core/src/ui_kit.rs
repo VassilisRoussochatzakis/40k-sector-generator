@@ -20,7 +20,7 @@
 //!
 //! [docs/UI_OVERHAUL.md]: the UI overhaul playbook.
 
-use egui::{Frame, Margin, RichText, Ui, WidgetText};
+use egui::{Color32, Frame, Margin, RichText, Ui, WidgetText};
 
 use crate::{design, palette};
 
@@ -37,17 +37,34 @@ pub use crate::design::{BODY, DIM, SECTION, TITLE};
 /// Returns the closure's value. The frame fill + border come from the active
 /// theme via `Frame::group`.
 pub fn section<R>(ui: &mut Ui, title: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let dark = ui.visuals().dark_mode;
     Frame::group(ui.style())
         .inner_margin(Margin::same(design::SPACE_MD))
         .rounding(design::rounding_md())
+        .shadow(design::elev_low(dark))
         .show(ui, |ui| {
             ui.label(RichText::new(title).strong().color(palette::chrome_text()));
             ui.add_space(design::SPACE_XS);
-            ui.separator();
+            gilt_rule(ui);
             ui.add_space(design::SPACE_SM);
             add(ui)
         })
         .inner
+}
+
+/// §BEAUTY — a hairline brass "gilt" rule beneath a section title, in place of the
+/// flat themed `separator()`, so a section header reads like a ruled plate. The
+/// accent is the active theme's (via [`design::accent`]), so it recolors across
+/// all presets. `&mut Ui` + paint only — no `BuilderState`, same kit rule.
+fn gilt_rule(ui: &mut Ui) {
+    let accent = design::accent(ui);
+    let w = ui.available_width();
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(w, 1.0), egui::Sense::hover());
+    ui.painter().rect_filled(
+        rect,
+        0.0,
+        Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 130),
+    );
 }
 
 /// Same framed box as [`section`], but the body collapses. Drop-in replacement
@@ -60,9 +77,11 @@ pub fn collapsing_section<R>(
     default_open: bool,
     add: impl FnOnce(&mut Ui) -> R,
 ) -> Option<R> {
+    let dark = ui.visuals().dark_mode;
     Frame::group(ui.style())
         .inner_margin(Margin::same(design::SPACE_SM))
         .rounding(design::rounding_md())
+        .shadow(design::elev_low(dark))
         .show(ui, |ui| {
             egui::CollapsingHeader::new(RichText::new(title).strong())
                 .id_salt(id_source)

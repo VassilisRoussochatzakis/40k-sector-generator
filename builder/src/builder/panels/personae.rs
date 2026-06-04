@@ -33,6 +33,7 @@ use std::collections::BTreeSet;
 
 use egui::{Color32, RichText, Ui};
 
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -140,7 +141,9 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         if ui
             .button("🔄  Regenerate")
-            .on_hover_text("Re-derive every persona from current faction presence and the rules below")
+            .on_hover_text(
+                "Re-derive every persona from current faction presence and the rules below",
+            )
             .clicked()
         {
             ensure_personae_catalog(state);
@@ -276,16 +279,19 @@ fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
         } else {
             p.name.clone()
         };
-        if ui
-            .selectable_label(is_selected, RichText::new(name).strong())
-            .clicked()
-        {
+        let (resp, _) = card::selectable_plate(ui, ("persona_row", &p.id), is_selected, |ui| {
+            ui.vertical(|ui| {
+                ui.label(RichText::new(name).strong());
+                ui.label(
+                    RichText::new(format!("{} · {}", p.faction_id, anchor_label(&p.anchor)))
+                        .color(palette::chrome_text_dim())
+                        .small(),
+                );
+            });
+        });
+        if resp.clicked() {
             state.selected_persona_id = Some(p.id.to_string());
         }
-        ui.colored_label(
-            Color32::DARK_GRAY,
-            format!("{} · {}", p.faction_id, anchor_label(&p.anchor)),
-        );
         ui.separator();
     }
 }
@@ -298,11 +304,17 @@ fn show_persona_roster(ui: &mut Ui, state: &mut BuilderState) {
 /// jump that the table's per-row buttons provided.
 fn show_persona_detail(ui: &mut Ui, state: &mut BuilderState) {
     let Some(report) = state.personae_report.clone() else {
-        ui_kit::placeholder(ui, "Pick a persona from the cast on the left to see its details.");
+        ui_kit::placeholder(
+            ui,
+            "Pick a persona from the cast on the left to see its details.",
+        );
         return;
     };
     let Some(sel) = state.selected_persona_id.clone() else {
-        ui_kit::placeholder(ui, "Pick a persona from the cast on the left to see its details.");
+        ui_kit::placeholder(
+            ui,
+            "Pick a persona from the cast on the left to see its details.",
+        );
         return;
     };
     let Some(p) = report.personae.iter().find(|p| p.id.as_str() == sel) else {
@@ -490,8 +502,9 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .on_hover_text("Unique identifier (schema: id)");
                 ui.label(RichText::new("Faction").strong())
                     .on_hover_text("Which faction this person belongs to (schema: faction_id)");
-                ui.label(RichText::new("Type").strong())
-                    .on_hover_text("Faction archetype used to flavour name & title (schema: faction_kind)");
+                ui.label(RichText::new("Type").strong()).on_hover_text(
+                    "Faction archetype used to flavour name & title (schema: faction_kind)",
+                );
                 ui.label(RichText::new("Name").strong())
                     .on_hover_text("Display name (schema: name)");
                 ui.label(RichText::new("Title").strong())
@@ -603,10 +616,7 @@ fn faction_id_combo(
     };
     ui_kit::combo(("per_manual_fac", idx), label).show_ui(ui, |ui| {
         for opt in options {
-            if ui
-                .selectable_label(current == *opt, opt.as_str())
-                .clicked()
-            {
+            if ui.selectable_label(current == *opt, opt.as_str()).clicked() {
                 *slot = sectorforge::ids::FactionId::new(opt.as_str());
                 changed = true;
             }
@@ -673,8 +683,12 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
             let pools = cfg.kinds.entry(kind.clone()).or_default();
             changed |= pool_editor(ui, kind, pools);
             if ui
-                .button(RichText::new("↺  Reset to defaults").color(Color32::from_rgb(220, 170, 80)))
-                .on_hover_text("Clear this type's pools and fall back to the built-in names & titles")
+                .button(
+                    RichText::new("↺  Reset to defaults").color(Color32::from_rgb(220, 170, 80)),
+                )
+                .on_hover_text(
+                    "Clear this type's pools and fall back to the built-in names & titles",
+                )
                 .clicked()
             {
                 cfg.kinds.remove(kind);
@@ -684,14 +698,11 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
     }
 
     ui.horizontal_wrapped(|ui| {
-        ui.label("Add type:").on_hover_text(
-            "Create pools for a faction type not listed above (schema: kinds key)",
-        );
+        ui.label("Add type:")
+            .on_hover_text("Create pools for a faction type not listed above (schema: kinds key)");
         let mut new_kind = String::new();
-        let resp = ui.add(
-            egui::TextEdit::singleline(&mut new_kind)
-                .hint_text("type id, then Enter"),
-        );
+        let resp =
+            ui.add(egui::TextEdit::singleline(&mut new_kind).hint_text("type id, then Enter"));
         if resp.lost_focus()
             && ui.input(|i| i.key_pressed(egui::Key::Enter))
             && !new_kind.trim().is_empty()
@@ -775,10 +786,7 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
     let has_catalog = state.data_catalogs.personae.is_some();
     ui.horizontal_wrapped(|ui| {
         if ui
-            .add_enabled(
-                has_catalog,
-                egui::Button::new("💾  Save personae"),
-            )
+            .add_enabled(has_catalog, egui::Button::new("💾  Save personae"))
             .on_hover_text("Write the personae file to disk")
             .clicked()
         {
@@ -791,12 +799,10 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
                 )));
             }
         }
-        let path_label = state
-            .config
-            .inputs
-            .personae
-            .clone()
-            .unwrap_or_else(|| format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})"));
+        let path_label =
+            state.config.inputs.personae.clone().unwrap_or_else(|| {
+                format!("(not set yet — will write to {DEFAULT_PERSONAE_PATH})")
+            });
         ui.colored_label(Color32::DARK_GRAY, path_label);
     });
 }

@@ -16,6 +16,7 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge::search::{Constraint, WishesFile};
 use sectorforge::worlds::WorldType;
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -252,10 +253,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     if !preflight_unknown.is_empty() {
         ui.colored_label(
             Color32::from_rgb(220, 80, 80),
-            format!(
-                "Unknown faction id(s): {}",
-                preflight_unknown.join(", ")
-            ),
+            format!("Unknown faction id(s): {}", preflight_unknown.join(", ")),
         );
         ui.label(
             RichText::new("Fix or remove these before running — the search will abort otherwise.")
@@ -401,15 +399,15 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .show(ui, |ui| {
                     if let Some(win) = &outcome.winning {
                         let sel = selected.as_deref() == Some(win.seed.as_str());
-                        if ui
-                            .selectable_label(
-                                sel,
-                                RichText::new(format!("★ WINNER #{} · {}", win.n, win.seed))
-                                    .monospace()
-                                    .color(Color32::from_rgb(90, 200, 120)),
-                            )
-                            .clicked()
-                        {
+                        let (resp, _) =
+                            card::selectable_plate(ui, ("search_winner", &win.seed), sel, |ui| {
+                                ui.label(
+                                    RichText::new(format!("★ WINNER #{} · {}", win.n, win.seed))
+                                        .monospace()
+                                        .color(Color32::from_rgb(90, 200, 120)),
+                                );
+                            });
+                        if resp.clicked() {
                             selected = Some(win.seed.clone());
                         }
                     }
@@ -421,17 +419,21 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
                         );
                         for cand in &outcome.near_misses {
                             let sel = selected.as_deref() == Some(cand.seed.as_str());
-                            if ui
-                                .selectable_label(
-                                    sel,
-                                    RichText::new(format!(
-                                        "#{} · {} · miss {:.3}",
-                                        cand.n, cand.seed, cand.total_miss
-                                    ))
-                                    .monospace(),
-                                )
-                                .clicked()
-                            {
+                            let (resp, _) = card::selectable_plate(
+                                ui,
+                                ("search_miss", &cand.seed),
+                                sel,
+                                |ui| {
+                                    ui.label(
+                                        RichText::new(format!(
+                                            "#{} · {} · miss {:.3}",
+                                            cand.n, cand.seed, cand.total_miss
+                                        ))
+                                        .monospace(),
+                                    );
+                                },
+                            );
+                            if resp.clicked() {
                                 selected = Some(cand.seed.clone());
                             }
                         }

@@ -18,6 +18,7 @@
 use crate::builder::state::BuilderTab;
 use crate::builder::BuilderState;
 
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -168,7 +169,16 @@ pub fn show_nav_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
                             ui.set_min_width(item_w);
                             for tab in *tabs {
                                 let selected = state.active_tab == *tab;
-                                if ui.selectable_label(selected, tab.label()).clicked() {
+                                // §BEAUTY — route nav entries through the same animated
+                                // selectable plate the roster rails use, so the active
+                                // tab reads as a lit brass-barred plate (with a hover
+                                // wash + soft accent glow) rather than a flat fill, one
+                                // consistent vocabulary across the whole app.
+                                let (resp, _) =
+                                    card::selectable_plate(ui, ("nav_tab", *tab), selected, |ui| {
+                                        ui.label(tab.label());
+                                    });
+                                if resp.clicked() {
                                     state.set_active_tab(*tab);
                                 }
                             }
@@ -188,9 +198,13 @@ fn widest_tab_label_px(ctx: &egui::Context) -> f32 {
         .iter()
         .map(|tab| {
             ctx.fonts(|f| {
-                f.layout_no_wrap(tab.label().to_owned(), font_id.clone(), egui::Color32::WHITE)
-                    .size()
-                    .x
+                f.layout_no_wrap(
+                    tab.label().to_owned(),
+                    font_id.clone(),
+                    egui::Color32::WHITE,
+                )
+                .size()
+                .x
             })
         })
         .fold(0.0_f32, f32::max)

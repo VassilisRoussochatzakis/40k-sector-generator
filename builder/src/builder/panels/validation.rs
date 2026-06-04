@@ -29,6 +29,7 @@ use std::collections::BTreeMap;
 use camino::Utf8PathBuf;
 use egui::{Color32, RichText};
 use sectorforge::validation::{Severity, ValidationIssue, ValidationReport};
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -49,8 +50,10 @@ const COLOUR_OK: Color32 = Color32::from_rgb(120, 180, 120);
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Validation");
     ui.label(
-        RichText::new("Problems found in your config before generating — fix these for a clean run.")
-            .color(Color32::DARK_GRAY),
+        RichText::new(
+            "Problems found in your config before generating — fix these for a clean run.",
+        )
+        .color(Color32::DARK_GRAY),
     );
     ui.separator();
 
@@ -202,32 +205,34 @@ fn issue_row(
 ) {
     let key = issue_key(issue);
     let is_selected = selected_key(ui).as_deref() == Some(key.as_str());
-    ui.horizontal(|ui| {
-        // Severity dot up front; the headline is the human message, with the
-        // file/row anchor prefixed when present. The diagnostic rule code rides
-        // along after as a dim secondary token (real identifier, but not the
-        // thing a reader scans for).
-        ui.colored_label(colour, "●");
-        let label = match (&issue.path, issue.row) {
-            (Some(p), Some(r)) => format!("{} ({p}, row {r})", issue.message),
-            (Some(p), None) => format!("{} ({p})", issue.message),
-            (None, _) => issue.message.clone(),
-        };
-        // Selecting a row pins the issue into the right detail pane and also
-        // routes the §P4 project tree to the offending .toml (existing jump).
-        let resp = ui
-            .selectable_label(is_selected, label)
-            .on_hover_text(format!("Rule {} — click to inspect and jump", issue.code));
-        if resp.clicked() {
-            set_selected_key(ui, key.clone());
-            jump_to(state, issue);
-        }
+    // §BEAUTY: animated selectable plate. The severity dot keeps its
+    // meaning-carrying colour; the headline is the human message with the
+    // file/row anchor prefixed when present; the diagnostic rule code rides
+    // along after as a dim secondary token (real identifier, but not the thing
+    // a reader scans for).
+    let label = match (&issue.path, issue.row) {
+        (Some(p), Some(r)) => format!("{} ({p}, row {r})", issue.message),
+        (Some(p), None) => format!("{} ({p})", issue.message),
+        (None, _) => issue.message.clone(),
+    };
+    let (resp, _) = card::selectable_plate(ui, ("vrow", &key), is_selected, |ui| {
+        ui.label(RichText::new("●").color(colour));
+        ui.label(RichText::new(label));
         ui.label(
             RichText::new(&issue.code)
                 .small()
                 .color(palette::chrome_text_dim()),
         );
     });
+    // Selecting a row pins the issue into the right detail pane and also routes
+    // the §P4 project tree to the offending .toml (existing jump).
+    if resp
+        .on_hover_text(format!("Rule {} — click to inspect and jump", issue.code))
+        .clicked()
+    {
+        set_selected_key(ui, key.clone());
+        jump_to(state, issue);
+    }
 }
 
 // ── issue detail (right pane) ───────────────────────────────────────────────
@@ -383,7 +388,11 @@ fn render_workbook(ui: &mut egui::Ui, report: &ValidationReport) {
         );
         ui.add_space(4.0);
         ui_kit::kv(ui, "Total rows", &w.row_count.to_string());
-        ui_kit::kv(ui, "Usable candidates", &w.usable_candidate_count.to_string());
+        ui_kit::kv(
+            ui,
+            "Usable candidates",
+            &w.usable_candidate_count.to_string(),
+        );
         ui_kit::kv(ui, "Excluded rows", &w.excluded_row_count.to_string());
         if !w.exclusion_reasons.is_empty() {
             ui.add_space(4.0);

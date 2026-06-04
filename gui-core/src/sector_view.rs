@@ -18,6 +18,8 @@ use super::palette::{
 };
 use super::visual_tokens::{MapRegionOverlay, MapRouteVisual, MapSystemGlyph};
 
+use crate::design;
+
 const SYSTEM_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
 const SYSTEM_PIP_MIN_VISIBLE_PX: f32 = 3.0;
 const SUBSECTOR_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
@@ -202,6 +204,18 @@ impl<'a> SectorView<'a> {
         let theme: &RenderMapTheme = self.theme.unwrap_or(&default_theme);
 
         painter.rect_filled(rect, 0.0, theme.bg);
+
+        // §BEAUTY — live-only void flourishes on the egui `RenderMapTheme` path.
+        // The byte-stable PNG/SVG exporters never reach here (separate `MapTheme`
+        // + canvas), so these touch no golden bytes. Faint deterministic star dust
+        // sits *behind* the chart so the void reads as a star field; it is skipped
+        // on light map themes (`print_mono`) and on tiny embedded previews.
+        let accent = design::accent(ui);
+        let dark_map = is_dark(theme.bg);
+        let framed = rect.width() > 260.0 && rect.height() > 200.0;
+        if framed && dark_map {
+            paint_star_dust(&painter, rect);
+        }
 
         // System-id keyed hex coords for heatmap lookup (still needed if cache not present)
         let mut hex_system_fallback: HashMap<(i32, i32), &str> = HashMap::new();
@@ -837,6 +851,15 @@ impl<'a> SectorView<'a> {
             }
         }
 
+        // §BEAUTY — vignette + gilded chart frame, above the map content but below
+        // the hover-coord tooltip. Live-only (`RenderMapTheme` path; see above).
+        if framed {
+            if dark_map {
+                paint_vignette(&painter, rect);
+            }
+            paint_chart_frame(&painter, rect, accent);
+        }
+
         if self.show_hover_coord {
             if let Some(pos) = response.hover_pos() {
                 if let Some(HexCoord { q, r }) =
@@ -959,6 +982,113 @@ impl<'a> SectorView<'a> {
         }
 
         (response, click)
+    }
+}
+
+/// True when a map theme's background is dark enough for the void flourishes
+/// (star dust + vignette). Light themes such as `print_mono` skip them.
+fn is_dark(bg: Color32) -> bool {
+    (u32::from(bg.r()) + u32::from(bg.g()) + u32::from(bg.b())) < 384
+}
+
+/// §BEAUTY — deterministic faint star dust across the void, painted *behind* the
+/// hex chart so it reads as a star field framing the cartography. Positions are
+/// hashed from a stable index (never RNG), so the dust does not shimmer
+/// frame-to-frame or move when the sector regenerates. Live-only — the golden
+/// PNG/SVG exporters never call this.
+fn paint_star_dust(painter: &egui::Painter, rect: egui::Rect) {
+    // One pseudo-random float in `[0,1)` from a 32-bit integer (an fmix32 finaliser).
+    fn hash01(mut x: u32) -> f32 {
+        x ^= x >> 16;
+        x = x.wrapping_mul(0x7feb_352d);
+        x ^= x >> 15;
+        x = x.wrapping_mul(0x846c_a68b);
+        x ^= x >> 16;
+        (x as f32) / (u32::MAX as f32)
+    }
+    // Density tracks area but is capped so a maximised window stays cheap.
+    let n = ((rect.area() / 2200.0) as u32).clamp(70, 540);
+    for i in 0..n {
+        let fx = hash01(i.wrapping_mul(2_654_435_761).wrapping_add(1));
+        let fy = hash01(i.wrapping_mul(40_503).wrapping_add(7));
+        let pos = Pos2::new(
+            rect.left() + fx * rect.width(),
+            rect.top() + fy * rect.height(),
+        );
+        let roll = hash01(i.wrapping_mul(2_246_822_519).wrapping_add(13));
+        if roll > 0.91 {
+            // A handful of brighter "stars" with a faint halo.
+            let a = 80 + (hash01(i.wrapping_mul(97).wrapping_add(5)) * 60.0) as u8;
+            painter.circle_filled(pos, 1.4, Color32::from_rgba_unmultiplied(234, 228, 238, a));
+            painter.circle_filled(
+                pos,
+                3.0,
+                Color32::from_rgba_unmultiplied(234, 228, 238, a / 5),
+            );
+        } else {
+            // Dim dust — the bulk of the field.
+            let a = 22 + (roll * 58.0) as u8;
+            let s = 0.6 + roll * 0.6;
+            painter.circle_filled(pos, s, Color32::from_rgba_unmultiplied(222, 216, 230, a));
+        }
+    }
+}
+
+/// §BEAUTY — a soft radial vignette: a triangle fan from a transparent centre to
+/// darker corners, so the void deepens toward the frame like a chart under glass.
+/// Subtle (corner alpha ~66). Live-only.
+fn paint_vignette(painter: &egui::Painter, rect: egui::Rect) {
+    let center = rect.center();
+    let clear = Color32::from_black_alpha(0);
+    let corner = Color32::from_black_alpha(80);
+    let edge = Color32::from_black_alpha(24);
+    // 8 perimeter points: 4 corners (darker) + 4 edge midpoints (lighter). Their
+    // straight edges lie on the rect boundary, so the fan covers it exactly.
+    let ring = [
+        (rect.left_top(), corner),
+        (Pos2::new(center.x, rect.top()), edge),
+        (rect.right_top(), corner),
+        (Pos2::new(rect.right(), center.y), edge),
+        (rect.right_bottom(), corner),
+        (Pos2::new(center.x, rect.bottom()), edge),
+        (rect.left_bottom(), corner),
+        (Pos2::new(rect.left(), center.y), edge),
+    ];
+    let mut mesh = egui::Mesh::default();
+    mesh.colored_vertex(center, clear); // index 0
+    for (p, c) in ring {
+        mesh.colored_vertex(p, c);
+    }
+    let n = ring.len() as u32;
+    for i in 0..n {
+        mesh.add_triangle(0, 1 + i, 1 + (i + 1) % n);
+    }
+    painter.add(egui::Shape::mesh(mesh));
+}
+
+/// §BEAUTY — the gilded cartographic frame: a hairline brass border just inside
+/// the canvas plus corner brackets and rivets, so the live map reads as an
+/// Imperial instrument rather than a bare rectangle. `accent` is the active
+/// chrome accent, so the frame recolors with the theme. Live-only.
+fn paint_chart_frame(painter: &egui::Painter, rect: egui::Rect, accent: Color32) {
+    let dim = Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 70);
+    let bright = Color32::from_rgba_unmultiplied(accent.r(), accent.g(), accent.b(), 200);
+    // Inset hairline border.
+    painter.rect_stroke(rect.shrink(1.5), 2.0, Stroke::new(1.0, dim));
+    // Corner brackets + rivets — short L-marks at each corner, brass.
+    let r = rect.shrink(6.0);
+    let len = 16.0;
+    let stroke = Stroke::new(1.5, bright);
+    let corners = [
+        (r.left_top(), Vec2::new(1.0, 0.0), Vec2::new(0.0, 1.0)),
+        (r.right_top(), Vec2::new(-1.0, 0.0), Vec2::new(0.0, 1.0)),
+        (r.right_bottom(), Vec2::new(-1.0, 0.0), Vec2::new(0.0, -1.0)),
+        (r.left_bottom(), Vec2::new(1.0, 0.0), Vec2::new(0.0, -1.0)),
+    ];
+    for (corner, dx, dy) in corners {
+        painter.line_segment([corner, corner + dx * len], stroke);
+        painter.line_segment([corner, corner + dy * len], stroke);
+        painter.circle_filled(corner, 1.8, bright);
     }
 }
 

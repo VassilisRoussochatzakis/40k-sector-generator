@@ -23,11 +23,13 @@ Throughout this document:
   list-shaped tabs (World, System, Factions, Sites, Routes, Subsectors,
   Personae, Hooks, Missions, Search, Validation, Invariants). You pick an entry
   in the rail and edit it in the **inspector** that fills the rest of the tab.
-  On the World, System, Factions and Routes rails each entry is a selectable
+  On every one of these rails each entry is a selectable
   *plate*: it lifts subtly as the pointer passes over it and, once picked, carries
   a brass (accent-coloured) selection bar and a soft glow, so the current
   selection reads at a glance. (The colour follows the active theme — amber under
-  Grimdark, crimson under Light, blue under Slate.)
+  Grimdark, crimson under Light, blue under Slate.) The same plate styles the left
+  nav rail, so the active tab reads as a lit brass-barred plate rather than a flat
+  highlight — one consistent look from the nav rail to every roster.
   Inspector and report tabs arrange their sections across two or three
   **columns** when the window is wide and fold them back into a single column
   when it is narrow, so you rarely scroll past a tall empty margin. The rail and
@@ -257,6 +259,11 @@ Click **MAP**. The panel now shows:
 - A grid of **empty hexes** filling the rest of the panel. With width 8 and
   height 8 you get 64 hexes. Coordinates are not labelled, but the top-left hex
   is `(0, 0)`, q increases to the right, r increases downward.
+- The canvas is framed like a cartographic instrument: a hairline brass border
+  with corner brackets, a faint **star field** in the void behind the chart, and a
+  soft **vignette** toward the edges. These are purely visual — they follow the
+  map theme (dark themes only; `print_mono` and other light themes drop them) and
+  never change a single pixel of what is exported.
 - A **selection inspector** pinned to the right edge. Click a system on the map
   and its summary (coordinates, kind, star, worlds, primary factions, control)
   appears here *in place* — no need to leave the MAP tab. Clicking a world in

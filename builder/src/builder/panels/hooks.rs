@@ -31,6 +31,7 @@
 
 use egui::{Color32, RichText, Ui};
 
+use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
@@ -141,7 +142,9 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(format!("{total} hook(s)  ·  {manual} of yours"));
         if state.data_catalogs.hooks.is_none() {
             ui.colored_label(Color32::from_rgb(220, 170, 80), "● using built-in defaults")
-                .on_hover_text("No saved hooks file yet — built-in defaults are in use until you save.");
+                .on_hover_text(
+                    "No saved hooks file yet — built-in defaults are in use until you save.",
+                );
         }
     });
 }
@@ -198,34 +201,38 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
     // deep-link live in the detail card on the right.
     for h in &rows {
         let is_selected = selected.as_deref() == Some(h.id.as_str());
-        let resp = ui.selectable_label(is_selected, RichText::new(h.title.clone()).strong());
-        if resp.clicked() {
+        let (resp, focus_clicked) =
+            card::selectable_plate(ui, ("hook_row", &h.id), is_selected, |ui| {
+                ui.vertical(|ui| {
+                    ui.label(RichText::new(h.title.clone()).strong());
+                    ui.label(
+                        RichText::new(format!("{} · weight {}", kind_label(h.kind), h.weight))
+                            .color(palette::chrome_text_dim())
+                            .small(),
+                    )
+                    .on_hover_text(format!(
+                        "Kind: {} · higher weight ranks higher in the list.",
+                        kind_label(h.kind)
+                    ));
+                });
+                if h.gm_only {
+                    ui.colored_label(Color32::from_rgb(200, 90, 90), "GM only")
+                        .on_hover_text("Hidden from the player edition.");
+                }
+                let rem = ui.available_width();
+                ui.add_space((rem - 22.0).max(0.0));
+                ui.small_button("📍")
+                    .on_hover_text("Select this hook and jump to where it happens on the map.")
+                    .clicked()
+            });
+        if focus_clicked {
+            state.selected_hook_id = Some(h.id.to_string());
+            state.hooks_edit_target = Some(h.id.to_string());
+            focus_anchor(state, &h.anchor);
+        } else if resp.clicked() {
             state.selected_hook_id = Some(h.id.to_string());
             state.hooks_edit_target = Some(h.id.to_string());
         }
-        ui.horizontal_wrapped(|ui| {
-            ui.colored_label(
-                Color32::DARK_GRAY,
-                format!("{} · weight {}", kind_label(h.kind), h.weight),
-            )
-            .on_hover_text(format!(
-                "Kind: {} · higher weight ranks higher in the list.",
-                kind_label(h.kind)
-            ));
-            if h.gm_only {
-                ui.colored_label(Color32::from_rgb(200, 90, 90), "GM only")
-                    .on_hover_text("Hidden from the player edition.");
-            }
-            if ui
-                .small_button("📍 Highlight")
-                .on_hover_text("Select this hook and jump to where it happens on the map.")
-                .clicked()
-            {
-                state.selected_hook_id = Some(h.id.to_string());
-                state.hooks_edit_target = Some(h.id.to_string());
-                focus_anchor(state, &h.anchor);
-            }
-        });
         ui.separator();
     }
 }
@@ -392,10 +399,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
         );
     });
     if cfg.manual.is_empty() {
-        ui_kit::placeholder(
-            ui,
-            "None yet — press “Add manual hook” to write your own.",
-        );
+        ui_kit::placeholder(ui, "None yet — press “Add manual hook” to write your own.");
     } else {
         let last_idx = cfg.manual.len().saturating_sub(1);
         for (idx, h) in cfg.manual.iter_mut().enumerate() {

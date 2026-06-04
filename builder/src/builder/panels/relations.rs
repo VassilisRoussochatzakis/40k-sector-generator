@@ -31,7 +31,7 @@ use sectorforge::relations::{
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
-use crate::builder::state::EntityRef;
+use crate::builder::state::{ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 /// Aligned label-left / control-right row with a hover tooltip. The visible
@@ -815,10 +815,8 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
         }
-        if let Some(i) = remove_idx {
-            cfg.pair_overrides.remove(i);
-            changed = true;
-        }
+        // §FRIENDLY_PANEL_PASS transform #7: the 🗑 above only records the row in
+        // `remove_idx`; the confirm modal is opened after this `cfg` borrow ends.
         ui.separator();
         ui.label(RichText::new("Add a pin").italics());
         if factions.len() < 2 {
@@ -859,6 +857,15 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
 
     if changed {
         on_catalog_edited(state);
+    }
+    // §FRIENDLY_PANEL_PASS transform #7: pair overrides bypass the undo bus, so a
+    // 🗑 click opens a confirm rather than deleting inline.
+    if let Some(idx) = remove_idx {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete pin?".into(),
+            body: "Remove this pinned faction pair.".into(),
+            action: ConfirmAction::DeleteRelationPair(idx),
+        });
     }
 }
 
@@ -932,10 +939,8 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
         }
-        if let Some(i) = remove_idx {
-            cfg.kind_rules.remove(i);
-            changed = true;
-        }
+        // §FRIENDLY_PANEL_PASS transform #7: the 🗑 above only records the row in
+        // `remove_idx`; the confirm modal is opened after this `cfg` borrow ends.
         ui.separator();
         if ui
             .button("➕  Add type rule")
@@ -954,6 +959,15 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
 
     if changed {
         on_catalog_edited(state);
+    }
+    // §FRIENDLY_PANEL_PASS transform #7: kind rules bypass the undo bus, so a 🗑
+    // click opens a confirm rather than deleting inline.
+    if let Some(idx) = remove_idx {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete type rule?".into(),
+            body: "Remove this faction-type stance rule.".into(),
+            action: ConfirmAction::DeleteRelationKindRule(idx),
+        });
     }
 }
 
@@ -1021,10 +1035,8 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
         }
-        if let Some(i) = remove_idx {
-            cfg.disposition_rules.remove(i);
-            changed = true;
-        }
+        // §FRIENDLY_PANEL_PASS transform #7: the 🗑 above only records the row in
+        // `remove_idx`; the confirm modal is opened after this `cfg` borrow ends.
         ui.separator();
         if ui
             .button("➕  Add disposition rule")
@@ -1043,6 +1055,15 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
 
     if changed {
         on_catalog_edited(state);
+    }
+    // §FRIENDLY_PANEL_PASS transform #7: disposition rules bypass the undo bus, so
+    // a 🗑 click opens a confirm rather than deleting inline.
+    if let Some(idx) = remove_idx {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete disposition rule?".into(),
+            body: "Remove this disposition stance nudge.".into(),
+            action: ConfirmAction::DeleteRelationDispositionRule(idx),
+        });
     }
 }
 
@@ -1093,6 +1114,50 @@ fn ensure_relations_catalog_if_needed(state: &mut BuilderState) {
     if state.data_catalogs.relations.is_none() {
         state.data_catalogs.relations = Some(RelationsConfig::default());
     }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the pinned pair override at `idx`
+/// (confirmed payload of [`ModalKind::ConfirmDestructive`]) and run the
+/// catalogue-edited bookkeeping. Relations overrides bypass the undo bus.
+pub(crate) fn delete_pair_override(state: &mut BuilderState, idx: usize) {
+    {
+        let Some(cfg) = state.data_catalogs.relations.as_mut() else {
+            return;
+        };
+        if idx >= cfg.pair_overrides.len() {
+            return;
+        }
+        cfg.pair_overrides.remove(idx);
+    }
+    on_catalog_edited(state);
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the faction-type stance rule at `idx`.
+pub(crate) fn delete_kind_rule(state: &mut BuilderState, idx: usize) {
+    {
+        let Some(cfg) = state.data_catalogs.relations.as_mut() else {
+            return;
+        };
+        if idx >= cfg.kind_rules.len() {
+            return;
+        }
+        cfg.kind_rules.remove(idx);
+    }
+    on_catalog_edited(state);
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the disposition stance rule at `idx`.
+pub(crate) fn delete_disposition_rule(state: &mut BuilderState, idx: usize) {
+    {
+        let Some(cfg) = state.data_catalogs.relations.as_mut() else {
+            return;
+        };
+        if idx >= cfg.disposition_rules.len() {
+            return;
+        }
+        cfg.disposition_rules.remove(idx);
+    }
+    on_catalog_edited(state);
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {

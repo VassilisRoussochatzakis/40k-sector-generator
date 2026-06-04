@@ -19,6 +19,7 @@ use sectorforge::worlds_toml::{WorldsConfig, DEFAULT_FILENAME as WORLDS_TOML_FIL
 use sectorforge_gui_core::{palette, ui_kit};
 
 use crate::builder::project_io;
+use crate::builder::state::ConfirmAction;
 use crate::builder::{BuilderState, ModalKind};
 
 /// Per-column help shown on the generation-grid headers. Tuple is
@@ -150,15 +151,26 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.separator();
 
     let mut any_change = false;
+    let mut delete_request: Option<usize> = None;
     edit_rows(
         ui,
         state.data_catalogs.worlds.as_mut().unwrap(),
         &mut any_change,
+        &mut delete_request,
     );
 
     if any_change {
         state.dirty = true;
         state.dirty_files.insert(rel.clone());
+    }
+    // §FRIENDLY_PANEL_PASS transform #7: a worlds.toml row delete bypasses the undo
+    // bus — confirm before dropping a recipe (the in-grid 🗑 only requests it).
+    if let Some(idx) = delete_request {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete world recipe?".into(),
+            body: format!("Delete world recipe row #{}.", idx + 1),
+            action: ConfirmAction::DeleteWorldGenRow(idx),
+        });
     }
     if do_save {
         if let Err(e) = save(state, &rel) {
@@ -168,8 +180,15 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 }
 
 /// Render the generation-row grid with typed dropdowns, weights, and per-row
-/// insert / delete controls. Sets `any_change` when the user edits anything.
-fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
+/// insert / delete controls. Sets `any_change` when the user edits anything, and
+/// records the row a 🗑 click wants removed in `delete_request` so the caller
+/// (which owns `state`) can confirm it (§FRIENDLY_PANEL_PASS transform #7).
+fn edit_rows(
+    ui: &mut egui::Ui,
+    cfg: &mut WorldsConfig,
+    any_change: &mut bool,
+    delete_request: &mut Option<usize>,
+) {
     let mut delete_row: Option<usize> = None;
     let mut insert_above: Option<usize> = None;
 
@@ -310,8 +329,30 @@ fn edit_rows(ui: &mut egui::Ui, cfg: &mut WorldsConfig, any_change: &mut bool) {
         *any_change = true;
     }
     if let Some(idx) = delete_row {
-        cfg.generation.remove(idx);
-        *any_change = true;
+        *delete_request = Some(idx);
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the worlds.toml generation row at
+/// `idx` (confirmed payload of [`ModalKind::ConfirmDestructive`]) and reproduce the
+/// panel's dirty bookkeeping. The worlds catalogue bypasses the undo bus.
+pub(crate) fn delete_gen_row(state: &mut BuilderState, idx: usize) {
+    let removed = state
+        .data_catalogs
+        .worlds
+        .as_mut()
+        .map(|cfg| {
+            let ok = idx < cfg.generation.len();
+            if ok {
+                cfg.generation.remove(idx);
+            }
+            ok
+        })
+        .unwrap_or(false);
+    if removed {
+        let rel = worlds_rel(state);
+        state.dirty = true;
+        state.dirty_files.insert(rel);
     }
 }
 

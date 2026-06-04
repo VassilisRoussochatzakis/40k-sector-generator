@@ -40,7 +40,7 @@ use sectorforge::personae::{
     DominanceTier, KindPools, Persona, PersonaAnchor, PersonaeConfig, SystemSlot,
 };
 
-use crate::builder::state::EntityRef;
+use crate::builder::state::{ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 const DEFAULT_PERSONAE_PATH: &str = "data/personae.toml";
@@ -543,13 +543,45 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 }
             });
     }
-    if let Some(idx) = remove_idx {
-        cfg.manual.remove(idx);
-        changed = true;
-    }
+    // §FRIENDLY_PANEL_PASS transform #7: a hand-written persona bypasses the undo
+    // bus, so confirm the delete the row's 🗑 requested (label read while `cfg` is
+    // still borrowed; dispatch happens after it is released).
+    let pending_delete = remove_idx.and_then(|idx| {
+        cfg.manual.get(idx).map(|p| {
+            let label = if p.name.is_empty() {
+                format!("persona #{}", idx + 1)
+            } else {
+                p.name.clone()
+            };
+            (idx, label)
+        })
+    });
     if changed {
         on_catalog_edited(state);
     }
+    if let Some((idx, label)) = pending_delete {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete persona?".into(),
+            body: format!("Remove the hand-written persona “{label}”."),
+            action: ConfirmAction::DeleteManualPersona(idx),
+        });
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the manual persona at `idx`
+/// (confirmed payload of [`ModalKind::ConfirmDestructive`]) and run the
+/// catalogue-edited bookkeeping. Manual personae bypass the undo bus.
+pub(crate) fn delete_manual(state: &mut BuilderState, idx: usize) {
+    {
+        let Some(cfg) = state.data_catalogs.personae.as_mut() else {
+            return;
+        };
+        if idx >= cfg.manual.len() {
+            return;
+        }
+        cfg.manual.remove(idx);
+    }
+    on_catalog_edited(state);
 }
 
 /// Dropdown over the faction ids already in the project, plus an in-popup custom

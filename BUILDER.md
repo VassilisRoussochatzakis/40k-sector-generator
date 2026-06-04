@@ -36,8 +36,13 @@ Throughout this document:
   Where a field points at another entity (a faction, a system, a world), you pick
   from a **dropdown of what already exists** rather than retyping an id. Empty
   panels show a short italic note telling you what is missing and what to do next.
-  Most edits are undoable with `Cmd+Z` / `Ctrl+Z`; a few destructive catalogue
-  edits (like removing a faction) ask you to confirm first.
+  Most edits are undoable with `Cmd+Z` / `Ctrl+Z`. A handful of destructive edits
+  that are *not* on the undo stack pop a small **confirm** dialog first, since
+  there is no undo to fall back on: deleting a faction, deleting a snapshot,
+  "Clear all overrides" on Subsectors, removing a worlds.toml recipe row, removing
+  a Segmentum child or warp link, and deleting a hand-written hook / mission /
+  persona / site or a Relations rule. Each shows what will be removed and a
+  "This can't be undone." line above **Cancel** / **🗑 Delete**.
 
 If you are already comfortable with the broader pipeline, [GUIDE.md](GUIDE.md)
 is the canonical engineering reference. This file is the new-user procedural
@@ -180,7 +185,8 @@ domain-specific tabs:
 - **World data (§PF3)** — a typed editor over `worlds.toml`. Instead of raw
   text, each generation row is a set of dropdowns (star colour, world type,
   atmosphere, …) plus a numeric **weight**. Use the per-row **＋** to insert a
-  row above, **✕** to delete one, or **+ Add row** at the bottom to append.
+  row above, **✕** to delete one (deleting a recipe row asks you to confirm —
+  it is not undoable), or **+ Add row** at the bottom to append.
   A **✓ valid worlds.toml** / **✗** line validates the whole catalogue, and
   **Save worlds.toml** (enabled only while there are unsaved, valid changes)
   writes just that file.
@@ -700,6 +706,10 @@ reference) are:
 - **§SUB5 — Colour override** — open the colour picker to override the
   per-subsector tint that shows on the MAP.
 
+A **🗑 Clear all overrides** button sits in the recluster bar. Because it drops
+every manual move, capital, and colour override at once and is not undoable, it
+asks you to confirm first.
+
 Pick one cluster and:
 
 1. Pick **Velikan** as the capital from the §SUB4 dropdown.
@@ -953,7 +963,8 @@ joined by inter-sector warp links.
    The `[stitch]` block controls `max_links_per_pair`, `border_depth`, and the
    `default_route_type` / `default_stability` stamped on each link. Each child
    row is `{ id, project, column, row, seed override, title override }` — use
-   **pick…** to choose the child's project folder. The **super-grid preview**
+   **pick…** to choose the child's project folder; a child's **🗑 remove** asks
+   you to confirm. The **super-grid preview**
    shows slot occupancy and flags duplicate slots in red. **Save
    segmentum.toml** writes the document back to disk.
 3. **§SG2 — Compose**: pick an **output folder**, then click **▶ Compose**.
@@ -966,7 +977,7 @@ joined by inter-sector warp links.
    link counts, and a per-child table.
 5. **§SG4 — inter-sector links**: edit each warp link's endpoints
    (`from`/`to` system ids), `distance_units`, route type and stability, with
-   per-row **remove**; **+ Add link** appends a manual link (pick the two
+   per-row **remove** (which asks you to confirm); **+ Add link** appends a manual link (pick the two
    child sectors, type the two system ids), inferring its border orientation.
 6. **§SG5 — Export composed segmentum**: **Export segmentum.json + .md**
    writes the (possibly hand-edited) result — `segmentum.json`,
@@ -1091,7 +1102,9 @@ command-log position. Useful before doing something risky.
 
 Look for the **Snapshots** section under PROJECT or in the preferences
 panel. Click **+ snapshot**, type a name (`pre-routes`, `pre-cult`, etc.),
-hit confirm. You can revert to a snapshot later from the same list.
+hit confirm. You can revert to a snapshot later from the same list, or delete
+one with the **×** beside it — deleting a snapshot asks you to confirm, since a
+save point removed this way cannot be brought back with undo.
 
 ---
 

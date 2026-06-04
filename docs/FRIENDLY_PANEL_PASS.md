@@ -53,6 +53,25 @@ Do these transforms wherever they apply:
    `state.run(BuilderCommand::…)` (undoable), a confirm is optional; ask before
    adding.
 
+   Two mechanisms exist. For a one-off, use a dedicated variant like
+   `ConfirmDeleteFaction` (stable-id keyed). For anything else, prefer the generic
+   carrier `ModalKind::ConfirmDestructive { title, body, action }`: add a variant
+   to the data-only `ConfirmAction` enum (`state/types.rs`) naming your panel's
+   `pub(crate)` delete/clear fn, and `app::apply_confirm_action` dispatches to it on
+   Yes. The panel only *opens* the modal; the irreversible edit runs once,
+   centrally, off the render path. Guidance:
+   - Key the action by a **stable id** where one exists. A captured **list index**
+     is acceptable when the entity has no id — the modal is the user's next
+     interaction, so the index stays valid.
+   - When the delete site has no `&mut BuilderState` in scope (a helper that takes
+     only `&mut cfg` / `&mut file`), record the request in an out-param and open the
+     modal in the caller once that borrow ends (see `worlds_editor::edit_rows` and
+     `segmentum::sg_children_section`).
+   - Rolled out to: snapshot delete (PROJECT), "Clear all overrides" (SUBSECTORS),
+     child + warp-link delete (SEGMENTUM), the worlds.toml row delete (PROJECT →
+     World data), and the manual-entry / rule deletes in HOOKS, MISSIONS, PERSONAE,
+     SITES, RELATIONS.
+
 8. **Visual cues.** Small swatches/badges/previews go through a gui-core helper
    (`gui-core/src/palette.rs`), e.g. `palette::draw_faction_swatch`. Builder panels
    MUST NOT call `Ui::painter`/`Ui::painter_at` — `builder/clippy.toml` forbids it;

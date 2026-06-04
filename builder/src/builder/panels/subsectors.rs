@@ -29,7 +29,7 @@ use sectorforge::subsectors::{
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
-use crate::builder::state::{BuilderTab, EntityRef};
+use crate::builder::state::{BuilderTab, ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 /// Aligned label-left / control-right row with a hover tooltip. The visible
@@ -160,6 +160,17 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
     subs
 }
 
+/// §FRIENDLY_PANEL_PASS transform #7: drop every manual subsector override (the
+/// confirmed payload of [`ModalKind::ConfirmDestructive`]). These overrides bypass
+/// the undo bus, so the reset is gated behind a confirm.
+pub(crate) fn clear_all_overrides(state: &mut BuilderState) {
+    state.subsector_system_overrides.clear();
+    state.subsector_capital_overrides.clear();
+    state.subsector_colour_overrides.clear();
+    state.subsector_manual.clear();
+    state.map_view_cache = None;
+}
+
 fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector]) {
     ui.horizontal_wrapped(|ui| {
         ui.label("Target systems per group:")
@@ -205,11 +216,14 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
                 .on_hover_text("Drop every manual move, capital, and colour override and regroup from scratch.")
                 .clicked()
         {
-            state.subsector_system_overrides.clear();
-            state.subsector_capital_overrides.clear();
-            state.subsector_colour_overrides.clear();
-            state.subsector_manual.clear();
-            state.map_view_cache = None;
+            // §FRIENDLY_PANEL_PASS transform #7: a reset-all that bypasses the undo
+            // bus — confirm before wiping every manual subsector override.
+            state.modal = Some(ModalKind::ConfirmDestructive {
+                title: "Clear all overrides?".into(),
+                body: "Drop every manual move, capital, and colour override and regroup from scratch."
+                    .into(),
+                action: ConfirmAction::ClearSubsectorOverrides,
+            });
         }
         ui.label(RichText::new(format!("{} group(s)", subs.len())).color(Color32::DARK_GRAY));
     });
@@ -751,11 +765,9 @@ mod tests {
         state
             .subsector_system_overrides
             .insert(SystemId::new("sys-0001"), "subsector-x".into());
-        // Simulating the "× clear all overrides" button.
-        state.subsector_system_overrides.clear();
-        state.subsector_capital_overrides.clear();
-        state.subsector_colour_overrides.clear();
-        state.subsector_manual.clear();
+        // §FRIENDLY_PANEL_PASS transform #7: exercise the extracted helper the
+        // "🗑 Clear all overrides" confirm modal now dispatches to.
+        super::clear_all_overrides(&mut state);
         assert!(state.subsector_system_overrides.is_empty());
         assert!(state.subsector_capital_overrides.is_empty());
         assert!(state.subsector_colour_overrides.is_empty());

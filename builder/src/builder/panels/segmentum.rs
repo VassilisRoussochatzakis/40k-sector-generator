@@ -26,6 +26,7 @@ use sectorforge_gui_core::ui_kit;
 
 use crate::builder::project_io;
 use crate::builder::segmentum_run::{progress_label, SegmentumState};
+use crate::builder::state::{ConfirmAction, ModalKind};
 use crate::builder::BuilderState;
 
 const STABILITIES: [RouteStability; 4] = [
@@ -244,37 +245,51 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
 }
 
 fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
-    let Some(file) = state.segmentum.file.as_mut() else {
-        return;
-    };
+    // §FRIENDLY_PANEL_PASS transform #7: `sg_children_section` runs with only a
+    // `&mut SegmentumFile`, so a child 🗑 records the child id here; the confirm
+    // modal is opened below, once the `file` borrow on `state` has ended.
+    let mut delete_child: Option<String> = None;
+    {
+        let Some(file) = state.segmentum.file.as_mut() else {
+            return;
+        };
 
-    // §COLUMNS — RC-2 over the config sections: grid/seed config + [stitch]
-    // policy share the first column (both are short 2-col field grids), the
-    // taller per-child editor takes the second. Hand-assigned so the policy
-    // pair stays grouped; collapse-safe via the `if n > 1` guard. The single
-    // `&mut file` borrow is reused sequentially across the columns, so no two
-    // closures hold it at once.
-    ui_kit::columns_responsive(ui, 2, 360.0, |cols| {
-        let n = cols.len();
-        {
-            let left = &mut cols[0];
-            sg_config_section(left, file);
-            left.add_space(4.0);
-            sg_stitch_policy_section(left, file);
-        }
-        {
-            let right = &mut cols[if n > 1 { 1 } else { 0 }];
-            if n == 1 {
-                right.add_space(4.0);
+        // §COLUMNS — RC-2 over the config sections: grid/seed config + [stitch]
+        // policy share the first column (both are short 2-col field grids), the
+        // taller per-child editor takes the second. Hand-assigned so the policy
+        // pair stays grouped; collapse-safe via the `if n > 1` guard. The single
+        // `&mut file` borrow is reused sequentially across the columns, so no two
+        // closures hold it at once.
+        ui_kit::columns_responsive(ui, 2, 360.0, |cols| {
+            let n = cols.len();
+            {
+                let left = &mut cols[0];
+                sg_config_section(left, file);
+                left.add_space(4.0);
+                sg_stitch_policy_section(left, file);
             }
-            sg_children_section(right, file);
-        }
-    });
+            {
+                let right = &mut cols[if n > 1 { 1 } else { 0 }];
+                if n == 1 {
+                    right.add_space(4.0);
+                }
+                sg_children_section(right, file, &mut delete_child);
+            }
+        });
 
-    // §SG1: a quick visual of the super-grid slot occupancy. This is a 2D grid
-    // render that wants the full width, so it stays full-width below the config
-    // columns rather than flowing into one of them.
-    grid_preview(ui, file);
+        // §SG1: a quick visual of the super-grid slot occupancy. This is a 2D grid
+        // render that wants the full width, so it stays full-width below the config
+        // columns rather than flowing into one of them.
+        grid_preview(ui, file);
+    }
+
+    if let Some(id) = delete_child {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Remove child sector?".into(),
+            body: format!("Drop child “{id}” from the segmentum grid."),
+            action: ConfirmAction::DeleteSegmentumChild(id),
+        });
+    }
 }
 
 fn sg_config_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFile) {
@@ -373,7 +388,11 @@ fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::Segm
     });
 }
 
-fn sg_children_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFile) {
+fn sg_children_section(
+    ui: &mut Ui,
+    file: &mut sectorforge::segmentum::SegmentumFile,
+    delete_request: &mut Option<String>,
+) {
     ui_kit::collapsing_section(
         ui,
         "sg_children",
@@ -470,8 +489,12 @@ fn sg_children_section(ui: &mut Ui, file: &mut sectorforge::segmentum::Segmentum
                     );
                 });
             }
+            // §FRIENDLY_PANEL_PASS transform #7: record the child id for the
+            // caller to confirm, rather than dropping the child inline.
             if let Some(i) = remove {
-                file.children.remove(i);
+                if let Some(child) = file.children.get(i) {
+                    *delete_request = Some(child.id.clone());
+                }
             }
             if ui
                 .button("➕  Add child")
@@ -710,6 +733,9 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
         .composed
         .as_ref()
         .map_or(0, |s| s.inter_sector_links.len());
+    // §FRIENDLY_PANEL_PASS transform #7: a 🗑 inside the closure records the link
+    // index here; the confirm modal is opened after the `seg` borrow ends.
+    let mut remove: Option<usize> = None;
     ui_kit::collapsing_section(
         ui,
         "sg_links",
@@ -723,7 +749,6 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
                         "No links between child sectors yet — add one below to connect them.",
                     );
                 }
-                let mut remove: Option<usize> = None;
                 for (i, link) in seg.inter_sector_links.iter_mut().enumerate() {
                     ui.group(|ui| {
                         ui.horizontal(|ui| {
@@ -791,10 +816,6 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
                         );
                     });
                 }
-                if let Some(i) = remove {
-                    seg.inter_sector_links.remove(i);
-                    seg.manifest.inter_sector_link_count = seg.inter_sector_links.len();
-                }
             }
 
             ui.separator();
@@ -802,6 +823,39 @@ fn link_editor(ui: &mut Ui, state: &mut BuilderState) {
             add_link_form(ui, state);
         },
     );
+
+    // §FRIENDLY_PANEL_PASS transform #7: inter-sector links bypass the undo bus,
+    // so a 🗑 click opens a confirm rather than deleting inline.
+    if let Some(idx) = remove {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Remove warp link?".into(),
+            body: "Remove this inter-sector warp link.".into(),
+            action: ConfirmAction::DeleteSegmentumLink(idx),
+        });
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: remove the child sector with id `id`
+/// (confirmed payload of [`ModalKind::ConfirmDestructive`]) from the segmentum
+/// document. The segmentum file bypasses the undo bus.
+pub(crate) fn delete_child(state: &mut BuilderState, id: &str) {
+    if let Some(file) = state.segmentum.file.as_mut() {
+        if let Some(i) = file.children.iter().position(|c| c.id == id) {
+            file.children.remove(i);
+        }
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: remove the inter-sector warp link at `idx`
+/// (confirmed payload of [`ModalKind::ConfirmDestructive`]) from the composed
+/// segmentum and refresh the manifest count.
+pub(crate) fn delete_link(state: &mut BuilderState, idx: usize) {
+    if let Some(seg) = state.segmentum.composed.as_mut() {
+        if idx < seg.inter_sector_links.len() {
+            seg.inter_sector_links.remove(idx);
+            seg.manifest.inter_sector_link_count = seg.inter_sector_links.len();
+        }
+    }
 }
 
 fn add_link_form(ui: &mut Ui, state: &mut BuilderState) {

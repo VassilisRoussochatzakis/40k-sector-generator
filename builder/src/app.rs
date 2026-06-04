@@ -182,16 +182,19 @@ impl BuilderApp {
         // SaveAs / PlaceSystem / ConfirmRevertSnapshot / NewFromPreset are
         // panel-managed transient state — they render inside their owning
         // panel (map.rs, generation.rs, etc.) and do not need an outer window.
-        let title = match &modal {
-            ModalKind::NewProject { .. } => "New project",
-            ModalKind::OpenProject { .. } => "Open project",
-            ModalKind::GenerateRandom { .. } => "Random sector",
-            ModalKind::Message(_) => "Message",
-            ModalKind::ConflictResolver { .. } => "External change",
-            ModalKind::ConfirmDeleteFaction { .. } => "Delete faction?",
+        let title: String = match &modal {
+            ModalKind::NewProject { .. } => "New project".into(),
+            ModalKind::OpenProject { .. } => "Open project".into(),
+            ModalKind::GenerateRandom { .. } => "Random sector".into(),
+            ModalKind::Message(_) => "Message".into(),
+            ModalKind::ConflictResolver { .. } => "External change".into(),
+            ModalKind::ConfirmDeleteFaction { .. } => "Delete faction?".into(),
+            // §FRIENDLY_PANEL_PASS transform #7: generic confirm for non-undoable
+            // catalogue/config deletes — the window title is carried on the modal.
+            ModalKind::ConfirmDestructive { title, .. } => title.clone(),
             _ => return,
         };
-        egui::Window::new(title)
+        egui::Window::new(title.as_str())
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| match modal {
@@ -235,7 +238,52 @@ impl BuilderApp {
                         }
                     });
                 }
+                // §FRIENDLY_PANEL_PASS transform #7: generic confirm window for
+                // destructive, non-undoable catalogue/config edits. The panel only
+                // *opens* this modal; the irreversible mutation runs once, on Yes,
+                // via `apply_confirm_action`.
+                ModalKind::ConfirmDestructive { body, action, .. } => {
+                    ui.label(body);
+                    ui.colored_label(
+                        egui::Color32::from_rgb(220, 140, 120),
+                        "This can't be undone.",
+                    );
+                    ui.add_space(6.0);
+                    ui.horizontal(|ui| {
+                        if ui.button("Cancel").clicked() {
+                            self.workspace.active_mut().modal = None;
+                        }
+                        if ui.button("🗑  Delete").clicked() {
+                            let state = self.workspace.active_mut();
+                            apply_confirm_action(state, action);
+                            state.modal = None;
+                        }
+                    });
+                }
                 _ => {}
             });
+    }
+}
+
+/// Dispatch a confirmed [`ModalKind::ConfirmDestructive`] (§FRIENDLY_PANEL_PASS
+/// transform #7) to the owning panel's `pub(crate)` delete/clear fn. Centralising
+/// dispatch here keeps the irreversible mutation off the panels' hot render path:
+/// a panel only *opens* the confirm modal, and the edit runs once, on Yes.
+fn apply_confirm_action(state: &mut BuilderState, action: crate::builder::state::ConfirmAction) {
+    use crate::builder::panels;
+    use crate::builder::state::ConfirmAction as A;
+    match action {
+        A::DeleteSnapshot(name) => panels::project::delete_snapshot(state, &name),
+        A::ClearSubsectorOverrides => panels::subsectors::clear_all_overrides(state),
+        A::DeleteSegmentumChild(id) => panels::segmentum::delete_child(state, &id),
+        A::DeleteSegmentumLink(i) => panels::segmentum::delete_link(state, i),
+        A::DeleteWorldGenRow(i) => panels::worlds_editor::delete_gen_row(state, i),
+        A::DeleteManualHook(i) => panels::hooks::delete_manual(state, i),
+        A::DeleteManualMission(i) => panels::missions::delete_manual(state, i),
+        A::DeleteManualPersona(i) => panels::personae::delete_manual(state, i),
+        A::DeleteManualSite(i) => panels::sites::delete_manual(state, i),
+        A::DeleteRelationPair(i) => panels::relations::delete_pair_override(state, i),
+        A::DeleteRelationKindRule(i) => panels::relations::delete_kind_rule(state, i),
+        A::DeleteRelationDispositionRule(i) => panels::relations::delete_disposition_rule(state, i),
     }
 }

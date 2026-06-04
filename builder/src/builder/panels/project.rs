@@ -8,6 +8,7 @@ use egui::{RichText, Ui};
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
+use crate::builder::state::ConfirmAction;
 use crate::builder::{BuilderState, ModalKind};
 
 use super::{files, generation, preferences, project_tree, save_project, worlds_editor};
@@ -264,8 +265,8 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
     let names: Vec<String> = state.snapshots.iter().map(|s| s.name.clone()).collect();
     let mut revert_to: Option<String> = None;
-    let mut delete: Option<usize> = None;
-    for (i, n) in names.iter().enumerate() {
+    let mut delete: Option<String> = None;
+    for n in &names {
         ui.horizontal(|ui| {
             ui.label(format!("• {n}"));
             if ui
@@ -280,7 +281,7 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .on_hover_text("Delete this snapshot")
                 .clicked()
             {
-                delete = Some(i);
+                delete = Some(n.clone());
             }
         });
     }
@@ -289,7 +290,22 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.modal = Some(ModalKind::Message(format!("Snapshot '{name}' not found.")));
         }
     }
-    if let Some(i) = delete {
-        state.snapshots.remove(i);
+    // §FRIENDLY_PANEL_PASS transform #7: a snapshot is a save point that bypasses
+    // the undo bus, so route deletion through a confirm rather than dropping it on
+    // a single misclick.
+    if let Some(name) = delete {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete snapshot?".into(),
+            body: format!("Delete the snapshot “{name}”."),
+            action: ConfirmAction::DeleteSnapshot(name),
+        });
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: remove the snapshot named `name` (the
+/// confirmed payload of [`ModalKind::ConfirmDestructive`]). No-op if it is gone.
+pub(crate) fn delete_snapshot(state: &mut BuilderState, name: &str) {
+    if let Some(idx) = state.snapshots.iter().position(|s| s.name == name) {
+        state.snapshots.remove(idx);
     }
 }

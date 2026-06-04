@@ -37,7 +37,7 @@ use sectorforge_gui_core::ui_kit;
 use sectorforge::hooks::{Hook, HookAnchor, HookKind, HooksConfig};
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 
-use crate::builder::state::{BuilderTab, EntityRef};
+use crate::builder::state::{BuilderTab, ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 const DEFAULT_HOOKS_PATH: &str = "data/hooks.toml";
@@ -425,13 +425,45 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
             );
         }
     }
-    if let Some(idx) = remove_idx {
-        cfg.manual.remove(idx);
-        changed = true;
-    }
+    // §FRIENDLY_PANEL_PASS transform #7: a hand-written hook bypasses the undo bus,
+    // so the in-card 🗑 only *requests* the delete; confirm it after the `cfg`
+    // borrow ends (the label is read while it is still live).
+    let pending_delete = remove_idx.and_then(|idx| {
+        cfg.manual.get(idx).map(|h| {
+            let label = if h.title.is_empty() {
+                format!("hook #{}", idx + 1)
+            } else {
+                h.title.clone()
+            };
+            (idx, label)
+        })
+    });
     if changed {
         on_catalog_edited(state);
     }
+    if let Some((idx, label)) = pending_delete {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete hook?".into(),
+            body: format!("Remove the manual hook “{label}”."),
+            action: ConfirmAction::DeleteManualHook(idx),
+        });
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the manual hook at `idx` (confirmed
+/// payload of [`ModalKind::ConfirmDestructive`]) and run the catalogue-edited
+/// bookkeeping. Manual hooks bypass the undo bus.
+pub(crate) fn delete_manual(state: &mut BuilderState, idx: usize) {
+    {
+        let Some(cfg) = state.data_catalogs.hooks.as_mut() else {
+            return;
+        };
+        if idx >= cfg.manual.len() {
+            return;
+        }
+        cfg.manual.remove(idx);
+    }
+    on_catalog_edited(state);
 }
 
 fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds) -> bool {

@@ -84,6 +84,51 @@ pub enum ModalKind {
         id: FactionId,
         name: String,
     },
+    /// Confirm a destructive, non-undoable catalogue/config edit (transform #7 of
+    /// `docs/FRIENDLY_PANEL_PASS.md`). Rendered by [`crate::app`] as a Yes/Cancel
+    /// window; on confirm it dispatches `action` to the owning panel's
+    /// `pub(crate)` delete fn. Used for edits that bypass the undo command bus so a
+    /// single misclick can't silently drop authored content. `title` / `body` are
+    /// the window title and a one-line description of what is removed. Keyed by a
+    /// stable id where one exists; index-keyed actions assume the target list is
+    /// unchanged while the modal is open (the modal is the user's next click).
+    ConfirmDestructive {
+        title: String,
+        body: String,
+        action: ConfirmAction,
+    },
+}
+
+/// Payload for [`ModalKind::ConfirmDestructive`]: the specific non-undoable edit
+/// to perform once the user confirms. Each variant maps to one `pub(crate)`
+/// delete/clear fn on the owning panel module (dispatched in [`crate::app`]).
+/// Data-only so [`ModalKind`] stays `Clone + Debug`.
+#[derive(Debug, Clone)]
+pub enum ConfirmAction {
+    /// PROJECT → Snapshots: delete the snapshot with this name.
+    DeleteSnapshot(String),
+    /// SUBSECTORS: drop every manual move / capital / colour override.
+    ClearSubsectorOverrides,
+    /// SEGMENTUM: remove the child sector with this id from the grid.
+    DeleteSegmentumChild(String),
+    /// SEGMENTUM: remove the inter-sector link at this index.
+    DeleteSegmentumLink(usize),
+    /// PROJECT → World data: delete the worlds.toml generation row at this index.
+    DeleteWorldGenRow(usize),
+    /// HOOKS: delete the manual hook at this index.
+    DeleteManualHook(usize),
+    /// MISSIONS: delete the manual mission at this index.
+    DeleteManualMission(usize),
+    /// PERSONAE: delete the manual persona at this index.
+    DeleteManualPersona(usize),
+    /// SITES: delete the manual site at this index.
+    DeleteManualSite(usize),
+    /// RELATIONS: delete the pinned pair override at this index.
+    DeleteRelationPair(usize),
+    /// RELATIONS: delete the kind rule at this index.
+    DeleteRelationKindRule(usize),
+    /// RELATIONS: delete the disposition rule at this index.
+    DeleteRelationDispositionRule(usize),
 }
 
 /// §V3: combined health summary surfaced by the status bar. Green = clean

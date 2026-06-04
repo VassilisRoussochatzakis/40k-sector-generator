@@ -2240,8 +2240,20 @@ model, command set, or determinism to satisfy them):
 - **Confirm bus-bypassing deletes.** A destructive edit that bypasses the undo
   command bus (catalogue/`data_catalogs.*` mutations, direct side-table writes)
   routes its delete/clear/reset through a `ModalKind::Confirm*` variant rendered in
-  [app.rs](builder/src/app.rs) (see `ConfirmDeleteFaction`). Edits that already go
-  through `state.run(BuilderCommand::…)` are undoable, so a confirm is optional.
+  [app.rs](builder/src/app.rs). Two shapes coexist: `ConfirmDeleteFaction` is a
+  dedicated, stable-id-keyed variant (the canonical example), and
+  `ModalKind::ConfirmDestructive { title, body, action }` is the generic carrier —
+  its `action: ConfirmAction` (a data-only enum in
+  [state/types.rs](builder/src/builder/state/types.rs)) names the panel
+  `pub(crate)` delete/clear fn that `app::apply_confirm_action` dispatches to on
+  **Yes**. The panel only *opens* the modal (recording a stable id where one
+  exists, else a list index captured while the panel renders); the irreversible
+  mutation then runs once, centrally, off the panels' render path. Rolled out
+  (transform #7) to: snapshot delete (PROJECT), "Clear all overrides" reset
+  (SUBSECTORS), child + warp-link delete (SEGMENTUM), worlds.toml row delete
+  (PROJECT → World data), and the manual-entry / rule deletes in HOOKS, MISSIONS,
+  PERSONAE, SITES and RELATIONS. Edits that already go through
+  `state.run(BuilderCommand::…)` are undoable, so a confirm is optional there.
 - **No `Ui::painter` in panels.** Swatches/badges/previews call a
   [gui-core/src/palette.rs](gui-core/src/palette.rs) helper (e.g.
   `draw_faction_swatch`); `builder/clippy.toml` denies `Ui::painter` /
@@ -2261,7 +2273,7 @@ foundation layer lives in:
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | `GeneratedSector::empty`, `GeneratedSystem::new_at`, `GeneratedWorld::new` constructors used by the builder when the user creates entities from scratch. |
 | [src/model/sector_model/mutation.rs](src/model/sector_model/mutation.rs) | Canonical mutation API: `add_system`, `remove_system`, `move_system`, `add_world_to_system`, `add_route`, `add_faction`, claims, presence, regions, intel, history events, archetype, orbital assets, surface regions, plus `reindex_ids(stable)` (§49 tombstones). Every mutation returns `Result<_, MutationError>`. |
 | [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) | `BuilderState` — the single source of truth for an in-progress builder session: sector + project config + data catalogs + index + command log + snapshots + pinned sets + derivation cache + §39 live-derivation ledger (`derivations`) + dirty flag + validation/invariant reports + pending jobs. Holds the struct definition + `new_blank` constructor + `default_config`; method `impl` blocks are split into sibling modules by concern. |
-| [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types backing `BuilderState`: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind`, `HealthLevel`, `JobHandle`, `PartialRegenRect`, `PendingPlace`/`Rename`/`Collision`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, plus `DEFAULT_COMMAND_LOG_CAPACITY` / `DEFAULT_VALIDATION_DEBOUNCE_MS`. Re-exported by `state/mod.rs`. |
+| [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) | UI/dialog types backing `BuilderState`: `BuilderTab`, `MapTool`, `ControlOverlay`, `ModalKind` (incl. the generic `ConfirmDestructive` + its data-only `ConfirmAction` payload — §FRIENDLY_PANEL_PASS transform #7), `HealthLevel`, `JobHandle`, `PartialRegenRect`, `PendingPlace`/`Rename`/`Collision`, `MapViewCache`, `HistoryWizardState`, `HistoryAnchorKind`, plus `DEFAULT_COMMAND_LOG_CAPACITY` / `DEFAULT_VALIDATION_DEBOUNCE_MS`. Re-exported by `state/mod.rs`. |
 | [builder/src/builder/state/selection.rs](builder/src/builder/state/selection.rs) | §S1/§S4 selection helpers: `focus_system`, `toggle_system_selection`. |
 | [builder/src/builder/state/undo.rs](builder/src/builder/state/undo.rs) | R4 command-bus entry point: `BuilderState::run` + `undo` / `redo` + ring-buffer trim + `snapshot` + `trigger_auto_save`. |
 | [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Heavy derived state on `BuilderState`: `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`. Also the §39 live-derivation drivers (LD1..LD4): `derivation_fingerprint`, `invalidate_derivations`, `mark_derivation_fresh`, `ensure_fresh`, `derivation_status`, `pump_derivations`. |

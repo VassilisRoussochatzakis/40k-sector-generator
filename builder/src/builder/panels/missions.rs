@@ -38,7 +38,7 @@ use sectorforge::missions::{
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 
-use crate::builder::state::{BuilderTab, EntityRef};
+use crate::builder::state::{BuilderTab, ConfirmAction, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
 const DEFAULT_MISSIONS_PATH: &str = "data/missions.toml";
@@ -551,13 +551,45 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
             });
         }
     }
-    if let Some(idx) = remove_idx {
-        cfg.manual.remove(idx);
-        changed = true;
-    }
+    // §FRIENDLY_PANEL_PASS transform #7: a hand-written mission bypasses the undo
+    // bus, so confirm the delete the in-card 🗑 requested (label read while `cfg`
+    // is still borrowed; dispatch happens after it is released).
+    let pending_delete = remove_idx.and_then(|idx| {
+        cfg.manual.get(idx).map(|m| {
+            let label = if m.title.is_empty() {
+                format!("mission #{}", idx + 1)
+            } else {
+                m.title.clone()
+            };
+            (idx, label)
+        })
+    });
     if changed {
         on_catalog_edited(state);
     }
+    if let Some((idx, label)) = pending_delete {
+        state.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Delete mission?".into(),
+            body: format!("Remove the manual mission “{label}”."),
+            action: ConfirmAction::DeleteManualMission(idx),
+        });
+    }
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7: delete the manual mission at `idx`
+/// (confirmed payload of [`ModalKind::ConfirmDestructive`]) and run the
+/// catalogue-edited bookkeeping. Manual missions bypass the undo bus.
+pub(crate) fn delete_manual(state: &mut BuilderState, idx: usize) {
+    {
+        let Some(cfg) = state.data_catalogs.missions.as_mut() else {
+            return;
+        };
+        if idx >= cfg.manual.len() {
+            return;
+        }
+        cfg.manual.remove(idx);
+    }
+    on_catalog_edited(state);
 }
 
 fn manual_mission_editor(

@@ -89,7 +89,8 @@ mod tests;
 
 pub use nav::EntityRef;
 pub use types::{
-    validate_toml, BuilderTab, ControlOverlay, HealthLevel, HistoryAnchorKind, HistoryWizardState,
+    validate_toml, BuilderTab, ConfirmAction, ControlOverlay, HealthLevel, HistoryAnchorKind,
+    HistoryWizardState,
     JobHandle, MapTool, MapViewCache, ModalKind, OpenTomlBuffer, PartialRegenRect,
     PendingBulkRename, PendingCollision, PendingPlace, PendingRegionRename, PendingRename,
     PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemBitmapPreview,

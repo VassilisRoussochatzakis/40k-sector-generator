@@ -17,6 +17,13 @@ camino = { version = "1", features = ["serde1"] }
 clap = { version = "4", features = ["derive"] }
 thiserror = "1"
 
+[features]
+# §BEAUTY §5.5 — ship the bundled display/body/mono faces by default. Enables
+# `gui-core/bundled-fonts`, which makes `fonts::install` (called from main.rs)
+# embed the OFL faces in `gui-core/assets/fonts/` instead of running on egui's
+# `default_fonts`. Build with `--no-default-features` to fall back to stock egui.
+default = ["sectorforge-gui-core/bundled-fonts"]
+
 [dev-dependencies]
 tempfile = "3"
 

@@ -1,12 +1,15 @@
 # Bundled fonts (BEAUTY.md §5.5)
 
-The builder/viewer custom typography is **wired but dormant**. The code
-(`gui-core/src/fonts.rs`) embeds three faces with `include_bytes!`, gated behind
-the `bundled-fonts` Cargo feature so the default build stays on egui's
-`default_fonts` and never references a missing binary.
+The builder/viewer custom typography is **active by default**. The three faces
+below are committed in this directory; `gui-core/src/fonts.rs` embeds them with
+`include_bytes!`, gated behind the `bundled-fonts` Cargo feature, which both apps
+turn on via their own `default` feature
+(`default = ["sectorforge-gui-core/bundled-fonts"]` in `builder/Cargo.toml` and
+`viewer/Cargo.toml`). Build either app with `--no-default-features` to fall back
+to egui's `default_fonts`. `gui-core` keeps the feature off by default so its
+map-snapshot golden suite still renders on stock egui fonts.
 
-To activate it, drop **three OFL-licensed font files** in this directory with
-these exact names, then build with the feature on:
+The three committed faces (swap one by dropping a new file with the same name):
 
 | File          | Role                         | Used by                                                | Suggested OFL faces |
 |---------------|------------------------------|--------------------------------------------------------|---------------------|
@@ -18,19 +21,16 @@ All suggestions are SIL Open Font License 1.1; any OFL face works — the code
 references the filenames, not the face. A static (non-variable) `.ttf`/`.otf`
 weight is simplest; rename it to the target filename above.
 
-### Enable
+### Build
 
 ```bash
-# build / run with the bundled faces
-cargo run -p sectorforge-builder --features sectorforge-gui-core/bundled-fonts
-cargo run -p sectorforge-viewer  --features sectorforge-gui-core/bundled-fonts
+# default build = bundled faces
+cargo run -p sectorforge-builder
+cargo run -p sectorforge-viewer
+
+# opt out → egui's default_fonts
+cargo run -p sectorforge-builder --no-default-features
+cargo run -p sectorforge-viewer  --no-default-features
 ```
 
-To make it the default, add `bundled-fonts` to a `default = [...]` feature in
-both `builder/Cargo.toml` and `viewer/Cargo.toml` (or to `gui-core`'s own
-`default`). Keep the OFL license text alongside the files (commit each face's
-`OFL.txt`).
-
-> **Do not** build `--all-features` until the three files exist — `include_bytes!`
-> will fail to compile without them. That is the intended contract: the feature
-> means "the binaries are present."
+Keep the OFL license text alongside the files (commit each face's `OFL.txt`).

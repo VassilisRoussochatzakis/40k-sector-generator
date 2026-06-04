@@ -1927,19 +1927,26 @@ showcase-quality tier on top of §UO; playbook in [BEAUTY.md](BEAUTY.md)).
   change.
 
 - *Typography* ([gui-core/src/fonts.rs](gui-core/src/fonts.rs), `§BEAUTY §5.5`) — the
-  custom-font registration path, **opt-in behind the `bundled-fonts` Cargo feature**
-  (off by default, so the stock build stays on egui's `default_fonts` and never
-  references a missing binary). `fonts::install(ctx)` — called once from each app's
-  eframe creation closure ([builder](builder/src/main.rs) / [viewer](viewer/src/main.rs)
-  `main.rs`), *before* the first `Theme::apply` — embeds three faces via
+  custom-font registration path, gated by the `bundled-fonts` Cargo feature on
+  `gui-core`. The three OFL faces now live in the repo
+  ([gui-core/assets/fonts/](gui-core/assets/fonts/) `display.ttf` / `body.ttf` /
+  `mono.ttf`), and **both apps enable the feature in their own `default` feature**
+  (`default = ["sectorforge-gui-core/bundled-fonts"]` in
+  [builder/Cargo.toml](builder/Cargo.toml) / [viewer/Cargo.toml](viewer/Cargo.toml)),
+  so the bundled faces are now the **default** typography — build with
+  `--no-default-features` to fall back to egui's `default_fonts`. `gui-core` itself
+  keeps the feature off by default, so its map-snapshot golden suite
+  ([gui-core/tests/map_snapshots.rs](gui-core/tests/map_snapshots.rs)) still renders on
+  stock egui fonts. `fonts::install(ctx)` — called once from each app's eframe creation
+  closure ([builder](builder/src/main.rs) / [viewer](viewer/src/main.rs) `main.rs`),
+  *before* the first `Theme::apply` — embeds the three faces via
   `FontData::from_static(include_bytes!("../assets/fonts/{display,body,mono}.ttf"))`:
   the body face becomes the front of egui's `Proportional` family, the mono face the
   front of `Monospace`, and the display face its own named family
-  (`design::FONT_DISPLAY`) that titles request through `design::display_family()` — which
-  resolves to `Proportional` while the feature is off, so `theme.rs` routing `Heading`
-  through it is a no-op until the binaries land. The three OFL files are **not** in the
-  repo; [gui-core/assets/fonts/FONTS.md](gui-core/assets/fonts/FONTS.md) names the exact
-  filenames + suggested faces + the build command to activate it.
+  (`design::FONT_DISPLAY`) that titles request through `design::display_family()` — so
+  `theme.rs` routing `Heading` through it now resolves to the real display face.
+  [gui-core/assets/fonts/FONTS.md](gui-core/assets/fonts/FONTS.md) documents the
+  filenames + suggested faces.
 
 - *Star-map flourishes* ([gui-core/src/sector_view.rs](gui-core/src/sector_view.rs),
   `§BEAUTY`) — a live-only void treatment that turns the flat tactical field into an

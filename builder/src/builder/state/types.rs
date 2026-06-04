@@ -75,6 +75,15 @@ pub enum ModalKind {
         /// Project-relative path of the file that changed.
         rel_path: String,
     },
+    /// Confirm permanent removal of a faction row from the FACTIONS roster.
+    /// Rendered by [`crate::app`] as an outer Yes/Cancel window; on confirm it
+    /// calls [`crate::builder::panels::factions::delete_row`]. Routed through a
+    /// modal (rather than deleting inline) so a single click can't silently drop
+    /// a faction — the roster edits bypass the undo command bus.
+    ConfirmDeleteFaction {
+        id: FactionId,
+        name: String,
+    },
 }
 
 /// §V3: combined health summary surfaced by the status bar. Green = clean

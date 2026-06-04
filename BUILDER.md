@@ -443,23 +443,26 @@ roster. Make it yours.
 
 ### 5.1 Read the existing roster
 
-Click **FACTIONS**. The tab shows a list of faction definitions, each with:
+Click **FACTIONS**. Each roster row shows a colour swatch (its map tint) next
+to its name and id. Selecting a row opens an inspector on the right whose fields
+use plain labels — **hover any label to see the underlying `factions.toml`
+field name and a short explanation**. The fields are:
 
-- `id` (e.g. `imperium`, `chaos`, …).
-- `display name`.
-- `kind` (a dropdown over the known faction kinds — Imperium, Chaos,
+- **Name** and **ID** (e.g. `imperium`, `chaos`, …).
+- **Type** (a dropdown over the known faction kinds — Imperium, Chaos,
   Mechanicus, Cult, Genestealer Cult, Tau, Aeldari, Drukhari, Ork, Tyranid,
-  Necron, etc.).
-- `disposition` (lawful, insular, secretive, opportunistic, hostile, zealous).
-- a base **weight** that drives how aggressively the generator places it.
-- preference lists — `preferred_world_types`, `preferred_governments`,
-  `preferred_features`.
-- a colour swatch (the legend tint).
+  Necron, etc.). Sets the default colour, glyph and behaviour.
+- **Disposition** (lawful, insular, secretive, opportunistic, hostile, zealous).
+- **Spawn weight** — drives how aggressively the generator places it.
+- preference lists under **Spawn preferences** — preferred world types,
+  governments, and notable features.
+- **Appearance** overrides — fill, accent, glyph, border.
 
 ### 5.2 Trim the roster
 
-For a tutorial sector five factions is plenty. Use the per-row **Remove**
-button on any factions you don't want — keep at least:
+For a tutorial sector five factions is plenty. Use the per-row **×** (or the
+**🗑 Delete** button in the toolbar) on any factions you don't want; each opens
+a confirmation prompt before removing the row. Keep at least:
 
 - One Imperial faction.
 - One Chaos faction.
@@ -470,40 +473,40 @@ button on any factions you don't want — keep at least:
 ### 5.3 Add a custom faction
 
 The roster is a three-level hierarchy: **top faction → subfaction → row**.
-Clicking **+ Add faction** at the top of the panel appends a new *subfaction
-row* — by default it inherits its top faction from its `kind` (a row with
-`kind: imperial` lands underneath the `imperium` top group, a row with
-`kind: chaos` under `chaos`, and so on). There is no separate "add
-top-level faction" button: a brand-new top faction is created by adding a
-row and then giving it its own top id via the hierarchy editor below.
+Clicking **➕ Add faction** at the top of the panel appends a new *subfaction
+row* — by default it inherits its top faction from its **Type** (a row with
+type `imperial` lands underneath the `imperium` top group, a row with type
+`chaos` under `chaos`, and so on). There is no separate "add top-level faction"
+button: a brand-new top faction is created by adding a row and then choosing or
+typing its own top id in the **Grouping** section below.
 
-Click **+ Add faction** now. A row called `new_faction_1 / "New faction"` is
+Click **➕ Add faction** now. A row called `new_faction_1 / "New faction"` is
 appended and auto-selected. In the right-hand inspector fill in:
 
-| Section            | Field                    | Value                                              |
-|--------------------|--------------------------|----------------------------------------------------|
-| §F1 Identity       | id                       | `house-velikan`                                    |
-|                    | name                     | `House Velikan`                                    |
-|                    | kind                     | `imperial` (closest match for a Rogue Trader)      |
-|                    | default_disposition      | `opportunistic`                                    |
-|                    | weight                   | `12`                                               |
-| §F3 Hierarchy      | faction (top id)         | `house-velikan` *(makes it a brand-new top group)* |
-|                    | faction_name (top display) | `House Velikan`                                  |
-|                    | subfaction (mid id)      | leave empty (defaults to `kind`)                   |
-| §F1 Preferences    | preferred_world_types    | `HiveWorld`, `AgriWorld`                           |
-|                    | preferred_notable_features | `TradeHub`, `AdministrativeCapital`              |
-| §F2 Style override | fill / accent            | pick a distinctive colour                          |
+| Section               | Field (hover shows the schema name) | Value                                              |
+|-----------------------|-------------------------------------|----------------------------------------------------|
+| §F1 Identity          | ID                                  | `house-velikan`                                    |
+|                       | Name                                | `House Velikan`                                    |
+|                       | Type                                | `imperial` (closest match for a Rogue Trader)      |
+|                       | Disposition                         | `opportunistic`                                    |
+|                       | Spawn weight                        | `12`                                               |
+| §F3 Grouping          | Parent faction                      | `house-velikan` — pick from the dropdown of existing groups, or use the *custom…* row to mint a new top group |
+|                       | Parent name                         | `House Velikan`                                    |
+|                       | Sub-group                           | leave `(none)` (defaults to Type)                  |
+| §F1 Spawn preferences | Preferred world types               | `Hive World`, `Agri World`                         |
+|                       | Preferred notable features          | `Trade Hub`, `Administrative Capital`              |
+| §F2 Appearance        | Fill / Accent                       | pick a distinctive colour                          |
 
-The `Resolved hierarchy:` line at the bottom of §F3 confirms how the row
-will be grouped — with the values above it should read `house-velikan >
-imperial > house-velikan`. Leave §F3 blank and the row would instead nest
-under whatever top group the `imperial` kind resolves to.
+The **Shows in the roster as:** line at the bottom of §F3 confirms how the row
+will be grouped — parent › sub-group › this faction, using display names. Leave
+Grouping blank and the row instead nests under whatever top group the `imperial`
+type resolves to.
 
 ### 5.4 Persist the roster
 
-Look for **Save factions.toml** (or similar) at the bottom of the panel.
-Click it. This writes the roster back to `data/factions/factions.toml`. Then
-do the usual PROJECT → **Save** to commit the sector itself.
+Click **💾 Save** at the top of the panel. This writes the roster back to
+`data/factions/factions.toml`. Then do the usual PROJECT → **Save** to commit
+the sector itself.
 
 ---
 

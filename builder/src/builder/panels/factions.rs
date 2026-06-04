@@ -84,6 +84,10 @@ const DEFAULT_FACTIONS_REL: &str = "data/factions/factions.toml";
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Factions");
+    ui.label(
+        RichText::new("Who lives in your sector — their look, behaviour, and where they appear.")
+            .color(Color32::DARK_GRAY),
+    );
     ui.add_space(4.0);
 
     if state.data_catalogs.factions.is_none() {
@@ -105,10 +109,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         if let Some(idx) = selected_index(state) {
             show_inspector(ui, state, idx);
         } else {
-            ui.colored_label(
-                Color32::GRAY,
-                "Select a faction from the roster on the left.",
-            );
+            ui_kit::placeholder(ui, "Pick a faction on the left to edit it.");
         }
     });
 }
@@ -116,11 +117,16 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 // ── empty / scaffold ────────────────────────────────────────────────────────
 
 fn show_empty_catalog(ui: &mut Ui, state: &mut BuilderState) {
-    ui.colored_label(
-        Color32::GRAY,
-        "No factions catalog loaded. Scaffold one to begin editing.",
+    ui_kit::placeholder(
+        ui,
+        "No factions yet. Create a roster to start adding factions.",
     );
-    if ui.button("Create empty factions roster").clicked() {
+    ui.add_space(6.0);
+    if ui
+        .button("➕  Create faction roster")
+        .on_hover_text("Starts a new, empty factions.toml you can add to")
+        .clicked()
+    {
         state.data_catalogs.factions = Some(FactionsFile {
             factions: Vec::new(),
         });
@@ -148,36 +154,57 @@ fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
         || state.dirty_files.contains(DEFAULT_FACTIONS_REL);
 
     ui.horizontal_wrapped(|ui| {
-        ui.label(format!("rows: {count}"));
-        ui.label(format!("top-factions: {}", groups.top));
-        ui.label(format!("subfactions: {}", groups.sub));
-        ui.label(format!("path: {path}"));
+        ui.label(RichText::new(format!("{count} faction(s)")).strong());
+        ui.label(
+            RichText::new(format!(
+                "· {} group(s) · {} sub-group(s)",
+                groups.top, groups.sub
+            ))
+            .color(Color32::DARK_GRAY),
+        );
         if path_dirty {
-            ui.colored_label(Color32::from_rgb(240, 200, 90), "● unsaved");
+            ui.colored_label(Color32::from_rgb(240, 200, 90), "●  unsaved changes");
         }
     });
+    ui.label(
+        RichText::new(format!("file: {path}"))
+            .small()
+            .color(Color32::DARK_GRAY),
+    );
 
     ui.horizontal_wrapped(|ui| {
-        if ui.button("Save factions.toml").clicked() {
+        if ui
+            .button("💾  Save")
+            .on_hover_text("Write all changes back to factions.toml")
+            .clicked()
+        {
             save_factions_only(state);
         }
-        if ui.button("+ Add faction").clicked() {
+        if ui
+            .button("➕  Add faction")
+            .on_hover_text("Add a new faction and select it")
+            .clicked()
+        {
             add_new_row(state);
         }
         if let Some(id) = state.selected_faction_id.clone() {
             if ui
-                .button("Duplicate selected")
-                .on_hover_text("Copy selected row with a new id suffix")
+                .button("⧉  Duplicate")
+                .on_hover_text("Copy the selected faction with a new id")
                 .clicked()
             {
                 duplicate_row(state, &id);
             }
             if ui
-                .button("Remove")
-                .on_hover_text("Remove the selected row from the roster")
+                .button("🗑  Delete")
+                .on_hover_text("Remove the selected faction from the roster")
                 .clicked()
             {
-                delete_row(state, &id);
+                let name = faction_name_for(state, &id);
+                state.modal = Some(ModalKind::ConfirmDeleteFaction {
+                    id: id.clone(),
+                    name,
+                });
             }
         }
     });
@@ -193,11 +220,18 @@ fn show_filter_bar(ui: &mut Ui, _state: &mut BuilderState) {
     let mut kind_filter: String =
         ui.data_mut(|d| d.get_temp_mut_or::<String>(kind_id, String::new()).clone());
     ui.horizontal_wrapped(|ui| {
-        ui.label("search:");
-        if ui.text_edit_singleline(&mut filter).changed() {
+        ui.label("Filter:");
+        if ui
+            .add(
+                egui::TextEdit::singleline(&mut filter)
+                    .hint_text("name, id, or type…")
+                    .desired_width(180.0),
+            )
+            .changed()
+        {
             ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
         }
-        ui.label("kind:");
+        ui.label("Type:");
         ui_kit::combo(
             "factions_kind_filter_combo",
             if kind_filter.is_empty() {
@@ -266,7 +300,7 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
 
     let selected = state.selected_faction_id.clone();
     let mut new_selection: Option<sectorforge::ids::FactionId> = None;
-    let mut remove_id: Option<sectorforge::ids::FactionId> = None;
+    let mut confirm_delete: Option<(sectorforge::ids::FactionId, String)> = None;
     egui::ScrollArea::vertical().show(ui, |ui| {
         for (top_id, subs) in &groups {
             // Resolve the group label from the first member's display field
@@ -306,6 +340,7 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
                                         label = label.color(Color32::DARK_GRAY);
                                     }
                                     ui.horizontal(|ui| {
+                                        palette::draw_faction_swatch(ui, resolve_style(f));
                                         if ui.selectable_label(is_selected, label).clicked() {
                                             new_selection = Some(f.id.clone());
                                         }
@@ -314,7 +349,7 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
                                             .on_hover_text("Remove this faction from the roster")
                                             .clicked()
                                         {
-                                            remove_id = Some(f.id.clone());
+                                            confirm_delete = Some((f.id.clone(), f.name.clone()));
                                         }
                                     });
                                 }
@@ -325,14 +360,14 @@ fn show_roster_list(ui: &mut Ui, state: &mut BuilderState) {
             );
         }
         if groups.is_empty() {
-            ui.colored_label(Color32::GRAY, "No matches.");
+            ui_kit::placeholder(ui, "No factions match your filter.");
         }
     });
     if let Some(id) = new_selection {
         state.selected_faction_id = Some(id);
     }
-    if let Some(id) = remove_id {
-        delete_row(state, &id);
+    if let Some((id, name)) = confirm_delete {
+        state.modal = Some(ModalKind::ConfirmDeleteFaction { id, name });
     }
 }
 
@@ -344,6 +379,10 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
         file.factions[idx].clone()
     };
     let mut draft = original.clone();
+    let (existing_top_ids, existing_sub_ids) = {
+        let file = state.data_catalogs.factions.as_ref().expect("checked");
+        existing_group_ids(file, &original.id)
+    };
 
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
@@ -370,18 +409,14 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                         identity_grid(ui, &mut draft)
                     });
                     left.add_space(4.0);
-                    ui_kit::collapsing_section(
-                        left,
-                        "fac_hierarchy",
-                        "Hierarchy (faction > subfaction > force)",
-                        true,
-                        |ui| hierarchy_grid(ui, &mut draft),
-                    );
+                    ui_kit::collapsing_section(left, "fac_hierarchy", "Grouping", true, |ui| {
+                        hierarchy_grid(ui, &mut draft, &existing_top_ids, &existing_sub_ids)
+                    });
                     left.add_space(4.0);
                     ui_kit::collapsing_section(
                         left,
                         "fac_preferences",
-                        "Preferences",
+                        "Spawn preferences",
                         false,
                         |ui| {
                             preferred_picker_world_types(ui, &mut draft);
@@ -397,26 +432,18 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
                     ui_kit::collapsing_section(
                         right,
                         "fac_style_override",
-                        "Style override",
+                        "Appearance",
                         true,
                         |ui| style_overrides(ui, &mut draft),
                     );
                     right.add_space(4.0);
-                    ui_kit::collapsing_section(
-                        right,
-                        "fac_presence",
-                        "Presence (deep-link)",
-                        false,
-                        |ui| presence_link(ui, state, &draft),
-                    );
+                    ui_kit::collapsing_section(right, "fac_presence", "Presence", false, |ui| {
+                        presence_link(ui, state, &draft)
+                    });
                     right.add_space(4.0);
-                    ui_kit::collapsing_section(
-                        right,
-                        "fac_legend",
-                        "Legend visibility",
-                        false,
-                        |ui| legend_visibility(ui, &mut draft),
-                    );
+                    ui_kit::collapsing_section(right, "fac_legend", "Map legend", false, |ui| {
+                        legend_visibility(ui, &mut draft)
+                    });
                 }
             });
         });
@@ -437,81 +464,124 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
     }
 }
 
+/// Aligned label-left / control-right row with a hover tooltip. The visible
+/// label reads in human terms ("Type", "Spawn weight") while the tooltip names
+/// the underlying TOML field plus a plain-language note, so power users keep the
+/// schema mapping. Friendlier replacement for the old bare `egui::Grid` whose
+/// row labels *were* the raw schema names.
+fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 fn identity_grid(ui: &mut Ui, draft: &mut FactionDef) {
-    egui::Grid::new("faction_identity_grid")
-        .num_columns(2)
-        .striped(true)
-        .show(ui, |ui| {
-            ui.label("id");
+    labeled(
+        ui,
+        "ID",
+        "Unique identifier (schema: id). Lowercase, no spaces — used by routes, presence, and saved files.",
+        |ui| {
             let mut id_buf = draft.id.to_string();
             if ui.text_edit_singleline(&mut id_buf).changed() {
                 draft.id = FactionId::new(id_buf.trim());
             }
-            ui.end_row();
-
-            ui.label("name");
+        },
+    );
+    labeled(
+        ui,
+        "Name",
+        "Display name shown in lists and on the map legend (schema: name).",
+        |ui| {
             ui.text_edit_singleline(&mut draft.name);
-            ui.end_row();
-
-            ui.label("kind");
-            editable_combo(ui, "faction_kind_combo", &mut draft.kind, KNOWN_KINDS);
-            ui.end_row();
-
-            ui.label("default_disposition");
+        },
+    );
+    labeled(
+        ui,
+        "Type",
+        "Faction archetype (schema: kind). Sets the default colour, glyph, and behaviour.",
+        |ui| editable_combo(ui, "faction_kind_combo", &mut draft.kind, KNOWN_KINDS),
+    );
+    labeled(
+        ui,
+        "Disposition",
+        "Default stance toward other factions (schema: default_disposition).",
+        |ui| {
             editable_combo(
                 ui,
                 "faction_disposition_combo",
                 &mut draft.default_disposition,
                 KNOWN_DISPOSITIONS,
-            );
-            ui.end_row();
-
-            ui.label("weight");
+            )
+        },
+    );
+    labeled(
+        ui,
+        "Spawn weight",
+        "How often the generator places this faction (schema: weight). Higher = more common.",
+        |ui| {
             ui.add(
                 egui::DragValue::new(&mut draft.weight)
                     .speed(0.1)
                     .range(0.0..=100.0)
                     .max_decimals(2),
             );
-            ui.end_row();
-        });
+        },
+    );
 }
 
-fn hierarchy_grid(ui: &mut Ui, draft: &mut FactionDef) {
-    egui::Grid::new("faction_hierarchy_grid")
-        .num_columns(2)
-        .striped(true)
-        .show(ui, |ui| {
-            ui.label("faction (top id)");
-            optional_text(ui, "fac_top_id", &mut draft.faction, |s| FactionId::new(s));
-            ui.end_row();
-
-            ui.label("faction_name (top display)");
+fn hierarchy_grid(ui: &mut Ui, draft: &mut FactionDef, top_ids: &[String], sub_ids: &[String]) {
+    ui_kit::placeholder(
+        ui,
+        "Optional. Nest this faction under a parent and sub-group so the map legend can roll them together. Leave blank for a stand-alone faction.",
+    );
+    ui.add_space(4.0);
+    labeled(
+        ui,
+        "Parent faction",
+        "The larger faction this belongs to (schema: faction). Pick an existing group, or leave blank for top-level.",
+        |ui| id_combo(ui, "fac_top_id", &mut draft.faction, top_ids),
+    );
+    labeled(
+        ui,
+        "Parent name",
+        "Display name for the parent group on the legend (schema: faction_name).",
+        |ui| {
             optional_text(ui, "fac_top_name", &mut draft.faction_name, |s| {
                 s.to_string()
-            });
-            ui.end_row();
-
-            ui.label("subfaction (mid id)");
-            optional_text(ui, "fac_sub_id", &mut draft.subfaction, |s| {
-                FactionId::new(s)
-            });
-            ui.end_row();
-
-            ui.label("subfaction_name (mid display)");
+            })
+        },
+    );
+    labeled(
+        ui,
+        "Sub-group",
+        "The mid-level group within the parent (schema: subfaction).",
+        |ui| id_combo(ui, "fac_sub_id", &mut draft.subfaction, sub_ids),
+    );
+    labeled(
+        ui,
+        "Sub-group name",
+        "Display name for the sub-group on the legend (schema: subfaction_name).",
+        |ui| {
             optional_text(ui, "fac_sub_name", &mut draft.subfaction_name, |s| {
                 s.to_string()
-            });
-            ui.end_row();
-        });
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        format!(
-            "Resolved hierarchy: {} > {} > {}",
-            draft.top_faction_id(),
-            draft.subfaction_id(),
-            draft.id
-        ),
+            })
+        },
+    );
+    ui.add_space(4.0);
+    ui.label(
+        RichText::new(format!(
+            "Shows in the roster as:  {}  ›  {}  ›  {}",
+            draft.top_faction_name(),
+            draft.subfaction_name(),
+            draft.name
+        ))
+        .color(Color32::DARK_GRAY),
     );
 }
 
@@ -578,7 +648,7 @@ fn preferred_picker_world_types(ui: &mut Ui, draft: &mut FactionDef) {
     pick_multi(
         ui,
         "preferred_world_types",
-        "preferred_world_types",
+        "Preferred world types",
         &mut draft.preferred_world_types,
         WorldType::VARIANTS
             .iter()
@@ -591,7 +661,7 @@ fn preferred_picker_governments(ui: &mut Ui, draft: &mut FactionDef) {
     pick_multi(
         ui,
         "preferred_governments",
-        "preferred_governments",
+        "Preferred governments",
         &mut draft.preferred_governments,
         Government::VARIANTS
             .iter()
@@ -604,7 +674,7 @@ fn preferred_picker_features(ui: &mut Ui, draft: &mut FactionDef) {
     pick_multi(
         ui,
         "preferred_notable_features",
-        "preferred_notable_features",
+        "Preferred notable features",
         &mut draft.preferred_notable_features,
         NotableFeature::VARIANTS
             .iter()
@@ -620,12 +690,15 @@ fn pick_multi(
     bucket: &mut Vec<String>,
     options: Vec<(String, String)>,
 ) {
-    ui.label(label);
+    ui.label(RichText::new(label).strong());
     ui.indent(format!("{salt}_indent"), |ui| {
+        if bucket.is_empty() {
+            ui_kit::placeholder(ui, "none yet — pick from the list below");
+        }
         let mut remove: Option<usize> = None;
         for (i, current) in bucket.iter().enumerate() {
             ui.horizontal(|ui| {
-                ui.monospace(current.as_str());
+                ui.label(current.as_str());
                 if ui.small_button("×").clicked() {
                     remove = Some(i);
                 }
@@ -640,7 +713,10 @@ fn pick_multi(
             d.get_temp_mut_or::<String>(filter_id, String::new())
                 .clone()
         });
-        if ui.text_edit_singleline(&mut filter).changed() {
+        if ui
+            .add(egui::TextEdit::singleline(&mut filter).hint_text("filter options…"))
+            .changed()
+        {
             ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
         }
         let needle = filter.to_lowercase();
@@ -659,7 +735,11 @@ fn pick_multi(
                     if already.contains(key) {
                         continue;
                     }
-                    if ui.button(format!("{display}  ({key})")).clicked() {
+                    if ui
+                        .button(display.as_str())
+                        .on_hover_text(format!("id: {key}"))
+                        .clicked()
+                    {
                         bucket.push(key.clone());
                     }
                 }
@@ -672,14 +752,19 @@ fn pick_multi(
 
 fn show_style_preview(ui: &mut Ui, draft: &FactionDef) {
     let style = resolve_style(draft);
-    palette::draw_faction_style_rgb_preview(ui, style);
-    ui.label(format!(
-        "fill={} accent={} glyph={} border={:?}",
-        rgb_to_hex(style.fill),
-        rgb_to_hex(style.accent),
-        style.glyph,
-        style.border
-    ));
+    ui.horizontal(|ui| {
+        palette::draw_faction_style_rgb_preview(ui, style);
+        ui.label(
+            RichText::new(format!(
+                "Glyph {} · Fill {} · Accent {} · Border {:?}",
+                style.glyph,
+                rgb_to_hex(style.fill),
+                rgb_to_hex(style.accent),
+                style.border
+            ))
+            .color(Color32::DARK_GRAY),
+        );
+    });
 }
 
 fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
@@ -693,36 +778,43 @@ fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
         None,
     );
 
-    egui::Grid::new("faction_style_grid")
-        .num_columns(3)
-        .striped(true)
-        .show(ui, |ui| {
-            ui.label("fill");
-            color_override(ui, &mut draft.style_fill, derived.fill);
-            ui.end_row();
-
-            ui.label("accent");
-            color_override(ui, &mut draft.style_accent, derived.accent);
-            ui.end_row();
-
-            ui.label("glyph");
-            glyph_override(ui, "fac_glyph_text", &mut draft.style_glyph, derived.glyph);
-            ui.end_row();
-
-            ui.label("border");
+    labeled(
+        ui,
+        "Fill",
+        "Main fill colour (schema: style_fill). Leave default to inherit the Type's colour.",
+        |ui| color_override(ui, &mut draft.style_fill, derived.fill),
+    );
+    labeled(
+        ui,
+        "Accent",
+        "Accent / outline colour (schema: style_accent).",
+        |ui| color_override(ui, &mut draft.style_accent, derived.accent),
+    );
+    labeled(
+        ui,
+        "Glyph",
+        "Single character drawn for this faction (schema: style_glyph).",
+        |ui| glyph_override(ui, "fac_glyph_text", &mut draft.style_glyph, derived.glyph),
+    );
+    labeled(
+        ui,
+        "Border",
+        "Border style on the map (schema: style_border).",
+        |ui| {
             border_override(
                 ui,
                 "fac_border_combo",
                 &mut draft.style_border,
                 derived.border,
-            );
-            ui.end_row();
-        });
+            )
+        },
+    );
 
+    ui.add_space(6.0);
     ui.horizontal(|ui| {
         if ui
-            .button("Recompute style from kind")
-            .on_hover_text("Clears all style overrides and reverts to faction_style_rgb defaults")
+            .button("↺  Reset to Type default")
+            .on_hover_text("Clear every appearance override and use the colours derived from Type")
             .clicked()
         {
             draft.style_fill = None;
@@ -730,7 +822,11 @@ fn style_overrides(ui: &mut Ui, draft: &mut FactionDef) {
             draft.style_glyph = None;
             draft.style_border = None;
         }
-        ui.colored_label(Color32::DARK_GRAY, format!("default kind={}", draft.kind));
+        ui.label(
+            RichText::new(format!("Type: {}", draft.kind))
+                .small()
+                .color(Color32::DARK_GRAY),
+        );
     });
 }
 
@@ -814,11 +910,11 @@ fn presence_link(ui: &mut Ui, state: &mut BuilderState, draft: &FactionDef) {
     let assigned_worlds = sector_world_count(state, &draft.id);
     let assigned_systems = sector_system_count(state, &draft.id);
     ui.label(format!(
-        "Sector presence: {assigned_systems} system(s), {assigned_worlds} world(s)."
+        "On the map: {assigned_systems} system(s), {assigned_worlds} world(s)."
     ));
     if ui
-        .button("Open in CONTROL tab")
-        .on_hover_text("Phase C wires the per-world/system presence editor")
+        .button("Edit presence in Control tab  →")
+        .on_hover_text("Jump to the Control tab to assign this faction to systems and worlds")
         .clicked()
     {
         state.selected_faction_id = Some(draft.id.clone());
@@ -855,19 +951,19 @@ fn legend_visibility(ui: &mut Ui, draft: &mut FactionDef) {
         Some(false) => 2,
     };
     ui.horizontal_wrapped(|ui| {
-        ui.label("legend_visible:");
-        ui.radio_value(&mut current, 0, "default (auto)");
-        ui.radio_value(&mut current, 1, "force visible");
-        ui.radio_value(&mut current, 2, "force hidden");
+        ui.label("Show on map legend:");
+        ui.radio_value(&mut current, 0, "Automatic");
+        ui.radio_value(&mut current, 1, "Always");
+        ui.radio_value(&mut current, 2, "Never");
     });
     draft.legend_visible = match current {
         1 => Some(true),
         2 => Some(false),
         _ => None,
     };
-    ui.colored_label(
-        Color32::DARK_GRAY,
-        "Default uses src/importance.rs::compute_display_buckets to roll minor factions into kind-group aggregates.",
+    ui_kit::placeholder(
+        ui,
+        "Automatic hides very minor factions, rolling them into their Type group on the legend.",
     );
 }
 
@@ -891,6 +987,78 @@ fn count_groups(file: &FactionsFile) -> GroupCounts {
         top: tops.len(),
         sub: subs.len(),
     }
+}
+
+/// Dropdown over the group ids already present in the roster, plus "(none)" and
+/// an in-popup custom row. Friendlier than free-typing a raw id: nesting is
+/// usually under a group that already exists, so it becomes one click instead
+/// of remembering and retyping the exact id string. The custom row keeps brand
+/// new ids reachable.
+fn id_combo(ui: &mut Ui, salt: &str, slot: &mut Option<FactionId>, options: &[String]) {
+    let current = slot.as_ref().map(|f| f.to_string());
+    let label = current.clone().unwrap_or_else(|| "(none)".to_owned());
+    ui.horizontal(|ui| {
+        ui_kit::combo(salt, label).show_ui(ui, |ui| {
+            if ui.selectable_label(slot.is_none(), "(none)").clicked() {
+                *slot = None;
+            }
+            for opt in options {
+                let selected = current.as_deref() == Some(opt.as_str());
+                if ui.selectable_label(selected, opt.as_str()).clicked() {
+                    *slot = Some(FactionId::new(opt.as_str()));
+                }
+            }
+            ui.separator();
+            ui.label(RichText::new("custom…").small().color(Color32::DARK_GRAY));
+            let mut buf = current.clone().unwrap_or_default();
+            if ui
+                .add(
+                    egui::TextEdit::singleline(&mut buf)
+                        .hint_text("new id")
+                        .desired_width(160.0),
+                )
+                .changed()
+            {
+                let trimmed = buf.trim();
+                *slot = if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(FactionId::new(trimmed))
+                };
+            }
+        });
+        if slot.is_some() && ui.small_button("×").on_hover_text("clear").clicked() {
+            *slot = None;
+        }
+    });
+}
+
+/// Unique, sorted top-level and mid-level group ids currently used in the
+/// roster, excluding `self_id` (a faction can't be its own parent). Feeds the
+/// [`id_combo`] pickers in the Grouping section.
+fn existing_group_ids(file: &FactionsFile, self_id: &FactionId) -> (Vec<String>, Vec<String>) {
+    let mut tops: BTreeSet<String> = BTreeSet::new();
+    let mut subs: BTreeSet<String> = BTreeSet::new();
+    for f in &file.factions {
+        if &f.id == self_id {
+            continue;
+        }
+        tops.insert(f.top_faction_id().to_string());
+        subs.insert(f.subfaction_id().to_string());
+    }
+    (tops.into_iter().collect(), subs.into_iter().collect())
+}
+
+/// Display name of the faction with `id`, falling back to the id itself. Used to
+/// label the delete-confirmation prompt.
+fn faction_name_for(state: &BuilderState, id: &FactionId) -> String {
+    state
+        .data_catalogs
+        .factions
+        .as_ref()
+        .and_then(|f| f.factions.iter().find(|x| x.id == *id))
+        .map(|x| x.name.clone())
+        .unwrap_or_else(|| id.to_string())
 }
 
 fn selected_index(state: &mut BuilderState) -> Option<usize> {
@@ -979,7 +1147,7 @@ fn duplicate_row(state: &mut BuilderState, id: &FactionId) {
     state.dirty_files.insert(rel);
 }
 
-fn delete_row(state: &mut BuilderState, id: &FactionId) {
+pub(crate) fn delete_row(state: &mut BuilderState, id: &FactionId) {
     let Some(file) = state.data_catalogs.factions.as_mut() else {
         return;
     };

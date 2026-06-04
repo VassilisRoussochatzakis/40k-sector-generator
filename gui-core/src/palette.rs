@@ -849,6 +849,24 @@ pub fn draw_faction_style_rgb_preview(
     );
 }
 
+/// A compact faction colour swatch (fill + accent outline + glyph), sized for
+/// inline use in list rows. Mirrors [`draw_faction_style_rgb_preview`] at a
+/// smaller scale so a roster can show each faction's map colour at a glance.
+pub fn draw_faction_swatch(ui: &mut Ui, style: sectorforge::faction_style::FactionStyleRgb) {
+    let side = ui.spacing().interact_size.y.min(16.0);
+    let (rect, _resp) = ui.allocate_exact_size(Vec2::splat(side), Sense::hover());
+    let painter = ui.painter_at(rect);
+    painter.rect_filled(rect, 2.0, from_rgb(style.fill));
+    painter.rect_stroke(rect, 2.0, Stroke::new(1.0, from_rgb(style.accent)));
+    painter.text(
+        rect.center(),
+        Align2::CENTER_CENTER,
+        style.glyph.to_string(),
+        FontId::monospace(side * 0.7),
+        contrast_text(from_rgb(style.fill)),
+    );
+}
+
 pub fn draw_fraction_bar(
     ui: &mut Ui,
     size: Vec2,

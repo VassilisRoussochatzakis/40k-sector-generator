@@ -188,6 +188,7 @@ impl BuilderApp {
             ModalKind::GenerateRandom { .. } => "Random sector",
             ModalKind::Message(_) => "Message",
             ModalKind::ConflictResolver { .. } => "External change",
+            ModalKind::ConfirmDeleteFaction { .. } => "Delete faction?",
             _ => return,
         };
         egui::Window::new(title)
@@ -215,6 +216,24 @@ impl BuilderApp {
                     if ui.button("OK").clicked() {
                         self.workspace.active_mut().modal = None;
                     }
+                }
+                ModalKind::ConfirmDeleteFaction { id, name } => {
+                    ui.label(format!("Delete “{name}”  ({id}) ?"));
+                    ui.colored_label(
+                        egui::Color32::from_rgb(220, 140, 120),
+                        "Removes it from the roster. This can't be undone.",
+                    );
+                    ui.add_space(6.0);
+                    ui.horizontal(|ui| {
+                        if ui.button("Cancel").clicked() {
+                            self.workspace.active_mut().modal = None;
+                        }
+                        if ui.button("🗑  Delete").clicked() {
+                            let state = self.workspace.active_mut();
+                            crate::builder::panels::factions::delete_row(state, &id);
+                            state.modal = None;
+                        }
+                    });
                 }
                 _ => {}
             });

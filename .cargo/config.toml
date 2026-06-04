@@ -13,3 +13,21 @@ srun = "run --release --bin sectorforge --"
 # Trailing `--project` means the first positional arg is the project folder;
 # extra flags append after it. E.g. `cargo sg examples/m42_project --seed 42`.
 sg = "run --release --bin sectorforge -- generate --project"
+# `build-all` compiles literally everything in the workspace: every lib, every
+# bin (incl. the `dhat-profile` bin, which is gated behind `required-features =
+# ["dhat-heap"]` — `--all-features` is what pulls it in), every integration/unit
+# test binary, every bench, every example, across all four members (root
+# sectorforge + viewer + gui-core + builder). Use it to prove the whole tree
+# compiles before a push.
+#
+# Deliberately the OPPOSITE trade-off from `sba`: `--all-targets` drags in
+# dev-deps (proptest, criterion, tempfile) and so will NOT share a build cache
+# with the `srun`/`sview`/`sbuild` run aliases. That's expected — building test
+# binaries is the whole point here.
+#
+# Caveats (both unreachable from a stable-toolchain `cargo build`, so not here):
+#   • Doctests aren't a buildable target; `--all-targets` skips them. To exercise
+#     them, run `cargo test --workspace` (without `--all-targets`).
+#   • The `fuzz` crate is intentionally outside `[workspace]` (needs nightly +
+#     cargo-fuzz). Build it separately: `cargo +nightly fuzz build`.
+build-all = "build --workspace --all-targets --all-features"

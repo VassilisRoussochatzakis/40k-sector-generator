@@ -161,7 +161,7 @@ pub use relations::{
     RelationOverride, RelationsConfig, RelationsFile, RelationsMatrix, RelationsReport, Stance,
     TreatyStatus,
 };
-pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord};
+pub use sector_model::{GeneratedSector, GeneratedSystem, HexCoord, SystemGlyph};
 pub use sector_save::{merge as merge_sector_save, split as split_sector_save, SectorSave};
 pub use segmentum::{
     compose as compose_segmentum, compose_with_progress as compose_segmentum_with_progress,

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use image::Rgba;
 
 use super::canvas::Canvas;
+use super::colors::blend_heat;
 use crate::map_theme::MapTheme;
 use crate::sector_model::{offset_r_neighbors, GeneratedSector};
 use crate::subsectors::Subsector;
@@ -18,11 +19,16 @@ pub(crate) fn hex_vertices(cx: f32, cy: f32, size: f32) -> [(f32, f32); 6] {
     out
 }
 
+/// Fill the hex grid the same way the live egui renderer does: the per-hex
+/// `base` is the heatmap tint (or the empty-hex colour), then any region
+/// colour is blended on top at `t = 0.5` via [`blend_heat`]. `heat_tints`
+/// holds only heatmap samples (no faction fill — the live map never tints by
+/// faction); `region_colours` holds the raw region condition colour per hex.
 pub(crate) fn draw_hex_grid<C: Canvas>(
     canvas: &mut C,
     sector: &GeneratedSector,
-    sys_tints: &HashMap<(i32, i32), Rgba<u8>>,
-    region_tints: &HashMap<(i32, i32), Rgba<u8>>,
+    heat_tints: &HashMap<(i32, i32), Rgba<u8>>,
+    region_colours: &HashMap<(i32, i32), Rgba<u8>>,
     theme: &MapTheme,
     hex_size: f32,
     hex_center_fn: impl Fn(i32, i32) -> (f32, f32),
@@ -30,11 +36,11 @@ pub(crate) fn draw_hex_grid<C: Canvas>(
     for r in 0..sector.height as i32 {
         for q in 0..sector.width as i32 {
             let (cx, cy) = hex_center_fn(q, r);
-            let base = region_tints
-                .get(&(q, r))
-                .copied()
-                .unwrap_or(theme.hex_empty);
-            let fill = sys_tints.get(&(q, r)).copied().unwrap_or(base);
+            let base = heat_tints.get(&(q, r)).copied().unwrap_or(theme.hex_empty);
+            let fill = match region_colours.get(&(q, r)) {
+                Some(rc) => blend_heat(base, *rc, 0.5),
+                None => base,
+            };
             let pts = hex_vertices(cx, cy, hex_size);
             canvas.polygon(&pts, fill, Some(theme.hex_outline), 1.0);
         }

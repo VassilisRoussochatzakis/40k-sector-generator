@@ -85,6 +85,53 @@ impl core::fmt::Display for SystemKind {
     }
 }
 
+/// Map glyph class for a system — the single source of truth shared by the
+/// egui live renderer (`sectorforge-gui-core`) and the PNG/SVG exporters
+/// (`crate::export`). Both renderers `match` on this exhaustively, so adding a
+/// new map symbol is a one-place change that the compiler then forces into
+/// every backend.
+///
+/// Distinct from [`SystemKind`]: a `SystemKind` with a resolved star always
+/// renders as [`SystemGlyph::Star`] regardless of its kind, while a kind with
+/// no star falls back to its kind-specific marker.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SystemGlyph {
+    /// Catalogued star — a filled spectral-colour disk.
+    Star,
+    /// A `Star`-kind system whose star never resolved — hollow diamond.
+    UncataloguedStar,
+    /// `SpecialLocation` with no star — hollow diamond.
+    SpecialLocation,
+    /// `BlackHole` with no star — black disk inside two rings.
+    BlackHole,
+    /// `WarpAnomaly` with no star — overlapping up/down triangles.
+    WarpAnomaly,
+    /// `SpaceStation` with no star — square with crosshair arms.
+    SpaceStation,
+}
+
+impl SystemGlyph {
+    /// Classify a system into its map glyph. A resolved [`GeneratedStar`]
+    /// always wins (renders as [`Self::Star`]); otherwise the marker is chosen
+    /// by [`SystemKind`].
+    #[must_use]
+    pub fn from_system(system: &GeneratedSystem) -> Self {
+        if system.star.is_some() {
+            return Self::Star;
+        }
+        // Exhaustive on purpose: a new `SystemKind` must choose its starless
+        // glyph here, and the compiler then forces every renderer that matches
+        // `SystemGlyph` (live egui + PNG + SVG) to handle it too.
+        match system.kind {
+            SystemKind::Star => Self::UncataloguedStar,
+            SystemKind::SpecialLocation => Self::SpecialLocation,
+            SystemKind::BlackHole => Self::BlackHole,
+            SystemKind::WarpAnomaly => Self::WarpAnomaly,
+            SystemKind::SpaceStation => Self::SpaceStation,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratedSystem {
     pub id: SystemId,
@@ -1256,6 +1303,69 @@ impl PowerProfile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn system_with(kind: SystemKind, has_star: bool) -> GeneratedSystem {
+        GeneratedSystem {
+            id: "s".into(),
+            index: 0,
+            name: "S".into(),
+            coord: HexCoord { q: 0, r: 0 },
+            kind,
+            star: has_star.then(|| GeneratedStar {
+                colour_code: "G".into(),
+                colour_name: "green".into(),
+                spectral_type: None,
+                source_row_index: None,
+            }),
+            worlds: vec![],
+            primary_factions: vec![],
+            tags: vec![],
+            notes: vec![],
+            control: Default::default(),
+            stability: Default::default(),
+            orbital_assets: Vec::new(),
+            blockade: Default::default(),
+            conflict: Default::default(),
+            intel: Default::default(),
+            archetype: Default::default(),
+        }
+    }
+
+    #[test]
+    fn system_glyph_star_always_wins() {
+        // A resolved star renders as a star disk regardless of the kind.
+        for kind in [
+            SystemKind::Star,
+            SystemKind::SpecialLocation,
+            SystemKind::BlackHole,
+            SystemKind::WarpAnomaly,
+            SystemKind::SpaceStation,
+        ] {
+            assert_eq!(
+                SystemGlyph::from_system(&system_with(kind, true)),
+                SystemGlyph::Star,
+                "kind {kind} with a star should be a Star glyph"
+            );
+        }
+    }
+
+    #[test]
+    fn system_glyph_starless_kinds_map_to_markers() {
+        let cases = [
+            (SystemKind::Star, SystemGlyph::UncataloguedStar),
+            (SystemKind::SpecialLocation, SystemGlyph::SpecialLocation),
+            (SystemKind::BlackHole, SystemGlyph::BlackHole),
+            (SystemKind::WarpAnomaly, SystemGlyph::WarpAnomaly),
+            (SystemKind::SpaceStation, SystemGlyph::SpaceStation),
+        ];
+        for (kind, expected) in cases {
+            assert_eq!(
+                SystemGlyph::from_system(&system_with(kind, false)),
+                expected,
+                "starless {kind} mapped to the wrong glyph"
+            );
+        }
+    }
 
     #[test]
     fn hex_distance_known_examples() {

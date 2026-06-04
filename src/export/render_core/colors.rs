@@ -34,6 +34,26 @@ pub(crate) fn stability_color(theme: &MapTheme, s: RouteStability) -> Rgba<u8> {
     }
 }
 
+/// Blend `from` toward `to` by `t`, mirroring the live egui renderer's
+/// `gui_core::sector_view::blend_heat`. A floor (`0.20`) keeps any non-zero
+/// `t` visibly tinted and a cap (`0.85`) preserves a hint of the base tone, so
+/// the exported heatmap / region tints match the on-screen map exactly. `t`
+/// is clamped into `0..=1` first.
+pub(crate) fn blend_heat(from: Rgba<u8>, to: Rgba<u8>, t: f32) -> Rgba<u8> {
+    let t = if t > 0.0 {
+        0.65f32.mul_add(t.min(1.0), 0.20).min(0.85)
+    } else {
+        0.0
+    };
+    let mix = |a: u8, b: u8| f32::from(a).mul_add(1.0 - t, f32::from(b) * t).round() as u8;
+    Rgba([
+        mix(from.0[0], to.0[0]),
+        mix(from.0[1], to.0[1]),
+        mix(from.0[2], to.0[2]),
+        255,
+    ])
+}
+
 /// Mix `c` toward `base` by `(1 - amount)`. `amount = 1.0` returns `c`
 /// unchanged; `amount = 0.0` returns `base`. Identical between backends.
 pub(crate) fn tint_against(c: Rgba<u8>, amount: f32, base: Rgba<u8>) -> Rgba<u8> {

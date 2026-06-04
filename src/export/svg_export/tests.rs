@@ -78,3 +78,40 @@ fn renders_well_formed_svg() {
     assert!(svg.trim_end().ends_with("</svg>"));
     assert!(svg.contains("polygon"));
 }
+
+/// Starless systems must render their kind-specific glyph (matching the live
+/// egui renderer), not the retired grey square.
+#[test]
+fn starless_kinds_use_distinct_glyphs_not_grey_square() {
+    let mut sector = sample_sector();
+    sector.width = 8;
+    sector.height = 4;
+    let base = sector.systems[0].clone();
+    sector.systems.clear();
+    for (i, kind) in [
+        SystemKind::SpecialLocation,
+        SystemKind::BlackHole,
+        SystemKind::WarpAnomaly,
+        SystemKind::SpaceStation,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut sys = base.clone();
+        sys.id = format!("s{i}").into();
+        sys.kind = kind;
+        sys.star = None;
+        sys.coord = HexCoord { q: i as i32, r: 0 };
+        sector.systems.push(sys);
+    }
+    let svg = render_sector_svg(&sector, None, &RenderOptions::default());
+
+    // The black hole draws a solid black disk; nothing else in a star-free,
+    // subsector-free map emits pure black.
+    assert!(svg.contains("#000000"), "black-hole disk missing from SVG");
+    // The retired grey-square marker (rgb 140,140,150) must be gone.
+    assert!(
+        !svg.contains("8c8c96"),
+        "old grey-square glyph still emitted for starless systems"
+    );
+}

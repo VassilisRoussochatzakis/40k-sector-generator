@@ -1221,6 +1221,23 @@ are:
 | `inquisition_redacted` | Classified red/black briefing style |
 | `subsector_political` | Strong subsector borders and faction tinting |
 
+The PNG and SVG sector exporters render the same map as the live builder /
+viewer so the files match what is on screen. System markers are classified
+through one shared [`SystemGlyph`](src/model/sector_model/mod.rs)
+(`star` → spectral disk; otherwise a kind-specific marker — uncatalogued/special
+hollow diamond, black hole disk-in-rings, warp-anomaly twin triangles, station
+square + crosshair); the enum is consumed by `gui-core`'s `draw_system_glyph`
+and by both `bitmap`/`svg_export` backends, so a new symbol is a one-place
+change the compiler then forces into every renderer. Hex fill also matches the
+live map: the heatmap tint is the per-hex base and the region-condition colour
+blends on top via the shared `blend_heat` (same floor/cap as the on-screen
+`RenderMapTheme`); **the exporters no longer tint hexes by faction** — the live
+map never did, and `[outputs.bitmap].faction_fill` now only affects the
+per-system orbital maps. Sub-pixel results still differ from a screenshot
+(egui rasterises through the GPU with its own font + anti-aliasing; the
+exporters use hand-rolled SVG/bitmap primitives), and label *placement* uses the
+simpler exporter layout rather than the live collision-avoidance pass.
+
 Route visuals are also presentation-only. GUI sector maps use one canonical
 `RoutePattern` per route type so the sector info-panel legend is an exact guide:
 solid lines, dashed lanes, dotted lanes, bursts, dot clusters, and dense dot

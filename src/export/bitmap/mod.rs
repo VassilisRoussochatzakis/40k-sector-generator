@@ -171,11 +171,12 @@ fn render(
     let subs = subsectors.unwrap_or(&[]);
     let draw_subsectors = !subs.is_empty() && opts.theme.show_subsector_borders;
 
-    // Per-system fill tint for §8 (faction colour) / §10 (heatmap overlay).
+    // Per-system heatmap overlay tint (§10). No faction fill — the live map
+    // never tints hexes by faction, and the export now matches it.
     let heat = grid::compute_heatmap(sector, &opts);
-    let sys_tints = grid::compute_system_tints(sector, &opts, &heat);
+    let heat_tints = grid::compute_heat_tints(sector, &opts, &heat);
 
-    grid::draw_hex_grid(&mut img, sector, &g, &sys_tints, &opts.theme);
+    grid::draw_hex_grid(&mut img, sector, &g, &heat_tints, &opts.theme);
     if draw_subsectors {
         grid::draw_subsector_borders(&mut img, sector, subs, &g, &opts.theme);
     }

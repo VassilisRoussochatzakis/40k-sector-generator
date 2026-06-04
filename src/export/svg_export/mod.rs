@@ -33,7 +33,7 @@ mod systems;
 mod tests;
 
 use geom::map_bounds;
-use grid::{compute_system_tints, draw_hex_grid, draw_subsector_borders};
+use grid::{compute_heat_tints, draw_hex_grid, draw_subsector_borders};
 use labels::{draw_subsector_labels, draw_system_labels};
 use legend::{draw_legend, legend_height};
 use primitives::rect;
@@ -87,9 +87,9 @@ pub fn render_sector_svg(
     } else {
         heatmap::compute_rgb(sector, opts.heatmap)
     };
-    let sys_tints = compute_system_tints(sector, opts, &heat);
+    let heat_tints = compute_heat_tints(sector, opts, &heat);
 
-    draw_hex_grid(&mut s, sector, &sys_tints, &opts.theme);
+    draw_hex_grid(&mut s, sector, &heat_tints, &opts.theme);
     if draw_subsectors {
         draw_subsector_borders(&mut s, sector, subs, &opts.theme);
     }

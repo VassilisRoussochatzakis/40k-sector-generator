@@ -1,97 +1,97 @@
 //! Hex-grid fill + subsector borders + per-system tints (SVG backend).
 //!
 //! Tint computation stays here. Polygon + dot drawing call into
-//! [`crate::export::render_core::grid`].
+//! [`crate::export::render_core::grid`]. The fill pipeline mirrors the live
+//! egui renderer: heatmap tint as the per-hex base, region colour blended on
+//! top, and no faction fill.
 
 use std::collections::HashMap;
 
 use image::Rgba;
 
+use crate::export::render_core::colors::blend_heat;
 use crate::export::render_core::RenderOptions;
-use crate::faction_style::faction_style_rgb_by_id;
 use crate::heatmap::{HeatCellRgb, HeatmapMode};
 use crate::map_theme::MapTheme;
+use crate::regions::RegionConditionKind;
 use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
 use super::canvas::SvgCanvas;
-use super::colors::{rgba_from_tuple, tint_against};
+use super::colors::rgba_from_tuple;
 use super::geom::hex_center;
 use super::HEX_SIZE;
 
-pub(super) fn compute_system_tints(
+/// Per-hex heatmap tint (no faction fill — the live map never tints by
+/// faction). Mirrors the live renderer: `blend_heat(hex_empty, cell, intensity)`.
+pub(super) fn compute_heat_tints(
     sector: &GeneratedSector,
     opts: &RenderOptions,
     heat: &HashMap<crate::ids::SystemId, HeatCellRgb>,
 ) -> HashMap<(i32, i32), Rgba<u8>> {
     let mut out = HashMap::new();
+    if matches!(opts.heatmap, HeatmapMode::Off) {
+        return out;
+    }
     for sys in sector.systems.iter() {
-        let key = (sys.coord.q, sys.coord.r);
-        if !matches!(opts.heatmap, HeatmapMode::Off) {
-            if let Some(cell) = heat.get(&sys.id) {
-                let strength = cell
-                    .intensity
-                    .mul_add(opts.theme.heatmap_tint_range, opts.theme.heatmap_tint_min);
-                let color = rgba_from_tuple(cell.rgb);
-                out.insert(key, tint_against(color, strength, opts.theme.hex_empty));
-                continue;
-            }
-        }
-        if opts.faction_fill {
-            if let Some(dom) = sys.control.dominant.as_deref() {
-                let style = faction_style_rgb_by_id(&sector.factions, dom);
-                out.insert(
-                    key,
-                    tint_against(
-                        rgba_from_tuple(style.fill),
-                        opts.theme.faction_tint_strength,
-                        opts.theme.hex_empty,
-                    ),
-                );
-            }
+        if let Some(cell) = heat.get(&sys.id) {
+            let key = (sys.coord.q, sys.coord.r);
+            out.insert(
+                key,
+                blend_heat(
+                    opts.theme.hex_empty,
+                    rgba_from_tuple(cell.rgb),
+                    cell.intensity,
+                ),
+            );
         }
     }
     out
 }
 
-fn compute_region_tints(
-    sector: &GeneratedSector,
-    theme: &MapTheme,
-) -> HashMap<(i32, i32), Rgba<u8>> {
-    use crate::regions::RegionConditionKind;
+/// Raw region condition colour per hex (un-blended). The blend onto the hex
+/// base happens in `render_core::grid::draw_hex_grid` via `blend_heat`, so
+/// these values match `gui_core::map_theme::RenderMapTheme`'s region palette
+/// exactly.
+fn compute_region_colours(sector: &GeneratedSector) -> HashMap<(i32, i32), Rgba<u8>> {
     let mut out = HashMap::new();
     for region in sector.regions.iter() {
-        let base = match region.kind {
-            RegionConditionKind::WarpStorm => Rgba([120, 60, 180, 255]),
-            RegionConditionKind::Turbulence => Rgba([110, 100, 160, 255]),
-            RegionConditionKind::CalmCorridor => Rgba([80, 160, 170, 255]),
-            RegionConditionKind::Blackout => Rgba([60, 60, 70, 255]),
-            RegionConditionKind::Anomaly => Rgba([180, 130, 100, 255]),
-            RegionConditionKind::NecropolisDrift => Rgba([100, 120, 130, 255]),
-            RegionConditionKind::BeaconChain => Rgba([190, 180, 110, 255]),
-            RegionConditionKind::EmpyricBleed => Rgba([150, 80, 140, 255]),
-        };
-        let tinted = tint_against(base, theme.region_tint_strength, theme.hex_empty);
+        let colour = region_colour(region.kind);
         for h in &region.hexes {
-            out.insert((h.q, h.r), tinted);
+            out.insert((h.q, h.r), colour);
         }
     }
     out
+}
+
+/// Region condition → overlay colour. Matches the live renderer's
+/// `RenderMapTheme` region palette.
+fn region_colour(kind: RegionConditionKind) -> Rgba<u8> {
+    match kind {
+        RegionConditionKind::WarpStorm => Rgba([170, 60, 180, 255]),
+        RegionConditionKind::Turbulence => Rgba([140, 100, 200, 255]),
+        RegionConditionKind::CalmCorridor => Rgba([90, 200, 180, 255]),
+        RegionConditionKind::Blackout => Rgba([60, 60, 80, 255]),
+        RegionConditionKind::Anomaly => Rgba([220, 160, 60, 255]),
+        RegionConditionKind::NecropolisDrift => Rgba([100, 130, 140, 255]),
+        RegionConditionKind::BeaconChain => Rgba([230, 210, 100, 255]),
+        RegionConditionKind::EmpyricBleed => Rgba([190, 70, 160, 255]),
+    }
 }
 
 pub(super) fn draw_hex_grid(
     s: &mut String,
     sector: &GeneratedSector,
-    sys_tints: &HashMap<(i32, i32), Rgba<u8>>,
+    heat_tints: &HashMap<(i32, i32), Rgba<u8>>,
     theme: &MapTheme,
 ) {
-    let region_tints = compute_region_tints(sector, theme);
+    let region_colours = compute_region_colours(sector);
     let mut canvas = SvgCanvas::new(s);
     crate::export::render_core::grid::draw_hex_grid(
         &mut canvas,
         sector,
-        sys_tints,
-        &region_tints,
+        heat_tints,
+        &region_colours,
         theme,
         HEX_SIZE,
         hex_center,

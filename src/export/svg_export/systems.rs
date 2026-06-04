@@ -1,10 +1,15 @@
-//! Star disks, capital markers, world-count pips.
+//! System glyphs, subsector capital markers, world-count pips.
+//!
+//! Glyph shapes mirror the live egui renderer
+//! (`sectorforge_gui_core::sector_view::draw_system_glyph`) so the exported SVG
+//! shows the same symbols as the builder / viewer map. Classification is the
+//! shared [`crate::sector_model::SystemGlyph`].
 
 use image::Rgba;
 
 use crate::export::render_core::RenderOptions;
 use crate::map_theme::{MapTheme, SymbolSet};
-use crate::sector_model::GeneratedSector;
+use crate::sector_model::{GeneratedSector, SystemGlyph};
 use crate::subsectors::Subsector;
 
 use super::colors::{darken, star_color};
@@ -12,7 +17,8 @@ use super::geom::hex_center;
 use super::primitives::{circle, line, polygon, rect, text};
 use super::{star_radius_ratio, HEX_SIZE};
 
-const PIP_FONT: f32 = 9.0;
+/// Fully transparent fill for hollow (outline-only) glyphs.
+const TRANSPARENT: Rgba<u8> = Rgba([0, 0, 0, 0]);
 
 pub(super) fn draw_systems(
     s: &mut String,
@@ -23,21 +29,23 @@ pub(super) fn draw_systems(
     let star_r = HEX_SIZE * star_radius_ratio();
     for sys in &sector.systems {
         let (cx, cy) = hex_center(sys.coord.q, sys.coord.r);
-        if let Some(star) = &sys.star {
-            let fill = star_color(&star.colour_code);
-            circle(s, cx, cy, star_r, fill, Some(darken(fill, 0.55)), 1.0);
-        } else {
-            let r = star_r * 3.0 / 4.0;
-            rect(
-                s,
-                cx - r,
-                cy - r,
-                r * 2.0,
-                r * 2.0,
-                Rgba([140, 140, 150, 255]),
-                None,
-            );
-        }
+
+        // Marker colour: star spectral colour, else the dim glyph stroke colour
+        // (matches the live renderer's `fill` choice).
+        let fill = match &sys.star {
+            Some(star) => star_color(&star.colour_code),
+            None => opts.theme.text_dim,
+        };
+
+        draw_system_glyph(
+            s,
+            cx,
+            cy,
+            star_r,
+            SystemGlyph::from_system(sys),
+            fill,
+            &opts.theme,
+        );
 
         if subsectors
             .iter()
@@ -48,12 +56,96 @@ pub(super) fn draw_systems(
 
         let pip = sector.get_worlds_for_system(sys).len();
         if pip > 0 {
-            let label = format!("{pip}");
-            let tx = HEX_SIZE.mul_add(0.55, cx);
-            let ty = HEX_SIZE.mul_add(0.55, cy);
-            text(s, tx, ty, &label, opts.theme.text, PIP_FONT, "end");
+            draw_world_pip(s, cx, cy, pip, fill, &opts.theme);
         }
     }
+}
+
+/// Draw the per-system map glyph. One arm per [`SystemGlyph`]; mirrors the
+/// shapes painted by `gui-core`'s `draw_system_glyph` with `radius == star_r`.
+fn draw_system_glyph(
+    s: &mut String,
+    cx: f32,
+    cy: f32,
+    radius: f32,
+    glyph: SystemGlyph,
+    fill: Rgba<u8>,
+    theme: &MapTheme,
+) {
+    let dim = theme.text_dim;
+    match glyph {
+        SystemGlyph::Star => {
+            circle(s, cx, cy, radius, fill, Some(darken(fill, 0.55)), 1.5);
+        }
+        SystemGlyph::UncataloguedStar | SystemGlyph::SpecialLocation => {
+            let r = radius * 0.8;
+            let pts = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)];
+            polygon(s, &pts, TRANSPARENT, Some(dim), 1.5);
+        }
+        SystemGlyph::BlackHole => {
+            circle(s, cx, cy, radius * 0.55, Rgba([0, 0, 0, 255]), None, 0.0);
+            circle(s, cx, cy, radius * 0.9, TRANSPARENT, Some(dim), 2.0);
+            circle(
+                s,
+                cx,
+                cy,
+                radius * 1.1,
+                TRANSPARENT,
+                Some(darken(dim, 0.4)),
+                1.0,
+            );
+        }
+        SystemGlyph::WarpAnomaly => {
+            let r = radius * 0.95;
+            let h = r * 0.866;
+            let up = [(cx, cy - r), (cx + h, cy + r * 0.5), (cx - h, cy + r * 0.5)];
+            let dn = [(cx, cy + r), (cx + h, cy - r * 0.5), (cx - h, cy - r * 0.5)];
+            polygon(s, &up, TRANSPARENT, Some(dim), 1.3);
+            polygon(s, &dn, TRANSPARENT, Some(dim), 1.3);
+        }
+        SystemGlyph::SpaceStation => {
+            let r = radius * 0.65;
+            let sq = [
+                (cx - r, cy - r),
+                (cx + r, cy - r),
+                (cx + r, cy + r),
+                (cx - r, cy + r),
+            ];
+            polygon(s, &sq, TRANSPARENT, Some(dim), 1.5);
+            let arm = r * 1.3;
+            line(s, cx - arm, cy, cx + arm, cy, dim, 1.0, None);
+            line(s, cx, cy - arm, cx, cy + arm, dim, 1.0, None);
+        }
+    }
+}
+
+/// World-count pip: a small backed disc on the hex's top-right corner with a
+/// centred count. Mirrors the live renderer's pip (disc + dark ring + number).
+fn draw_world_pip(s: &mut String, cx: f32, cy: f32, pip: usize, fill: Rgba<u8>, theme: &MapTheme) {
+    let disc_r = HEX_SIZE * 0.22;
+    let px = HEX_SIZE.mul_add(0.55, cx);
+    let py = (-HEX_SIZE).mul_add(0.55, cy);
+    let font = HEX_SIZE * 0.36;
+    circle(s, px, py, disc_r, theme.bg, None, 0.0);
+    let ring_w = (disc_r * 0.25).clamp(0.5, 1.2);
+    circle(
+        s,
+        px,
+        py,
+        disc_r,
+        TRANSPARENT,
+        Some(darken(fill, 0.4)),
+        ring_w,
+    );
+    text(
+        s,
+        px,
+        font.mul_add(0.35, py),
+        &pip.to_string(),
+        theme.text,
+        font,
+        "middle",
+    );
 }
 
 fn draw_capital_marker(s: &mut String, cx: f32, cy: f32, theme: &MapTheme) {

@@ -6,64 +6,13 @@
 //! here instead of app-local paint branches.
 
 use sectorforge::regions::RegionConditionKind;
-use sectorforge::sector_model::{
-    GeneratedSystem, RoutePattern, RouteType, RouteViewMode, SystemKind,
-};
+use sectorforge::sector_model::{RoutePattern, RouteType, RouteViewMode};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum MapSystemGlyph {
-    Star,
-    UncataloguedStar,
-    SpecialLocation,
-    BlackHole,
-    WarpAnomaly,
-    SpaceStation,
-}
-
-impl MapSystemGlyph {
-    #[must_use]
-    pub fn from_system(system: &GeneratedSystem) -> Self {
-        match system.kind {
-            SystemKind::Star => {
-                if system.star.is_some() {
-                    Self::Star
-                } else {
-                    Self::UncataloguedStar
-                }
-            }
-            SystemKind::SpecialLocation => {
-                if system.star.is_some() {
-                    Self::Star
-                } else {
-                    Self::SpecialLocation
-                }
-            }
-            SystemKind::BlackHole => {
-                if system.star.is_some() {
-                    Self::Star
-                } else {
-                    Self::BlackHole
-                }
-            }
-            SystemKind::WarpAnomaly => {
-                if system.star.is_some() {
-                    Self::Star
-                } else {
-                    Self::WarpAnomaly
-                }
-            }
-            SystemKind::SpaceStation => {
-                if system.star.is_some() {
-                    Self::Star
-                } else {
-                    Self::SpaceStation
-                }
-            }
-            _ => Self::UncataloguedStar,
-        }
-    }
-}
+/// System map glyph. Re-exported from the core lib so the live egui renderer
+/// and the PNG/SVG exporters classify systems through one shared
+/// [`sectorforge::sector_model::SystemGlyph`]. The `MapSystemGlyph` alias keeps
+/// the historical gui-core name at existing call sites.
+pub use sectorforge::sector_model::SystemGlyph as MapSystemGlyph;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]

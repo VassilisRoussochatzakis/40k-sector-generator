@@ -83,9 +83,8 @@ impl eframe::App for BuilderApp {
         // `☰` toggle in `nav::show_top_bar` restores it.
         if !self.workspace.active().nav_rail_collapsed {
             egui::SidePanel::left("builder_nav_rail")
-                .resizable(true)
-                .default_width(184.0)
-                .width_range(132.0..=320.0)
+                .resizable(false)
+                .exact_width(nav::rail_width(ctx))
                 .frame(
                     egui::Frame::none()
                         .fill(palette::chrome_panel())

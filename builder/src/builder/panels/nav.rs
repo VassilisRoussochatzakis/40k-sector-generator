@@ -150,20 +150,70 @@ pub fn show_nav_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
         }
     });
     ui.separator();
+    // §COLUMNS §6.1: every entry gets one common width — the widest label
+    // (`INTERESTINGNESS`) — so the selectable highlight boxes line up instead of
+    // hugging each label. Measured once from the live font set below.
+    let item_w = max_tab_label_width(ui);
     egui::ScrollArea::vertical()
         .auto_shrink([false; 2])
         .show(ui, |ui| {
             for (label, tabs) in TAB_CLUSTERS {
                 ui_kit::collapsing_section(ui, ("nav_cluster", *label), label, true, |ui| {
-                    for tab in *tabs {
-                        let selected = state.active_tab == *tab;
-                        if ui.selectable_label(selected, tab.label()).clicked() {
-                            state.set_active_tab(*tab);
-                        }
-                    }
+                    // A fixed-width, cross-justified column makes each
+                    // `selectable_label` fill `item_w` (left-aligned text).
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(item_w, 0.0),
+                        egui::Layout::top_down_justified(egui::Align::LEFT),
+                        |ui| {
+                            ui.set_min_width(item_w);
+                            for tab in *tabs {
+                                let selected = state.active_tab == *tab;
+                                if ui.selectable_label(selected, tab.label()).clicked() {
+                                    state.set_active_tab(*tab);
+                                }
+                            }
+                        },
+                    );
                 });
             }
         });
+}
+
+/// Galley width (px) of the widest [`BuilderTab`] label in the rail's button
+/// font (the widest is `INTERESTINGNESS`). Measured from the live font set so it
+/// tracks the active theme rather than being hard-coded.
+fn widest_tab_label_px(ctx: &egui::Context) -> f32 {
+    let font_id = egui::TextStyle::Button.resolve(&ctx.style());
+    BuilderTab::ALL
+        .iter()
+        .map(|tab| {
+            ctx.fonts(|f| {
+                f.layout_no_wrap(tab.label().to_owned(), font_id.clone(), egui::Color32::WHITE)
+                    .size()
+                    .x
+            })
+        })
+        .fold(0.0_f32, f32::max)
+}
+
+/// The common width every nav-rail entry is sized to: the widest label plus the
+/// selectable's horizontal padding.
+fn max_tab_label_width(ui: &egui::Ui) -> f32 {
+    widest_tab_label_px(ui.ctx()) + ui.spacing().button_padding.x * 2.0
+}
+
+/// Exact width the `builder_nav_rail` side panel needs so the widest entry box
+/// (`INTERESTINGNESS`) fits without clipping. The panel is pinned to this width
+/// (non-resizable); only the `☰` / `‹‹` toggle hides it. On top of the entry
+/// width this adds the chrome around each entry: the collapsing-header indent,
+/// the scrollbar, and the 8px group-frame + 8px side-panel inner margins (both
+/// applied on each side, matching [`show_nav_rail`] and `app.rs`).
+pub fn rail_width(ctx: &egui::Context) -> f32 {
+    let style = ctx.style();
+    let item_w = widest_tab_label_px(ctx) + style.spacing.button_padding.x * 2.0;
+    let indent = style.spacing.indent;
+    let scrollbar = style.spacing.scroll.bar_width + style.spacing.scroll.bar_inner_margin;
+    item_w + indent + scrollbar + 2.0 * (8.0 + 8.0) + 4.0
 }
 
 /// The [`TAB_CLUSTERS`] label that owns `tab`, for the top-bar breadcrumb.

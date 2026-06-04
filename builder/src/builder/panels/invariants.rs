@@ -28,10 +28,6 @@ use sectorforge_gui_core::{card, palette, ui_kit};
 
 use crate::builder::BuilderState;
 
-/// Red used for the severity dot / code token on a violation. Severity colour —
-/// left untouched by the friendly pass.
-const SEVERITY_RED: Color32 = Color32::from_rgb(220, 80, 80);
-
 /// Aligned label-left / value-right row with a hover tooltip, mirroring the
 /// canonical FACTIONS panel. The visible label reads in human terms while the
 /// tooltip carries the underlying locator and a plain-language note. Here the
@@ -133,10 +129,10 @@ fn set_selected_key(ui: &egui::Ui, key: String) {
 fn render_summary(ui: &mut egui::Ui, report: &InvariantReport) {
     ui.horizontal(|ui| {
         if report.ok {
-            ui.colored_label(Color32::from_rgb(120, 200, 120), "✓ Sector is sound");
+            ui.colored_label(palette::success(), "✓ Sector is sound");
         } else {
             ui.colored_label(
-                SEVERITY_RED,
+                palette::danger(),
                 format!("✗ {} problem(s) found", report.violations.len()),
             );
         }
@@ -190,7 +186,7 @@ fn violation_row(
     // the violation key with its stratum index so it is unique even if two rows
     // somehow shared a key.
     let (resp, _) = card::selectable_plate(ui, ("inv_row", &key, idx), is_selected, |ui| {
-        ui.label(RichText::new("●").color(SEVERITY_RED));
+        ui.label(RichText::new("●").color(palette::danger()));
         // Lead with the human-readable message; selecting a row pins the
         // violation into the right detail pane and also focuses the offending
         // entity via the selection mailbox (existing jump).
@@ -249,7 +245,7 @@ fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, vio: &Invaria
         ui_kit::reading_column(ui, 720.0, |ui| {
             // Lead with the plain-language description of what's wrong.
             ui.horizontal(|ui| {
-                ui.colored_label(SEVERITY_RED, "●");
+                ui.colored_label(palette::danger(), "●");
                 ui.label(RichText::new(&vio.message).strong());
             });
             ui.add_space(8.0);

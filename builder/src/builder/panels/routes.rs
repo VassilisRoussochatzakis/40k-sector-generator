@@ -302,7 +302,7 @@ fn show_route_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             if let Some(auto) = auto {
                 if draft.distance != auto {
                     ui.colored_label(
-                        Color32::from_rgb(255, 190, 80),
+                        palette::warning(),
                         format!(
                             "⚠  Length doesn't match the {auto}-hop gap between these systems — \
                              validation will flag it until they agree."
@@ -820,7 +820,7 @@ fn show_route_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
         );
         if state.config.inputs.route_rules.is_none() {
             ui.colored_label(
-                Color32::from_rgb(255, 190, 80),
+                palette::warning(),
                 "No save file is set for these rules yet — changes apply now but won't be saved until the project has a route-rules file.",
             );
         }
@@ -1074,7 +1074,7 @@ fn show_preview_status(ui: &mut Ui, state: &BuilderState) {
                 .color(Color32::DARK_GRAY),
         );
     } else if let Some(err) = &state.preview.error {
-        ui.colored_label(Color32::LIGHT_RED, err);
+        ui.colored_label(palette::danger(), err);
     }
 }
 
@@ -1267,7 +1267,7 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
                     RichText::new(format!(
                         "{components} separate clusters — connecting would add {added} bridge route(s)."
                     ))
-                    .color(Color32::from_rgb(255, 190, 80)),
+                    .color(palette::warning()),
                 );
             }
             if ui

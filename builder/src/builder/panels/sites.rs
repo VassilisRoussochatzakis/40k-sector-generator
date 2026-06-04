@@ -249,7 +249,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(format!("{total} site(s)  ({manual} hand-added)"));
         if state.data_catalogs.sites.is_none() {
             ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
+                palette::warning(),
                 "● using default settings (nothing saved yet)",
             );
         }
@@ -406,7 +406,7 @@ fn show_site_list(ui: &mut Ui, state: &mut BuilderState) {
                         let public_diff = s.public_status != s.actual_status;
                         let public_text = RichText::new(status_label(s.public_status));
                         let public_text = if public_diff && show_actual {
-                            public_text.color(Color32::from_rgb(220, 170, 80))
+                            public_text.color(palette::warning())
                         } else {
                             public_text
                         };
@@ -544,7 +544,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             |ui| {
                 let txt = RichText::new(status_label(site.actual_status));
                 let txt = if site.public_status != site.actual_status {
-                    txt.color(Color32::from_rgb(220, 170, 80))
+                    txt.color(palette::warning())
                 } else {
                     txt
                 };
@@ -660,7 +660,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                     changed |= manual_site_editor(ui, idx, s, &faction_ids, &world_choices);
                     if ui
                         .button(
-                            RichText::new("🗑  Delete site").color(Color32::from_rgb(200, 90, 90)),
+                            RichText::new("🗑  Delete site").color(palette::danger()),
                         )
                         .on_hover_text("Remove this hand-added site")
                         .clicked()

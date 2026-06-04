@@ -7,6 +7,7 @@ use egui::{RichText, Ui};
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::widgets;
 
 use crate::builder::state::ConfirmAction;
 use crate::builder::{BuilderState, ModalKind};
@@ -32,7 +33,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Project");
     ui.label(
         RichText::new("Create, open, and save your sector — plus its files and save points.")
-            .color(egui::Color32::DARK_GRAY),
+            .color(palette::chrome_text_dim()),
     );
     ui.add_space(4.0);
 
@@ -87,8 +88,10 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui_kit::section(ui, "Actions", |ui| {
         ui.horizontal_wrapped(|ui| {
-            if ui
-                .button("➕  New project…")
+            // §SPRUCE D3: "New project…" is the primary action on this tab — give it
+            // the brass primary button so it reads as *the* thing to click, with the
+            // other I/O actions staying as quieter stock buttons.
+            if widgets::primary_button(ui, "➕  New project…")
                 .on_hover_text("Start a fresh, empty sector from a name, seed, and size")
                 .clicked()
             {
@@ -154,7 +157,9 @@ fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
             "ID",
             "Unique project identifier (schema: project.id). Used for file and folder names.",
             |ui| {
-                ui.label(&proj.id);
+                // §SPRUCE D4: IDs / seeds / sizes / paths are data — set them in
+                // monospace so they align and stop competing with the prose labels.
+                ui.label(RichText::new(proj.id.as_str()).monospace());
             },
         );
         labeled(
@@ -171,7 +176,7 @@ fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
                 "Version",
                 "Optional version tag for this project (schema: project.version).",
                 |ui| {
-                    ui.label(version);
+                    ui.label(RichText::new(version).monospace());
                 },
             );
         }
@@ -193,7 +198,7 @@ fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
             "Seed",
             "Random seed driving generation (schema: generation.seed). Same seed → same sector.",
             |ui| {
-                ui.label(&gen.seed);
+                ui.label(RichText::new(gen.seed.as_str()).monospace());
             },
         );
         labeled(
@@ -201,7 +206,10 @@ fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
             "Size",
             "Sector grid size in hexes (schema: generation.sector_width × sector_height). Always square.",
             |ui| {
-                ui.label(format!("{} × {}", gen.sector_width, gen.sector_height));
+                ui.label(
+                    RichText::new(format!("{} × {}", gen.sector_width, gen.sector_height))
+                        .monospace(),
+                );
             },
         );
         let path = state
@@ -214,19 +222,21 @@ fn show_metadata(ui: &mut egui::Ui, state: &mut BuilderState) {
             "Folder",
             "Where this project is saved on disk. '(unsaved)' until you save it the first time.",
             |ui| {
-                ui.label(path);
+                ui.label(RichText::new(path).monospace());
             },
         );
         if state.dirty || !state.dirty_files.is_empty() {
-            ui.colored_label(egui::Color32::from_rgb(240, 200, 90), "● unsaved changes");
+            ui.label(RichText::new("● unsaved changes").color(palette::warning()));
         }
     });
 }
 
 fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
-    ui.colored_label(
-        egui::Color32::DARK_GRAY,
-        "Named save points. Capture one before risky edits; reverting restores the sector to that point.",
+    ui.label(
+        RichText::new(
+            "Named save points. Capture one before risky edits; reverting restores the sector to that point.",
+        )
+        .color(palette::chrome_text_dim()),
     );
     let buf_id = egui::Id::new("project_snapshot_name");
     let mut name: String = ui.data_mut(|d| d.get_temp::<String>(buf_id).unwrap_or_default());

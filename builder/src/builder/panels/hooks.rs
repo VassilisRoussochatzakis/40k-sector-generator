@@ -141,7 +141,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             .unwrap_or(0);
         ui.label(format!("{total} hook(s)  ·  {manual} of yours"));
         if state.data_catalogs.hooks.is_none() {
-            ui.colored_label(Color32::from_rgb(220, 170, 80), "● using built-in defaults")
+            ui.colored_label(palette::warning(), "● using built-in defaults")
                 .on_hover_text(
                     "No saved hooks file yet — built-in defaults are in use until you save.",
                 );
@@ -216,7 +216,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
                     ));
                 });
                 if h.gm_only {
-                    ui.colored_label(Color32::from_rgb(200, 90, 90), "GM only")
+                    ui.colored_label(palette::danger(), "GM only")
                         .on_hover_text("Hidden from the player edition.");
                 }
                 let rem = ui.available_width();
@@ -419,7 +419,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 |ui| {
                     changed |= manual_hook_editor(ui, idx, h, &anchors);
                     if ui
-                        .button(RichText::new("🗑  Delete").color(Color32::from_rgb(200, 90, 90)))
+                        .button(RichText::new("🗑  Delete").color(palette::danger()))
                         .on_hover_text("Remove this hook. This cannot be undone.")
                         .clicked()
                     {

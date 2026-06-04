@@ -58,7 +58,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     show_actions(ui, state);
 
     if let Some(err) = state.diff.error.clone() {
-        ui.colored_label(Color32::RED, err);
+        ui.colored_label(palette::danger(), err);
     }
     ui.separator();
 
@@ -431,11 +431,11 @@ fn show_report(ui: &mut egui::Ui, state: &mut BuilderState) {
             d.system_count_before, d.system_count_after, d.route_count_before, d.route_count_after,
         ));
         let (txt, col) = if d.catalog_compatible {
-            ("comparable", Color32::from_rgb(40, 160, 40))
+            ("comparable", palette::success())
         } else {
             (
                 "different setups — best-effort comparison",
-                Color32::from_rgb(200, 140, 0),
+                palette::warning(),
             )
         };
         ui.colored_label(col, txt)
@@ -449,7 +449,7 @@ fn show_report(ui: &mut egui::Ui, state: &mut BuilderState) {
             false,
             |ui| {
                 for w in &d.schema_warnings {
-                    ui.colored_label(Color32::from_rgb(200, 140, 0), w);
+                    ui.colored_label(palette::warning(), w);
                 }
             },
         );
@@ -494,16 +494,10 @@ fn show_systems(ui: &mut egui::Ui, d: &SectorDiff) {
     );
     ui_kit::collapsing_section(ui, "diff_systems", &header, false, |ui| {
         for s in &d.systems_added {
-            ui.colored_label(
-                Color32::from_rgb(40, 160, 40),
-                format!("+ {} {}", s.id, s.name),
-            );
+            ui.colored_label(palette::success(), format!("+ {} {}", s.id, s.name));
         }
         for s in &d.systems_removed {
-            ui.colored_label(
-                Color32::from_rgb(190, 60, 60),
-                format!("− {} {}", s.id, s.name),
-            );
+            ui.colored_label(palette::danger(), format!("− {} {}", s.id, s.name));
         }
         for c in &d.systems_changed {
             let title = if c.renamed {
@@ -608,13 +602,13 @@ fn show_routes(ui: &mut egui::Ui, d: &SectorDiff) {
     ui_kit::collapsing_section(ui, "diff_routes", &header, false, |ui| {
         for r in &d.routes_added {
             ui.colored_label(
-                Color32::from_rgb(40, 160, 40),
+                palette::success(),
                 format!("+ {} {} → {}", r.id, r.from_system_id, r.to_system_id),
             );
         }
         for r in &d.routes_removed {
             ui.colored_label(
-                Color32::from_rgb(190, 60, 60),
+                palette::danger(),
                 format!("− {} {} → {}", r.id, r.from_system_id, r.to_system_id),
             );
         }
@@ -642,11 +636,11 @@ fn show_factions(ui: &mut egui::Ui, d: &SectorDiff) {
         |ui| {
             for f in &d.faction_deltas {
                 let col = if f.delta > 0.0 {
-                    Color32::from_rgb(40, 160, 40)
+                    palette::success()
                 } else if f.delta < 0.0 {
-                    Color32::from_rgb(190, 60, 60)
+                    palette::danger()
                 } else {
-                    Color32::GRAY
+                    palette::chrome_text_dim()
                 };
                 ui.colored_label(
                     col,
@@ -676,13 +670,13 @@ fn show_regions(ui: &mut egui::Ui, d: &SectorDiff) {
     ui_kit::collapsing_section(ui, "diff_regions", &header, false, |ui| {
         for r in &d.regions_added {
             ui.colored_label(
-                Color32::from_rgb(40, 160, 40),
+                palette::success(),
                 format!("+ {} {:?} ({} hex)", r.id, r.kind, r.hex_count),
             );
         }
         for r in &d.regions_removed {
             ui.colored_label(
-                Color32::from_rgb(190, 60, 60),
+                palette::danger(),
                 format!("− {} {:?} ({} hex)", r.id, r.kind, r.hex_count),
             );
         }
@@ -724,10 +718,10 @@ fn show_economy(ui: &mut egui::Ui, d: &SectorDiff) {
             ));
         }
         for w in &d.stranded_added {
-            ui.colored_label(Color32::from_rgb(190, 60, 60), format!("+ stranded {w}"));
+            ui.colored_label(palette::danger(), format!("+ stranded {w}"));
         }
         for w in &d.stranded_removed {
-            ui.colored_label(Color32::from_rgb(40, 160, 40), format!("− stranded {w}"));
+            ui.colored_label(palette::success(), format!("− stranded {w}"));
         }
     });
 }

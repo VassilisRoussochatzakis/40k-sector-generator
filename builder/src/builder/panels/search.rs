@@ -52,7 +52,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     if state.data_catalogs.worlds.is_none() {
         ui.separator();
         ui.colored_label(
-            Color32::from_rgb(235, 180, 50),
+            palette::warning(),
             "Search needs a project with a worlds catalogue. Open or create a project first.",
         );
         return;
@@ -253,7 +253,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.separator();
     if !preflight_unknown.is_empty() {
         ui.colored_label(
-            Color32::from_rgb(220, 80, 80),
+            palette::danger(),
             format!("Unknown faction id(s): {}", preflight_unknown.join(", ")),
         );
         ui.label(
@@ -327,7 +327,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     // §SR3: outcome panel.
     if let Some(err) = state.search.error.clone() {
         ui.separator();
-        ui.colored_label(Color32::from_rgb(220, 80, 80), err);
+        ui.colored_label(palette::danger(), err);
     }
 
     show_outcome(ui, state);
@@ -356,7 +356,7 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
         .monospace(),
     );
     for e in &outcome.preflight_errors {
-        ui.colored_label(Color32::from_rgb(220, 80, 80), e);
+        ui.colored_label(palette::danger(), e);
     }
 
     // Default the selection to the winner, else the first near miss. The temp
@@ -381,7 +381,7 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
         if outcome.preflight_errors.is_empty() {
             ui.add_space(6.0);
             ui.colored_label(
-                Color32::from_rgb(235, 180, 50),
+                palette::warning(),
                 "No seed satisfied every constraint within the budget.",
             );
         }
@@ -406,7 +406,7 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
                                 ui.label(
                                     RichText::new(format!("★ WINNER #{} · {}", win.n, win.seed))
                                         .monospace()
-                                        .color(Color32::from_rgb(90, 200, 120)),
+                                        .color(palette::success()),
                                 );
                             });
                         if resp.clicked() {
@@ -468,12 +468,12 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
             .show(ui, |ui| {
                 if is_winner {
                     ui.colored_label(
-                        Color32::from_rgb(90, 200, 120),
+                        palette::success(),
                         format!("WINNER — candidate #{} · seed `{}`", cand.n, cand.seed),
                     );
                 } else {
                     ui.colored_label(
-                        Color32::from_rgb(235, 180, 50),
+                        palette::warning(),
                         format!(
                             "Near miss — candidate #{} · seed `{}` · total miss {:.3}",
                             cand.n, cand.seed, cand.total_miss
@@ -501,9 +501,9 @@ fn show_outcome(ui: &mut egui::Ui, state: &mut BuilderState) {
                 ui.separator();
                 for c in &cand.constraints {
                     let (mark, col) = if c.passed {
-                        ("✓", Color32::from_rgb(120, 200, 130))
+                        ("✓", palette::success())
                     } else {
-                        ("✗", Color32::from_rgb(200, 120, 120))
+                        ("✗", palette::danger())
                     };
                     ui.label(
                         RichText::new(format!(

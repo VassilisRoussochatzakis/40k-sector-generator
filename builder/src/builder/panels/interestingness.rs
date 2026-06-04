@@ -184,13 +184,13 @@ fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
     if !report.strengths.is_empty() {
         ui.label(RichText::new("Strengths").strong());
         for s in &report.strengths {
-            ui.colored_label(Color32::from_rgb(80, 180, 110), format!("• {s}"));
+            ui.colored_label(palette::success(), format!("• {s}"));
         }
     }
     if !report.weaknesses.is_empty() {
         ui.label(RichText::new("Weaknesses").strong());
         for w in &report.weaknesses {
-            ui.colored_label(Color32::from_rgb(220, 120, 110), format!("• {w}"));
+            ui.colored_label(palette::danger(), format!("• {w}"));
         }
     }
 }
@@ -574,21 +574,21 @@ fn profile_key(p: ProfileId) -> &'static str {
 
 fn overall_color(overall: u8) -> Color32 {
     if overall >= 75 {
-        Color32::from_rgb(120, 200, 130)
+        palette::success()
     } else if overall >= 50 {
-        Color32::from_rgb(220, 200, 110)
+        palette::warning()
     } else {
-        Color32::from_rgb(220, 120, 110)
+        palette::danger()
     }
 }
 
 fn fit_color(fit: f32) -> Color32 {
     if fit >= 0.9 {
-        Color32::from_rgb(120, 200, 130)
+        palette::success()
     } else if fit >= 0.5 {
-        Color32::from_rgb(220, 200, 110)
+        palette::warning()
     } else {
-        Color32::from_rgb(220, 120, 110)
+        palette::danger()
     }
 }
 

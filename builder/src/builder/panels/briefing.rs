@@ -201,7 +201,7 @@ fn show_confidence_row(ui: &mut Ui, state: &mut BuilderState) {
     let effective = effective_min_confidence(state);
     if effective != state.briefing_min_confidence {
         ui.colored_label(
-            Color32::from_rgb(220, 170, 80),
+            palette::warning(),
             format!(
                 "The {} audience raises the floor to {effective}.",
                 preset_label(state.briefing_preset)

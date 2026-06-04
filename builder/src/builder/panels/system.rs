@@ -269,7 +269,7 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
         )
         .on_hover_text("Unique system id (schema: id) — used by routes, presence, and saved files.");
         if pinned {
-            ui.colored_label(Color32::from_rgb(255, 160, 100), "📌 Pinned")
+            ui.colored_label(palette::warning(), "📌 Pinned")
                 .on_hover_text("Pinned systems are protected from regeneration and reseeding.");
         }
     });

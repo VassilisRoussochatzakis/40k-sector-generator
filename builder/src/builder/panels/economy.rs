@@ -185,10 +185,10 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         }
         let enabled = state.sector.economy.enabled;
         let badge = if enabled {
-            RichText::new("● Figures up to date").color(Color32::LIGHT_GREEN)
+            RichText::new("● Figures up to date").color(palette::success())
         } else {
             RichText::new("● Not derived yet — click Re-derive")
-                .color(Color32::from_rgb(220, 170, 80))
+                .color(palette::warning())
         };
         ui.label(badge).on_hover_text(
             "Whether the economy figures have been computed for this sector (schema: economy.enabled).",
@@ -232,9 +232,9 @@ fn show_sector_summary(ui: &mut Ui, state: &BuilderState) {
 fn resource_badge(key: &str, value: f32) -> RichText {
     let label = format!("{}: {value:+.0}", resource_human(key));
     let colour = if value >= 20.0 {
-        Color32::LIGHT_GREEN
+        palette::success()
     } else if value <= -20.0 {
-        Color32::LIGHT_RED
+        palette::danger()
     } else {
         Color32::GRAY
     };
@@ -244,9 +244,9 @@ fn resource_badge(key: &str, value: f32) -> RichText {
 fn strategic_badge(key: &str, value: f32) -> RichText {
     let label = format!("{}: {value:.0}", strategic_human(key));
     let colour = if value >= 80.0 {
-        Color32::LIGHT_GREEN
+        palette::success()
     } else if value >= 35.0 {
-        Color32::from_rgb(220, 200, 140)
+        palette::warning()
     } else if value > 0.0 {
         Color32::GRAY
     } else {
@@ -364,7 +364,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             });
         ui.horizontal(|ui| {
             let badge = if pinned {
-                RichText::new("● Your values").color(Color32::LIGHT_GREEN)
+                RichText::new("● Your values").color(palette::success())
             } else {
                 RichText::new("● Auto-derived").color(Color32::GRAY)
             };
@@ -388,7 +388,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
         });
         if entry.stranded {
             ui.colored_label(
-                Color32::LIGHT_RED,
+                palette::danger(),
                 format!("Stranded — shortages: {}", entry.shortages.join(", ")),
             );
         }
@@ -426,7 +426,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             });
         ui.horizontal(|ui| {
             let badge = if pinned {
-                RichText::new("● Your values").color(Color32::LIGHT_GREEN)
+                RichText::new("● Your values").color(palette::success())
             } else {
                 RichText::new("● Auto-derived").color(Color32::GRAY)
             };
@@ -576,7 +576,7 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     ui.horizontal(|ui| {
                         if (active_tithe || active_supply || active_prio)
                             && ui
-                                .button(RichText::new("↺  Back to auto").color(Color32::LIGHT_RED))
+                                .button(RichText::new("↺  Back to auto").color(palette::danger()))
                                 .on_hover_text("Drop your tithe / supply / priority overrides for this system")
                                 .clicked()
                         {
@@ -623,7 +623,7 @@ fn show_stranded_list(ui: &mut Ui, state: &mut BuilderState) {
         for w in &stranded {
             ui.horizontal(|ui| {
                 ui.colored_label(
-                    Color32::LIGHT_RED,
+                    palette::danger(),
                     format!(
                         "● {} in {} — shortages: {}",
                         w.world_id,
@@ -882,7 +882,7 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
                         }
                     });
                 if ui
-                    .button(RichText::new("🗑  Remove").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑  Remove").color(palette::danger()))
                     .on_hover_text(format!("Remove the “{key}” row"))
                     .clicked()
                 {
@@ -931,7 +931,7 @@ fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
                         *changed = true;
                     }
                     if ui
-                        .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑").color(palette::danger()))
                         .on_hover_text(format!("Remove the “{key}” row"))
                         .clicked()
                     {
@@ -966,7 +966,7 @@ fn show_pop_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
                         *changed = true;
                     }
                     if ui
-                        .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑").color(palette::danger()))
                         .on_hover_text(format!("Remove the “{key}” row"))
                         .clicked()
                     {

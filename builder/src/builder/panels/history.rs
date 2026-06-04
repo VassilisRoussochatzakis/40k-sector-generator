@@ -171,7 +171,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(format!("{total} event(s)  ({manual} hand-added)"));
         if state.data_catalogs.history.is_none() {
             ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
+                palette::warning(),
                 "● using default history settings",
             )
             .on_hover_text(
@@ -312,7 +312,7 @@ fn show_eras_editor(ui: &mut Ui, state: &mut BuilderState) {
                         )
                         .changed();
                     if ui
-                        .button(RichText::new("🗑  Remove").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑  Remove").color(palette::danger()))
                         .on_hover_text("Remove this era")
                         .clicked()
                     {
@@ -448,7 +448,7 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                         changed = true;
                     }
                     if ui
-                        .button(RichText::new("🗑  Remove").color(Color32::LIGHT_RED))
+                        .button(RichText::new("🗑  Remove").color(palette::danger()))
                         .on_hover_text("Remove this rule")
                         .clicked()
                     {
@@ -592,7 +592,7 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                             ui.label(anchor_label(&ev.anchor));
                             ui.label(format!("{}", ev.weight));
                             if ev.manual {
-                                ui.colored_label(Color32::from_rgb(200, 220, 120), "hand-added")
+                                ui.colored_label(palette::success(), "hand-added")
                                     .on_hover_text("You added or edited this event; it survives regeneration.");
                             } else {
                                 ui.colored_label(Color32::DARK_GRAY, "generated")
@@ -647,14 +647,14 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
                 .on_hover_text("Unique identifier for this event (schema: id).");
             ui.monospace(&ev.id);
             if ev.manual {
-                ui.colored_label(Color32::from_rgb(200, 220, 120), "hand-added")
+                ui.colored_label(palette::success(), "hand-added")
                     .on_hover_text("You added or edited this event; it survives regeneration.");
             } else {
                 ui.colored_label(Color32::DARK_GRAY, "generated")
                     .on_hover_text("Produced by Regenerate chronicle; editing it pins it so it is kept.");
             }
             if ui
-                .button(RichText::new("🗑  Delete").color(Color32::LIGHT_RED))
+                .button(RichText::new("🗑  Delete").color(palette::danger()))
                 .on_hover_text("Remove this event from the chronicle")
                 .clicked()
             {
@@ -815,7 +815,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
                     .add(egui::DragValue::new(&mut c.severity).range(0..=100))
                     .changed();
                 if ui
-                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(palette::danger()))
                     .on_hover_text("Remove this consequence")
                     .clicked()
                 {

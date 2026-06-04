@@ -36,12 +36,16 @@ Throughout this document:
   the panel splitters are drag-resizable, and the builder remembers the widths.
 - **Bespoke controls.** The single most important action on each panel — the
   *Regenerate* / *Apply preview* / *Export everything* / *Compose* / *Run search*
-  kind of button — is painted as a **brass primary button**: it lifts and glows on
-  hover and sinks when pressed, in the same accent colour as the plates (amber /
-  crimson / blue by theme). Ordinary secondary actions stay as plain buttons, so
-  the brass one always reads as *the* thing to click. A few prominent on/off
-  settings (on EXPORT, *Draw systems* and *Shade faction areas*) are **sliding
-  toggles** rather than checkboxes.
+  kind of button (and **New project…** on PROJECT) — is painted as a **brass
+  primary button**: it lifts and glows on hover and sinks when pressed, in the same
+  accent colour as the plates (amber / crimson / blue by theme). Ordinary secondary
+  actions stay as plain buttons, so the brass one always reads as *the* thing to
+  click. Destructive actions go the other way: the **🗑 Delete** in a confirm dialog
+  is a red **danger button** (it fills with the danger colour on hover), and its
+  **Cancel** is a quiet **ghost button** that recedes until you point at it — so the
+  dangerous choice never looks like the safe default. A few prominent on/off settings
+  (on EXPORT, *Draw systems* and *Shade faction areas*) are **sliding toggles**
+  rather than checkboxes.
 - Coordinates are written `(q, r)` — the axial hex grid coordinates used by the
   sector. `(0, 0)` is the top-left hex.
 - Every panel speaks **plain language**. Field labels read in human terms
@@ -57,7 +61,8 @@ Throughout this document:
   "Clear all overrides" on Subsectors, removing a worlds.toml recipe row, removing
   a Segmentum child or warp link, and deleting a hand-written hook / mission /
   persona / site or a Relations rule. Each shows what will be removed and a
-  "This can't be undone." line above **Cancel** / **🗑 Delete**. Whenever any
+  "This can't be undone." line — itself in the danger colour — above a quiet
+  ghost **Cancel** and a red danger **🗑 Delete**. Whenever any
   dialog — a confirm, the New project / Random sector wizard, a rename — is open,
   the page behind it **dims** and stops responding to clicks, so the dialog is
   unmistakably the focus; the dim fades in and out as the dialog opens and closes.
@@ -113,7 +118,10 @@ A native desktop window with three obvious regions:
 - The **active tab's panel** fills the area to the right of the nav rail. On a
   fresh launch it shows the PROJECT tab.
 - A **status footer** that surfaces validation, invariants, and the health pip
-  (a small coloured dot — green = clean, yellow = warnings, red = error).
+  (a small coloured dot — green = clean, yellow = warnings, red = error). The whole
+  footer is set in **monospace** so its counters line up into a scannable strip, and
+  each segment is coloured by state from the active theme (a clean sector reads calm,
+  not alarmist — a `0 err / 0 warn` line is muted, never amber).
 
 The active tab is highlighted in the strip; click any other tab to switch.
 
@@ -128,7 +136,8 @@ one.
 ### 1.1 Open the wizard
 
 1. Make sure the **PROJECT** tab is selected.
-2. Click **New project…** at the top of the tab.
+2. Click **New project…** at the top of the tab — it is the brass **primary
+   button** here, the one obvious action while the project is empty.
 
 A small modal dialog appears titled *New project* with five fields:
 
@@ -1072,6 +1081,14 @@ yellow / red) followed by an inline validation + invariant summary
 (`validation: N err / M warn · invariants: K`), the command-bus cursor
 (`cmd P/Q`), the derivation cache size, a **live-derivation freshness**
 readout, and a job spinner when async work is running.
+
+Every segment is rendered in **monospace** so the counts and cursors align into a
+tabular strip, and each is coloured by state from the active theme rather than a
+fixed hue: `clean` reads green and `● dirty` / `project: (unsaved)` amber; the
+validation summary is **muted when there is nothing to report**, turning warning
+amber only for warnings and danger red only once an error or invariant violation
+fires. (The warning amber is a distinct orange from the brass brand accent, so a
+clean status line can never be mistaken for a warning.)
 
 - **Live-derivation freshness (§39).** `deriv N` counts the overlays
   (economy, relations, history, personae, hooks, sites, missions, prose,

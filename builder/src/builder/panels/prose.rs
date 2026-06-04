@@ -135,7 +135,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         .on_hover_text("How many system paragraphs you've overridden by hand, out of the systems in the sector.");
         if state.data_catalogs.prose.is_none() {
             ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
+                palette::warning(),
                 "using defaults — nothing saved yet",
             )
             .on_hover_text("No prose has been saved for this project; the generated defaults are shown.");
@@ -235,7 +235,7 @@ fn show_overview_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
         if is_override {
-            ui.colored_label(Color32::from_rgb(220, 170, 80), "Hand-written");
+            ui.colored_label(palette::warning(), "Hand-written");
         } else {
             ui.colored_label(Color32::DARK_GRAY, "Generated");
         }
@@ -403,7 +403,7 @@ fn show_system_editor(ui: &mut Ui, state: &mut BuilderState) {
             }
         }
         if is_override {
-            ui.colored_label(Color32::from_rgb(220, 170, 80), "Hand-written");
+            ui.colored_label(palette::warning(), "Hand-written");
             if ui
                 .button("↺  Use generated text")
                 .on_hover_text("Discard your edits and go back to the generated paragraphs.")

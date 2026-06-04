@@ -192,7 +192,7 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
             state.focus_entity(EntityRef::System(sys_id));
         }
         if pinned {
-            ui.colored_label(Color32::from_rgb(255, 160, 100), "PINNED");
+            ui.colored_label(palette::warning(), "PINNED");
         }
     });
 }
@@ -721,7 +721,7 @@ fn show_coupling_warnings(ui: &mut Ui, state: &BuilderState, sys_idx: usize, w_i
         true,
         |ui| {
             for msg in warnings {
-                ui.colored_label(Color32::from_rgb(220, 180, 60), format!("⚠ {msg}"));
+                ui.colored_label(palette::warning(), format!("⚠ {msg}"));
             }
             ui.colored_label(Color32::DARK_GRAY, "non-blocking — adjust if intentional");
         },
@@ -1381,7 +1381,7 @@ fn show_chronicle_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize,
                     ui.label(RichText::new(date).monospace().strong());
                     ui.label(kind.as_str());
                     if *manual {
-                        ui.colored_label(Color32::from_rgb(200, 220, 120), "manual");
+                        ui.colored_label(palette::success(), "manual");
                     }
                     if ui
                         .small_button("Open in History →")
@@ -1411,7 +1411,7 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
         let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
         if pinned {
             ui.colored_label(
-                Color32::from_rgb(255, 160, 100),
+                palette::warning(),
                 "Pinned — unpin in Identity above to re-roll.",
             );
             return;

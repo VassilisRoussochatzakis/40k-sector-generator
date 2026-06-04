@@ -76,13 +76,13 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "gen_parameters", "How the sector is built", true, |ui| {
         ui.label(
             RichText::new("These settings drive the generator. Edit one and the live preview re-rolls.")
-                .color(egui::Color32::DARK_GRAY),
+                .color(palette::chrome_text_dim()),
         );
         ui.separator();
         // Square-sector invariant: highlight it right where the grid dims
         // are edited so it is unmissable in the generator UI.
         ui.colored_label(
-            egui::Color32::from_rgb(0xE0, 0xA0, 0x30),
+            palette::warning(),
             "◧ Sectors are always square — width and height stay locked equal.",
         );
         ui.add_space(2.0);
@@ -435,7 +435,7 @@ fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
             } else {
                 ui.label(
                     RichText::new(format!("re-rolls so far: {}", state.seed_reroll_counter))
-                        .color(egui::Color32::DARK_GRAY),
+                        .color(palette::chrome_text_dim()),
                 );
             }
         });
@@ -457,7 +457,7 @@ fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
             }
             ui.label(
                 RichText::new(format!("active seed: {}", &state.config.generation.seed))
-                    .color(egui::Color32::DARK_GRAY),
+                    .color(palette::chrome_text_dim()),
             );
         });
     });
@@ -469,7 +469,7 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "gen_live_preview", "Live preview", true, |ui| {
         if state.data_catalogs.worlds.is_none() {
             ui.colored_label(
-                egui::Color32::from_rgb(180, 120, 80),
+                palette::warning(),
                 "Open a project with a worlds catalog to enable the preview.",
             );
         }
@@ -500,7 +500,7 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
         });
         if let Some(preview_sector) = state.preview.sector.as_ref() {
             ui.colored_label(
-                egui::Color32::from_rgb(120, 200, 120),
+                palette::success(),
                 format!(
                     "PREVIEW READY — {} system(s), {} route(s)",
                     preview_sector.systems.len(),
@@ -530,7 +530,7 @@ fn show_g3_g4_preview(ui: &mut Ui, state: &mut BuilderState) {
                 ui.label("Generating preview…");
             });
         } else if let Some(err) = state.preview.error.as_ref() {
-            ui.colored_label(egui::Color32::from_rgb(200, 80, 80), err);
+            ui.colored_label(palette::danger(), err);
         } else {
             ui_kit::placeholder(ui, "No preview yet — edit any setting above to build one.");
         }
@@ -551,7 +551,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
             // primary click on the map completes the rect anchor→click.
             if let Some(anchor) = state.partial_regen_anchor {
                 ui.colored_label(
-                    egui::Color32::from_rgb(120, 200, 240),
+                    palette::info(),
                     format!(
                         "Corner set at ({},{}) — click the opposite corner on the map to finish the box.",
                         anchor.q, anchor.r
@@ -574,7 +574,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
             });
             ui.label(
                 RichText::new("Box to rebuild (hex coordinates):")
-                    .color(egui::Color32::DARK_GRAY),
+                    .color(palette::chrome_text_dim()),
             );
             labeled(
                 ui,
@@ -641,7 +641,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                         }
                         Err(e) => {
                             ui.colored_label(
-                                egui::Color32::from_rgb(200, 80, 80),
+                                palette::danger(),
                                 format!("Couldn't rebuild: {e}"),
                             );
                         }
@@ -650,7 +650,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
             });
             ui.label(
                 RichText::new("Hexes outside the box and pinned systems stay untouched.")
-                    .color(egui::Color32::DARK_GRAY),
+                    .color(palette::chrome_text_dim()),
             );
         },
     );
@@ -671,7 +671,7 @@ fn show_g6_new_from_preset(
         |ui| {
             if workspace.is_none() {
                 ui.colored_label(
-                    egui::Color32::from_rgb(180, 120, 80),
+                    palette::warning(),
                     "No second tab available — the new sector will replace this one.",
                 );
             }

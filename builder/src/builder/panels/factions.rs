@@ -164,7 +164,7 @@ fn show_summary(ui: &mut Ui, state: &mut BuilderState) {
             .color(Color32::DARK_GRAY),
         );
         if path_dirty {
-            ui.colored_label(Color32::from_rgb(240, 200, 90), "●  unsaved changes");
+            ui.colored_label(palette::warning(), "●  unsaved changes");
         }
     });
     ui.label(

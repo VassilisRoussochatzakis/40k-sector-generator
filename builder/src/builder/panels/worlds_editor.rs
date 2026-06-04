@@ -118,7 +118,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
                 .color(palette::chrome_text_dim()),
         );
         if dirty {
-            ui.colored_label(Color32::from_rgb(240, 200, 90), "●  unsaved changes");
+            ui.colored_label(palette::warning(), "●  unsaved changes");
         }
     });
 
@@ -127,11 +127,11 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     let validation = validate(state.data_catalogs.worlds.as_ref().unwrap());
     match &validation {
         Ok(()) => {
-            ui.colored_label(Color32::from_rgb(120, 200, 120), "✓ valid world data");
+            ui.colored_label(palette::success(), "✓ valid world data");
         }
         Err(msg) => {
             ui.colored_label(
-                Color32::from_rgb(230, 120, 120),
+                palette::danger(),
                 RichText::new(format!("✗ {msg}")).monospace(),
             );
         }

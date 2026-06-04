@@ -44,7 +44,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
 
     ui.colored_label(
-        Color32::DARK_GRAY,
+        palette::chrome_text_dim(),
         "Raw TOML editor. Click any .toml in the Project tree to open it as a tab; \
          edits are checked as you type and Save writes the file safely.",
     );
@@ -114,9 +114,9 @@ fn tab_strip(ui: &mut egui::Ui, state: &mut BuilderState) {
             };
             let mut text = RichText::new(label).monospace();
             if invalid {
-                text = text.color(Color32::from_rgb(230, 120, 120));
+                text = text.color(palette::danger());
             } else if dirty {
-                text = text.color(Color32::from_rgb(240, 200, 90));
+                text = text.color(palette::warning());
             }
             let selected = active.as_deref() == Some(rel.as_str());
             if ui
@@ -187,15 +187,12 @@ fn editor_body(ui: &mut egui::Ui, state: &mut BuilderState) {
             do_revert = true;
         }
         match &error_msg {
-            None => ui.colored_label(Color32::from_rgb(120, 200, 120), "✓ valid TOML"),
-            Some(_) => ui.colored_label(Color32::from_rgb(230, 120, 120), "✗ parse error"),
+            None => ui.colored_label(palette::success(), "✓ valid TOML"),
+            Some(_) => ui.colored_label(palette::danger(), "✗ parse error"),
         };
     });
     if let Some(msg) = &error_msg {
-        ui.colored_label(
-            Color32::from_rgb(230, 120, 120),
-            RichText::new(msg).monospace(),
-        );
+        ui.colored_label(palette::danger(), RichText::new(msg).monospace());
     }
 
     let style = ui.style().clone();

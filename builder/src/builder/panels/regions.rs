@@ -146,11 +146,11 @@ fn show_invariants(ui: &mut Ui, state: &BuilderState) {
         return;
     }
     ui.colored_label(
-        Color32::LIGHT_RED,
+        palette::danger(),
         format!("⚠ {} region problem(s):", hits.len()),
     );
     for v in hits {
-        ui.label(RichText::new(format!("• {}", v.message)).color(Color32::LIGHT_RED))
+        ui.label(RichText::new(format!("• {}", v.message)).color(palette::danger()))
             .on_hover_text(format!("check: {}", v.code));
     }
 }
@@ -335,7 +335,7 @@ fn show_region_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
             }
             if ui
                 .add(egui::Button::new(
-                    RichText::new("🗑  Delete region").color(Color32::LIGHT_RED),
+                    RichText::new("🗑  Delete region").color(palette::danger()),
                 ))
                 .on_hover_text("Remove this region from the sector")
                 .clicked()
@@ -488,12 +488,12 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
         ui.horizontal_wrapped(|ui| {
             ui.label(format!("{} route(s) total", state.sector.routes.len()));
             ui.label(format!("· {affected} affected"));
-            ui.colored_label(Color32::LIGHT_RED, format!("→ perilous: {perilous}"));
+            ui.colored_label(palette::danger(), format!("→ perilous: {perilous}"));
             ui.colored_label(
-                Color32::from_rgb(220, 160, 90),
+                palette::warning(),
                 format!("↓ worse: {degrade}"),
             );
-            ui.colored_label(Color32::LIGHT_GREEN, format!("↑ better: {upgrade}"));
+            ui.colored_label(palette::success(), format!("↑ better: {upgrade}"));
         });
         ui.horizontal(|ui| {
             if ui
@@ -730,7 +730,7 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                     crate::builder::panels::persistent_text_clear(ui, label_key);
                 }
                 if ui
-                    .button(RichText::new("×").color(Color32::LIGHT_RED))
+                    .button(RichText::new("×").color(palette::danger()))
                     .clicked()
                 {
                     remove_idx = Some(i);

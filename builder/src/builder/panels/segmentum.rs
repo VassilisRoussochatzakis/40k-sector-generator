@@ -39,10 +39,6 @@ const STABILITIES: [RouteStability; 4] = [
 
 const FACTION_MODES: [FactionMode; 2] = [FactionMode::Shared, FactionMode::Independent];
 
-const WARN: Color32 = Color32::from_rgb(235, 180, 50);
-const ERR: Color32 = Color32::from_rgb(220, 80, 80);
-const OK: Color32 = Color32::from_rgb(120, 200, 120);
-
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     // §SG2: drain a completed compose worker first so the result renders the
     // same frame it lands.
@@ -159,9 +155,9 @@ fn document_controls(ui: &mut Ui, state: &mut BuilderState) {
     }
     if let Some(err) = state.segmentum.error.clone() {
         let colour = if err.starts_with("saved") || err.starts_with("loaded") {
-            OK
+            palette::success()
         } else {
-            ERR
+            palette::danger()
         };
         ui.colored_label(colour, err);
     }
@@ -548,7 +544,10 @@ fn grid_preview(ui: &mut Ui, file: &sectorforge::segmentum::SegmentumFile) {
                                     ui.label(*one);
                                 }
                                 many => {
-                                    ui.colored_label(ERR, format!("⚠ {}", many.join(", ")));
+                                    ui.colored_label(
+                                        palette::danger(),
+                                        format!("⚠ {}", many.join(", ")),
+                                    );
                                 }
                             }
                         }
@@ -587,7 +586,7 @@ fn compose_controls(ui: &mut Ui, state: &mut BuilderState) {
             );
         }
         None => {
-            ui.colored_label(WARN, "Pick an output folder before composing.");
+            ui.colored_label(palette::warning(), "Pick an output folder before composing.");
         }
     }
 
@@ -620,7 +619,7 @@ fn compose_controls(ui: &mut Ui, state: &mut BuilderState) {
         }
     });
     if child_count == 0 {
-        ui.colored_label(WARN, "Add at least one child before composing.");
+        ui.colored_label(palette::warning(), "Add at least one child before composing.");
     }
 
     // §SG2: live per-child progress while a worker is in flight.
@@ -926,7 +925,10 @@ fn add_link_form(ui: &mut Ui, state: &mut BuilderState) {
         && !draft.from_system_id.trim().is_empty()
         && !draft.to_system_id.trim().is_empty();
     if !valid {
-        ui.colored_label(WARN, "Pick both child sectors and enter both system ids.");
+        ui.colored_label(
+            palette::warning(),
+            "Pick both child sectors and enter both system ids.",
+        );
     }
 
     if ui
@@ -989,7 +991,7 @@ fn reexport_controls(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Export composed segmentum (§SG5)");
     let has_dir = state.segmentum.output_dir.is_some();
     if !has_dir {
-        ui.colored_label(WARN, "Pick an output folder (above) to re-export.");
+        ui.colored_label(palette::warning(), "Pick an output folder (above) to re-export.");
     }
     if ui
         .add_enabled(

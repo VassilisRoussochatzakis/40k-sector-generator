@@ -209,7 +209,7 @@ fn show_baseline_row(ui: &mut Ui, state: &mut BuilderState) {
         }
         if let Some(obs) = state.intel_observer.clone() {
             ui.colored_label(
-                Color32::from_rgb(150, 200, 255),
+                palette::info(),
                 format!("Viewing as: {obs}"),
             );
         } else {

@@ -82,6 +82,14 @@ impl Theme {
             text: p.text,
             text_dim: p.text_weak,
         });
+        // §SPRUCE D7: push the semantic status colors (success/warning/danger/info)
+        // the panels read for validation, health, "unsaved", and badge chrome.
+        // Keyed on dark vs light only — they encode meaning, not preset brand.
+        palette::set_status(if p.dark {
+            palette::StatusColors::DARK
+        } else {
+            palette::StatusColors::LIGHT
+        });
         let mut style = Style {
             visuals: build_visuals(&p),
             ..Style::default()
@@ -404,6 +412,33 @@ mod tests {
                 ctx.style().visuals.dark_mode,
                 theme != Theme::Light,
                 "{}: dark_mode",
+                theme.label()
+            );
+
+            // §SPRUCE D7: the semantic status set flips with dark/light, and a
+            // clean validation line is never the warning amber.
+            let want = if theme == Theme::Light {
+                palette::StatusColors::LIGHT
+            } else {
+                palette::StatusColors::DARK
+            };
+            assert_eq!(
+                palette::warning(),
+                want.warning,
+                "{}: warning",
+                theme.label()
+            );
+            assert_eq!(palette::danger(), want.danger, "{}: danger", theme.label());
+            assert_eq!(
+                palette::validation_color(0, 0),
+                palette::chrome_text_dim(),
+                "{}: clean validation is muted, not amber",
+                theme.label()
+            );
+            assert_ne!(
+                palette::warning(),
+                p.accent,
+                "{}: warning must differ from accent (D7)",
                 theme.label()
             );
         }

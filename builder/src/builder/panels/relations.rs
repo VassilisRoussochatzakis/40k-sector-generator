@@ -143,7 +143,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(format!("{facs} faction(s)  |  {pairs} pair(s)"));
         if state.data_catalogs.relations.is_none() {
             ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
+                palette::warning(),
                 "●  no relations file yet — built-in defaults apply",
             );
         }
@@ -306,12 +306,12 @@ fn attitude_color(a: RelationAttitude) -> Color32 {
 }
 
 fn tension_text(t: f32) -> RichText {
+    // §SPRUCE: tension ≥70 reads danger, any elevated (≥15) reads warning, calm is
+    // muted — the old 40/15 split collapsed onto one warning tier with the palette.
     let colour = if t >= 70.0 {
-        Color32::from_rgb(230, 90, 90)
-    } else if t >= 40.0 {
-        Color32::from_rgb(220, 170, 80)
+        palette::danger()
     } else if t >= 15.0 {
-        Color32::from_rgb(200, 200, 130)
+        palette::warning()
     } else {
         Color32::GRAY
     };
@@ -320,9 +320,9 @@ fn tension_text(t: f32) -> RichText {
 
 fn metric_text(v: u8) -> RichText {
     let colour = if v >= 70 {
-        Color32::from_rgb(220, 170, 80)
+        palette::warning()
     } else if v >= 40 {
-        Color32::LIGHT_GREEN
+        palette::success()
     } else {
         Color32::GRAY
     };
@@ -559,7 +559,7 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
             return;
         }
         let badge = if pinned {
-            RichText::new("● override pinned").color(Color32::LIGHT_GREEN)
+            RichText::new("● override pinned").color(palette::success())
         } else {
             RichText::new("○ following the rules").color(Color32::DARK_GRAY)
         };
@@ -807,7 +807,7 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
                     changed = true;
                 }
                 if ui
-                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(palette::danger()))
                     .on_hover_text("Remove this pin")
                     .clicked()
                 {
@@ -931,7 +931,7 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
                     changed = true;
                 }
                 if ui
-                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(palette::danger()))
                     .on_hover_text("Remove this rule")
                     .clicked()
                 {
@@ -1027,7 +1027,7 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                     changed = true;
                 }
                 if ui
-                    .button(RichText::new("🗑").color(Color32::LIGHT_RED))
+                    .button(RichText::new("🗑").color(palette::danger()))
                     .on_hover_text("Remove this rule")
                     .clicked()
                 {

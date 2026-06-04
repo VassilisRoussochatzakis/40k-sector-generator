@@ -2059,6 +2059,63 @@ field rows:
 None of this touches the map painters or export writers, so the golden tests stay
 byte-stable throughout (§UO8 guardrail).
 
+**Semantic status colors + role buttons** (the §SPRUCE polish pass, runbook in
+[SPRUCE.md](SPRUCE.md)). A late audit found ~80 ad-hoc `Color32::from_rgb(...)`
+amber/red/green triples across ~25 panels for "unsaved", validation, health, and
+badge chrome — and under Grimdark the warm amber collided with the brass *accent*,
+so a clean status line read like a warning (SPRUCE §1 D7). The fix adds the one
+missing token family and routes the chrome through it (this was the only real gap:
+the type scale, elevation, plate selection, brass primary button, motion, and
+responsive columns of D1/D2/D5/D6/D9/D10/D11 were already delivered by §UO/§BEAUTY):
+
+- *Semantic status colors* ([gui-core/src/palette.rs](gui-core/src/palette.rs),
+  `§SPRUCE D7`) — `palette::success()` / `warning()` / `danger()` / `info()` return
+  the active theme's status hues, mirroring the `ChromeColors` mechanism: a
+  process-wide `StatusColors` snapshot the panels read without threading a `&Ui`,
+  swapped by `Theme::apply` via `palette::set_status`. Only two sets exist —
+  `StatusColors::DARK` (the SPRUCE §3.1 Grimdark row: a green, an *orange* pushed
+  clear of any brass/gold accent, a desaturated red, a muted blue) and
+  `StatusColors::LIGHT` (darkened + saturated to read on parchment, `danger` pushed
+  vermilion so it stays distinct from the crimson accent). They are keyed on the
+  preset's `dark` flag, not per-preset, because they encode *meaning*, not brand — a
+  red error reads red under every dark preset, and theme-independence guarantees the
+  warning hue never coincides with a preset's accent (the D7 failure). The
+  "clean"/muted state is deliberately `chrome_text_dim()` (already theme-aware), so
+  `palette::validation_color(errs, warns)` returns muted at 0/0, warning amber for
+  warnings only, danger red once any error fires — a `0 err / 0 warn` line is never
+  amber. The theme test now asserts the set flips with dark/light and that
+  `warning() != accent`.
+- *Role buttons* ([gui-core/src/widgets.rs](gui-core/src/widgets.rs), `§SPRUCE D3`) —
+  two quieter siblings to the brass `primary_button`: `widgets::danger_button(ui,
+  label)` (danger-colored label + hairline border over a transparent rest fill,
+  filling with danger on hover, the ink flipping to a light ash — for delete/remove
+  confirms) and `widgets::ghost_button(ui, label)` (no border or fill at rest, just
+  dimmed text with a faint neutral hover wash — for tertiary actions like a Cancel).
+  Both hand-painted + eased off `animate_bool_with_time` to match `primary_button`,
+  same `&mut Ui` + plain-data contract, covered by the headless paint test. Wired
+  into the builder's central confirm dialogs ([app.rs](builder/src/app.rs)
+  `show_modal`: Delete → danger, Cancel → ghost, the "This can't be undone." line →
+  `danger()`).
+- *Chrome migration + monospace telemetry* (`§SPRUCE D4` + the `from_rgb` sweep).
+  ~80 chrome status literals across ~22 panels — the validation / invariants /
+  segmentum color *consts*, the diagnostics + lore-badge + unsaved + search / diff /
+  analytics / interestingness status colors, and the residual named
+  `LIGHT_RED/GREEN/YELLOW` deletes/reverts in economy / control / regions / relations
+  / routes / subsectors — were migrated to the `palette::*()` calls. **Data-viz
+  colors were left untouched** — faction fills/accents, route-stability, world-type,
+  the `ClaimType` chip tuples (`control.rs` / `world.rs`), relation-attitude hues,
+  heatmap and chart series — by the same §UO8 rule that keeps the semantic map stable
+  across themes. Separately the status bar
+  ([status.rs](builder/src/builder/panels/status.rs)) and the PROJECT *Details*
+  values (ID / Seed / Size / Folder) are now set in **monospace** so the telemetry
+  aligns into a scannable strip and stops competing with prose (D4), and PROJECT's
+  "New project…" is promoted to the brass `primary_button` so the page's primary
+  action reads as such (D3). Pure chrome — no command dispatch, map painter, or
+  export writer changed, so the golden suite stays byte-stable; `SPRUCE_CHANGELOG.md`
+  records the full per-phase detail. Only **data-viz** `from_rgb` (faction / `ClaimType`
+  / `RelationAttitude` / syntax / chart) and neutral `GRAY`/`DARK_GRAY` muted text are
+  intentionally retained.
+
 ### 8.1 Viewer/editor (`sectorforge-viewer`)
 
 `sectorforge-viewer` is an interactive viewer/editor for generated sectors,

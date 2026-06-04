@@ -5,6 +5,7 @@ use crate::builder::{project_io, BuilderState, BuilderWorkspace, ModalKind};
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::theme::{self, Theme};
+use sectorforge_gui_core::widgets;
 
 pub struct BuilderApp {
     pub workspace: BuilderWorkspace,
@@ -240,16 +241,18 @@ impl BuilderApp {
                 }
                 ModalKind::ConfirmDeleteFaction { id, name } => {
                     ui.label(format!("Delete “{name}”  ({id}) ?"));
+                    // §SPRUCE D3/D7: the irreversibility warning + the Delete button
+                    // read in the theme-aware danger colour; Cancel recedes as a ghost.
                     ui.colored_label(
-                        egui::Color32::from_rgb(220, 140, 120),
+                        palette::danger(),
                         "Removes it from the roster. This can't be undone.",
                     );
                     ui.add_space(6.0);
                     ui.horizontal(|ui| {
-                        if ui.button("Cancel").clicked() {
+                        if widgets::ghost_button(ui, "Cancel").clicked() {
                             self.workspace.active_mut().modal = None;
                         }
-                        if ui.button("🗑  Delete").clicked() {
+                        if widgets::danger_button(ui, "🗑  Delete").clicked() {
                             let state = self.workspace.active_mut();
                             crate::builder::panels::factions::delete_row(state, &id);
                             state.modal = None;
@@ -262,16 +265,13 @@ impl BuilderApp {
                 // via `apply_confirm_action`.
                 ModalKind::ConfirmDestructive { body, action, .. } => {
                     ui.label(body);
-                    ui.colored_label(
-                        egui::Color32::from_rgb(220, 140, 120),
-                        "This can't be undone.",
-                    );
+                    ui.colored_label(palette::danger(), "This can't be undone.");
                     ui.add_space(6.0);
                     ui.horizontal(|ui| {
-                        if ui.button("Cancel").clicked() {
+                        if widgets::ghost_button(ui, "Cancel").clicked() {
                             self.workspace.active_mut().modal = None;
                         }
-                        if ui.button("🗑  Delete").clicked() {
+                        if widgets::danger_button(ui, "🗑  Delete").clicked() {
                             let state = self.workspace.active_mut();
                             apply_confirm_action(state, action);
                             state.modal = None;

@@ -91,6 +91,104 @@ pub fn chrome_text_dim() -> Color32 {
     chrome().text_dim
 }
 
+// ── §SPRUCE D7 — semantic status colors (success / warning / danger / info) ───
+//
+// The defect: panels reached for ad-hoc `Color32::from_rgb(...)` amber / red /
+// green triples for "unsaved", validation, health pips, and badges — ~50 of them
+// scattered across ~25 panels — and the warm amber collided with the Grimdark
+// *brass accent*, so a clean validation line read like a warning (SPRUCE §1 D7).
+//
+// This is the single semantic-color source. Like [`ChromeColors`] it is a
+// process-wide snapshot the custom painters / panels read without threading a
+// `&Ui`, swapped by [`crate::theme::Theme::apply`]. Two sets only — `DARK` and
+// `LIGHT` — keyed on the preset's `dark` flag rather than per-preset: these
+// encode *meaning*, not brand, so a red error reads red under every dark preset,
+// and keeping them theme-independent guarantees the warning hue never coincides
+// with a preset's own accent (the D7 failure). `neutral` is deliberately absent —
+// the muted/"clean" state is [`chrome_text_dim`], already theme-aware.
+#[derive(Clone, Copy, Debug)]
+pub struct StatusColors {
+    /// Clean / ok / pass — a measured green.
+    pub success: Color32,
+    /// Warning — an orange pushed clear of any brass/gold accent (SPRUCE D7).
+    pub warning: Color32,
+    /// Error / destructive — a desaturated red.
+    pub danger: Color32,
+    /// Neutral notice / informational highlight — a muted blue.
+    pub info: Color32,
+}
+
+impl StatusColors {
+    /// Status colors tuned for the seven dark presets (SPRUCE §3.1 Grimdark row).
+    pub const DARK: StatusColors = StatusColors {
+        success: Color32::from_rgb(0x7F, 0xB0, 0x69),
+        warning: Color32::from_rgb(0xE0, 0x91, 0x3A),
+        danger: Color32::from_rgb(0xD2, 0x60, 0x3F),
+        info: Color32::from_rgb(0x5E, 0x8C, 0xA8),
+    };
+    /// Status colors darkened + saturated to read on the `Light` parchment panel.
+    /// `danger` is pushed vermilion so it stays distinct from the crimson accent.
+    pub const LIGHT: StatusColors = StatusColors {
+        success: Color32::from_rgb(0x33, 0x70, 0x33),
+        warning: Color32::from_rgb(0xB0, 0x66, 0x12),
+        danger: Color32::from_rgb(0xC2, 0x46, 0x2A),
+        info: Color32::from_rgb(0x2C, 0x5A, 0x82),
+    };
+}
+
+static STATUS: std::sync::RwLock<StatusColors> = std::sync::RwLock::new(StatusColors::DARK);
+
+/// Install the active status-color set (called by [`crate::theme::Theme::apply`]).
+pub fn set_status(colors: StatusColors) {
+    if let Ok(mut guard) = STATUS.write() {
+        *guard = colors;
+    }
+}
+
+/// Snapshot of the active status colors.
+#[must_use]
+pub fn status() -> StatusColors {
+    STATUS.read().map_or(StatusColors::DARK, |c| *c)
+}
+
+/// Active **success** color (clean / ok / pass). Theme-aware.
+#[must_use]
+pub fn success() -> Color32 {
+    status().success
+}
+
+/// Active **warning** color — distinct from any preset accent. Theme-aware.
+#[must_use]
+pub fn warning() -> Color32 {
+    status().warning
+}
+
+/// Active **danger** color (error / destructive). Theme-aware.
+#[must_use]
+pub fn danger() -> Color32 {
+    status().danger
+}
+
+/// Active **info** color (neutral notice). Theme-aware.
+#[must_use]
+pub fn info() -> Color32 {
+    status().info
+}
+
+/// Color a validation summary by state (SPRUCE D7): muted when clean, warning
+/// amber for warnings only, danger red once any error fires. The muted/clean
+/// case is [`chrome_text_dim`] so a `0 err / 0 warn` line never reads as amber.
+#[must_use]
+pub fn validation_color(errors: usize, warnings: usize) -> Color32 {
+    if errors > 0 {
+        danger()
+    } else if warnings > 0 {
+        warning()
+    } else {
+        chrome_text_dim()
+    }
+}
+
 pub fn star_color(code: &str) -> Color32 {
     match code.trim().to_ascii_uppercase().as_str() {
         "O" => Color32::from_rgb(255, 150, 70),

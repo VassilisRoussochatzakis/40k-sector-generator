@@ -212,7 +212,7 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
     ui.colored_label(Color32::DARK_GRAY, dir_label);
 
     if let Some(err) = state.analytics.error.as_ref() {
-        ui.colored_label(Color32::from_rgb(220, 120, 110), err);
+        ui.colored_label(palette::danger(), err);
     }
 }
 
@@ -265,7 +265,7 @@ fn show_dashboard(ui: &mut Ui, state: &mut BuilderState) {
     );
     if a.low_confidence {
         ui.colored_label(
-            Color32::from_rgb(210, 170, 90),
+            palette::warning(),
             "⚠ Few systems — connectivity numbers below may not mean much yet.",
         );
     }
@@ -278,16 +278,16 @@ fn show_dashboard(ui: &mut Ui, state: &mut BuilderState) {
             "(error-level)"
         };
         ui.colored_label(
-            Color32::from_rgb(220, 90, 90),
+            palette::danger(),
             format!("✖ {failing} failing health flag(s) {detail}."),
         );
     } else if !a.health_flags.is_empty() {
         ui.colored_label(
-            Color32::from_rgb(120, 180, 120),
+            palette::success(),
             "✔ No failing flags — only warnings and notes.",
         );
     } else {
-        ui.colored_label(Color32::from_rgb(120, 180, 120), "✔ No health flags.");
+        ui.colored_label(palette::success(), "✔ No health flags.");
     }
 
     ui.add_space(4.0);
@@ -407,10 +407,10 @@ fn show_connectivity(ui: &mut Ui, a: &SectorAnalysis) {
                 None => "Diameter: — (disconnected)".to_string(),
             });
             if c.articulation_point_ids.is_empty() {
-                ui.colored_label(Color32::from_rgb(120, 180, 120), "No articulation points.");
+                ui.colored_label(palette::success(), "No articulation points.");
             } else {
                 ui.colored_label(
-                    Color32::from_rgb(210, 170, 90),
+                    palette::warning(),
                     format!(
                         "Articulation points ({}): {}",
                         c.articulation_point_ids.len(),
@@ -420,7 +420,7 @@ fn show_connectivity(ui: &mut Ui, a: &SectorAnalysis) {
             }
             if !c.isolated_system_ids.is_empty() {
                 ui.colored_label(
-                    Color32::from_rgb(210, 170, 90),
+                    palette::warning(),
                     format!(
                         "Isolated systems ({}): {}",
                         c.isolated_system_ids.len(),
@@ -471,7 +471,7 @@ fn show_health_flags(ui: &mut Ui, a: &SectorAnalysis, strict: bool) {
         |ui| {
             if a.health_flags.is_empty() {
                 ui.colored_label(
-                    Color32::from_rgb(120, 180, 120),
+                    palette::success(),
                     "No health flags — the sector looks clean.",
                 );
                 return;
@@ -480,11 +480,11 @@ fn show_health_flags(ui: &mut Ui, a: &SectorAnalysis, strict: bool) {
                 // Under strict, a non-error flag is promoted to a failure tint.
                 let fails = strict || f.severity == FlagSeverity::Error;
                 let col = match f.severity {
-                    FlagSeverity::Error => Color32::from_rgb(220, 90, 90),
-                    FlagSeverity::Warning if fails => Color32::from_rgb(220, 120, 110),
-                    FlagSeverity::Warning => Color32::from_rgb(210, 170, 90),
-                    FlagSeverity::Info if fails => Color32::from_rgb(200, 140, 110),
-                    _ => Color32::GRAY,
+                    FlagSeverity::Error => palette::danger(),
+                    FlagSeverity::Warning if fails => palette::danger(),
+                    FlagSeverity::Warning => palette::warning(),
+                    FlagSeverity::Info if fails => palette::warning(),
+                    _ => palette::chrome_text_dim(),
                 };
                 let tag = match f.severity {
                     FlagSeverity::Error => "ERROR",

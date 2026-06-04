@@ -40,13 +40,6 @@ use crate::builder::BuilderState;
 /// issue from the live report; never persisted, never a model field.
 const SELECTED_KEY_ID: &str = "validation_selected_issue";
 
-/// Severity tint for the "error" rows / pips (red).
-const COLOUR_ERROR: Color32 = Color32::from_rgb(220, 80, 80);
-/// Severity tint for the "warning" rows / pips (amber).
-const COLOUR_WARNING: Color32 = Color32::from_rgb(220, 180, 60);
-/// Positive status tint for a clean report (green).
-const COLOUR_OK: Color32 = Color32::from_rgb(120, 180, 120);
-
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Validation");
     ui.label(
@@ -110,14 +103,14 @@ fn render_summary(ui: &mut egui::Ui, report: &ValidationReport, strict: bool) {
     let strict_fail = strict && !report.warnings.is_empty();
     ui.horizontal_wrapped(|ui| {
         if report.ok && !strict_fail {
-            ui.colored_label(COLOUR_OK, "✓  All clear");
+            ui.colored_label(palette::success(), "✓  All clear");
         } else {
             let txt = if strict_fail && report.errors.is_empty() {
                 "✗  Warnings block (strict mode)"
             } else {
                 "✗  Problems found"
             };
-            ui.colored_label(COLOUR_ERROR, txt);
+            ui.colored_label(palette::danger(), txt);
         }
         ui.label(
             RichText::new(format!(
@@ -128,7 +121,7 @@ fn render_summary(ui: &mut egui::Ui, report: &ValidationReport, strict: bool) {
             .color(Color32::DARK_GRAY),
         );
         if strict {
-            ui.colored_label(COLOUR_WARNING, "· strict: warnings count as errors");
+            ui.colored_label(palette::warning(), "· strict: warnings count as errors");
         }
     });
 }
@@ -148,7 +141,7 @@ fn show_issue_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Validat
                     "Errors",
                     &report.errors,
                     Severity::Error,
-                    COLOUR_ERROR,
+                    palette::danger(),
                 );
                 render_group(
                     ui,
@@ -156,7 +149,7 @@ fn show_issue_list(ui: &mut egui::Ui, state: &mut BuilderState, report: &Validat
                     "Warnings",
                     &report.warnings,
                     Severity::Warning,
-                    COLOUR_WARNING,
+                    palette::warning(),
                 );
             }
         });
@@ -284,8 +277,8 @@ fn show_issue_detail(ui: &mut egui::Ui, state: &mut BuilderState, report: &Valid
 
 fn render_detail_card(ui: &mut egui::Ui, state: &mut BuilderState, issue: &ValidationIssue) {
     let (colour, sev_label) = match issue.severity {
-        Severity::Error => (COLOUR_ERROR, "Error"),
-        Severity::Warning => (COLOUR_WARNING, "Warning"),
+        Severity::Error => (palette::danger(), "Error"),
+        Severity::Warning => (palette::warning(), "Warning"),
         Severity::Info => (Color32::GRAY, "Info"),
         _ => (Color32::GRAY, "Info"),
     };

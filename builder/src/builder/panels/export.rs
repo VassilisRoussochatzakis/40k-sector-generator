@@ -189,7 +189,7 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState) {
 
             if let Some(err) = state.export.error.as_ref() {
                 ui.add_space(4.0);
-                ui.colored_label(Color32::from_rgb(220, 120, 110), err);
+                ui.colored_label(palette::danger(), err);
             }
         });
 }

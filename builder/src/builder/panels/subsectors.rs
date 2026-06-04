@@ -212,7 +212,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             || !state.subsector_manual.is_empty())
             && ui
                 .add(egui::Button::new(
-                    RichText::new("🗑  Clear all overrides").color(Color32::LIGHT_RED),
+                    RichText::new("🗑  Clear all overrides").color(palette::danger()),
                 ))
                 .on_hover_text("Drop every manual move, capital, and colour override and regroup from scratch.")
                 .clicked()
@@ -434,7 +434,7 @@ fn show_capital_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsect
                     }
                     if current.is_some()
                         && ui
-                            .button(RichText::new("↺ Reset").color(Color32::LIGHT_RED))
+                            .button(RichText::new("↺ Reset").color(palette::danger()))
                             .on_hover_text("Go back to the automatically chosen capital.")
                             .clicked()
                     {
@@ -490,7 +490,7 @@ fn show_colour_override(ui: &mut Ui, state: &mut BuilderState, target: &Subsecto
                     );
                     if has_override
                         && ui
-                            .button(RichText::new("↺ Reset").color(Color32::LIGHT_RED))
+                            .button(RichText::new("↺ Reset").color(palette::danger()))
                             .on_hover_text("Go back to the controlling faction's colour.")
                             .clicked()
                     {
@@ -579,7 +579,7 @@ fn show_manual_reassign(
                         let has_ov = state.subsector_system_overrides.contains_key(sid);
                         ui.colored_label(
                             if has_ov {
-                                Color32::LIGHT_YELLOW
+                                palette::warning()
                             } else {
                                 Color32::DARK_GRAY
                             },

@@ -14,7 +14,7 @@ use egui::{
     Align2, Color32, FontFamily, FontId, Pos2, Rect, Response, Rounding, Sense, Stroke, Ui, Vec2,
 };
 
-use crate::design;
+use crate::{design, palette};
 
 /// A bespoke, hand-painted **primary action** button — a lit brass plate with a
 /// two-tone sheen, soft accent glow on hover, a press depress, and a hairline
@@ -201,6 +201,80 @@ pub fn toggle_with_label(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
     .inner
 }
 
+/// A **destructive-action** button (§SPRUCE D3 / §5.2): the danger color as a
+/// label + hairline border over a transparent rest fill, filling with danger on
+/// hover (the ink flips to a light ash), every state eased. Reads clearly as
+/// dangerous without shouting at rest the way [`primary_button`] does — reserve
+/// it for delete / remove confirms. Theme-aware via [`palette::danger`].
+pub fn danger_button(ui: &mut Ui, label: &str) -> Response {
+    let font = FontId::new(design::BODY, FontFamily::Proportional);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), font.clone(), Color32::WHITE);
+    let pad = Vec2::new(design::SPACE_MD, design::SPACE_SM);
+    let size = Vec2::new(
+        galley.size().x + pad.x * 2.0,
+        (galley.size().y + pad.y * 2.0).max(ui.spacing().interact_size.y),
+    );
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let t_hover = design::ease_out_cubic(ui.ctx().animate_bool_with_time(
+        response.id,
+        response.hovered(),
+        design::MOTION_BASE,
+    ));
+
+    let danger = palette::danger();
+    let r = design::RADIUS_SM;
+    let painter = ui.painter_at(rect);
+    let fill = Color32::from_rgba_unmultiplied(
+        danger.r(),
+        danger.g(),
+        danger.b(),
+        (200.0 * t_hover) as u8,
+    );
+    painter.rect_filled(rect, r, fill);
+    painter.rect_stroke(rect, r, Stroke::new(1.0, danger));
+    let ink = design::lerp_color(danger, Color32::from_rgb(244, 240, 236), t_hover);
+    painter.text(rect.center(), Align2::CENTER_CENTER, label, font, ink);
+    response
+}
+
+/// A low-emphasis **ghost** button (§SPRUCE D3): no border or fill at rest — just
+/// dimmed text — with a faint neutral hover wash and the ink lifting to primary.
+/// For tertiary actions (an add `+`, an inline dismiss) that should recede until
+/// pointed at. Theme-aware via [`palette::chrome_text_dim`] / [`palette::chrome_text`].
+pub fn ghost_button(ui: &mut Ui, label: &str) -> Response {
+    let font = FontId::new(design::BODY, FontFamily::Proportional);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(label.to_owned(), font.clone(), Color32::WHITE);
+    let pad = Vec2::new(design::SPACE_SM, design::SPACE_XS);
+    let size = Vec2::new(
+        galley.size().x + pad.x * 2.0,
+        (galley.size().y + pad.y * 2.0).max(ui.spacing().interact_size.y),
+    );
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let t_hover = design::ease_out_cubic(ui.ctx().animate_bool_with_time(
+        response.id,
+        response.hovered(),
+        design::MOTION_BASE,
+    ));
+
+    let r = design::RADIUS_SM;
+    let hover_bg = ui.visuals().widgets.hovered.bg_fill;
+    let painter = ui.painter_at(rect);
+    let fill = Color32::from_rgba_unmultiplied(
+        hover_bg.r(),
+        hover_bg.g(),
+        hover_bg.b(),
+        (160.0 * t_hover) as u8,
+    );
+    painter.rect_filled(rect, r, fill);
+    let ink = design::lerp_color(palette::chrome_text_dim(), palette::chrome_text(), t_hover);
+    painter.text(rect.center(), Align2::CENTER_CENTER, label, font, ink);
+    response
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,6 +283,8 @@ mod tests {
     fn widgets_paint_headless() {
         egui::__run_test_ui(|ui| {
             let _ = primary_button(ui, "Regenerate");
+            let _ = danger_button(ui, "🗑 Delete");
+            let _ = ghost_button(ui, "+");
             let mut on = false;
             let _ = toggle(ui, &mut on);
             let _ = toggle_with_label(ui, &mut on, "Faction fill");

@@ -960,9 +960,9 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
 
 fn power_color(v: f32) -> Color32 {
     if v >= 30.0 {
-        Color32::LIGHT_GREEN
+        palette::success()
     } else if v >= 10.0 {
-        Color32::LIGHT_YELLOW
+        palette::warning()
     } else if v >= 1.0 {
         Color32::LIGHT_GRAY
     } else {
@@ -1026,7 +1026,7 @@ fn show_contested_summary(ui: &mut Ui, state: &mut BuilderState) {
                                     world: wid,
                                 });
                             }
-                            ui.label(RichText::new(label).color(Color32::from_rgb(220, 160, 80)));
+                            ui.label(RichText::new(label).color(palette::warning()));
                         });
                     }
                 });
@@ -1308,7 +1308,7 @@ fn show_world_row(
             if contested {
                 ui.label(
                     RichText::new("CONTESTED")
-                        .color(Color32::from_rgb(220, 160, 80))
+                        .color(palette::warning())
                         .monospace(),
                 );
             }

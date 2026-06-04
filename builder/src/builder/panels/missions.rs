@@ -167,7 +167,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(format!("{total} mission(s)  ·  {manual} hand-written"));
         if state.data_catalogs.missions.is_none() {
             ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
+                palette::warning(),
                 "● using built-in defaults",
             )
             .on_hover_text("No saved mission settings yet — defaults apply until you save.");
@@ -277,7 +277,7 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
                     );
                 });
                 if show_hidden && m.gm_only {
-                    ui.colored_label(Color32::from_rgb(220, 170, 80), "GM")
+                    ui.colored_label(palette::warning(), "GM")
                         .on_hover_text("GM-only — hidden under Player edition.");
                 }
                 let rem = ui.available_width();
@@ -432,7 +432,7 @@ fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
             "GM-only twist behind the job (schema: hidden_complication).",
             |ui| {
                 if let Some(c) = &mission.hidden_complication {
-                    ui.label(RichText::new(c.clone()).color(Color32::from_rgb(220, 170, 80)));
+                    ui.label(RichText::new(c.clone()).color(palette::warning()));
                 } else {
                     ui.colored_label(Color32::DARK_GRAY, "—");
                 }
@@ -546,7 +546,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 changed |= manual_mission_editor(ui, idx, m, &existing);
                 if ui
                     .button(
-                        RichText::new("🗑  Delete mission").color(Color32::from_rgb(200, 90, 90)),
+                        RichText::new("🗑  Delete mission").color(palette::danger()),
                     )
                     .on_hover_text("Remove this hand-written mission. This cannot be undone.")
                     .clicked()

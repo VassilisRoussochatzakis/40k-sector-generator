@@ -7,7 +7,7 @@
 //! list wholesale. Each row exposes name, kind, dominant faction, control
 //! score, population weight, visibility, and free-form notes.
 
-use egui::{Color32, RichText, Ui};
+use egui::{RichText, Ui};
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
@@ -254,7 +254,7 @@ fn show_regions_editor(
     let total: u32 = regions.iter().map(|r| u32::from(r.population_weight)).sum();
     if total > 100 {
         ui.colored_label(
-            Color32::from_rgb(220, 170, 60),
+            palette::warning(),
             format!("Population shares add up to {total} (over 100 — trim some down)"),
         );
     }

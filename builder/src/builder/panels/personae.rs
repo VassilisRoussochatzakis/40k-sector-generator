@@ -165,7 +165,7 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
         ui.label(format!("{total} personae  (hand-written: {manual})"));
         if state.data_catalogs.personae.is_none() {
             ui.colored_label(
-                Color32::from_rgb(220, 170, 80),
+                palette::warning(),
                 "using built-in defaults — Regenerate to start a personae file",
             );
         }
@@ -684,7 +684,7 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
             changed |= pool_editor(ui, kind, pools);
             if ui
                 .button(
-                    RichText::new("↺  Reset to defaults").color(Color32::from_rgb(220, 170, 80)),
+                    RichText::new("↺  Reset to defaults").color(palette::warning()),
                 )
                 .on_hover_text(
                     "Clear this type's pools and fall back to the built-in names & titles",

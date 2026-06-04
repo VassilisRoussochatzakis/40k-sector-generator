@@ -206,6 +206,13 @@ impl BuilderApp {
             _ => return,
         };
         egui::Window::new(title.as_str())
+            // §BEAUTY §6.7: the modal window MUST sit in `Order::Foreground` so it
+            // renders above the `Order::Middle` scrim. egui's default Window order
+            // is also Middle, and a newly-shown / clicked Area auto-bubbles to the
+            // top of its order tier (`Area::begin` → `move_to_top`), so a Middle
+            // window loses the z-fight to the scrim and gets buried under an
+            // (invisible, during fade-in) full-screen backdrop. See `modal::scrim`.
+            .order(egui::Order::Foreground)
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| match modal {

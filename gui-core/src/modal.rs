@@ -15,8 +15,14 @@ use crate::design;
 /// factor `t` in `[0,1]`.
 ///
 /// Call **every frame** from the dialog router, passing whether a modal is
-/// currently open. While `open`, the scrim sits in [`Order::Middle`] (below the
-/// focused `Window`, above the panels), swallows pointer input so the page is
+/// currently open. While `open`, the scrim sits in [`Order::Middle`] — above the
+/// [`Order::Background`] panels it dims, and below the modal window, **which the
+/// caller MUST place in [`Order::Foreground`]** (`Window::new(..).order(Order::Foreground)`).
+/// egui's default `Window` order is also `Order::Middle`, and any newly-shown or
+/// clicked `Area` auto-bubbles to the top of its order tier, so a `Middle` window
+/// loses the z-fight to this scrim and ends up buried under an (invisible, during
+/// fade-in) backdrop; `Foreground` is immune because the order enum is the primary
+/// z-sort key. The scrim swallows pointer input so the page is
 /// inert, and `t` ramps 0→1; when the modal closes it ramps back to 0 and fades
 /// out, so the next open animates afresh. Drive the dialog's content opacity with
 /// the returned `t` — `ui.set_opacity(t)` at the top of the `Window::show`

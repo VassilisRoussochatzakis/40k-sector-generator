@@ -16,6 +16,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
         Dialog::Message(msg) => {
             let mut open = true;
             egui::Window::new(RichText::new("INFO"))
+                // Foreground: sit above the Order::Middle scrim — see modal::scrim.
+                .order(egui::Order::Foreground)
                 .open(&mut open)
                 .collapsible(false)
                 .resizable(false)
@@ -37,6 +39,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             let mut load: Option<String> = None;
             let mut cancel = false;
             egui::Window::new(RichText::new("OPEN PROJECT"))
+                // Foreground: sit above the Order::Middle scrim — see modal::scrim.
+                .order(egui::Order::Foreground)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -94,6 +98,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             let mut create = false;
             let mut cancel = false;
             egui::Window::new(RichText::new("NEW SECTOR"))
+                // Foreground: sit above the Order::Middle scrim — see modal::scrim.
+                .order(egui::Order::Foreground)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -177,6 +183,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             let mut save = false;
             let mut cancel = false;
             egui::Window::new(RichText::new("SAVE AS"))
+                // Foreground: sit above the Order::Middle scrim — see modal::scrim.
+                .order(egui::Order::Foreground)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -234,6 +242,8 @@ pub fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             let mut create = false;
             let mut cancel = false;
             egui::Window::new(RichText::new("ADD SYSTEM"))
+                // Foreground: sit above the Order::Middle scrim — see modal::scrim.
+                .order(egui::Order::Foreground)
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {

@@ -1,18 +1,20 @@
 [alias]
-sview = "run --release -p sectorforge-viewer --"
-sbuild = "run --release -p sectorforge-builder --"
+sview = "run --profile quick -p sectorforge-viewer --"
+sbuild = "run --profile quick -p sectorforge-builder --"
 # `sba` pre-builds every runnable bin (sectorforge CLI, viewer, builder) so the
 # `srun`/`sview`/`sbuild` aliases launch instantly. `--bins` (not `--all-targets`)
 # is deliberate: pulling in tests/benches drags dev-deps (proptest, criterion,
 # tempfile) into the graph, widening shared-dep features under resolver v2 — that
 # diverges from the plain `cargo run` feature set and forces a full rebuild on
 # first launch. `--bins` keeps the resolution identical to the run aliases.
-sba = "build --release --workspace --bins"
-srun = "run --release --bin sectorforge --"
+# `--profile quick` (see [profile.quick] in Cargo.toml): release-speed runtime,
+# dev-speed compile — so this actually launches near-instantly after an edit.
+sba = "build --profile quick --workspace --bins"
+srun = "run --profile quick --bin sectorforge --"
 # `sg <project-dir> [flags]` — shorthand for `srun generate --project <dir>`.
 # Trailing `--project` means the first positional arg is the project folder;
 # extra flags append after it. E.g. `cargo sg examples/m42_project --seed 42`.
-sg = "run --release --bin sectorforge -- generate --project"
+sg = "run --profile quick --bin sectorforge -- generate --project"
 # `build-all` compiles literally everything in the workspace: every lib, every
 # bin (incl. the `dhat-profile` bin, which is gated behind `required-features =
 # ["dhat-heap"]` — `--all-features` is what pulls it in), every integration/unit

@@ -83,3 +83,21 @@ debug = "line-tables-only"
 strip = "none"
 codegen-units = 16
 lto = "thin"
+
+# docs/OPTIMIZE.txt G6: fast local-launch profile for the `.cargo/config.toml`
+# run aliases (sview / sbuild / sba / srun / sg). Inherits release's opt-level (3)
+# so the GUI and the generation engine RUN at full speed, but drops the two
+# shipping-only knobs that dominate compile time and force single-threaded,
+# non-incremental work:
+#   • `lto = false`        — fat LTO re-optimizes the whole binary as one unit on
+#                            every edit (~34s on the builder bin alone).
+#   • `codegen-units = 256`— release pins this to 1; 256 parallelizes codegen
+#                            across cores and re-enables incremental caching.
+# Net: a one-line GUI edit relinks in ~1s instead of ~85s. Ship real artifacts
+# (fat-LTO, cgu=1) with plain `--release`; benchmark generation with `--release`
+# too — `quick` loses cross-crate inlining and can be a few % slower at runtime.
+[profile.quick]
+inherits = "release"
+lto = false
+codegen-units = 256
+incremental = true

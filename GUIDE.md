@@ -42,6 +42,12 @@ From the repository root:
 # Build all binaries (sectorforge CLI + sectorforge-viewer + sectorforge-builder)
 cargo build --release
 
+# Fast local iteration: the `cargo` run aliases below (sview / sbuild / sba /
+# srun / sg) use the `quick` profile (see [profile.quick] in Cargo.toml) —
+# release-speed runtime (opt-level 3) with dev-speed compile (no LTO, parallel
+# codegen, incremental). A one-line GUI edit relaunches in ~1s instead of ~85s.
+# Use plain `--release` for shipping artifacts or runtime benchmarks.
+
 # Note: Example projects (big_test, big_sparse_test, m42_project) are 
 # bundled into the binaries for portability.
 

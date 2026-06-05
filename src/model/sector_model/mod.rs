@@ -302,23 +302,7 @@ impl GeneratedSector {
             systems: Vec::new(),
             routes: Vec::new(),
             factions: Vec::new(),
-            manifest: GenerationManifest {
-                project_id: id.into(),
-                generated_at_policy: "unknown".into(),
-                generator_name: crate::GENERATOR_NAME.into(),
-                generator_version: crate::GENERATOR_VERSION.into(),
-                seed: seed.into(),
-                seed_hash: "".into(),
-                base_seed: None,
-                candidate_index: None,
-                constraints_digest: None,
-                profile: None,
-                input_digests: BTreeMap::new(),
-                settings_digest: "".into(),
-                system_count: 0,
-                world_count: 0,
-                route_count: 0,
-            },
+            manifest: GenerationManifest::empty(id, seed),
             influence_field: std::sync::Arc::new(crate::influence_field::InfluenceField::default()),
             power_projection: std::sync::Arc::new(
                 crate::power_projection::PowerProjectionMap::default(),
@@ -331,14 +315,17 @@ impl GeneratedSector {
         }
     }
 
+    #[must_use]
     pub fn get_system(&self, id: &SystemId) -> Option<&GeneratedSystem> {
         self.systems.iter().find(|s| s.id == *id)
     }
 
+    #[must_use]
     pub fn get_system_mut(&mut self, id: &SystemId) -> Option<&mut GeneratedSystem> {
         self.systems.iter_mut().find(|s| s.id == *id)
     }
 
+    #[must_use]
     pub fn get_world(&self, id: &WorldId) -> Option<&GeneratedWorld> {
         for sys in &self.systems {
             for w in &sys.worlds {
@@ -350,6 +337,7 @@ impl GeneratedSector {
         None
     }
 
+    #[must_use]
     pub fn get_worlds_for_system<'a>(&self, sys: &'a GeneratedSystem) -> Vec<&'a GeneratedWorld> {
         sys.worlds.iter().collect()
     }
@@ -747,6 +735,35 @@ pub struct GenerationManifest {
     pub system_count: usize,
     pub world_count: usize,
     pub route_count: usize,
+}
+
+impl GenerationManifest {
+    /// Manifest for the builder/GUI new-sector path (no generation run yet).
+    /// Counts are zero, digests empty, and `generated_at_policy` carries the
+    /// `"unknown"` sentinel — distinct from the generation pipeline's
+    /// `build_manifest`, which records `"not recorded by default"` and computes
+    /// real seed/settings digests. Single source for the empty-path defaults so
+    /// `GeneratedSector::empty` and any future builder caller cannot diverge.
+    #[must_use]
+    pub fn empty(project_id: &str, seed: &str) -> Self {
+        Self {
+            project_id: project_id.into(),
+            generated_at_policy: "unknown".into(),
+            generator_name: crate::GENERATOR_NAME.into(),
+            generator_version: crate::GENERATOR_VERSION.into(),
+            seed: seed.into(),
+            seed_hash: "".into(),
+            base_seed: None,
+            candidate_index: None,
+            constraints_digest: None,
+            profile: None,
+            input_digests: BTreeMap::new(),
+            settings_digest: "".into(),
+            system_count: 0,
+            world_count: 0,
+            route_count: 0,
+        }
+    }
 }
 
 /// Hex distance for pointy-top odd-r offset coordinates.

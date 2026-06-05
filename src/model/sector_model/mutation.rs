@@ -478,50 +478,43 @@ impl GeneratedSector {
         kind: RegionConditionKind,
         centre: HexCoord,
     ) -> String {
-        let mut regions = (*self.regions).clone();
-        regions.push(WarpRegion {
+        std::sync::Arc::make_mut(&mut self.regions).push(WarpRegion {
             id: id.to_string(),
             name: name.to_string(),
             kind,
             hexes: vec![centre],
             centre,
         });
-        self.regions = std::sync::Arc::new(regions);
         id.to_string()
     }
 
     pub fn remove_region(&mut self, id: &str) -> Result<(), MutationError> {
-        let mut regions = (*self.regions).clone();
+        let regions = std::sync::Arc::make_mut(&mut self.regions);
         let len_before = regions.len();
         regions.retain(|r| r.id != id);
         if regions.len() == len_before {
             return Err(MutationError::RegionNotFound(id.to_string()));
         }
-        self.regions = std::sync::Arc::new(regions);
         Ok(())
     }
 
     pub fn add_region_hex(&mut self, id: &str, hex: HexCoord) -> Result<(), MutationError> {
-        let mut regions = (*self.regions).clone();
-        let region = regions
+        let region = std::sync::Arc::make_mut(&mut self.regions)
             .iter_mut()
             .find(|r| r.id == id)
             .ok_or_else(|| MutationError::RegionNotFound(id.to_string()))?;
         if !region.hexes.contains(&hex) {
             region.hexes.push(hex);
         }
-        self.regions = std::sync::Arc::new(regions);
         Ok(())
     }
 
     pub fn remove_region_hex(&mut self, id: &str, hex: HexCoord) -> Result<(), MutationError> {
-        let mut regions = (*self.regions).clone();
-        let region = regions
+        let region = std::sync::Arc::make_mut(&mut self.regions)
             .iter_mut()
             .find(|r| r.id == id)
             .ok_or_else(|| MutationError::RegionNotFound(id.to_string()))?;
         region.hexes.retain(|h| *h != hex);
-        self.regions = std::sync::Arc::new(regions);
         Ok(())
     }
 

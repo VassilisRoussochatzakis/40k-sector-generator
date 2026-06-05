@@ -13,6 +13,15 @@ use crate::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSystem, RouteStability, RouteType,
 };
 use crate::taxonomy;
+use crate::worlds::NotableFeature;
+
+/// The `feature:{snake}` tag a `NotableFeature` produces, built the same way as
+/// `world_placement::compute_tags` (`format!("feature:{}", snake(f.as_ref()))`)
+/// so a renamed variant updates the producer and these route-weight comparisons
+/// together — no silent literal drift (A3).
+fn feature_tag(f: &NotableFeature) -> String {
+    format!("feature:{}", taxonomy::to_snake_case(f.as_ref()))
+}
 
 pub(super) fn generate_routes(
     config: &AppConfig,
@@ -29,6 +38,29 @@ pub(super) fn generate_routes(
         .max_route_distance
         .max(rules.max_distance);
     let density = config.generation.routes.route_density.clamp(0.0, 1.0);
+
+    // Enum-keyed route-weight feature tags, built once before the O(n²) pair
+    // loop (A3). Boost = strategic/economic hubs (×2.0); penalty = hazardous /
+    // interdicted space (×0.25).
+    let boost_tags: BTreeSet<String> = [
+        NotableFeature::TradeHub,
+        NotableFeature::Freeport,
+        NotableFeature::MajorSpaceyard,
+        NotableFeature::AdministrativeHub,
+        NotableFeature::SubsectorHegemon,
+    ]
+    .into_iter()
+    .map(|f| feature_tag(&f))
+    .collect();
+    let penalty_tags: BTreeSet<String> = [
+        NotableFeature::WarpPhenomena,
+        NotableFeature::Quarantined,
+        NotableFeature::WarZone,
+        NotableFeature::DaemonicCorruption,
+    ]
+    .into_iter()
+    .map(|f| feature_tag(&f))
+    .collect();
 
     let pair_upper = systems.len().saturating_sub(1) * systems.len() / 2;
     let mut candidates: Vec<(usize, usize, f64, u32)> = Vec::with_capacity(pair_upper);
@@ -49,23 +81,16 @@ pub(super) fn generate_routes(
                 .flat_map(|wd| wd.tags.iter())
                 .collect();
 
-            if combined_tags.iter().any(|t| {
-                let s = t.as_ref();
-                s == "feature:trade_hub"
-                    || s == "feature:freeport"
-                    || s == "feature:major_spaceyard"
-                    || s == "feature:administrative_hub"
-                    || s == "feature:subsector_hegemon"
-            }) {
+            if combined_tags
+                .iter()
+                .any(|t| boost_tags.contains(t.as_ref()))
+            {
                 w *= 2.0;
             }
-            if combined_tags.iter().any(|t| {
-                let s = t.as_ref();
-                s == "feature:warp_phenomena"
-                    || s == "feature:quarantined"
-                    || s == "feature:war_zone"
-                    || s == "feature:daemonic_corruption"
-            }) {
+            if combined_tags
+                .iter()
+                .any(|t| penalty_tags.contains(t.as_ref()))
+            {
                 w *= 0.25;
             }
 

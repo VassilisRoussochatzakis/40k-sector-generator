@@ -452,8 +452,14 @@ fn emit_layer(
             }
             continue;
         }
-        let a = endpoint_by_id.get(from.as_str()).copied().unwrap();
-        let b = endpoint_by_id.get(to.as_str()).copied().unwrap();
+        let a = endpoint_by_id
+            .get(from.as_str())
+            .copied()
+            .expect("hidden-route pair endpoint not in index — invariant: pairs are built from endpoints only");
+        let b = endpoint_by_id
+            .get(to.as_str())
+            .copied()
+            .expect("hidden-route pair endpoint not in index — invariant: pairs are built from endpoints only");
         let dist = hex_distance(a.coord, b.coord);
         let base_id = ids::route_id(&from, &to);
         let id = crate::ids::RouteId::new(format!("{base_id}-{suffix}"));

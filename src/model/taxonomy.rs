@@ -235,4 +235,44 @@ mod tests {
         let parsed = parse_world_type_variant(&v.to_string()).unwrap();
         assert_eq!(parsed, v);
     }
+
+    /// Exhaustive A4 guard: every variant of each enum must round-trip through
+    /// its variant-name parse table. A variant added to `worlds.rs` with no
+    /// matching arm here would otherwise silently parse to `None` with no
+    /// compile error. `WorldType`/`Government`/`NotableFeature` `Display` is the
+    /// `{:?}` variant name (the parse keys); `StarColour::Display` is the short
+    /// code, so its round-trip pairs `star_colour_variant_name` with the parser.
+    #[test]
+    fn parse_tables_cover_all_variants() {
+        for v in StarColour::VARIANTS {
+            assert_eq!(
+                parse_star_colour_variant(star_colour_variant_name(*v)),
+                Some(*v),
+                "StarColour::{v:?} missing from parse_star_colour_variant"
+            );
+        }
+        for v in WorldType::VARIANTS {
+            assert_eq!(
+                parse_world_type_variant(&v.to_string()).as_ref(),
+                Some(v),
+                "WorldType::{v:?} missing from parse_world_type_variant"
+            );
+        }
+        for v in Government::VARIANTS {
+            assert_eq!(
+                parse_government_variant(&v.to_string()).as_ref(),
+                Some(v),
+                "Government::{v:?} missing from parse_government_variant"
+            );
+        }
+        for v in NotableFeature::VARIANTS {
+            // `NotableFeature: AsRef<str>` yields the variant name directly (same
+            // string its `Display`/`{:?}` produces, and the producer's tag key).
+            assert_eq!(
+                parse_notable_feature_variant(v.as_ref()).as_ref(),
+                Some(v),
+                "NotableFeature::{v:?} missing from parse_notable_feature_variant"
+            );
+        }
+    }
 }

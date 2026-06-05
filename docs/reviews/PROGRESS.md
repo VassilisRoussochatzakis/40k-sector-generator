@@ -15,7 +15,7 @@ sequence". Update this file whenever a finding moves status.
 
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
-| A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
+| A `src/model` + generation | 12 | 9 (A1,A3,A4,A6,A8,A9,A10,A11,A12) | 0 | 2 (A2,A7) | 1 (A5) |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
@@ -1171,6 +1171,61 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     **319/319**. Builder-only — no `sectorforge`/`gui-core` source touched, so
     golden + map snapshots are unaffected (not run). MAP.md presence_widgets row
     updated; AREA_E E5 marked Resolved.
+
+### 2026-06-05 — step 5, wave 14 (AREA_A model/generation — S-effort warm-ups)
+
+Owner picked AREA_A next. Led with the file's suggested local order (A8→A10→A6→
+A9→A11→A12→A4→A3) — all S-effort, proportionate, compiler-checked. A11 is the one
+golden-gated item (feeds `seed_hash`/`settings_digest`). Verified together:
+`cargo clippy -p sectorforge --all-targets -- -D warnings` clean, lib **193→194**,
+**golden 15/15 byte-identical**. Single commit on `main`.
+
+- **A8** — `#[must_use]` added to `get_system`/`get_system_mut`/`get_world`/
+  `get_worlds_for_system` in `sector_model/mod.rs`. **Not** on `all_worlds` — it
+  returns `impl Iterator` (already `#[must_use]`); clippy `double_must_use` rejects
+  the redundant attribute, so the review's 5th target was correctly dropped.
+- **A10** — both `.unwrap()` in `hidden_routes.rs:455–456` → `.expect("hidden-route
+  pair endpoint not in index — invariant: pairs are built from endpoints only")`.
+  Behaviour-identical; context on the (unreachable) panic.
+- **A6** — the 4 `crate::GENERATOR_{NAME,VERSION}.to_string().into()` double-allocs
+  in `gen/generation/mod.rs` (`GeneratedSector` build + `build_manifest`) → single
+  `std::sync::Arc::from(…)`; the 5th site (`"not recorded by default".to_string()
+  .into()`) folded in. Same `Arc<str>` value, one fewer alloc each.
+- **A9** — the 4 `(*self.regions).clone()` + `Arc::new` region edits in
+  `mutation.rs` (`add_region`/`remove_region`/`add_region_hex`/`remove_region_hex`)
+  → `Arc::make_mut(&mut self.regions)`. Elides the deep `Vec<WarpRegion>` copy when
+  refcount==1 (the builder-session common case); clones-on-write otherwise — output
+  identical (content, not Arc identity, is serialized).
+- **A11** — `rng::hex` swapped `s.push_str(&format!("{b:02x}"))` for `write!(&mut s,
+  "{b:02x}")` (`use std::fmt::Write`). Kills the per-byte temp `String` (32/hash).
+  **Byte-identical lowercase hex** — proved by golden 15/15 (it feeds
+  `seed_hash`/`settings_digest` in `sector.json`).
+- **A12** — extracted `GenerationManifest::empty(project_id, seed)` (single source
+  for the builder new-sector defaults: zero counts, empty digests, `"unknown"`
+  sentinel) and pointed `GeneratedSector::empty`'s inline manifest block at it. The
+  generation-pipeline `build_manifest` keeps its **distinct** `"not recorded by
+  default"` sentinel (different semantic state — left intentionally divergent, now
+  the only other construction site). No golden exposure (empty manifest is
+  builder-only).
+- **A4** — added exhaustive `parse_tables_cover_all_variants` test in
+  `taxonomy.rs`: iterates `VARIANTS` for all four enums and asserts the parse table
+  round-trips every variant. Closes the silent-`None`-on-new-variant gap for
+  `StarColour`/`Government`/`NotableFeature` (the prior single test covered only one
+  `WorldType` variant). `StarColour::Display` is the short code, so its row pairs
+  `star_colour_variant_name` with the parser; the other three use the `{:?}`
+  variant-name `Display`/`AsRef`. (lib 193→**194**.)
+- **A3** — `gen/generation/routes.rs` route-weight blocks no longer hardcode
+  `"feature:trade_hub"`-style literals. Added `fn feature_tag(&NotableFeature)`
+  mirroring `world_placement::compute_tags`' `format!("feature:{}", snake(f.as_ref
+  ()))`, and built the boost/penalty `BTreeSet<String>` **once before** the O(n²)
+  pair loop from the `NotableFeature` variants. A renamed variant now updates the
+  producer and these comparisons together (no silent weight drift). Tags are
+  byte-identical to the old literals (`as_ref()` = variant name, `to_snake_case`
+  matches), so route weights — and goldens — are unchanged.
+- **Not done (this wave):** **A2** (WorldDto real-enum + serde shim, M) and **A7**
+  (BTreeMap accessor index, M) — next. **A5** (157-pub-field visibility, L) stays
+  ⏸️ owner-gated like D-S3/D5 (wide builder/viewer/tests cascade, not a clean
+  split). No file moved → MAP.md/GUIDE.md untouched.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

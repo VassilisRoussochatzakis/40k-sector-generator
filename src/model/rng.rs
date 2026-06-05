@@ -69,9 +69,12 @@ pub fn weighted_index<T>(
 
 /// Format a 32-byte hash as a lowercase hex string.
 pub fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
     let mut s = String::with_capacity(bytes.len() * 2);
     for b in bytes {
-        s.push_str(&format!("{b:02x}"));
+        // `write!` into a `String` is infallible; byte-identical lowercase hex
+        // to the old `push_str(&format!(...))` — feeds golden seed_hash/digest.
+        let _ = write!(&mut s, "{b:02x}");
     }
     s
 }

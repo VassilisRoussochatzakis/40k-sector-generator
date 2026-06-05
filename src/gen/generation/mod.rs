@@ -616,8 +616,8 @@ where
         id: config.project.id.clone().into(),
         title: config.project.title.clone().into(),
         seed: config.generation.seed.clone().into(),
-        generator_name: crate::GENERATOR_NAME.to_string().into(),
-        generator_version: crate::GENERATOR_VERSION.to_string().into(),
+        generator_name: std::sync::Arc::from(crate::GENERATOR_NAME),
+        generator_version: std::sync::Arc::from(crate::GENERATOR_VERSION),
         width: config.generation.sector_width,
         height: config.generation.sector_height,
         systems: sorted_systems,
@@ -836,9 +836,9 @@ fn build_manifest(
 
     GenerationManifest {
         project_id: config.project.id.clone().into(),
-        generated_at_policy: "not recorded by default".to_string().into(),
-        generator_name: crate::GENERATOR_NAME.to_string().into(),
-        generator_version: crate::GENERATOR_VERSION.to_string().into(),
+        generated_at_policy: std::sync::Arc::from("not recorded by default"),
+        generator_name: std::sync::Arc::from(crate::GENERATOR_NAME),
+        generator_version: std::sync::Arc::from(crate::GENERATOR_VERSION),
         seed: config.generation.seed.clone().into(),
         seed_hash: seed_hash.into(),
         base_seed: config

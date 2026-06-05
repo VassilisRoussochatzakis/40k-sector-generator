@@ -57,16 +57,6 @@ const EVENT_KINDS: &[EventKind] = &[
     EventKind::ChaosIncursion,
 ];
 
-const SYSTEM_STATES: &[SystemState] = &[
-    SystemState::Pacified,
-    SystemState::Fragmented,
-    SystemState::Blockaded,
-    SystemState::Warzone,
-    SystemState::Infiltrated,
-    SystemState::Quarantined,
-    SystemState::Uncharted,
-];
-
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("History");
     ui.add_space(2.0);
@@ -461,7 +451,7 @@ fn show_event_rules_editor(ui: &mut Ui, state: &mut BuilderState) {
                     )
                     .show_ui(ui, |ui| {
                         ui.selectable_value(&mut state_pick, None, "(any)");
-                        for s in SYSTEM_STATES {
+                        for s in super::SYSTEM_STATES {
                             ui.selectable_value(&mut state_pick, Some(*s), system_state_label(*s))
                                 .on_hover_text(format!("key: {}", system_state_key(*s)));
                         }

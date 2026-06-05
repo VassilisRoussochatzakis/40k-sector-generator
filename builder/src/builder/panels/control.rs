@@ -66,16 +66,6 @@ const DOMINANCE_STATES: &[DominanceState] = &[
     DominanceState::Stronghold,
 ];
 
-const SYSTEM_STATES: &[SystemState] = &[
-    SystemState::Pacified,
-    SystemState::Fragmented,
-    SystemState::Blockaded,
-    SystemState::Warzone,
-    SystemState::Infiltrated,
-    SystemState::Quarantined,
-    SystemState::Uncharted,
-];
-
 /// §C6 power-projection table headers: the compact column heading kept for the
 /// dense grid, paired with a plain-language hover note so the abbreviations are
 /// self-explanatory.
@@ -708,7 +698,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                         if ui.selectable_label(current.is_none(), "(none)").clicked() {
                             new_state = Some(None);
                         }
-                        for s in SYSTEM_STATES {
+                        for s in super::SYSTEM_STATES {
                             if ui
                                 .selectable_label(current == Some(*s), system_state_label(*s))
                                 .on_hover_text(format!("schema: {}", s.as_slug()))

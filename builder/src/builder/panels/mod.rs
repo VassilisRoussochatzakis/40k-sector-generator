@@ -20,6 +20,19 @@
 mod text_buf;
 pub use text_buf::{persistent_multiline, persistent_singleline, persistent_text_clear};
 
+/// The selectable `SystemState` values, in display order. Single source shared
+/// by the CONTROL and HISTORY panels (§E6) — previously a byte-identical const
+/// in each, so a new variant only had to be added in one of two places.
+pub(crate) const SYSTEM_STATES: &[sectorforge::sector_model::SystemState] = &[
+    sectorforge::sector_model::SystemState::Pacified,
+    sectorforge::sector_model::SystemState::Fragmented,
+    sectorforge::sector_model::SystemState::Blockaded,
+    sectorforge::sector_model::SystemState::Warzone,
+    sectorforge::sector_model::SystemState::Infiltrated,
+    sectorforge::sector_model::SystemState::Quarantined,
+    sectorforge::sector_model::SystemState::Uncharted,
+];
+
 pub mod conflict_resolver;
 pub mod invariants;
 pub mod new_project;

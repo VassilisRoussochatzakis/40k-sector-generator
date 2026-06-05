@@ -16,7 +16,7 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
-| B `src/analysis` | 14 | 6 (B-S3,B1,B7,B9,B11,B12) | 0 | 8 | 0 |
+| B `src/analysis` | 14 | 7 (B-S3,B1,B6,B7,B9,B11,B12) | 0 | 7 | 0 |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
@@ -41,8 +41,8 @@ sequence". Update this file whenever a finding moves status.
      B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only) ·
      F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
      API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
-   - Remaining dedup: AREA_B perf (**B1 ✅**, B3/B5/B6), trait/macro dedup
-     (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
+   - Remaining dedup: AREA_B perf (**B1 ✅**, **B6 ✅**, B3/B5), trait/macro
+     dedup (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
    - **Wave 4 — AREA_F semantic-color sweep** (viewer chrome, no snapshot
      exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
      ~25-site `Color32::from_rgb` → `palette::warning/danger/success` sweep).
@@ -757,6 +757,26 @@ order at the first remaining perf item (B1; B7/B4-adjacent/B9/B12 already done).
   surface touched. **Verification:** clippy `-D warnings` clean, lib **192/192**,
   golden **15/15 byte-identical**, economy integration **7/7**. Pure perf — no
   file moved, MAP.md/GUIDE.md untouched.
+
+- **B6 (`445b385`) — cooccurrence map keyed on faction indices.** ✅ DONE.
+  `src/analysis/relations/{derive,tension}.rs`. The tension co-occurrence
+  accumulator (`BTreeMap<(String, String), CooccurStats>`) allocated two
+  `String`s per pair-event in `build_cooccurrence`'s walk **and** two more per
+  `.get()` in `tension_of` / `build_relation` — ~30k allocs per derivation at 60
+  factions, quadratic at the 1000-faction catalogue. Built a faction-id → index
+  `FxMap<&str, u32>` once in `derive_with_threshold` and re-keyed the map on
+  `(u32, u32)` via a new `canonical_pair_idx` (branch+swap, zero allocs);
+  `bump_cooccur` resolves indices and **skips catalogue-absent ids** (those
+  entries were never read — the lookup path only queries `sector.factions` ids —
+  so dropping them is observably identical). Lookups go through a shared
+  `cooccur_stats` helper. **Golden-safe rationale:** the map is **lookup-only**
+  (grep-verified: only `.get()`, never `.iter()/.keys()/.values()`), so the
+  integer key type changes no emission order; the output `pairs` Vec is sorted by
+  tension, not map key. The id-string `canonical_pair` is **kept** for its other
+  two roles (pair-ordering / override matching and the public `stance_between`).
+  No external/test caller of the four touched fns (all internal). **Verification:**
+  clippy `-D warnings` clean, lib **192/192**, golden **15/15 byte-identical**,
+  relations integration **6/6**. Pure perf — MAP.md/GUIDE.md untouched.
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

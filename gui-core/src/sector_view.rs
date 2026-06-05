@@ -30,8 +30,12 @@ pub struct SectorMapCache {
     pub hex_system: HashMap<(i32, i32), sectorforge::ids::SystemId>,
     pub hex_region: HashMap<(i32, i32), (String, MapRegionOverlay)>,
     pub region_centroids: HashMap<String, Pos2>,
-    /// TF-P-3: pre-uppercased label per system id. Hot in `info_panel`,
-    /// builds once per cache rebuild instead of every frame.
+    /// TF-P-3: pre-`to_ascii_uppercase`-d display label per system id. The hot
+    /// consumer is the map label render (`render`, pass 1 obstacle measure +
+    /// pass 2 paint), which uppercases every visible system's name twice per
+    /// frame; this hoists that transform to one build per cache rebuild. Stored
+    /// ASCII-upper to match the map's `to_ascii_uppercase` draw exactly (a
+    /// `SystemId`-keyed `Arc<str>` so lookups are O(log n) and clone-cheap).
     pub system_label_cache: BTreeMap<SystemId, Arc<str>>,
     /// TF-P-4: per-faction style lookup built once per cache rebuild. Replaces
     /// the O(N) `faction_style_by_id` scan that was firing per-route + per
@@ -84,7 +88,7 @@ impl SectorMapCache {
 
         let mut system_label_cache: BTreeMap<SystemId, Arc<str>> = BTreeMap::new();
         for sys in &sector.systems {
-            let label: Arc<str> = Arc::from(sys.name.to_uppercase());
+            let label: Arc<str> = Arc::from(sys.name.to_ascii_uppercase());
             system_label_cache.insert(sys.id.clone(), label);
         }
 
@@ -104,7 +108,7 @@ impl SectorMapCache {
         }
     }
 
-    /// O(log n) lookup for the pre-uppercased system display label.
+    /// O(log n) lookup for the pre-`to_ascii_uppercase`-d system display label.
     #[must_use]
     pub fn system_label(&self, id: &SystemId) -> Option<&Arc<str>> {
         self.system_label_cache.get(id)
@@ -647,7 +651,13 @@ impl<'a> SectorView<'a> {
                         Pos2::new(c.x + hex_half_w, c.y + g.hex_size),
                     ));
                     if let Some(sys_font) = &sys_font {
-                        let name = sys.name.to_ascii_uppercase();
+                        // TF-P-3: reuse the prebuilt ASCII-upper label instead of
+                        // re-`to_ascii_uppercase`-ing every system every frame.
+                        let name = self
+                            .cache
+                            .and_then(|mc| mc.system_label(&sys.id))
+                            .map(|s| s.as_ref().to_owned())
+                            .unwrap_or_else(|| sys.name.to_ascii_uppercase());
                         let galley = painter.layout_no_wrap(name, sys_font.clone(), theme.text_dim);
                         let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
                         obstacles.push(egui::Rect::from_min_size(
@@ -844,7 +854,12 @@ impl<'a> SectorView<'a> {
 
                 // Pill background behind label so it stays readable when an
                 // adjacent row's hex tip pokes through.
-                let label = sys.name.to_ascii_uppercase();
+                // TF-P-3: prebuilt ASCII-upper label (see pass 1 above).
+                let label = self
+                    .cache
+                    .and_then(|mc| mc.system_label(&sys.id))
+                    .map(|s| s.as_ref().to_owned())
+                    .unwrap_or_else(|| sys.name.to_ascii_uppercase());
                 let galley = painter.layout_no_wrap(label, font.clone(), theme.text_dim);
                 let pos = Pos2::new(c.x - galley.size().x / 2.0, c.y + star_r + 3.0);
                 let bg_rect = egui::Rect::from_min_size(pos - pad, galley.size() + pad * 2.0);

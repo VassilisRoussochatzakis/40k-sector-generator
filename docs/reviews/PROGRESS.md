@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 13 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E13,E14,E-S1,E-S3*) | 0 | 4 | 0 |
+| E builder panels | 17 | 14 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E12,E13,E14,E-S1,E-S3*) | 0 | 3 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -947,6 +947,36 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     (world/claims, world/factions, world/features — all their EditWorld sites
     converted). No file moved → MAP.md untouched; GUIDE.md §R4 detail-editor note
     extended.
+
+### 2026-06-05 — step 5, wave 13 (AREA_E E12 — search.rs::show split)
+
+- **E12 (`search.rs::show` split) — ✅ DONE.** The ~307-line `pub fn show`
+  mixed §SR4 settings + §SR1 constraint editor + §SR5 preflight + §SR2 run/cancel/
+  progress in one body. Carved the four sections into helpers mirroring the
+  already-extracted `show_outcome`: `show_search_settings(ui, state, project_seed)`
+  (§SR4), `show_constraint_list(ui, state, factions)` (§SR1),
+  `preflight_unknown_ids(state, known) -> Vec<String>` (§SR5),
+  `show_run_controls(ui, state, preflight_unknown, budget_hint)` (§SR2). `show` is
+  now the gather-deps-then-orchestrate entry point.
+  - **Verbatim, behaviour-identical (proved by a trimmed-line multiset diff vs
+    `git HEAD`):** every widget call / string literal / `format!` / id-salt /
+    hover text appears unchanged in both versions. The only deltas are the
+    mechanical ones the extraction forces: `budget_hint` is now read via
+    `state.search.wishes.as_ref().map_or(1, |w| w.search.budget.max(1))` **before**
+    `show_search_settings` (same pre-§SR4-edit value the original captured at the
+    top of the `{ wishes }` block); `constraint_editor(.., &factions)` →
+    `(.., factions)` (param is now `&[String]`); `Some(project_seed.clone())` →
+    `to_owned()` (param is now `&str`); the shared `{ let wishes = …as_mut() }`
+    scope split into a per-helper `as_mut().unwrap()` (safe — `show` returns early
+    when `wishes` is `None`); the §SR5 loop guarded by `if let Some(wishes) =
+    …as_ref()`. No render-order or logic change.
+  - **The disjoint-field borrow** (the §SR1 closure mutating `wishes.constraints`
+    while also reading/writing `state.search.new_constraint_kind`) holds inside the
+    extracted fn exactly as it did inline — edition-2021 disjoint closure captures.
+  - **Verification:** `cargo check -p sectorforge-builder --all-targets` clean;
+    `cargo clippy -p sectorforge-builder --all-targets -- -D warnings` clean;
+    builder lib **319/319**. Builder-only, no `sectorforge`/`gui-core` source — golden +
+    map snapshots unaffected (not run). No file moved → MAP.md/GUIDE.md untouched.
 
 ### 2026-06-05 — step 5, wave 13 (AREA_E E5 — presence candidate dedup)
 

@@ -20,7 +20,7 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 | E9    | MED  | ✅ Confirmed   | S      | `chronicle.events.clone()` ×2 per frame                |
 | E10   | MED  | ✅ Confirmed   | M      | Filter/list block ~273 lines in `control.rs`           |
 | E11   | LOW  | ⚠️ Partial     | M      | `context_menu.rs` 1152 LOC (not 177); 5 large render fns|
-| E12   | LOW  | ✅ Confirmed   | M      | `search.rs::show` fn is ~307 lines (matches review)    |
+| E12   | LOW  | ✅ Resolved    | M      | `search.rs::show` fn is ~307 lines (matches review)    |
 | E13   | LOW  | ✅ Confirmed   | S      | Catalog dirty boilerplate ×6 panels (12 total sites)   |
 | E14   | LOW  | ✅ Confirmed   | S      | `claim_chip_colours` byte-identical in 2 files         |
 
@@ -338,8 +338,16 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E12 — `search.rs::show` fn is ~307 lines
 
+> ✅ **RESOLVED 2026-06-05.** Carved the monolithic `show` into four verbatim
+> helpers — `show_search_settings` (§SR4), `show_constraint_list` (§SR1),
+> `preflight_unknown_ids` (§SR5), `show_run_controls` (§SR2) — mirroring the
+> already-extracted `show_outcome`. Proven byte-faithful by a trimmed-line
+> multiset diff vs `git HEAD` (only the mechanical param/`budget_hint`/scope
+> deltas differ; no widget/string/logic change). Builder lib 319/319, clippy
+> clean. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** LOW / P3
-- **Status:** ✅ Confirmed
+- **Status:** ✅ Confirmed → ✅ Resolved
 - **Location:** `builder/src/builder/panels/search.rs:37` — `pub fn show` runs from line 37 to line 344, approximately 307 lines (review stated "308-line show fn")
 - **Evidence:** The function starts at line 37 and the next top-level function is `fn show_outcome` at line 345. The file is 1111 lines total and has additional helper fns (`constraint_editor`, `row_faction`, `world_type_combo`, etc.) below line 345.
 - **Why it matters:** A 307-line immediate function mixing constraint-editor, result-list, and filter-controls is hard to review and test.

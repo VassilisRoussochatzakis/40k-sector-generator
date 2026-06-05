@@ -105,141 +105,173 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
         return;
     }
 
-    // ── §SR4 search config + §SR1 constraint editor ────────────────────────
-    let mut preflight_unknown: Vec<String> = Vec::new();
-    let budget_hint;
+    // §SR4 → §SR1 → §SR5, extracted into helpers (cosmetic split, §E12). Capture
+    // budget_hint from the pre-edit budget (matches the original ordering: read
+    // before the §SR4 section can change it this frame).
+    let budget_hint = state
+        .search
+        .wishes
+        .as_ref()
+        .map_or(1, |w| w.search.budget.max(1));
 
-    {
-        let wishes = state.search.wishes.as_mut().unwrap();
-        budget_hint = wishes.search.budget.max(1);
+    show_search_settings(ui, state, &project_seed);
+    show_constraint_list(ui, state, &factions);
+    let preflight_unknown = preflight_unknown_ids(state, &known);
 
-        // §SR4: base_seed / budget / report_top.
-        ui_kit::collapsing_section(ui, "sr_sr4_search_config", "Search settings", true, |ui| {
-            labeled(
-                ui,
-                "Starting seed",
-                "Seed the search begins from (schema: base_seed). Tick to follow the project's own seed, or untick to type a fixed one.",
-                |ui| {
-                    let mut use_project = wishes.search.base_seed.is_none();
-                    if ui
-                        .checkbox(&mut use_project, "Use project seed")
-                        .changed()
-                    {
-                        wishes.search.base_seed = if use_project {
-                            None
-                        } else {
-                            Some(project_seed.clone())
-                        };
-                    }
-                    if let Some(seed) = wishes.search.base_seed.as_mut() {
-                        ui.add(
-                            egui::TextEdit::singleline(seed)
-                                .hint_text("seed")
-                                .desired_width(160.0),
-                        );
-                    } else {
-                        ui.label(
-                            RichText::new(format!("(project: {project_seed})"))
-                                .color(Color32::DARK_GRAY),
-                        );
-                    }
-                },
-            );
-            labeled(
-                ui,
-                "Seeds to try",
-                "How many seeds to enumerate before giving up (schema: budget). Higher = a better chance of a match, but slower.",
-                |ui| {
-                    ui.add(
-                        egui::DragValue::new(&mut wishes.search.budget)
-                            .range(1..=100_000)
-                            .speed(1.0),
-                    );
-                },
-            );
-            labeled(
-                ui,
-                "Near misses to keep",
-                "How many close-but-not-perfect seeds to list alongside a winner (schema: report_top).",
-                |ui| {
-                    ui.add(
-                        egui::DragValue::new(&mut wishes.search.report_top)
-                            .range(1..=50)
-                            .speed(1.0),
-                    );
-                },
-            );
-        });
+    show_run_controls(ui, state, &preflight_unknown, budget_hint);
 
-        // §SR1: per-constraint form widgets.
-        ui_kit::collapsing_section(
+    // §SR3: outcome panel.
+    if let Some(err) = state.search.error.clone() {
+        ui.separator();
+        ui.colored_label(palette::danger(), err);
+    }
+
+    show_outcome(ui, state);
+}
+
+// ── §SR4 search settings ─────────────────────────────────────────────────────
+
+/// §SR4: base_seed / budget / report_top form. Assumes a wish list exists
+/// (`show` returns early otherwise). Extracted from `show` (§E12) — verbatim.
+fn show_search_settings(ui: &mut egui::Ui, state: &mut BuilderState, project_seed: &str) {
+    let wishes = state.search.wishes.as_mut().unwrap();
+    ui_kit::collapsing_section(ui, "sr_sr4_search_config", "Search settings", true, |ui| {
+        labeled(
             ui,
-            "sr_sr1_constraints",
-            &format!("What to look for ({})", wishes.constraints.len()),
-            true,
+            "Starting seed",
+            "Seed the search begins from (schema: base_seed). Tick to follow the project's own seed, or untick to type a fixed one.",
             |ui| {
-                if wishes.constraints.is_empty() {
-                    ui_kit::placeholder(
-                        ui,
-                        "No requirements yet — add one below to describe the sector you want.",
+                let mut use_project = wishes.search.base_seed.is_none();
+                if ui
+                    .checkbox(&mut use_project, "Use project seed")
+                    .changed()
+                {
+                    wishes.search.base_seed = if use_project {
+                        None
+                    } else {
+                        Some(project_seed.to_owned())
+                    };
+                }
+                if let Some(seed) = wishes.search.base_seed.as_mut() {
+                    ui.add(
+                        egui::TextEdit::singleline(seed)
+                            .hint_text("seed")
+                            .desired_width(160.0),
+                    );
+                } else {
+                    ui.label(
+                        RichText::new(format!("(project: {project_seed})"))
+                            .color(Color32::DARK_GRAY),
                     );
                 }
-                let mut remove_idx: Option<usize> = None;
-                for (i, c) in wishes.constraints.iter_mut().enumerate() {
-                    ui.group(|ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(RichText::new(constraint_kind_human(c)).strong())
-                                .on_hover_text(format!("rule: {}", constraint_kind_label(c)));
-                            if ui
-                                .small_button("🗑")
-                                .on_hover_text("Delete this requirement")
-                                .clicked()
-                            {
-                                remove_idx = Some(i);
-                            }
-                        });
-                        constraint_editor(ui, i, c, &factions);
-                    });
-                }
-                if let Some(i) = remove_idx {
-                    wishes.constraints.remove(i);
-                }
-
-                ui.add_space(6.0);
-                ui.horizontal(|ui| {
-                    ui_kit::combo(
-                        "sr1-add-kind",
-                        constraint_kind_human_for(state.search.new_constraint_kind),
-                    )
-                    .show_ui(ui, |ui| {
-                        for kind in NewConstraintKind::ALL {
-                            if ui
-                                .selectable_label(
-                                    state.search.new_constraint_kind == *kind,
-                                    constraint_kind_human_for(*kind),
-                                )
-                                .on_hover_text(format!("rule: {}", kind.label()))
-                                .clicked()
-                            {
-                                state.search.new_constraint_kind = *kind;
-                            }
-                        }
-                    });
-                    if ui
-                        .button("➕  Add constraint")
-                        .on_hover_text("Add this requirement to the wish list")
-                        .clicked()
-                    {
-                        let default_faction = factions.first().cloned().unwrap_or_default();
-                        wishes
-                            .constraints
-                            .push(state.search.new_constraint_kind.make(&default_faction));
-                    }
-                });
             },
         );
+        labeled(
+            ui,
+            "Seeds to try",
+            "How many seeds to enumerate before giving up (schema: budget). Higher = a better chance of a match, but slower.",
+            |ui| {
+                ui.add(
+                    egui::DragValue::new(&mut wishes.search.budget)
+                        .range(1..=100_000)
+                        .speed(1.0),
+                );
+            },
+        );
+        labeled(
+            ui,
+            "Near misses to keep",
+            "How many close-but-not-perfect seeds to list alongside a winner (schema: report_top).",
+            |ui| {
+                ui.add(
+                    egui::DragValue::new(&mut wishes.search.report_top)
+                        .range(1..=50)
+                        .speed(1.0),
+                );
+            },
+        );
+    });
+}
 
-        // §SR5: live faction-id preflight against the roster.
+// ── §SR1 constraint editor ───────────────────────────────────────────────────
+
+/// §SR1: per-constraint form widgets + the add-constraint row. Assumes a wish
+/// list exists. Extracted from `show` (§E12) — verbatim.
+fn show_constraint_list(ui: &mut egui::Ui, state: &mut BuilderState, factions: &[String]) {
+    let wishes = state.search.wishes.as_mut().unwrap();
+    ui_kit::collapsing_section(
+        ui,
+        "sr_sr1_constraints",
+        &format!("What to look for ({})", wishes.constraints.len()),
+        true,
+        |ui| {
+            if wishes.constraints.is_empty() {
+                ui_kit::placeholder(
+                    ui,
+                    "No requirements yet — add one below to describe the sector you want.",
+                );
+            }
+            let mut remove_idx: Option<usize> = None;
+            for (i, c) in wishes.constraints.iter_mut().enumerate() {
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new(constraint_kind_human(c)).strong())
+                            .on_hover_text(format!("rule: {}", constraint_kind_label(c)));
+                        if ui
+                            .small_button("🗑")
+                            .on_hover_text("Delete this requirement")
+                            .clicked()
+                        {
+                            remove_idx = Some(i);
+                        }
+                    });
+                    constraint_editor(ui, i, c, factions);
+                });
+            }
+            if let Some(i) = remove_idx {
+                wishes.constraints.remove(i);
+            }
+
+            ui.add_space(6.0);
+            ui.horizontal(|ui| {
+                ui_kit::combo(
+                    "sr1-add-kind",
+                    constraint_kind_human_for(state.search.new_constraint_kind),
+                )
+                .show_ui(ui, |ui| {
+                    for kind in NewConstraintKind::ALL {
+                        if ui
+                            .selectable_label(
+                                state.search.new_constraint_kind == *kind,
+                                constraint_kind_human_for(*kind),
+                            )
+                            .on_hover_text(format!("rule: {}", kind.label()))
+                            .clicked()
+                        {
+                            state.search.new_constraint_kind = *kind;
+                        }
+                    }
+                });
+                if ui
+                    .button("➕  Add constraint")
+                    .on_hover_text("Add this requirement to the wish list")
+                    .clicked()
+                {
+                    let default_faction = factions.first().cloned().unwrap_or_default();
+                    wishes
+                        .constraints
+                        .push(state.search.new_constraint_kind.make(&default_faction));
+                }
+            });
+        },
+    );
+}
+
+/// §SR5: collect the referenced faction ids that aren't in the known roster.
+/// Extracted from `show` (§E12) — verbatim.
+fn preflight_unknown_ids(state: &BuilderState, known: &BTreeSet<String>) -> Vec<String> {
+    let mut preflight_unknown = Vec::new();
+    if let Some(wishes) = state.search.wishes.as_ref() {
         for c in &wishes.constraints {
             if let Some(id) = referenced_faction(c) {
                 if !id.is_empty() && !known.contains(&id) {
@@ -248,8 +280,19 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             }
         }
     }
+    preflight_unknown
+}
 
-    // ── Run / cancel (§SR2) ────────────────────────────────────────────────
+// ── §SR2 run / cancel / progress ─────────────────────────────────────────────
+
+/// §SR2: run/cancel buttons + the in-flight progress readout. Extracted from
+/// `show` (§E12) — verbatim.
+fn show_run_controls(
+    ui: &mut egui::Ui,
+    state: &mut BuilderState,
+    preflight_unknown: &[String],
+    budget_hint: u32,
+) {
     ui.separator();
     if !preflight_unknown.is_empty() {
         ui.colored_label(
@@ -323,14 +366,6 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             state.search.spawn(&ctx, input, wishes);
         }
     }
-
-    // §SR3: outcome panel.
-    if let Some(err) = state.search.error.clone() {
-        ui.separator();
-        ui.colored_label(palette::danger(), err);
-    }
-
-    show_outcome(ui, state);
 }
 
 // ── §SR3 outcome (§COLUMNS master-detail) ────────────────────────────────────

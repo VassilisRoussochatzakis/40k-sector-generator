@@ -377,12 +377,9 @@ impl App {
 
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             let (_resp, click) = SectorView {
-                sector,
                 selected_system: self.sector_selected.as_deref(),
                 selected_route: self.sector_selected_route.as_deref(),
                 hex_size: self.sector_hex_size,
-                path_route_ids: None,
-                path_waypoints: None,
                 subsectors: Some(self.subsectors.as_slice()),
                 cache: self.sector_map_cache.as_ref(),
                 selected_subsector: self.sector_selected_subsector.as_deref(),
@@ -391,15 +388,9 @@ impl App {
                     && self.editor.tool == SectorEditTool::AddSystem,
                 route_view_mode: self.route_view_mode,
                 origin: rect.min + self.sector_pan,
-                multi_selected: None,
-                pinned: None,
-                drag_override: None,
-                pending_route_preview: None,
-                rect_select: None,
                 sense: egui::Sense::click(),
-                disable_internal_click_dispatch: false,
-                theme: None,
                 show_hover_coord: true,
+                ..SectorView::new(sector)
             }
             .show(ui);
             match click {

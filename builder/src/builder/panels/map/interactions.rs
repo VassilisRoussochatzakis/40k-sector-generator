@@ -103,17 +103,14 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
 
     ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
         SectorView {
-            sector: &state.sector,
             selected_system: state.selected_system_id.as_ref().map(|id| id.as_str()),
             selected_route: state.selected_route_id.as_ref().map(|id| id.as_str()),
             hex_size: state.hex_size,
             path_route_ids: lifeline_ref,
-            path_waypoints: None,
             subsectors: subsectors_slice,
             cache: lookup,
             selected_subsector: state.selected_subsector_id.as_deref(),
             heatmap: heatmap_ref,
-            empty_hex_clicks: false,
             route_view_mode: sectorforge::sector_model::RouteViewMode::Detailed,
             origin,
             multi_selected: Some(&state.selected_systems),
@@ -121,10 +118,10 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             drag_override,
             pending_route_preview,
             rect_select,
-            sense: Sense::hover(),
             disable_internal_click_dispatch: true,
             theme: Some(&render_theme),
             show_hover_coord: true,
+            ..SectorView::new(&state.sector)
         }
         .show(ui);
     });

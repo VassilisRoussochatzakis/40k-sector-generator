@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 14 (F1,F2,F-S1,F-S2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12) | 0 | 1 | 0 |
+| F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -700,6 +700,41 @@ preference.
     `map_snapshots_match_goldens` **un-blessed pass**; gui-core lib **31/31**;
     golden **15/15 byte-identical** (star-dust is live-only — export goldens never
     reach it). MAP.md updated (cache.rs row).
+
+### 2026-06-05 — step 5, wave 10 (AREA_F SectorView ctor — F-S3) · AREA F COMPLETE
+
+- **F-S3 (`SectorView::new` + struct-update)** — ✅ DONE.
+  `gui-core/src/sector_view/view.rs`. `SectorView` is a 27-field `pub` struct with
+  no `Default`, so every call site had to spell all 27 fields and any new field
+  cascaded into all of them. Added `pub fn SectorView::new(sector: &GeneratedSector)
+  -> Self` filling `sector` + every other field at its neutral default
+  (None/false, `hex_size 40`, `origin ZERO`, `Sense::hover()`,
+  `RouteViewMode::default()`). Chose a **constructor over `impl Default`** because
+  `sector: &'a GeneratedSector` is a required reference — `Default` would need a
+  placeholder `&'static GeneratedSector`; `new(sector)` keeps `sector` mandatory
+  and needs no global placeholder.
+  - **All 5 call sites converted** to `SectorView { <overrides>, ..SectorView::new(sector) }`:
+    viewer `app/sector_view.rs`, `app/planner_view.rs`, `editor/map_panel.rs`;
+    builder `panels/map/interactions.rs`; the gui-core `map_snapshots` test. A new
+    field added to `SectorView` now defaults through `..new(sector)` instead of
+    breaking every caller.
+  - **Byte-identical (safe conversion):** at each site only fields whose literal
+    value **is** the new default (`None` / `false` / `Sense::hover()` / `Pos2::ZERO`
+    / dropped `sector`) were removed; every non-default field stays explicit. So
+    the constructed value is unchanged. Proven by `map_snapshots_match_goldens`
+    passing **un-blessed** (the snapshot site is one of the five). Dropped the now
+    unused `Sense` import from the snapshot test.
+  - **`show()` body decomposition still parked** (the *other* half the review
+    mentioned — `render_routes`/`render_systems`/… extraction): that one is
+    genuinely snapshot-behaviour-sensitive and large; left for an owner decision.
+  - **Verification:** workspace clippy `-D warnings` clean;
+    `map_snapshots_match_goldens` **un-blessed pass**; gui-core lib **31/31**;
+    viewer **8/8**; builder **317/317**; golden **15/15 byte-identical**. MAP.md
+    note added.
+
+- **AREA F is now fully closed (15/15).** The remaining whole-review backlog is
+  AREA A/B/C/E/G + the owner-gated API-shape items (A5, D-S3/D5, C2, the trait/
+  macro dedups, and the F-S3 `show()` decomposition).
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use egui::{Color32, Pos2, Rect, Sense, Vec2};
+use egui::{Color32, Pos2, Rect, Vec2};
 use image::{ImageFormat, Rgba, RgbaImage};
 use sectorforge::ids::{route_id, FactionId, RouteId, SystemId, WorldId};
 use sectorforge::regions::{RegionConditionKind, WarpRegion};
@@ -398,7 +398,6 @@ fn render_case(case: &SnapshotCase) -> RgbaImage {
             .show(ctx, |ui| {
                 ui.set_min_size(Vec2::new(width as f32, height as f32));
                 SectorView {
-                    sector: &case.sector,
                     selected_system: case.selected_system.as_ref().map(SystemId::as_str),
                     selected_route: case.selected_route.as_ref().map(RouteId::as_str),
                     hex_size: case.hex_size,
@@ -408,21 +407,14 @@ fn render_case(case: &SnapshotCase) -> RgbaImage {
                         .then_some(&case.path_waypoints),
                     subsectors: (!case.subsectors.is_empty()).then_some(case.subsectors.as_slice()),
                     cache: Some(&cache),
-                    selected_subsector: None,
-                    heatmap: None,
-                    empty_hex_clicks: false,
                     route_view_mode: RouteViewMode::Detailed,
-                    origin: Pos2::ZERO,
                     multi_selected: (!case.multi_selected.is_empty())
                         .then_some(&case.multi_selected),
                     pinned: (!case.pinned.is_empty()).then_some(&case.pinned),
-                    drag_override: None,
-                    pending_route_preview: None,
                     rect_select: case.rect_select,
-                    sense: Sense::hover(),
                     disable_internal_click_dispatch: true,
                     theme: Some(&theme),
-                    show_hover_coord: false,
+                    ..SectorView::new(&case.sector)
                 }
                 .show(ui);
             });

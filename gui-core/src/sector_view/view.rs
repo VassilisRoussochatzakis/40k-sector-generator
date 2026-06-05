@@ -1,7 +1,8 @@
 //! The `SectorView` widget (struct + `SectorClick`) and its `show()` render
 //! method. Split verbatim from the former `sector_view.rs` god-file (AREA_F
-//! F3); the 27-field struct and the monolithic `show()` are unchanged — the
-//! `Default`/field-collapse and `show()` decomposition (F-S3) are parked.
+//! F3). F-S3: a `SectorView::new(sector)` constructor + `..new(sector)`
+//! struct-update at the call sites means new fields no longer cascade into every
+//! caller; the monolithic `show()` body decomposition stays parked.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -86,6 +87,39 @@ pub enum SectorClick {
 }
 
 impl<'a> SectorView<'a> {
+    /// A `SectorView` over `sector` with every other field at its neutral default
+    /// (no selection/overlays/path, `hex_size` 40, `origin` zero, hover-only sense,
+    /// internal click dispatch on). Call sites override only what they need via
+    /// struct-update — `SectorView { hex_size, cache, ..SectorView::new(sector) }`
+    /// — so adding a field no longer forces an edit in every caller (F-S3).
+    #[must_use]
+    pub fn new(sector: &'a GeneratedSector) -> Self {
+        Self {
+            sector,
+            selected_system: None,
+            selected_route: None,
+            hex_size: 40.0,
+            path_route_ids: None,
+            path_waypoints: None,
+            subsectors: None,
+            cache: None,
+            selected_subsector: None,
+            heatmap: None,
+            empty_hex_clicks: false,
+            route_view_mode: sector_model::RouteViewMode::default(),
+            origin: Pos2::ZERO,
+            multi_selected: None,
+            pinned: None,
+            drag_override: None,
+            pending_route_preview: None,
+            rect_select: None,
+            sense: Sense::hover(),
+            disable_internal_click_dispatch: false,
+            theme: None,
+            show_hover_coord: false,
+        }
+    }
+
     pub fn show(self, ui: &mut Ui) -> (Response, Option<SectorClick>) {
         let g = SectorGeom::new(self.hex_size, self.origin);
         let (rect, response) = ui.allocate_at_least(ui.available_size(), self.sense);

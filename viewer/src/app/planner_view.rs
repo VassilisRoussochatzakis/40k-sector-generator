@@ -90,9 +90,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
 
             ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
                 let (_resp, click) = crate::sector_view::SectorView {
-                    sector: &sector,
                     selected_system: app.planner.from.as_ref().map(|id| id.as_str()),
-                    selected_route: None,
                     hex_size: app.planner_hex_size,
                     path_route_ids: Some(&path_routes),
                     path_waypoints: Some(&path_waypoints),
@@ -100,20 +98,11 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     // F4: reuse the App's prebuilt cache (kept in sync with
                     // `app.sector` on load/edit) instead of the per-frame fallback.
                     cache: app.sector_map_cache.as_ref(),
-                    selected_subsector: None,
-                    heatmap: None,
-                    empty_hex_clicks: false,
                     route_view_mode: app.route_view_mode,
                     origin: rect.min + app.planner_pan,
-                    multi_selected: None,
-                    pinned: None,
-                    drag_override: None,
-                    pending_route_preview: None,
-                    rect_select: None,
                     sense: egui::Sense::click(),
-                    disable_internal_click_dispatch: false,
-                    theme: None,
                     show_hover_coord: true,
+                    ..crate::sector_view::SectorView::new(&sector)
                 }
                 .show(ui);
 

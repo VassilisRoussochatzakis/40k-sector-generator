@@ -63,28 +63,16 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
         let cache = state.map_cache.as_ref();
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             SectorView {
-                sector,
                 selected_system: selected_id,
-                selected_route: None,
                 hex_size,
-                path_route_ids: None,
-                path_waypoints: None,
-                subsectors: None,
                 cache,
-                selected_subsector: None,
-                heatmap: None,
-                empty_hex_clicks: false,
                 route_view_mode: state.route_view_mode,
                 origin,
-                multi_selected: None,
-                pinned: None,
                 drag_override,
                 pending_route_preview,
-                rect_select: None,
-                sense: Sense::hover(),
                 disable_internal_click_dispatch: true,
-                theme: None,
                 show_hover_coord: true,
+                ..SectorView::new(sector)
             }
             .show(ui);
         });

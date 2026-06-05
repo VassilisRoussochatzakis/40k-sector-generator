@@ -11,8 +11,8 @@ use camino::Utf8Path;
 use rand::Rng;
 
 use super::config::{
-    DirectionalRelation, FactionRelation, RelationAttitude, RelationMetrics, RelationOverride,
-    RelationsConfig, RelationsMatrix, Stance, TreatyStatus,
+    DirectionalRelation, DispositionRule, FactionRelation, KindRule, RelationAttitude,
+    RelationMetrics, RelationOverride, RelationsConfig, RelationsMatrix, Stance, TreatyStatus,
 };
 use super::tables::{
     cross_kinds, default_disposition_delta, default_kind_stance, ideological_distance,
@@ -85,6 +85,8 @@ pub fn derive_with_threshold(
 
     // Build co-occurrence weights for tension.
     let cooccur = build_cooccurrence(sector, &idx);
+    // B3: index the user kind/disposition rules once, off the O(F²) pair loop.
+    let rules = RuleIndex::build(cfg);
 
     let mut pairs: Vec<FactionRelation> = Vec::with_capacity(facs.len() * (facs.len() - 1) / 2);
     for i in 0..facs.len() {
@@ -94,7 +96,7 @@ pub fn derive_with_threshold(
             let (lo_id, _hi_id) = canonical_pair(&a.id, &b.id);
             let (lo, hi) = if lo_id == a.id { (a, b) } else { (b, a) };
 
-            let rel = compute_pair(&sector.seed, lo, hi, cfg, &cooccur, &idx);
+            let rel = compute_pair(&sector.seed, lo, hi, cfg, &rules, &cooccur, &idx);
             pairs.push(rel);
         }
     }
@@ -109,11 +111,87 @@ pub fn derive_with_threshold(
     }
 }
 
+/// Assign `s` the next sequential id if it is not already interned.
+fn intern<'c>(map: &mut FxMap<&'c str, u32>, s: &'c str) {
+    let n = map.len() as u32;
+    map.entry(s).or_insert(n);
+}
+
+/// Pre-indexed user rules (B3). The O(F²) pair loop previously rescanned the
+/// full `kind_rules` / `disposition_rules` slices per pair. Here each rule set
+/// is indexed once on the canonical (unordered) pair of interned kind /
+/// disposition strings, so a pair does two map lookups instead of two linear
+/// scans. Strings absent from every rule are never interned — a kind/disposition
+/// that matches no rule can never satisfy a match, so a missing index entry is
+/// exactly the linear scan's "no match".
+struct RuleIndex<'c> {
+    kind_ids: FxMap<&'c str, u32>,
+    /// First rule per canonical kind pair (matches the scan's first-match-wins).
+    kind_rules: BTreeMap<(u32, u32), &'c KindRule>,
+    disp_ids: FxMap<&'c str, u32>,
+    /// All rules per canonical disposition pair, in config order (the scan sums
+    /// every match and concatenates causes in order).
+    disp_rules: BTreeMap<(u32, u32), Vec<&'c DispositionRule>>,
+}
+
+impl<'c> RuleIndex<'c> {
+    fn build(cfg: &'c RelationsConfig) -> Self {
+        let mut kind_ids: FxMap<&str, u32> = FxMap::default();
+        for r in &cfg.kind_rules {
+            intern(&mut kind_ids, r.a.as_str());
+            intern(&mut kind_ids, r.b.as_str());
+        }
+        let mut kind_rules: BTreeMap<(u32, u32), &KindRule> = BTreeMap::new();
+        for r in &cfg.kind_rules {
+            let key = canonical_pair_idx(kind_ids[r.a.as_str()], kind_ids[r.b.as_str()]);
+            kind_rules.entry(key).or_insert(r);
+        }
+
+        let mut disp_ids: FxMap<&str, u32> = FxMap::default();
+        for r in &cfg.disposition_rules {
+            intern(&mut disp_ids, r.a.as_str());
+            intern(&mut disp_ids, r.b.as_str());
+        }
+        let mut disp_rules: BTreeMap<(u32, u32), Vec<&DispositionRule>> = BTreeMap::new();
+        for r in &cfg.disposition_rules {
+            let key = canonical_pair_idx(disp_ids[r.a.as_str()], disp_ids[r.b.as_str()]);
+            disp_rules.entry(key).or_default().push(r);
+        }
+
+        Self {
+            kind_ids,
+            kind_rules,
+            disp_ids,
+            disp_rules,
+        }
+    }
+
+    /// The winning kind rule for an (unordered) kind pair, if any.
+    fn kind_rule(&self, a: &str, b: &str) -> Option<&'c KindRule> {
+        let ia = *self.kind_ids.get(a)?;
+        let ib = *self.kind_ids.get(b)?;
+        self.kind_rules.get(&canonical_pair_idx(ia, ib)).copied()
+    }
+
+    /// Every disposition rule matching an (unordered) disposition pair, in
+    /// config order.
+    fn disposition_rules(&self, a: &str, b: &str) -> &[&'c DispositionRule] {
+        let (Some(&ia), Some(&ib)) = (self.disp_ids.get(a), self.disp_ids.get(b)) else {
+            return &[];
+        };
+        self.disp_rules
+            .get(&canonical_pair_idx(ia, ib))
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+}
+
 fn compute_pair(
     seed: &str,
     a: &GeneratedFaction,
     b: &GeneratedFaction,
     cfg: &RelationsConfig,
+    rules: &RuleIndex,
     cooccur: &BTreeMap<(u32, u32), CooccurStats>,
     idx: &FxMap<&str, u32>,
 ) -> FactionRelation {
@@ -137,16 +215,12 @@ fn compute_pair(
     }
 
     // 2) User kind_rules (first symmetric match wins).
-    let mut base = None;
-    for r in &cfg.kind_rules {
-        if (r.a == *a.kind && r.b == *b.kind) || (r.a == *b.kind && r.b == *a.kind) {
-            base = Some((
-                r.stance,
-                r.cause.clone().unwrap_or_else(|| match_cause(a, b)),
-            ));
-            break;
-        }
-    }
+    let base = rules.kind_rule(&a.kind, &b.kind).map(|r| {
+        (
+            r.stance,
+            r.cause.clone().unwrap_or_else(|| match_cause(a, b)),
+        )
+    });
     let (base_stance, mut cause) = base.unwrap_or_else(|| {
         let (s, c) = default_kind_stance(&a.kind, &b.kind);
         (s, c.to_string())
@@ -154,20 +228,15 @@ fn compute_pair(
 
     // 3) Disposition delta: sum user rules and the built-in fallback.
     let mut delta = 0i32;
-    let mut user_disp_hit = false;
-    for r in &cfg.disposition_rules {
-        if (r.a == *a.disposition && r.b == *b.disposition)
-            || (r.a == *b.disposition && r.b == *a.disposition)
-        {
-            delta += r.delta;
-            if let Some(c) = &r.cause {
-                cause.push_str("; ");
-                cause.push_str(c);
-            }
-            user_disp_hit = true;
+    let disp_rules = rules.disposition_rules(&a.disposition, &b.disposition);
+    for r in disp_rules {
+        delta += r.delta;
+        if let Some(c) = &r.cause {
+            cause.push_str("; ");
+            cause.push_str(c);
         }
     }
-    if !user_disp_hit {
+    if disp_rules.is_empty() {
         delta += default_disposition_delta(&a.disposition, &b.disposition);
     }
 

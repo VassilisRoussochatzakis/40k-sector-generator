@@ -215,4 +215,48 @@ mod tests {
             serde_json::to_string(&b).unwrap()
         );
     }
+
+    /// B3: the rule-index must preserve the linear scan's semantics —
+    /// `kind_rules` is first-match-wins, `disposition_rules` sums every match
+    /// and concatenates causes in config order. The `cause` string observes all
+    /// three independently of the seed-derived stance perturbation.
+    #[test]
+    fn user_rules_index_preserves_first_match_and_sum_order() {
+        let mut cfg = RelationsConfig::default();
+        // Two kind rules match the (imperial, imperial) pair — the FIRST wins.
+        cfg.kind_rules.push(KindRule {
+            a: "imperial".into(),
+            b: "imperial".into(),
+            stance: Stance::Rival,
+            cause: Some("KFIRST".into()),
+        });
+        cfg.kind_rules.push(KindRule {
+            a: "imperial".into(),
+            b: "imperial".into(),
+            stance: Stance::AtWar,
+            cause: Some("KSECOND".into()),
+        });
+        // Two disposition rules match the (lawful, lawful) pair — both apply, in
+        // order; delta 0 keeps the stance (and thus the test) perturbation-proof.
+        cfg.disposition_rules.push(DispositionRule {
+            a: "lawful".into(),
+            b: "lawful".into(),
+            delta: 0,
+            cause: Some("D1".into()),
+        });
+        cfg.disposition_rules.push(DispositionRule {
+            a: "lawful".into(),
+            b: "lawful".into(),
+            delta: 0,
+            cause: Some("D2".into()),
+        });
+        let m = derive_with(
+            &sector_with(vec![
+                faction("a", "imperial", "lawful"),
+                faction("b", "imperial", "lawful"),
+            ]),
+            &cfg,
+        );
+        assert_eq!(m.pairs[0].cause, "KFIRST; D1; D2");
+    }
 }

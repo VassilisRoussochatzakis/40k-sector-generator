@@ -128,26 +128,22 @@ pub enum HookKind {
     LifelineLane,
 }
 
-impl HookKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::CounterInfiltration => "counter_infiltration",
-            Self::Reconquest => "reconquest",
-            Self::LostPassage => "lost_passage",
-            Self::ConvoyEscort => "convoy_escort",
-            Self::BlockadeRun => "blockade_run",
-            Self::HoldTheLine => "hold_the_line",
-            Self::SealedTombs => "sealed_tombs",
-            Self::CrushUprising => "crush_uprising",
-            Self::SealedSystem => "sealed_system",
-            Self::CultPurge => "cult_purge",
-            Self::DiplomaticCrisis => "diplomatic_crisis",
-            Self::SuccessionDispute => "succession_dispute",
-            Self::StarvingWorld => "starving_world",
-            Self::LifelineLane => "lifeline_lane",
-        }
-    }
-}
+enum_slug!(HookKind {
+    CounterInfiltration => "counter_infiltration",
+    Reconquest => "reconquest",
+    LostPassage => "lost_passage",
+    ConvoyEscort => "convoy_escort",
+    BlockadeRun => "blockade_run",
+    HoldTheLine => "hold_the_line",
+    SealedTombs => "sealed_tombs",
+    CrushUprising => "crush_uprising",
+    SealedSystem => "sealed_system",
+    CultPurge => "cult_purge",
+    DiplomaticCrisis => "diplomatic_crisis",
+    SuccessionDispute => "succession_dispute",
+    StarvingWorld => "starving_world",
+    LifelineLane => "lifeline_lane",
+});
 
 impl core::fmt::Display for HookKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

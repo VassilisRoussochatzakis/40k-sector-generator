@@ -64,19 +64,17 @@ pub enum KindGroup {
     Other,
 }
 
-impl KindGroup {
-    pub fn as_slug(self) -> &'static str {
-        match self {
-            Self::Imperial => "imperial",
-            Self::Mechanicus => "mechanicus",
-            Self::Chaos => "chaos",
-            Self::Aeldari => "aeldari",
-            Self::Xenos => "xenos",
-            Self::Criminal => "criminal",
-            Self::Other => "other",
-        }
-    }
+enum_slug!(KindGroup {
+    Imperial => "imperial",
+    Mechanicus => "mechanicus",
+    Chaos => "chaos",
+    Aeldari => "aeldari",
+    Xenos => "xenos",
+    Criminal => "criminal",
+    Other => "other",
+});
 
+impl KindGroup {
     #[must_use]
     pub fn label(self) -> &'static str {
         match self {

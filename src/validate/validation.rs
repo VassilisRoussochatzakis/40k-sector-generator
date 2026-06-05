@@ -34,15 +34,11 @@ pub enum Severity {
     Info,
 }
 
-impl Severity {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Error => "error",
-            Self::Warning => "warning",
-            Self::Info => "info",
-        }
-    }
-}
+enum_slug!(Severity {
+    Error => "error",
+    Warning => "warning",
+    Info => "info",
+});
 
 impl core::fmt::Display for Severity {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -704,32 +700,27 @@ pub enum ValidationCode {
     ResourceSupplyResilienceBad,
 }
 
-impl ValidationCode {
-    #[must_use]
-    pub const fn as_slug(self) -> &'static str {
-        match self {
-            Self::FactionDuplicateId => "FACTION_DUPLICATE_ID",
-            Self::FactionBadWeight => "FACTION_BAD_WEIGHT",
-            Self::FactionUnknownWorldType => "FACTION_UNKNOWN_WORLD_TYPE",
-            Self::FactionUnknownGovernment => "FACTION_UNKNOWN_GOVERNMENT",
-            Self::FactionUnknownFeature => "FACTION_UNKNOWN_FEATURE",
-            Self::RouteBadMultiplier => "ROUTE_BAD_MULTIPLIER",
-            Self::RouteUnknownFeature => "ROUTE_UNKNOWN_FEATURE",
-            Self::RouteUnknownWorldType => "ROUTE_UNKNOWN_WORLD_TYPE",
-            Self::RouteUnknownGovernment => "ROUTE_UNKNOWN_GOVERNMENT",
-            Self::RouteUnknownRouteType => "ROUTE_UNKNOWN_ROUTE_TYPE",
-            Self::RelationsKindRuleEmpty => "RELATIONS_KIND_RULE_EMPTY",
-            Self::RelationsPairUnknownFaction => "RELATIONS_PAIR_UNKNOWN_FACTION",
-            Self::RelationsOverrideUnknownFaction => "RELATIONS_OVERRIDE_UNKNOWN_FACTION",
-            Self::RegionsConditionBadWeight => "REGIONS_CONDITION_BAD_WEIGHT",
-            Self::EconomyTechMultiplierBad => "ECONOMY_TECH_MULTIPLIER_BAD",
-            Self::EconomyPopMultiplierBad => "ECONOMY_POP_MULTIPLIER_BAD",
-            Self::ResourceScoreBad => "RESOURCE_SCORE_BAD",
-            Self::ResourceTradeMultiplierBad => "RESOURCE_TRADE_MULTIPLIER_BAD",
-            Self::ResourceSupplyResilienceBad => "RESOURCE_SUPPLY_RESILIENCE_BAD",
-        }
-    }
-}
+enum_slug!(const ValidationCode {
+    FactionDuplicateId => "FACTION_DUPLICATE_ID",
+    FactionBadWeight => "FACTION_BAD_WEIGHT",
+    FactionUnknownWorldType => "FACTION_UNKNOWN_WORLD_TYPE",
+    FactionUnknownGovernment => "FACTION_UNKNOWN_GOVERNMENT",
+    FactionUnknownFeature => "FACTION_UNKNOWN_FEATURE",
+    RouteBadMultiplier => "ROUTE_BAD_MULTIPLIER",
+    RouteUnknownFeature => "ROUTE_UNKNOWN_FEATURE",
+    RouteUnknownWorldType => "ROUTE_UNKNOWN_WORLD_TYPE",
+    RouteUnknownGovernment => "ROUTE_UNKNOWN_GOVERNMENT",
+    RouteUnknownRouteType => "ROUTE_UNKNOWN_ROUTE_TYPE",
+    RelationsKindRuleEmpty => "RELATIONS_KIND_RULE_EMPTY",
+    RelationsPairUnknownFaction => "RELATIONS_PAIR_UNKNOWN_FACTION",
+    RelationsOverrideUnknownFaction => "RELATIONS_OVERRIDE_UNKNOWN_FACTION",
+    RegionsConditionBadWeight => "REGIONS_CONDITION_BAD_WEIGHT",
+    EconomyTechMultiplierBad => "ECONOMY_TECH_MULTIPLIER_BAD",
+    EconomyPopMultiplierBad => "ECONOMY_POP_MULTIPLIER_BAD",
+    ResourceScoreBad => "RESOURCE_SCORE_BAD",
+    ResourceTradeMultiplierBad => "RESOURCE_TRADE_MULTIPLIER_BAD",
+    ResourceSupplyResilienceBad => "RESOURCE_SUPPLY_RESILIENCE_BAD",
+});
 
 impl std::fmt::Display for ValidationCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

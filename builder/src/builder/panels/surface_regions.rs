@@ -7,10 +7,10 @@
 //! list wholesale. Each row exposes name, kind, dominant faction, control
 //! score, population weight, visibility, and free-form notes.
 
-use egui::{RichText, Ui};
+use egui::Ui;
 
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use sectorforge::ids::FactionId;
 use sectorforge::surface_region::{derive_regions, RegionKind, SurfaceRegion};
@@ -33,23 +33,6 @@ const REGION_KINDS: [RegionKind; 12] = [
     RegionKind::Hideout,
     RegionKind::Other,
 ];
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Control", "Population share") while the tooltip
-/// names the underlying field plus a plain-language note, so power users keep
-/// the schema mapping. Friendlier replacement for the bare `egui::Grid` whose
-/// row labels *were* the raw schema names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Human-readable name for a region kind. The domain enum only exposes a
 /// snake_case slug (`as_slug`), so we title-case it locally for display and

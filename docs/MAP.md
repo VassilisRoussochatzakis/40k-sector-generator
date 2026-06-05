@@ -41,6 +41,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/worlds.rs](../src/worlds.rs) | Canonical world enums (incl. `VARIANTS`/`display_name`) |
 | [src/worlds_toml.rs](../src/worlds_toml.rs) | §45 native typed `worlds.toml` config (sole world-data format) |
 | [src/lib.rs](../src/lib.rs) | Public API surface (doc-tests + `# Errors`); re-aliases moved modules back to root |
+| [src/macros.rs](../src/macros.rs) | Crate-internal `macro_rules!` (`#[macro_use]`): `enum_slug!` — `as_slug` for a fieldless enum from verbatim variant→slug pairs (B-S3) |
 | [src/main.rs](../src/main.rs) | `sectorforge` binary entry: parses `cli::Cli`, dispatches to `cli::run`, maps errors to exit 2 |
 | [src/bin/dhat_profile.rs](../src/bin/dhat_profile.rs) | docs/OPTIMIZE.txt §G4 heap-profiling harness binary (dhat) |
 

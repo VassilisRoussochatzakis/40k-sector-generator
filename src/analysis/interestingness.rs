@@ -58,17 +58,13 @@ pub enum ProfileId {
     Frontier,
 }
 
-impl ProfileId {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::PoliticalSandbox => "political_sandbox",
-            Self::GrimCollapse => "grim_collapse",
-            Self::Mercantile => "mercantile",
-            Self::Villainous => "villainous",
-            Self::Frontier => "frontier",
-        }
-    }
-}
+enum_slug!(ProfileId {
+    PoliticalSandbox => "political_sandbox",
+    GrimCollapse => "grim_collapse",
+    Mercantile => "mercantile",
+    Villainous => "villainous",
+    Frontier => "frontier",
+});
 
 impl core::fmt::Display for ProfileId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

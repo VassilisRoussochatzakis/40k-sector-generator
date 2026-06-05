@@ -155,15 +155,11 @@ pub enum PlacementMode {
     Clustered,
 }
 
-impl PlacementMode {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::UniformGrid => "uniform_grid",
-            Self::WeightedGrid => "weighted_grid",
-            Self::Clustered => "clustered",
-        }
-    }
-}
+enum_slug!(PlacementMode {
+    UniformGrid => "uniform_grid",
+    WeightedGrid => "weighted_grid",
+    Clustered => "clustered",
+});
 
 impl core::fmt::Display for PlacementMode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -215,13 +211,9 @@ pub enum WorldSelectionMode {
     WeightedRows,
 }
 
-impl WorldSelectionMode {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::WeightedRows => "weighted_rows",
-        }
-    }
-}
+enum_slug!(WorldSelectionMode {
+    WeightedRows => "weighted_rows",
+});
 
 impl core::fmt::Display for WorldSelectionMode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -425,17 +417,15 @@ impl OutputFormat {
             _ => None,
         }
     }
-
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Json => "json",
-            Self::Markdown => "markdown",
-            Self::Bitmap => "bitmap",
-            Self::Svg => "svg",
-            Self::Html => "html",
-        }
-    }
 }
+
+enum_slug!(OutputFormat {
+    Json => "json",
+    Markdown => "markdown",
+    Bitmap => "bitmap",
+    Svg => "svg",
+    Html => "html",
+});
 
 impl core::fmt::Display for OutputFormat {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -493,15 +483,11 @@ pub enum HtmlTheme {
     Hololithic,
 }
 
-impl HtmlTheme {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Dark => "dark",
-            Self::Parchment => "parchment",
-            Self::Hololithic => "hololithic",
-        }
-    }
-}
+enum_slug!(HtmlTheme {
+    Dark => "dark",
+    Parchment => "parchment",
+    Hololithic => "hololithic",
+});
 
 impl core::fmt::Display for HtmlTheme {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

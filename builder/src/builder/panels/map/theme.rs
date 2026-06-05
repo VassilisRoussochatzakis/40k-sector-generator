@@ -27,8 +27,7 @@ use sectorforge::map_theme::{
     MapThemeConfig, RouteLineMode, SymbolSet, BUILTIN_THEME_NAMES,
 };
 use sectorforge::sector_model::RouteStability;
-use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::BuilderState;
 
@@ -45,23 +44,6 @@ pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
             ui.add_space(4.0);
             show_custom_editor(ui, state);
         });
-}
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Empty hex", "Route — stable") while the tooltip
-/// names the underlying theme field plus a plain-language note, so power users
-/// keep the schema mapping. Friendlier replacement for the old bare `egui::Grid`
-/// / inline-`ui.label` rows whose labels *were* the raw schema field names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
 }
 
 /// Turn a snake_case slug (`hazard_weighted`, `important_only`) into a readable

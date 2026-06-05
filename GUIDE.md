@@ -1442,7 +1442,14 @@ asserts byte equality across two runs with identical seed. The suite caches the
 default m42 fixture sector once per test process, validates post-generation
 invariants on that cached sector, and reloads exported JSON/manifest files so
 determinism checks stay accurate without repeatedly paying the full generation
-cost.
+cost. It also pins **content goldens** — the full exported `sector.json` and
+`sector.md` for the m42 fixture live under
+[tests/goldens/](tests/goldens/) and are byte-compared on every run, so a
+deterministic-but-wrong change (renamed field, dropped markdown row) trips the
+test instead of passing silently. Refresh after an intentional output change
+with `UPDATE_GOLDEN_JSON=1 UPDATE_GOLDEN_MD=1 cargo test --test it -- golden`,
+then review `git diff tests/goldens/`. This content golden is the safety net the
+IMPROVEMENT_REVIEW god-file splits are gated on.
 
 To get different output, change the seed:
 
@@ -2599,6 +2606,19 @@ dispatches `EditChronicle` so the recompute lands on the undo stack; the passive
 per-frame LD4 refresh (`recompute_chronicle`) stays off-bus so merely viewing the
 HISTORY tab never evicts the redo tail. Manual chronicle events are preserved on
 either path.
+
+**Faction power on-bus + `primary_factions` passive carve-out (IMPROVEMENT_REVIEW
+E1 / E2).** The CONTROL tab's "↺ Apply to faction totals" button previously wrote
+`factions[*].power` directly; it now dispatches `ApplyFactionPower`
+([command.rs](builder/src/builder/command.rs), `dep_classes = [Factions]`,
+`before` captured on `apply`) so the bulk overwrite is undoable. The per-system
+`primary_factions` auto-derive (§C5) previously overwrote the field *every frame*
+off-bus; it now reconciles **only on real change** and marks the project dirty,
+but — mirroring the LD4 chronicle refresh above — deliberately stays **off** the
+undo bus: it is a passive, view-triggered refresh of denormalized document state,
+and dispatching a command during render would inject spurious undo entries on
+mere tab navigation and fight undo (undo → re-derive from unchanged presence →
+re-dispatch). The active "↺ Re-derive" button remains on-bus via `EditSystem`.
 
 **Diagnostics tabs (§V1 / §V2).** The pre-generation `ValidationReport` and
 post-generation `InvariantReport` panels

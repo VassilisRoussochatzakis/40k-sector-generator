@@ -19,9 +19,9 @@
 //! [`RandomProgress`]: sectorforge::random_sector::RandomProgress
 
 use camino::Utf8PathBuf;
-use egui::{RichText, Ui};
+use egui::RichText;
 use sectorforge::random_sector::{self, SectorSize, MAX_CUSTOM_DIM};
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::project_io::open_project;
 use crate::builder::random_run::RandomJobResult;
@@ -353,22 +353,6 @@ fn baseline_label(id: &str) -> &'static str {
         .map_or("Everything — balanced, all features", |(_, label, _)| {
             *label
         })
-}
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in plain terms ("Size", "Theme", "Seed") while the tooltip
-/// explains what it does — mirroring the FACTIONS inspector idiom so the wizard
-/// is self-explanatory without a manual.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
 }
 
 fn dir_slug(seed: &str) -> String {

@@ -113,33 +113,29 @@ pub enum EventKind {
     ChaosIncursion,
 }
 
-impl EventKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Foundation => "foundation",
-            Self::Discovery => "discovery",
-            Self::Annexation => "annexation",
-            Self::ImperialMandateGranted => "imperial_mandate_granted",
-            Self::Consecration => "consecration",
-            Self::CommercialCharter => "commercial_charter",
-            Self::DynasticClaim => "dynastic_claim",
-            Self::Secession => "secession",
-            Self::Uprising => "uprising",
-            Self::Reconquest => "reconquest",
-            Self::Purge => "purge",
-            Self::CultExposed => "cult_exposed",
-            Self::NecronAwakening => "necron_awakening",
-            Self::TyranidContact => "tyranid_contact",
-            Self::OrkWaaagh => "ork_waaagh",
-            Self::QuarantineDeclared => "quarantine_declared",
-            Self::Blockade => "blockade",
-            Self::WarpStormSurge => "warp_storm_surge",
-            Self::TauContact => "tau_contact",
-            Self::AeldariActivity => "aeldari_activity",
-            Self::ChaosIncursion => "chaos_incursion",
-        }
-    }
-}
+enum_slug!(EventKind {
+    Foundation => "foundation",
+    Discovery => "discovery",
+    Annexation => "annexation",
+    ImperialMandateGranted => "imperial_mandate_granted",
+    Consecration => "consecration",
+    CommercialCharter => "commercial_charter",
+    DynasticClaim => "dynastic_claim",
+    Secession => "secession",
+    Uprising => "uprising",
+    Reconquest => "reconquest",
+    Purge => "purge",
+    CultExposed => "cult_exposed",
+    NecronAwakening => "necron_awakening",
+    TyranidContact => "tyranid_contact",
+    OrkWaaagh => "ork_waaagh",
+    QuarantineDeclared => "quarantine_declared",
+    Blockade => "blockade",
+    WarpStormSurge => "warp_storm_surge",
+    TauContact => "tau_contact",
+    AeldariActivity => "aeldari_activity",
+    ChaosIncursion => "chaos_incursion",
+});
 
 impl core::fmt::Display for EventKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -161,20 +157,16 @@ pub enum HistoryEntityKind {
     Region,
 }
 
-impl HistoryEntityKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Sector => "sector",
-            Self::System => "system",
-            Self::World => "world",
-            Self::Route => "route",
-            Self::Faction => "faction",
-            Self::Claim => "claim",
-            Self::Subsector => "subsector",
-            Self::Region => "region",
-        }
-    }
-}
+enum_slug!(HistoryEntityKind {
+    Sector => "sector",
+    System => "system",
+    World => "world",
+    Route => "route",
+    Faction => "faction",
+    Claim => "claim",
+    Subsector => "subsector",
+    Region => "region",
+});
 
 impl core::fmt::Display for HistoryEntityKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -206,22 +198,18 @@ pub enum HistoryConsequenceKind {
     RegionRecorded,
 }
 
-impl HistoryConsequenceKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::WorldSettled => "world_settled",
-            Self::ClaimEstablished => "claim_established",
-            Self::ControlShift => "control_shift",
-            Self::ConflictEscalated => "conflict_escalated",
-            Self::RouteHazard => "route_hazard",
-            Self::BlockadeCreated => "blockade_created",
-            Self::QuarantineDeclared => "quarantine_declared",
-            Self::FactionMemory => "faction_memory",
-            Self::SubsectorCapitalNamed => "subsector_capital_named",
-            Self::RegionRecorded => "region_recorded",
-        }
-    }
-}
+enum_slug!(HistoryConsequenceKind {
+    WorldSettled => "world_settled",
+    ClaimEstablished => "claim_established",
+    ControlShift => "control_shift",
+    ConflictEscalated => "conflict_escalated",
+    RouteHazard => "route_hazard",
+    BlockadeCreated => "blockade_created",
+    QuarantineDeclared => "quarantine_declared",
+    FactionMemory => "faction_memory",
+    SubsectorCapitalNamed => "subsector_capital_named",
+    RegionRecorded => "region_recorded",
+});
 
 impl core::fmt::Display for HistoryConsequenceKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

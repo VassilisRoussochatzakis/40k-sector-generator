@@ -72,14 +72,10 @@ pub enum FactionMode {
     Independent,
 }
 
-impl FactionMode {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Shared => "shared",
-            Self::Independent => "independent",
-        }
-    }
-}
+enum_slug!(FactionMode {
+    Shared => "shared",
+    Independent => "independent",
+});
 
 impl core::fmt::Display for FactionMode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -219,14 +215,10 @@ pub enum BorderOrientation {
     NorthSouth,
 }
 
-impl BorderOrientation {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::EastWest => "east_west",
-            Self::NorthSouth => "north_south",
-        }
-    }
-}
+enum_slug!(BorderOrientation {
+    EastWest => "east_west",
+    NorthSouth => "north_south",
+});
 
 impl core::fmt::Display for BorderOrientation {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

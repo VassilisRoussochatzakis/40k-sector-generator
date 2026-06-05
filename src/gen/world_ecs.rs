@@ -38,16 +38,12 @@ pub enum EntityKind {
     Route,
 }
 
-impl EntityKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::System => "system",
-            Self::World => "world",
-            Self::Faction => "faction",
-            Self::Route => "route",
-        }
-    }
-}
+enum_slug!(EntityKind {
+    System => "system",
+    World => "world",
+    Faction => "faction",
+    Route => "route",
+});
 
 impl core::fmt::Display for EntityKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

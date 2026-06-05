@@ -23,7 +23,7 @@ use sectorforge::worlds::{
 };
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
@@ -194,23 +194,6 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
         if pinned {
             ui.colored_label(palette::warning(), "PINNED");
         }
-    });
-}
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Star colour", "World type") while the tooltip
-/// names the underlying field plus a plain-language note, so power users keep
-/// the schema mapping. Friendlier replacement for the bare `egui::Grid` rows
-/// whose labels *were* the raw schema field names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
     });
 }
 

@@ -53,24 +53,20 @@ pub enum RegionKind {
     Other,
 }
 
-impl RegionKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Capital => "capital",
-            Self::Hive => "hive",
-            Self::Underhive => "underhive",
-            Self::ForgeComplex => "forge_complex",
-            Self::ShrineContinent => "shrine_continent",
-            Self::AgriBelt => "agri_belt",
-            Self::CardinalSpire => "cardinal_spire",
-            Self::KnightHousehold => "knight_household",
-            Self::Wilderness => "wilderness",
-            Self::TombComplex => "tomb_complex",
-            Self::Hideout => "hideout",
-            Self::Other => "other",
-        }
-    }
-}
+enum_slug!(RegionKind {
+    Capital => "capital",
+    Hive => "hive",
+    Underhive => "underhive",
+    ForgeComplex => "forge_complex",
+    ShrineContinent => "shrine_continent",
+    AgriBelt => "agri_belt",
+    CardinalSpire => "cardinal_spire",
+    KnightHousehold => "knight_household",
+    Wilderness => "wilderness",
+    TombComplex => "tomb_complex",
+    Hideout => "hideout",
+    Other => "other",
+});
 
 impl core::fmt::Display for RegionKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

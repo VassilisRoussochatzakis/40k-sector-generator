@@ -28,6 +28,10 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E-S1 — `labeled()` copy-pasted across all panel files
 
+> ✅ **RESOLVED 2026-06-05** — hoisted to `gui_core::ui_kit::labeled`; all 33
+> private copies removed. Fixed together with E3 (same finding). See
+> [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** HIGH / P1 #1
 - **Status:** ✅ Confirmed
 - **Count:** 33 files contain a private `fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui))` definition (not 32 as stated — confirmed with `grep -rln "fn labeled\b"`). The body is byte-identical across all of them.
@@ -85,6 +89,11 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E1 — `apply_faction_power` off the command bus
 
+> ✅ **RESOLVED 2026-06-05** — added `BuilderCommand::ApplyFactionPower`
+> (`dep_classes=[Factions]`, `before` captured on apply, `revert` restores);
+> the "↺ Apply to faction totals" button now routes through `state.run`.
+> Round-trip test added. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** HIGH / P0
 - **Status:** ✅ Confirmed
 - **Bus verdict:** **REAL bypass.** `GeneratedFaction::power: PowerProfile` carries `#[serde(default)]` (confirmed `src/model/sector_model/mod.rs:854–855`) — it is document state that serializes into `sector.json`. The call at `control.rs:957` directly mutates `state.sector.factions[*].power` without a `BuilderCommand`, only setting `state.dirty = true` afterward.
@@ -106,6 +115,12 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E2 — Per-frame `primary_factions` write off the command bus
 
+> ✅ **RESOLVED 2026-06-05** — replaced the per-frame off-bus write with a
+> change-gated, dirty-tracked passive reconcile kept **off** the undo bus
+> (README option *a*, mirroring the LD4 chronicle §R4 carve-out); the active
+> Re-derive button stays on-bus. See [PROGRESS.md](PROGRESS.md) for the
+> option-(a)-vs-(b) rationale.
+
 - **Review sev / bucket:** HIGH / P0
 - **Status:** ✅ Confirmed
 - **Bus verdict:** **REAL bypass.** `GeneratedSystem::primary_factions: Vec<FactionId>` is serialized (`src/model/sector_model/mod.rs:146–147`, `#[serde(default, skip_serializing_if = "Vec::is_empty")]`) — definitively document state. The write at `control.rs:769` occurs every frame the system panel is open and the lock is off, with no `BuilderCommand` and no `state.dirty` call.
@@ -125,6 +140,11 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 ---
 
 ### E3 — `labeled()` duplicated (×33)
+
+> ✅ **RESOLVED 2026-06-05** — added `pub fn labeled` to `gui-core/src/ui_kit.rs`
+> (beside `field`) and removed the private `fn labeled` from all 33 panel files,
+> folding the import into each file's existing `ui_kit` use + cleaning 9 now-unused
+> imports. Workspace clippy clean, builder 317/317, `it` 93/93. Closes **E-S1**.
 
 - **Review sev / bucket:** HIGH / P1 #1
 - **Status:** ✅ Confirmed

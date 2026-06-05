@@ -17,30 +17,13 @@ use egui::{RichText, Ui};
 
 use sectorforge::config::{PlacementMode, WorldSelectionMode};
 use sectorforge::sector_model::HexCoord;
-use sectorforge_gui_core::{palette, ui_kit, widgets};
+use sectorforge_gui_core::{palette, ui_kit::{self, labeled}, widgets};
 
 use crate::builder::project_io::{new_project, NewProjectOptions};
 use crate::builder::state::PartialRegenRect;
 use crate::builder::{BuilderState, BuilderWorkspace, ModalKind};
 
 const DEBOUNCE_SECONDS: f64 = 0.20;
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Sector size", "Star systems") while the tooltip
-/// names the underlying `[generation]` field plus a plain-language note, so
-/// power users keep the schema mapping. Friendlier replacement for the old bare
-/// `egui::Grid` whose row labels *were* the raw schema names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Dimmed sub-header inside a section, used to group related field rows
 /// (Basics / Placement / …). Replaces the old raw `ui.label("placement")` /

@@ -40,7 +40,7 @@ use sectorforge::interestingness::{
     InterestingnessConfig, InterestingnessReport, MetricScore, MetricTarget, ProfileId,
 };
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use crate::builder::{BuilderState, DerivationKind};
@@ -500,22 +500,6 @@ fn empty_sector() -> sectorforge::sector_model::GeneratedSector {
 }
 
 // ── label / colour helpers ────────────────────────────────────────────────
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms while the tooltip names the underlying field plus
-/// a plain-language note, so power users keep the schema mapping. Matches the
-/// canonical FACTIONS panel helper.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Human-readable label for a metric slug (e.g. `faction_gini` →
 /// "Faction Gini"). The library exposes no display name for metrics, so we

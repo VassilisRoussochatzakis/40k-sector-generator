@@ -40,7 +40,7 @@ use sectorforge::heatmap::HeatmapMode;
 use sectorforge::sector_model::HexCoord;
 use sectorforge::SectorError;
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use crate::builder::export_run::ExportJobResult;
@@ -257,22 +257,6 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 // ── friendly-label helpers ──────────────────────────────────────────────────
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Image (PNG) settings", "Heatmap overlay") while
-/// the tooltip names the underlying config field plus a plain-language note, so
-/// power users keep the schema mapping. Same idiom as the FACTIONS inspector.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Presentational Title-Case of a lowercase enum slug for friendly dropdown
 /// display. The raw slug stays reachable in a hover so the schema mapping is

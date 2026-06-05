@@ -18,7 +18,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{HexCoord, SystemKind, SystemState};
 use sectorforge::system_map::{render_system, SystemRenderOptions};
 use sectorforge_gui_core::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
-use sectorforge_gui_core::{card, palette, ui_kit};
+use sectorforge_gui_core::{card, palette, ui_kit::{self, labeled}};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind, SystemBitmapPreview};
@@ -35,22 +35,6 @@ const SYS_STAR_GRID_ANCHOR: &str = "sys_star_grid";
 /// Slider clamp for the SYSTEM-tab embedded `SystemView` size.
 const SYSTEM_VIEW_SIDE_MIN: f32 = 400.0;
 const SYSTEM_VIEW_SIDE_MAX: f32 = 2400.0;
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Type", "Coordinate") while the tooltip names the
-/// underlying schema field plus a plain-language note, so power users keep the
-/// schema mapping. Matches the `labeled` helper in `panels/factions.rs`.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Human-friendly label for a [`SystemKind`]. The raw `kind` slug (the value
 /// serialised to disk) stays reachable via the combo's per-row hover tooltip.

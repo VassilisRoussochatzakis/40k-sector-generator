@@ -83,14 +83,10 @@ pub enum ProseTone {
     Dispatch,
 }
 
-impl ProseTone {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Gazetteer => "gazetteer",
-            Self::Dispatch => "dispatch",
-        }
-    }
-}
+enum_slug!(ProseTone {
+    Gazetteer => "gazetteer",
+    Dispatch => "dispatch",
+});
 
 impl core::fmt::Display for ProseTone {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

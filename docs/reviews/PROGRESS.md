@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 9 (E1,E2,E3,E4,E6,E7,E9,E13,E-S1) | 0 | 8 | 0 |
+| E builder panels | 17 | 10 (E1,E2,E3,E4,E6,E7,E9,E13,E14,E-S1) | 0 | 7 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -873,6 +873,15 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
   actual Some/else-default shape is **7** panels — all converted. The other
   `dirty_files.insert` sites (factions/routes/regions/files/theme/worlds_editor)
   are a different shape and were left alone. Builder **317/317**, clippy clean.
+
+- **E14 (`e384e83`) — shared `claim_chip_colours`.** ✅ DONE. The byte-identical
+  13-arm `claim_chip_colours` match in `control.rs` + `world/claims.rs` hoisted
+  into a **new** `panels/presence_widgets.rs` (`pub(crate) fn`); both call it,
+  private copies deleted (`world/claims.rs` dropped its now-unused `Color32`
+  import). This **seeds the `presence_widgets` module** the review earmarks for
+  **E5** (the duplicated `show_add_presence_row`). Colours kept hardcoded —
+  annotated as an intentional data-viz palette (lore claim tiers). Builder
+  **317/317**, clippy clean. MAP.md updated (new file row).
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

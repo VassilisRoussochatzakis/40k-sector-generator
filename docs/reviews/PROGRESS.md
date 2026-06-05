@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 9 (F2,F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 6 | 0 |
+| F viewer + gui-core | 15 | 10 (F2,F-S2,F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 5 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -454,6 +454,20 @@ byte-identical**, viewer **7/7**, gui-core `map_snapshots_match_goldens` passing
   (system-not-found error, wishes "WINNER" success) into the same sweep even
   though they are not `from_rgb` — they are the same theme-unaware status-color
   class and pair with amber siblings in the same widget.
+
+- **F-S2 (umbrella) — ✅ DONE.** The MED color-audit parent of F5/F6/F9/F11 is
+  now fully satisfied: every **semantic** amber/red/green site was routed to
+  `palette::warning/danger/success` (F5 bulk + F6/F11/F9 singletons), and the
+  audit's second half — "explicitly comment any **remaining** hardcoded RGBs as
+  intentional data-viz" — is now complete. A re-grep found **8** surviving
+  `Color32::from_rgb` in `viewer/`, all intentional: 5 already carried the
+  `(AREA_F F5)` intent comment (region-kind hue ×2, preview/APPLY-PREVIEW green
+  fills ×2, starless fallback dot); the **3 segmentum-browser chrome fills**
+  (`segmentum_view.rs` active-tile `40,36,52` / active-card `42,38,52` /
+  empty-slot `18,16,24`) were the only ones F5's log called "annotated" but had
+  **no inline marker** — added now, matching the existing comment style. Zero
+  semantic status colors remain unconverted. Comment-only viewer change → no
+  golden / map-snapshot exposure; `cargo check -p sectorforge-viewer` clean.
 
 ### 2026-06-05 — step 5, wave 5 (AREA_F hot-path cache — F4)
 

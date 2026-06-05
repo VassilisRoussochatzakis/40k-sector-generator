@@ -278,6 +278,7 @@ fn super_map(
             child_rect,
             2.0,
             if active {
+                // Segmentum browser: active-tile highlight fill, not a status color (AREA_F F5).
                 Color32::from_rgb(40, 36, 52)
             } else {
                 palette::PANEL_BG
@@ -452,6 +453,7 @@ fn super_grid(
                         let active = active_child_id == Some(child.id.as_str());
                         let frame = egui::Frame::none()
                             .fill(if active {
+                                // Segmentum browser: active-card highlight fill, not a status color (AREA_F F5).
                                 Color32::from_rgb(42, 38, 52)
                             } else {
                                 palette::chrome_panel()
@@ -502,6 +504,7 @@ fn super_grid(
                         });
                     } else {
                         egui::Frame::none()
+                            // Segmentum browser: empty-slot card fill, not a status color (AREA_F F5).
                             .fill(Color32::from_rgb(18, 16, 24))
                             .stroke(Stroke::new(1.0, palette::HEX_OUTLINE))
                             .inner_margin(8.0)

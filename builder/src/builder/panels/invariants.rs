@@ -20,30 +20,13 @@
 
 use std::collections::BTreeMap;
 
-use egui::{Color32, RichText, Ui};
+use egui::{Color32, RichText};
 
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::invariants::{InvariantReport, InvariantViolation};
-use sectorforge_gui_core::{card, palette, ui_kit};
+use sectorforge_gui_core::{card, palette, ui_kit::{self, labeled}};
 
 use crate::builder::BuilderState;
-
-/// Aligned label-left / value-right row with a hover tooltip, mirroring the
-/// canonical FACTIONS panel. The visible label reads in human terms while the
-/// tooltip carries the underlying locator and a plain-language note. Here the
-/// "fields" are not schema columns but the diagnostic's raw code and entity
-/// path, so power users keep the exact tokens behind the hover.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Humanize a stratum key for display. The raw key stays the section id-salt so
 /// collapse state persists; only the visible title changes.

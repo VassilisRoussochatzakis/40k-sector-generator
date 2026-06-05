@@ -19,10 +19,11 @@ use sectorforge::regions::{RegionConditionKind, WarpRegion};
 use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem,
-    GeneratedWorld, HexCoord, RouteStability, RouteType,
+    GeneratedWorld, HexCoord, PowerProfile, RouteStability, RouteType,
 };
 use sectorforge::stability::StabilityState;
 use sectorforge::surface_region::SurfaceRegion;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 /// §AR3: per-axis enable mask for `BuilderCommand::AutoAssignArchetypes`. A
@@ -371,6 +372,15 @@ pub enum BuilderCommand {
         before_systems: Vec<(SystemId, SystemIntel)>,
         before_worlds: Vec<(WorldId, SystemIntel)>,
     },
+    /// §R4 (IMPROVEMENT_REVIEW E1): "Apply to faction totals" overwrites every
+    /// faction's stored `power` (`#[serde(default)]` document state) with the
+    /// presence-aggregated projection. The CONTROL tab computes the target
+    /// `after` map and dispatches this so the bulk overwrite is undoable;
+    /// `before` snapshots each faction's prior power on `apply`.
+    ApplyFactionPower {
+        before: Vec<(FactionId, PowerProfile)>,
+        after: BTreeMap<FactionId, PowerProfile>,
+    },
 }
 
 /// D-S1/D3 dedup: collapse the "find the entity or raise `*NotFound`" chain
@@ -435,7 +445,9 @@ impl BuilderCommand {
             // fans out to everything, the pair documents the real footprint.
             Self::RemoveSystem { .. } => &[D::SystemsWorlds, D::Routes],
             // Faction-roster edits.
-            Self::AddFaction { .. } | Self::RemoveFaction { .. } => &[D::Factions],
+            Self::AddFaction { .. }
+            | Self::RemoveFaction { .. }
+            | Self::ApplyFactionPower { .. } => &[D::Factions],
             // Warp-region edits.
             Self::SetRegionKind { .. }
             | Self::RenameRegion { .. }
@@ -912,6 +924,14 @@ impl BuilderCommand {
                 sectorforge::intel::derive_intel(sector, &refs);
                 Ok(())
             }
+            Self::ApplyFactionPower { before, after } => {
+                before.clear();
+                for f in &sector.factions {
+                    before.push((f.id.clone(), f.power));
+                }
+                sectorforge::control::apply_faction_power(&mut sector.factions, after);
+                Ok(())
+            }
         }
     }
 
@@ -1225,6 +1245,14 @@ impl BuilderCommand {
             Self::EditChronicle { before, .. } => {
                 if let Some(prev) = before {
                     sector.chronicle = (**prev).clone();
+                }
+                Ok(())
+            }
+            Self::ApplyFactionPower { before, .. } => {
+                for (fid, prof) in before {
+                    if let Some(f) = sector.factions.iter_mut().find(|f| f.id == *fid) {
+                        f.power = *prof;
+                    }
                 }
                 Ok(())
             }
@@ -1553,10 +1581,14 @@ mod tests {
                 before_systems: Vec::new(),
                 before_worlds: Vec::new(),
             },
+            BuilderCommand::ApplyFactionPower {
+                before: Vec::new(),
+                after: std::collections::BTreeMap::new(),
+            },
         ];
         assert_eq!(
             all.len(),
-            38,
+            39,
             "add the new BuilderCommand variant to this exhaustive list"
         );
         for cmd in &all {
@@ -1616,6 +1648,30 @@ mod tests {
             s.systems.iter().find(|x| x.id == a).unwrap().coord,
             HexCoord { q: 0, r: 0 }
         );
+    }
+
+    #[test]
+    fn apply_faction_power_round_trip() {
+        let mut s = empty();
+        s.add_faction(FactionId::from("f"), "F", "imperial");
+        s.factions[0].power.military = 7.0;
+        let mut after = std::collections::BTreeMap::new();
+        after.insert(
+            FactionId::from("f"),
+            PowerProfile {
+                military: 42.0,
+                ..Default::default()
+            },
+        );
+        let mut cmd = BuilderCommand::ApplyFactionPower {
+            before: Vec::new(),
+            after,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(s.factions[0].power.military, 42.0);
+        // revert restores the pre-apply snapshot captured on apply
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(s.factions[0].power.military, 7.0);
     }
 
     #[test]

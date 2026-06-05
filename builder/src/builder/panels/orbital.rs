@@ -15,7 +15,7 @@ use sectorforge::orbital_assets::{
     derive_orbital_assets, BlockadeReport, OrbitalAsset, OrbitalAssetKind, ShipStock,
 };
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
@@ -43,21 +43,6 @@ fn kind_label(kind: OrbitalAssetKind) -> &'static str {
         OrbitalAssetKind::BlockadeFleet => "Blockade fleet",
         _ => "Other",
     }
-}
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible label
-/// reads in human terms ("Owner", "Strength") while the tooltip names the
-/// underlying field plus a plain-language note, mirroring the FACTIONS panel.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
 }
 
 /// §CTX1 Phase 6 (§6.9) — derive-and-dispatch helper extracted so the

@@ -26,26 +26,10 @@ use sectorforge::economy::{
 use sectorforge::heatmap::HeatmapMode;
 use sectorforge::ids::{SystemId, WorldId};
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::state::{BuilderTab, EntityRef};
 use crate::builder::BuilderState;
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms while the tooltip names the underlying schema
-/// field plus a plain-language note, so power users keep the mapping. Mirrors
-/// the helper of the same name in `panels/factions.rs`.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Human label for a `ResourceVector` component key (§E1). Falls back to the raw
 /// key for any future field so nothing renders blank.

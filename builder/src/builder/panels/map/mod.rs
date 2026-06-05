@@ -22,7 +22,7 @@ mod theme;
 use crate::builder::state::{EntityRef, MapTool};
 use crate::builder::BuilderState;
 
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{palette, ui_kit::{self, labeled}};
 
 pub(super) use context_menu::menu_anchor_pivot;
 
@@ -376,23 +376,6 @@ fn show_map_inspector(ui: &mut egui::Ui, state: &mut BuilderState) {
                 state.focus_entity(EntityRef::Faction(fid));
             }
         });
-}
-
-/// Aligned label-left / value-right row with a hover tooltip. The visible label
-/// reads in human terms ("Coordinates", "Population") while the tooltip names the
-/// underlying field plus a plain-language note, so power users keep the schema
-/// mapping. Mirrors the `labeled` helper in the FACTIONS panel; the read-only
-/// inspector feeds it a plain `ui.label(value)` closure.
-fn labeled(ui: &mut egui::Ui, label: &str, help: &str, add: impl FnOnce(&mut egui::Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(egui::RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
 }
 
 #[cfg(test)]

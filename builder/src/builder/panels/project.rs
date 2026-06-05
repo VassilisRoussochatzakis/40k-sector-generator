@@ -3,31 +3,16 @@
 //! single tab. Each sub-panel is its own module under this directory and
 //! follows the R10 contract.
 
-use egui::{RichText, Ui};
+use egui::RichText;
 
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use crate::builder::state::ConfirmAction;
 use crate::builder::{BuilderState, ModalKind};
 
 use super::{files, generation, preferences, project_tree, save_project, worlds_editor};
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible label
-/// reads in human terms while the tooltip carries the underlying field name plus a
-/// plain-language note, so power users keep the schema mapping.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Project");

@@ -33,7 +33,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::prose::{ProseConfig, ProseTone};
 
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use crate::builder::state::EntityRef;
@@ -495,22 +495,6 @@ fn show_save_row(ui: &mut Ui, state: &mut BuilderState) {
 }
 
 // ── shared helpers ────────────────────────────────────────────────────────
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Tone", "Sector overview") while the tooltip
-/// names the underlying TOML field plus a plain-language note, so power users
-/// keep the schema mapping. Mirrors the canonical helper in `panels/factions.rs`.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 fn ensure_prose_catalog(state: &mut BuilderState) {
     if state.data_catalogs.prose.is_none() {

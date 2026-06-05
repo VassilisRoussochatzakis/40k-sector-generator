@@ -22,7 +22,7 @@ use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{RouteStability, RouteType};
 use sectorforge::segmentum::{BorderOrientation, ChildEntry, FactionMode, InterSectorLink};
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use crate::builder::project_io;
@@ -223,23 +223,6 @@ fn save_toml(state: &mut BuilderState) {
 }
 
 // ── §SG1 config editor ──────────────────────────────────────────────────────
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Columns", "Faction handling") while the tooltip
-/// names the underlying TOML field plus a plain-language note, so power users
-/// keep the schema mapping. Friendlier replacement for the old bare `egui::Grid`
-/// whose row labels *were* the raw schema names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 fn config_editor(ui: &mut Ui, state: &mut BuilderState) {
     // §FRIENDLY_PANEL_PASS transform #7: `sg_children_section` runs with only a

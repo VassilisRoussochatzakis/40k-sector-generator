@@ -21,29 +21,11 @@ use sectorforge::conflict::{
 };
 use sectorforge::ids::FactionId;
 use sectorforge::stability::{derive_world_stability, StabilityState};
-use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{ModalKind, TickLogScope};
 use crate::builder::BuilderState;
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Momentum", "Public order") while the tooltip
-/// names the underlying field plus a plain-language note, so power users keep
-/// the schema mapping. Friendlier replacement for the old bare `egui::Grid`
-/// whose row labels *were* the raw schema names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 // ── §CF1 + §CF3: per-world conflict + stability editor ─────────────────────
 

@@ -33,7 +33,7 @@ use egui::{Color32, RichText, Ui};
 
 use sectorforge_gui_core::card;
 use sectorforge_gui_core::palette;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 use sectorforge_gui_core::widgets;
 
 use sectorforge::hooks::{Hook, HookAnchor, HookKind, HooksConfig};
@@ -695,23 +695,6 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds
         },
     );
     changed
-}
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("Drama weight", "Happens at") while the tooltip
-/// names the underlying field plus a plain-language note, so the schema mapping
-/// stays discoverable. Friendlier replacement for the old bare `egui::Grid`
-/// whose row labels *were* the raw field names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
 }
 
 /// Sorted, de-duplicated ids already present in the sector, used to seed the

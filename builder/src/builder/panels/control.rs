@@ -30,7 +30,7 @@ use sectorforge::sector_model::{
 
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::sector_view::SectorMapCache;
-use sectorforge_gui_core::ui_kit;
+use sectorforge_gui_core::ui_kit::{self, labeled};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, ControlOverlay, EntityRef, ModalKind};
@@ -92,22 +92,6 @@ const POWER_COLUMNS: &[(&str, &str)] = &[
     ("legit", "Legitimacy / recognised authority"),
     ("total", "Total weighted projection"),
 ];
-
-/// Aligned label-left / control-right row with a hover tooltip (mirrors the
-/// FACTIONS panel idiom). The visible label reads in human terms while the
-/// tooltip names the underlying model field plus a one-line note, so power
-/// users keep the schema mapping.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 /// Plain-language name for a [`FactionInfluence`] tier. The raw slug stays
 /// reachable via the dropdown row tooltip.
@@ -765,8 +749,16 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                 .map(|s| s.faction_id.clone())
                 .collect()
         };
-        if !locked {
+        // §R4 / §C5 (IMPROVEMENT_REVIEW E2): the auto-derived top-3 is denormalized
+        // document state mirroring presence. Like the passive LD4 chronicle refresh,
+        // this reconcile stays OFF the undo bus — dispatching a command here would
+        // inject an undo entry on mere tab navigation and fight undo (undo → re-derive
+        // from unchanged presence → re-dispatch). Write only on real change and mark
+        // the project dirty so the reconciled value saves. The "↺ Re-derive" button
+        // below routes through EditSystem; when locked, the manual override is kept.
+        if !locked && state.sector.systems[sys_idx].primary_factions != derived {
             state.sector.systems[sys_idx].primary_factions = derived.clone();
+            state.dirty = true;
         }
         let factions = &state.sector.systems[sys_idx].primary_factions.clone();
         ui.horizontal(|ui| {
@@ -953,10 +945,16 @@ fn show_power_profile_preview(ui: &mut Ui, state: &mut BuilderState) {
                 )
                 .clicked()
             {
-                let power = aggregate_faction_power(&state.sector.systems);
-                sectorforge::control::apply_faction_power(&mut state.sector_mut().factions, &power);
-                state.dirty = true;
-                state.mark_validation_dirty();
+                // §R4 (IMPROVEMENT_REVIEW E1): route the bulk power overwrite through
+                // the command bus so it is undoable. `before` is captured on apply;
+                // the bus rails handle dirty + validation/derivation invalidation.
+                let after = aggregate_faction_power(&state.sector.systems);
+                if let Err(e) = state.run(BuilderCommand::ApplyFactionPower {
+                    before: Vec::new(),
+                    after,
+                }) {
+                    state.modal = Some(ModalKind::Message(format!("Apply failed: {e}")));
+                }
             }
         },
     );

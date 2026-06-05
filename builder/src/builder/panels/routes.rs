@@ -11,7 +11,7 @@ use sectorforge::sector_model::{
     hex_distance, GeneratedRoute, GeneratedSector, GeneratedSystem, RouteStability, RouteType,
 };
 use sectorforge::worlds::{Government, NotableFeature, WorldType};
-use sectorforge_gui_core::{card, palette, ui_kit};
+use sectorforge_gui_core::{card, palette, ui_kit::{self, labeled}};
 
 use crate::builder::command::BuilderCommand;
 use crate::builder::preview::DEFAULT_DEBOUNCE_MS;
@@ -24,23 +24,6 @@ const ROUTE_STABILITIES: [RouteStability; 4] = [
     RouteStability::Hazardous,
     RouteStability::Perilous,
 ];
-
-/// Aligned label-left / control-right row with a hover tooltip. The visible
-/// label reads in human terms ("From", "Travel danger") while the tooltip names
-/// the underlying field plus a plain-language note, so power users keep the
-/// schema mapping. Friendlier replacement for the old bare `egui::Grid` whose
-/// row labels *were* the raw schema names.
-fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
-    ui.horizontal(|ui| {
-        let h = ui.spacing().interact_size.y;
-        ui.add_sized(
-            [140.0, h],
-            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
-        )
-        .on_hover_text(help);
-        add(ui);
-    });
-}
 
 pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Routes");

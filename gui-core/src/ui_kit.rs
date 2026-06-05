@@ -107,6 +107,23 @@ pub fn field(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui)) {
     });
 }
 
+/// Like [`field`], but the fixed label column carries a hover tooltip (`help`)
+/// and sits at a slightly tighter 140px width. This is the standard
+/// builder/viewer panel field row (IMPROVEMENT_REVIEW E3 / E-S1): it was
+/// copy-pasted as a private `fn labeled` in 33 panel files before being hoisted
+/// here.
+pub fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
+    ui.horizontal(|ui| {
+        let h = ui.spacing().interact_size.y;
+        ui.add_sized(
+            [140.0, h],
+            egui::Label::new(RichText::new(label).color(palette::chrome_text_dim())),
+        )
+        .on_hover_text(help);
+        add(ui);
+    });
+}
+
 // ── tier-2.5: responsive multi-column + reading-width (§COLUMNS) ─────────────
 
 /// Like [`egui::Ui::columns`] but chooses the column count from the available
@@ -242,6 +259,9 @@ mod tests {
             section(ui, "Identity", |ui| {
                 field(ui, "Name", |ui| {
                     ui.label("Cadia");
+                });
+                labeled(ui, "Sector", "the sector this world belongs to", |ui| {
+                    ui.label("Segmentum Obscurus");
                 });
                 kv(ui, "id", "cadia-01");
                 mono_dim(ui, "subsector A");

@@ -224,10 +224,20 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
     let system_refs: BTreeMap<&str, &crate::sector_model::GeneratedSystem> =
         sector.systems.iter().map(|s| (s.id.as_str(), s)).collect();
 
+    // B1: pre-bucket dependency edges by (target system, resource) once, so the
+    // per-system supply-risk classifier does an O(1) map lookup instead of
+    // rescanning the full edge slice for every (world, resource) pair.
+    let mut incoming_by_target: BTreeMap<(&str, &str), Vec<&DependencyEdge>> = BTreeMap::new();
+    for e in &dependency_edges {
+        incoming_by_target
+            .entry((e.to_system_id.as_str(), e.resource.as_str()))
+            .or_default()
+            .push(e);
+    }
     for sy in systems.iter_mut() {
         let count = *world_counts.get(sy.system_id.as_str()).unwrap_or(&1);
         let sys_ref = system_refs.get(sy.system_id.as_str()).copied();
-        sy.supply_risk = system_supply_risk(sy, sys_ref, &dependency_edges);
+        sy.supply_risk = system_supply_risk(sy, sys_ref, &incoming_by_target);
         sy.strategic_priority = priority_for(&sy.strategic_output);
         sy.tithe_status = system_tithe_status(sy, count, sys_ref);
     }

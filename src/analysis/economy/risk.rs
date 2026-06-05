@@ -2,6 +2,8 @@
 //! dependency edges, blockade/conflict state, and resilience into the
 //! per-world / per-system `SupplyRisk` and `TitheStatus` tiers.
 
+use std::collections::BTreeMap;
+
 use crate::sector_model::{GeneratedRoute, GeneratedWorld, RouteStability};
 
 use super::config::{
@@ -25,7 +27,7 @@ pub(super) fn import_risk(r: &GeneratedRoute, friction: f32, score: f32) -> Supp
 pub(super) fn system_supply_risk(
     sy: &SystemEconomy,
     sys_ref: Option<&crate::sector_model::GeneratedSystem>,
-    deps: &[DependencyEdge],
+    incoming_by_target: &BTreeMap<(&str, &str), Vec<&DependencyEdge>>,
 ) -> SupplyRisk {
     let mut risk = if sy.shortage_resources.len() >= 2 {
         SupplyRisk::Disrupted
@@ -43,10 +45,13 @@ pub(super) fn system_supply_risk(
                 if sy.strategic_output.get(resource) >= SELF_SUFFICIENCY_OUTPUT {
                     continue;
                 }
-                let incoming: Vec<&DependencyEdge> = deps
-                    .iter()
-                    .filter(|e| e.to_system_id == sy.system_id && e.resource == *resource)
-                    .collect();
+                // B1: replaces a full O(edges) scan per (system, world, resource)
+                // with a single lookup into the pre-bucketed index. `min()` is
+                // order-independent, so the result is byte-identical.
+                let incoming = incoming_by_target
+                    .get(&(sy.system_id.as_str(), *resource))
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
                 if incoming.is_empty() {
                     risk = risk.max(if *resource == "food" {
                         SupplyRisk::Collapsing

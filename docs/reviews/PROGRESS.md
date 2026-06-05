@@ -16,7 +16,7 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
-| B `src/analysis` | 14 | 9 (B-S3,B1,B3,B5,B6,B7,B9,B11,B12) | 0 | 5 | 0 |
+| B `src/analysis` | 14 | 10 (B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 4 | 0 |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
@@ -41,8 +41,9 @@ sequence". Update this file whenever a finding moves status.
      B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only) ·
      F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
      API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
-   - Remaining dedup: AREA_B perf (**B1/B3/B5/B6 ✅ — all done**), trait/macro
-     dedup (B-S1/B-S2/B4, E-S3, C2, F-S1); **C3 ✅** (this session).
+   - Remaining dedup: AREA_B perf (**B1/B3/B5/B6 ✅ — all done**), **B4 ✅**;
+     trait/macro dedup (B-S1, B-S2 merge-half — both owner-gated; E-S3, C2,
+     F-S1); **C3 ✅** (this session).
    - **Wave 4 — AREA_F semantic-color sweep** (viewer chrome, no snapshot
      exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
      ~25-site `Color32::from_rgb` → `palette::warning/danger/success` sweep).
@@ -817,7 +818,48 @@ order at the first remaining perf item (B1; B7/B4-adjacent/B9/B12 already done).
   MAP.md/GUIDE.md untouched.
   - **AREA_B perf bucket (B1/B3/B5/B6) now fully closed.**
 
+- **B4 (`33569c4`) — generic `cap_per_anchor` extracted.** ✅ DONE.
+  `src/analysis/{mod,hooks,missions}.rs`. The byte-identical `cap_per_anchor`
+  bodies in hooks.rs + missions.rs (differing only in element type + how the
+  anchor key was computed) collapsed onto one `cap_per_anchor<T: WeightedAnchored>`
+  in `analysis/mod.rs` (beside `cmp_f32_desc`), behind a 3-method
+  `WeightedAnchored { weight, id, anchor_key }` trait impl'd for `Hook` (inline
+  anchor match) and `MissionSeed` (delegates to the existing free `anchor_key`).
+  **Byte-identical:** same sort (weight desc, id asc) + same per-anchor retain;
+  the `id()`→`as_str()` tiebreak matches the old `HookId`/`MissionId` `cmp`
+  because `define_id!` derives `Ord` over the inner `Arc<str>`. **Verification:**
+  clippy `-D warnings` clean, lib **193/193**, golden **15/15 byte-identical**
+  (sector.md carries both reports), hooks integration **6/6**.
+  - **B-S2 merge-half deliberately NOT done — owner decision (see notes).**
+
 ### Open decisions / notes
+- **B-S2 `merge_manual` alignment — OWNER-GATED, behavioural.** The cap dedup
+  half (B4) is done. The *remaining* half is a genuine policy divergence the
+  review flagged: **hooks** (`hooks.rs:176`) dedupes derived entries against
+  manual ids, appends the manual block, **then** caps (manual hooks are subject
+  to the per-anchor cap); **missions** (`missions.rs:197`) caps **first**, drops
+  `gm_only`, **then** appends manual uncapped and without id-dedup. Aligning them
+  (the review suggests adopting hooks' id-dedup-before-append as canonical) is a
+  **behavioural change to missions output** — would alter `missions.md` /
+  `sector.json` and is not golden-safe. Left for an owner call: confirm whether
+  missions *should* dedup manual ids + cap manual entries, or whether the
+  divergence is intentional (manual missions are author-curated and meant to
+  bypass the cap). Until then the two pipelines keep their current, different
+  behaviour.
+- **B-S1 (`SectorReport` trait, 7 modules) — OWNER-GATED, L / defer.** The
+  review itself sequences it last ("defer until other dedup is stable") and notes
+  the `render_markdown` signatures vary (some take `cfg`, some don't), needing a
+  `Render` associated type or split trait method, plus asymmetric config loading
+  (only economy + relations expose `load_*_file`). That is a structural trait
+  rewrite across 7 modules — outside the "proportionate, compiler-checked"
+  lane and the "no trait rewrites unless trivially clean" preference. Recommend
+  an explicit owner go/no-go before attempting; not started.
+- **B8 / B10 — LOW, intentionally deferred.** B8 (`insert_top_n` O(top) scan) is
+  the right fix for the wrong problem size (`report_top` defaults to 5) — defer
+  unless it grows past ~20. B10 (the 9-deep `mul_add` chain in
+  `weighted_priority_score`) is a **golden-risk** readability item: a naive dot
+  product changes the FMA associativity and breaks byte-stability; left as-is
+  (the B5 field-list pass deliberately did **not** touch it).
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**
   The review's other half of E4 — replacing the 9 `format!("{v:?}")` / `{self:?}`
   key sites in `world/` with a stable `as_slug()` — is **not** done. Those

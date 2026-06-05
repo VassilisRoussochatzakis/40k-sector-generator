@@ -941,12 +941,7 @@ fn ensure_hooks_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.hooks.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_HOOKS_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.hooks.clone(), DEFAULT_HOOKS_PATH);
     state.mark_validation_dirty();
     if state.hooks_auto_recompute {
         state.recompute_hooks();

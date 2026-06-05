@@ -1152,12 +1152,7 @@ pub(crate) fn delete_disposition_rule(state: &mut BuilderState, idx: usize) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.relations.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_RELATIONS_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.relations.clone(), DEFAULT_RELATIONS_PATH);
     state.mark_validation_dirty();
     if state.relations_auto_recompute {
         state.recompute_relations();

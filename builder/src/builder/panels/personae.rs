@@ -820,12 +820,7 @@ fn ensure_personae_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.personae.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_PERSONAE_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.personae.clone(), DEFAULT_PERSONAE_PATH);
     state.mark_validation_dirty();
     if state.personae_auto_recompute {
         state.recompute_personae();

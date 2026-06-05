@@ -1047,12 +1047,7 @@ fn ensure_sites_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.sites.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_SITES_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.sites.clone(), DEFAULT_SITES_PATH);
     state.mark_validation_dirty();
     if state.sites_auto_recompute {
         state.recompute_sites();

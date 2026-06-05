@@ -1478,12 +1478,7 @@ fn ensure_history_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.history.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_HISTORY_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.history.clone(), DEFAULT_HISTORY_PATH);
     state.mark_validation_dirty();
     if state.history_auto_recompute {
         // D2/D11: route through the bus so the auto-recompute is undoable and

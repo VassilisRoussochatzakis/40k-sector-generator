@@ -965,12 +965,7 @@ fn ensure_missions_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.missions.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_MISSIONS_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.missions.clone(), DEFAULT_MISSIONS_PATH);
     state.mark_validation_dirty();
     if state.missions_auto_recompute {
         state.recompute_missions();

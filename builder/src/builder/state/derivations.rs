@@ -24,6 +24,16 @@ impl BuilderState {
         self.validation_dirty_since = Some(Instant::now());
     }
 
+    /// Mark the session dirty and flag the catalog file that backs it (§E13):
+    /// the configured input path, or `default` when the project has not pinned
+    /// one. Replaces the `if let Some(rel) = … { … } else { … default … }`
+    /// boilerplate each catalog panel's `on_catalog_edited` hand-rolled.
+    pub(crate) fn mark_catalog_dirty(&mut self, configured: Option<String>, default: &str) {
+        self.dirty = true;
+        self.dirty_files
+            .insert(configured.unwrap_or_else(|| default.to_string()));
+    }
+
     // ── §39 live derivations (LD1..LD4) ─────────────────────────────────────
 
     /// LD1 — BLAKE3 fingerprint of the input slice `kind` reads: the generator

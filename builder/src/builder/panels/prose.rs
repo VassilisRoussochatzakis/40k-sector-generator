@@ -512,12 +512,7 @@ fn ensure_prose_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
-    state.dirty = true;
-    if let Some(rel) = state.config.inputs.prose.clone() {
-        state.dirty_files.insert(rel);
-    } else {
-        state.dirty_files.insert(DEFAULT_PROSE_PATH.into());
-    }
+    state.mark_catalog_dirty(state.config.inputs.prose.clone(), DEFAULT_PROSE_PATH);
     state.mark_validation_dirty();
     if state.prose_auto_recompute {
         state.recompute_prose();

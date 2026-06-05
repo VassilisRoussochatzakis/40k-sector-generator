@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 2 (F3,F8) | 0 | 13 | 0 |
+| F viewer + gui-core | 15 | 7 (F3,F5,F6,F8,F9,F11,F12) | 0 | 8 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -43,6 +43,10 @@ sequence". Update this file whenever a finding moves status.
      API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
    - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
      (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
+   - **Wave 4 — AREA_F semantic-color sweep** (viewer chrome, no snapshot
+     exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
+     ~25-site `Color32::from_rgb` → `palette::warning/danger/success` sweep).
+     See log below.
 
 ## Detailed log
 
@@ -401,6 +405,48 @@ then re-verified here in the main thread.
   2 relocated `overview::tests`), `map_snapshots_match_goldens` passes
   **un-blessed**, golden **15/15 byte-identical**, `sectorforge` lib
   **191/191**. MAP.md + GUIDE.md repointed to `info_panel/mod.rs`.
+
+### 2026-06-05 — step 5, wave 4 (AREA_F semantic-color sweep)
+
+No verbatim god-file splits remain; moved to the AREA_F "safe warm-ups" per the
+file's own suggested local order. All viewer chrome — **no golden / map-snapshot
+exposure** (`viewer/` has no snapshot suite, and `gui-core` render paths were
+untouched except F12's comment). One commit per finding, each gated on `cargo
+check` + `clippy --workspace --all-targets -D warnings` clean, **golden 15/15
+byte-identical**, viewer **7/7**, gui-core `map_snapshots_match_goldens` passing
+**un-blessed**.
+
+- **F6 (`542d14e`)** — `editor/dialogs.rs`. SaveAs error label
+  `Color32::from_rgb(235, 90, 90)` → `crate::palette::danger()`.
+- **F9 (`a577d79`)** — `editor/factions_panel.rs`. Deleted the local
+  `palette_dim()` (hardcoded `(150,145,165)` = the dark-theme `TEXT_DIM`) and
+  routed its one call site to `crate::palette::chrome_text_dim()`; dropped the
+  now-unused `Color32` import.
+- **F11 (`e918de2`)** — `factions_overview.rs`. The designer rendered both
+  "saved &lt;path&gt;" and "save failed: &lt;e&gt;" in the same amber. Added a
+  `status_is_error` flag with `set_status_ok`/`set_status_err` helpers wired
+  through all 8 status sites, and colored the message `palette::success()` vs
+  `palette::danger()`.
+- **F12 (`c61d9cd`)** — `gui-core/src/palette.rs`. Comment-only: documented that
+  `stability_color`'s amber/red are a **data-viz** palette (domain-lore route
+  tier on the map canvas), intentionally **not** `warning()`/`danger()`, so the
+  numeric overlap is never "fixed" into a theme-status coupling. No render change.
+- **F5 (`362af3d`)** — the ~25-site sweep across 14 viewer chrome files. Swapped
+  amber unsaved/warning/stress (`235,200,90` / `240,200,90` / `235,190,90` /
+  `235,180,50`) → `palette::warning()`; red error/danger/severity (`235,90,90` /
+  `180,80,80` / `Color32::RED`) → `palette::danger()`; positive OK/WINNER
+  (`120,220,130` / `Color32::GREEN`) → `palette::success()`. **Behavioural** (not
+  verbatim) — chrome colors now track the active theme; acceptable because no
+  golden/snapshot covers these panels. **Intentional data-viz / background fills
+  left untouched and annotated** (AREA_F F5): the region-kind hue (`220,160,60`)
+  at `regions_view`/`sector_view`, the preview-banner / APPLY-PREVIEW
+  call-to-action fills (`0,80,0` / `0,100,0`), the segmentum chrome fills, and the
+  starless-system fallback dot (`140,140,150`). The two sites already converted by
+  F6/F11 were excluded; 4 now-unused `Color32` imports removed. **Decision
+  (owner-visible):** also folded the two semantic `Color32::{RED,GREEN}` *consts*
+  (system-not-found error, wishes "WINNER" success) into the same sweep even
+  though they are not `from_rgb` — they are the same theme-unaware status-color
+  class and pair with amber siblings in the same widget.
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

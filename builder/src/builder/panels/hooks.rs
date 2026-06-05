@@ -241,10 +241,7 @@ fn show_hook_list(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Hook details").strong());
-    let target = state
-        .hooks_edit_target
-        .clone()
-        .or_else(|| state.selected_hook_id.clone());
+    let target = super::roster::detail_target(&state.hooks_edit_target, &state.selected_hook_id);
     let Some(target_id) = target else {
         ui_kit::placeholder(ui, "Pick a hook on the left to read its details here.");
         return;
@@ -477,9 +474,7 @@ fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds
         "Reference",
         "Stable identifier for this hook. Lowercase, no spaces (schema: id).",
         |ui| {
-            let mut id_buf = h.id.to_string();
-            if ui.text_edit_singleline(&mut id_buf).changed() {
-                h.id = id_buf.into();
+            if super::roster::id_edit_field(ui, &mut h.id) {
                 changed = true;
             }
         },

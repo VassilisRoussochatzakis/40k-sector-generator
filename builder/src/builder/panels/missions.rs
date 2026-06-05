@@ -283,10 +283,8 @@ fn show_mission_list(ui: &mut Ui, state: &mut BuilderState) {
 
 fn show_detail_card(ui: &mut Ui, state: &mut BuilderState) {
     ui.label(RichText::new("Mission details").strong());
-    let target = state
-        .missions_edit_target
-        .clone()
-        .or_else(|| state.selected_mission_id.clone());
+    let target =
+        super::roster::detail_target(&state.missions_edit_target, &state.selected_mission_id);
     let Some(target_id) = target else {
         ui_kit::placeholder(ui, "Pick a mission on the left to see its full details.");
         return;
@@ -590,9 +588,7 @@ fn manual_mission_editor(
         "ID",
         "Stable identifier — keep it unique (schema: id).",
         |ui| {
-            let mut id_buf = m.id.to_string();
-            if ui.text_edit_singleline(&mut id_buf).changed() {
-                m.id = id_buf.into();
+            if super::roster::id_edit_field(ui, &mut m.id) {
                 changed = true;
             }
         },

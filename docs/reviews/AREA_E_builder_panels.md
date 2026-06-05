@@ -7,7 +7,7 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 | ID    | Sev  | Status         | Effort | One-line                                               |
 |-------|------|----------------|--------|--------------------------------------------------------|
 | E-S1  | HIGH | ✅ Confirmed   | S      | `labeled()` ×33 byte-identical copies across panels   |
-| E-S2  | MED  | ✅ Confirmed   | M      | Master-detail shell repeated across catalog panels     |
+| E-S2  | MED  | ✅ Resolved    | M      | Master-detail shell repeated across catalog panels     |
 | E-S3  | HIGH | ⚠️ Partial     | M      | `EditWorld` ×16 / `EditSystem` ×10 (review had ×26/×9)|
 | E1    | HIGH | ✅ Confirmed   | M      | `apply_faction_power` + manual dirty: REAL bus bypass  |
 | E2    | HIGH | ✅ Confirmed   | M      | Per-frame `primary_factions =` write: REAL bus bypass  |
@@ -56,8 +56,24 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E-S2 — Master-detail shell repeated across catalog panels
 
+> ✅ **RESOLVED 2026-06-05 (proportionate, partial-by-design — owner-chosen).**
+> The review's full master-detail shell did **not** hold: RELATIONS is a
+> matrix/cell editor, ECONOMY's override editors key off the shared
+> `selected_world_id`/`selected_system_id`, the roster panels' list rendering is
+> panel-specific (`card::selectable_plate` rails over a derived *report*), and
+> there is **no add-row scratch buffer** (rows are appended blank via
+> `cfg.manual.push(blank_*())`) — so the proposed `roster_detail<T>` /
+> `add_row_scratch<T: Default>` helpers had no real consumers. Per an
+> AskUserQuestion the owner chose **proportionate micro-dedup**: extracted the two
+> genuinely byte-identical idioms — `detail_target` (the
+> `edit_target.or_else(selected_id)` resolution) and `id_edit_field` (the
+> `id_buf` inline-rename) — into a new `panels/roster.rs`, used by MISSIONS +
+> HOOKS. PERSONAE diverges (selection-only detail; edit-target-scroll id field)
+> and stays hand-written. Builder lib 319/319, clippy clean. See
+> [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** MED / P1
-- **Status:** ✅ Confirmed
+- **Status:** ✅ Confirmed → ✅ Resolved (proportionate, partial-by-design)
 - **Evidence:** `missions.rs`, `personae.rs`, `hooks.rs`, `relations.rs`, `economy.rs` all implement the same three-zone layout: (1) a filtered/sorted list on the left, (2) a detail editor on the right keyed on `state.selected_*_id`, (3) an "add new row" section with a scratch buffer whose type varies per catalog. Each also duplicates the `id_buf`/`edit_target` dance for inline-rename.
 - **Why it matters:** Adding a list-level feature (e.g. multi-select delete) requires touching 5+ files independently. Catalog panel count will grow.
 - **Fix:** Extract `roster_detail(ui, items, selected_id, |ui, item| { ... })` + a generic `add_row_scratch<T: Default>(ui, key, |buf| { ... })` helper in `builder/src/builder/ui/`. Eight panels would benefit.

@@ -71,6 +71,7 @@ pub mod project;
 pub mod prose;
 pub mod regions;
 pub mod relations;
+pub(crate) mod roster;
 pub mod routes;
 pub mod search;
 pub mod segmentum;

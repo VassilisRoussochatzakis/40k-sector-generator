@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 15 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E12,E13,E14,E-S1,E-S3*) | 0 | 2 | 0 |
+| E builder panels | 17 | 16 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E12,E13,E14,E-S1,E-S2*,E-S3*) | 0 | 1 (E11 → [E11.md](E11.md)) | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -947,6 +947,53 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     (world/claims, world/factions, world/features — all their EditWorld sites
     converted). No file moved → MAP.md untouched; GUIDE.md §R4 detail-editor note
     extended.
+
+### 2026-06-05 — step 5, wave 13 (AREA_E E-S2 — proportionate roster dedup) · AREA_E effectively complete
+
+- **E-S2 (master-detail shell) — ✅ DONE (proportionate, partial-by-design).**
+  Investigated all five named panels first: the review's premise **does not
+  hold**. RELATIONS is a matrix/cell editor (no roster); ECONOMY's override
+  editors key off the **shared** `selected_world_id`/`selected_system_id` (not a
+  catalog-specific roster); the three true roster panels (MISSIONS/PERSONAE/HOOKS)
+  render their lists with panel-specific `card::selectable_plate` rails sourced
+  from a **derived report** (not the raw catalog); and there is **no add-row
+  scratch buffer** anywhere — rows are appended blank via
+  `cfg.manual.push(blank_manual_*(len))`. So the proposed `roster_detail<T>` and
+  `add_row_scratch<T: Default>` helpers had **no real consumers**, and the named
+  `ui.data_mut`-temp-vs-`BuilderState`-field "scratch lifetime" decision was moot
+  for these panels (that scratch lives in the *control/world* presence/claim
+  add-rows — different panels, partly handled by E5/E14).
+  - **Owner decision (AskUserQuestion):** chose **proportionate micro-dedup** over
+    the full generic shell / defer / close. Extracted the **two** genuinely
+    byte-identical idioms into a new **`panels/roster.rs`** (`pub(crate)`):
+    - `detail_target(edit_target, selected_id) -> Option<String>` — the
+      `edit_target.clone().or_else(|| selected_id.clone())` detail-target
+      resolution. Used by MISSIONS + HOOKS `show_detail_card`.
+    - `id_edit_field<I: Display + From<String>>(ui, &mut I) -> bool` — the
+      `let mut id_buf = x.id.to_string(); if changed { x.id = id_buf.into() }`
+      inline-rename. Generic over the `define_id!` newtypes (`MissionId`/`HookId`),
+      using the same `Display`+`From<String>` the hand-written sites relied on.
+      Used by MISSIONS + HOOKS manual editors.
+  - **Divergence left hand-written (noted):** PERSONAE's detail keys on
+    `selected_persona_id` only (no edit-target `or_else`), and its id field
+    interleaves a `scroll_to_me(edit_target)` focus — neither fits the shared
+    helpers. RELATIONS/ECONOMY out of shape entirely. No generic roster shell built
+    (no consumers).
+  - **Location deviation (documented):** placed at `panels/roster.rs`, **not** the
+    review's suggested `builder/src/builder/ui/` — matches the E14
+    `panels/presence_widgets.rs` precedent for shared panel helpers, avoids a
+    near-empty new top-level module dir, and dodges an `ui` module-name vs the
+    ubiquitous `ui` variable collision.
+  - **Behaviour-identical:** `detail_target` is the same `clone().or_else`;
+    `id_edit_field` does the same `to_string`/`changed`/`into`, returning the bool
+    each caller folds into its `changed` flag. (The id mutation stays on the
+    documented catalog off-bus carve-out — these edit `data_catalogs.*.manual`.)
+  - **Verification:** `cargo check -p sectorforge-builder --all-targets` clean;
+    `cargo clippy --workspace --all-targets -- -D warnings` clean; builder lib
+    **319/319**. Builder-only — golden + map snapshots unaffected (not run). MAP.md
+    `roster.rs` row added.
+  - **AREA_E is now effectively complete: 16/17 resolved; E11 deferred to its own
+    session via [E11.md](E11.md).**
 
 ### 2026-06-05 — step 5, wave 13 (AREA_E E11 — assessed + deferred to a dedicated session)
 

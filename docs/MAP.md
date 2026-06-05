@@ -364,6 +364,7 @@ helper.
 | [builder/src/builder/panels/placeholder.rs](../builder/src/builder/panels/placeholder.rs) | Shared stub-panel helper (§N2) |
 | [builder/src/builder/panels/text_buf.rs](../builder/src/builder/panels/text_buf.rs) | Persistent-buffer wrappers around `text_edit_singleline`/multiline |
 | [builder/src/builder/panels/presence_widgets.rs](../builder/src/builder/panels/presence_widgets.rs) | Shared claim/presence chip widgets (§E14 `claim_chip_colours`; §E5 `presence_candidates`) |
+| [builder/src/builder/panels/roster.rs](../builder/src/builder/panels/roster.rs) | Shared catalog-roster helpers (§E-S2 `detail_target` + `id_edit_field`; missions/hooks) |
 | [builder/src/builder/panels/shortcuts.rs](../builder/src/builder/panels/shortcuts.rs) | Global keyboard shortcuts (§U2 + §LINK3) |
 | [builder/src/builder/panels/project.rs](../builder/src/builder/panels/project.rs) | PROJECT tab (§N1/§N2): composes Phase-A project I/O surfaces |
 | [builder/src/builder/panels/project_tree.rs](../builder/src/builder/panels/project_tree.rs) | §P4 PROJECT tree panel |

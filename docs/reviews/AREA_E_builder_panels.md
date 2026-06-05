@@ -16,7 +16,7 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 | E5    | MED  | ✅ Confirmed   | S      | `show_add_presence_row` + chip colours duplicated       |
 | E6    | MED  | ✅ Confirmed   | S      | `SYSTEM_STATES` const duplicated byte-for-byte         |
 | E7    | MED  | ✅ Confirmed   | L      | `system.rs` 2033 LOC god-file                          |
-| E8    | MED  | ✅ Confirmed   | M      | `route_component_count` called twice per frame, no cache|
+| E8    | —    | 🟢 Non-issue   | —      | "twice per frame" false — site 2 is collapsed-gated + dominated|
 | E9    | MED  | ✅ Confirmed   | S      | `chronicle.events.clone()` ×2 per frame                |
 | E10   | MED  | ✅ Confirmed   | M      | Filter/list block ~273 lines in `control.rs`           |
 | E11   | LOW  | ⚠️ Partial     | M      | `context_menu.rs` 1152 LOC (not 177); 5 large render fns|
@@ -236,9 +236,21 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E8 — `route_component_count` recomputed every frame
 
-- **Review sev / bucket:** MED / P2
-- **Status:** ✅ Confirmed
-- **Location:** `builder/src/builder/panels/routes.rs:92` and `:1296` (verified; two call sites per open of the ROUTES tab)
+> 🟢 **NON-ISSUE 2026-06-05 — premise corrected, no change.** The "twice per
+> frame" claim does not hold. Site 1 (`show_summary`, routes.rs:75) runs every
+> frame — **one** union-find. Site 2 (`show_ensure_connected`, :1279) is inside
+> `ui_kit::collapsing_section(.., false, ..)`, whose `CollapsingHeader::show`
+> body runs **only when the section is expanded** (default-collapsed) — so it is
+> not a per-frame cost; and when it does run it is immediately followed by
+> `ensure_connected_routes(state, routes.clone())` (:1280), a heavier clone+connect
+> pass that **dominates** the union-find, and it must stay **live** (it follows a
+> checkbox handler that can mutate routes the same frame — hoisting to the top of
+> `show` would make it a frame stale). There is no per-frame redundancy to remove.
+> Reclassified MED → non-issue, marked DONE. See [PROGRESS.md](PROGRESS.md).
+
+- **Review sev / bucket:** MED / P2 (reclassified → non-issue)
+- **Status:** 🟢 Non-issue (premise corrected)
+- **Location:** `builder/src/builder/panels/routes.rs:75` and `:1279` (verified)
 - **Evidence:**
   ```rust
   // routes.rs:91–92  (show_summary, called every frame):

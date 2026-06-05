@@ -5,7 +5,9 @@ a project directory of typed TOML configuration files and produces a
 reproducible sector as JSON, Markdown, and bitmap images.
 
 The world taxonomy lives in [src/worlds.rs](src/worlds.rs); the typed
-config (`worlds.toml`) lives in [src/worlds_toml.rs](src/worlds_toml.rs).
+config (`worlds.toml`) and its loader (`WorldError`/`WorldsLoad`/`load_worlds_data`,
+re-exported at `crate::worlds::*` for path stability) live in
+[src/worlds_toml.rs](src/worlds_toml.rs).
 Everything else in this crate builds a sector-scale layer around it: candidate
 pools, deterministic placement, systems, worlds, routes, factions,
 subsector clustering, validation, export, an interactive GUI viewer/editor, and

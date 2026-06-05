@@ -46,11 +46,23 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::worlds::{GenerationRow, KeyTables, NotableFeature, StarColour, WorldError, WorldType};
+use crate::worlds::{GenerationRow, KeyTables, NotableFeature, StarColour, WorldType};
 
 /// Default filename for the native worlds config inside a project's
 /// `data/worlds/` directory.
 pub const DEFAULT_FILENAME: &str = "worlds.toml";
+
+/// Error returned by the worlds-data loader. Moved here from `worlds.rs`
+/// together with the IO surface (`WorldsLoad` / [`load_worlds_data`]);
+/// re-exported at `crate::worlds::WorldError` for path stability.
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum WorldError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("invalid data: {0}")]
+    Invalid(String),
+}
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -177,6 +189,47 @@ fn parse_star_colour_variant(s: &str) -> Option<StarColour> {
         .iter()
         .copied()
         .find(|v| format!("{v:?}") == s)
+}
+
+/// Full worlds-data load result. Includes the authored structured
+/// feature pool (`§45 WD3`) when the TOML path is in use.
+pub struct WorldsLoad {
+    pub tables: KeyTables,
+    pub rows: Vec<GenerationRow>,
+    pub authored_features: Option<crate::worlds_toml::ResolvedFeaturePool>,
+}
+
+impl WorldsLoad {
+    pub fn into_legacy_tuple(self) -> (KeyTables, Vec<GenerationRow>) {
+        (self.tables, self.rows)
+    }
+}
+
+/// Load both row data and (when available) the authored feature pool.
+///
+/// Reads `<data_dir>/worlds.toml` (the only supported format).
+/// Callers building a `WorldCandidatePool` should pass the returned
+/// `authored_features` to `world_pool::apply_authored_features` so the
+/// structured pool overlays the row-derived one.
+pub fn load_worlds_data(data_dir: impl AsRef<Path>) -> Result<WorldsLoad, WorldError> {
+    let dir = data_dir.as_ref();
+    let toml_path = dir.join(crate::worlds_toml::DEFAULT_FILENAME);
+    let cfg = crate::worlds_toml::WorldsConfig::from_path(&toml_path)
+        .map_err(|e| WorldError::Invalid(format!("worlds.toml: {e}")))?;
+    let (tables, rows) = cfg.to_loader_inputs();
+    let features = cfg
+        .resolved_features()
+        .map_err(|e| WorldError::Invalid(format!("worlds.toml features: {e}")))?;
+    let authored_features = if features.is_empty() {
+        None
+    } else {
+        Some(features)
+    };
+    Ok(WorldsLoad {
+        tables,
+        rows,
+        authored_features,
+    })
 }
 
 #[cfg(test)]

@@ -17,7 +17,7 @@ sequence". Update this file whenever a finding moves status.
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
 | B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
-| C export/validate/worlds/cli | 13 | 2 (C1,C-S2) | 0 | 11 | 0 |
+| C export/validate/worlds/cli | 13 | 3 (C1,C-S2,C6) | 0 | 10 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 4 (E1,E2,E3,E-S1) | 0 | 13 | 0 |
 | F viewer + gui-core | 15 | 0 | 0 | 15 | 0 |
@@ -37,8 +37,10 @@ sequence". Update this file whenever a finding moves status.
 5. **Dedup waves + god-file splits** (behind G2) — 🔄 IN PROGRESS (2026-06-05)
    - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
-   - Remaining: AREA_B perf (B1/B3/B5/B6), trait/macro dedup (B-S1/B-S2, E-S3,
-     C2/C3, F-S1), then god-file splits (A1, B11, D3/D5, E4/E7, F3/F8, C6).
+   - **Wave 2+ — god-file splits** (verbatim carves behind G2):
+     B11 ✅ · A1 ✅ · C6 ✅. Remaining splits: E4/E7, F3/F8 (D3/D5 deferred).
+   - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
+     (B-S1/B-S2, E-S3, C2 / **C3 next**, F-S1).
 
 ## Detailed log
 
@@ -214,6 +216,30 @@ then re-verified here in the main thread.
   _Not done:_ **A5** (157-pub-field visibility tightening) is the *other* AREA_A
   god-file item but is a wide cascade into builder/viewer/tests, not a clean
   split — left for an owner decision like D-S3/D5.
+
+### 2026-06-05 — step 5, wave 3 (god-file splits — C6)
+
+- **C6 (worlds IO split)** — ✅ DONE. Moved the worlds-data **loader** out of the
+  `src/worlds.rs` taxonomy god-file (1371 → 1325 LOC) into the existing
+  `src/worlds_toml.rs` IO module (346 → 399 LOC): `WorldError` (enum),
+  `WorldsLoad` (struct + `into_legacy_tuple`), and `load_worlds_data`. Verbatim
+  carve — bodies unchanged (kept the `crate::worlds_toml::*` self-paths and the
+  exact `WorldError::Invalid` map_err strings). `worlds.rs` now re-exports them
+  (`pub use crate::worlds_toml::{load_worlds_data, WorldError, WorldsLoad};`) so
+  `crate::worlds::*` paths stay stable (consumers: `model/errors.rs`,
+  `loading/input.rs`, `gen/world_pool.rs` via the retained `load_generation_rows`
+  shim). `worlds_toml.rs` dropped `WorldError` from its `use crate::worlds::{…}`
+  (now local); the now-unused `use thiserror::Error;` was removed from
+  `worlds.rs`. Bidirectional module `use` between the two siblings is legal — no
+  cycle. **Phase 2** (`enum_slug!`/`strum` collapse of the 9 `FromStr`/`Display`/
+  `VARIANTS` triples, ~940 LOC) intentionally **not** done — output-equivalence
+  risk on the hand-written slugs; left as a separate, owner-gated pass like the
+  `SectorSize` macro holdout (B-S3). **Re-verified in main thread:** `cargo check
+  -p sectorforge --all-targets` clean, **golden 15/15 byte-identical**, lib
+  191/191, `it` 93/93, **`cargo clippy --workspace --all-targets -- -D warnings`
+  clean**. (A rust-analyzer E0432 flurry on `worlds.rs:11` during the carve was a
+  stale-index false alarm — cargo resolves the re-export.) MAP.md + GUIDE.md
+  updated.
 
 ### Open decisions / notes
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via

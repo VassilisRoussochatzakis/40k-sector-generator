@@ -50,7 +50,7 @@ work lands. Status legend: `[ ]` pending, `[~]` in progress, `[x]` done,
 | ID | Status | Current state | Plan | Notes |
 |----|--------|---------------|------|-------|
 | TF-E-1 | [x] | Added `CatalogReloadError::Parse { kind, rel, message }` (`#[non_exhaustive]`). reload_catalog now returns `Result<(), CatalogReloadError>`. 13 silent swallows converted to `?` with typed parse errors carrying file name and kind. Stored in `BuilderState.last_catalog_error`; status bar renders `reload: …` in red. Both call sites (file watcher + conflict_resolver "Reload from disk") wired. | — | UI feedback gap closed. |
-| TF-E-2 | [ ] | `build_subsectors` errors only `.unwrap()`-ed in tests; no production swallow sites found (per investigator). | De-scope production swallow. Add HealthFlag emission if we find downstream uses; otherwise close. | Re-verify before action. |
+| TF-E-2 | [x] | Re-verified: `build_subsectors` failures *were* swallowed in three viewer paths (`.unwrap_or_default()`). Now surfaced end-to-end: analytics `compute_subsector_variety` emits a `SUBSECTOR_DERIVE_FAILED` HealthFlag; the builder shows `last_subsector_error`; the **viewer** routes all three sites through `App::build_display_subsectors` → `export_status` (`subsectors: …`). | — | Closed (see follow-up note below). |
 | TF-E-3 | [x] | Added `src/cli/exit_code.rs::from_error(&SectorError) -> ExitCode` with sysexits-style mapping. main.rs routes errors through it. | — | Validate/Generate path codes documented in module rustdoc. |
 | TF-E-4 | [x] | SectorError::WorldDataLoad now stores `source: WorldError` via `#[source]`. Both call sites (loading/input.rs, gen/world_pool.rs) updated. | — | Source chain preserved. |
 | TF-E-5 | [x] | 61 `let _ = writeln!` in diff.rs replaced with `wln!` macro (defined locally, asserts infallibility via `.expect()`). | — | File path drift: validation.rs → diff.rs. Tests pass. |
@@ -212,8 +212,12 @@ second pass. Summary of what landed:
   `(Vec<SubsectorVariety>, Option<SubsectorBuildError>)`; failures push a
   `HealthFlag { code: "SUBSECTOR_DERIVE_FAILED", … }`. Builder also
   surfaces `last_subsector_error` in the status bar (parallels the
-  `last_catalog_error` / `last_save_error` slots). Viewer surface left as
-  a follow-up.
+  `last_catalog_error` / `last_save_error` slots). **Viewer tail now landed:**
+  all 3 `build_subsectors(...).unwrap_or_default()` swallow sites (load,
+  editor sync-back, live-edit dirty) route through
+  `App::build_display_subsectors`, which surfaces any `SubsectorBuildError`
+  on the shared sticky `export_status` line (`subsectors: …`) instead of
+  silently yielding an empty `Vec`.
 - **TF-T-2** — extracted pure `scan_once(root, &mut baseline)`. Three new
   unit tests cover changed-file detection, no-baseline-entry, and
   missing-file paths. No `filetime` dep needed — the baseline is set to
@@ -253,7 +257,6 @@ Still deferred (genuinely blocked or low-ROI):
   info_panel, is the per-frame uppercase loop.)_
 - TF-P-7 Cow conversion of `BriefingPack::sector` (broad cascade for
   marginal benefit until profile loops are short-circuited).
-- Viewer-side surfacing of `last_subsector_error` (TF-E-2 follow-up).
 
 Verification (second pass):
 

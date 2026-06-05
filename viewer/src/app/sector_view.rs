@@ -5,7 +5,6 @@ use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
-use sectorforge::subsectors::SubsectorConfig;
 
 use super::{editor, info_panel, palette, App, PendingExport, View};
 use crate::editor::state::SectorEditTool;
@@ -649,9 +648,11 @@ impl App {
             }
 
             Self::refresh_live_manifest_counts(sector);
-            self.subsectors =
-                sectorforge::subsectors::build_subsectors(sector, SubsectorConfig::default())
-                    .unwrap_or_default();
+            let (subs, sub_err) = Self::build_display_subsectors(sector);
+            self.subsectors = subs;
+            if let Some(e) = sub_err {
+                self.export_status = e;
+            }
             if !self.editor.dirty {
                 let mut input = None;
                 if let Some(path) = &self.project_dir {

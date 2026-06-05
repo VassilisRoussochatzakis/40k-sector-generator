@@ -13,6 +13,20 @@ use sectorforge::subsectors::{build_subsectors, SubsectorConfig};
 use super::App;
 
 impl App {
+    /// TF-E-2: build the display subsectors for a sector, surfacing any
+    /// [`SubsectorBuildError`](sectorforge::subsectors::SubsectorBuildError) as a
+    /// status string instead of silently collapsing to an empty `Vec` (the old
+    /// `.unwrap_or_default()` swallow). Mirrors the builder's `last_subsector_error`
+    /// slot; the viewer routes it through the shared sticky `export_status` line.
+    pub(super) fn build_display_subsectors(
+        sector: &GeneratedSector,
+    ) -> (Vec<sectorforge::subsectors::Subsector>, Option<String>) {
+        match build_subsectors(sector, SubsectorConfig::default()) {
+            Ok(subs) => (subs, None),
+            Err(e) => (Vec::new(), Some(format!("subsectors: {e}"))),
+        }
+    }
+
     pub(super) fn set_loaded_sector(
         &mut self,
         sector: GeneratedSector,
@@ -20,7 +34,11 @@ impl App {
     ) {
         self.sector_source_path = source_path.as_ref().map(PathBuf::from);
         self.live_dirty = false;
-        self.subsectors = build_subsectors(&sector, SubsectorConfig::default()).unwrap_or_default();
+        let (subs, sub_err) = Self::build_display_subsectors(&sector);
+        self.subsectors = subs;
+        if let Some(e) = sub_err {
+            self.export_status = e;
+        }
         self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(
             &sector,
             &self.subsectors,

@@ -193,11 +193,11 @@ impl eframe::App for App {
         if self.editor.dirty {
             if let Some(sec) = &self.editor.sector {
                 self.sector = Some(Arc::new(sec.clone()));
-                self.subsectors = sectorforge::subsectors::build_subsectors(
-                    sec,
-                    sectorforge::subsectors::SubsectorConfig::default(),
-                )
-                .unwrap_or_default();
+                let (subs, sub_err) = Self::build_display_subsectors(sec);
+                self.subsectors = subs;
+                if let Some(e) = sub_err {
+                    self.export_status = e;
+                }
                 self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(
                     sec,
                     &self.subsectors,

@@ -67,17 +67,13 @@ pub enum SystemKind {
     SpaceStation,
 }
 
-impl SystemKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Star => "star",
-            Self::SpecialLocation => "special_location",
-            Self::BlackHole => "black_hole",
-            Self::WarpAnomaly => "warp_anomaly",
-            Self::SpaceStation => "space_station",
-        }
-    }
-}
+enum_slug!(SystemKind {
+    Star => "star",
+    SpecialLocation => "special_location",
+    BlackHole => "black_hole",
+    WarpAnomaly => "warp_anomaly",
+    SpaceStation => "space_station",
+});
 
 impl core::fmt::Display for SystemKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -491,14 +487,12 @@ pub enum RouteKind {
     Webway,
 }
 
-impl RouteKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Warp => "warp",
-            Self::Webway => "webway",
-        }
-    }
+enum_slug!(RouteKind {
+    Warp => "warp",
+    Webway => "webway",
+});
 
+impl RouteKind {
     pub const ALL: [Self; 2] = [Self::Warp, Self::Webway];
 
     #[must_use]
@@ -533,14 +527,10 @@ pub enum RouteViewMode {
     TopLevel,
 }
 
-impl RouteViewMode {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Detailed => "detailed",
-            Self::TopLevel => "top_level",
-        }
-    }
-}
+enum_slug!(RouteViewMode {
+    Detailed => "detailed",
+    TopLevel => "top_level",
+});
 
 impl core::fmt::Display for RouteViewMode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -548,18 +538,16 @@ impl core::fmt::Display for RouteViewMode {
     }
 }
 
-impl RouteType {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::StableWarpLane => "stable_warp_lane",
-            Self::ChartedPassage => "charted_passage",
-            Self::SecretPassage => "secret_passage",
-            Self::Webway => "webway",
-            Self::BlackShip => "black_ship",
-            Self::SmugglingLane => "smuggling_lane",
-        }
-    }
+enum_slug!(RouteType {
+    StableWarpLane => "stable_warp_lane",
+    ChartedPassage => "charted_passage",
+    SecretPassage => "secret_passage",
+    Webway => "webway",
+    BlackShip => "black_ship",
+    SmugglingLane => "smuggling_lane",
+});
 
+impl RouteType {
     pub const ALL: [Self; 6] = [
         Self::StableWarpLane,
         Self::ChartedPassage,
@@ -813,16 +801,14 @@ pub enum RouteStability {
     Perilous,
 }
 
-impl RouteStability {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Stable => "stable",
-            Self::Unstable => "unstable",
-            Self::Hazardous => "hazardous",
-            Self::Perilous => "perilous",
-        }
-    }
+enum_slug!(RouteStability {
+    Stable => "stable",
+    Unstable => "unstable",
+    Hazardous => "hazardous",
+    Perilous => "perilous",
+});
 
+impl RouteStability {
     fn pattern_key(self) -> &'static str {
         match self {
             RouteStability::Stable => "stable",
@@ -928,16 +914,14 @@ pub enum FactionInfluence {
     Dominant,
 }
 
-impl FactionInfluence {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Hidden => "hidden",
-            Self::Minor => "minor",
-            Self::Significant => "significant",
-            Self::Dominant => "dominant",
-        }
-    }
+enum_slug!(FactionInfluence {
+    Hidden => "hidden",
+    Minor => "minor",
+    Significant => "significant",
+    Dominant => "dominant",
+});
 
+impl FactionInfluence {
     /// Spec §10.9 scoring weight for primary-faction derivation.
     pub fn weight(self) -> f64 {
         match self {
@@ -1083,18 +1067,16 @@ pub enum DominanceState {
     Stronghold,
 }
 
-impl DominanceState {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Rumored => "rumored",
-            Self::Presence => "presence",
-            Self::Influence => "influence",
-            Self::Contested => "contested",
-            Self::Controlled => "controlled",
-            Self::Stronghold => "stronghold",
-        }
-    }
+enum_slug!(DominanceState {
+    Rumored => "rumored",
+    Presence => "presence",
+    Influence => "influence",
+    Contested => "contested",
+    Controlled => "controlled",
+    Stronghold => "stronghold",
+});
 
+impl DominanceState {
     #[must_use]
     pub fn is_default(&self) -> bool {
         matches!(self, DominanceState::Rumored)
@@ -1140,23 +1122,19 @@ pub enum ClaimType {
     Rebellion,
 }
 
-impl ClaimType {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::LegalSovereignty => "legal_sovereignty",
-            Self::ImperialMandate => "imperial_mandate",
-            Self::TreatyRight => "treaty_right",
-            Self::ReligiousMandate => "religious_mandate",
-            Self::DynasticRight => "dynastic_right",
-            Self::CommercialCharter => "commercial_charter",
-            Self::MilitaryOccupation => "military_occupation",
-            Self::AncientDomain => "ancient_domain",
-            Self::HuntingGround => "hunting_ground",
-            Self::CovertWrit => "covert_writ",
-            Self::Rebellion => "rebellion",
-        }
-    }
-}
+enum_slug!(ClaimType {
+    LegalSovereignty => "legal_sovereignty",
+    ImperialMandate => "imperial_mandate",
+    TreatyRight => "treaty_right",
+    ReligiousMandate => "religious_mandate",
+    DynasticRight => "dynastic_right",
+    CommercialCharter => "commercial_charter",
+    MilitaryOccupation => "military_occupation",
+    AncientDomain => "ancient_domain",
+    HuntingGround => "hunting_ground",
+    CovertWrit => "covert_writ",
+    Rebellion => "rebellion",
+});
 
 impl core::fmt::Display for ClaimType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -1220,19 +1198,15 @@ pub enum SystemState {
     Uncharted,
 }
 
-impl SystemState {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Pacified => "pacified",
-            Self::Fragmented => "fragmented",
-            Self::Blockaded => "blockaded",
-            Self::Warzone => "warzone",
-            Self::Infiltrated => "infiltrated",
-            Self::Quarantined => "quarantined",
-            Self::Uncharted => "uncharted",
-        }
-    }
-}
+enum_slug!(SystemState {
+    Pacified => "pacified",
+    Fragmented => "fragmented",
+    Blockaded => "blockaded",
+    Warzone => "warzone",
+    Infiltrated => "infiltrated",
+    Quarantined => "quarantined",
+    Uncharted => "uncharted",
+});
 
 impl core::fmt::Display for SystemState {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

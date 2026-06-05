@@ -130,18 +130,14 @@ pub enum AudiencePreset {
     PublicAtlas,
 }
 
-impl AudiencePreset {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::GmFullTruth => "gm_full_truth",
-            Self::ImperialNavy => "imperial_navy",
-            Self::Inquisition => "inquisition",
-            Self::RogueTrader => "rogue_trader",
-            Self::LocalGovernor => "local_governor",
-            Self::PublicAtlas => "public_atlas",
-        }
-    }
-}
+enum_slug!(AudiencePreset {
+    GmFullTruth => "gm_full_truth",
+    ImperialNavy => "imperial_navy",
+    Inquisition => "inquisition",
+    RogueTrader => "rogue_trader",
+    LocalGovernor => "local_governor",
+    PublicAtlas => "public_atlas",
+});
 
 impl core::fmt::Display for AudiencePreset {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

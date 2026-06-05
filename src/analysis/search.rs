@@ -216,18 +216,14 @@ pub enum StanceName {
     AtWar,
 }
 
-impl StanceName {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Allied => "allied",
-            Self::Aligned => "aligned",
-            Self::Neutral => "neutral",
-            Self::Rival => "rival",
-            Self::Hostile => "hostile",
-            Self::AtWar => "at_war",
-        }
-    }
-}
+enum_slug!(StanceName {
+    Allied => "allied",
+    Aligned => "aligned",
+    Neutral => "neutral",
+    Rival => "rival",
+    Hostile => "hostile",
+    AtWar => "at_war",
+});
 
 impl core::fmt::Display for StanceName {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -272,17 +268,13 @@ pub enum RegionKindName {
     Anomaly,
 }
 
-impl RegionKindName {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::WarpStorm => "warp_storm",
-            Self::Turbulence => "turbulence",
-            Self::CalmCorridor => "calm_corridor",
-            Self::Blackout => "blackout",
-            Self::Anomaly => "anomaly",
-        }
-    }
-}
+enum_slug!(RegionKindName {
+    WarpStorm => "warp_storm",
+    Turbulence => "turbulence",
+    CalmCorridor => "calm_corridor",
+    Blackout => "blackout",
+    Anomaly => "anomaly",
+});
 
 impl core::fmt::Display for RegionKindName {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -331,19 +323,15 @@ pub enum SystemStateName {
     Uncharted,
 }
 
-impl SystemStateName {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Pacified => "pacified",
-            Self::Fragmented => "fragmented",
-            Self::Blockaded => "blockaded",
-            Self::Warzone => "warzone",
-            Self::Infiltrated => "infiltrated",
-            Self::Quarantined => "quarantined",
-            Self::Uncharted => "uncharted",
-        }
-    }
-}
+enum_slug!(SystemStateName {
+    Pacified => "pacified",
+    Fragmented => "fragmented",
+    Blockaded => "blockaded",
+    Warzone => "warzone",
+    Infiltrated => "infiltrated",
+    Quarantined => "quarantined",
+    Uncharted => "uncharted",
+});
 
 impl core::fmt::Display for SystemStateName {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -375,16 +363,12 @@ pub enum PresenceName {
     Dominant,
 }
 
-impl PresenceName {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Hidden => "Hidden",
-            Self::Minor => "Minor",
-            Self::Significant => "Significant",
-            Self::Dominant => "Dominant",
-        }
-    }
-}
+enum_slug!(PresenceName {
+    Hidden => "Hidden",
+    Minor => "Minor",
+    Significant => "Significant",
+    Dominant => "Dominant",
+});
 
 impl core::fmt::Display for PresenceName {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

@@ -147,15 +147,11 @@ pub enum FlagSeverity {
     Error,
 }
 
-impl FlagSeverity {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Info => "info",
-            Self::Warning => "warning",
-            Self::Error => "error",
-        }
-    }
-}
+enum_slug!(FlagSeverity {
+    Info => "info",
+    Warning => "warning",
+    Error => "error",
+});
 
 impl core::fmt::Display for FlagSeverity {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

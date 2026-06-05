@@ -153,14 +153,10 @@ pub enum RouteLineMode {
     HazardWeighted,
 }
 
-impl RouteLineMode {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Standard => "standard",
-            Self::HazardWeighted => "hazard_weighted",
-        }
-    }
-}
+enum_slug!(RouteLineMode {
+    Standard => "standard",
+    HazardWeighted => "hazard_weighted",
+});
 
 impl core::fmt::Display for RouteLineMode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -177,15 +173,11 @@ pub enum LabelDensity {
     None,
 }
 
-impl LabelDensity {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::All => "all",
-            Self::ImportantOnly => "important_only",
-            Self::None => "none",
-        }
-    }
-}
+enum_slug!(LabelDensity {
+    All => "all",
+    ImportantOnly => "important_only",
+    None => "none",
+});
 
 impl core::fmt::Display for LabelDensity {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -202,15 +194,11 @@ pub enum LegendStyle {
     Hidden,
 }
 
-impl LegendStyle {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Full => "full",
-            Self::Compact => "compact",
-            Self::Hidden => "hidden",
-        }
-    }
-}
+enum_slug!(LegendStyle {
+    Full => "full",
+    Compact => "compact",
+    Hidden => "hidden",
+});
 
 impl core::fmt::Display for LegendStyle {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -227,15 +215,11 @@ pub enum SymbolSet {
     Redacted,
 }
 
-impl SymbolSet {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Standard => "standard",
-            Self::Tactical => "tactical",
-            Self::Redacted => "redacted",
-        }
-    }
-}
+enum_slug!(SymbolSet {
+    Standard => "standard",
+    Tactical => "tactical",
+    Redacted => "redacted",
+});
 
 impl core::fmt::Display for SymbolSet {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

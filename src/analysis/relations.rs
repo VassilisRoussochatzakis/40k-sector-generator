@@ -45,18 +45,14 @@ pub enum Stance {
     AtWar,
 }
 
-impl Stance {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Allied => "allied",
-            Self::Aligned => "aligned",
-            Self::Neutral => "neutral",
-            Self::Rival => "rival",
-            Self::Hostile => "hostile",
-            Self::AtWar => "at_war",
-        }
-    }
-}
+enum_slug!(Stance {
+    Allied => "allied",
+    Aligned => "aligned",
+    Neutral => "neutral",
+    Rival => "rival",
+    Hostile => "hostile",
+    AtWar => "at_war",
+});
 
 impl core::fmt::Display for Stance {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -279,18 +275,14 @@ pub enum RelationAttitude {
     ExistentialEnemy,
 }
 
-impl RelationAttitude {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Allied => "allied",
-            Self::Friendly => "friendly",
-            Self::Transactional => "transactional",
-            Self::Suspicious => "suspicious",
-            Self::Hostile => "hostile",
-            Self::ExistentialEnemy => "existential_enemy",
-        }
-    }
-}
+enum_slug!(RelationAttitude {
+    Allied => "allied",
+    Friendly => "friendly",
+    Transactional => "transactional",
+    Suspicious => "suspicious",
+    Hostile => "hostile",
+    ExistentialEnemy => "existential_enemy",
+});
 
 impl core::fmt::Display for RelationAttitude {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -363,19 +355,15 @@ pub enum TreatyStatus {
     Vendetta,
 }
 
-impl TreatyStatus {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Pact => "pact",
-            Self::Truce => "truce",
-            Self::Vassalage => "vassalage",
-            Self::Charter => "charter",
-            Self::Nonaggression => "nonaggression",
-            Self::Vendetta => "vendetta",
-        }
-    }
-}
+enum_slug!(TreatyStatus {
+    None => "none",
+    Pact => "pact",
+    Truce => "truce",
+    Vassalage => "vassalage",
+    Charter => "charter",
+    Nonaggression => "nonaggression",
+    Vendetta => "vendetta",
+});
 
 impl core::fmt::Display for TreatyStatus {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

@@ -105,17 +105,13 @@ pub enum DominanceTier {
     Stronghold,
 }
 
-impl DominanceTier {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Presence => "presence",
-            Self::Influence => "influence",
-            Self::Contested => "contested",
-            Self::Controlled => "controlled",
-            Self::Stronghold => "stronghold",
-        }
-    }
-}
+enum_slug!(DominanceTier {
+    Presence => "presence",
+    Influence => "influence",
+    Contested => "contested",
+    Controlled => "controlled",
+    Stronghold => "stronghold",
+});
 
 impl core::fmt::Display for DominanceTier {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -223,16 +219,11 @@ pub enum FactionTier {
     Force,
 }
 
-impl FactionTier {
-    #[must_use]
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Overall => "overall",
-            Self::Subfaction => "subfaction",
-            Self::Force => "force",
-        }
-    }
-}
+enum_slug!(FactionTier {
+    Overall => "overall",
+    Subfaction => "subfaction",
+    Force => "force",
+});
 
 impl core::fmt::Display for FactionTier {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -250,16 +241,12 @@ pub enum SystemSlot {
     HiddenMaster,
 }
 
-impl SystemSlot {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Sovereign => "sovereign",
-            Self::OrbitalController => "orbital_controller",
-            Self::EconomicHegemon => "economic_hegemon",
-            Self::HiddenMaster => "hidden_master",
-        }
-    }
-}
+enum_slug!(SystemSlot {
+    Sovereign => "sovereign",
+    OrbitalController => "orbital_controller",
+    EconomicHegemon => "economic_hegemon",
+    HiddenMaster => "hidden_master",
+});
 
 impl core::fmt::Display for SystemSlot {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

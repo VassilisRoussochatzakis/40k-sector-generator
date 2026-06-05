@@ -110,20 +110,16 @@ pub enum MissionKind {
     Exploration,
 }
 
-impl MissionKind {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Investigate => "investigate",
-            Self::Escort => "escort",
-            Self::Sabotage => "sabotage",
-            Self::Diplomacy => "diplomacy",
-            Self::Assassination => "assassination",
-            Self::Recovery => "recovery",
-            Self::Defense => "defense",
-            Self::Exploration => "exploration",
-        }
-    }
-}
+enum_slug!(MissionKind {
+    Investigate => "investigate",
+    Escort => "escort",
+    Sabotage => "sabotage",
+    Diplomacy => "diplomacy",
+    Assassination => "assassination",
+    Recovery => "recovery",
+    Defense => "defense",
+    Exploration => "exploration",
+});
 
 impl core::fmt::Display for MissionKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -140,15 +136,11 @@ pub enum MissionScale {
     CampaignArc,
 }
 
-impl MissionScale {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::OneShot => "one_shot",
-            Self::ShortArc => "short_arc",
-            Self::CampaignArc => "campaign_arc",
-        }
-    }
-}
+enum_slug!(MissionScale {
+    OneShot => "one_shot",
+    ShortArc => "short_arc",
+    CampaignArc => "campaign_arc",
+});
 
 impl core::fmt::Display for MissionScale {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -166,16 +158,12 @@ pub enum MissionVisibility {
     Misinformation,
 }
 
-impl MissionVisibility {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Public => "public",
-            Self::Restricted => "restricted",
-            Self::Secret => "secret",
-            Self::Misinformation => "misinformation",
-        }
-    }
-}
+enum_slug!(MissionVisibility {
+    Public => "public",
+    Restricted => "restricted",
+    Secret => "secret",
+    Misinformation => "misinformation",
+});
 
 impl core::fmt::Display for MissionVisibility {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

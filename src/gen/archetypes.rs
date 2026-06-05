@@ -80,16 +80,12 @@ pub enum NecronPhase {
     Awake,
 }
 
-impl NecronPhase {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Dormant => "dormant",
-            Self::Awakening => "awakening",
-            Self::Awake => "awake",
-        }
-    }
-}
+enum_slug!(NecronPhase {
+    None => "none",
+    Dormant => "dormant",
+    Awakening => "awakening",
+    Awake => "awake",
+});
 
 impl core::fmt::Display for NecronPhase {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -108,16 +104,12 @@ pub enum TyranidStage {
     Consumed,
 }
 
-impl TyranidStage {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Inhabited => "inhabited",
-            Self::Besieged => "besieged",
-            Self::Consumed => "consumed",
-        }
-    }
-}
+enum_slug!(TyranidStage {
+    None => "none",
+    Inhabited => "inhabited",
+    Besieged => "besieged",
+    Consumed => "consumed",
+});
 
 impl core::fmt::Display for TyranidStage {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -139,19 +131,15 @@ pub enum GscStage {
     PlanetarySeizure,
 }
 
-impl GscStage {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Rumor => "rumor",
-            Self::HiddenCell => "hidden_cell",
-            Self::DistrictControl => "district_control",
-            Self::ParallelGovernment => "parallel_government",
-            Self::Uprising => "uprising",
-            Self::PlanetarySeizure => "planetary_seizure",
-        }
-    }
-}
+enum_slug!(GscStage {
+    None => "none",
+    Rumor => "rumor",
+    HiddenCell => "hidden_cell",
+    DistrictControl => "district_control",
+    ParallelGovernment => "parallel_government",
+    Uprising => "uprising",
+    PlanetarySeizure => "planetary_seizure",
+});
 
 impl core::fmt::Display for GscStage {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -171,17 +159,13 @@ pub enum TauSphereBand {
     Core,
 }
 
-impl TauSphereBand {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Contact => "contact",
-            Self::Fringe => "fringe",
-            Self::Client => "client",
-            Self::Core => "core",
-        }
-    }
-}
+enum_slug!(TauSphereBand {
+    None => "none",
+    Contact => "contact",
+    Fringe => "fringe",
+    Client => "client",
+    Core => "core",
+});
 
 impl core::fmt::Display for TauSphereBand {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

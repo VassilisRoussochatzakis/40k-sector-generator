@@ -46,6 +46,11 @@
 //! # Ok::<(), sectorforge::SectorError>(())
 //! ```
 
+// B-S3: `enum_slug!` lives here; `#[macro_use]` injects it into the crate scope
+// for every module declared below, no import path needed.
+#[macro_use]
+mod macros;
+
 pub mod worlds;
 pub mod worlds_toml;
 

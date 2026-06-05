@@ -100,26 +100,25 @@ impl HeatmapMode {
         }
     }
 
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Off => "off",
-            Self::Control => "control",
-            Self::Military => "military",
-            Self::Trade => "trade",
-            Self::Industrial => "industrial",
-            Self::Covert => "covert",
-            Self::Faith => "faith",
-            Self::Threat => "threat",
-            Self::Intel => "intel",
-            Self::Tension => "tension",
-            Self::TradeVolume => "trade_volume",
-            Self::FoodOutput => "food_output",
-            Self::TitheStress => "tithe_stress",
-            Self::SupplyVulnerability => "supply_vulnerability",
-            Self::ConflictIntensity => "conflict_intensity",
-        }
-    }
 }
+
+enum_slug!(HeatmapMode {
+    Off => "off",
+    Control => "control",
+    Military => "military",
+    Trade => "trade",
+    Industrial => "industrial",
+    Covert => "covert",
+    Faith => "faith",
+    Threat => "threat",
+    Intel => "intel",
+    Tension => "tension",
+    TradeVolume => "trade_volume",
+    FoodOutput => "food_output",
+    TitheStress => "tithe_stress",
+    SupplyVulnerability => "supply_vulnerability",
+    ConflictIntensity => "conflict_intensity",
+});
 
 impl core::fmt::Display for HeatmapMode {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -169,18 +168,6 @@ impl StabilityDimension {
         }
     }
 
-    pub fn as_slug(self) -> &'static str {
-        match self {
-            Self::PublicOrder => "public_order",
-            Self::Corruption => "corruption",
-            Self::Fear => "fear",
-            Self::RebellionRisk => "rebellion_risk",
-            Self::XenosThreat => "xenos_threat",
-            Self::WarpInstability => "warp_instability",
-            Self::FamineResourceStress => "famine_resource_stress",
-        }
-    }
-
     /// Pull this dimension's scalar (0.0..=100.0) out of a stability snapshot.
     #[must_use]
     pub fn value(self, s: &crate::stability::StabilityState) -> f32 {
@@ -209,6 +196,16 @@ impl StabilityDimension {
         }
     }
 }
+
+enum_slug!(StabilityDimension {
+    PublicOrder => "public_order",
+    Corruption => "corruption",
+    Fear => "fear",
+    RebellionRisk => "rebellion_risk",
+    XenosThreat => "xenos_threat",
+    WarpInstability => "warp_instability",
+    FamineResourceStress => "famine_resource_stress",
+});
 
 impl core::fmt::Display for StabilityDimension {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

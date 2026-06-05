@@ -735,18 +735,14 @@ pub enum TitheStatus {
     Falsified,
 }
 
-impl TitheStatus {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Surplus => "surplus",
-            Self::Adequate => "adequate",
-            Self::Strained => "strained",
-            Self::Delinquent => "delinquent",
-            Self::Failed => "failed",
-            Self::Falsified => "falsified",
-        }
-    }
-}
+enum_slug!(TitheStatus {
+    Surplus => "surplus",
+    Adequate => "adequate",
+    Strained => "strained",
+    Delinquent => "delinquent",
+    Failed => "failed",
+    Falsified => "falsified",
+});
 
 impl core::fmt::Display for TitheStatus {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -765,16 +761,12 @@ pub enum SupplyRisk {
     Collapsing,
 }
 
-impl SupplyRisk {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Stable => "stable",
-            Self::Vulnerable => "vulnerable",
-            Self::Disrupted => "disrupted",
-            Self::Collapsing => "collapsing",
-        }
-    }
-}
+enum_slug!(SupplyRisk {
+    Stable => "stable",
+    Vulnerable => "vulnerable",
+    Disrupted => "disrupted",
+    Collapsing => "collapsing",
+});
 
 impl core::fmt::Display for SupplyRisk {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -794,17 +786,13 @@ pub enum StrategicPriority {
     CrusadeLevel,
 }
 
-impl StrategicPriority {
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::Low => "low",
-            Self::Local => "local",
-            Self::Subsector => "subsector",
-            Self::Sector => "sector",
-            Self::CrusadeLevel => "crusade_level",
-        }
-    }
-}
+enum_slug!(StrategicPriority {
+    Low => "low",
+    Local => "local",
+    Subsector => "subsector",
+    Sector => "sector",
+    CrusadeLevel => "crusade_level",
+});
 
 impl core::fmt::Display for StrategicPriority {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

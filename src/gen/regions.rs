@@ -121,19 +121,18 @@ impl RegionConditionKind {
         }
     }
 
-    pub fn as_slug(&self) -> &'static str {
-        match self {
-            Self::WarpStorm => "warp_storm",
-            Self::Turbulence => "turbulence",
-            Self::CalmCorridor => "calm_corridor",
-            Self::Blackout => "blackout",
-            Self::Anomaly => "anomaly",
-            Self::NecropolisDrift => "necropolis_drift",
-            Self::BeaconChain => "beacon_chain",
-            Self::EmpyricBleed => "empyric_bleed",
-        }
-    }
 }
+
+enum_slug!(RegionConditionKind {
+    WarpStorm => "warp_storm",
+    Turbulence => "turbulence",
+    CalmCorridor => "calm_corridor",
+    Blackout => "blackout",
+    Anomaly => "anomaly",
+    NecropolisDrift => "necropolis_drift",
+    BeaconChain => "beacon_chain",
+    EmpyricBleed => "empyric_bleed",
+});
 
 impl core::fmt::Display for RegionConditionKind {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 10 (F2,F-S2,F3,F4,F5,F6,F8,F9,F11,F12) | 1 (F-S1) | 4 | 0 |
+| F viewer + gui-core | 15 | 12 (F1,F2,F-S1,F-S2,F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 3 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -574,12 +574,63 @@ preference.
     workspace clippy `-D warnings` clean, `sectorforge` lib **191/191**, golden
     **15/15 byte-identical**, viewer **7/7**, gui-core **31/31** +
     `map_snapshots_match_goldens` **un-blessed**.
-  - **Remaining (parts a/b — the unification proper):** make `EditorState` the
-    single source of truth, demote `App.sector` to a derived read-snapshot
-    (bridge-rebuilt only), reroute the App live-edit ops to mutate
-    `editor.sector`, collapse `live_dirty`/`editor.dirty` → one flag and the two
-    save paths → one write fn. Higher risk, no automated net — planned as
-    follow-up increments. MAP.md updated (scaffold.rs row).
+  - **Increment 2 done below (parts a/b).** MAP.md updated (scaffold.rs row).
+
+- **Increment 2 — unify on `EditorState` as the single source of truth (parts
+  a/b).** ✅ DONE — closes **F-S1 + F1** (same hazard, two rows). Owner-chosen
+  "review-literal" shape.
+  - **`App.sector` demoted to a derived read snapshot.** It is now an `Arc`
+    cache rebuilt *only* by the frame bridge (or seeded on explicit load) and
+    never mutated in place — so the ~15 App-level read sites keep reading
+    `self.sector` unchanged (cheap `Arc` clone into render), but it is no longer
+    an independent write target.
+  - **All edits funnel through `editor.sector`.** The 6 App live-edit ops
+    (`add_system_at` / `remove_selected_system` / `add_route_between` /
+    `remove_selected_route` in `app/sector_view.rs`; `add_planet_to_system` /
+    `remove_planet_from_system` in `app/system_view.rs`) now mutate
+    `editor.sector` directly (owned — no `Arc::make_mut`) and finalize through a
+    slimmed `mark_live_sector_dirty` that reindexes IDs on `editor.sector`,
+    follows the rename through the selection, and calls `editor.mark_dirty()`.
+    The old per-op reverse-sync (`if !editor.dirty { editor.set_sector(...) }`)
+    and the duplicated cache/subsector rebuild are **gone** — the bridge owns
+    that now.
+  - **One dirty flag.** `App.live_dirty` removed entirely; its 2 readers
+    (`app/system_view.rs`, `app/sector_view.rs` "unsaved" indicators) read
+    `editor.dirty`. The title `*` marker already used `editor.dirty`.
+  - **Saves serialize the source of truth.** `write_sector_to_path` (App rfd
+    save) now serializes `editor.sector` and updates `editor.{dirty,loaded_from}`
+    on success (dropping its `Arc::make_mut(App.sector)` + the post-save
+    reverse-sync); `save_sector_as`'s guard reads `editor.sector`. The editor
+    SaveAs (`dialogs.rs` → `save_project_sector`) already serialized
+    `editor.sector`, so **both save entry points now read one store and cannot
+    diverge.**
+    **Decision (owner-visible):** kept the *two* save functions (arbitrary-path
+    vs project-named — different UX) rather than forcibly merging them into "one
+    write fn" as the review literally suggested; unifying the **store** removes
+    the divergence hazard, and merging the two UX paths would be a behaviour
+    change. Revisit if a single entry point is wanted.
+  - **Bridge is revision-gated (perf).** Added `EditorState.revision` (bumped by
+    `mark_dirty` + `set_sector`) and `App.synced_revision`; the bridge
+    (extracted to `App::sync_derived_sector`, called once per `update`) re-derives
+    only when the revision advances — so an idle unsaved sector is no longer
+    deep-cloned + cache-rebuilt every frame (the old `if editor.dirty` bridge
+    did; that cost would have spread to App-live-edit-then-idle states once they
+    started leaving `editor.dirty` set).
+  - **Automated net.** Extracting the bridge made it unit-testable: new
+    `app::tests::editor_sector_is_single_source_of_truth` (viewer 7→**8**)
+    asserts load seeds the snapshot + leaves the bridge in sync, a SoT mutation
+    bumps the revision without touching the snapshot, `sync_derived_sector`
+    re-derives it, and an idle re-sync does **not** rebuild the `Arc`. **Still
+    recommended:** an interactive smoke (`cargo run -p sectorforge-viewer` →
+    add/remove a system + route in the map, Save, reload) — the button→op→render
+    UI wiring has no headless coverage.
+  - **Verification:** workspace clippy `-D warnings` clean; viewer **8/8**;
+    golden **15/15 byte-identical**; gui-core **31/31** +
+    `map_snapshots_match_goldens` **un-blessed**.
+  - **Not done (separate findings):** **F7** (the two map-edit code paths —
+    App `sector_view.rs` vs editor `map_panel.rs` — still duplicate the
+    drag/add-route distance logic; both now write `editor.sector`, but the
+    dedup is F7's job) and **F10** (render-path memoization, owner-gated).
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

@@ -40,9 +40,14 @@ mod relations_view;
 mod trade_view;
 
 pub struct App {
+    /// Derived read snapshot of the editor's source-of-truth sector (F-S1).
+    /// Rebuilt only by the frame bridge / explicit load — never mutated in place.
+    /// Consumed by the App-level read views + the live map render; kept as an
+    /// `Arc` so those reads clone cheaply into render closures.
     pub(super) sector: Option<Arc<GeneratedSector>>,
     pub(super) sector_source_path: Option<PathBuf>,
-    pub(super) live_dirty: bool,
+    /// Last `editor.revision` the derived `sector` snapshot was rebuilt from.
+    pub(super) synced_revision: u64,
     pub(super) subsectors: Vec<Subsector>,
     pub(super) view: View,
     pub(super) sector_selected: Option<sectorforge::ids::SystemId>,
@@ -92,7 +97,7 @@ impl Default for App {
         Self {
             sector: None,
             sector_source_path: None,
-            live_dirty: false,
+            synced_revision: 0,
             subsectors: Vec::new(),
             view: View::Sector,
             sector_selected: None,
@@ -189,43 +194,55 @@ impl eframe::App for App {
         self.draw_preset_gallery(ctx);
         self.draw_export_dialog(ctx);
 
-        // Sync editor changes back to main sector
-        if self.editor.dirty {
-            if let Some(sec) = &self.editor.sector {
-                self.sector = Some(Arc::new(sec.clone()));
-                let (subs, sub_err) = Self::build_display_subsectors(sec);
-                self.subsectors = subs;
-                if let Some(e) = sub_err {
-                    self.export_status = e;
-                }
-                self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(
-                    sec,
-                    &self.subsectors,
-                ));
-                self.dashboard.invalidate();
-                self.heatmap_cache.invalidate();
-                self.sector_overview_cache.invalidate();
-                self.live_dirty = true;
+        self.sync_derived_sector();
+    }
+}
 
-                // Auto-save if enabled
-                if self.editor.auto_save {
-                    if let Some(path_str) = &self.editor.loaded_from {
-                        let path = PathBuf::from(path_str);
-                        match serde_json::to_string_pretty(sec) {
-                            Ok(text) => match fs::write(&path, text) {
-                                Ok(()) => {
-                                    self.editor.dirty = false;
-                                    self.live_dirty = false;
-                                }
-                                Err(e) => {
-                                    self.export_status = format!("auto-save failed: {e}");
-                                }
-                            },
-                            Err(e) => {
-                                self.export_status = format!("auto-save serialize failed: {e}");
-                            }
+impl App {
+    /// Re-derive the App read snapshot (`self.sector`) + display subsectors and
+    /// caches from the editor's source-of-truth sector whenever it advances
+    /// (F-S1). Gated on the revision counter so an idle unsaved sector isn't
+    /// deep-cloned every frame; auto-saves the source-of-truth on the change frame
+    /// if enabled. Runs once per `update`; extracted so it is unit-testable
+    /// without an egui context.
+    pub(super) fn sync_derived_sector(&mut self) {
+        if self.editor.sector.is_none() || self.editor.revision == self.synced_revision {
+            return;
+        }
+        self.synced_revision = self.editor.revision;
+        if let Some(sec) = &self.editor.sector {
+            self.sector = Some(Arc::new(sec.clone()));
+            let (subs, sub_err) = Self::build_display_subsectors(sec);
+            self.subsectors = subs;
+            if let Some(e) = sub_err {
+                self.export_status = e;
+            }
+            self.sector_map_cache = Some(crate::sector_view::SectorMapCache::new(
+                sec,
+                &self.subsectors,
+            ));
+            self.dashboard.invalidate();
+            self.heatmap_cache.invalidate();
+            self.sector_overview_cache.invalidate();
+        }
+
+        // Auto-save the source-of-truth if enabled.
+        if self.editor.auto_save && self.editor.dirty {
+            if let Some(path_str) = self.editor.loaded_from.clone() {
+                let path = PathBuf::from(path_str);
+                match self.editor.sector.as_ref().map(serde_json::to_string_pretty) {
+                    Some(Ok(text)) => match fs::write(&path, text) {
+                        Ok(()) => {
+                            self.editor.dirty = false;
                         }
+                        Err(e) => {
+                            self.export_status = format!("auto-save failed: {e}");
+                        }
+                    },
+                    Some(Err(e)) => {
+                        self.export_status = format!("auto-save serialize failed: {e}");
                     }
+                    None => {}
                 }
             }
         }
@@ -262,5 +279,51 @@ impl App {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::App;
+
+    /// F-S1: `editor.sector` is the single source of truth; `App.sector` is a
+    /// derived snapshot the bridge rebuilds only when the editor revision advances.
+    #[test]
+    fn editor_sector_is_single_source_of_truth() {
+        use sectorforge::ids::system_id;
+        use sectorforge::sector_model::{empty_sector, empty_system, HexCoord, SystemKind};
+        use std::sync::Arc;
+
+        // Loading seeds the derived snapshot and leaves the bridge in sync.
+        let mut app = App::new(empty_sector("t", "T", "s", 8, 8));
+        assert!(app.sector.is_some());
+        assert_eq!(app.synced_revision, app.editor.revision);
+        assert_eq!(app.sector.as_ref().unwrap().systems.len(), 0);
+        let rev0 = app.editor.revision;
+
+        // Mutating the source of truth bumps the revision but leaves the derived
+        // snapshot untouched until the bridge runs.
+        let sys = empty_system(
+            system_id(1),
+            1,
+            "S1".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        app.editor.sector.as_mut().unwrap().systems.push(sys);
+        app.editor.mark_dirty();
+        assert!(app.editor.revision > rev0);
+        assert_eq!(app.sector.as_ref().unwrap().systems.len(), 0);
+
+        // The bridge re-derives the snapshot from the source of truth.
+        app.sync_derived_sector();
+        assert_eq!(app.sector.as_ref().unwrap().systems.len(), 1);
+        assert_eq!(app.synced_revision, app.editor.revision);
+
+        // Idle (no revision change): the snapshot Arc is not rebuilt.
+        let ptr = Arc::as_ptr(app.sector.as_ref().unwrap());
+        app.sync_derived_sector();
+        assert!(std::ptr::eq(ptr, Arc::as_ptr(app.sector.as_ref().unwrap())));
     }
 }

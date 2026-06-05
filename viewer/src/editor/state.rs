@@ -103,6 +103,11 @@ pub struct EditorState {
     pub wishes: Option<sectorforge::search::WishesFile>,
     pub loaded_from: Option<String>,
     pub dirty: bool,
+    /// Monotonic revision of `sector`, bumped on every mutation (`mark_dirty`)
+    /// and on `set_sector`. The App's frame bridge re-derives its read snapshot
+    /// only when this advances past its last-synced value, so an idle unsaved
+    /// sector isn't deep-cloned every frame (F-S1).
+    pub revision: u64,
     pub tab: Tab,
     pub selection: Selection,
     pub tool: SectorEditTool,
@@ -145,6 +150,7 @@ impl Default for EditorState {
             wishes: None,
             loaded_from: None,
             dirty: false,
+            revision: 0,
             tab: Tab::Map,
             selection: Selection::None,
             tool: SectorEditTool::default(),
@@ -183,6 +189,7 @@ impl EditorState {
         self.project_input = project_input;
         self.loaded_from = source_path;
         self.dirty = false;
+        self.revision = self.revision.wrapping_add(1);
         self.map_cache = None;
         self.selection = Selection::None;
         self.tab = Tab::Map;
@@ -207,6 +214,7 @@ impl EditorState {
 
     pub(crate) fn mark_dirty(&mut self) {
         self.dirty = true;
+        self.revision = self.revision.wrapping_add(1);
         // Sector mutated — drop the stale editor map render cache (AREA_F F4).
         self.map_cache = None;
     }

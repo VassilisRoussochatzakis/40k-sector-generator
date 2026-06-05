@@ -327,7 +327,7 @@ impl App {
                             );
                         }
                     }
-                    if self.live_dirty {
+                    if self.editor.dirty {
                         ui.label(RichText::new("UNSAVED").color(palette::warning()));
                     }
                     if self.sector_pick_export {
@@ -471,11 +471,10 @@ impl App {
     }
 
     pub(super) fn add_system_at(&mut self, coord: sectorforge::sector_model::HexCoord) {
-        let Some(sector) = self.sector.as_mut() else {
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let sector = Arc::make_mut(sector);
         if sector.systems.iter().any(|s| s.coord == coord) {
             self.export_status = "hex already has a system".into();
             return;
@@ -510,11 +509,10 @@ impl App {
             self.export_status = "select a system first".into();
             return;
         };
-        let Some(sector) = self.sector.as_mut() else {
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let sector = Arc::make_mut(sector);
         let world_ids: HashSet<_> = sector
             .systems
             .iter()
@@ -565,11 +563,10 @@ impl App {
         from: sectorforge::ids::SystemId,
         to: sectorforge::ids::SystemId,
     ) {
-        let Some(sector) = self.sector.as_mut() else {
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let sector = Arc::make_mut(sector);
         let route_id = sectorforge::ids::route_id(&from, &to);
         if sector.routes.iter().any(|r| r.id == route_id) {
             self.export_status = format!("route {} already exists", route_id);
@@ -600,11 +597,10 @@ impl App {
             self.export_status = "select a route first".into();
             return;
         };
-        let Some(sector) = self.sector.as_mut() else {
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let sector = Arc::make_mut(sector);
         let before = sector.routes.len();
         sector.routes.retain(|r| r.id != id);
         if sector.routes.len() == before {
@@ -616,20 +612,18 @@ impl App {
         self.mark_live_sector_dirty(format!("removed route {}", id));
     }
 
+    /// Finalize an App-side live map edit: reindex IDs on the source-of-truth
+    /// `editor.sector`, follow the rename through the current selection, then mark
+    /// the editor dirty. The frame bridge (app/mod.rs) re-derives the read snapshot
+    /// (`self.sector`), display subsectors and caches from here — this no longer
+    /// touches `self.sector` directly (F-S1).
     pub(super) fn mark_live_sector_dirty(&mut self, status: String) {
-        self.live_dirty = true;
-        self.dashboard.invalidate();
-        self.heatmap_cache.invalidate();
-        self.sector_overview_cache.invalidate();
-        let source = self
-            .sector_source_path
-            .as_ref()
-            .map(|p| p.to_string_lossy().to_string());
-        if let Some(sector) = self.sector.as_mut() {
-            let sector = Arc::make_mut(sector);
-            let (sys_map, _world_map) = sector.reindex_ids(self.editor.stable_ids_on_rename);
+        let stable_ids = self.editor.stable_ids_on_rename;
+        if let Some(sector) = self.editor.sector.as_mut() {
+            let (sys_map, _world_map) = sector.reindex_ids(stable_ids);
+            Self::refresh_live_manifest_counts(sector);
 
-            // Update selection if IDs changed
+            // Follow the reindex through the current selection / open system view.
             if let Some(sel) = self.sector_selected.as_ref() {
                 if let Some(new_id) = sys_map.get(sel.as_str()) {
                     self.sector_selected = Some(SystemId::new(new_id.clone()));
@@ -640,33 +634,10 @@ impl App {
                     *system_id = SystemId::new(new_id.clone());
                 }
             }
-            if let Some(_sel) = self.sector_selected_route.as_ref() {
-                // Route IDs are always derived from endpoints, so we just check if endpoints changed
-                // Actually, reindex_ids already updated route IDs in the sector.
-                // We just need to find the new route ID for the current selection.
-                // But route_id is deterministic. If from/to changed, we can re-derive it.
-                // For now, let's just clear route selection if it's too complex,
-                // or just re-find it.
-            }
-
-            Self::refresh_live_manifest_counts(sector);
-            let (subs, sub_err) = Self::build_display_subsectors(sector);
-            self.subsectors = subs;
-            if let Some(e) = sub_err {
-                self.export_status = e;
-            }
-            if !self.editor.dirty {
-                let mut input = None;
-                if let Some(path) = &self.project_dir {
-                    if let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.clone()) {
-                        if let Ok(pi) = sectorforge::input::load_project(&utf8_path) {
-                            input = Some(pi);
-                        }
-                    }
-                }
-                self.editor.set_sector(sector.clone(), input, source);
-            }
+            // Route IDs are derived from endpoints and already rewritten in-place by
+            // reindex_ids; the route selection (if any) needs no separate fixup.
         }
+        self.editor.mark_dirty();
         self.export_status = status;
     }
 

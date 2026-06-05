@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use egui::{RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use sectorforge::ids::SystemId;
@@ -142,7 +140,7 @@ impl App {
                             }
                         }
                     }
-                    if self.live_dirty {
+                    if self.editor.dirty {
                         ui.label(RichText::new("UNSAVED").color(palette::warning()));
                     }
                 });
@@ -179,11 +177,10 @@ impl App {
         &mut self,
         system_id: &sectorforge::ids::SystemId,
     ) -> Option<usize> {
-        let Some(sector) = self.sector.as_mut() else {
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return None;
         };
-        let sector = Arc::make_mut(sector);
         let Some(sys) = sector.systems.iter_mut().find(|s| &s.id == system_id) else {
             self.export_status = "system not found".into();
             return None;
@@ -208,11 +205,10 @@ impl App {
         system_id: &sectorforge::ids::SystemId,
         world_index: usize,
     ) {
-        let Some(sector) = self.sector.as_mut() else {
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "no sector loaded".into();
             return;
         };
-        let sector = Arc::make_mut(sector);
         let Some(sys) = sector.systems.iter_mut().find(|s| &s.id == system_id) else {
             self.export_status = "system not found".into();
             return;

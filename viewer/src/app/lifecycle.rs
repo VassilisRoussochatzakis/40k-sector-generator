@@ -33,7 +33,6 @@ impl App {
         source_path: Option<String>,
     ) {
         self.sector_source_path = source_path.as_ref().map(PathBuf::from);
-        self.live_dirty = false;
         let (subs, sub_err) = Self::build_display_subsectors(&sector);
         self.subsectors = subs;
         if let Some(e) = sub_err {
@@ -83,6 +82,9 @@ impl App {
         // Always set the sector in the editor and clear dirty flag when explicitly loading
         self.editor.set_sector(sector, input, source_path);
         self.editor.dirty = false;
+        // `self.sector` was seeded directly above; mark the bridge in sync so it
+        // doesn't redundantly re-derive the snapshot we just built.
+        self.synced_revision = self.editor.revision;
 
         self.zoom_to_fit();
     }
@@ -115,7 +117,7 @@ impl App {
     }
 
     pub(super) fn save_sector_as(&mut self) {
-        let Some(sector) = self.sector.as_ref() else {
+        let Some(sector) = self.editor.sector.as_ref() else {
             self.export_status = "no sector to save".into();
             return;
         };
@@ -188,11 +190,13 @@ impl App {
     }
 
     pub(super) fn write_sector_to_path(&mut self, path: PathBuf) {
-        let Some(sector) = self.sector.as_mut() else {
+        // Serialize the single source of truth (F-S1). `refresh_live_manifest_counts`
+        // covers editor-panel edits that mutated the sector without going through
+        // `mark_live_sector_dirty`.
+        let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "save failed: no sector to save".into();
             return;
         };
-        let sector = Arc::make_mut(sector);
         Self::refresh_live_manifest_counts(sector);
         let text = match serde_json::to_string_pretty(sector) {
             Ok(text) => text,
@@ -210,23 +214,9 @@ impl App {
         match fs::write(&path, text) {
             Ok(()) => {
                 self.sector_source_path = Some(path.clone());
-                self.live_dirty = false;
+                self.editor.dirty = false;
+                self.editor.loaded_from = Some(path.to_string_lossy().to_string());
                 self.export_status = format!("saved {}", path.display());
-                if let Some(sector) = self.sector.as_ref() {
-                    let mut input = None;
-                    if let Some(path) = &self.project_dir {
-                        if let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.clone()) {
-                            if let Ok(pi) = sectorforge::input::load_project(&utf8_path) {
-                                input = Some(pi);
-                            }
-                        }
-                    }
-                    self.editor.set_sector(
-                        sector.as_ref().clone(),
-                        input,
-                        Some(path.to_string_lossy().to_string()),
-                    );
-                }
             }
             Err(e) => {
                 self.export_status = format!("save failed: write {}: {}", path.display(), e);

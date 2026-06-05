@@ -1,6 +1,6 @@
 # AREA E — builder panels — verification
 
-Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-files: `control.rs` (1807 LOC), `world.rs` (1625 LOC), `system.rs` (2033 LOC), `history.rs` (1814 LOC), `routes.rs` (1533 LOC). Context-menu sub-module: `map/context_menu.rs` (1152 LOC).
+Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-files: `control.rs` (1807 LOC), `world.rs` (1625 LOC), `system.rs` (2033 LOC), `history.rs` (1814 LOC), `routes.rs` (1533 LOC). Context-menu sub-module: `map/context_menu/` (dir module since E11; was `context_menu.rs` 1162 LOC).
 
 ## Summary table
 
@@ -19,7 +19,7 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 | E8    | —    | 🟢 Non-issue   | —      | "twice per frame" false — site 2 is collapsed-gated + dominated|
 | E9    | MED  | ✅ Confirmed   | S      | `chronicle.events.clone()` ×2 per frame                |
 | E10   | MED  | ✅ Resolved    | M      | Filter/list block ~273 lines in `control.rs`           |
-| E11   | LOW  | ⚠️ Partial     | M      | `context_menu.rs` 1152 LOC (not 177); 5 large render fns|
+| E11   | LOW  | ✅ Resolved    | M      | split-only: `context_menu/` dir module; table-drive declined|
 | E12   | LOW  | ✅ Resolved    | M      | `search.rs::show` fn is ~307 lines (matches review)    |
 | E13   | LOW  | ✅ Confirmed   | S      | Catalog dirty boilerplate ×6 panels (12 total sites)   |
 | E14   | LOW  | ✅ Confirmed   | S      | `claim_chip_colours` byte-identical in 2 files         |
@@ -350,17 +350,26 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E11 — `map/context_menu.rs` large render functions
 
-> ⏳ **DEFERRED 2026-06-05 (owner call) — dedicated session.** Full table-drive
-> assessed as **not worth the churn** (action⇄label⇄effect already centralised;
-> `render_*` own genuine per-menu composition; 10+ heterogeneous item shapes
-> defeat a simple `MenuItem`; interactive builders have no headless net). An
-> in-depth agentic playbook — [E11.md](E11.md) — was written for a separate
-> session: recommends a verbatim `map/context_menu/` dir-module split (Option A,
-> zero behaviour risk) and documents the table-drive (Option B) with a mandatory
-> verification protocol if the owner still wants it. **Stays pending.**
+> ✅ **RESOLVED 2026-06-05 — Option A (verbatim dir-module split).** The
+> 1162-LOC `context_menu.rs` is now the `map/context_menu/` dir module
+> (`mod.rs` + `resolve.rs` + `action.rs` + `render.rs`); each file is well under
+> ~520 LOC. The **table-drive (Option B) was declined** — the action⇄label⇄effect
+> mapping is already centralised (`sector_menu_action_label` +
+> `apply_sector_menu_action`), the `render_*` builders own genuine per-menu
+> *composition* (not boilerplate), the items span 10+ heterogeneous shapes
+> (clipboard items that bypass the action enum, nested `▸` submenus, an inline
+> DELETE-ALL confirm flow, dynamic `•` current-markers, `on_disabled_hover_text`,
+> mode-gated collapse, …) so a faithful `MenuItem` degrades into a variant DSL
+> ~as complex as today's code, and the interactive builders have **no headless
+> net**. The split addresses the real half of the finding ("the file is itself a
+> god-file") at **zero behaviour risk** — bodies moved byte-for-byte (proved by a
+> trimmed/sorted multiset diff vs the pre-split file showing only `mod`/`use`/
+> import/visibility/doc lines changed). Gate: `cargo clippy --workspace
+> --all-targets -- -D warnings` clean + `cargo test -p sectorforge-builder --lib`
+> green (319/319). Builder-only — golden + map-snapshot suites not in play.
 
 - **Review sev / bucket:** LOW / P3
-- **Status:** ⚠️ Partial → ⏳ Deferred (see [E11.md](E11.md))
+- **Status:** ⚠️ Partial → ✅ Resolved (split-only; table-drive declined — see [E11.md](E11.md))
 - **Location:** `builder/src/builder/panels/map/context_menu.rs` — 1152 lines total (review stated "177-line menu builders", which is a significant undercount of the file but may refer to a single function like `render_empty_hex_menu` at ~53 lines or `render_route_menu` at ~85 lines; the **largest** individual builder is `render_multi_selection_menu` at lines 739–888, ~149 lines)
 - **Count:** Five `render_*` functions: `render_empty_hex_menu` (~53 L), `render_system_menu` (~138 L), `render_multi_selection_menu` (~149 L), `render_route_menu` (~85 L), `render_region_hex_menu` (~75 L). The overall file at 1152 lines is itself a god-file.
 - **Evidence:** `fn render_system_menu(ui, state, id, coord) -> bool` spans lines 600–738, building the menu imperatively item by item with repeated `ui.selectable_label(...).clicked()` blocks.
@@ -467,5 +476,5 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 11. **E12** — split `search.rs::show`; M-effort, cosmetic.
 12. **E4** — add `as_slug()` to `NotableFeature`; M-effort, coordinate with B-S3 `enum_slug!` macro work.
 13. **E7** — split `system.rs`; L-effort, requires G2 content golden first.
-14. **E11** — table-drive context menu; M-effort, P3, do last.
+14. **E11** — ✅ done: verbatim `map/context_menu/` dir-module split; table-drive declined.
 15. **E-S2** — generic roster-detail helper; M-effort, design discussion needed first.

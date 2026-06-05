@@ -2588,7 +2588,7 @@ single-field edits keep using `RenameWorld` / `SetWorldOrbit` /
 `SetStar` / `SetStarSpectral` / `ReplaceRoutes`. All five coarse commands
 classify as `SystemsWorlds` in `dep_classes()`. This closes the undo-coverage gap
 the FIELD_REVIEW audit flagged across `world.rs`, `system.rs`, `system_map.rs`,
-`control.rs`, `intel.rs`, `history.rs`, `regions.rs`, and `map/context_menu.rs`.
+`control.rs`, `intel.rs`, `history.rs`, `regions.rs`, and `map/context_menu/action.rs`.
 Catalog editors (`factions.rs`, `relations.rs`, `personae.rs`, `hooks.rs`,
 `sites.rs`, `missions.rs`, `prose.rs`) remain intentionally off-bus — they edit
 the TOML mirrors in `data_catalogs.*`, not the live sector.

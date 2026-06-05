@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 16 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E12,E13,E14,E-S1,E-S2*,E-S3*) | 0 | 1 (E11 → [E11.md](E11.md)) | 0 |
+| E builder panels | 17 | **17 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E11,E12,E13,E14,E-S1,E-S2*,E-S3*) — AREA COMPLETE** | 0 | 0 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -994,6 +994,50 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     `roster.rs` row added.
   - **AREA_E is now effectively complete: 16/17 resolved; E11 deferred to its own
     session via [E11.md](E11.md).**
+
+### 2026-06-05 — step 5 (AREA_E E11 — RESOLVED: verbatim `map/context_menu/` dir-module split) · AREA_E COMPLETE 17/17
+
+- **E11 (`context_menu.rs` god-file) — ✅ DONE (Option A, split-only).** Ran the
+  dedicated [E11.md](E11.md) playbook. The 1162-LOC
+  `builder/src/builder/panels/map/context_menu.rs` is now the
+  `map/context_menu/` **dir module**:
+  - `mod.rs` (107 L) — module doc, `mod`/re-export glue, `show_sector_context_menu`.
+  - `resolve.rs` (123 L) — `resolve_sector_context` + the two pure predicates +
+    `menu_anchor_pivot` (the netted pure half).
+  - `action.rs` (480 L) — `SectorMenuAction`/`OpenInTarget`,
+    `sector_menu_action_label`, `apply_sector_menu_action` (the netted dispatch core).
+  - `render.rs` (521 L) — the five `render_*` builders + `stability_label`
+    (interactive, un-netted).
+- **Table-drive (Option B) declined** — recorded rationale below (next entry).
+  Table-driving doesn't make `SectorMenuAction` "more" the SSOT than it already
+  is (label + dispatch are already centralised), the 10+ heterogeneous item
+  shapes degrade a faithful `MenuItem` into a variant DSL ~as complex as today's
+  imperative code, and the builders have no headless net. The split is the
+  proportionate fix that addresses the real half of the finding (the file is
+  itself a god-file) at zero behaviour risk.
+- **Verbatim proof.** Bodies were sliced from `HEAD` at item boundaries (`sed`),
+  so every fn/enum body is byte-identical. A trimmed/sorted multiset diff of the
+  old file vs `cat context_menu/*.rs` shows **only** `mod`/`use`/import/visibility-
+  prefix/module-doc lines as differences — **no** body / string / `format!` /
+  match-arm line appears as removed-only.
+- **Visibility plan.** Cross-boundary items declared
+  `pub(in crate::builder::panels::map)` and re-exported `pub(super)` from
+  `context_menu/mod.rs` (equal-visibility → no E0364). `menu_anchor_pivot` stays
+  `pub(in crate::builder::panels)` because `panels::system_map` consumes it via
+  the `map/mod.rs:27` re-export. The five `render_*` widened private→`pub(super)`
+  (called by `show_sector_context_menu` in `mod.rs`). The action facade re-export
+  is gated `#[cfg(test)]` — its only out-of-module consumer is the `map/mod.rs`
+  `#[cfg(test)]` round-trip tests (the `render::*` builders reach `action::*` via
+  the internal path), so gating it avoids an unused-import warning in the
+  non-test lib.
+- **Gate.** `cargo clippy --workspace --all-targets -- -D warnings` clean;
+  `cargo test -p sectorforge-builder --lib` green at **319/319** (the preserved
+  re-exports keep the `map/mod.rs` context-menu tests resolving); the 4 new files
+  pass `rustfmt --check`. **Golden + map-snapshot suites not run** (builder-only;
+  no `sectorforge`/`gui-core` source, no render-path/emit change). Docs:
+  `docs/MAP.md` row → 4 rows; `GUIDE.md` path-link repointed;
+  `AREA_E_builder_panels.md` E11 → ✅ Resolved. One commit on `main`.
+- **AREA_E is now COMPLETE: 17/17 resolved, 0 deferred, 0 pending.**
 
 ### 2026-06-05 — step 5, wave 13 (AREA_E E11 — assessed + deferred to a dedicated session)
 

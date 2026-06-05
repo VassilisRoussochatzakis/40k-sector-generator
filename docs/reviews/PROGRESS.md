@@ -16,7 +16,7 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
-| B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
+| B `src/analysis` | 14 | 6 (B-S3,B1,B7,B9,B11,B12) | 0 | 8 | 0 |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
@@ -41,7 +41,7 @@ sequence". Update this file whenever a finding moves status.
      B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only) ·
      F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
      API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
-   - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
+   - Remaining dedup: AREA_B perf (**B1 ✅**, B3/B5/B6), trait/macro dedup
      (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
    - **Wave 4 — AREA_F semantic-color sweep** (viewer chrome, no snapshot
      exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
@@ -735,6 +735,28 @@ preference.
 - **AREA F is now fully closed (15/15).** The remaining whole-review backlog is
   AREA A/B/C/E/G + the owner-gated API-shape items (A5, D-S3/D5, C2, the trait/
   macro dedups, and the F-S3 `show()` decomposition).
+
+### 2026-06-05 — step 5, wave 11 (AREA_B perf — B1)
+
+Back to AREA_B after AREA_F closed. Resuming the file's own suggested local
+order at the first remaining perf item (B1; B7/B4-adjacent/B9/B12 already done).
+
+- **B1 (`f78119b`) — supply-risk edge pre-bucketing.** ✅ DONE.
+  `src/analysis/economy/{derive,risk}.rs`. `system_supply_risk` filtered the
+  full `dependency_edges` slice (`e.to_system_id == sy.system_id && e.resource
+  == resource`) for **every** (system, world, resource) triple — O(S·W·R·E) over
+  the whole economy derivation. Built the index **once** at the call site in
+  `derive_with`: `BTreeMap<(to_system_id, resource), Vec<&DependencyEdge>>`
+  (one pass over the owned `dependency_edges`, borrowed — NLL drops the index
+  before the `Vec` is moved into `EconomyReport`), and swapped the inner
+  `.filter().collect()` for an O(1) `incoming_by_target.get(&(sy.system_id
+  .as_str(), *resource))` lookup. **Byte-identical:** the classifier's two uses
+  of the bucket are `is_empty()` (presence) and `iter().map(|e| e.risk).min()`
+  (order-independent), so the `SupplyRisk` tier is unchanged regardless of
+  bucket insertion order. Signature change is private (`pub(super)`), no public
+  surface touched. **Verification:** clippy `-D warnings` clean, lib **192/192**,
+  golden **15/15 byte-identical**, economy integration **7/7**. Pure perf — no
+  file moved, MAP.md/GUIDE.md untouched.
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

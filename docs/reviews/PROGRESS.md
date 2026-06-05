@@ -16,7 +16,7 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
-| B `src/analysis` | 14 | 10 (B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 4 | 0 |
+| B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
@@ -833,19 +833,16 @@ order at the first remaining perf item (B1; B7/B4-adjacent/B9/B12 already done).
   - **B-S2 merge-half deliberately NOT done — owner decision (see notes).**
 
 ### Open decisions / notes
-- **B-S2 `merge_manual` alignment — OWNER-GATED, behavioural.** The cap dedup
-  half (B4) is done. The *remaining* half is a genuine policy divergence the
-  review flagged: **hooks** (`hooks.rs:176`) dedupes derived entries against
-  manual ids, appends the manual block, **then** caps (manual hooks are subject
-  to the per-anchor cap); **missions** (`missions.rs:197`) caps **first**, drops
-  `gm_only`, **then** appends manual uncapped and without id-dedup. Aligning them
-  (the review suggests adopting hooks' id-dedup-before-append as canonical) is a
-  **behavioural change to missions output** — would alter `missions.md` /
-  `sector.json` and is not golden-safe. Left for an owner call: confirm whether
-  missions *should* dedup manual ids + cap manual entries, or whether the
-  divergence is intentional (manual missions are author-curated and meant to
-  bypass the cap). Until then the two pipelines keep their current, different
-  behaviour.
+- **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call
+  2026-06-05).** The cap dedup half (B4) is done. The remaining half is a policy
+  divergence: **hooks** (`hooks.rs:176`) dedupes derived entries against manual
+  ids, appends the manual block, **then** caps; **missions** (`missions.rs:197`)
+  caps **first**, drops `gm_only`, **then** appends manual uncapped and without
+  id-dedup. **Owner decision: leave divergent** — manual missions are
+  author-curated and intentionally bypass the per-anchor cap; aligning would be a
+  behavioural change to `missions.md` / `sector.json` for no functional gain. The
+  `*` on the roll-up marks B-S2 as resolved via B4 + this intentional-divergence
+  ruling, not a code unification. No further action.
 - **B-S1 (`SectorReport` trait, 7 modules) — OWNER-GATED, L / defer.** The
   review itself sequences it last ("defer until other dedup is stable") and notes
   the `render_markdown` signatures vary (some take `cfg`, some don't), needing a

@@ -20,6 +20,8 @@
 mod text_buf;
 pub use text_buf::{persistent_multiline, persistent_singleline, persistent_text_clear};
 
+pub(crate) mod presence_widgets;
+
 /// The selectable `SystemState` values, in display order. Single source shared
 /// by the CONTROL and HISTORY panels (§E6) — previously a byte-identical const
 /// in each, so a new variant only had to be added in one of two places.

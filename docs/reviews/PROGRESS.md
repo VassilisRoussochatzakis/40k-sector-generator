@@ -16,7 +16,7 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 0 | 0 | 12 | 0 |
-| B `src/analysis` | 14 | 1 (B-S3) | 0 | 13 | 0 |
+| B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
 | C export/validate/worlds/cli | 13 | 2 (C1,C-S2) | 0 | 11 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 4 (E1,E2,E3,E-S1) | 0 | 13 | 0 |
@@ -34,7 +34,11 @@ sequence". Update this file whenever a finding moves status.
 2. **`labeled()` extraction** (E3 / E-S1, 33 files) — ✅ DONE (this session)
 3. **C1** diff-drift fix — ✅ DONE · **`enum_slug!` macro** (B-S3, 61/62 sites) — ✅ DONE (this session)
 4. **G2 content golden** (`sector.json` / `sector.md`) — ✅ DONE (this session) · **gate cleared — A–F god-file splits now have their safety net**
-5. **Dedup waves + god-file splits** (behind G2) — ⏳ PENDING (now unblocked)
+5. **Dedup waves + god-file splits** (behind G2) — 🔄 IN PROGRESS (2026-06-05)
+   - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
+     B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
+   - Remaining: AREA_B perf (B1/B3/B5/B6), trait/macro dedup (B-S1/B-S2, E-S3,
+     C2/C3, F-S1), then god-file splits (A1, B11, D3/D5, E4/E7, F3/F8, C6).
 
 ## Detailed log
 
@@ -117,8 +121,82 @@ sequence". Update this file whenever a finding moves status.
   `grep 'fn labeled' builder/src` → empty, **workspace clippy clean**, builder
   **317/317**, `it` suite **93/93**.
 
+### 2026-06-05 — step 5, wave 1 (AREA_B mechanical)
+
+Lead with the proportionate, compiler-checked, low-risk fixes (AREA_B's own
+local order, not the README's trait-first listing) — matches the standing
+refactor preference. All three verified together: clippy clean, lib **191/191**,
+golden **15/15 byte-identical**.
+
+- **B7** — `analytics.rs`. Replaced `format!("{}", x).into()` with
+  `Arc::from(x.as_slug())` at the 5 enum-key sites (`route_type`, `stability`,
+  `claim_type`, `dominance`, system `state`). Verified each type's `Display`
+  delegates to `as_slug` (`f.write_str(self.as_slug())`) → byte-identical slugs,
+  one fewer heap alloc per key.
+- **B12** — `economy.rs`. Named the magic thresholds as module `const f32`:
+  `SELF_SUFFICIENCY_OUTPUT` (30.0, sites 1164/1244), `SUPPLY_RESILIENCE_SAFE`
+  (30.0, site 1275 — kept **separate** from the output threshold; different
+  quantity that merely shares the value), and the route-friction
+  divisors/caps (`ROUTE_{PIRACY,INTERDICTION}_DIVISOR/MAX_MALUS`,
+  `ROUTE_PATROL_DIVISOR/MAX_BONUS`). `f32` literals → bit-identical.
+- **B9** — new `pub(crate) cmp_f32_desc` / `cmp_f32_asc` in `analysis/mod.rs`;
+  converted **13** scattered `partial_cmp(..).unwrap_or(Equal)` sorts across 9
+  files (9 desc + 4 asc), preserving every `.then_with`/`.then` tiebreaker; the
+  test-only `.unwrap()` at `search.rs:1447` left as-is. Dropped a now-unused
+  `Ordering` import in `history/routes.rs`.
+  **Decision (owner-visible):** kept the **exact** historical NaN policy
+  (`partial_cmp → Equal`) rather than the review's suggested `total_cmp` swap —
+  zero behaviour change, so goldens stayed green and there's no output-order
+  surprise. The policy is now single-source, so upgrading to `total_cmp` later is
+  a one-line change in one place if wanted.
+
+### 2026-06-05 — step 5, wave 2 (god-file splits — B11)
+
+Per owner choice, jumped to the mechanical god-file splits behind the G2 golden
+net. Each split is a **verbatim** carve (no logic change); the byte-stable
+`sector.json`/`sector.md` goldens are the proof that nothing moved semantically.
+Large carves delegated to a subagent (keeps ~1800 LOC out of main context),
+then re-verified here in the main thread.
+
+- **B11 (economy half)** — ✅ DONE. `src/analysis/economy.rs` (1789 LOC) → a
+  directory module `economy/`: `config.rs` (459 — types/consts/DTOs/status
+  enums), `tables.rs` (368 — built-in world-type vectors + rule fns),
+  `derive.rs` (511 — loader + derivation + dependency edges + route economy +
+  `apply_stability_nudge`), `risk.rs` (134 — supply-risk + tithe classifiers),
+  `render.rs` (146 — `render_markdown`/`write_report`), `mod.rs` (251 —
+  re-exports + moved `#[cfg(test)]` tests). Cross-submodule internals raised
+  private→`pub(super)` only (the §B12 consts, `ResourceVector::scale`,
+  `StrategicOutput::{add_assign,scale,clamp_scores}`, the 9 `tables` fns,
+  `strategic_needs_for_world`, and the 5 risk classifiers); nothing newly `pub`.
+  Public surface unchanged at `economy::` (lib.rs re-export + tests untouched).
+  **Re-verified in main thread:** `economy.rs` removed, check + clippy
+  `-D warnings` clean, **golden 15/15 byte-identical**, lib 191/191, economy
+  integration 7/7.
+- **B11 (relations half)** — ✅ DONE. `src/analysis/relations.rs` (1675 LOC) →
+  `relations/`: `config.rs` (403 — `Stance` + schema + DTOs +
+  `RelationAttitude`/`TreatyStatus`), `tables.rs` (281 — `*_KINDS` consts +
+  stance/ideology classifiers), `tension.rs` (175 — cooccurrence + `tension_of`),
+  `derive.rs` (542 — entry points + pipeline + loader, incl. the load-bearing
+  `derive_with_threshold`), `render.rs` (127), `mod.rs` (218 — re-exports +
+  moved tests). Cross-submodule internals raised private→`pub(super)` only
+  (`Stance::shift`, `RelationAttitude::{level,from_stance,to_stance}`, the
+  `tables` classifiers used by `derive`, `CooccurStats`/`build_cooccurrence`/
+  `tension_of`, `canonical_pair`); nothing newly `pub`. B6 `canonical_pair` /
+  B3 rule-indexing **excluded** (verbatim move only — separate perf findings).
+  **Re-verified in main thread:** `relations.rs` removed, golden **15/15
+  byte-identical**, lib 191/191, relations integration 6/6, **`cargo check
+  --workspace --all-targets` clean** (downstream builder/viewer resolve the
+  preserved `relations::`/`economy::` re-exports). A rust-analyzer "syntax error"
+  flag on `derive.rs:166` (`rng.gen()`) was a false alarm — verbatim original
+  code; cargo compiles it clean.
+
+  **B11 finding now fully closed** (both god-modules split).
+
 ### Open decisions / notes
-- **Commit cadence:** user chose *accumulate* — E1/E2 + G2 + doc updates sit in
-  the working tree uncommitted, to fold into a larger commit after the next wave.
-- **G2 file size** (~2.1 MB) — flagged above; revisit before the eventual commit
-  if repo leanness is preferred.
+- **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via
+  PR #3 (`2b274ea`).** Landed as `7a06824` (AREA_D), `56b587b` (E1/E2/E3),
+  `5055f3a` (G2), `1b01f28` (C1), `688a378` (B-S3), `7c446bf` (this tracker).
+  Working tree clean. The prior "uncommitted/fold into a larger commit" note is
+  superseded.
+- **G2 file size** (~2.1 MB) — committed as full-file pins in `5055f3a`; revisit
+  only if repo leanness later wins over diff-ability.

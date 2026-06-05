@@ -109,8 +109,8 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | [src/analysis/prose.rs](../src/analysis/prose.rs) | §6 gazetteer prose: deterministic template grammar |
 | [src/analysis/personae.rs](../src/analysis/personae.rs) | §3 dramatis personae: named characters per faction presence |
 | [src/analysis/hooks.rs](../src/analysis/hooks.rs) | §7 plot-hook generator: condition→template over model state |
-| [src/analysis/relations.rs](../src/analysis/relations.rs) | §4 inter-faction diplomacy: stance matrix + tension scalar |
-| [src/analysis/economy.rs](../src/analysis/economy.rs) | §12 trade & resource economy: production/consumption + route volume |
+| [src/analysis/relations/](../src/analysis/relations/) | §4 inter-faction diplomacy: stance matrix + tension scalar — dir module (`config`/`tables`/`tension`/`derive`/`render`) |
+| [src/analysis/economy/](../src/analysis/economy/) | §12 trade & resource economy: production/consumption + route volume — dir module (`config`/`tables`/`derive`/`risk`/`render`) |
 | [src/analysis/search.rs](../src/analysis/search.rs) | §2 seed search: declarative wishes → deterministic seed enumeration |
 | [src/analysis/history/mod.rs](../src/analysis/history/mod.rs) | §1 chronicle facade: `derive*`, orchestration, `anchor_key`, `pub use` surface |
 | [src/analysis/history/config.rs](../src/analysis/history/config.rs) | `HistoryConfig`/`HistoryFile`/`HistoryEra`/`HistoryEventRule` + defaults |

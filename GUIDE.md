@@ -1822,7 +1822,7 @@ panels now inherit the theme text styles (Body/Button/Small) exactly as the
 builder does, so the two apps are at full size parity. The shared
 [`gui-core` `ui_kit`](gui-core/src/ui_kit.rs) text helpers (`mono_title` /
 `mono_section` / `mono_body` / `mono_dim` / `kv`, dogfooded by
-[`info_panel`](gui-core/src/info_panel.rs) in **both** apps) were likewise
+[`info_panel`](gui-core/src/info_panel/mod.rs) in **both** apps) were likewise
 flipped from `FontId::monospace` to proportional `.size(..)` at the same
 theme-aligned sizes; the `mono_*` names are retained as historical but now render
 proportional. The single deliberate hold-out is the **segmentum map-canvas
@@ -1945,7 +1945,7 @@ showcase-quality tier on top of §UO; playbook in [BEAUTY.md](BEAUTY.md)).
 - *Info-panel kv tables* ([gui-core/src/ui_kit.rs](gui-core/src/ui_kit.rs) `kv`,
   `§BEAUTY §6 #4`) — `kv` now lays the key in a fixed 120 px left column (so stacked
   rows align into a ledger) and rules each row with a very low-alpha, theme-aware
-  hairline separator. Lifts every kv block in [`info_panel`](gui-core/src/info_panel.rs)
+  hairline separator. Lifts every kv block in [`info_panel`](gui-core/src/info_panel/mod.rs)
   (control / stability / counts / environment / society) at once, with no call-site
   change.
 
@@ -3788,7 +3788,7 @@ across runs, so a regression check is a diff away.
 | [viewer/src/factions_overview.rs](viewer/src/factions_overview.rs) | High-level faction overview and broad edit-mode controls |
 | [viewer/src/data_editor.rs](viewer/src/data_editor.rs) | `worlds.toml` data editor UI |
 | [viewer/src/route_planner.rs](viewer/src/route_planner.rs) | Route planner (Safest / Shortest) |
-| [gui-core/src/info_panel.rs](gui-core/src/info_panel.rs) | Text formatting widgets |
+| [gui-core/src/info_panel/](gui-core/src/info_panel/mod.rs) | Text formatting widgets — split (F8) by entity section |
 | [viewer/src/editor/](viewer/src/editor/) | Sector/world editing UI (map, settings, factions, routes, worlds, systems) |
 | [gui-core/src/palette.rs](gui-core/src/palette.rs) | Color palette for GUI; egui wrapper around [src/gen/faction_style.rs](src/gen/faction_style.rs) (`faction_style`, glyph + border) |
 | [gui-core/src/heatmap.rs](gui-core/src/heatmap.rs) | egui wrapper around [src/export/heatmap.rs](src/export/heatmap.rs) — same scoring, returns `Color32` cells |

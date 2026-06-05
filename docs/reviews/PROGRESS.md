@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 1 (F3) | 0 | 14 | 0 |
+| F viewer + gui-core | 15 | 2 (F3,F8) | 0 | 13 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -38,8 +38,9 @@ sequence". Update this file whenever a finding moves status.
    - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
-     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only).
-     Remaining splits: F8 (F-S3/D5 deferred).
+     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only) ·
+     F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
+     API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
    - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
      (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
 
@@ -358,6 +359,48 @@ then re-verified here in the main thread.
   `sectorforge` lib **191/191**. MAP.md + GUIDE.md repointed (mod.rs for the
   whole-widget rows; render.rs for the flourish / font-px / hit_route /
   `paint_system_rings` item links).
+
+### 2026-06-05 — step 5, wave 3 (god-file split — F8)
+
+- **F8 (`info_panel.rs` split, by-section)** — ✅ DONE. Split the 1156-LOC
+  `gui-core/src/info_panel.rs` into an `info_panel/` directory module (7 files,
+  1315 LOC; the +159 is per-file imports + module docs + the 1 `pub(super)`
+  raise). The review's literal fix (extract a pure `format.rs` of
+  `route_summary_text`-style helpers) was **not** taken — the pure-formatting
+  surface is tiny (`route_endpoint_label`, `short`, the two `event_mentions_*`
+  predicates) and the rest of the formatting is fused into the render fns, so
+  pulling it out would be a behaviour-restructure, not a verbatim move. Per the
+  owner instruction ("only if it stays a pure move; otherwise split by
+  section") it was carved **by entity section** instead: `overview.rs` (237 —
+  `SectorOverviewCache` + `sector_overview*` + the 2 cache tests), `system.rs`
+  (325 — `system_summary` / `star_detail` + the 5 per-system blocks),
+  `route.rs` (113 — `route_summary` + `route_endpoint_label`), `world.rs` (196
+  — `world_detail`), `subsector.rs` (183 — `subsector_summary`), `history.rs`
+  (99 — `world_history` / `system_history` + `event_mentions_*`), `mod.rs` (162
+  — module doc, the shared text primitives `title`/`section`/`body`/`dim`/`kv`/
+  `short`, the legend rows, `stability_block`, `mod` decls, and the `pub use`
+  re-exports). **Key visibility win:** the shared primitives stay as
+  **parent-private** fns in `mod.rs` — child submodules read them via
+  `use super::{…}` (ancestor privates are visible to descendants), so **zero**
+  of them needed a `pub(super)` raise. The only raise is `system_history`
+  (`history.rs`), the one helper called across a submodule boundary
+  (`system::system_summary`). Entity-local helpers (the 5 system blocks,
+  `route_endpoint_label`, `event_mentions_*`) moved with their sole caller and
+  stayed private. **Verbatim carve** — every slice taken at a blank-line item
+  boundary via `sed`; the 23-range partition reconstructs `[22-1156]` with no
+  gaps/overlaps. **Re-verified in main thread:** all 7 bodies **byte-identical
+  vs `git HEAD`** except `history.rs`'s single `fn system_history(` →
+  `pub(super) fn system_history(` (proved by per-file diff). Unused imports from
+  the broad shared import block were trimmed by `cargo fix --lib` (use-lines
+  only; bodies re-diffed identical afterward). `info_panel` is **not** exercised
+  by the `map_snapshots` suite (verified — no snapshot exposure), and a verbatim
+  move can't change render output regardless. **Gate:** `cargo check` +
+  `cargo clippy --workspace --all-targets -- -D warnings` clean (downstream
+  builder/viewer resolve the preserved `info_panel::` re-exports, incl. the
+  viewer's `info_panel::SectorOverviewCache`), gui-core lib **30/30** (incl the
+  2 relocated `overview::tests`), `map_snapshots_match_goldens` passes
+  **un-blessed**, golden **15/15 byte-identical**, `sectorforge` lib
+  **191/191**. MAP.md + GUIDE.md repointed to `info_panel/mod.rs`.
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

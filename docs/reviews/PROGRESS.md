@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 4 (E1,E2,E3,E-S1) | 0 | 13 | 0 |
+| E builder panels | 17 | 5 (E1,E2,E3,E7,E-S1) | 0 | 12 | 0 |
 | F viewer + gui-core | 15 | 0 | 0 | 15 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -38,7 +38,8 @@ sequence". Update this file whenever a finding moves status.
    - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
-     B11 ✅ · A1 ✅ · C6 ✅. Remaining splits: E4/E7, F3/F8 (D3/D5 deferred).
+     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅. Remaining splits: E4 (split-only),
+     F3/F8 (D3/D5 deferred).
    - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
      (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
 
@@ -264,6 +265,43 @@ then re-verified here in the main thread.
   `-D warnings` clean. Pure dedup — no file moved, so MAP.md/GUIDE.md untouched.
   (C2 — the sibling `(project,sector)` resolve-match dedup — intentionally left
   open; C3's helper signature is independent of it.)
+
+### 2026-06-05 — step 5, wave 3 (god-file split — E7)
+
+- **E7 (`system.rs` split)** — ✅ DONE. Split the 2017-LOC
+  `builder/src/builder/panels/system.rs` into a `system/` directory module
+  (total 2095 LOC across 6 files; the +78 is per-file imports + `mod`/`use`/
+  re-export/visibility lines): `mod.rs` (700 — module doc + imports, 3 consts,
+  3 label helpers, `show`/roster/inspector/header, the 5 read-only deep-link
+  sections, re-exports, and the verbatim `#[cfg(test)]` block), `identity.rs`
+  (428 — identity/coord/star/tags), `archetype.rs` (303), `preview.rs` (230 —
+  `show_system_map_section` + view-click + bitmap preview), `bulk_ops.rs` (297
+  — `show_bulk_ops` + the 5 `apply_bulk_*`), `regen.rs` (137). Pure mechanical
+  move: cross-boundary privates raised to `pub(super)` only; `show` +
+  `apply_bulk_*` kept `pub(crate)`; the external surface stays at
+  `panels::system::` via `mod.rs` re-exports (consumers: `nav.rs` `show`,
+  `map/context_menu.rs` `apply_bulk_{primary_faction,control_state,reseed}`,
+  `map/dialogs.rs` `apply_bulk_rename`). `panels/mod.rs` unchanged
+  (`pub mod system;` resolves to the dir). Large carve delegated to a
+  `panel-implementer` subagent, then **re-verified in the main thread**.
+  - **Two forced deviations (both validated here, safe):** (1)
+    `show_system_map_section` is `pub(crate)` not `pub(super)` — Rust rejects a
+    `pub(crate) use` re-export of a `pub(super)` item (E0364); the re-export
+    (needed for the `system_map.rs` doc-link path) forces the wider visibility.
+    Benign — it was module-private before and only doc-referenced. (2) The
+    `apply_bulk_clear_factions` re-export was dropped: a `pub(crate) use` with no
+    consumer trips `unused_imports` under `-D warnings`. **Verified zero external
+    callers** (`grep` shows it only used inside `bulk_ops.rs`); the fn stays
+    `pub(crate)` verbatim, so no live path breaks. The alternatives (`pub use`
+    over-exposes; `#[allow]` is banned) were both correctly avoided.
+  - **Verbatim proof:** byte-diffed `apply_coord_move` + `pretty_slug` against
+    `git HEAD:system.rs` → **identical**; a holistic diff of every
+    string/`format!` literal in the file showed the *only* change is one
+    `pub(super)` prefix on a const (no logic/string/format touched).
+  - **Verification:** builder **317/317**, `cargo clippy --workspace
+    --all-targets -- -D warnings` clean, golden **15/15 byte-identical** (E7
+    touches no `sectorforge` code, so output is provably unaffected). MAP.md +
+    GUIDE.md link/structure refs repointed `system.rs` → `system/` module.
 
 ### Open decisions / notes
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via

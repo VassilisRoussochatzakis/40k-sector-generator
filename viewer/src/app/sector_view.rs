@@ -64,13 +64,29 @@ impl App {
                 )
                 .show(ctx, |ui| {
                     ScrollArea::vertical().show(ui, |ui| {
+                        // TF-P-4: hand info_panel the prebuilt faction-style index so its
+                        // per-route / per-faction loops skip the O(N) `faction_style_by_id`
+                        // scan. `None` in preview mode — the cache reflects `self.sector`,
+                        // not the (possibly edited) preview — so the panel falls back to the
+                        // exact free-fn lookup against the preview sector (byte-identical).
+                        let info_cache = if preview_mode {
+                            None
+                        } else {
+                            self.sector_map_cache.as_ref()
+                        };
                         if let Some(sel) = self.sector_selected_route.clone() {
                             if let Some(route) =
                                 sector.routes.iter().find(|r| r.id.as_str() == sel.as_str())
                             {
                                 let from = route.from_system_id.clone();
                                 let to = route.to_system_id.clone();
-                                info_panel::route_summary(ui, route, &sector, self.route_view_mode);
+                                info_panel::route_summary(
+                                    ui,
+                                    route,
+                                    &sector,
+                                    self.route_view_mode,
+                                    info_cache,
+                                );
                                 ui.add_space(10.0);
                                 ui.horizontal(|ui| {
                                     if ui.button(RichText::new("OPEN FROM")).clicked() {
@@ -102,7 +118,7 @@ impl App {
                         }
                         if let Some(sel) = self.sector_selected.as_deref() {
                             if let Some(sys) = sector.systems.iter().find(|s| s.id == sel) {
-                                info_panel::system_summary(ui, sys, &sector);
+                                info_panel::system_summary(ui, sys, &sector, info_cache);
                                 ui.add_space(10.0);
                                 if ui.button(RichText::new("OPEN SYSTEM →")).clicked() {
                                     self.view = View::System {
@@ -118,6 +134,7 @@ impl App {
                             &sector,
                             overview_buckets.as_slice(),
                             self.route_view_mode,
+                            info_cache,
                         );
                     });
                 });

@@ -45,7 +45,7 @@ impl App {
                             _ => {}
                         }
                         ui.separator();
-                        info_panel::system_summary(ui, sys, sector);
+                        info_panel::system_summary(ui, sys, sector, self.sector_map_cache.as_ref());
                         ui.add_space(10.0);
                         if ui.button(RichText::new("← BACK TO SECTOR")).clicked() {
                             self.view = View::Sector;

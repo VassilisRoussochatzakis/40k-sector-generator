@@ -110,9 +110,11 @@ impl SectorMapCache {
         self.system_label_cache.get(id)
     }
 
-    /// O(log n) lookup for a faction's pre-resolved style.
+    /// O(log n) lookup for a faction's pre-resolved style. Takes any
+    /// `&str`-like id (`FactionId: Borrow<str>`) so callers holding a `&str`
+    /// or `&FactionId` can query without allocating a key.
     #[must_use]
-    pub fn faction_style(&self, id: &FactionId) -> Option<&FactionStyle> {
+    pub fn faction_style(&self, id: &str) -> Option<&FactionStyle> {
         self.faction_style_index.get(id)
     }
 

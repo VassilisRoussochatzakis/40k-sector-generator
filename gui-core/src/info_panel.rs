@@ -14,6 +14,7 @@ use super::palette::{
     self, darken, draw_route_line, faction_style_by_id, stability_color, star_color,
     world_type_color, PATH_HIGHLIGHT,
 };
+use super::sector_view::SectorMapCache;
 use sectorforge::importance::{
     compute_display_buckets, DisplayBucket, DEFAULT_DISPLAY_CAP, DEFAULT_MINOR_FRACTION,
 };
@@ -77,7 +78,7 @@ pub fn sector_overview(
     mode: sectorforge::sector_model::RouteViewMode,
 ) {
     let buckets = compute_display_buckets(sector, DEFAULT_MINOR_FRACTION, DEFAULT_DISPLAY_CAP);
-    sector_overview_with_buckets(ui, sector, &buckets, mode);
+    sector_overview_with_buckets(ui, sector, &buckets, mode, None);
 }
 
 pub fn sector_overview_with_buckets(
@@ -85,6 +86,7 @@ pub fn sector_overview_with_buckets(
     sector: &GeneratedSector,
     buckets: &[DisplayBucket],
     mode: sectorforge::sector_model::RouteViewMode,
+    cache: Option<&SectorMapCache>,
 ) {
     title(ui, &format!("SECTOR: {}", sector.id.to_uppercase()));
     dim(ui, &format!("SEED: {}", short(&sector.seed, 20)));
@@ -162,7 +164,9 @@ pub fn sector_overview_with_buckets(
                     world_count,
                     ..
                 } => {
-                    let style = faction_style_by_id(&sector.factions, id);
+                    let style = cache
+                        .and_then(|c| c.faction_style(id).copied())
+                        .unwrap_or_else(|| faction_style_by_id(&sector.factions, id));
                     legend_row(
                         ui,
                         style.fill,
@@ -198,7 +202,12 @@ pub fn sector_overview_with_buckets(
     }
 }
 
-pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
+pub fn system_summary(
+    ui: &mut Ui,
+    sys: &GeneratedSystem,
+    sector: &GeneratedSector,
+    cache: Option<&SectorMapCache>,
+) {
     title(ui, &format!("SYSTEM: {}", sys.id.to_uppercase()));
     body(ui, &short(&sys.name.to_uppercase(), 28));
     dim(ui, &format!("COORD: Q{:+} R{:+}", sys.coord.q, sys.coord.r));
@@ -279,7 +288,7 @@ pub fn system_summary(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSect
     conflict_block(ui, &sys.conflict);
     archetype_block(ui, sys);
     orbital_assets_block(ui, sys);
-    routes_block(ui, sys, sector);
+    routes_block(ui, sys, sector, cache);
     system_history(ui, sector, sys.id.as_str());
     if !sys.tags.is_empty() {
         ui.add_space(8.0);
@@ -302,6 +311,7 @@ pub fn route_summary(
     route: &GeneratedRoute,
     sector: &GeneratedSector,
     mode: sectorforge::sector_model::RouteViewMode,
+    cache: Option<&SectorMapCache>,
 ) {
     title(ui, "ROUTE");
     kv(ui, "ID", route.id.as_str());
@@ -350,7 +360,9 @@ pub fn route_summary(
         ui.add_space(8.0);
         section(ui, &format!("ROUTE CONTROL ({})", route.controls.len()));
         for c in &route.controls {
-            let style = faction_style_by_id(&sector.factions, &c.faction_id);
+            let style = cache
+                .and_then(|mc| mc.faction_style(&c.faction_id).copied())
+                .unwrap_or_else(|| faction_style_by_id(&sector.factions, &c.faction_id));
             legend_row(
                 ui,
                 style.fill,
@@ -844,7 +856,12 @@ fn kv(ui: &mut Ui, k: &str, v: &str) {
     crate::ui_kit::kv(ui, k, v);
 }
 
-fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
+fn routes_block(
+    ui: &mut Ui,
+    sys: &GeneratedSystem,
+    sector: &GeneratedSector,
+    cache: Option<&SectorMapCache>,
+) {
     let mut hits: Vec<&sectorforge::sector_model::GeneratedRoute> = sector
         .routes
         .iter()
@@ -890,7 +907,9 @@ fn routes_block(ui: &mut Ui, sys: &GeneratedSystem, sector: &GeneratedSector) {
                 continue;
             }
             active.sort_unstable();
-            let style = faction_style_by_id(&sector.factions, &c.faction_id);
+            let style = cache
+                .and_then(|mc| mc.faction_style(&c.faction_id).copied())
+                .unwrap_or_else(|| faction_style_by_id(&sector.factions, &c.faction_id));
             legend_row(
                 ui,
                 style.fill,

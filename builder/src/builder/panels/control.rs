@@ -29,6 +29,7 @@ use sectorforge::sector_model::{
 };
 
 use sectorforge_gui_core::palette;
+use sectorforge_gui_core::sector_view::SectorMapCache;
 use sectorforge_gui_core::ui_kit;
 
 use crate::builder::command::BuilderCommand;
@@ -1503,6 +1504,7 @@ pub(crate) fn build_overlay_cells(
     sector: &sectorforge::sector_model::GeneratedSector,
     factions: &[sectorforge::sector_model::GeneratedFaction],
     overlay: ControlOverlay,
+    cache: Option<&SectorMapCache>,
 ) -> Option<std::collections::HashMap<SystemId, sectorforge_gui_core::heatmap::HeatCell>> {
     use sectorforge_gui_core::heatmap::HeatCell;
     match overlay {
@@ -1520,8 +1522,11 @@ pub(crate) fn build_overlay_cells(
             for sys in &sector.systems {
                 let best = sectorforge::power_projection::system_top_reach(&map, sys.id.as_str());
                 if let Some((fid, v)) = best {
-                    let style =
-                        sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str());
+                    let style = cache
+                        .and_then(|mc| mc.faction_style(fid.as_str()).copied())
+                        .unwrap_or_else(|| {
+                            sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str())
+                        });
                     out.insert(
                         sys.id.clone(),
                         HeatCell {
@@ -1551,8 +1556,11 @@ pub(crate) fn build_overlay_cells(
                 let Some(fid) = cell.dominant.as_ref() else {
                     continue;
                 };
-                let style =
-                    sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str());
+                let style = cache
+                    .and_then(|mc| mc.faction_style(fid.as_str()).copied())
+                    .unwrap_or_else(|| {
+                        sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str())
+                    });
                 out.insert(
                     sys.id.clone(),
                     HeatCell {
@@ -1572,7 +1580,9 @@ pub(crate) fn build_overlay_cells(
         | ControlOverlay::Logistical
         | ControlOverlay::Informational
         | ControlOverlay::Religious
-        | ControlOverlay::Sympathetic => Some(build_dimension_overlay(sector, factions, overlay)),
+        | ControlOverlay::Sympathetic => {
+            Some(build_dimension_overlay(sector, factions, overlay, cache))
+        }
     }
 }
 
@@ -1584,6 +1594,7 @@ fn build_dimension_overlay(
     sector: &sectorforge::sector_model::GeneratedSector,
     factions: &[sectorforge::sector_model::GeneratedFaction],
     overlay: ControlOverlay,
+    cache: Option<&SectorMapCache>,
 ) -> std::collections::HashMap<SystemId, sectorforge_gui_core::heatmap::HeatCell> {
     use sectorforge::sector_model::PresenceDimensions;
     use sectorforge_gui_core::heatmap::HeatCell;
@@ -1632,7 +1643,11 @@ fn build_dimension_overlay(
         if score <= 0.0 {
             continue;
         }
-        let style = sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str());
+        let style = cache
+            .and_then(|mc| mc.faction_style(fid.as_str()).copied())
+            .unwrap_or_else(|| {
+                sectorforge_gui_core::palette::faction_style_by_id(factions, fid.as_str())
+            });
         out.insert(
             sid,
             HeatCell {
@@ -1747,7 +1762,7 @@ mod tests {
     #[test]
     fn build_overlay_returns_none_for_off() {
         let s = empty();
-        assert!(build_overlay_cells(&s, &s.factions, ControlOverlay::None).is_none());
+        assert!(build_overlay_cells(&s, &s.factions, ControlOverlay::None, None).is_none());
     }
 
     #[test]
@@ -1776,7 +1791,7 @@ mod tests {
                 ..Default::default()
             },
         });
-        let cells = build_overlay_cells(&s, &s.factions, ControlOverlay::PowerProjection)
+        let cells = build_overlay_cells(&s, &s.factions, ControlOverlay::PowerProjection, None)
             .expect("PowerProjection always returns a map");
         assert!(cells.contains_key(&a));
         assert!(cells.contains_key(&b), "BFS reaches one-hop neighbour");
@@ -1785,7 +1800,7 @@ mod tests {
     #[test]
     fn build_overlay_influence_field_handles_empty_sector() {
         let s = empty();
-        let cells = build_overlay_cells(&s, &s.factions, ControlOverlay::InfluenceField)
+        let cells = build_overlay_cells(&s, &s.factions, ControlOverlay::InfluenceField, None)
             .expect("InfluenceField always returns a map");
         assert!(cells.is_empty(), "empty sector → empty influence map");
     }

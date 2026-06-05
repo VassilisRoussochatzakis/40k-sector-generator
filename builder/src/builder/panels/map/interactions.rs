@@ -66,6 +66,7 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
         &state.sector,
         &state.sector.factions,
         state.control_overlay,
+        lookup,
     );
     // §35 T3: scalar heatmap layer. A CONTROL overlay (§C7/§C8) always wins;
     // otherwise a per-dimension stability overlay takes precedence over the

@@ -49,7 +49,7 @@ aren't re-discovered as fresh findings.
 | ID | What's in place | What's pending |
 |----|-----------------|----------------|
 | TF-P-3 | `SectorMapCache::system_label_cache` + `system_label()` accessor exist. | Thread the cache into `gui-core/src/info_panel.rs` (88 `to_uppercase` + 64 `format!` per render) — its fns take `&GeneratedSector`, not the cache, so migration cascades to viewer + builder call sites. |
-| TF-P-4 | `SectorMapCache::faction_style_index` + `faction_style()` accessor exist. | Same cascade: `info_panel.rs:165,353,893`, `control.rs`, `dashboard.rs` still call the O(N) `faction_style_by_id`. Output is byte-identical (same `FactionStyle`), so no golden risk — pure signature-threading work. Gain is modest (small faction count, few calls/frame); the dominant info_panel cost is TF-P-3's uppercase/format. |
+| ~~TF-P-4~~ **DONE** | `SectorMapCache::faction_style_index` + `faction_style(&str)` accessor. | ✅ **Landed.** All 6 hot-path callers (`info_panel.rs:165,353,893`, `control.rs ×3`, `dashboard.rs`) migrated to the indexed accessor via a threaded `Option<&SectorMapCache>` (free-fn fallback on miss → byte-identical; map_snapshots golden stable). Viewer passes `None` in preview mode (cache reflects `self.sector`, not the edited preview). Accessor retyped `&FactionId`→`&str` (Borrow<str>, no alloc). |
 | TF-NT-2 | `ControlScore`/`DisplayImportance`/`ProjectedPower` newtypes in `src/analysis/scores.rs`. | ~35 score-field consumers would cascade; cosmetic until analyses compare scores across types. |
 | TF-P-7 | Relations projection avoids `Arc::make_mut` when secret relations are hidden. | `BriefingPack::sector` → `Cow` conversion deferred — every profile still mutates per-system loops, so the borrowed-path payoff stays marginal until those loops short-circuit. |
 
@@ -71,8 +71,9 @@ The §3/§4 backlog is now essentially closed once re-verified against the tree:
   **FU-9 (4 perf benches)**, FU-3, FU-7. Plus FU-8 partial (regression covered, CI wiring
   pending).
 - **Skipped (rationale):** FU-6 (lint can't express the determinism invariant).
-- **Deferred (justified):** FU-1/2/4/5 (no CI surface) and the four §2 site-migrations
-  above (multi-crate signature cascades).
+- **Deferred (justified):** FU-1/2/4/5 (no CI surface) and three §2 site-migrations
+  above — TF-P-3, TF-NT-2, TF-P-7 (multi-crate signature cascades). **TF-P-4 landed**
+  (faction-style index threaded through info_panel / control / dashboard).
 
 **Verification (this pass):** `cargo check --workspace --all-targets` ✓ · `cargo test
 --workspace` ✓ (13 result blocks, 0 failures) · `cargo test --test it -- golden` ✓ (13/13)

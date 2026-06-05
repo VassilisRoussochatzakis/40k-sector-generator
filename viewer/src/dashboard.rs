@@ -8,6 +8,7 @@ use sectorforge::analytics::{self, AnalyzeConfig, FlagSeverity, SectorAnalysis};
 use sectorforge::sector_model::GeneratedSector;
 
 use super::palette::{self, faction_style_by_id};
+use crate::sector_view::SectorMapCache;
 
 #[derive(Default)]
 pub(crate) struct DashboardState {
@@ -38,7 +39,12 @@ impl DashboardState {
     }
 }
 
-pub(crate) fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
+pub(crate) fn show(
+    ui: &mut Ui,
+    sector: &GeneratedSector,
+    cache: Option<&SectorMapCache>,
+    state: &mut DashboardState,
+) {
     state.ensure_for(sector);
     let Some(a) = state.analysis.as_ref() else {
         ui.label(RichText::new("analysis unavailable").color(palette::chrome_text_dim()));
@@ -80,7 +86,7 @@ pub(crate) fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardS
         ui.add_space(4.0);
         const TOP: usize = 12;
         for (i, f) in a.faction_balance.top_factions.iter().take(TOP).enumerate() {
-            share_bar(ui, &sector.factions, &f.name, &f.faction_id, f.share, i);
+            share_bar(ui, &sector.factions, cache, &f.name, &f.faction_id, f.share, i);
         }
         let total = a.faction_balance.top_factions.len();
         if total > TOP {
@@ -185,12 +191,15 @@ pub(crate) fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardS
 fn share_bar(
     ui: &mut Ui,
     factions: &[sectorforge::sector_model::GeneratedFaction],
+    cache: Option<&SectorMapCache>,
     name: &str,
     faction_id: &str,
     share: f32,
     _i: usize,
 ) {
-    let style = faction_style_by_id(factions, faction_id);
+    let style = cache
+        .and_then(|mc| mc.faction_style(faction_id).copied())
+        .unwrap_or_else(|| faction_style_by_id(factions, faction_id));
     let color = style.fill;
     let bar_w = 220.0_f32;
     let bar_h = 14.0_f32;

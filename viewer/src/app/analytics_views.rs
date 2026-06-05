@@ -42,7 +42,7 @@ impl App {
             )
             .show(ctx, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
-                    dashboard::show(ui, &sector, &mut self.dashboard);
+                    dashboard::show(ui, &sector, self.sector_map_cache.as_ref(), &mut self.dashboard);
                 });
             });
     }

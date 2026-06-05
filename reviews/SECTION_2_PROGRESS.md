@@ -35,7 +35,7 @@ work lands. Status legend: `[ ]` pending, `[~]` in progress, `[x]` done,
 | TF-P-1 | [ ] | ProjectInput has 17 pub fields (src/loading/input.rs:16-51). `clone_project_with_seed` deep-clones 15 catalog fields (search.rs:1191-1210). | Group catalog fields into `Arc<ProjectCatalogs>`. `clone_project_with_seed` becomes `Arc::clone(&self.catalogs)`. | Public API shape change; downstream callers updated. **Pending follow-up — bench impact still expected significant for search workloads.** |
 | TF-P-2 | [x] | Added `AtomicU32 lowest_winner` to search.rs candidate scan. Closure skips work for `n >= lowest_winner.load()`. Determinism preserved because winner is the lowest passing `n`. | — | Search tests pass; criterion bench would quantify gain. |
 | TF-P-3 | [ ] | SectorMapCache lacks label/uppercase caches. info_panel.rs has 64 `format!` sites; sector_view.rs only 1. | After TF-API-4 lands, hoist label uppercasing to `SectorMapCache::system_label_cache: BTreeMap<SystemId, Arc<str>>`. | Sequence AFTER TF-API-4. |
-| TF-P-4 | [ ] | `faction_style_by_id` (palette.rs:692) linear scan; 6 call sites incl per-route per-system iterations in info_panel.rs, control.rs. | Add `SectorMapCache::faction_style_index: BTreeMap<FactionId, FactionStyle>`, populate once. | Touches both gui-core+ builder panels. |
+| TF-P-4 | [x] | `SectorMapCache::faction_style_index` + `faction_style(&str)` accessor populate once. **Site migration landed:** all 6 `faction_style_by_id` hot-path callers (info_panel.rs ×3, control.rs ×3, dashboard.rs ×1) now query the index via a threaded `Option<&SectorMapCache>` and fall back to the free fn on miss (byte-identical). Cache threaded through `sector_overview_with_buckets`/`system_summary`/`route_summary`/`routes_block`, `build_overlay_cells`/`build_dimension_overlay`, `dashboard::show`/`share_bar`; viewer passes `None` in preview mode. | — | Output-neutral (map_snapshots golden stable). Accessor retyped `&FactionId`→`&str` (FactionId: Borrow<str>) so call sites query without allocating. |
 | TF-P-5 | [x] | svg_export/primitives.rs: `color_hex` → `write_color_hex(&mut String, Rgba<u8>)` sink. All 8 in-file call sites rewritten. | — | Golden PNG/JSON byte-stable. |
 | TF-P-6 | [ ] | Fix doc partially stale: economy.rs:1090-1116 already pre-builds `valid_routes_by_sys`, `by_sys`, `by_route`, `system_refs` once. | Verify whether further hoist needed in relations.rs and stranded check. De-scope if redundant. | Investigate before changing. |
 | TF-P-7 | [ ] | BriefingPack.sector: GeneratedSector owned (briefing.rs:194-203, 218 clones). `Arc::make_mut(&mut out.relations)` at line 267. | Convert sector to `Cow<'a, GeneratedSector>`. Project a `Vec<FactionRelation>` instead of `Arc::make_mut`. | Touches public API of BriefingPack. |
@@ -247,8 +247,8 @@ Still deferred (genuinely blocked or low-ROI):
 
 - TF-API-1, TF-API-2 — wait for TF-S-1 (command-bus retrofit) per §3.
 - Site migration follow-ups: TF-P-3 (info_panel `.to_uppercase()` calls),
-  TF-P-4 (`faction_style_by_id` linear scans), TF-NT-2 (35 score-field
-  consumers).
+  TF-NT-2 (35 score-field consumers). _(TF-P-4 site migration landed —
+  `faction_style_by_id` hot-path callers now use the indexed accessor.)_
 - TF-P-7 Cow conversion of `BriefingPack::sector` (broad cascade for
   marginal benefit until profile loops are short-circuited).
 - Viewer-side surfacing of `last_subsector_error` (TF-E-2 follow-up).

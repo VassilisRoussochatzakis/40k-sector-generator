@@ -43,7 +43,7 @@ const DEFAULT_PROSE_PATH: &str = "data/prose.toml";
 
 const TONE_VARIANTS: &[ProseTone] = &[ProseTone::Gazetteer, ProseTone::Dispatch];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Prose");
     ui.add_space(2.0);
     ui.colored_label(

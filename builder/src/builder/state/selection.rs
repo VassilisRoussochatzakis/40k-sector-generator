@@ -3,6 +3,8 @@
 
 use sectorforge::ids::SystemId;
 
+use sectorforge::ids::FactionId;
+
 use super::nav::EntityRef;
 use super::types::BuilderTab;
 use super::BuilderState;
@@ -42,6 +44,13 @@ impl BuilderState {
             self.system_context_menu = None;
         }
         self.active_tab = tab;
+    }
+
+    /// Set the selected faction without changing the active tab (unlike
+    /// [`Self::focus_entity`]). Backs the builder bin's `--select-faction` dev
+    /// flag; use this instead of writing the now-`pub(crate)` field directly.
+    pub fn select_faction(&mut self, id: Option<FactionId>) {
+        self.selected_faction_id = id;
     }
 
     /// §LINK2 — navigate to an entity: switch tabs and populate the matching

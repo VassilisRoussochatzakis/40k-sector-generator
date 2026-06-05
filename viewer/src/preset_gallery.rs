@@ -13,13 +13,13 @@ use sectorforge::presets::{self, PresetEntry};
 use super::palette;
 
 #[derive(Debug, Error, Clone)]
-pub enum PresetGalleryError {
+pub(crate) enum PresetGalleryError {
     #[error("failed to list presets: {0}")]
     Load(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum CreationTarget {
+pub(crate) enum CreationTarget {
     #[default]
     Project,
     Segmentum,
@@ -28,7 +28,7 @@ pub enum CreationTarget {
 }
 
 #[derive(Default)]
-pub struct PresetGalleryState {
+pub(crate) struct PresetGalleryState {
     pub open: bool,
     pub presets_dir: Option<Utf8PathBuf>,
     /// `None` means "list not loaded yet"; `Some(Err)` means load failed.
@@ -47,7 +47,7 @@ pub struct PresetGalleryState {
 }
 
 impl PresetGalleryState {
-    pub fn ensure_loaded(&mut self) {
+    pub(crate) fn ensure_loaded(&mut self) {
         if self.cached.is_some() {
             return;
         }
@@ -56,7 +56,7 @@ impl PresetGalleryState {
             Some(presets::list(&dir).map_err(|e| PresetGalleryError::Load(e.to_string())));
     }
 
-    pub fn invalidate(&mut self) {
+    pub(crate) fn invalidate(&mut self) {
         self.cached = None;
     }
 
@@ -68,7 +68,7 @@ impl PresetGalleryState {
 }
 
 /// Render the gallery body. Caller owns the surrounding window/panel.
-pub fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     state.ensure_loaded();
 
     // VAPP-2: `presets::scaffold` takes only (presets_dir, preset_id, dest, seed) — it copies a

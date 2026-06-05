@@ -7,6 +7,35 @@ rust-version = "1.87"
 [workspace]
 members = ["viewer", "gui-core", "builder"]
 
+# RUST_FIXES.md TF-S-3 / F-X06 dep-hygiene: single source of truth for every
+# dependency shared by ≥2 workspace members. Per-crate manifests pull these in
+# with `name.workspace = true` (adding crate-specific features inline where
+# needed). Versions/features here are the canonical set; bump in one place.
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "1"
+camino = { version = "1", features = ["serde1"] }
+blake3 = "1"
+rand = "0.8"
+image = { version = "0.25", default-features = false, features = ["png"] }
+egui = "0.29"
+eframe = { version = "0.29", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+rfd = "0.17"
+tempfile = "3"
+
+# RUST_FIXES.md QW-C-4: hoist the disallowed-types/methods lint *level* to the
+# workspace. The actual disallowed *paths* stay in the per-crate `clippy.toml`
+# files (builder/ + viewer/), because that ban (`egui::Painter` etc.) is
+# crate-scoped — `gui-core` legitimately owns the raw paint primitives, so a
+# single root `clippy.toml` would wrongly fire on it. Each member opts in with
+# `[lints] workspace = true`.
+[workspace.lints.clippy]
+disallowed_types = "deny"
+disallowed_methods = "deny"
+
 [lib]
 path = "src/lib.rs"
 
@@ -21,16 +50,16 @@ path = "src/bin/dhat_profile.rs"
 required-features = ["dhat-heap"]
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive", "rc"] }
-serde_json = "1"
-toml = "0.8"
-thiserror = "1"
-rand = "0.8"
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+thiserror.workspace = true
+rand.workspace = true
 rand_chacha = "0.3"
-blake3 = "1"
-camino = { version = "1", features = ["serde1"] }
-image = { version = "0.25", default-features = false, features = ["png"] }
+blake3.workspace = true
+camino.workspace = true
+image.workspace = true
 rustc-hash = "2"
 # FIX.txt §13: data-parallel candidate enumeration in src/search.rs. Order-
 # preserving collect keeps `SearchOutcome.near_misses` byte-deterministic.
@@ -46,12 +75,34 @@ default = []
 dhat-heap = ["dep:dhat"]
 
 [dev-dependencies]
-tempfile = "3"
+tempfile.workspace = true
 proptest = "1"
 criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
 
+# RUST_FIXES.md QW-C-4: opt this crate into the workspace clippy lint levels.
+[lints]
+workspace = true
+
 [[bench]]
 name = "generation"
+harness = false
+
+# RUST_FIXES.md FU-9: per-hot-path criterion benches validating the §2.3 perf
+# claims. One file per finding so each can be run in isolation.
+[[bench]]
+name = "briefing"
+harness = false
+
+[[bench]]
+name = "seed_search"
+harness = false
+
+[[bench]]
+name = "influence_field"
+harness = false
+
+[[bench]]
+name = "render_png"
 harness = false
 
 [profile.dev]

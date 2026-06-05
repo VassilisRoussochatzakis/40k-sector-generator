@@ -44,7 +44,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
     });
 }
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Warp Regions");
     ui.label(
         RichText::new(

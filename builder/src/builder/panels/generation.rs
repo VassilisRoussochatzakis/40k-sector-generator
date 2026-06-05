@@ -57,7 +57,7 @@ fn subhead(ui: &mut Ui, text: &str) {
 /// state onto it. Hosts that have not yet adopted [`BuilderWorkspace`] can
 /// pass `None` and the §G6 button will scaffold but report that no host
 /// workspace is available.
-pub fn show(ui: &mut Ui, state: &mut BuilderState, workspace: Option<&mut BuilderWorkspace>) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState, workspace: Option<&mut BuilderWorkspace>) {
     show_g1_parameters(ui, state);
     ui.add_space(6.0);
     show_g2_seed_lock(ui, state);

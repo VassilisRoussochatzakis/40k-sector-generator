@@ -34,7 +34,7 @@ use crate::builder::BuilderState;
 
 /// Entry point: heatmap selector row (§T3) + the collapsing theme section
 /// (§T1/§T2/§T4). Called from the MAP panel toolbar area.
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     show_heatmap_selector(ui, state);
     egui::CollapsingHeader::new(RichText::new("Map theme").strong())
         .id_salt("map_theme_section")

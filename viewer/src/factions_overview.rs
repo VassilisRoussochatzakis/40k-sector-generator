@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum FactionDesignerError {
+pub(crate) enum FactionDesignerError {
     #[error("validation error: {field} - {message}")]
     Validation { field: String, message: String },
     #[error("I/O error: {0}")]
@@ -48,7 +48,7 @@ impl PresenceStats {
 }
 
 #[derive(Debug, Clone)]
-pub struct FactionDesignerState {
+pub(crate) struct FactionDesignerState {
     rows: Vec<DesignerFactionRow>,
     selected_preset: usize,
     new_id: String,
@@ -322,7 +322,7 @@ const OVERALL_PRESETS: &[OverallPreset] = &[
     },
 ];
 
-pub fn show_readonly(ui: &mut Ui, sector: &GeneratedSector) {
+pub(crate) fn show_readonly(ui: &mut Ui, sector: &GeneratedSector) {
     show_header(ui, sector, false);
     ui.add_space(8.0);
     show_kind_summary(ui, sector);
@@ -409,7 +409,7 @@ pub fn show_editor(ui: &mut Ui, sector: &mut GeneratedSector) -> bool {
     dirty
 }
 
-pub fn show_designer(
+pub(crate) fn show_designer(
     ui: &mut Ui,
     sector: &GeneratedSector,
     state: &mut FactionDesignerState,

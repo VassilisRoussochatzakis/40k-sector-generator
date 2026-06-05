@@ -221,7 +221,7 @@ fn dimension_label(field: &str) -> (&'static str, &'static str) {
     }
 }
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Control");
     ui.add_space(2.0);
     ui.colored_label(
@@ -1499,7 +1499,7 @@ fn claim_chip_colours(kind: ClaimType) -> (Color32, Color32) {
 /// [`crate::builder::state::ControlOverlay`] is on. The returned map is
 /// keyed by system id; [`None`] when the overlay is `None`.
 #[must_use]
-pub fn build_overlay_cells(
+pub(crate) fn build_overlay_cells(
     sector: &sectorforge::sector_model::GeneratedSector,
     factions: &[sectorforge::sector_model::GeneratedFaction],
     overlay: ControlOverlay,

@@ -15,7 +15,7 @@
   ```bash
   cargo test --test it -- golden
   ```
-- **Mutations in the builder always go through the command bus.** Call `state.run(BuilderCommand::...)`. Never write directly to `BuilderState` fields from inside a panel — that breaks undo/redo (§R4).
+- **Mutations in the builder always go through the command bus.** Call `state.run(BuilderCommand::...)`. Never write directly to `BuilderState` fields from inside a panel — that breaks undo/redo (§R4). _Carve-out:_ **transient, non-undoable UI state** is exempt and may be written directly — selection (`selected_*_id`), drag/rect-select scratch, scroll/context-menu/modal fields, nav-rail collapse, etc. These are view state, not document state; they never land in `sector.json` and have nothing to undo. Anything that mutates `state.sector` / `state.data_catalogs` / chronicle / presence / claim / roster / relations- or economy-overrides is document state and **must** go through a `BuilderCommand`. (`#[cfg(test)]` code may bypass the bus to construct fixtures.)
 
 ## Sector geometry invariant (do not violate)
 
@@ -32,6 +32,8 @@
 | integration tests | [tests/it/](tests/it/) | Single-binary integration suite |
 
 Detailed file-by-file map: **[docs/MAP.md](docs/MAP.md)**. Don't load that file unless a task actually needs it — delegate the lookup to the `rust-explorer` subagent instead.
+
+**Dependency convention.** Any crate shared by ≥2 members is pinned once in the root `[workspace.dependencies]`; members reference it with `name.workspace = true` (add crate-specific features inline: `name = { workspace = true, features = [...] }`). Don't re-pin a version in a member manifest — bump it in the root block. Lint *levels* live in `[workspace.lints]` (members opt in with `[lints] workspace = true`); the disallowed-type/method *path lists* stay in the per-crate `clippy.toml` (builder/ + viewer/) because that paint-primitive ban is crate-scoped — `gui-core` owns the raw paint primitives, so it deliberately has no such file.
 
 ## Commands
 

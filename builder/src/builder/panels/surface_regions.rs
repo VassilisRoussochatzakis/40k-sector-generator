@@ -69,7 +69,7 @@ fn region_kind_label(kind: RegionKind) -> String {
         .join(" ")
 }
 
-pub fn show_surface_regions_section(
+pub(crate) fn show_surface_regions_section(
     ui: &mut Ui,
     state: &mut BuilderState,
     sys_idx: usize,

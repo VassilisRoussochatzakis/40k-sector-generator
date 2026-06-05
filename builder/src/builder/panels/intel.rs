@@ -53,7 +53,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
 /// Rendered above the hex map. Mutates `BuilderState::intel_observer` and
 /// `BuilderState::intel_player_min_confidence`. The baseline button walks the
 /// full sector and writes both layers.
-pub fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label("Seen through:")
             .on_hover_text("Which faction's knowledge to view the map through. (omniscient) shows everything.");
@@ -100,7 +100,7 @@ pub fn show_map_intel_controls(ui: &mut Ui, state: &mut BuilderState) {
 /// §I3 — runs `derive_intel` over the entire sector using every distinct
 /// faction id in `sector.factions` as an observer. Marks the project dirty and
 /// re-arms validation.
-pub fn run_baseline_intel(state: &mut BuilderState) {
+pub(crate) fn run_baseline_intel(state: &mut BuilderState) {
     let observer_ids: Vec<String> = state
         .sector
         .factions
@@ -124,7 +124,7 @@ pub fn run_baseline_intel(state: &mut BuilderState) {
 /// SYSTEM panel. Reads the system's `intel.by_observer` map and lets the user
 /// add / edit / remove observer views, plus their nested
 /// suspected-presence rows.
-pub fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+pub(crate) fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     ui_kit::collapsing_section(ui, "intel_system_fog", "Intel / fog of war", false, |ui| {
         show_baseline_row(ui, state);
         ui.separator();
@@ -155,7 +155,7 @@ pub fn show_system_intel_section(ui: &mut Ui, state: &mut BuilderState, sys_idx:
 
 /// §I2 — per-world intel editor (same pattern as §I1, scoped to one world's
 /// `intel.by_observer`).
-pub fn show_world_intel_section(
+pub(crate) fn show_world_intel_section(
     ui: &mut Ui,
     state: &mut BuilderState,
     sys_idx: usize,

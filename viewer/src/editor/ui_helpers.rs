@@ -4,21 +4,21 @@ use egui::{Response, RichText, Ui};
 
 use crate::palette;
 
-pub fn section(ui: &mut Ui, s: &str) {
+pub(crate) fn section(ui: &mut Ui, s: &str) {
     ui.label(RichText::new(s).color(palette::chrome_text()).strong());
 }
 
-pub fn dim(ui: &mut Ui, s: &str) {
+pub(crate) fn dim(ui: &mut Ui, s: &str) {
     ui.label(RichText::new(s).color(palette::chrome_text_dim()));
 }
 
-pub fn label(ui: &mut Ui, s: &str) {
+pub(crate) fn label(ui: &mut Ui, s: &str) {
     ui.label(RichText::new(s).color(palette::chrome_text()));
 }
 
 /// Dropdown over `&[&str]`; writes selected value into `current`. Returns true
 /// if the value changed.
-pub fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[&str]) -> bool {
+pub(crate) fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[&str]) -> bool {
     let mut changed = false;
     // §UO P4: route through the shared `ui_kit::combo` so editor dropdowns get
     // the same width floor / styling as the rest of both apps.
@@ -39,7 +39,7 @@ pub fn combo_str(ui: &mut Ui, id: &str, current: &mut String, options: &[&str]) 
 
 /// Dropdown over `(value, label)` tuples. `current` holds the value string;
 /// label is what user sees.
-pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &str)]) -> bool {
+pub(crate) fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &str)]) -> bool {
     let mut changed = false;
     let shown: &str = options
         .iter()
@@ -60,7 +60,7 @@ pub fn combo_kv(ui: &mut Ui, id: &str, current: &mut String, options: &[(&str, &
     changed
 }
 
-pub fn text_field(ui: &mut Ui, value: &mut String, hint: &str) -> Response {
+pub(crate) fn text_field(ui: &mut Ui, value: &mut String, hint: &str) -> Response {
     ui.add(egui::TextEdit::singleline(value).hint_text(hint))
 }
 
@@ -68,7 +68,7 @@ pub fn text_field(ui: &mut Ui, value: &mut String, hint: &str) -> Response {
 /// newtypes from [`sectorforge::ids`]. The newtype is round-tripped through a
 /// [`String`] buffer for the duration of the call so we can keep using
 /// `egui::TextEdit::singleline` (which wants `&mut String`).
-pub fn text_field_id<T>(ui: &mut Ui, value: &mut T, hint: &str) -> Response
+pub(crate) fn text_field_id<T>(ui: &mut Ui, value: &mut T, hint: &str) -> Response
 where
     T: AsRef<str> + From<String>,
 {
@@ -80,7 +80,7 @@ where
     resp
 }
 
-pub fn combo_str_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[&str]) -> bool
+pub(crate) fn combo_str_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[&str]) -> bool
 where
     T: AsRef<str> + From<String>,
 {
@@ -92,7 +92,7 @@ where
     changed
 }
 
-pub fn combo_kv_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[(&str, &str)]) -> bool
+pub(crate) fn combo_kv_id<T>(ui: &mut Ui, id: &str, current: &mut T, options: &[(&str, &str)]) -> bool
 where
     T: AsRef<str> + From<String>,
 {

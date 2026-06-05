@@ -42,7 +42,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
     });
 }
 
-pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Routes");
     ui.label(
         RichText::new("Travel lanes between systems — their danger, who patrols them, and how the network stays connected.")

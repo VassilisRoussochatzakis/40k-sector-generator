@@ -67,7 +67,7 @@ const SYSTEM_STATES: &[SystemState] = &[
     SystemState::Uncharted,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("History");
     ui.add_space(2.0);
     ui.colored_label(
@@ -1674,7 +1674,7 @@ fn hash_str(s: &str) -> u64 {
 /// §H8: collect every chronicle event anchored at (system, world). Returns a
 /// stable date-sorted slice for the caller to render inside the WORLD
 /// inspector.
-pub fn world_chronicle_events<'a>(
+pub(crate) fn world_chronicle_events<'a>(
     state: &'a BuilderState,
     sys_id: &SystemId,
     world_id: &WorldId,

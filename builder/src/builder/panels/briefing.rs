@@ -49,7 +49,7 @@ const PRESET_VARIANTS: &[AudiencePreset] = &[
     AudiencePreset::PublicAtlas,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     // §39 LD4: refresh the cached preview when a prior mutation left it stale.
     // The briefing profile builder is panel-local, so this overlay self-heals
     // here rather than through `pump_derivations`. No preview yet ⇒ stay cold.

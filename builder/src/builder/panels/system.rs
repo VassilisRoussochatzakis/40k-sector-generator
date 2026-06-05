@@ -103,7 +103,7 @@ fn system_state_label(state: SystemState) -> &'static str {
     }
 }
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
     ui.label(
         RichText::new(

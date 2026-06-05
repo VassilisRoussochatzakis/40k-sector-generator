@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum EditorFileError {
+pub(crate) enum EditorFileError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
     #[error("JSON error: {0}")]
@@ -18,7 +18,7 @@ pub enum EditorFileError {
 const EXAMPLES_DIR: &str = "examples";
 
 /// Discover project directories that contain `out/sector.json`.
-pub fn list_projects() -> Vec<String> {
+pub(crate) fn list_projects() -> Vec<String> {
     let mut out = Vec::new();
     let Ok(entries) = fs::read_dir(EXAMPLES_DIR) else {
         return out;
@@ -39,14 +39,14 @@ pub fn list_projects() -> Vec<String> {
     out
 }
 
-pub fn project_sector_path(name: &str) -> PathBuf {
+pub(crate) fn project_sector_path(name: &str) -> PathBuf {
     PathBuf::from(EXAMPLES_DIR)
         .join(name)
         .join("out")
         .join("sector.json")
 }
 
-pub fn load_project_sector(
+pub(crate) fn load_project_sector(
     name: &str,
 ) -> Result<
     (
@@ -71,7 +71,7 @@ pub fn load_project_sector(
     Ok((sector, input, path.to_string_lossy().to_string()))
 }
 
-pub fn save_project_sector(
+pub(crate) fn save_project_sector(
     name: &str,
     sector: &sectorforge::sector_model::GeneratedSector,
 ) -> Result<String, EditorFileError> {

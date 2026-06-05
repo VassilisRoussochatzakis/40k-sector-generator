@@ -71,7 +71,7 @@ const STRATA: &[&str] = &[
 /// violation from the live report; never persisted, never a model field.
 const SELECTED_KEY_ID: &str = "invariants_selected_violation";
 
-pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Invariants");
     ui.label(
         RichText::new("Automatic structural checks on the generated sector — anything broken shows up here, with a one-click jump to the culprit.")

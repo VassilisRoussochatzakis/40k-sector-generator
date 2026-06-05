@@ -75,7 +75,7 @@ const STATUS_VARIANTS: &[SiteStatus] = &[
     SiteStatus::UnderConstruction,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Sites");
     ui.add_space(2.0);
     ui.label(

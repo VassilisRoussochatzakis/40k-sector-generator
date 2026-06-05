@@ -102,7 +102,7 @@ pub(crate) fn derive_and_apply_orbital_assets(state: &mut BuilderState, system: 
     }
 }
 
-pub fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+pub(crate) fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     ui_kit::collapsing_section(ui, "orb_root", "Orbital assets & blockade", false, |ui| {
         let sys_id = state.sector.systems[sys_idx].id.clone();
         let factions: Vec<(FactionId, String)> = state

@@ -15,7 +15,7 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use sectorforge::sector_model::{GeneratedRoute, GeneratedSector, RouteStability, RouteType};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Metric {
+pub(crate) enum Metric {
     #[default]
     Safest,
     Shortest,
@@ -23,7 +23,7 @@ pub enum Metric {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct RoutePlannerState {
+pub(crate) struct RoutePlannerState {
     pub from: Option<sectorforge::ids::SystemId>,
     pub to: Option<sectorforge::ids::SystemId>,
     pub metric: Metric,
@@ -33,7 +33,7 @@ pub struct RoutePlannerState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum PickTarget {
+pub(crate) enum PickTarget {
     #[default]
     None,
     From,
@@ -41,7 +41,7 @@ pub enum PickTarget {
 }
 
 #[derive(Debug, Clone)]
-pub struct Plan {
+pub(crate) struct Plan {
     /// Ordered system ids from origin to destination, inclusive.
     pub hops: Vec<sectorforge::ids::SystemId>,
     /// Route ids used, in traversal order.
@@ -74,7 +74,7 @@ pub enum Severity {
 impl RoutePlannerState {
     /// Map click. If a picker is armed, fill that slot then advance.
     /// Otherwise auto-cycle: from → to → reset.
-    pub fn click_system(&mut self, system_id: &str) {
+    pub(crate) fn click_system(&mut self, system_id: &str) {
         let sid = sectorforge::ids::SystemId::new(system_id);
         match self.picker {
             PickTarget::From => {
@@ -106,7 +106,7 @@ impl RoutePlannerState {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.from = None;
         self.to = None;
         self.plan = None;
@@ -114,14 +114,14 @@ impl RoutePlannerState {
         self.picker = PickTarget::None;
     }
 
-    pub fn highlighted_route_ids(&self) -> HashSet<sectorforge::ids::RouteId> {
+    pub(crate) fn highlighted_route_ids(&self) -> HashSet<sectorforge::ids::RouteId> {
         self.plan
             .as_ref()
             .map(|p| p.route_ids.iter().cloned().collect())
             .unwrap_or_default()
     }
 
-    pub fn waypoint_set(&self) -> HashSet<sectorforge::ids::SystemId> {
+    pub(crate) fn waypoint_set(&self) -> HashSet<sectorforge::ids::SystemId> {
         self.plan
             .as_ref()
             .map(|p| p.hops.iter().cloned().collect())
@@ -130,7 +130,7 @@ impl RoutePlannerState {
 }
 
 /// Compute a route between two systems, or `None` if no path exists.
-pub fn plan_route(sector: &GeneratedSector, from: &str, to: &str, metric: Metric) -> Option<Plan> {
+pub(crate) fn plan_route(sector: &GeneratedSector, from: &str, to: &str, metric: Metric) -> Option<Plan> {
     if from == to {
         return None;
     }

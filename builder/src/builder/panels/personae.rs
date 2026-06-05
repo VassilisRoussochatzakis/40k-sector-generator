@@ -77,7 +77,7 @@ const DOMINANCE_TIERS: &[DominanceTier] = &[
     DominanceTier::Stronghold,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Personae");
     ui.add_space(2.0);
     ui.colored_label(

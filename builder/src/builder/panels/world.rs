@@ -29,7 +29,7 @@ use crate::builder::command::BuilderCommand;
 use crate::builder::state::{BuilderTab, EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("World");
     ui.add_space(4.0);
 

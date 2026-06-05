@@ -150,425 +150,425 @@ impl serde::Serialize for LiveSector {
 }
 
 pub struct BuilderState {
-    pub sector: LiveSector,
-    pub project_path: Option<Utf8PathBuf>,
-    pub config: AppConfig,
-    pub data_catalogs: DataCatalogs,
-    pub index: BuilderIndex,
-    pub command_log: Vec<BuilderCommand>,
+    pub(crate) sector: LiveSector,
+    pub(crate) project_path: Option<Utf8PathBuf>,
+    pub(crate) config: AppConfig,
+    pub(crate) data_catalogs: DataCatalogs,
+    pub(crate) index: BuilderIndex,
+    pub(crate) command_log: Vec<BuilderCommand>,
     /// Position of the cursor inside `command_log`. Used for redo: commands
     /// past `cursor` are redo candidates; commands before are undoable.
-    pub command_cursor: usize,
-    pub snapshots: Vec<Snapshot>,
+    pub(crate) command_cursor: usize,
+    pub(crate) snapshots: Vec<Snapshot>,
     /// §U2: bounded ring-buffer cap for `command_log`. When the log exceeds
     /// this size after a new mutation, the oldest commands are dropped and
     /// `command_cursor` plus snapshot positions are shifted accordingly.
     /// Default 200 — see [`DEFAULT_COMMAND_LOG_CAPACITY`].
-    pub command_log_capacity: usize,
+    pub(crate) command_log_capacity: usize,
     /// §Q1: pinned systems live in this side-table — never written to JSON.
-    pub pinned_systems: BTreeSet<SystemId>,
-    pub pinned_worlds: BTreeSet<WorldId>,
-    pub derivation_cache: DerivationCache,
+    pub(crate) pinned_systems: BTreeSet<SystemId>,
+    pub(crate) pinned_worlds: BTreeSet<WorldId>,
+    pub(crate) derivation_cache: DerivationCache,
     /// §39 (LD1..LD4) live-derivation ledger. Tracks per-kind input
     /// fingerprints, staleness, and in-flight recomputes so the command bus can
     /// invalidate exactly the overlays a mutation touches (LD2) and the overlay
     /// panels can read freshness before rendering (LD4). See
     /// [`Self::invalidate_derivations`] / [`Self::ensure_fresh`].
-    pub derivations: DerivationLedger,
-    pub dirty: bool,
-    pub auto_save_path: Option<Utf8PathBuf>,
+    pub(crate) derivations: DerivationLedger,
+    pub(crate) dirty: bool,
+    pub(crate) auto_save_path: Option<Utf8PathBuf>,
     /// Last error encountered by [`Self::trigger_auto_save`], or `None` if
     /// the most recent attempt succeeded. Rendered in the status bar.
-    pub last_save_error: Option<String>,
+    pub(crate) last_save_error: Option<String>,
     /// Last error encountered when reloading a catalog from disk (e.g. when
     /// the file watcher fired after an edit on disk). Rendered in the status
     /// bar so silent TOML parse failures no longer leave the editor showing
     /// stale state without warning. Cleared on the next successful reload.
-    pub last_catalog_error: Option<String>,
+    pub(crate) last_catalog_error: Option<String>,
     /// Last error from `build_subsectors`. Cleared on success. Rendered in
     /// the status bar so a broken cluster doesn't silently produce an empty
     /// subsector list.
-    pub last_subsector_error: Option<String>,
+    pub(crate) last_subsector_error: Option<String>,
     /// TF-NT-3: cached output of `feature_weights_for_world`. Keyed by
     /// `(sys_idx, w_idx, input_digest)`. Stale entries are simply ignored
     /// (digest mismatch) — the cache grows bounded by the number of worlds.
     /// Cleared on project reload via [`Self::clear_feature_weights_cache`].
-    pub feature_weights_cache: BTreeMap<FeatureWeightsCacheKey, FeatureWeightsCacheValue>,
-    pub validation_report: Option<ValidationReport>,
-    pub invariant_report: Option<InvariantReport>,
-    pub modal: Option<ModalKind>,
-    pub pending_jobs: Vec<JobHandle>,
+    pub(crate) feature_weights_cache: BTreeMap<FeatureWeightsCacheKey, FeatureWeightsCacheValue>,
+    pub(crate) validation_report: Option<ValidationReport>,
+    pub(crate) invariant_report: Option<InvariantReport>,
+    pub(crate) modal: Option<ModalKind>,
+    pub(crate) pending_jobs: Vec<JobHandle>,
     /// §P4: per-file dirty markers keyed by project-relative path. Populated
     /// by panels that edit individual catalogs and cleared on save.
-    pub dirty_files: BTreeSet<String>,
+    pub(crate) dirty_files: BTreeSet<String>,
     /// §P4: file currently selected in the PROJECT tree. Optional — the §PF2
     /// TOML editor reads this to decide which buffer to open.
-    pub selected_file: Option<Utf8PathBuf>,
+    pub(crate) selected_file: Option<Utf8PathBuf>,
     /// §PF2 / §PF4 / §PF5: raw-TOML editor surface on the PROJECT tab. Holds the
     /// open file buffers ("editor tabs"), their dirty/validation state, and the
     /// active tab. In-memory only.
-    pub toml_editor: TomlEditorState,
+    pub(crate) toml_editor: TomlEditorState,
     /// §P4 + §P5: project-relative mtime snapshot taken at load time. The
     /// file watcher uses this baseline to spot external changes; the tree
     /// view uses it to draw the "● dirty" marker when the catalog mirror
     /// diverges from disk.
-    pub file_mtimes: BTreeMap<String, std::time::SystemTime>,
+    pub(crate) file_mtimes: BTreeMap<String, std::time::SystemTime>,
     /// §P5: background watcher polling the project directory for external
     /// changes. `None` when no project is open.
-    pub file_watcher: Option<FileWatcher>,
+    pub(crate) file_watcher: Option<FileWatcher>,
     /// §V3: timestamp of the most recent mutation that has not yet flushed to
     /// a live-validation pass. The UI calls [`Self::pump_validation`] each
     /// frame; once the timer exceeds [`Self::validation_debounce`] the
     /// validation run fires and the timer clears.
-    pub validation_dirty_since: Option<Instant>,
+    pub(crate) validation_dirty_since: Option<Instant>,
     /// §V3: debounce window between mutation and live-validation flush.
-    pub validation_debounce: Duration,
+    pub(crate) validation_debounce: Duration,
     /// §V4 — strict validation toggle. When set, validation *warnings* are
     /// promoted to errors for the status-bar health pip
     /// ([`Self::health_level`]) and the §V6 pre-export gate
     /// ([`Self::export_block_reason`]), matching
     /// `sectorforge generate --strict`. Off by default. In-memory only.
-    pub validation_strict: bool,
+    pub(crate) validation_strict: bool,
     /// §COLUMNS §6.1 — when set, the left cluster nav rail is hidden and only a
     /// `☰` toggle in the top bar brings it back, so a master-detail tab can
     /// reclaim the full width on a narrow window. In-memory view state, off by
     /// default (the rail shows).
-    pub nav_rail_collapsed: bool,
+    pub(crate) nav_rail_collapsed: bool,
     /// §V2: entity selection mailbox — invariant / validation panels write
     /// here so the inspector tabs can focus the offending entity. Each field
     /// is independent so the active inspector reads only the IDs it cares
     /// about.
-    pub selected_system_id: Option<SystemId>,
-    pub selected_world_id: Option<WorldId>,
-    pub selected_route_id: Option<RouteId>,
-    pub selected_faction_id: Option<FactionId>,
-    pub selected_region_id: Option<String>,
+    pub(crate) selected_system_id: Option<SystemId>,
+    pub(crate) selected_world_id: Option<WorldId>,
+    pub(crate) selected_route_id: Option<RouteId>,
+    pub(crate) selected_faction_id: Option<FactionId>,
+    pub(crate) selected_region_id: Option<String>,
     /// §N1: active top-level tab. Defaults to [`BuilderTab::Project`] so a
     /// blank session lands on the project chrome.
-    pub active_tab: BuilderTab,
+    pub(crate) active_tab: BuilderTab,
     /// §N3: armed tool on the MAP tab. Defaults to [`MapTool::Select`].
-    pub map_tool: MapTool,
+    pub(crate) map_tool: MapTool,
     /// §G2: when true, "Re-roll" preserves `generation.seed`; when false it
     /// derives a fresh seed via blake3("sectorforge:{seed}:reroll:{n}").
-    pub seed_locked: bool,
+    pub(crate) seed_locked: bool,
     /// §G2: monotonic counter mixed into the re-roll derivation. Incremented
     /// each time the user clicks "Re-roll" while the seed lock is off.
-    pub seed_reroll_counter: u64,
+    pub(crate) seed_reroll_counter: u64,
     /// §G3 / §G4: scratch live preview owned by the generation panel.
-    pub preview: PreviewState,
+    pub(crate) preview: PreviewState,
     /// §G5: half-open axial-hex rectangle selected for partial regeneration.
     /// `None` means "full sector"; the regen action then refuses to run.
-    pub partial_regen_rect: Option<PartialRegenRect>,
+    pub(crate) partial_regen_rect: Option<PartialRegenRect>,
     /// §S4: shift-click / rect-drag multi-selection. Always contains
     /// `selected_system_id` when both are populated. Bulk operations in the
     /// SYSTEM tab operate on this set.
-    pub selected_systems: BTreeSet<SystemId>,
+    pub(crate) selected_systems: BTreeSet<SystemId>,
     /// §S1: id of the system currently being dragged across the hex grid.
     /// Transient — cleared on drag-stop.
-    pub drag_system: Option<SystemId>,
+    pub(crate) drag_system: Option<SystemId>,
     /// §R2: ADD ROUTE drag/click start endpoint.
-    pub pending_route_start: Option<SystemId>,
+    pub(crate) pending_route_start: Option<SystemId>,
     /// §S1: ADD SYSTEM tool target coord awaiting a name entry. The map
     /// panel pops a small naming dialog while this is `Some`.
-    pub pending_place: Option<PendingPlace>,
+    pub(crate) pending_place: Option<PendingPlace>,
     /// §S1: double-clicked system awaiting a rename in the floating dialog.
-    pub pending_rename: Option<PendingRename>,
+    pub(crate) pending_rename: Option<PendingRename>,
     /// §S6: drag-drop collision waiting on user choice (Swap / Cancel).
-    pub pending_collision: Option<PendingCollision>,
+    pub(crate) pending_collision: Option<PendingCollision>,
     /// §CTX1 Phase 3: BULK RENAME pattern dialog armed from the MAP tab
     /// right-click multi-selection menu. `None` when no dialog is open.
-    pub pending_bulk_rename: Option<PendingBulkRename>,
+    pub(crate) pending_bulk_rename: Option<PendingBulkRename>,
     /// §CTX1 Phase 5: region RENAME dialog armed from the MAP tab right-click
     /// region-hex menu (`§6.5`). `None` when no dialog is open. Dispatches
     /// through `BuilderCommand::RenameRegion` on commit.
-    pub pending_region_rename: Option<PendingRegionRename>,
+    pub(crate) pending_region_rename: Option<PendingRegionRename>,
     /// §S4: in-progress rect-select on the map (`(start, current)` corners).
-    pub rect_select: Option<(
+    pub(crate) rect_select: Option<(
         sectorforge::sector_model::HexCoord,
         sectorforge::sector_model::HexCoord,
     )>,
     /// §S1: hex render size in screen pixels. Persisted per session so users
     /// can zoom the map without re-tuning each frame.
-    pub hex_size: f32,
+    pub(crate) hex_size: f32,
     /// §S2: lazy subsector + lookup cache used by the MAP panel so the modern
     /// [`sectorforge_gui_core::sector_view::SectorView`] renderer can draw
     /// subsector borders / capital markers / region tints without rebuilding
     /// every frame. Keyed by a digest over the sector slice it depends on;
     /// refreshed in the panel when the digest changes.
-    pub map_view_cache: Option<MapViewCache>,
+    pub(crate) map_view_cache: Option<MapViewCache>,
     /// §W4: monotonic counter mixed into the per-world re-roll discriminator
     /// so repeated clicks on "Re-roll" yield distinct draws while staying
     /// deterministic for replay.
-    pub world_reroll_counter: u64,
+    pub(crate) world_reroll_counter: u64,
     /// §R4: bulk route predicate controls.
-    pub route_bulk_filter_type: Option<RouteType>,
-    pub route_bulk_filter_stability: Option<RouteStability>,
-    pub route_bulk_filter_tag: String,
-    pub route_bulk_filter_region: Option<String>,
-    pub route_bulk_set_type: RouteType,
-    pub route_bulk_set_stability: RouteStability,
+    pub(crate) route_bulk_filter_type: Option<RouteType>,
+    pub(crate) route_bulk_filter_stability: Option<RouteStability>,
+    pub(crate) route_bulk_filter_tag: String,
+    pub(crate) route_bulk_filter_region: Option<String>,
+    pub(crate) route_bulk_set_type: RouteType,
+    pub(crate) route_bulk_set_stability: RouteStability,
     /// §R6: explicit hidden-route builder controls.
-    pub hidden_route_kind: RouteType,
-    pub hidden_route_k_nearest: usize,
-    pub hidden_route_exclude_blackout: bool,
-    pub hidden_route_endpoints: BTreeSet<SystemId>,
+    pub(crate) hidden_route_kind: RouteType,
+    pub(crate) hidden_route_k_nearest: usize,
+    pub(crate) hidden_route_exclude_blackout: bool,
+    pub(crate) hidden_route_endpoints: BTreeSet<SystemId>,
     /// §C3: per-(world, faction) dominance lock. When the pair is present the
     /// CONTROL panel leaves `WorldFactionPresence::dominance` alone; otherwise
     /// it is recomputed from the presence's local-control score every time the
     /// panel is rendered.
-    pub dominance_locked: BTreeSet<(WorldId, FactionId)>,
+    pub(crate) dominance_locked: BTreeSet<(WorldId, FactionId)>,
     /// §C5: per-system `primary_factions` override lock. When the system is in
     /// the set the CONTROL panel preserves whatever is in
     /// `GeneratedSystem::primary_factions`; otherwise it auto-derives the
     /// top-3 from `derive_system_control`.
-    pub primary_factions_locked: BTreeSet<SystemId>,
+    pub(crate) primary_factions_locked: BTreeSet<SystemId>,
     /// §C7 / §C8: active map overlay driven from the CONTROL tab.
-    pub control_overlay: ControlOverlay,
+    pub(crate) control_overlay: ControlOverlay,
     /// §REG3: scratch state for the "Grow seeded region" form on the
     /// REGIONS tab.
-    pub region_grow_q: i32,
-    pub region_grow_r: i32,
-    pub region_grow_size: u32,
-    pub region_grow_kind: sectorforge::regions::RegionConditionKind,
+    pub(crate) region_grow_q: i32,
+    pub(crate) region_grow_r: i32,
+    pub(crate) region_grow_size: u32,
+    pub(crate) region_grow_kind: sectorforge::regions::RegionConditionKind,
     /// §SUB1: currently focused subsector in the SUBSECTORS panel. Drives the
     /// per-cluster inspector and the MAP-tab faint-grey highlight overlay.
-    pub selected_subsector_id: Option<String>,
+    pub(crate) selected_subsector_id: Option<String>,
     /// §SUB2: live `target_systems_per_subsector` for the recluster button.
     /// Defaults to [`sectorforge::subsectors::DEFAULT_TARGET_SYSTEMS_PER_SUBSECTOR`].
     /// Folded into the [`MapViewCache`] digest so changes invalidate the cache
     /// and the renderer rebuilds with the new clustering.
-    pub subsector_target_systems: u32,
+    pub(crate) subsector_target_systems: u32,
     /// §SUB3: per-system manual reassignment table. After the lib runs
     /// `build_subsectors`, the panel reapplies these overrides so manual moves
     /// survive reclustering. Key = `SystemId`, value = destination subsector id.
-    pub subsector_system_overrides: BTreeMap<SystemId, String>,
+    pub(crate) subsector_system_overrides: BTreeMap<SystemId, String>,
     /// §SUB3: subsectors the user has touched manually. Stored separately from
     /// the system overrides so the panel can flag a cluster as "manual" even
     /// when its current member list happens to match the algorithmic output.
-    pub subsector_manual: BTreeSet<String>,
+    pub(crate) subsector_manual: BTreeSet<String>,
     /// §SUB4: capital override per subsector. Overrides the algorithmic
     /// `summary.subsector_capital_system_id` after the lib clusters.
-    pub subsector_capital_overrides: BTreeMap<String, SystemId>,
+    pub(crate) subsector_capital_overrides: BTreeMap<String, SystemId>,
     /// §SUB5: per-subsector colour override. Default for each subsector is the
     /// `FactionStyle` fill of its controlling faction; the override is only
     /// recorded when the user picks a custom swatch.
-    pub subsector_colour_overrides: BTreeMap<String, [u8; 3]>,
+    pub(crate) subsector_colour_overrides: BTreeMap<String, [u8; 3]>,
     /// §E1: per-world `ResourceVector` override. When present
     /// [`Self::recompute_economy`] pins the world's vector to this value,
     /// recomputes the shortage list, and lets the stranded check re-run from
     /// the override (the routes layer is unchanged so a manual surplus can
     /// still resolve a real deficit). Never written to JSON.
-    pub world_economy_overrides: BTreeMap<WorldId, sectorforge::economy::ResourceVector>,
+    pub(crate) world_economy_overrides: BTreeMap<WorldId, sectorforge::economy::ResourceVector>,
     /// §E2: per-world `StrategicOutput` override. When present
     /// [`Self::recompute_economy`] pins the world's 10-axis strategic vector
     /// and the system-level aggregates inherit the override before the
     /// dependency-edge pass runs.
-    pub world_strategic_overrides: BTreeMap<WorldId, sectorforge::economy::StrategicOutput>,
+    pub(crate) world_strategic_overrides: BTreeMap<WorldId, sectorforge::economy::StrategicOutput>,
     /// §E3: per-system `TitheStatus` override applied after the auto-derived
     /// pass so users can mark a system Delinquent/Falsified by hand.
-    pub system_tithe_overrides: BTreeMap<SystemId, sectorforge::economy::TitheStatus>,
+    pub(crate) system_tithe_overrides: BTreeMap<SystemId, sectorforge::economy::TitheStatus>,
     /// §E3: per-system `SupplyRisk` override.
-    pub system_supply_overrides: BTreeMap<SystemId, sectorforge::economy::SupplyRisk>,
+    pub(crate) system_supply_overrides: BTreeMap<SystemId, sectorforge::economy::SupplyRisk>,
     /// §E3: per-system `StrategicPriority` override.
-    pub system_priority_overrides: BTreeMap<SystemId, sectorforge::economy::StrategicPriority>,
+    pub(crate) system_priority_overrides: BTreeMap<SystemId, sectorforge::economy::StrategicPriority>,
     /// §E7 / §35 — active MAP-tab heatmap mode when no §C7/§C8 control overlay
     /// is on. Defaults to `Off`. Trade-volume / food / tithe / supply modes
     /// read straight off `sector.economy` and require
     /// [`Self::recompute_economy`] to have run at least once.
-    pub map_heatmap_mode: sectorforge::heatmap::HeatmapMode,
+    pub(crate) map_heatmap_mode: sectorforge::heatmap::HeatmapMode,
     /// §35 T3: when `Some`, the MAP panel paints a per-dimension stability
     /// heatmap instead of [`Self::map_heatmap_mode`]. Mutually exclusive with
     /// it — selecting a stability dimension forces `map_heatmap_mode = Off`,
     /// and selecting any [`sectorforge::heatmap::HeatmapMode`] clears this.
-    pub map_stability_dim: Option<sectorforge::heatmap::StabilityDimension>,
+    pub(crate) map_stability_dim: Option<sectorforge::heatmap::StabilityDimension>,
     /// §35 T2: filename stem the custom-theme editor saves to under
     /// `data/map_themes/<name>.toml`. Defaults to the active theme name.
-    pub theme_save_name: String,
+    pub(crate) theme_save_name: String,
     /// §35 T2: transient one-line result of the last theme save/load action,
     /// shown beneath the editor. Runtime-only.
-    pub theme_status: Option<String>,
+    pub(crate) theme_status: Option<String>,
     /// §35 T5: cached per-system bitmap preview texture, keyed by a digest of
     /// (system id, theme, faction_fill, scale) so the PNG renderer only re-runs
     /// when one of those changes. Never serialized (runtime-only).
-    pub system_bitmap_preview: Option<SystemBitmapPreview>,
+    pub(crate) system_bitmap_preview: Option<SystemBitmapPreview>,
     /// §E6: when true, the MAP panel highlights the route ids carrying the
     /// top-N supplier→consumer dependency edges (lifeline lanes) using the
     /// existing `SectorView::path_route_ids` channel.
-    pub economy_highlight_lifelines: bool,
+    pub(crate) economy_highlight_lifelines: bool,
     /// §E6: minimum dependency-edge score that qualifies as a lifeline. Edges
     /// below this score are not painted. Defaults to 35.0 — same threshold
     /// `economy::derive_dependency_edges` uses for the supplier cutoff.
-    pub economy_lifeline_min_score: f32,
+    pub(crate) economy_lifeline_min_score: f32,
     /// §REL1: currently focused pair in the diplomacy matrix grid. Stored as
     /// the canonical (lo, hi) ordering used by [`sectorforge::relations`] so
     /// the cell editor can locate or create an entry in `RelationsConfig::
     /// overrides` deterministically.
-    pub relations_selected_pair: Option<(FactionId, FactionId)>,
+    pub(crate) relations_selected_pair: Option<(FactionId, FactionId)>,
     /// §REL9: when true, mutations that touch the relations catalog or the
     /// faction roster trigger an immediate [`Self::recompute_relations`] pass.
     /// Defaults to `true`.
-    pub relations_auto_recompute: bool,
+    pub(crate) relations_auto_recompute: bool,
     /// §H7: currently focused event id in the HISTORY tab. Drives the per-event
     /// inspector and the "highlight on map" anchor lookup.
-    pub selected_history_event: Option<String>,
+    pub(crate) selected_history_event: Option<String>,
     /// §H6: when true, mutations that touch the history catalog or the
     /// `[history]` config trigger an immediate [`Self::recompute_chronicle`]
     /// pass. Defaults to `false` because chronicle derivation is heavier than
     /// relations / economy — users opt in.
-    pub history_auto_recompute: bool,
+    pub(crate) history_auto_recompute: bool,
     /// §H5: scratch state for the "Add event" wizard. `None` when the wizard is
     /// closed; populated by the panel when the user clicks "+ event".
-    pub history_wizard: Option<HistoryWizardState>,
+    pub(crate) history_wizard: Option<HistoryWizardState>,
     /// §I4: observer-faction lens for the MAP / SYSTEM / WORLD intel tabs.
     /// `None` = omniscient view (default). When set, the intel editors render
     /// the observer's recorded view and the §I5 cutoff redaction kicks in.
-    pub intel_observer: Option<FactionId>,
+    pub(crate) intel_observer: Option<FactionId>,
     /// §I5: player-edition confidence cutoff. Hidden-tier presences below this
     /// value are redacted from per-world readouts. 0 = show everything,
     /// 100 = redact everything outside the observer's own presences.
-    pub intel_player_min_confidence: u8,
+    pub(crate) intel_player_min_confidence: u8,
     /// §AR3: per-axis enable mask used by `BuilderCommand::AutoAssignArchetypes`.
     /// Defaults to all axes enabled. Stored on `BuilderState` only — never
     /// serialised into `sector.json` because `src/archetypes.rs` has no TOML
     /// config layer.
-    pub archetype_flags: super::command::ArchetypeApplyFlags,
+    pub(crate) archetype_flags: super::command::ArchetypeApplyFlags,
     /// §CF2: per-system "override aggregate" toggle. When the system id is in
     /// the set the SYSTEM-level conflict editor pins
     /// `GeneratedSystem::conflict` to whatever the panel saved; otherwise the
     /// section re-derives via `conflict::derive_system_conflict` each frame.
     /// Never serialised — purely an editor mode flag.
-    pub system_conflict_override: BTreeSet<SystemId>,
+    pub(crate) system_conflict_override: BTreeSet<SystemId>,
     /// §CF4 ticks-to-advance scratch input bound to the "Advance N ticks"
     /// button. Defaults to 1.
-    pub conflict_ticks_to_advance: u32,
+    pub(crate) conflict_ticks_to_advance: u32,
     /// §CF5: chronological tick log captured after each
     /// `BuilderCommand::AdvanceConflictTicks` run. Bounded ring of the most
     /// recent [`Self::tick_log_capacity`] entries; in-memory only.
-    pub tick_log: std::collections::VecDeque<TickLogEntry>,
+    pub(crate) tick_log: std::collections::VecDeque<TickLogEntry>,
     /// §CF5: ring-buffer cap for [`Self::tick_log`].
-    pub tick_log_capacity: usize,
+    pub(crate) tick_log_capacity: usize,
     /// §LINK1 — back-stack of prior focus snapshots, populated by
     /// [`Self::focus_entity`]. Capped at 64; not serialised; not part of undo.
-    pub nav_back_stack: Vec<EntityRef>,
+    pub(crate) nav_back_stack: Vec<EntityRef>,
     /// §LINK1 — forward stack populated by [`Self::nav_back`]. Cleared by any
     /// new `focus_entity` call.
-    pub nav_forward_stack: Vec<EntityRef>,
+    pub(crate) nav_forward_stack: Vec<EntityRef>,
     /// §LINK1 — selected persona id used by PERSONAE inbound links. Drives the
     /// row highlight + click-select in `panels/personae.rs` and cross-tab focus
     /// via `state/selection.rs`.
-    pub selected_persona_id: Option<String>,
+    pub(crate) selected_persona_id: Option<String>,
     /// §LINK1 — selected hook id used by HOOKS inbound links. Same wiring as
     /// [`Self::selected_persona_id`], scoped to `panels/hooks.rs`.
-    pub selected_hook_id: Option<String>,
+    pub(crate) selected_hook_id: Option<String>,
     /// §PER1..§PER5: latest dramatis-personae overlay. Personae are not part
     /// of `GeneratedSector`, so the builder caches the most recent
     /// `derive_personae` result here. Rebuilt by [`Self::recompute_personae`].
-    pub personae_report: Option<sectorforge::personae::PersonaeReport>,
+    pub(crate) personae_report: Option<sectorforge::personae::PersonaeReport>,
     /// §PER3: when true, mutations that touch the personae catalog trigger an
     /// immediate [`Self::recompute_personae`] pass. Defaults to `true` — the
     /// derivation is cheap.
-    pub personae_auto_recompute: bool,
+    pub(crate) personae_auto_recompute: bool,
     /// §PER2: id of the persona currently expanded in the per-anchor editor.
     /// Mirrors the `[[manual]]` row keyed by id, or a derived persona row.
     /// Stored separately from [`Self::selected_persona_id`] so cross-tab
     /// linking and inline editing don't fight each other.
-    pub personae_edit_target: Option<String>,
+    pub(crate) personae_edit_target: Option<String>,
     /// §HK1..§HK6: latest plot-hook overlay. Hooks are not part of
     /// `GeneratedSector`, so the builder caches the most recent
     /// `derive_hooks_with` result here. Rebuilt by [`Self::recompute_hooks`].
-    pub hooks_report: Option<sectorforge::hooks::HooksReport>,
+    pub(crate) hooks_report: Option<sectorforge::hooks::HooksReport>,
     /// §HK4: when true, mutations that touch the hooks catalog trigger an
     /// immediate [`Self::recompute_hooks`] pass. Defaults to `true` — the
     /// derivation is cheap.
-    pub hooks_auto_recompute: bool,
+    pub(crate) hooks_auto_recompute: bool,
     /// §HK5: player-edition toggle. Mirrors `--player` on the CLI by setting
     /// `HooksConfig::hide_hidden_hooks` on each recompute so the cached
     /// report has GM-only rows stripped.
-    pub hooks_player_edition: bool,
+    pub(crate) hooks_player_edition: bool,
     /// §HK1: kind filter for the panel's hook list. `None` shows everything;
     /// a specific kind narrows the list. Stored here so the active filter
     /// survives tab switches.
-    pub hooks_filter_kind: Option<sectorforge::hooks::HookKind>,
+    pub(crate) hooks_filter_kind: Option<sectorforge::hooks::HookKind>,
     /// §HK2: id of the hook currently expanded in the panel detail view.
-    pub hooks_edit_target: Option<String>,
+    pub(crate) hooks_edit_target: Option<String>,
     /// §ST1..§ST4: latest planetary-sites overlay. Sites are not part of
     /// `GeneratedSector`, so the builder caches the most recent
     /// `derive_sites_with` result here. Rebuilt by [`Self::recompute_sites`].
-    pub sites_report: Option<sectorforge::sites::SitesReport>,
+    pub(crate) sites_report: Option<sectorforge::sites::SitesReport>,
     /// §ST2: when true, mutations that touch the sites catalog trigger an
     /// immediate [`Self::recompute_sites`] pass. Defaults to `true` — the
     /// derivation is cheap.
-    pub sites_auto_recompute: bool,
+    pub(crate) sites_auto_recompute: bool,
     /// §ST3: player-edition toggle. Mirrors `--player` on the CLI by setting
     /// `SitesConfig::player_edition` on each recompute so the cached report
     /// drops rows whose `public_status` masks the `actual_status`.
-    pub sites_player_edition: bool,
+    pub(crate) sites_player_edition: bool,
     /// §ST1: kind filter for the panel's site list. `None` shows everything.
-    pub sites_filter_kind: Option<sectorforge::sites::SiteKind>,
+    pub(crate) sites_filter_kind: Option<sectorforge::sites::SiteKind>,
     /// §ST1: selected site id used by SITES inbound links + detail card.
-    pub selected_site_id: Option<String>,
+    pub(crate) selected_site_id: Option<String>,
     /// §ST1: id of the site currently expanded in the panel detail view.
-    pub sites_edit_target: Option<String>,
+    pub(crate) sites_edit_target: Option<String>,
     /// §M1..§M5: latest mission-seed overlay. Missions are not part of
     /// `GeneratedSector`, so the builder caches the most recent
     /// `derive_missions_with` result here. Rebuilt by
     /// [`Self::recompute_missions`].
-    pub missions_report: Option<sectorforge::missions::MissionsReport>,
+    pub(crate) missions_report: Option<sectorforge::missions::MissionsReport>,
     /// §M3: when true, mutations that touch the missions catalog trigger an
     /// immediate [`Self::recompute_missions`] pass. Defaults to `true` — the
     /// derivation is cheap.
-    pub missions_auto_recompute: bool,
+    pub(crate) missions_auto_recompute: bool,
     /// §M4: player-edition toggle. Mirrors `--player` on the CLI by setting
     /// `MissionsConfig::player_edition` on each recompute so the cached
     /// report drops Hidden-tier-derived missions.
-    pub missions_player_edition: bool,
+    pub(crate) missions_player_edition: bool,
     /// §M1: kind filter for the panel's mission list. `None` shows everything.
-    pub missions_filter_kind: Option<sectorforge::missions::MissionKind>,
+    pub(crate) missions_filter_kind: Option<sectorforge::missions::MissionKind>,
     /// §M1: selected mission id used for the detail card.
-    pub selected_mission_id: Option<String>,
+    pub(crate) selected_mission_id: Option<String>,
     /// §M1: id of the mission currently expanded in the panel detail view.
-    pub missions_edit_target: Option<String>,
+    pub(crate) missions_edit_target: Option<String>,
     /// §PR1..§PR4: latest gazetteer prose overlay. Prose is not part of
     /// `GeneratedSector`, so the builder caches the most recent
     /// `prose::derive_with` result here. Rebuilt by
     /// [`Self::recompute_prose`].
-    pub prose_report: Option<sectorforge::prose::ProseReport>,
+    pub(crate) prose_report: Option<sectorforge::prose::ProseReport>,
     /// §PR4: when true, mutations that touch the prose catalog trigger an
     /// immediate [`Self::recompute_prose`] pass. Defaults to `true` — the
     /// derivation is cheap.
-    pub prose_auto_recompute: bool,
+    pub(crate) prose_auto_recompute: bool,
     /// §PR1: id of the system currently expanded in the per-system prose
     /// editor. Mirrors [`Self::selected_system_id`] on first focus so the
     /// PROSE tab inherits the SYSTEM tab's selection; a per-tab pick may
     /// then diverge.
-    pub selected_prose_system_id: Option<SystemId>,
+    pub(crate) selected_prose_system_id: Option<SystemId>,
     /// §BR1: audience preset selected in the BRIEFING tab's profile picker.
     /// Defaults to [`sectorforge::briefing::AudiencePreset::GmFullTruth`]
     /// (no redaction). Used as the seed for
     /// [`sectorforge::briefing::preset`] before observer / confidence
     /// overrides are layered on top.
-    pub briefing_preset: sectorforge::briefing::AudiencePreset,
+    pub(crate) briefing_preset: sectorforge::briefing::AudiencePreset,
     /// §BR2: optional observer faction. When set, presences are filtered
     /// through the observer's visibility and the briefing pack only keeps
     /// the observer's intel sub-record on each system.
-    pub briefing_observer: Option<FactionId>,
+    pub(crate) briefing_observer: Option<FactionId>,
     /// §BR3: `minimum_intel_confidence` slider value (0..=100). 0 keeps
     /// everything visible; 100 keeps only directly-observable presences.
     /// Defaults to 30 — the same default as
     /// [`sectorforge::briefing::BriefingProfile::default`].
-    pub briefing_min_confidence: u8,
+    pub(crate) briefing_min_confidence: u8,
     /// §BR4: cached redacted Markdown produced by the last "Generate
     /// briefing" pass. Rendered into the side preview pane; cleared on
     /// preset / observer / confidence change so a stale preview never
     /// shows.
-    pub briefing_preview_md: Option<String>,
+    pub(crate) briefing_preview_md: Option<String>,
     /// §BR4: cached redacted pack produced by the last "Generate briefing"
     /// pass. Held alongside `briefing_preview_md` so the §BR5 export
     /// writes the same pack the user previewed.
-    pub briefing_preview_pack: Option<sectorforge::briefing::BriefingPack>,
+    pub(crate) briefing_preview_pack: Option<sectorforge::briefing::BriefingPack>,
     /// §BR5: last folder picked by the export dialog. Defaults to the
     /// project's `out/` directory if a project is open; cleared otherwise.
-    pub briefing_export_dir: Option<Utf8PathBuf>,
+    pub(crate) briefing_export_dir: Option<Utf8PathBuf>,
     /// §INT1: active built-in profile selected in the INTERESTINGNESS tab.
     /// Defaults to
     /// [`sectorforge::interestingness::ProfileId::PoliticalSandbox`].
@@ -576,35 +576,35 @@ pub struct BuilderState {
     /// [`sectorforge::interestingness::InterestingnessConfig`] before any
     /// per-profile overrides from
     /// [`Self::interestingness_custom_overrides`] are layered on top.
-    pub interestingness_profile: sectorforge::interestingness::ProfileId,
+    pub(crate) interestingness_profile: sectorforge::interestingness::ProfileId,
     /// §INT2: cached scorecard produced by the last "Score sector" pass.
     /// Cleared whenever the profile or any per-profile override changes so
     /// the chart never shows a stale fit.
-    pub interestingness_report: Option<sectorforge::interestingness::InterestingnessReport>,
+    pub(crate) interestingness_report: Option<sectorforge::interestingness::InterestingnessReport>,
     /// §INT4: per-profile metric overrides. Outer key is the snake-case id
     /// of [`sectorforge::interestingness::ProfileId`] (matching the serde
     /// representation); inner key is the metric name (`faction_gini`,
     /// `contested_world_ratio`, …). Overrides survive switching to another
     /// profile and back so a user can tune each profile independently.
     /// Never serialised — purely an editor scratch table.
-    pub interestingness_custom_overrides:
+    pub(crate) interestingness_custom_overrides:
         BTreeMap<String, BTreeMap<String, sectorforge::interestingness::MetricTarget>>,
     /// §INT4: scratch metric name selected in the "Add override" combo so a
     /// re-render keeps the picker's selection. Empty string = nothing
     /// picked.
-    pub interestingness_custom_pick: String,
+    pub(crate) interestingness_custom_pick: String,
     /// §CTX0 — Phase 0 of `docs/CONTEXT_MENU.txt`: when the SYSTEM tab renders,
     /// it consumes this field and scrolls the named collapsing header into
     /// view exactly once. Set by the embedded `SystemView` widget when the
     /// user clicks the central star disk. Carried as a `&'static str` so the
     /// id matches the literal passed to `egui::Grid::new` (e.g.
     /// `"sys_star_grid"`). In-memory only — never serialised.
-    pub scroll_target: Option<&'static str>,
+    pub(crate) scroll_target: Option<&'static str>,
     /// §CTX1 — Phase 1 of `docs/CONTEXT_MENU.txt`: open right-click menu on the
     /// MAP tab. `None` when no menu is open. Set by `panels/map.rs` on
     /// `secondary_clicked`; cleared on Escape / outside-click / focus-loss /
     /// item activation. In-memory only — never serialised.
-    pub sector_context_menu: Option<SectorContextMenu>,
+    pub(crate) sector_context_menu: Option<SectorContextMenu>,
     /// §CTX1 — Phase 4 of `docs/CONTEXT_MENU.txt`: anchor hex armed by the MAP
     /// tab's right-click `START PARTIAL REGEN HERE` item. When `Some`, the next
     /// primary click on any sector hex completes [`Self::partial_regen_rect`]
@@ -612,17 +612,17 @@ pub struct BuilderState {
     /// and clears the anchor. The GENERATION tab surfaces a hint while the
     /// anchor is live and offers a "Cancel anchor" button. In-memory only —
     /// never serialised to `project.toml`.
-    pub partial_regen_anchor: Option<sectorforge::sector_model::HexCoord>,
+    pub(crate) partial_regen_anchor: Option<sectorforge::sector_model::HexCoord>,
     /// §CTX1 — Phase 6 of `docs/CONTEXT_MENU.txt`: open right-click menu on the
     /// in-system map embedded under the SYSTEM tab. `None` when no menu is
     /// open. Set by `panels/system_map.rs` on `secondary_clicked`; cleared on
     /// Escape / outside-click / focus-loss / item activation. In-memory only —
     /// never serialised.
-    pub system_context_menu: Option<SystemContextMenu>,
+    pub(crate) system_context_menu: Option<SystemContextMenu>,
     /// §CTX1 Phase 6: pending WORLD RENAME dialog armed from the SYSTEM tab's
     /// in-system right-click menu (`§6.7`). `None` when no dialog is open.
     /// Dispatches through `BuilderCommand::RenameWorld` on commit.
-    pub pending_world_rename: Option<PendingWorldRename>,
+    pub(crate) pending_world_rename: Option<PendingWorldRename>,
     /// §CTX1 Phase 7 polish — last right-click menu item activated (sector or
     /// in-system), surfaced as a short string on the status bar so the user
     /// gets a single-line trail of what the menu just dispatched. Replaces
@@ -630,49 +630,49 @@ pub struct BuilderState {
     /// `log_progress` channel only writes to `eprintln!`, which the builder
     /// has no UI for). `None` until the first activation; cleared on session
     /// load — in-memory only.
-    pub last_menu_action: Option<String>,
+    pub(crate) last_menu_action: Option<String>,
     /// Last command-bus dispatch error surfaced from a panel; cleared by the
     /// next successful `run`. In-memory only.
-    pub last_command_error: Option<String>,
+    pub(crate) last_command_error: Option<String>,
     /// Visual layout for the SYSTEM tab's embedded
     /// [`sectorforge_gui_core::system_view::SystemView`]. Defaults to
     /// [`SystemLayout::Horizontal`] — planets to the right of the star in
     /// orbit order. In-memory only; never serialised.
-    pub system_layout: sectorforge_gui_core::system_view::SystemLayout,
+    pub(crate) system_layout: sectorforge_gui_core::system_view::SystemLayout,
     /// Pixel side length of the SYSTEM tab's embedded
     /// [`sectorforge_gui_core::system_view::SystemView`]. Drives `star_r` /
     /// `planet_r` / `orbit_step` proportionally — bumping the slider grows
     /// the whole widget. In-memory only.
-    pub system_view_side: f32,
+    pub(crate) system_view_side: f32,
     /// §SR1..§SR5: SEARCH tab runtime — the editable `wishes.toml` document,
     /// the off-thread constraint search job, its live progress snapshot, and
     /// the latest outcome. In-memory only; the wishes doc is round-tripped to
     /// disk separately. See [`super::search_run::SearchState`].
-    pub search: SearchState,
+    pub(crate) search: SearchState,
     /// §DF1..§DF5: DIFF tab runtime — the two scratch sector slots, the
     /// diff/tick filter config, and the most recently computed diff. In-memory
     /// only. See [`super::diff_run::DiffState`].
-    pub diff: DiffState,
+    pub(crate) diff: DiffState,
     /// §A1..§A4: ANALYTICS tab runtime — the editable `[analyze]` config, the
     /// strict CI-parity toggle, the most recently computed `SectorAnalysis`,
     /// and the last export folder. In-memory only. See
     /// [`super::analytics_run::AnalyticsState`].
-    pub analytics: AnalyticsState,
+    pub(crate) analytics: AnalyticsState,
     /// §SG1..§SG5: SEGMENTUM tab runtime — the editable `segmentum.toml`
     /// document, the off-thread compose job + its per-child progress, and the
     /// most recently composed segmentum (super-manifest + inter-sector links).
     /// In-memory only; the document round-trips to disk separately. See
     /// [`super::segmentum_run::SegmentumState`].
-    pub segmentum: SegmentumState,
+    pub(crate) segmentum: SegmentumState,
     /// RANDOM.md §7.4: off-thread random-sector generation runtime (job +
     /// live progress snapshot) backing the §7.3 wizard's progress popup.
-    pub random_gen: RandomGenState,
+    pub(crate) random_gen: RandomGenState,
     /// §EX1..§EX8: EXPORT tab runtime — the chosen output folder, the
     /// standalone-system export form, the cached markdown preview, and the
     /// last export error. The per-format / bitmap / HTML knobs live on
     /// `config.outputs`, not here. In-memory only. See
     /// [`super::export_run::ExportState`].
-    pub export: ExportState,
+    pub(crate) export: ExportState,
 }
 
 impl BuilderState {

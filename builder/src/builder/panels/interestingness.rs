@@ -72,7 +72,7 @@ const METRIC_CATALOG: &[&str] = &[
     "faction_count",
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     // §39 LD4: re-score when a prior mutation left the cached report stale.
     // The profile/override config builder is panel-local, so this overlay
     // self-heals here. No score yet ⇒ stay cold until the user scores once.

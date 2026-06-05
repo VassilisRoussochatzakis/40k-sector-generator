@@ -17,9 +17,9 @@ pub enum FactionSort {
 }
 
 impl FactionSort {
-    pub const ALL: [Self; 3] = [Self::PowerDesc, Self::PowerAsc, Self::NameAsc];
+    pub(crate) const ALL: [Self; 3] = [Self::PowerDesc, Self::PowerAsc, Self::NameAsc];
 
-    pub fn label(&self) -> &'static str {
+    pub(crate) fn label(&self) -> &'static str {
         match self {
             FactionSort::PowerDesc => "POWER ↓",
             FactionSort::PowerAsc => "POWER ↑",
@@ -167,7 +167,7 @@ impl Default for EditorState {
 }
 
 impl EditorState {
-    pub fn set_sector(
+    pub(crate) fn set_sector(
         &mut self,
         sector: GeneratedSector,
         project_input: Option<sectorforge::input::ProjectInput>,
@@ -198,16 +198,16 @@ impl EditorState {
         }
     }
 
-    pub fn mark_dirty(&mut self) {
+    pub(crate) fn mark_dirty(&mut self) {
         self.dirty = true;
     }
 
-    pub fn schedule_preview(&mut self, due_time: f64) {
+    pub(crate) fn schedule_preview(&mut self, due_time: f64) {
         self.invalidate_preview();
         self.preview_timer = Some(due_time);
     }
 
-    pub fn invalidate_preview(&mut self) {
+    pub(crate) fn invalidate_preview(&mut self) {
         self.preview_revision = self.preview_revision.wrapping_add(1);
         self.preview_sector = None;
         self.preview_error = None;
@@ -216,7 +216,7 @@ impl EditorState {
         }
     }
 
-    pub fn apply_preview_result(&mut self, revision: u64, result: PreviewJobResult) -> bool {
+    pub(crate) fn apply_preview_result(&mut self, revision: u64, result: PreviewJobResult) -> bool {
         if revision != self.preview_revision {
             return false;
         }
@@ -234,7 +234,7 @@ impl EditorState {
         true
     }
 
-    pub fn next_system_index(&self) -> usize {
+    pub(crate) fn next_system_index(&self) -> usize {
         self.sector
             .as_ref()
             .map(|s| s.systems.iter().map(|sys| sys.index).max().unwrap_or(0) + 1)
@@ -242,7 +242,7 @@ impl EditorState {
     }
 }
 
-pub fn empty_sector(id: &str, title: &str, seed: &str, width: u32, height: u32) -> GeneratedSector {
+pub(crate) fn empty_sector(id: &str, title: &str, seed: &str, width: u32, height: u32) -> GeneratedSector {
     GeneratedSector {
         id: id.into(),
         title: title.into(),
@@ -281,7 +281,7 @@ pub fn empty_sector(id: &str, title: &str, seed: &str, width: u32, height: u32) 
     }
 }
 
-pub fn empty_system(
+pub(crate) fn empty_system(
     id: SystemId,
     index: usize,
     name: String,
@@ -310,7 +310,7 @@ pub fn empty_system(
     }
 }
 
-pub fn empty_world(system_index: usize, index: usize, name: String) -> GeneratedWorld {
+pub(crate) fn empty_world(system_index: usize, index: usize, name: String) -> GeneratedWorld {
     let id = sectorforge::ids::world_id(system_index, index);
     GeneratedWorld {
         id,
@@ -342,7 +342,7 @@ pub fn empty_world(system_index: usize, index: usize, name: String) -> Generated
     }
 }
 
-pub fn empty_route(from: SystemId, to: SystemId) -> GeneratedRoute {
+pub(crate) fn empty_route(from: SystemId, to: SystemId) -> GeneratedRoute {
     let id = sectorforge::ids::route_id(&from, &to);
     GeneratedRoute {
         id,
@@ -356,7 +356,7 @@ pub fn empty_route(from: SystemId, to: SystemId) -> GeneratedRoute {
     }
 }
 
-pub fn empty_faction(id: &FactionId) -> GeneratedFaction {
+pub(crate) fn empty_faction(id: &FactionId) -> GeneratedFaction {
     GeneratedFaction {
         id: id.clone(),
         name: id.as_str().into(),

@@ -29,7 +29,7 @@ pub struct LoadedSegmentumChild {
 }
 
 #[derive(Debug, Clone)]
-pub enum SegmentumAction {
+pub(crate) enum SegmentumAction {
     OpenChild(String),
     OpenSystem {
         child_id: String,
@@ -68,22 +68,22 @@ pub fn load_segmentum_bundle(path: &Utf8Path) -> Result<SegmentumBundle, SectorE
 }
 
 impl SegmentumBundle {
-    pub fn child(&self, id: &str) -> Option<&LoadedSegmentumChild> {
+    pub(crate) fn child(&self, id: &str) -> Option<&LoadedSegmentumChild> {
         self.by_id.get(id).and_then(|&idx| self.children.get(idx))
     }
 
-    pub fn child_meta(&self, id: &str) -> Option<&SegmentumChild> {
+    pub(crate) fn child_meta(&self, id: &str) -> Option<&SegmentumChild> {
         self.segmentum.children.iter().find(|c| c.id == id)
     }
 
-    pub fn child_at(&self, column: u32, row: u32) -> Option<&SegmentumChild> {
+    pub(crate) fn child_at(&self, column: u32, row: u32) -> Option<&SegmentumChild> {
         self.segmentum
             .children
             .iter()
             .find(|c| c.column == column && c.row == row)
     }
 
-    pub fn system_name(&self, child_id: &str, system_id: &str) -> String {
+    pub(crate) fn system_name(&self, child_id: &str, system_id: &str) -> String {
         self.child(child_id)
             .and_then(|c| {
                 c.sector
@@ -95,14 +95,14 @@ impl SegmentumBundle {
             .unwrap_or_else(|| system_id.to_string())
     }
 
-    pub fn link(&self, id: &str) -> Option<&InterSectorLink> {
+    pub(crate) fn link(&self, id: &str) -> Option<&InterSectorLink> {
         self.segmentum
             .inter_sector_links
             .iter()
             .find(|l| l.id == id)
     }
 
-    pub fn link_count_for_child(&self, id: &str) -> usize {
+    pub(crate) fn link_count_for_child(&self, id: &str) -> usize {
         self.segmentum
             .inter_sector_links
             .iter()
@@ -111,7 +111,7 @@ impl SegmentumBundle {
     }
 }
 
-pub fn show_overview(
+pub(crate) fn show_overview(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,
@@ -131,7 +131,7 @@ pub fn show_overview(
     action
 }
 
-pub fn show_side_panel(
+pub(crate) fn show_side_panel(
     ui: &mut Ui,
     bundle: &SegmentumBundle,
     active_child_id: Option<&str>,

@@ -10,7 +10,7 @@ use sectorforge::sector_model::GeneratedSector;
 use super::palette::{self, faction_style_by_id};
 
 #[derive(Default)]
-pub struct DashboardState {
+pub(crate) struct DashboardState {
     analysis: Option<SectorAnalysis>,
     /// Cached sector id so we recompute when the user reloads.
     cached_sector_id: Option<std::sync::Arc<str>>,
@@ -19,7 +19,7 @@ pub struct DashboardState {
 }
 
 impl DashboardState {
-    pub fn ensure_for(&mut self, sector: &GeneratedSector) {
+    pub(crate) fn ensure_for(&mut self, sector: &GeneratedSector) {
         let needs = match (&self.cached_sector_id, &self.cached_seed) {
             (Some(id), Some(seed)) => id != &sector.id || seed != &sector.seed,
             _ => true,
@@ -31,14 +31,14 @@ impl DashboardState {
         }
     }
 
-    pub fn invalidate(&mut self) {
+    pub(crate) fn invalidate(&mut self) {
         self.analysis = None;
         self.cached_sector_id = None;
         self.cached_seed = None;
     }
 }
 
-pub fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
+pub(crate) fn show(ui: &mut Ui, sector: &GeneratedSector, state: &mut DashboardState) {
     state.ensure_for(sector);
     let Some(a) = state.analysis.as_ref() else {
         ui.label(RichText::new("analysis unavailable").color(palette::chrome_text_dim()));

@@ -83,7 +83,7 @@ const KNOWN_BORDERS: &[(&str, FactionBorder)] = &[
 
 const DEFAULT_FACTIONS_REL: &str = "data/factions/factions.toml";
 
-pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Factions");
     ui.label(
         RichText::new("Who lives in your sector — their look, behaviour, and where they appear.")

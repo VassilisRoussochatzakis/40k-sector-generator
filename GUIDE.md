@@ -3801,16 +3801,35 @@ panic = "abort"
 strip = "symbols"
 
 [profile.bench]
-lto = "thin"
+lto = "fat"
 codegen-units = 1
 ```
 
 - `lto = "fat"` + `codegen-units = 1` give the optimiser whole-crate visibility (no parallel codegen splits). Slower link, ~10-30% faster runtime on the generation hot path.
 - `panic = "abort"` removes unwind tables. The crate has no `catch_unwind` / `std::panic::set_hook` usage — panics are bugs, not control flow.
 - `strip = "symbols"` shrinks the binary; debug symbols still ship in `target/release/deps/*.d` for backtrace use during development.
-- `[profile.bench]` uses `lto = "thin"` so `cargo bench` (criterion harness in [benches/generation.rs](benches/generation.rs)) links in seconds rather than minutes while still getting cross-crate inlining.
+- `[profile.bench]` matches `release` (`lto = "fat"`, `codegen-units = 1`) so `cargo bench` (criterion harness in [benches/generation.rs](benches/generation.rs)) measures the *shipping* optimiser output rather than a thin-LTO approximation (RUST_FIXES.md QW-C-5). It links slower than the old `thin` setting; that cost is paid once per bench run, not per edit. For fast local *launches* use `--profile quick` (the GUI/CLI run aliases) — that profile keeps `opt-level = 3` but drops LTO for ~1s relinks.
 
 If you ever add `catch_unwind` (e.g. driving the GUI from a worker thread that must survive a panic), revisit `panic = "abort"`.
+
+### Workspace dependencies & lints
+
+Every dependency shared by two or more workspace members is pinned **once** in the
+root `[workspace.dependencies]` block (`clap`, `serde`, `serde_json`, `toml`,
+`thiserror`, `camino`, `blake3`, `rand`, `image`, `egui`, `eframe`, `rfd`,
+`tempfile`). Members reference them with `name.workspace = true` and add any
+crate-specific features inline (`name = { workspace = true, features = [...] }`).
+To bump a shared dep, edit the root block — never re-pin a version inside a member
+manifest (RUST_FIXES.md TF-S-3 / QW-C-4). Single-use deps (`rand_chacha`,
+`rustc-hash`, `rayon`, `dhat`, `proptest`, `criterion`) stay in the crate that uses
+them — hoisting them would add indirection for no dedup win.
+
+Clippy lint **levels** are hoisted too: `[workspace.lints.clippy]` sets
+`disallowed_types`/`disallowed_methods = "deny"`, and each member opts in with
+`[lints] workspace = true`. The disallowed **path lists** stay in the per-crate
+[`builder/clippy.toml`](builder/clippy.toml) and [`viewer/clippy.toml`](viewer/clippy.toml)
+(the paint-primitive wall described in §8.2) — that ban is crate-scoped, so `gui-core`
+deliberately has no `clippy.toml` and the root has none either.
 
 ### Code-level perf conventions
 
@@ -3889,6 +3908,22 @@ tiny / normal / large scale matrix from the optimisation spec §5B:
 
 Run all groups: `cargo bench --bench generation`. Run one group:
 `cargo bench --bench generation -- encode_png_bytes`.
+
+Four additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
+own `[[bench]]` so it runs in isolation — they exist to validate the §2.3 perf
+claims before a perf fix is called done:
+
+- [benches/briefing.rs](benches/briefing.rs) — `briefing::apply` for `GmFullTruth`
+  (whole-sector clone, F-010-001) vs `PublicAtlas` (full redaction, TF-P-7).
+- [benches/seed_search.rs](benches/seed_search.rs) — `run_seed_search` at budgets
+  4 and 16 (rayon candidate scan, TF-P-2 / F-009-001).
+- [benches/influence_field.rs](benches/influence_field.rs) — `influence_field::build`
+  across 10/20/30-a-side sectors; the dense `Vec<f32>` cost this measures is what
+  the TF-S-5 sparse-vs-dense storage decision hinges on.
+- [benches/render_png.rs](benches/render_png.rs) — the full raster **+** encode path
+  end-to-end (the `generation` groups above time the two halves separately).
+
+Run one: `cargo bench --bench influence_field`.
 
 ### Stage timings (docs/OPTIMIZE.txt G7)
 

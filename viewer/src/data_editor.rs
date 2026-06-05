@@ -16,7 +16,7 @@ use sectorforge::worlds::{
 use sectorforge::worlds_toml::{WorldsConfig, DEFAULT_FILENAME as WORLDS_TOML_FILENAME};
 
 #[derive(Debug, Error)]
-pub enum DataEditorError {
+pub(crate) enum DataEditorError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Config file error: {0}")]
@@ -28,7 +28,7 @@ pub enum DataEditorError {
 use egui::{Color32, RichText, ScrollArea};
 
 #[derive(Default)]
-pub struct DataEditor {
+pub(crate) struct DataEditor {
     pub project_dir: Option<PathBuf>,
     pub dirty: bool,
     pub status: String,
@@ -38,7 +38,7 @@ pub struct DataEditor {
 }
 
 impl DataEditor {
-    pub fn load_from_project(&mut self, project_dir: &Path) -> Result<(), DataEditorError> {
+    pub(crate) fn load_from_project(&mut self, project_dir: &Path) -> Result<(), DataEditorError> {
         let cfg_path = project_dir.join("sectorforge.toml");
         let cfg_text = fs::read_to_string(&cfg_path)?;
         let data_rel = extract_world_data_dir(&cfg_text)?;
@@ -71,7 +71,7 @@ impl DataEditor {
         Ok(())
     }
 
-    pub fn save(&mut self) -> Result<(), DataEditorError> {
+    pub(crate) fn save(&mut self) -> Result<(), DataEditorError> {
         let (cfg, path) = match (&self.worlds_toml, &self.worlds_toml_path) {
             (Some(c), Some(p)) => (c, p),
             _ => return Err(DataEditorError::Config("no worlds.toml loaded".to_string())),
@@ -101,7 +101,7 @@ fn extract_world_data_dir(toml_text: &str) -> Result<String, DataEditorError> {
 
 // ── UI ──────────────────────────────────────────────────────────────────────
 
-pub fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
+pub(crate) fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
     ui.horizontal(|ui| {
         let row_count = editor
             .worlds_toml

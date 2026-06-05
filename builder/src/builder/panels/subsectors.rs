@@ -49,7 +49,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
     });
 }
 
-pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Subsectors");
     ui.add_space(2.0);
     ui.label(
@@ -87,7 +87,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
 /// [`BuilderState::subsector_capital_overrides`] when set. Cluster ids and
 /// hex layouts are preserved so the renderer never sees an id flip when the
 /// user picks a different capital.
-pub fn apply_subsector_overrides(subs: &mut [Subsector], state: &BuilderState) {
+pub(crate) fn apply_subsector_overrides(subs: &mut [Subsector], state: &BuilderState) {
     if subs.is_empty() {
         return;
     }

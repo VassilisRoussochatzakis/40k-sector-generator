@@ -81,7 +81,7 @@ const TREATIES: &[TreatyStatus] = &[
 
 const DEFAULT_RELATIONS_PATH: &str = "data/factions/relations.toml";
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Relations");
     ui.add_space(2.0);
     ui.colored_label(

@@ -47,7 +47,7 @@ fn labeled(ui: &mut Ui, label: &str, help: &str, add: impl FnOnce(&mut Ui)) {
 
 // ── §CF1 + §CF3: per-world conflict + stability editor ─────────────────────
 
-pub fn show_world_conflict_section(
+pub(crate) fn show_world_conflict_section(
     ui: &mut Ui,
     state: &mut BuilderState,
     sys_idx: usize,
@@ -162,7 +162,7 @@ pub fn show_world_conflict_section(
 
 // ── §CF2: per-system conflict view + override toggle ──────────────────────
 
-pub fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
+pub(crate) fn show_system_conflict_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     ui_kit::collapsing_section(ui, "cf_system_conflict", "Conflict", false, |ui| {
         let sys_id = state.sector.systems[sys_idx].id.clone();
         let factions: Vec<(FactionId, String)> = state
@@ -321,7 +321,7 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
     });
 }
 
-pub fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Option<&str>) {
+pub(crate) fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Option<&str>) {
     ui.label(RichText::new("Tick log").strong());
     if state.tick_log.is_empty() {
         ui_kit::placeholder(

@@ -70,7 +70,7 @@ fn main() -> ExitCode {
                     state.set_active_tab(tab);
                 }
                 if let Some(fid) = cli.select_faction.as_deref() {
-                    state.selected_faction_id = Some(FactionId::new(fid));
+                    state.select_faction(Some(FactionId::new(fid)));
                 }
                 BuilderApp::with_initial_state(state)
             }

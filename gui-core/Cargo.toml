@@ -13,8 +13,11 @@ bundled-fonts = []
 
 [dependencies]
 sectorforge = { path = ".." }
-egui = "0.29"
-image = { version = "0.25", default-features = false, features = ["png"] }
+egui.workspace = true
+image.workspace = true
 
 [dev-dependencies]
-blake3 = "1"
+blake3.workspace = true
+
+[lints]
+workspace = true

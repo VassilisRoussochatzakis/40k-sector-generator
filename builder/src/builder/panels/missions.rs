@@ -71,7 +71,7 @@ const VISIBILITY_VARIANTS: &[MissionVisibility] = &[
     MissionVisibility::Misinformation,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Missions");
     ui.label(
         RichText::new("Jobs the players can take on — auto-suggested from the sector, plus any you write by hand.")

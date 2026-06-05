@@ -123,7 +123,7 @@ const E7_MODES: &[HeatmapMode] = &[
     HeatmapMode::SupplyVulnerability,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Economy");
     ui.add_space(2.0);
     ui.colored_label(
@@ -1028,7 +1028,7 @@ fn priority_label(p: StrategicPriority) -> &'static str {
 /// §E4 — set of systems where at least one world is stranded. The MAP panel
 /// draws a red ring around each system in the returned set.
 #[must_use]
-pub fn stranded_system_ids(state: &BuilderState) -> std::collections::BTreeSet<SystemId> {
+pub(crate) fn stranded_system_ids(state: &BuilderState) -> std::collections::BTreeSet<SystemId> {
     state
         .sector
         .economy
@@ -1043,7 +1043,7 @@ pub fn stranded_system_ids(state: &BuilderState) -> std::collections::BTreeSet<S
 /// the `min_score` threshold). MAP feeds these into
 /// [`sectorforge_gui_core::sector_view::SectorView::path_route_ids`].
 #[must_use]
-pub fn lifeline_route_ids(
+pub(crate) fn lifeline_route_ids(
     state: &BuilderState,
 ) -> std::collections::HashSet<sectorforge::ids::RouteId> {
     if !state.economy_highlight_lifelines {

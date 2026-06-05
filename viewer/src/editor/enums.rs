@@ -6,7 +6,7 @@ use sectorforge::sector_model::RouteType;
 
 pub const STAR_COLOUR_CODES: &[&str] = &["O", "B", "A", "F", "G", "K", "M"];
 
-pub fn star_colour_name(code: &str) -> &'static str {
+pub(crate) fn star_colour_name(code: &str) -> &'static str {
     match code {
         "O" => "blue hypergiant",
         "B" => "blue-white",

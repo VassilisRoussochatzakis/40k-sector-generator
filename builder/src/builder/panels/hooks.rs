@@ -63,7 +63,7 @@ const KIND_VARIANTS: &[HookKind] = &[
     HookKind::LifelineLane,
 ];
 
-pub fn show(ui: &mut Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Hooks");
     ui.add_space(2.0);
     ui.colored_label(

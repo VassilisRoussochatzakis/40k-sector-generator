@@ -40,7 +40,7 @@ use crate::builder::BuilderState;
 /// issue from the live report; never persisted, never a model field.
 const SELECTED_KEY_ID: &str = "validation_selected_issue";
 
-pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Validation");
     ui.label(
         RichText::new(

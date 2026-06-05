@@ -26,7 +26,7 @@ use sectorforge_gui_core::{palette, ui_kit};
 
 pub(super) use context_menu::menu_anchor_pivot;
 
-pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("Map");
     ui.add_space(4.0);
 
@@ -125,7 +125,7 @@ fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
 }
 
 /// Map editing tools: SELECT / ADD / DELETE / MOVE / ADD ROUTE / REGION PAINT.
-pub fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
+pub(crate) fn show_toolbox(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         ui.label("Tool:");
         for tool in [

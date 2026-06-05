@@ -948,6 +948,32 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     converted). No file moved → MAP.md untouched; GUIDE.md §R4 detail-editor note
     extended.
 
+### 2026-06-05 — step 5, wave 13 (AREA_E E11 — assessed + deferred to a dedicated session)
+
+- **E11 (`context_menu.rs` table-drive) — ⏳ DEFERRED (owner call).** Assessed the
+  review's literal fix (table-drive the menus behind `MenuItem`) and judged the
+  **full table-drive not worth the churn**: the action⇄label⇄effect mapping is
+  already centralised (`sector_menu_action_label` + `apply_sector_menu_action`),
+  the `render_*` builders own genuine per-menu *composition* (not boilerplate),
+  the items span 10+ heterogeneous shapes (clipboard items that bypass the action
+  enum, nested `▸` submenus, an inline DELETE-ALL confirm flow, dynamic `•`
+  current-markers, `on_disabled_hover_text`, mode-gated collapse, …) so a faithful
+  `MenuItem` degrades into a variant DSL ~as complex as today's code, and the
+  interactive builders have **no headless net** (= un-netted behaviour risk).
+  - **Net nuance:** the *pure* half — `resolve_sector_context`,
+    `apply_sector_menu_action`, `sector_menu_action_label`, the two predicates — **is**
+    unit-tested in `map/mod.rs`; only the `render_*` builders are un-netted.
+  - **Owner decision:** rather than do the risky table-drive (or unilaterally
+    substitute a safe split), wrote a dedicated, in-depth agentic playbook —
+    [E11.md](E11.md) — for a separate session. It documents the current file
+    inventory (@ `e58ba01`), the test net, the 10+ item shapes, **Option A** (the
+    recommended verbatim `map/context_menu/` dir-module split — same playbook as
+    E7/E4/E10, zero behaviour risk, addresses the 1162-LOC god-file), **Option B**
+    (the table-drive done as safely as possible, incl. the DSL actually required
+    and a mandatory interactive-smoke protocol), the visibility/import bookkeeping,
+    verification methodology, and ready-to-use subagent prompts. E11 stays
+    **pending** until that session runs.
+
 ### 2026-06-05 — step 5, wave 13 (AREA_E E10 — filter_bar + control/ dir module)
 
 - **E10 (`filter_bar` + `control/claims.rs`) — ✅ DONE.** Two parts.

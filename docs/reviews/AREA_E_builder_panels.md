@@ -334,8 +334,17 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E11 — `map/context_menu.rs` large render functions
 
+> ⏳ **DEFERRED 2026-06-05 (owner call) — dedicated session.** Full table-drive
+> assessed as **not worth the churn** (action⇄label⇄effect already centralised;
+> `render_*` own genuine per-menu composition; 10+ heterogeneous item shapes
+> defeat a simple `MenuItem`; interactive builders have no headless net). An
+> in-depth agentic playbook — [E11.md](E11.md) — was written for a separate
+> session: recommends a verbatim `map/context_menu/` dir-module split (Option A,
+> zero behaviour risk) and documents the table-drive (Option B) with a mandatory
+> verification protocol if the owner still wants it. **Stays pending.**
+
 - **Review sev / bucket:** LOW / P3
-- **Status:** ⚠️ Partial
+- **Status:** ⚠️ Partial → ⏳ Deferred (see [E11.md](E11.md))
 - **Location:** `builder/src/builder/panels/map/context_menu.rs` — 1152 lines total (review stated "177-line menu builders", which is a significant undercount of the file but may refer to a single function like `render_empty_hex_menu` at ~53 lines or `render_route_menu` at ~85 lines; the **largest** individual builder is `render_multi_selection_menu` at lines 739–888, ~149 lines)
 - **Count:** Five `render_*` functions: `render_empty_hex_menu` (~53 L), `render_system_menu` (~138 L), `render_multi_selection_menu` (~149 L), `render_route_menu` (~85 L), `render_region_hex_menu` (~75 L). The overall file at 1152 lines is itself a god-file.
 - **Evidence:** `fn render_system_menu(ui, state, id, coord) -> bool` spans lines 600–738, building the menu imperatively item by item with repeated `ui.selectable_label(...).clicked()` blocks.

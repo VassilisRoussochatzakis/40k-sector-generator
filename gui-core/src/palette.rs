@@ -1025,13 +1025,3 @@ pub fn draw_route_line_clipped(
     let painter = ui.painter_at(clip_rect);
     draw_route_line(&painter, a, b, thickness, color, pattern);
 }
-
-pub const STAR_LEGEND: &[(&str, &str)] = &[
-    ("O", "ORANGE DWARF"),
-    ("B", "BLUE-WHITE"),
-    ("A", "AMBER"),
-    ("F", "FUCHSIA"),
-    ("G", "GREEN"),
-    ("K", "KHAKI"),
-    ("M", "MAROON"),
-];

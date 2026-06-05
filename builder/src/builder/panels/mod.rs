@@ -31,9 +31,7 @@ pub mod shortcuts;
 pub mod status;
 pub mod validation;
 
-// §N1 / §N2 router + per-tab modules. Phase A wires the router itself plus
-// PROJECT and MAP; remaining tabs render `placeholder::show` until the matching
-// phase lands.
+// §N1 router + per-tab modules.
 pub mod analytics;
 pub mod briefing;
 pub mod conflict;
@@ -54,7 +52,6 @@ pub mod missions;
 pub mod nav;
 pub mod orbital;
 pub mod personae;
-pub mod placeholder;
 pub mod project;
 pub mod prose;
 pub mod regions;

@@ -884,6 +884,22 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
   **317/317**, clippy clean. MAP.md updated (new file row).
 
 ### Open decisions / notes
+- **E8 (`route_component_count` "twice per frame") — TRIAGED, premise does not
+  hold; recommend NO change (owner-visible).** The finding assumes the union-find
+  runs twice every frame. Code says otherwise: site 1 (`show_summary`, routes.rs
+  :75) runs every frame — **one** union-find. Site 2 (`show_ensure_connected`
+  :1279) is inside `ui_kit::collapsing_section(.., false, ..)`, whose
+  `CollapsingHeader::show` body **only runs when the section is expanded**
+  (default-collapsed) — so it is *not* a per-frame cost; and when it does run it
+  is immediately followed by `ensure_connected_routes(state, routes.clone())`
+  (:1280), a strictly heavier clone+connect pass that **dominates** the union-find,
+  and it must stay **live** (it follows a checkbox handler that can mutate routes
+  the same frame — hoisting it to the top of `show` would make it a frame stale).
+  So there is no per-frame redundancy to remove: the single idle-frame cost is the
+  cheap site-1 union-find, and a correct memo would need a routes digest at least
+  as costly as the union-find itself. Recommend closing E8 as no-change unless
+  profiling on a very large (R≈500+) sector shows the idle-frame site-1 cost
+  matters — then memoize site 1 only, keyed on an existing derivation fingerprint.
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call
   2026-06-05).** The cap dedup half (B4) is done. The remaining half is a policy
   divergence: **hooks** (`hooks.rs:176`) dedupes derived entries against manual

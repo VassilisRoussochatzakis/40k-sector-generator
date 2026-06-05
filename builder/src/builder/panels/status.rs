@@ -77,6 +77,12 @@ pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
             ui.separator();
             ui.label(mono(format!("subsectors: {err}")).color(palette::danger()));
         }
+        // D10: validation was skipped (e.g. no worlds catalog). Warn, not
+        // danger — it's a missing input, not an error in the sector.
+        if let Some(reason) = state.last_validation_skip_reason.as_ref() {
+            ui.separator();
+            ui.label(mono(format!("validation skipped: {reason}")).color(palette::warning()));
+        }
     });
 }
 

@@ -2584,6 +2584,22 @@ Catalog editors (`factions.rs`, `relations.rs`, `personae.rs`, `hooks.rs`,
 `sites.rs`, `missions.rs`, `prose.rs`) remain intentionally off-bus — they edit
 the TOML mirrors in `data_catalogs.*`, not the live sector.
 
+**Region edits + chronicle recompute on-bus (IMPROVEMENT_REVIEW D1 / D2 / D11).**
+Warp-region structural edits previously wrote `sector.regions` directly, off the
+undo log (the file comment cited §D3, which is the god-file refactor tag, not a
+carve-out rule). They now route through `AddRegion` / `RemoveRegion` /
+`EditRegion` in [command.rs](builder/src/builder/command.rs), classified as
+`Regions` in `dep_classes()`. `EditRegion` carries the whole `WarpRegion`, so one
+command covers a paint/erase brush *stroke* (coalesced on drag release — the
+per-frame preview applies live for feedback, then commits once via
+`commit_region_stroke`), the REG1 table edits, and the REG3 seeded-grow hex-list
+replacement. The "Regenerate chronicle" button and the `history_auto_recompute`
+catalog trigger now go through `BuilderState::recompute_chronicle_undoable`, which
+dispatches `EditChronicle` so the recompute lands on the undo stack; the passive
+per-frame LD4 refresh (`recompute_chronicle`) stays off-bus so merely viewing the
+HISTORY tab never evicts the redo tail. Manual chronicle events are preserved on
+either path.
+
 **Diagnostics tabs (§V1 / §V2).** The pre-generation `ValidationReport` and
 post-generation `InvariantReport` panels
 ([validation.rs](builder/src/builder/panels/validation.rs) /

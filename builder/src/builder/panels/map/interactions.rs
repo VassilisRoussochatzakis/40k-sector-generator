@@ -195,6 +195,13 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
                         state.pending_route_start = Some(id);
                     }
                 }
+                MapTool::RegionPaint => {
+                    // D1: snapshot the brushed region so the whole drag commits
+                    // as one undoable EditRegion on release (drag_stopped).
+                    if let Some(id) = state.selected_region_id.clone() {
+                        state.begin_region_stroke(&id);
+                    }
+                }
                 _ => {}
             }
         }
@@ -227,6 +234,9 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             state.drag_system = None;
         } else if let Some((a, b)) = state.rect_select.take() {
             apply_rect_select(state, a, b, ui.ctx().input(|i| i.modifiers.shift));
+        } else if state.map_tool == MapTool::RegionPaint {
+            // D1: commit the brush stroke as one undoable EditRegion.
+            state.commit_region_stroke();
         }
     }
 
@@ -260,10 +270,12 @@ pub(super) fn show_hex_map(ui: &mut Ui, state: &mut BuilderState) {
             let primary = ui.ctx().input(|i| i.pointer.primary_down());
             if let Some(pos) = pointer {
                 if let Some(c) = pick_geom.pick_hex(pos, sector_w, sector_h) {
+                    // D1: live preview only — the stroke commits once on
+                    // drag_stopped, not per frame.
                     if secondary {
-                        paint_region_at(state, c, true);
+                        paint_region_preview(state, c, true);
                     } else if primary {
-                        paint_region_at(state, c, false);
+                        paint_region_preview(state, c, false);
                     }
                 }
             }
@@ -360,7 +372,9 @@ pub(super) fn apply_partial_regen_anchor_click(
     true
 }
 
-/// §REG2 left/right click brush.
+/// §REG2 discrete left/right click brush. D1: snapshots, applies, and commits
+/// one undoable `EditRegion` so a single click is its own undo step. Drag
+/// strokes use [`paint_region_preview`] + the drag-lifecycle commit instead.
 pub(super) fn paint_region_at(state: &mut BuilderState, hex: HexCoord, erase: bool) {
     let Some(id) = state.selected_region_id.clone() else {
         state.modal = Some(ModalKind::Message(
@@ -368,14 +382,32 @@ pub(super) fn paint_region_at(state: &mut BuilderState, hex: HexCoord, erase: bo
         ));
         return;
     };
+    state.begin_region_stroke(&id);
     let result = if erase {
         state.erase_region_hex(&id, hex)
     } else {
         state.paint_region_hex(&id, hex)
     };
     if let Err(e) = result {
+        state.region_stroke_before = None; // discard the snapshot on failure
         state.modal = Some(ModalKind::Message(format!("Region paint failed: {e}")));
+        return;
     }
+    state.commit_region_stroke();
+}
+
+/// D1: live-preview a single brush hex mid-drag without committing — the whole
+/// stroke is coalesced into one undoable `EditRegion` on drag release. Silent
+/// when no region is selected (the discrete [`paint_region_at`] surfaces that).
+pub(super) fn paint_region_preview(state: &mut BuilderState, hex: HexCoord, erase: bool) {
+    let Some(id) = state.selected_region_id.clone() else {
+        return;
+    };
+    let _ = if erase {
+        state.erase_region_hex(&id, hex)
+    } else {
+        state.paint_region_hex(&id, hex)
+    };
 }
 
 pub(super) fn add_route_between(state: &mut BuilderState, from: SystemId, to: SystemId) {

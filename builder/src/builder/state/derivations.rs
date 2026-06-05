@@ -197,11 +197,6 @@ impl BuilderState {
         cfg.enabled = true;
         let mut report = derive_with(&self.sector, &cfg);
 
-        let mut sys_idx: BTreeMap<sectorforge::ids::SystemId, usize> = BTreeMap::new();
-        for (i, s) in report.systems.iter().enumerate() {
-            sys_idx.insert(s.system_id.clone(), i);
-        }
-
         // §E1 / §E2 — pin per-world overrides on top of the freshly derived
         // report so the user's signed sliders win against the table defaults.
         for w in report.worlds.iter_mut() {
@@ -303,12 +298,14 @@ impl BuilderState {
         report.strategic_output = strategic;
 
         let feed_stability = cfg.feed_stability;
+        // D6: this install is *not* per-frame — every caller reaches here via
+        // `ensure_fresh`, which gates on the LD1/LD2 BLAKE3 fingerprint and
+        // only recomputes when an economy dependency actually changed.
         self.sector.economy = std::sync::Arc::new(report);
         if feed_stability {
             let report = self.sector.economy.as_ref().clone();
             apply_stability_nudge(&report, self.sector_mut());
         }
-        let _ = sys_idx;
         self.dirty = true;
         self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
@@ -347,15 +344,11 @@ impl BuilderState {
         self.mark_derivation_fresh(DerivationKind::Relations);
     }
 
-    /// §H6: rebuild `sector.chronicle` from the in-memory history catalog
-    /// while preserving every event flagged `manual = true`. Steps:
-    ///  1. Drain the existing chronicle and split derived vs. manual events.
-    ///  2. Run [`sectorforge::history::derive_with`] against the live sector
-    ///     using the configured catalog (or `HistoryConfig::default()` when
-    ///     none is loaded).
-    ///  3. Append every preserved manual event back onto the report and
-    ///     re-sort by `date` so the chronological view stays correct.
-    pub fn recompute_chronicle(&mut self) {
+    /// §H6 helper: derive a fresh chronicle from the live sector + history
+    /// catalog while preserving every `manual = true` event. Pure — installs
+    /// nothing — so the passive ([`Self::recompute_chronicle`]) and undoable
+    /// ([`Self::recompute_chronicle_undoable`]) paths share one body.
+    fn compute_chronicle(&self) -> sectorforge::history::SectorChronicle {
         let cfg = self.data_catalogs.history.clone().unwrap_or_default();
         let manual: Vec<sectorforge::history::HistoryEvent> = self
             .sector
@@ -370,11 +363,48 @@ impl BuilderState {
         report
             .events
             .sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
-        self.sector.chronicle = report;
+        report
+    }
+
+    /// §H6 passive LD4 refresh: rebuild `sector.chronicle` in place when the
+    /// History overlay is viewed stale (driven by [`Self::pump_derivations`]).
+    /// Off-bus by design — like the sibling `recompute_*` derivations
+    /// (economy / relations / …), a lazy display refresh is not itself an undo
+    /// step, so merely viewing the tab never evicts the redo tail. Manual
+    /// events are always preserved, so it loses no user-authored history.
+    ///
+    /// D2 / D11 precedence: the user-initiated "Regenerate chronicle" button
+    /// and the `history_auto_recompute` catalog-edit trigger go through
+    /// [`Self::recompute_chronicle_undoable`] instead, so those recomputes land
+    /// on the undo stack and cannot silently diverge from a prior
+    /// `EditChronicle` snapshot. This passive refresh is the only off-bus
+    /// chronicle writer left; it preserves manual events and self-heals on the
+    /// next pump, so it carries no data-loss risk.
+    pub fn recompute_chronicle(&mut self) {
+        self.sector.chronicle = self.compute_chronicle();
         self.dirty = true;
         self.mark_validation_dirty();
         self.trigger_auto_save();
         self.mark_derivation_fresh(DerivationKind::History);
+    }
+
+    /// §H6 / D2 / D11: user-initiated chronicle regenerate, routed through the
+    /// command bus as an `EditChronicle` so the recompute is undoable. Used by
+    /// the "Regenerate chronicle" button and the `history_auto_recompute`
+    /// catalog-edit trigger. Manual events are preserved (via
+    /// [`Self::compute_chronicle`]); `run` captures the prior chronicle as the
+    /// undo `before`, and the overlay is re-marked fresh afterwards.
+    pub fn recompute_chronicle_undoable(
+        &mut self,
+    ) -> Result<(), crate::builder::errors::BuilderError> {
+        use crate::builder::command::BuilderCommand;
+        let after = self.compute_chronicle();
+        self.run(BuilderCommand::EditChronicle {
+            before: None,
+            after: Box::new(after),
+        })?;
+        self.mark_derivation_fresh(DerivationKind::History);
+        Ok(())
     }
 
     /// §PER1..§PER5 — rebuild [`sectorforge::personae::PersonaeReport`] from
@@ -494,6 +524,12 @@ impl BuilderState {
         self.validation_dirty_since = None;
         if let Some(input) = self.synthesize_project_input() {
             self.validation_report = Some(validate(&input));
+            self.last_validation_skip_reason = None;
+        } else {
+            // D10: no worlds catalog → `validate` cannot run. Record why so the
+            // status bar shows the skip instead of silently leaving the prior
+            // (or empty) report in place looking like a clean pass.
+            self.last_validation_skip_reason = Some("no worlds catalog loaded".to_string());
         }
     }
 

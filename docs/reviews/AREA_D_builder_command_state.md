@@ -6,6 +6,27 @@ Verified 2026-06-05 against live source. Scope: `builder/src/builder/command.rs`
 
 ---
 
+## Resolution (2026-06-05)
+
+All 14 findings closed. Workspace green: `cargo test --workspace` 0 failures,
+`cargo test --test it -- golden` 13/13, `cargo clippy --workspace --all-targets
+-D warnings` clean.
+
+| ID | Outcome |
+|----|---------|
+| D7 | Dead `let _ = si;` + the `.enumerate()` removed from `RemoveWorld::apply`. |
+| D8 | Dead `sys_idx` `BTreeMap` (+ silencer) removed from `recompute_economy`. |
+| D9 | `builder_command_size_is_bounded` test caps `size_of::<BuilderCommand>()` ≤ 256 B. |
+| D10 | `revalidate_now` sets `last_validation_skip_reason`; status bar shows "validation skipped: …". |
+| D4 | Closed as a **justified carve-out** — verified `derive_route_controls` reads only endpoint faction-presences + tags, never coordinates, so move/swap cannot stale `controls` (only `distance`, which they already refresh). Documented at the apply arms. |
+| D1 / D-S2 | Region add/remove/paint/erase **and** the REG1/REG3 `update_region` edits now route through new `AddRegion` / `RemoveRegion` / `EditRegion` commands (`dep_classes → Regions`). Brush strokes coalesce to one undoable `EditRegion` on drag-release (live preview during the drag) so the undo log + auto-save aren't spammed per hex. |
+| D2 / D11 | `recompute_chronicle_undoable` dispatches `EditChronicle` through the bus for the "Regenerate chronicle" button + `history_auto_recompute` trigger (option B). The passive LD4 refresh (`recompute_chronicle`) stays off-bus so viewing the HISTORY tab never evicts the redo tail; manual events preserved on both paths. |
+| D6 | Already fixed; added a comment at the economy install pointing to the `ensure_fresh` fingerprint gate. |
+| D-S1 / D3 | **Proportionate** resolution (the trait/macro rewrite was assessed net-negative — de-enuming breaks the serialized command log, and the named "missing arm" risk is already compiler-prevented by the three exhaustive `_`-less matches). Added `system_mut`/`world_mut` helpers collapsing ~12 repeated find-or-`NotFound` chains, the `dep_classes_cover_all_variants` exhaustive test, and a co-maintenance doc note. |
+| D-S3 / D5 | **Deferred** by decision — the 154-field god-struct split is a high-churn field-move the review itself sequences *after* a G2 content-golden safety net that does not yet exist. To be done in a focused pass alongside G2. |
+
+---
+
 ## Summary table
 
 | ID   | Sev | Status          | Bus-verdict                   | Effort | One-line                                                              |

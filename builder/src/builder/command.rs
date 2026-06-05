@@ -15,7 +15,7 @@ use sectorforge::history::SectorChronicle;
 use sectorforge::ids::{FactionId, RouteId, SystemId, WorldId};
 use sectorforge::intel::SystemIntel;
 use sectorforge::orbital_assets::{BlockadeReport, OrbitalAsset};
-use sectorforge::regions::RegionConditionKind;
+use sectorforge::regions::{RegionConditionKind, WarpRegion};
 use sectorforge::sector_model::mutation::MutationError;
 use sectorforge::sector_model::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem,
@@ -251,6 +251,32 @@ pub enum BuilderCommand {
         before: String,
         after: String,
     },
+    /// §REG / D1: add a warp region (map overlay). Routed through the bus so
+    /// region creation is undoable like [`Self::SetRegionKind`] /
+    /// [`Self::RenameRegion`] already are. `id` is the caller-assigned
+    /// `reg-NNNN` slug; `revert` removes that region again.
+    AddRegion {
+        id: String,
+        name: String,
+        kind: RegionConditionKind,
+        centre: HexCoord,
+    },
+    /// §REG / D1: remove a warp region. `before` snapshots the whole region
+    /// (including its painted hex list) so `revert` restores it exactly.
+    RemoveRegion {
+        id: String,
+        before: Option<Box<WarpRegion>>,
+    },
+    /// §REG / D1: replace a warp region wholesale — the undoable unit behind a
+    /// paint/erase brush *stroke* (coalesced on drag-release), the REG1 table
+    /// edits, and the REG3 seeded-grow hex-list replacement. Carrying the full
+    /// [`WarpRegion`] lets one command cover name / kind / centre / hex-list
+    /// edits. `before` is captured on `apply` so `revert` is exact.
+    EditRegion {
+        region: String,
+        before: Option<Box<WarpRegion>>,
+        after: Box<WarpRegion>,
+    },
     /// §CTX1 Phase 6 (§6.6): overwrite a system's `star` field. `before` is
     /// captured on apply so revert restores the prior state exactly (including
     /// the no-star case). Setting `after = None` matches the `REMOVE STAR`
@@ -347,6 +373,34 @@ pub enum BuilderCommand {
     },
 }
 
+/// D-S1/D3 dedup: collapse the "find the entity or raise `*NotFound`" chain
+/// that otherwise recurs verbatim in ~12 `apply` arms. Returning `Result`
+/// (not `Option`) lets each arm end in `let sys = system_mut(sector, id)?;`.
+fn system_mut<'a>(
+    sector: &'a mut GeneratedSector,
+    id: &SystemId,
+) -> Result<&'a mut GeneratedSystem, MutationError> {
+    sector
+        .systems
+        .iter_mut()
+        .find(|s| s.id == *id)
+        .ok_or_else(|| MutationError::SystemNotFound(id.to_string()))
+}
+
+/// D-S1/D3 dedup: world counterpart to [`system_mut`] — flattens the
+/// system→worlds walk that several `apply` arms repeat.
+fn world_mut<'a>(
+    sector: &'a mut GeneratedSector,
+    id: &WorldId,
+) -> Result<&'a mut GeneratedWorld, MutationError> {
+    sector
+        .systems
+        .iter_mut()
+        .flat_map(|s| s.worlds.iter_mut())
+        .find(|w| w.id == *id)
+        .ok_or_else(|| MutationError::WorldNotFound(id.to_string()))
+}
+
 impl BuilderCommand {
     /// LD2 — the §39 mutation-input classes this command touches. The command
     /// bus passes the result to [`crate::builder::DerivationLedger::invalidate`]
@@ -360,6 +414,13 @@ impl BuilderCommand {
     /// `relations.toml` / `economy.toml` catalog edits are not command-bus
     /// mutations — panels invalidate those classes directly when the catalog
     /// changes.
+    ///
+    /// D-S1/D3: this is one of three exhaustive `match self` blocks
+    /// (`dep_classes` / [`Self::apply`] / [`Self::revert`]) maintained in
+    /// parallel. None carries a `_` arm, so the compiler forces every new
+    /// variant to be handled in all three — the only risk it cannot catch is
+    /// returning the *wrong* (or empty) class here, which the
+    /// `dep_classes_cover_all_variants` test guards.
     pub fn dep_classes(&self) -> &'static [DepClass] {
         use DepClass as D;
         match self {
@@ -376,7 +437,11 @@ impl BuilderCommand {
             // Faction-roster edits.
             Self::AddFaction { .. } | Self::RemoveFaction { .. } => &[D::Factions],
             // Warp-region edits.
-            Self::SetRegionKind { .. } | Self::RenameRegion { .. } => &[D::Regions],
+            Self::SetRegionKind { .. }
+            | Self::RenameRegion { .. }
+            | Self::AddRegion { .. }
+            | Self::RemoveRegion { .. }
+            | Self::EditRegion { .. } => &[D::Regions],
             // Everything else is a system/world field edit, which §39 treats
             // as invalidating all derivations.
             Self::AddSystem { .. }
@@ -439,8 +504,16 @@ impl BuilderCommand {
                 *before = Some(Box::new(sys));
                 Ok(())
             }
+            // D4: `move_system`/`swap_systems` refresh route `distance` (which is
+            // coord-derived) but deliberately do *not* recompute route `controls`.
+            // `derive_route_controls` reads faction presences + endpoint tags at
+            // the two endpoint systems — never coordinates — so a coord change
+            // cannot stale controls. `AddRoute` recomputes only because a brand-new
+            // route starts with an empty `controls` vector that needs deriving.
             Self::MoveSystem { id, from: _, to } => sector.move_system(id, *to),
             Self::RenameSystem { id, from: _, to } => sector.rename_system(id, to),
+            // D4: see `MoveSystem` — controls are endpoint-presence-derived, not
+            // position-derived, so a swap leaves them correct.
             Self::SwapSystems { a, b } => sector.swap_systems(a, b),
             Self::ReplaceSystem {
                 coord,
@@ -470,12 +543,11 @@ impl BuilderCommand {
                 parent_system,
                 parent_position,
             } => {
-                for (si, sys) in sector.systems.iter().enumerate() {
+                for sys in &sector.systems {
                     if let Some(pos) = sys.worlds.iter().position(|w| w.id == *world) {
                         *before = Some(Box::new(sys.worlds[pos].clone()));
                         *parent_system = Some(sys.id.clone());
                         *parent_position = Some(pos);
-                        let _ = si; // silence unused warning under some configs
                         break;
                     }
                 }
@@ -565,11 +637,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let sys = sector
-                    .systems
-                    .iter_mut()
-                    .find(|s| s.id == *system)
-                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let sys = system_mut(sector, system)?;
                 *before = Some(sys.orbital_assets.clone());
                 sys.orbital_assets = after.clone();
                 Ok(())
@@ -579,11 +647,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let sys = sector
-                    .systems
-                    .iter_mut()
-                    .find(|s| s.id == *system)
-                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let sys = system_mut(sector, system)?;
                 *before = Some(Box::new(sys.blockade.clone()));
                 sys.blockade = after.clone();
                 Ok(())
@@ -593,12 +657,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let w = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                let w = world_mut(sector, world)?;
                 *before = Some(w.regions.clone());
                 w.regions = after.clone();
                 Ok(())
@@ -608,12 +667,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let w = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                let w = world_mut(sector, world)?;
                 *before = Some(Box::new(w.conflict.clone()));
                 w.conflict = after.clone();
                 Ok(())
@@ -623,11 +677,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let sys = sector
-                    .systems
-                    .iter_mut()
-                    .find(|s| s.id == *system)
-                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let sys = system_mut(sector, system)?;
                 *before = Some(Box::new(sys.conflict.clone()));
                 sys.conflict = after.clone();
                 Ok(())
@@ -637,12 +687,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let w = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                let w = world_mut(sector, world)?;
                 *before = Some(Box::new(w.stability));
                 w.stability = *after;
                 Ok(())
@@ -697,16 +742,55 @@ impl BuilderCommand {
                 sector.regions = std::sync::Arc::new(regions);
                 Ok(())
             }
+            Self::AddRegion {
+                id,
+                name,
+                kind,
+                centre,
+            } => {
+                sector.add_region(id, name, *kind, *centre);
+                Ok(())
+            }
+            Self::RemoveRegion { id, before } => {
+                let r = sector
+                    .regions
+                    .iter()
+                    .find(|r| r.id == *id)
+                    .cloned()
+                    .ok_or_else(|| MutationError::RegionNotFound(id.clone()))?;
+                sector.remove_region(id)?;
+                *before = Some(Box::new(r));
+                Ok(())
+            }
+            Self::EditRegion {
+                region,
+                before,
+                after,
+            } => {
+                let mut regions = (*sector.regions).clone();
+                let slot = regions
+                    .iter_mut()
+                    .find(|r| r.id == *region)
+                    .ok_or_else(|| MutationError::RegionNotFound(region.clone()))?;
+                // D1: keep a caller-supplied pre-stroke snapshot. A paint stroke
+                // pre-applies to the live region for feedback, then commits with
+                // `before` already set, so re-capturing here would record the
+                // post-stroke state and make `revert` a no-op. REG1/REG3 edits
+                // dispatch with `before: None` and the live region untouched, so
+                // capturing from the live `slot` is correct for them.
+                if before.is_none() {
+                    *before = Some(Box::new(slot.clone()));
+                }
+                *slot = (**after).clone();
+                sector.regions = std::sync::Arc::new(regions);
+                Ok(())
+            }
             Self::SetStar {
                 system,
                 before,
                 after,
             } => {
-                let sys = sector
-                    .systems
-                    .iter_mut()
-                    .find(|s| s.id == *system)
-                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let sys = system_mut(sector, system)?;
                 *before = sys.star.clone();
                 sys.star = after.clone();
                 Ok(())
@@ -716,11 +800,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let sys = sector
-                    .systems
-                    .iter_mut()
-                    .find(|s| s.id == *system)
-                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let sys = system_mut(sector, system)?;
                 let star = sys
                     .star
                     .as_mut()
@@ -734,12 +814,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let w = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                let w = world_mut(sector, world)?;
                 *before = w.name.to_string();
                 w.name = Arc::from(after.as_str());
                 Ok(())
@@ -749,12 +824,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let w = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                let w = world_mut(sector, world)?;
                 *before = w.orbit;
                 w.orbit = *after;
                 Ok(())
@@ -785,12 +855,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let w = sector
-                    .systems
-                    .iter_mut()
-                    .flat_map(|s| s.worlds.iter_mut())
-                    .find(|w| w.id == *world)
-                    .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+                let w = world_mut(sector, world)?;
                 *before = Some(Box::new(w.clone()));
                 *w = (**after).clone();
                 Ok(())
@@ -800,11 +865,7 @@ impl BuilderCommand {
                 before,
                 after,
             } => {
-                let sys = sector
-                    .systems
-                    .iter_mut()
-                    .find(|s| s.id == *system)
-                    .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+                let sys = system_mut(sector, system)?;
                 *before = Some(Box::new(sys.clone()));
                 *sys = (**after).clone();
                 // The panel only edits system-scope fields, so `worlds` is
@@ -1049,6 +1110,30 @@ impl BuilderCommand {
                 }
                 Ok(())
             }
+            // D1: `add_region` appends, so revert removes by id. Like the
+            // `RemoveFaction`/`RemoveSystem` reverts, a re-add lands at the end
+            // of the vector — region order isn't load-bearing for output.
+            Self::AddRegion { id, .. } => sector.remove_region(id),
+            Self::RemoveRegion { before, .. } => {
+                if let Some(r) = before {
+                    let mut regions = (*sector.regions).clone();
+                    regions.push((**r).clone());
+                    sector.regions = std::sync::Arc::new(regions);
+                }
+                Ok(())
+            }
+            Self::EditRegion {
+                region, before, ..
+            } => {
+                if let Some(prev) = before {
+                    let mut regions = (*sector.regions).clone();
+                    if let Some(slot) = regions.iter_mut().find(|r| r.id == *region) {
+                        *slot = (**prev).clone();
+                        sector.regions = std::sync::Arc::new(regions);
+                    }
+                }
+                Ok(())
+            }
             Self::SetStar { system, before, .. } => {
                 if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == *system) {
                     sys.star = before.clone();
@@ -1190,6 +1275,19 @@ mod tests {
         GeneratedSector::empty("t", "T", "seed", 8, 8)
     }
 
+    /// D9 — bound the inline footprint of the largest `BuilderCommand`
+    /// variant. The command is cloned once per dispatch into the undo ring
+    /// buffer (up to the configured capacity), so a fat inline payload taxes
+    /// every clone. Heap payloads ride behind `Box`/`Vec`; this catches a new
+    /// variant that smuggles a large value inline. Re-measure and bump
+    /// `MAX` deliberately if a variant legitimately needs more.
+    #[test]
+    fn builder_command_size_is_bounded() {
+        const MAX: usize = 256;
+        let actual = std::mem::size_of::<BuilderCommand>();
+        assert!(actual <= MAX, "BuilderCommand is {actual} bytes (cap {MAX})");
+    }
+
     /// LD2 — every command classifies into at least one dependency class, and
     /// route / faction / region commands classify to exactly the expected one.
     #[test]
@@ -1234,6 +1332,239 @@ mod tests {
             rm.dep_classes(),
             &[DepClass::SystemsWorlds, DepClass::Routes]
         );
+    }
+
+    /// D-S1/D3: every variant must classify into a *non-empty* dependency set.
+    /// The exhaustive `match` already forces an arm per variant, but cannot
+    /// catch an arm that returns `&[]` (which would silently skip derivation
+    /// invalidation). Constructing one of each also documents the full command
+    /// surface, and the length tripwire forces this list to grow with the enum.
+    #[test]
+    fn dep_classes_cover_all_variants() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        let wid = s.add_world_to_system(&a, "W").unwrap();
+        s.add_faction(FactionId::from("f"), "F", "imperial");
+        let rid = s
+            .add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        s.add_region(
+            "reg-0001",
+            "R",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 0, r: 0 },
+        );
+        let world = s.get_world(&wid).unwrap().clone();
+        let system = s.get_system(&a).unwrap().clone();
+        let region = s.regions[0].clone();
+        let star = GeneratedStar {
+            colour_code: Arc::from("G"),
+            colour_name: Arc::from("Yellow"),
+            spectral_type: Some(Arc::from("G2V")),
+            source_row_index: None,
+        };
+
+        let all = vec![
+            BuilderCommand::AddSystem {
+                coord: HexCoord { q: 5, r: 5 },
+                name: "N".into(),
+                result_id: None,
+            },
+            BuilderCommand::RemoveSystem {
+                id: a.clone(),
+                before: None,
+                removed_routes: Vec::new(),
+            },
+            BuilderCommand::MoveSystem {
+                id: a.clone(),
+                from: HexCoord { q: 0, r: 0 },
+                to: HexCoord { q: 2, r: 2 },
+            },
+            BuilderCommand::RenameSystem {
+                id: a.clone(),
+                from: "A".into(),
+                to: "A2".into(),
+            },
+            BuilderCommand::SwapSystems {
+                a: a.clone(),
+                b: b.clone(),
+            },
+            BuilderCommand::ReplaceSystem {
+                coord: HexCoord { q: 0, r: 0 },
+                new_system: Box::new(system.clone()),
+                before: None,
+            },
+            BuilderCommand::AddWorld {
+                system: a.clone(),
+                name: "W2".into(),
+                result_id: None,
+            },
+            BuilderCommand::RemoveWorld {
+                world: wid.clone(),
+                before: None,
+                parent_system: None,
+                parent_position: None,
+            },
+            BuilderCommand::AddRoute {
+                from: a.clone(),
+                to: b.clone(),
+                route_type: RouteType::ChartedPassage,
+                stability: RouteStability::Stable,
+                result_id: None,
+            },
+            BuilderCommand::RemoveRoute {
+                id: rid.clone(),
+                before: None,
+            },
+            BuilderCommand::ReplaceRoutes {
+                before: Vec::new(),
+                after: Vec::new(),
+            },
+            BuilderCommand::AddFaction {
+                id: FactionId::from("g"),
+                name: "G".into(),
+                kind: "ork".into(),
+            },
+            BuilderCommand::RemoveFaction {
+                id: FactionId::from("f"),
+                before: None,
+            },
+            BuilderCommand::SetArchetype {
+                system: a.clone(),
+                before: None,
+                after: ArchetypeState::default(),
+            },
+            BuilderCommand::AutoAssignArchetypes {
+                flags: ArchetypeApplyFlags::default(),
+                before: Vec::new(),
+            },
+            BuilderCommand::SetOrbitalAssets {
+                system: a.clone(),
+                before: None,
+                after: Vec::new(),
+            },
+            BuilderCommand::SetBlockadeReport {
+                system: a.clone(),
+                before: None,
+                after: BlockadeReport::default(),
+            },
+            BuilderCommand::SetSurfaceRegions {
+                world: wid.clone(),
+                before: None,
+                after: Vec::new(),
+            },
+            BuilderCommand::SetWorldConflict {
+                world: wid.clone(),
+                before: None,
+                after: ConflictState::default(),
+            },
+            BuilderCommand::SetSystemConflict {
+                system: a.clone(),
+                before: None,
+                after: ConflictState::default(),
+            },
+            BuilderCommand::SetWorldStability {
+                world: wid.clone(),
+                before: None,
+                after: StabilityState::default(),
+            },
+            BuilderCommand::SetRouteType {
+                id: rid.clone(),
+                before: RouteType::StableWarpLane,
+                after: RouteType::SmugglingLane,
+            },
+            BuilderCommand::SetRouteStability {
+                id: rid.clone(),
+                before: RouteStability::Stable,
+                after: RouteStability::Perilous,
+            },
+            BuilderCommand::SetRegionKind {
+                region: "reg-0001".into(),
+                before: RegionConditionKind::Blackout,
+                after: RegionConditionKind::WarpStorm,
+            },
+            BuilderCommand::RenameRegion {
+                region: "reg-0001".into(),
+                before: "R".into(),
+                after: "R2".into(),
+            },
+            BuilderCommand::AddRegion {
+                id: "reg-0002".into(),
+                name: "R2".into(),
+                kind: RegionConditionKind::Blackout,
+                centre: HexCoord { q: 0, r: 0 },
+            },
+            BuilderCommand::RemoveRegion {
+                id: "reg-0001".into(),
+                before: None,
+            },
+            BuilderCommand::EditRegion {
+                region: "reg-0001".into(),
+                before: None,
+                after: Box::new(region.clone()),
+            },
+            BuilderCommand::SetStar {
+                system: a.clone(),
+                before: None,
+                after: Some(star.clone()),
+            },
+            BuilderCommand::SetStarSpectral {
+                system: a.clone(),
+                before: None,
+                after: Some(Arc::from("M5V")),
+            },
+            BuilderCommand::RenameWorld {
+                world: wid.clone(),
+                before: "W".into(),
+                after: "W3".into(),
+            },
+            BuilderCommand::SetWorldOrbit {
+                world: wid.clone(),
+                before: 0,
+                after: 3,
+            },
+            BuilderCommand::AdvanceConflictTicks {
+                ticks: 1,
+                before_world: Vec::new(),
+                before_system: Vec::new(),
+                before_dominant: Vec::new(),
+            },
+            BuilderCommand::EditWorld {
+                world: wid.clone(),
+                before: None,
+                after: Box::new(world.clone()),
+            },
+            BuilderCommand::EditSystem {
+                system: a.clone(),
+                before: None,
+                after: Box::new(system.clone()),
+            },
+            BuilderCommand::EditChronicle {
+                before: None,
+                after: Box::new(s.chronicle.clone()),
+            },
+            BuilderCommand::BulkEditWorlds {
+                before: Vec::new(),
+                after: Vec::new(),
+            },
+            BuilderCommand::DeriveBaselineIntel {
+                observers: Vec::new(),
+                before_systems: Vec::new(),
+                before_worlds: Vec::new(),
+            },
+        ];
+        assert_eq!(
+            all.len(),
+            38,
+            "add the new BuilderCommand variant to this exhaustive list"
+        );
+        for cmd in &all {
+            assert!(
+                !cmd.dep_classes().is_empty(),
+                "{cmd:?} returned an empty dep_classes() — derivations would never invalidate"
+            );
+        }
     }
 
     #[test]
@@ -1576,6 +1907,104 @@ mod tests {
         assert_eq!(
             s.regions.iter().find(|r| r.id == "reg-0001").unwrap().name,
             "Veil"
+        );
+    }
+
+    #[test]
+    fn add_region_round_trip() {
+        let mut s = empty();
+        let mut cmd = BuilderCommand::AddRegion {
+            id: "reg-0001".into(),
+            name: "Veil".into(),
+            kind: RegionConditionKind::Blackout,
+            centre: HexCoord { q: 2, r: 2 },
+        };
+        cmd.apply(&mut s).unwrap();
+        assert!(s.regions.iter().any(|r| r.id == "reg-0001"));
+        cmd.revert(&mut s).unwrap();
+        assert!(!s.regions.iter().any(|r| r.id == "reg-0001"));
+    }
+
+    #[test]
+    fn remove_region_round_trip() {
+        let mut s = empty();
+        s.add_region(
+            "reg-0001",
+            "Veil",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 1, r: 1 },
+        );
+        let mut cmd = BuilderCommand::RemoveRegion {
+            id: "reg-0001".into(),
+            before: None,
+        };
+        cmd.apply(&mut s).unwrap();
+        assert!(s.regions.iter().all(|r| r.id != "reg-0001"));
+        cmd.revert(&mut s).unwrap();
+        let r = s.regions.iter().find(|r| r.id == "reg-0001").unwrap();
+        assert_eq!(r.name, "Veil");
+    }
+
+    #[test]
+    fn edit_region_captures_before_when_none() {
+        // REG1/REG3 path: live region untouched at dispatch, so apply captures
+        // the live state as `before`.
+        let mut s = empty();
+        s.add_region(
+            "reg-0001",
+            "Veil",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 1, r: 1 },
+        );
+        let mut after = s.regions.iter().find(|r| r.id == "reg-0001").unwrap().clone();
+        after.name = "Sealed".into();
+        after.hexes.push(HexCoord { q: 2, r: 1 });
+        let mut cmd = BuilderCommand::EditRegion {
+            region: "reg-0001".into(),
+            before: None,
+            after: Box::new(after),
+        };
+        cmd.apply(&mut s).unwrap();
+        let r = s.regions.iter().find(|r| r.id == "reg-0001").unwrap();
+        assert_eq!(r.name, "Sealed");
+        assert_eq!(r.hexes.len(), 2);
+        cmd.revert(&mut s).unwrap();
+        let r = s.regions.iter().find(|r| r.id == "reg-0001").unwrap();
+        assert_eq!(r.name, "Veil");
+        assert_eq!(r.hexes.len(), 1);
+    }
+
+    #[test]
+    fn edit_region_keeps_caller_supplied_before() {
+        // D1 stroke path: the brush pre-applies to the live region for preview,
+        // then commits with `before` already set. apply must NOT re-capture the
+        // post-stroke state, or revert would be a no-op.
+        let mut s = empty();
+        s.add_region(
+            "reg-0001",
+            "Veil",
+            RegionConditionKind::Blackout,
+            HexCoord { q: 1, r: 1 },
+        );
+        let pre = s.regions.iter().find(|r| r.id == "reg-0001").unwrap().clone();
+        // Live preview painted an extra hex before the commit.
+        s.add_region_hex("reg-0001", HexCoord { q: 2, r: 1 }).unwrap();
+        let after = s.regions.iter().find(|r| r.id == "reg-0001").unwrap().clone();
+        let mut cmd = BuilderCommand::EditRegion {
+            region: "reg-0001".into(),
+            before: Some(Box::new(pre)),
+            after: Box::new(after),
+        };
+        cmd.apply(&mut s).unwrap();
+        assert_eq!(
+            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().hexes.len(),
+            2
+        );
+        cmd.revert(&mut s).unwrap();
+        assert_eq!(
+            s.regions.iter().find(|r| r.id == "reg-0001").unwrap().hexes.len(),
+            1,
+            "revert must restore the pre-stroke footprint"
         );
     }
 

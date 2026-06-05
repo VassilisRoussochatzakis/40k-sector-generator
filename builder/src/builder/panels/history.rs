@@ -154,7 +154,10 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             )
             .clicked()
         {
-            state.recompute_chronicle();
+            // D2/D11: undoable regenerate — lands on the command bus.
+            if let Err(e) = state.recompute_chronicle_undoable() {
+                state.last_save_error = Some(format!("chronicle regenerate failed: {e}"));
+            }
         }
         ui.checkbox(&mut state.history_auto_recompute, "Rebuild after every edit")
             .on_hover_text(
@@ -1505,7 +1508,11 @@ fn on_catalog_edited(state: &mut BuilderState) {
     }
     state.mark_validation_dirty();
     if state.history_auto_recompute {
-        state.recompute_chronicle();
+        // D2/D11: route through the bus so the auto-recompute is undoable and
+        // cannot silently diverge from a prior EditChronicle on the undo stack.
+        if let Err(e) = state.recompute_chronicle_undoable() {
+            state.last_save_error = Some(format!("chronicle regenerate failed: {e}"));
+        }
     }
 }
 

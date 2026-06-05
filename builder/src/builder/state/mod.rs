@@ -189,6 +189,11 @@ pub struct BuilderState {
     /// the status bar so a broken cluster doesn't silently produce an empty
     /// subsector list.
     pub(crate) last_subsector_error: Option<String>,
+    /// D10: why the last [`Self::revalidate_now`] produced no validation
+    /// report — set when `synthesize_project_input` returns `None` (no worlds
+    /// catalog loaded). Rendered in the status bar so a skipped validation no
+    /// longer looks like a clean pass. Cleared once a real report is produced.
+    pub(crate) last_validation_skip_reason: Option<String>,
     /// TF-NT-3: cached output of `feature_weights_for_world`. Keyed by
     /// `(sys_idx, w_idx, input_digest)`. Stale entries are simply ignored
     /// (digest mismatch) — the cache grows bounded by the number of worlds.
@@ -243,6 +248,11 @@ pub struct BuilderState {
     pub(crate) selected_route_id: Option<RouteId>,
     pub(crate) selected_faction_id: Option<FactionId>,
     pub(crate) selected_region_id: Option<String>,
+    /// D1: transient brush-stroke scratch — the region snapshot taken at
+    /// `begin_region_stroke`, consumed by `commit_region_stroke` to push one
+    /// undoable `EditRegion` per stroke. Drag scratch (§R4 carve-out), never
+    /// serialised.
+    pub(crate) region_stroke_before: Option<Box<sectorforge::regions::WarpRegion>>,
     /// §N1: active top-level tab. Defaults to [`BuilderTab::Project`] so a
     /// blank session lands on the project chrome.
     pub(crate) active_tab: BuilderTab,
@@ -412,9 +422,12 @@ pub struct BuilderState {
     /// inspector and the "highlight on map" anchor lookup.
     pub(crate) selected_history_event: Option<String>,
     /// §H6: when true, mutations that touch the history catalog or the
-    /// `[history]` config trigger an immediate [`Self::recompute_chronicle`]
-    /// pass. Defaults to `false` because chronicle derivation is heavier than
-    /// relations / economy — users opt in.
+    /// `[history]` config trigger an immediate
+    /// [`Self::recompute_chronicle_undoable`] pass. Defaults to `false` because
+    /// chronicle derivation is heavier than relations / economy — users opt in.
+    /// D2/D11: the trigger routes through the command bus, so an auto-recompute
+    /// is itself an undo step and cannot strand a prior `EditChronicle` snapshot
+    /// on the undo stack.
     pub(crate) history_auto_recompute: bool,
     /// §H5: scratch state for the "Add event" wizard. `None` when the wizard is
     /// closed; populated by the panel when the user clicks "+ event".
@@ -727,6 +740,7 @@ impl BuilderState {
             last_save_error: None,
             last_catalog_error: None,
             last_subsector_error: None,
+            last_validation_skip_reason: None,
             feature_weights_cache: BTreeMap::new(),
             validation_report: None,
             invariant_report: None,
@@ -746,6 +760,7 @@ impl BuilderState {
             selected_route_id: None,
             selected_faction_id: None,
             selected_region_id: None,
+            region_stroke_before: None,
             active_tab: BuilderTab::Project,
             map_tool: MapTool::Select,
             seed_locked: false,

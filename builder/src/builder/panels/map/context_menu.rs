@@ -254,8 +254,13 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
                 .find(|r| r.hexes.contains(&coord))
                 .map(|r| r.id.clone());
             if let Some(rid) = owning {
+                // D1: discrete erase → one undoable EditRegion.
+                state.begin_region_stroke(&rid);
                 if let Err(e) = state.erase_region_hex(&rid, coord) {
+                    state.region_stroke_before = None;
                     state.modal = Some(ModalKind::Message(format!("Region erase failed: {e}")));
+                } else {
+                    state.commit_region_stroke();
                 }
             }
         }
@@ -499,8 +504,13 @@ pub(super) fn apply_sector_menu_action(state: &mut BuilderState, action: SectorM
             state.focus_entity(EntityRef::Region(region));
         }
         SectorMenuAction::EraseRegionHex { region, coord } => {
+            // D1: discrete erase → one undoable EditRegion.
+            state.begin_region_stroke(&region);
             if let Err(e) = state.erase_region_hex(&region, coord) {
+                state.region_stroke_before = None;
                 state.modal = Some(ModalKind::Message(format!("Region erase failed: {e}")));
+            } else {
+                state.commit_region_stroke();
             }
         }
         SectorMenuAction::SetRegionKind { region, value } => {

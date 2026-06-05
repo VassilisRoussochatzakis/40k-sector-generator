@@ -768,6 +768,11 @@ fn fade(color: Color32, alpha: f32) -> Color32 {
     )
 }
 
+/// Data-viz palette — intentionally **not** [`warning`]/[`danger`]. Route
+/// stability encodes a domain-lore tier painted on the map canvas, not a UI
+/// status; these values are fixed regardless of the active chrome theme. The
+/// numeric overlap with [`StatusColors`] amber/red is coincidental, not a
+/// coupling — see AREA_F F12.
 pub fn stability_color(s: RouteStability) -> Color32 {
     match s {
         RouteStability::Stable => Color32::from_rgb(110, 210, 130),

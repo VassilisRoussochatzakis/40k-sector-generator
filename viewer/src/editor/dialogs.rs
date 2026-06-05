@@ -192,7 +192,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     text_field(ui, &mut name, "my-sector");
                     label(ui, "→ examples/<name>/out/sector.json");
                     if let Some(e) = error.as_ref() {
-                        ui.colored_label(egui::Color32::from_rgb(235, 90, 90), e);
+                        ui.colored_label(crate::palette::danger(), e);
                     }
                     ui.horizontal(|ui| {
                         if ui

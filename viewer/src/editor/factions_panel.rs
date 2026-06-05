@@ -4,7 +4,7 @@
 
 use std::collections::BTreeSet;
 
-use egui::{Color32, RichText, Ui};
+use egui::{RichText, Ui};
 
 use super::state::{empty_faction, EditorState, FactionSort};
 use super::ui_helpers::{
@@ -173,7 +173,7 @@ pub(crate) fn show_factions(ui: &mut Ui, state: &mut EditorState) {
                 }
                 ui.label(
                     RichText::new(format!("pwr {:.0}", fac.power.total_projection()))
-                        .color(palette_dim()),
+                        .color(crate::palette::chrome_text_dim()),
                 );
             });
         });
@@ -303,8 +303,4 @@ fn filter_combo<'a, I: IntoIterator<Item = &'a String>>(
             }
         }
     });
-}
-
-fn palette_dim() -> Color32 {
-    Color32::from_rgb(150, 145, 165)
 }

@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 12 (F1,F2,F-S1,F-S2,F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 3 | 0 |
+| F viewer + gui-core | 15 | 13 (F1,F2,F-S1,F-S2,F3,F4,F5,F6,F7,F8,F9,F11,F12) | 0 | 2 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -631,6 +631,43 @@ preference.
     App `sector_view.rs` vs editor `map_panel.rs` — still duplicate the
     drag/add-route distance logic; both now write `editor.sector`, but the
     dedup is F7's job) and **F10** (render-path memoization, owner-gated).
+
+### 2026-06-05 — step 5, wave 8 (AREA_F route-distance dedup — F7)
+
+- **F7 (`recompute_route_distances` dedup)** — ✅ DONE. The "find both endpoint
+  coords → `hex_distance` → write `route.distance`" pattern was hand-rolled in
+  **four** viewer map-edit sites: editor `map_panel.rs` drag-move (per touched
+  route), add-route, and route-pick; and App `app/sector_view.rs`
+  `add_route_between`. Extracted a single `GeneratedSector::recompute_route_distances()`
+  method in `src/model/sector_model/mutation.rs` (recomputes every route from its
+  endpoints' current coords; a route with a missing endpoint keeps its distance —
+  same policy as the existing `move_system` per-route refresh it generalizes) and
+  routed all four sites through it.
+  - **Scope decision (proportionate, golden-safe):** added the helper but did
+    **not** refactor the existing `move_system` / `swap_systems` /
+    `swap_route_endpoints` / `add_route` ops (which bake in their own narrower
+    targeted refresh) to delegate to it — those are builder-facing + golden-tested,
+    and changing them risks output drift for zero viewer benefit. Their targeted
+    unit tests (`move_system_updates_route_distance`, etc.) stay meaningful. The
+    internal `move_system`→`recompute_route_distances` delegation is a separate,
+    optional follow-up. Also did **not** adopt the full `MutationApi`
+    (`add_route`/`move_system` with `MutationError`) in the viewer — that is a
+    larger per-op migration beyond F7's distance-dedup scope.
+  - **Behaviour notes (owner-visible):** (1) the App `add_route_between` dropped
+    its App-only "route endpoint missing" early-return guard (the editor path
+    never had it; endpoints are always existing picked systems, so it was dead
+    defensive code) — now aligned with the editor path. (2) The reindex divergence
+    the review flagged (App live-edit calls `reindex_ids`; the editor does **not**)
+    is **documented, not unified** (per the review's "document or unify") with a
+    note at the editor's edit-finalize: the editor deliberately keeps IDs stable
+    under the user during a session. Unifying either direction is a behaviour
+    change outside F7.
+  - **Verification:** new lib test
+    `mutation::tests::recompute_route_distances_refreshes_all_from_coords`
+    (sectorforge lib 191→**192**); workspace clippy `-D warnings` clean; viewer
+    **8/8**; golden **15/15 byte-identical** (no existing mutation op changed);
+    gui-core **31/31** + `map_snapshots_match_goldens` **un-blessed**. MAP.md
+    updated (mutation.rs row).
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

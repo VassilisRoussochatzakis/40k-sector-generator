@@ -51,7 +51,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 |---|---|
 | [src/model/sector_model/mod.rs](../src/model/sector_model/mod.rs) | Output DTOs with Serialize/Deserialize |
 | [src/model/sector_model/routes_view.rs](../src/model/sector_model/routes_view.rs) | Route render vocabulary split out of the DTO file (§A1): `RoutePattern`/`strides`, `RouteViewMode`, `stable_pattern_hash`, render impl-methods of `RouteType`/`RouteKind`/`GeneratedRoute` (re-exported at the `sector_model` root) |
-| [src/model/sector_model/mutation.rs](../src/model/sector_model/mutation.rs) | `swap_systems` + in-place mutators used by the builder command bus |
+| [src/model/sector_model/mutation.rs](../src/model/sector_model/mutation.rs) | `swap_systems` + in-place mutators used by the builder command bus; `recompute_route_distances` (F7) — shared route-distance refresh the viewer's map-edit paths call |
 | [src/model/sector_model/scaffold.rs](../src/model/sector_model/scaffold.rs) | Blank-DTO constructors (F-S1) — `empty_sector`/`empty_system`/`empty_world`/`empty_route`/`empty_faction`, re-exported at `sector_model::`; used by the viewer's in-place editor |
 | [src/model/ids.rs](../src/model/ids.rs) | Typed `SystemId` / `WorldId` / `RouteId` / `FactionId` |
 | [src/model/errors.rs](../src/model/errors.rs) | Top-level `SectorError` (thiserror) |

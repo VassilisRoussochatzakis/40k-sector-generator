@@ -135,6 +135,30 @@ impl GeneratedSector {
         Ok(())
     }
 
+    /// Recompute every route's `distance` from its endpoints' current coords.
+    /// A route whose endpoint system is missing keeps its existing distance.
+    /// Idempotent: routes whose endpoints didn't move are rewritten to the same
+    /// value. The viewer's map-edit paths call this after a system move, route
+    /// add, or endpoint repoint instead of each hand-rolling the `hex_distance`
+    /// lookup (F7); `move_system` / `swap_*` keep their own narrower per-route
+    /// refresh for the targeted-distance unit tests.
+    pub fn recompute_route_distances(&mut self) {
+        let updated: Vec<(RouteId, u32)> = self
+            .routes
+            .iter()
+            .filter_map(|r| {
+                let from = self.systems.iter().find(|s| s.id == r.from_system_id)?;
+                let to = self.systems.iter().find(|s| s.id == r.to_system_id)?;
+                Some((r.id.clone(), super::hex_distance(from.coord, to.coord)))
+            })
+            .collect();
+        for (rid, dist) in updated {
+            if let Some(r) = self.routes.iter_mut().find(|r| r.id == rid) {
+                r.distance = dist;
+            }
+        }
+    }
+
     /// Rename a system. ID remains stable.
     pub fn rename_system(&mut self, id: &SystemId, name: &str) -> Result<(), MutationError> {
         let sys = self
@@ -815,6 +839,25 @@ mod tests {
         assert_eq!(s.routes[0].distance, 1);
         s.move_system(&b, HexCoord { q: 5, r: 0 }).unwrap();
         assert_eq!(s.routes[0].distance, 5);
+    }
+
+    #[test]
+    fn recompute_route_distances_refreshes_all_from_coords() {
+        let mut s = empty();
+        let a = s.add_system(HexCoord { q: 0, r: 0 }, "A").unwrap();
+        let b = s.add_system(HexCoord { q: 1, r: 0 }, "B").unwrap();
+        let c = s.add_system(HexCoord { q: 2, r: 0 }, "C").unwrap();
+        s.add_route(&a, &b, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        s.add_route(&b, &c, RouteType::StableWarpLane, RouteStability::Stable)
+            .unwrap();
+        // Move a system without going through `move_system` (mirrors the viewer's
+        // direct drag edit), so the distances are now stale.
+        s.systems.iter_mut().find(|x| x.id == c).unwrap().coord = HexCoord { q: 5, r: 0 };
+        assert_eq!(s.routes[1].distance, 1);
+        s.recompute_route_distances();
+        assert_eq!(s.routes[0].distance, 1); // a–b unchanged
+        assert_eq!(s.routes[1].distance, 4); // b–c refreshed (1→4)
     }
 
     #[test]

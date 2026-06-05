@@ -168,27 +168,14 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 .iter()
                 .any(|s| s.coord == coord && s.id != drag_id);
             if !occupied {
+                let mut moved = false;
                 if let Some(sys) = sector.systems.iter_mut().find(|s| s.id == drag_id) {
                     sys.coord = coord;
+                    moved = true;
+                }
+                if moved {
+                    sector.recompute_route_distances();
                     dirty = true;
-                    for r in &mut sector.routes {
-                        if r.from_system_id == drag_id || r.to_system_id == drag_id {
-                            let from_coord = sector
-                                .systems
-                                .iter()
-                                .find(|s| s.id == r.from_system_id)
-                                .map(|s| s.coord)
-                                .unwrap_or(coord);
-                            let to_coord = sector
-                                .systems
-                                .iter()
-                                .find(|s| s.id == r.to_system_id)
-                                .map(|s| s.coord)
-                                .unwrap_or(coord);
-                            r.distance =
-                                sectorforge::sector_model::hex_distance(from_coord, to_coord);
-                        }
-                    }
                 }
             }
         }
@@ -224,43 +211,25 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 if let Some(sector) = state.sector.as_mut() {
                     let route_id = sectorforge::ids::route_id(&from, &to);
                     if !sector.routes.iter().any(|r| r.id == route_id) {
-                        let mut route =
-                            sectorforge::sector_model::empty_route(from.clone(), to.clone());
-                        let from_coord = sector
-                            .systems
-                            .iter()
-                            .find(|s| s.id == from)
-                            .map(|s| s.coord);
-                        let to_coord = sector.systems.iter().find(|s| s.id == to).map(|s| s.coord);
-                        if let (Some(a), Some(b)) = (from_coord, to_coord) {
-                            route.distance = sectorforge::sector_model::hex_distance(a, b);
-                        }
-                        sector.routes.push(route);
+                        sector
+                            .routes
+                            .push(sectorforge::sector_model::empty_route(from, to));
+                        sector.recompute_route_distances();
                         dirty = true;
                     }
                 }
             }
             ClickAction::RoutePick(idx, ep, sys_id) => {
                 if let Some(sector) = state.sector.as_mut() {
-                    let coords: std::collections::HashMap<SystemId, HexCoord> = sector
-                        .systems
-                        .iter()
-                        .map(|s| (s.id.clone(), s.coord))
-                        .collect();
                     if let Some(route) = sector.routes.get_mut(idx) {
                         match ep {
                             RouteEndpoint::From => route.from_system_id = sys_id,
                             RouteEndpoint::To => route.to_system_id = sys_id,
                         }
-                        if let (Some(&a), Some(&b)) = (
-                            coords.get(&route.from_system_id),
-                            coords.get(&route.to_system_id),
-                        ) {
-                            route.distance = sectorforge::sector_model::hex_distance(a, b);
-                        }
                         route.id =
                             sectorforge::ids::route_id(&route.from_system_id, &route.to_system_id);
                     }
+                    sector.recompute_route_distances();
                 }
                 state.route_pick = None;
                 dirty = true;
@@ -269,6 +238,11 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
     }
 
     if dirty {
+        // F7 note: unlike the App-side live-edit path (`mark_live_sector_dirty`,
+        // which calls `reindex_ids`), the editor deliberately does NOT reindex
+        // system/route IDs after an edit — IDs stay stable under the user during
+        // an editing session. The two paths now share route-distance recompute
+        // (`recompute_route_distances`); the reindex difference is intentional.
         state.mark_dirty();
     }
 

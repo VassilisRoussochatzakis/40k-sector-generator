@@ -572,23 +572,15 @@ impl App {
             self.export_status = format!("route {} already exists", route_id);
             return;
         }
-        let from_coord = sector
-            .systems
-            .iter()
-            .find(|s| s.id == from)
-            .map(|s| s.coord);
-        let to_coord = sector.systems.iter().find(|s| s.id == to).map(|s| s.coord);
-        let (Some(a), Some(b)) = (from_coord, to_coord) else {
-            self.export_status = "route endpoint missing".into();
-            return;
-        };
-        let mut route = sectorforge::sector_model::empty_route(from, to);
-        route.distance = sectorforge::sector_model::hex_distance(a, b);
+        let route = sectorforge::sector_model::empty_route(from, to);
         self.sector_selected = None;
         self.sector_selected_route = Some(route.id.clone());
         self.sector_selected_subsector = None;
         let status = format!("added route {}", route.id);
         sector.routes.push(route);
+        // Shared distance recompute (F7) — both map-edit stacks route through this
+        // instead of each hand-rolling the endpoint hex_distance lookup.
+        sector.recompute_route_distances();
         self.mark_live_sector_dirty(status);
     }
 

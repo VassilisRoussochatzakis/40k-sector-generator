@@ -37,16 +37,26 @@ pub fn selectable_plate<R>(
     content: impl FnOnce(&mut Ui) -> R,
 ) -> (Response, R) {
     let id = ui.make_persistent_id(id_salt);
+    // Stable id for the row's click interaction, asserted *after* the content is
+    // drawn (see below) so it sits on top of the inner widgets in the hit-test.
+    let row_id = id.with("row");
     let row_h = (ui.spacing().interact_size.y + design::SPACE_XS).max(28.0);
     let full_w = ui.available_width();
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(full_w, row_h), Sense::click());
+    // Reserve the row's space here; the click interaction itself is asserted at
+    // the end (after the content) — see the comment on the `ui.interact` below.
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(full_w, row_h), Sense::hover());
 
     // Eased motion: hover lift + selection. Both auto-request a repaint while in
     // flight, so the row settles smoothly without us driving an animation loop.
+    // Hover is read from the *previous* frame's row interaction — this frame's
+    // authoritative interaction is asserted after the content (below), and the
+    // animation can't depend on a value that doesn't exist yet. The one-frame
+    // lag on the hover wash is imperceptible.
     let ctx = ui.ctx().clone();
+    let prev_hovered = ctx.read_response(row_id).is_some_and(|r| r.hovered());
     let t_h = design::ease_out_cubic(ctx.animate_bool_with_time(
         id.with("hover"),
-        response.hovered(),
+        prev_hovered,
         design::MOTION_BASE,
     ));
     let t_s = design::ease_out_cubic(ctx.animate_bool_with_time(
@@ -68,6 +78,17 @@ pub fn selectable_plate<R>(
                 .inner
         })
         .inner;
+
+    // Assert the row's click interaction over the WHOLE rect *after* the content
+    // is laid out, so it wins the hit-test against the inner widgets. Without
+    // this, a non-clickable label that grows to fill the row centre (as the
+    // bundled OFL fonts do — taller than egui's built-in face) becomes the
+    // topmost widget under the pointer and swallows the click, leaving a dead
+    // band down the middle of every plate. egui resolves overlapping widgets by
+    // registration order, so interacting last puts the row on top. This is the
+    // single shared fix for every `selectable_plate` caller — the builder nav
+    // rail and every roster rail across the builder and viewer.
+    let response = ui.interact(rect, row_id, Sense::click());
 
     (response, r)
 }

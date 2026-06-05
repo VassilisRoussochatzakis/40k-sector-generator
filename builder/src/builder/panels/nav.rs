@@ -325,6 +325,85 @@ mod tests {
     }
 
     #[test]
+    fn bundled_fonts_nav_plate_centers_are_clickable() {
+        // Regression for the "dead tabs" bug: with the bundled OFL fonts (the
+        // shipping default — see `default = bundled-fonts`) the inner row label
+        // is taller than egui's built-in face and grows to fill the plate's
+        // centre. Before the `card::selectable_plate` fix that non-clickable
+        // label became the topmost widget under the pointer and swallowed the
+        // click, so every nav plate was dead down the middle — exactly where a
+        // user clicks the label. This walks each tab's clickable y-band and
+        // asserts it is GAP-FREE (no dead centre). It only catches the bug with
+        // bundled fonts installed, so install them like `main.rs` does.
+        use std::collections::BTreeMap;
+        let screen = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(1400.0, 900.0));
+        let btn = |pos, pressed| egui::Event::PointerButton {
+            pos,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::default(),
+        };
+        // Sweep a column of clicks down the rail; record which tab each y selects.
+        let mut hits: BTreeMap<i32, &'static str> = BTreeMap::new();
+        let mut y = 50i32;
+        while y < 880 {
+            let pos = egui::pos2(70.0, y as f32);
+            let mut state = BuilderState::new_blank("t", "T", "seed", 8, 8);
+            state.active_tab = BuilderTab::Invariants; // sentinel: detect any switch
+            let ctx = egui::Context::default();
+            sectorforge_gui_core::fonts::install(&ctx);
+            let frame = |ctx: &egui::Context, state: &mut BuilderState| {
+                egui::TopBottomPanel::top("builder_workspace_tabs")
+                    .show(ctx, |ui| show_top_bar(ui, state));
+                egui::TopBottomPanel::bottom("builder_status")
+                    .show(ctx, |ui| crate::builder::panels::status::show(ui, state));
+                egui::SidePanel::left("builder_nav_rail")
+                    .resizable(false)
+                    .exact_width(rail_width(ctx))
+                    .show(ctx, |ui| show_nav_rail(ui, state));
+                egui::CentralPanel::default().show(ctx, |ui| show_active_panel(ui, state));
+            };
+            let ri = |events: Vec<egui::Event>| egui::RawInput {
+                screen_rect: Some(screen),
+                events,
+                ..Default::default()
+            };
+            let _ = ctx.run(ri(vec![]), |ctx| frame(ctx, &mut state));
+            let _ = ctx.run(ri(vec![egui::Event::PointerMoved(pos)]), |ctx| frame(ctx, &mut state));
+            let _ = ctx.run(ri(vec![btn(pos, true)]), |ctx| frame(ctx, &mut state));
+            let _ = ctx.run(ri(vec![btn(pos, false)]), |ctx| frame(ctx, &mut state));
+            if state.active_tab != BuilderTab::Invariants {
+                hits.insert(y, state.active_tab.label());
+            }
+            y += 2;
+        }
+        // For every tab that appears, its band [min,max] must be contiguous at
+        // the 2px sweep step — a hole means a dead centre (the bug).
+        let mut band: BTreeMap<&'static str, (i32, i32)> = BTreeMap::new();
+        for (yy, label) in &hits {
+            let e = band.entry(label).or_insert((*yy, *yy));
+            e.0 = e.0.min(*yy);
+            e.1 = e.1.max(*yy);
+        }
+        assert!(
+            band.len() >= 18,
+            "expected most tabs reachable in a 900px rail, got {}",
+            band.len()
+        );
+        for (label, (lo, hi)) in &band {
+            let mut yy = *lo;
+            while yy <= *hi {
+                assert!(
+                    hits.get(&yy) == Some(label),
+                    "tab {label} has a dead spot at y={yy} inside its band {lo}..{hi} \
+                     — selectable_plate row click is being swallowed by inner content",
+                );
+                yy += 2;
+            }
+        }
+    }
+
+    #[test]
     fn nav_rail_and_top_bar_paint_headless() {
         // §COLUMNS §6.1: the rail + slim top bar must paint without panicking on
         // a blank state (covers the collapse toggle + cluster sections).

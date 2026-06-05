@@ -114,6 +114,12 @@ Verified 2026-06-05 against live code in `tests/it/` and `viewer/src/app/lifecyc
 
 ### G2 — no committed content golden for sector.json / sector.md
 
+> ✅ **RESOLVED 2026-06-05** — `golden_generation.rs` now pins the full exported
+> `sector.json` + `sector.md` (m42 fixture) to `tests/goldens/`, gated by
+> `UPDATE_GOLDEN_JSON` / `UPDATE_GOLDEN_MD`; drift reports the first differing
+> line. Full-file (not hash) so the diff is reviewable. **Gate for the A–F
+> god-file splits is now cleared.** Also covers G-S3. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** HIGH / P2
 - **Status:** ✅ Confirmed (gap real)
 - **Location:** `tests/it/golden_generation.rs:64-76`, `tests/it/golden_generation.rs:184-190`

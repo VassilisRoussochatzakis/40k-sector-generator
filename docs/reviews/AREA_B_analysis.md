@@ -66,6 +66,12 @@ Verified 2026-06-05 against live `main` branch. Scope: `src/analysis/` — prima
 
 ### B-S3 — ~28 hand-written as_slug + Display enums in analysis (62 across src/)
 
+> ✅ **RESOLVED 2026-06-05** — `macro_rules! enum_slug!` (`src/macros.rs`,
+> `#[macro_use]`) with a normal + `const` arm; verbatim slugs → byte-identical
+> output. 61/62 enums converted; `SectorSize` (struct variant `Custom { dim }`)
+> left hand-written as it is not a fieldless enum. Golden 15/15, lib 191/191,
+> `it` 93/93, clippy clean. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** systemic / P1 #2
 - **Status:** ✅ Confirmed
 - **Location:** 28 `as_slug` definitions in `src/analysis/` (e.g. `hooks.rs:132`, `missions.rs:114`, `missions.rs:144`, `missions.rs:170`, `economy.rs:739`, `economy.rs:769`, `economy.rs:798`, `relations.rs:49`, `relations.rs:283`, `relations.rs:367`, plus 18 more across `personae`, `search`, `intel`, `importance`, `analytics`, `history/model`)

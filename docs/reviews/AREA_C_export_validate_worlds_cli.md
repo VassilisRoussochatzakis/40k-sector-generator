@@ -44,6 +44,8 @@ Verified 2026-06-05 against `main`; scope covers `src/export/`, `src/validate/`,
 
 ### C-S2 — Stringly-typed economy mirror in diff.rs
 
+> ✅ **RESOLVED 2026-06-05** — fixed together with C1 (`sector_balance.get(*k)`).
+
 - **Review sev / bucket:** MED / P1.5
 - **Status:** ✅ Confirmed (same root issue as C1)
 - **Location:** `src/validate/diff.rs:370–378`
@@ -88,6 +90,12 @@ Verified 2026-06-05 against `main`; scope covers `src/export/`, `src/validate/`,
 ---
 
 ### C1 — resource diff matches fields by string with `_ => 0.0`
+
+> ✅ **RESOLVED 2026-06-05** — the `diff.rs:370` closure now calls
+> `sector_balance.get(*k)`; a new `RESOURCE_KEYS` entry is picked up
+> automatically instead of silently diffing as `0.0`. Behaviour-identical for
+> the current resource set (diff + golden tests green). Closes **C-S2** too.
+> See [PROGRESS.md](PROGRESS.md).
 
 - **Review sev / bucket:** MED / P1.5 (real data-loss class)
 - **Status:** ✅ Confirmed

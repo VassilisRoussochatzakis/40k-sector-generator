@@ -555,8 +555,10 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                         ui.label(RichText::new("Source").strong());
                         ui.label("");
                         ui.end_row();
-                        let events = state.sector.chronicle.events.clone();
-                        for ev in &events {
+                        // §E9: iterate by reference — the loop only mutates the
+                        // disjoint `selected_history_event` field, so no clone of
+                        // the whole event Vec is needed.
+                        for ev in &state.sector.chronicle.events {
                             let is_sel = selected.as_deref() == Some(ev.id.as_str());
                             if ui
                                 .selectable_label(is_sel, RichText::new(&ev.date).monospace())
@@ -1364,28 +1366,31 @@ fn show_timeline(ui: &mut Ui, state: &mut BuilderState) {
             );
             return;
         }
-        let events = state.sector.chronicle.events.clone();
+        let event_count = state.sector.chronicle.events.len();
         egui::ScrollArea::vertical()
             .id_salt("h7_timeline_scroll")
             .max_height(280.0)
             .show(ui, |ui| {
-                for (i, ev) in events.iter().enumerate() {
+                for i in 0..event_count {
+                    // §E9: read the display fields under a scoped borrow that ends
+                    // before the row's mutating calls (focus_entity / focus_anchor
+                    // both take `&mut state`), instead of cloning the whole event
+                    // Vec every frame.
+                    let ev = &state.sector.chronicle.events[i];
+                    let date = ev.date.clone();
+                    let kind = ev.kind;
+                    let anchor = anchor_label(&ev.anchor);
+                    let narrative = short_narrative(&ev.narrative);
+                    let id = ev.id.clone();
                     ui.horizontal_wrapped(|ui| {
-                        ui.label(RichText::new(&ev.date).monospace().strong());
-                        ui.label(kind_label(ev.kind));
-                        ui.colored_label(
-                            Color32::DARK_GRAY,
-                            format!("({})", anchor_label(&ev.anchor)),
-                        );
-                        if sectorforge_gui_core::entity_link(
-                            ui,
-                            short_narrative(&ev.narrative),
-                            false,
-                        )
-                        .on_hover_text("Open this event")
-                        .clicked()
+                        ui.label(RichText::new(&date).monospace().strong());
+                        ui.label(kind_label(kind));
+                        ui.colored_label(Color32::DARK_GRAY, format!("({anchor})"));
+                        if sectorforge_gui_core::entity_link(ui, narrative, false)
+                            .on_hover_text("Open this event")
+                            .clicked()
                         {
-                            state.focus_entity(EntityRef::HistoryEvent(ev.id.clone()));
+                            state.focus_entity(EntityRef::HistoryEvent(id));
                         }
                         if ui
                             .small_button("◎")

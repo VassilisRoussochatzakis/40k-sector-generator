@@ -6,7 +6,7 @@ use crate::palette;
 
 use super::state::{Dialog, EditorState, Tab};
 
-pub fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
     ui.horizontal_wrapped(|ui| {
         if ui.button(RichText::new("NEW SECTOR")).clicked() {
             state.dialog = Dialog::NewSector {

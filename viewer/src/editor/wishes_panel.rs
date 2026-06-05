@@ -5,7 +5,7 @@ use egui::{RichText, Ui};
 use super::state::EditorState;
 use super::ui_helpers::{dim, label, section};
 
-pub fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
     let Some(input) = state.project_input.as_ref() else {
         ui.vertical_centered(|ui| {
             ui.add_space(20.0);

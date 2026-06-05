@@ -155,6 +155,13 @@ where
     });
 
     let faction_count = faction_ids.len();
+    // Dense per-cell × per-faction accumulator. Deliberately not sparse
+    // (TF-S-5): `build` runs once per generation, not per frame, and the dense
+    // array is measured cheap — `cargo bench --bench influence_field` reports
+    // 19 µs (10×10) → 187 µs (30×30, 200 systems), flat ~4.8 Melem/s (linear in
+    // cells, no blow-up). Memory stays KB-scale (m42: 13 factions → 47 KB at
+    // 30×30). A sparse map would slow the hot indexed write below to save
+    // trivially little. Re-measure with the bench before switching.
     let mut cell_scores: Vec<f32> = vec![0.0; total.saturating_mul(faction_count)];
     let mut cell_touched: Vec<bool> = vec![false; total];
     let mut touched_cells = 0usize;

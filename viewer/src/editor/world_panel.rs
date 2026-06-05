@@ -11,7 +11,7 @@ use super::enums::{
 use super::state::{EditorState, Selection};
 use super::ui_helpers::{combo_str, dim, label, section, text_field_id};
 
-pub fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
     let Selection::World {
         system_id,
         world_index,

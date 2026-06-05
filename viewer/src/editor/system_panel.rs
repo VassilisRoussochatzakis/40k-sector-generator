@@ -8,7 +8,7 @@ use super::enums::{star_colour_name, STAR_COLOUR_CODES};
 use super::state::{empty_world, EditorState, Selection};
 use super::ui_helpers::{combo_str, dim, label, section, text_field};
 
-pub fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
     let Selection::System(id) = state.selection.clone() else {
         return;
     };

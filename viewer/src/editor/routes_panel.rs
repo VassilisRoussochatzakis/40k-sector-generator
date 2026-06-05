@@ -9,7 +9,7 @@ use super::state::{empty_route, EditorState, RouteEndpoint};
 use super::ui_helpers::{combo_kv, combo_kv_id, dim, label, section};
 use sectorforge::ids::SystemId;
 
-pub fn show_routes(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_routes(ui: &mut Ui, state: &mut EditorState) {
     let current_pick = state.route_pick;
     let Some(sector) = state.sector.as_mut() else {
         dim(ui, "no sector loaded");

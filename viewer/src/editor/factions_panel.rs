@@ -13,7 +13,7 @@ use super::ui_helpers::{
 use crate::palette::{draw_faction_chip, faction_style};
 use sectorforge::ids::{FactionId, SystemId, WorldId};
 
-pub fn show_factions(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_factions(ui: &mut Ui, state: &mut EditorState) {
     let Some(sector) = state.sector.as_mut() else {
         dim(ui, "no sector loaded");
         return;

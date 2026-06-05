@@ -14,7 +14,7 @@ use crate::palette::{self, HEX_OUTLINE};
 
 use super::state::{Dialog, EditorState, RouteEndpoint, SectorEditTool, Selection};
 
-pub fn show_map(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
     let route_pick = state.route_pick;
     let (sector_w, sector_h) = if let Some(s) = &state.sector {
         (s.width, s.height)

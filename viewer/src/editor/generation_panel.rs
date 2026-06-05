@@ -16,7 +16,7 @@ fn random_seed_str() -> String {
     format!("{v:016x}")
 }
 
-pub fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
     let Some(input) = state.project_input.as_mut() else {
         ui.vertical_centered(|ui| {
             ui.add_space(20.0);

@@ -5,7 +5,7 @@ use egui::Ui;
 use super::state::EditorState;
 use super::ui_helpers::{dim, label, section, text_field};
 
-pub fn show_settings(ui: &mut Ui, state: &mut EditorState) {
+pub(crate) fn show_settings(ui: &mut Ui, state: &mut EditorState) {
     let Some(sector) = state.sector.as_mut() else {
         dim(ui, "no sector loaded");
         return;

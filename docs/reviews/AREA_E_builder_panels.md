@@ -13,7 +13,7 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 | E2    | HIGH | ✅ Confirmed   | M      | Per-frame `primary_factions =` write: REAL bus bypass  |
 | E3    | HIGH | ✅ Confirmed   | S      | Same finding as E-S1; cross-reference                  |
 | E4    | MED  | ✅ Confirmed   | M      | `world.rs` 1625 LOC; 9 `format!("{:?}")` key sites     |
-| E5    | MED  | ✅ Confirmed   | S      | `show_add_presence_row` + chip colours duplicated       |
+| E5    | MED  | ✅ Resolved    | S      | `show_add_presence_row` + chip colours duplicated       |
 | E6    | MED  | ✅ Confirmed   | S      | `SYSTEM_STATES` const duplicated byte-for-byte         |
 | E7    | MED  | ✅ Confirmed   | L      | `system.rs` 2033 LOC god-file                          |
 | E8    | —    | 🟢 Non-issue   | —      | "twice per frame" false — site 2 is collapsed-gated + dominated|
@@ -193,8 +193,21 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E5 — Presence table + chip colours duplicated across `control.rs` and `world.rs`
 
+> ✅ **RESOLVED 2026-06-05 (partial-by-design).** Audited both
+> `show_add_presence_row` bodies — they are **not** byte-identical: the WORLD row
+> (`world/factions.rs`) carries an extra **dominance** combo + `Display` tier
+> labels + wrapped layout; the CONTROL row (`control.rs`) has influence-help
+> tooltips + a faction-`id` hover; the two differ in id salts, all three
+> placeholder strings, and modal text. A full merge would change one tab's UX, so
+> the divergence is **left in place (intentional)**. The one genuinely shared,
+> UX-neutral piece — the candidate computation (which sector factions are not yet
+> present on the world) — was folded into `presence_widgets::presence_candidates`
+> (+ `PresenceCandidates` enum); both callers route through it and keep their own
+> placeholders + pickers. `claim_chip_colours` was already shared by E14. See
+> [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** MED / P2
-- **Status:** ✅ Confirmed
+- **Status:** ✅ Confirmed → ✅ Resolved (partial-by-design)
 - **Location:** `control.rs:574` (`fn show_add_presence_row`) and `world.rs:923` (`fn show_add_presence_row`) — two private functions with the same name and similar structure in different files. `claim_chip_colours` is also duplicated (see E14).
 - **Evidence:**
   ```rust

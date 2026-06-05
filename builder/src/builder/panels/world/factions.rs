@@ -90,30 +90,30 @@ pub(super) fn show_add_presence_row(
         .iter()
         .map(|f| (f.id.clone(), f.name.to_string()))
         .collect();
-    if factions.is_empty() {
-        ui_kit::placeholder(
-            ui,
-            "No factions in the sector roster yet — add some on the Factions tab first.",
-        );
-        return;
-    }
-    let already: std::collections::BTreeSet<FactionId> = state.sector.systems[sys_idx].worlds
-        [w_idx]
-        .factions
-        .iter()
-        .map(|p| p.faction_id.clone())
-        .collect();
-    let candidates: Vec<&(FactionId, String)> = factions
-        .iter()
-        .filter(|(fid, _)| !already.contains(fid))
-        .collect();
-    if candidates.is_empty() {
-        ui_kit::placeholder(
-            ui,
-            "Every faction in the roster already has a presence row on this world.",
-        );
-        return;
-    }
+    // §E5: shared candidate computation; the picker widgets below stay
+    // WORLD-specific (extra dominance combo, Display tier labels, wrapped layout)
+    // — intentional divergence from the CONTROL row.
+    use crate::builder::panels::presence_widgets::{presence_candidates, PresenceCandidates};
+    let candidates = match presence_candidates(
+        &state.sector.systems[sys_idx].worlds[w_idx],
+        &factions,
+    ) {
+        PresenceCandidates::NoFactions => {
+            ui_kit::placeholder(
+                ui,
+                "No factions in the sector roster yet — add some on the Factions tab first.",
+            );
+            return;
+        }
+        PresenceCandidates::AllPresent => {
+            ui_kit::placeholder(
+                ui,
+                "Every faction in the roster already has a presence row on this world.",
+            );
+            return;
+        }
+        PresenceCandidates::Available(c) => c,
+    };
 
     let world_id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
     let buf_id = egui::Id::new(("w_add_presence", world_id.as_str()));

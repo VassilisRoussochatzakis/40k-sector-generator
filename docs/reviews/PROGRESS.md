@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 12 (E1,E2,E3,E4,E6,E7,E8*,E9,E13,E14,E-S1,E-S3*) | 0 | 5 | 0 |
+| E builder panels | 17 | 13 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E13,E14,E-S1,E-S3*) | 0 | 4 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -947,6 +947,41 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     (world/claims, world/factions, world/features — all their EditWorld sites
     converted). No file moved → MAP.md untouched; GUIDE.md §R4 detail-editor note
     extended.
+
+### 2026-06-05 — step 5, wave 13 (AREA_E E5 — presence candidate dedup)
+
+- **E5 (`show_add_presence_row`) — ✅ DONE (partial-by-design).** Audited the two
+  `show_add_presence_row` editors **before** merging (per the finding's "audit for
+  scroll-area-id / section-header / faction-gathering divergence") — they are
+  **not** byte-identical duplicates:
+  - **CONTROL** (`control.rs`): signature takes `world_id` + a pre-gathered
+    `factions` slice; `Buf { faction, tier }` (no dominance); `horizontal` layout;
+    influence picker via `influence_label`/`influence_help`; faction combo carries
+    an `id: {fid}` hover; id salts `c2_*`; modal "Edit failed".
+  - **WORLD** (`world/factions.rs`): signature `(sys_idx, w_idx)` and gathers
+    `factions` from `state.sector.factions` internally; `Buf { faction, tier,
+    dominance }` with an **extra dominance combo** (`w_add_dom`); `horizontal_wrapped`;
+    tier/dominance labels via `Display`; no faction-id hover; id salts `w_add_*`;
+    modal "World edit failed".
+  A full merge would **change one tab's UX** (the WORLD row's dominance combo is a
+  real feature, the influence-help tooltips are CONTROL-only), so the divergence
+  is **left in place and noted** — not forced into one parameterised monster.
+  - **Extracted only the shared, UX-neutral piece:** `presence_candidates(world,
+    factions) -> PresenceCandidates::{NoFactions, AllPresent, Available(Vec<&…>)}`
+    in the E14-seeded `panels/presence_widgets.rs`. It folds the byte-identical
+    candidate computation (filter the faction list down to those not already
+    present on the world); each caller maps the three variants to its **own**
+    placeholder strings and renders its **own** picker. `claim_chip_colours`
+    (E14) already covers the chip-colour half of the finding.
+  - **Behaviour-identical:** same filter source/order; the returned `Vec` borrows
+    the caller's `factions` (not `state`), so the later `state.edit_world` mutable
+    borrow is unaffected — same shape as before. No `BTreeSet`/`WorldId`/`FactionId`
+    import went unused (all have other live uses; clippy `-D warnings` confirms).
+  - **Verification:** `cargo check -p sectorforge-builder --all-targets` clean;
+    `cargo clippy --workspace --all-targets -- -D warnings` clean; builder lib
+    **319/319**. Builder-only — no `sectorforge`/`gui-core` source touched, so
+    golden + map snapshots are unaffected (not run). MAP.md presence_widgets row
+    updated; AREA_E E5 marked Resolved.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

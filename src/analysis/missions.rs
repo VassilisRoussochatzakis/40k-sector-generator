@@ -194,7 +194,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &MissionsConfig) -> MissionsRe
         emit_route_missions(sector, r, &by_sys, &mut out);
     }
 
-    cap_per_anchor(&mut out, cfg.max_per_anchor);
+    crate::analysis::cap_per_anchor(&mut out, cfg.max_per_anchor);
     if cfg.player_edition {
         out.retain(|m| !m.gm_only);
     }
@@ -217,18 +217,16 @@ fn anchor_key(m: &MissionSeed) -> String {
     format!("{}:{}:{}:{:?}", m.primary_location, sec, route_part, m.kind)
 }
 
-fn cap_per_anchor(missions: &mut Vec<MissionSeed>, cap: u32) {
-    let mut counts: BTreeMap<String, u32> = BTreeMap::new();
-    missions.sort_by(|a, b| b.weight.cmp(&a.weight).then_with(|| a.id.cmp(&b.id)));
-    missions.retain(|m| {
-        let entry = counts.entry(anchor_key(m)).or_insert(0);
-        if *entry < cap {
-            *entry += 1;
-            true
-        } else {
-            false
-        }
-    });
+impl crate::analysis::WeightedAnchored for MissionSeed {
+    fn weight(&self) -> u32 {
+        self.weight
+    }
+    fn id(&self) -> &str {
+        self.id.as_str()
+    }
+    fn anchor_key(&self) -> String {
+        anchor_key(self)
+    }
 }
 
 // ── World-level missions ───────────────────────────────────────────────────────

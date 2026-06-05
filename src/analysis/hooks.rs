@@ -183,7 +183,7 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HooksConfig) -> HooksReport {
     }
 
     // Dedupe by id and apply max_per_anchor cap.
-    cap_per_anchor(&mut out, cfg.max_per_anchor);
+    crate::analysis::cap_per_anchor(&mut out, cfg.max_per_anchor);
     out.sort_by(|a, b| b.weight.cmp(&a.weight).then_with(|| a.id.cmp(&b.id)));
 
     if cfg.hide_hidden_hooks {
@@ -197,26 +197,23 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &HooksConfig) -> HooksReport {
     }
 }
 
-fn cap_per_anchor(hooks: &mut Vec<Hook>, cap: u32) {
-    let mut counts: BTreeMap<String, u32> = BTreeMap::new();
-    hooks.sort_by(|a, b| b.weight.cmp(&a.weight).then_with(|| a.id.cmp(&b.id)));
-    hooks.retain(|h| {
-        let key = match &h.anchor {
+impl crate::analysis::WeightedAnchored for Hook {
+    fn weight(&self) -> u32 {
+        self.weight
+    }
+    fn id(&self) -> &str {
+        self.id.as_str()
+    }
+    fn anchor_key(&self) -> String {
+        match &self.anchor {
             HookAnchor::System { system_id } => format!("s:{system_id}"),
             HookAnchor::World {
                 system_id,
                 world_id,
             } => format!("w:{system_id}:{world_id}"),
             HookAnchor::Route { route_id } => format!("r:{route_id}"),
-        };
-        let entry = counts.entry(key).or_insert(0);
-        if *entry < cap {
-            *entry += 1;
-            true
-        } else {
-            false
         }
-    });
+    }
 }
 
 // ── Economy hooks (§12 NEW.md) ─────────────────────────────────────────────────

@@ -659,9 +659,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
                 |ui| {
                     changed |= manual_site_editor(ui, idx, s, &faction_ids, &world_choices);
                     if ui
-                        .button(
-                            RichText::new("🗑  Delete site").color(palette::danger()),
-                        )
+                        .button(RichText::new("🗑  Delete site").color(palette::danger()))
                         .on_hover_text("Remove this hand-added site")
                         .clicked()
                     {

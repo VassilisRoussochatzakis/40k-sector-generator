@@ -1885,9 +1885,17 @@ showcase-quality tier on top of §UO; playbook in [BEAUTY.md](BEAUTY.md)).
   returns the plate's click `Response`. Same `&mut Ui` + plain-data,
   no-`BuilderState` contract as `ui_kit` / `nav`. It now hosts **every** roster rail —
   Factions, World, System, Routes, Sites, Subsectors, Personae, Hooks, Missions,
-  Search, Validation, Invariants — *and* the left **nav-rail** tab entries (so the
-  active tab reads as a lit brass-barred plate, not a flat fill), one consistent
-  selection vocabulary across the whole app. Each meaning-carrying decoration is
+  Search, Validation, Invariants — one consistent selection vocabulary across the
+  whole app. The left **nav-rail** tab entries instead use the sibling
+  `card::selectable_void_plate(…)`: the active tab reads as a **"cold void of
+  space"** plate — a deep, near-black indigo fill (`design::VOID_TOP` /
+  `VOID_BOTTOM`) strewn with a deterministically-placed, softly-twinkling starfield
+  and ringed by a cool `design::STARLIGHT` hairline — rather than the roster rails'
+  brass accent bar/border. The two share `plate_with` (one row/animation/hit-test
+  body; only the backdrop `paint` fn differs), so the §BEAUTY "dead-centre tab" fix
+  and hover lift are identical; the starfield is presentation-only (a local
+  SplitMix64 hash, throttled repaint — *not* the stage RNG, no golden coverage).
+  Each meaning-carrying decoration is
   preserved, just re-hosted in the plate: the faction swatch, the route- and
   validation/invariant-severity dots, the search winner's green, the per-row count
   badges, and the two-line title+sub-label rows (wrapped in a `ui.vertical`).

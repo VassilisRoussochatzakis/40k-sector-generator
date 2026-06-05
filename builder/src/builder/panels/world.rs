@@ -568,7 +568,11 @@ fn show_features_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                             Some(w) => format!("{display}  (weight {w:.2})"),
                             None => format!("{display}  (–)"),
                         };
-                        if ui.button(label).on_hover_text(format!("id: {key}")).clicked() {
+                        if ui
+                            .button(label)
+                            .on_hover_text(format!("id: {key}"))
+                            .clicked()
+                        {
                             add = Some(Arc::from(key.as_str()));
                         }
                     }
@@ -1297,11 +1301,17 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w
 // ── overlays read-only ─────────────────────────────────────────────────────
 
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usize) {
-    ui_kit::collapsing_section(ui, "world_overlays", "Map overlays (summary)", false, |ui| {
-        let w = &state.sector.systems[sys_idx].worlds[w_idx];
-        let conflict_default = sectorforge::conflict::ConflictState::is_default(&w.conflict);
-        let stability_default = sectorforge::stability::StabilityState::is_default(&w.stability);
-        labeled(
+    ui_kit::collapsing_section(
+        ui,
+        "world_overlays",
+        "Map overlays (summary)",
+        false,
+        |ui| {
+            let w = &state.sector.systems[sys_idx].worlds[w_idx];
+            let conflict_default = sectorforge::conflict::ConflictState::is_default(&w.conflict);
+            let stability_default =
+                sectorforge::stability::StabilityState::is_default(&w.stability);
+            labeled(
             ui,
             "Surface regions",
             "Number of mapped surface regions on this world (schema: regions). Edit them in the section below.",
@@ -1309,31 +1319,32 @@ fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, 
                 ui.label(w.regions.len().to_string());
             },
         );
-        labeled(
-            ui,
-            "Conflict",
-            "Whether this world carries custom conflict data (schema: conflict).",
-            |ui| {
-                ui.label(if conflict_default {
-                    "none set (default)"
-                } else {
-                    "customised"
-                });
-            },
-        );
-        labeled(
-            ui,
-            "Stability",
-            "Whether this world carries custom stability data (schema: stability).",
-            |ui| {
-                ui.label(if stability_default {
-                    "none set (default)"
-                } else {
-                    "customised"
-                });
-            },
-        );
-    });
+            labeled(
+                ui,
+                "Conflict",
+                "Whether this world carries custom conflict data (schema: conflict).",
+                |ui| {
+                    ui.label(if conflict_default {
+                        "none set (default)"
+                    } else {
+                        "customised"
+                    });
+                },
+            );
+            labeled(
+                ui,
+                "Stability",
+                "Whether this world carries custom stability data (schema: stability).",
+                |ui| {
+                    ui.label(if stability_default {
+                        "none set (default)"
+                    } else {
+                        "customised"
+                    });
+                },
+            );
+        },
+    );
 }
 
 // ── §H8 chronicle snippets ─────────────────────────────────────────────────
@@ -1418,8 +1429,11 @@ fn show_regen_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_i
         }
         ui.label("Randomly redraws star colour, type, atmosphere, temperature, biosphere, population, tech, government and features from your current data tables.");
         ui.label(
-            RichText::new(format!("re-rolls this session: {}", state.world_reroll_counter))
-                .color(Color32::DARK_GRAY),
+            RichText::new(format!(
+                "re-rolls this session: {}",
+                state.world_reroll_counter
+            ))
+            .color(Color32::DARK_GRAY),
         );
         if ui
             .button("🔄 Re-roll this world")

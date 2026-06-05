@@ -73,23 +73,30 @@ pub fn show(ui: &mut Ui, state: &mut BuilderState, workspace: Option<&mut Builde
 
 fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
     let mut changed = false;
-    ui_kit::collapsing_section(ui, "gen_parameters", "How the sector is built", true, |ui| {
-        ui.label(
-            RichText::new("These settings drive the generator. Edit one and the live preview re-rolls.")
+    ui_kit::collapsing_section(
+        ui,
+        "gen_parameters",
+        "How the sector is built",
+        true,
+        |ui| {
+            ui.label(
+                RichText::new(
+                    "These settings drive the generator. Edit one and the live preview re-rolls.",
+                )
                 .color(palette::chrome_text_dim()),
-        );
-        ui.separator();
-        // Square-sector invariant: highlight it right where the grid dims
-        // are edited so it is unmissable in the generator UI.
-        ui.colored_label(
-            palette::warning(),
-            "◧ Sectors are always square — width and height stay locked equal.",
-        );
-        ui.add_space(2.0);
-        let gen = &mut state.config.generation;
+            );
+            ui.separator();
+            // Square-sector invariant: highlight it right where the grid dims
+            // are edited so it is unmissable in the generator UI.
+            ui.colored_label(
+                palette::warning(),
+                "◧ Sectors are always square — width and height stay locked equal.",
+            );
+            ui.add_space(2.0);
+            let gen = &mut state.config.generation;
 
-        subhead(ui, "Basics");
-        labeled(
+            subhead(ui, "Basics");
+            labeled(
             ui,
             "Seed",
             "Random seed for this sector (schema: seed). Same seed + same settings = the same sector every time.",
@@ -97,9 +104,9 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 changed |= ui.text_edit_singleline(&mut gen.seed).changed();
             },
         );
-        // Sectors must be square: mirror either edit into the other dimension
-        // so they stay locked equal. Two rows, one shared invariant note.
-        labeled(
+            // Sectors must be square: mirror either edit into the other dimension
+            // so they stay locked equal. Two rows, one shared invariant note.
+            labeled(
             ui,
             "Sector width",
             "Sector width in hexes (schema: sector_width). Locked equal to height — sectors are always square.",
@@ -113,7 +120,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 }
             },
         );
-        labeled(
+            labeled(
             ui,
             "Sector height",
             "Sector height in hexes (schema: sector_height). Locked equal to width — sectors are always square.",
@@ -127,7 +134,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 }
             },
         );
-        labeled(
+            labeled(
             ui,
             "Subsector width",
             "Width of each subsector block in hexes (schema: subsector_width). 0 leaves it automatic.",
@@ -142,7 +149,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 }
             },
         );
-        labeled(
+            labeled(
             ui,
             "Subsector height",
             "Height of each subsector block in hexes (schema: subsector_height). 0 leaves it automatic.",
@@ -157,47 +164,47 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 }
             },
         );
-        labeled(
-            ui,
-            "Star systems",
-            "How many star systems to place (schema: system_count).",
-            |ui| {
-                changed |= ui
-                    .add(egui::DragValue::new(&mut gen.system_count).range(0..=2000))
-                    .changed();
-            },
-        );
-        labeled(
-            ui,
-            "Min worlds / system",
-            "Fewest worlds any system may hold (schema: min_worlds_per_system).",
-            |ui| {
-                changed |= ui
-                    .add(egui::DragValue::new(&mut gen.min_worlds_per_system).range(0..=20))
-                    .changed();
-            },
-        );
-        labeled(
-            ui,
-            "Max worlds / system",
-            "Most worlds any system may hold (schema: max_worlds_per_system).",
-            |ui| {
-                changed |= ui
-                    .add(egui::DragValue::new(&mut gen.max_worlds_per_system).range(0..=20))
-                    .changed();
-            },
-        );
-        labeled(
-            ui,
-            "Features / world",
-            "How many notable features each world may gain (schema: world_feature_count).",
-            |ui| {
-                changed |= ui
-                    .add(egui::DragValue::new(&mut gen.world_feature_count).range(0..=10))
-                    .changed();
-            },
-        );
-        labeled(
+            labeled(
+                ui,
+                "Star systems",
+                "How many star systems to place (schema: system_count).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut gen.system_count).range(0..=2000))
+                        .changed();
+                },
+            );
+            labeled(
+                ui,
+                "Min worlds / system",
+                "Fewest worlds any system may hold (schema: min_worlds_per_system).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut gen.min_worlds_per_system).range(0..=20))
+                        .changed();
+                },
+            );
+            labeled(
+                ui,
+                "Max worlds / system",
+                "Most worlds any system may hold (schema: max_worlds_per_system).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut gen.max_worlds_per_system).range(0..=20))
+                        .changed();
+                },
+            );
+            labeled(
+                ui,
+                "Features / world",
+                "How many notable features each world may gain (schema: world_feature_count).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut gen.world_feature_count).range(0..=10))
+                        .changed();
+                },
+            );
+            labeled(
             ui,
             "Allow empty hexes",
             "Let some hexes stay starless instead of forcing a system everywhere (schema: allow_empty_hexes).",
@@ -205,7 +212,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                 changed |= ui.checkbox(&mut gen.allow_empty_hexes, "").changed();
             },
         );
-        labeled(
+            labeled(
             ui,
             "Strict world rows",
             "Require fully-filled world rows when building systems (schema: strict_world_rows).",
@@ -214,27 +221,27 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
             },
         );
 
-        subhead(ui, "Where systems go");
-        labeled(
-            ui,
-            "Placement style",
-            "How systems are spread across the grid (schema: placement.mode).",
-            |ui| changed |= placement_mode_combo(ui, &mut gen.placement.mode),
-        );
-        labeled(
-            ui,
-            "Clustering",
-            "Higher = systems clump into denser pockets (schema: placement.cluster_bias).",
-            |ui| {
-                changed |= ui
-                    .add(egui::Slider::new(
-                        &mut gen.placement.cluster_bias,
-                        0.0..=1.0,
-                    ))
-                    .changed();
-            },
-        );
-        labeled(
+            subhead(ui, "Where systems go");
+            labeled(
+                ui,
+                "Placement style",
+                "How systems are spread across the grid (schema: placement.mode).",
+                |ui| changed |= placement_mode_combo(ui, &mut gen.placement.mode),
+            );
+            labeled(
+                ui,
+                "Clustering",
+                "Higher = systems clump into denser pockets (schema: placement.cluster_bias).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::Slider::new(
+                            &mut gen.placement.cluster_bias,
+                            0.0..=1.0,
+                        ))
+                        .changed();
+                },
+            );
+            labeled(
             ui,
             "Min system spacing",
             "Smallest gap allowed between two systems, in hexes (schema: placement.minimum_system_distance).",
@@ -248,14 +255,14 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
             },
         );
 
-        subhead(ui, "Worlds in each system");
-        labeled(
-            ui,
-            "Selection style",
-            "How worlds are chosen for each system (schema: world_selection.mode).",
-            |ui| changed |= world_selection_mode_combo(ui, &gen.world_selection.mode),
-        );
-        labeled(
+            subhead(ui, "Worlds in each system");
+            labeled(
+                ui,
+                "Selection style",
+                "How worlds are chosen for each system (schema: world_selection.mode).",
+                |ui| changed |= world_selection_mode_combo(ui, &gen.world_selection.mode),
+            );
+            labeled(
             ui,
             "Require full rows",
             "Only build a world row when it can be fully populated (schema: world_selection.require_complete_rows).",
@@ -265,17 +272,17 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                     .changed();
             },
         );
-        labeled(
-            ui,
-            "Allow partial rows",
-            "Permit half-filled world rows (schema: world_selection.allow_partial_rows).",
-            |ui| {
-                changed |= ui
-                    .checkbox(&mut gen.world_selection.allow_partial_rows, "")
-                    .changed();
-            },
-        );
-        labeled(
+            labeled(
+                ui,
+                "Allow partial rows",
+                "Permit half-filled world rows (schema: world_selection.allow_partial_rows).",
+                |ui| {
+                    changed |= ui
+                        .checkbox(&mut gen.world_selection.allow_partial_rows, "")
+                        .changed();
+                },
+            );
+            labeled(
             ui,
             "Same star-colour bias",
             "Higher = worlds in a system lean toward one star colour (schema: world_selection.same_star_colour_bias).",
@@ -288,7 +295,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                     .changed();
             },
         );
-        labeled(
+            labeled(
             ui,
             "Strict star colour",
             "Force every world in a system to share one star colour (schema: world_selection.strict_same_star_colour).",
@@ -298,7 +305,7 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                     .changed();
             },
         );
-        labeled(
+            labeled(
             ui,
             "Avoid duplicate types",
             "Try not to repeat a world type within the same system (schema: world_selection.avoid_duplicate_world_type_in_system).",
@@ -312,36 +319,36 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
             },
         );
 
-        subhead(ui, "Warp routes");
-        labeled(
-            ui,
-            "Generate routes",
-            "Draw warp routes between systems (schema: routes.enabled).",
-            |ui| {
-                changed |= ui.checkbox(&mut gen.routes.enabled, "").changed();
-            },
-        );
-        labeled(
-            ui,
-            "Max route length",
-            "Longest a single route may span, in hexes (schema: routes.max_route_distance).",
-            |ui| {
-                changed |= ui
-                    .add(egui::DragValue::new(&mut gen.routes.max_route_distance).range(1..=16))
-                    .changed();
-            },
-        );
-        labeled(
-            ui,
-            "Route density",
-            "Higher = more routes drawn between systems (schema: routes.route_density).",
-            |ui| {
-                changed |= ui
-                    .add(egui::Slider::new(&mut gen.routes.route_density, 0.0..=1.0))
-                    .changed();
-            },
-        );
-        labeled(
+            subhead(ui, "Warp routes");
+            labeled(
+                ui,
+                "Generate routes",
+                "Draw warp routes between systems (schema: routes.enabled).",
+                |ui| {
+                    changed |= ui.checkbox(&mut gen.routes.enabled, "").changed();
+                },
+            );
+            labeled(
+                ui,
+                "Max route length",
+                "Longest a single route may span, in hexes (schema: routes.max_route_distance).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut gen.routes.max_route_distance).range(1..=16))
+                        .changed();
+                },
+            );
+            labeled(
+                ui,
+                "Route density",
+                "Higher = more routes drawn between systems (schema: routes.route_density).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::Slider::new(&mut gen.routes.route_density, 0.0..=1.0))
+                        .changed();
+                },
+            );
+            labeled(
             ui,
             "Connect everything",
             "Guarantee every system is reachable by warp route (schema: routes.ensure_connected_graph).",
@@ -352,8 +359,8 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
             },
         );
 
-        subhead(ui, "Faction relations");
-        labeled(
+            subhead(ui, "Faction relations");
+            labeled(
             ui,
             "Min world presence",
             "Fewest worlds a faction needs before it counts as present (schema: relations.min_world_presence).",
@@ -363,7 +370,8 @@ fn show_g1_parameters(ui: &mut Ui, state: &mut BuilderState) {
                     .changed();
             },
         );
-    });
+        },
+    );
 
     if changed {
         let now = ui.ctx().input(|i| i.time);
@@ -415,11 +423,10 @@ fn world_selection_mode_combo(ui: &mut Ui, mode: &WorldSelectionMode) -> bool {
     // so a single label is correct until a second variant lands (then this becomes
     // a real combo again).
     let label = "Weighted rows";
-    ui.label(label)
-        .on_hover_text(format!(
-            "Only one world-selection style exists today (key: {}).",
-            mode.as_slug()
-        ));
+    ui.label(label).on_hover_text(format!(
+        "Only one world-selection style exists today (key: {}).",
+        mode.as_slug()
+    ));
     false
 }
 
@@ -429,7 +436,9 @@ fn show_g2_seed_lock(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::collapsing_section(ui, "gen_seed", "Seed control", true, |ui| {
         ui.horizontal(|ui| {
             ui.checkbox(&mut state.seed_locked, "Lock seed")
-                .on_hover_text("When locked, re-rolling keeps the same seed so the sector stays put.");
+                .on_hover_text(
+                    "When locked, re-rolling keeps the same seed so the sector stays put.",
+                );
             if state.seed_locked {
                 ui_kit::placeholder(ui, "locked — re-roll keeps this seed");
             } else {
@@ -632,7 +641,9 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 if ui
                     .button("🔄  Rebuild these hexes")
-                    .on_hover_text("Regenerate only the systems inside the box; pinned systems are skipped")
+                    .on_hover_text(
+                        "Regenerate only the systems inside the box; pinned systems are skipped",
+                    )
                     .clicked()
                 {
                     match state.regenerate_partial() {
@@ -640,10 +651,7 @@ fn show_g5_partial_regen(ui: &mut Ui, state: &mut BuilderState) {
                             ui.label(format!("Rebuilt {n} system(s) (pinned skipped)."));
                         }
                         Err(e) => {
-                            ui.colored_label(
-                                palette::danger(),
-                                format!("Couldn't rebuild: {e}"),
-                            );
+                            ui.colored_label(palette::danger(), format!("Couldn't rebuild: {e}"));
                         }
                     }
                 }

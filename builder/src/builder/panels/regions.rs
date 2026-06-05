@@ -128,7 +128,10 @@ fn selected_region_index(state: &mut BuilderState) -> Option<usize> {
 
 fn show_invariants(ui: &mut Ui, state: &BuilderState) {
     let Some(report) = state.invariant_report.as_ref() else {
-        ui_kit::placeholder(ui, "Checks haven't run yet — edit a region to see warnings here.");
+        ui_kit::placeholder(
+            ui,
+            "Checks haven't run yet — edit a region to see warnings here.",
+        );
         return;
     };
     let codes = [
@@ -489,10 +492,7 @@ fn show_route_effects(ui: &mut Ui, state: &mut BuilderState) {
             ui.label(format!("{} route(s) total", state.sector.routes.len()));
             ui.label(format!("· {affected} affected"));
             ui.colored_label(palette::danger(), format!("→ perilous: {perilous}"));
-            ui.colored_label(
-                palette::warning(),
-                format!("↓ worse: {degrade}"),
-            );
+            ui.colored_label(palette::warning(), format!("↓ worse: {degrade}"));
             ui.colored_label(palette::success(), format!("↑ better: {upgrade}"));
         });
         ui.horizontal(|ui| {

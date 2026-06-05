@@ -169,15 +169,19 @@ pub fn show_nav_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
                             ui.set_min_width(item_w);
                             for tab in *tabs {
                                 let selected = state.active_tab == *tab;
-                                // §BEAUTY — route nav entries through the same animated
-                                // selectable plate the roster rails use, so the active
-                                // tab reads as a lit brass-barred plate (with a hover
-                                // wash + soft accent glow) rather than a flat fill, one
-                                // consistent vocabulary across the whole app.
-                                let (resp, _) =
-                                    card::selectable_plate(ui, ("nav_tab", *tab), selected, |ui| {
+                                // §BEAUTY — the active tab reads as a "cold void of
+                                // space" plate: a deep, near-black starfield that softly
+                                // twinkles, ringed by a cool starlight hairline, instead
+                                // of the brass-barred accent the roster rails use. Hover
+                                // still lifts, so unselected tabs respond to the pointer.
+                                let (resp, _) = card::selectable_void_plate(
+                                    ui,
+                                    ("nav_tab", *tab),
+                                    selected,
+                                    |ui| {
                                         ui.label(tab.label());
-                                    });
+                                    },
+                                );
                                 if resp.clicked() {
                                     state.set_active_tab(*tab);
                                 }
@@ -369,7 +373,9 @@ mod tests {
                 ..Default::default()
             };
             let _ = ctx.run(ri(vec![]), |ctx| frame(ctx, &mut state));
-            let _ = ctx.run(ri(vec![egui::Event::PointerMoved(pos)]), |ctx| frame(ctx, &mut state));
+            let _ = ctx.run(ri(vec![egui::Event::PointerMoved(pos)]), |ctx| {
+                frame(ctx, &mut state)
+            });
             let _ = ctx.run(ri(vec![btn(pos, true)]), |ctx| frame(ctx, &mut state));
             let _ = ctx.run(ri(vec![btn(pos, false)]), |ctx| frame(ctx, &mut state));
             if state.active_tab != BuilderTab::Invariants {

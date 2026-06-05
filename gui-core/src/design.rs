@@ -225,6 +225,22 @@ pub fn accent_glow(ui: &Ui, alpha: u8) -> Color32 {
     Color32::from_rgba_unmultiplied(a.r(), a.g(), a.b(), alpha)
 }
 
+// ── void plate — the nav rail's "cold void of space" selection backdrop ───────
+//
+// A *form* token (like the accent ramp / elevation): the fixed deep-space fill +
+// starlight the nav void-plate paints for its selected tab (see
+// `card::selectable_void_plate`). Deliberately theme-independent — the void reads
+// as the void under every preset — and carries no semantic meaning, so it stays
+// here rather than in `palette`.
+
+/// Deep indigo — the lit top edge of the nav void-plate's faux gradient.
+pub const VOID_TOP: Color32 = Color32::from_rgb(22, 26, 48);
+/// Near-black blue — the bottom of the nav void-plate's faux gradient.
+pub const VOID_BOTTOM: Color32 = Color32::from_rgb(7, 8, 18);
+/// Cool starlight — the nav void-plate's stars and hairline border (cold
+/// white-blue, never the warm accent).
+pub const STARLIGHT: Color32 = Color32::from_rgb(198, 214, 255);
+
 // ── gradients — egui has no gradient-fill primitive (BEAUTY.md §5.6) ──────────
 
 /// Paint `rect` with a vertical two-stop gradient (`top` → `bottom`) as a single

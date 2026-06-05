@@ -341,8 +341,13 @@ fn sg_config_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFi
 }
 
 fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::SegmentumFile) {
-    ui_kit::collapsing_section(ui, "sg_stitch_policy", "Stitching rules (§SG1)", false, |ui| {
-        labeled(
+    ui_kit::collapsing_section(
+        ui,
+        "sg_stitch_policy",
+        "Stitching rules (§SG1)",
+        false,
+        |ui| {
+            labeled(
             ui,
             "Max links per pair",
             "Most warp links to create between any two neighbouring child sectors (schema: max_links_per_pair).",
@@ -350,7 +355,7 @@ fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::Segm
                 ui.add(egui::DragValue::new(&mut file.stitch.max_links_per_pair).range(0..=16));
             },
         );
-        labeled(
+            labeled(
             ui,
             "Border depth",
             "How far in from the shared edge a system can sit and still be linked (schema: border_depth). Larger = more candidate systems.",
@@ -358,7 +363,7 @@ fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::Segm
                 ui.add(egui::DragValue::new(&mut file.stitch.border_depth).range(1..=16));
             },
         );
-        labeled(
+            labeled(
             ui,
             "Default route type",
             "Route type stamped on each generated inter-sector link (schema: default_route_type).",
@@ -370,7 +375,7 @@ fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::Segm
                 )
             },
         );
-        labeled(
+            labeled(
             ui,
             "Default stability",
             "How safe each generated inter-sector link is by default (schema: default_stability).",
@@ -382,7 +387,8 @@ fn sg_stitch_policy_section(ui: &mut Ui, file: &mut sectorforge::segmentum::Segm
                 )
             },
         );
-    });
+        },
+    );
 }
 
 fn sg_children_section(
@@ -586,7 +592,10 @@ fn compose_controls(ui: &mut Ui, state: &mut BuilderState) {
             );
         }
         None => {
-            ui.colored_label(palette::warning(), "Pick an output folder before composing.");
+            ui.colored_label(
+                palette::warning(),
+                "Pick an output folder before composing.",
+            );
         }
     }
 
@@ -604,7 +613,9 @@ fn compose_controls(ui: &mut Ui, state: &mut BuilderState) {
         if ui
             .add_enabled_ui(can_compose, |ui| widgets::primary_button(ui, "▶  Compose"))
             .inner
-            .on_hover_text("Load, generate, validate, and stitch every child sector into one segmentum")
+            .on_hover_text(
+                "Load, generate, validate, and stitch every child sector into one segmentum",
+            )
             .clicked()
         {
             compose_clicked = true;
@@ -619,7 +630,10 @@ fn compose_controls(ui: &mut Ui, state: &mut BuilderState) {
         }
     });
     if child_count == 0 {
-        ui.colored_label(palette::warning(), "Add at least one child before composing.");
+        ui.colored_label(
+            palette::warning(),
+            "Add at least one child before composing.",
+        );
     }
 
     // §SG2: live per-child progress while a worker is in flight.
@@ -991,7 +1005,10 @@ fn reexport_controls(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("Export composed segmentum (§SG5)");
     let has_dir = state.segmentum.output_dir.is_some();
     if !has_dir {
-        ui.colored_label(palette::warning(), "Pick an output folder (above) to re-export.");
+        ui.colored_label(
+            palette::warning(),
+            "Pick an output folder (above) to re-export.",
+        );
     }
     if ui
         .add_enabled(

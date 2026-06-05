@@ -339,7 +339,8 @@ fn show_view_editor(
             ui.label(sus.faction_id.to_string())
                 .on_hover_text("Suspected faction (schema: faction_id).");
             ui.separator();
-            ui.label("via").on_hover_text("How they learned of it (schema: source).");
+            ui.label("via")
+                .on_hover_text("How they learned of it (schema: source).");
             dirty |= source_combo(
                 ui,
                 &format!("{id_salt}_{observer}_src_{i}"),
@@ -383,7 +384,11 @@ fn show_view_editor(
             any = true;
             if ui
                 .small_button(format!("+{name}"))
-                .on_hover_text(format!("Mark {} as suspected here ({}).", name, fid.as_str()))
+                .on_hover_text(format!(
+                    "Mark {} as suspected here ({}).",
+                    name,
+                    fid.as_str()
+                ))
                 .clicked()
             {
                 view.suspected_presences.push(SuspectedPresence {
@@ -416,7 +421,11 @@ fn show_add_observer_row(
             }
             if ui
                 .small_button(format!("+{name}"))
-                .on_hover_text(format!("Start tracking what {} knows ({}).", name, fid.as_str()))
+                .on_hover_text(format!(
+                    "Start tracking what {} knows ({}).",
+                    name,
+                    fid.as_str()
+                ))
                 .clicked()
             {
                 intel
@@ -444,7 +453,9 @@ fn show_add_observer_row(
         }
         if ui
             .small_button("➕  Add")
-            .on_hover_text("Track an observer that isn't in the faction roster (e.g. an outside power).")
+            .on_hover_text(
+                "Track an observer that isn't in the faction roster (e.g. an outside power).",
+            )
             .clicked()
         {
             let key = text.trim();
@@ -612,7 +623,10 @@ fn show_world_redaction_preview(
     }
     let kept = sectorforge::intel::redact_world_for_observer(world, observer_str, cutoff);
     if kept.is_empty() {
-        ui_kit::placeholder(ui, "Nothing visible at this cutoff — all presences are hidden.");
+        ui_kit::placeholder(
+            ui,
+            "Nothing visible at this cutoff — all presences are hidden.",
+        );
         return;
     }
     for p in kept {

@@ -87,7 +87,10 @@ fn show_tool_rail(ui: &mut egui::Ui, state: &mut BuilderState) {
                 ui.add(egui::Slider::new(&mut state.hex_size, 12.0..=64.0).text("hex"));
             });
             if !state.selected_systems.is_empty() {
-                ui.label(format!("Selected: {} system(s)", state.selected_systems.len()));
+                ui.label(format!(
+                    "Selected: {} system(s)",
+                    state.selected_systems.len()
+                ));
             }
             if let Some(id) = &state.selected_system_id {
                 ui.label(format!("Focused: {id}"));

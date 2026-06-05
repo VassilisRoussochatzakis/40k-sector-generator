@@ -21,10 +21,7 @@ use crate::builder::BuilderState;
 pub fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
     ui.heading("PROJECT");
     let Some(root) = state.project_path.clone() else {
-        ui_kit::placeholder(
-            ui,
-            "No project open — create or open one to see its files.",
-        );
+        ui_kit::placeholder(ui, "No project open — create or open one to see its files.");
         return;
     };
     ui.label(RichText::new(root.as_str()).monospace());

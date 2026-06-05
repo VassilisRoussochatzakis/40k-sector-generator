@@ -179,7 +179,10 @@ fn show_theme_picker(ui: &mut Ui, state: &mut BuilderState) {
                     }
                 }
             });
-        ui.colored_label(Color32::DARK_GRAY, "Applies to the live map and PNG/SVG export.");
+        ui.colored_label(
+            Color32::DARK_GRAY,
+            "Applies to the live map and PNG/SVG export.",
+        );
     });
 }
 

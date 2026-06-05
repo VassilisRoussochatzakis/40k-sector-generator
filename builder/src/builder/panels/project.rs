@@ -270,7 +270,10 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
     }
     ui.separator();
     if state.snapshots.is_empty() {
-        ui_kit::placeholder(ui, "No snapshots yet — click Take snapshot to save a restore point.");
+        ui_kit::placeholder(
+            ui,
+            "No snapshots yet — click Take snapshot to save a restore point.",
+        );
         return;
     }
     let names: Vec<String> = state.snapshots.iter().map(|s| s.name.clone()).collect();

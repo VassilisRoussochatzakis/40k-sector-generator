@@ -683,9 +683,7 @@ fn show_kind_pools_section(ui: &mut Ui, state: &mut BuilderState) {
             let pools = cfg.kinds.entry(kind.clone()).or_default();
             changed |= pool_editor(ui, kind, pools);
             if ui
-                .button(
-                    RichText::new("↺  Reset to defaults").color(palette::warning()),
-                )
+                .button(RichText::new("↺  Reset to defaults").color(palette::warning()))
                 .on_hover_text(
                     "Clear this type's pools and fall back to the built-in names & titles",
                 )

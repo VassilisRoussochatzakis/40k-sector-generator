@@ -192,10 +192,7 @@ fn dimension_label(field: &str) -> (&'static str, &'static str) {
             "Orbital",
             "Void / orbital control above the world (schema: orbital).",
         ),
-        "economic" => (
-            "Economic",
-            "Trade and commercial reach (schema: economic).",
-        ),
+        "economic" => ("Economic", "Trade and commercial reach (schema: economic)."),
         "industrial" => (
             "Industrial",
             "Forge / manufactory output (schema: industrial).",
@@ -313,8 +310,12 @@ fn show_overlay_toggles(ui: &mut Ui, state: &mut BuilderState) {
 fn overlay_help(mode: ControlOverlay) -> &'static str {
     match mode {
         ControlOverlay::None => "No tint — show the normal map.",
-        ControlOverlay::PowerProjection => "Tint each system by who can project the most reach into it.",
-        ControlOverlay::InfluenceField => "Tint each cell by the faction whose influence-field dominates it.",
+        ControlOverlay::PowerProjection => {
+            "Tint each system by who can project the most reach into it."
+        }
+        ControlOverlay::InfluenceField => {
+            "Tint each cell by the faction whose influence-field dominates it."
+        }
         ControlOverlay::Administrative => "Tint by the top administrative presence per system.",
         ControlOverlay::Military => "Tint by the top military presence per system.",
         ControlOverlay::Orbital => "Tint by the top orbital presence per system.",
@@ -324,7 +325,9 @@ fn overlay_help(mode: ControlOverlay) -> &'static str {
         ControlOverlay::Logistical => "Tint by the top logistics / supply presence per system.",
         ControlOverlay::Informational => "Tint by the top covert / intel presence per system.",
         ControlOverlay::Religious => "Tint by the top ideological / faith presence per system.",
-        ControlOverlay::Sympathetic => "Tint by the strongest sympathetic / legitimacy presence per system.",
+        ControlOverlay::Sympathetic => {
+            "Tint by the strongest sympathetic / legitimacy presence per system."
+        }
     }
 }
 
@@ -1111,8 +1114,7 @@ fn show_bulk_convert(ui: &mut Ui, state: &mut BuilderState) {
             let matches = count_bulk_matches(state, &buf.faction, buf.from);
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new(format!("{matches} matching claim(s)"))
-                        .color(Color32::DARK_GRAY),
+                    RichText::new(format!("{matches} matching claim(s)")).color(Color32::DARK_GRAY),
                 );
                 let same = buf.from == buf.to;
                 let disabled = matches == 0 || same;
@@ -1345,12 +1347,13 @@ fn show_world_row(
                                 claim_label(c.claim_type),
                                 c.strength
                             );
-                            ui.label(RichText::new(label).color(fg)).on_hover_text(format!(
-                                "{} · strength {} (schema: {})",
-                                c.faction_id,
-                                c.strength,
-                                c.claim_type.as_slug()
-                            ));
+                            ui.label(RichText::new(label).color(fg))
+                                .on_hover_text(format!(
+                                    "{} · strength {} (schema: {})",
+                                    c.faction_id,
+                                    c.strength,
+                                    c.claim_type.as_slug()
+                                ));
                             if ui
                                 .small_button("×")
                                 .on_hover_text("Remove this claim")

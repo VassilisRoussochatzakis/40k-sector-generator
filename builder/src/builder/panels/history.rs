@@ -593,10 +593,14 @@ fn show_events_editor(ui: &mut Ui, state: &mut BuilderState) {
                             ui.label(format!("{}", ev.weight));
                             if ev.manual {
                                 ui.colored_label(palette::success(), "hand-added")
-                                    .on_hover_text("You added or edited this event; it survives regeneration.");
+                                    .on_hover_text(
+                                        "You added or edited this event; it survives regeneration.",
+                                    );
                             } else {
                                 ui.colored_label(Color32::DARK_GRAY, "generated")
-                                    .on_hover_text("Produced by Regenerate chronicle; may change on the next run.");
+                                    .on_hover_text(
+                                    "Produced by Regenerate chronicle; may change on the next run.",
+                                );
                             }
                             if ui
                                 .button("✏  Edit")
@@ -801,10 +805,7 @@ fn show_selected_event_inspector(ui: &mut Ui, state: &mut BuilderState) {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new(format!("[{ci}]")).monospace());
                 changed |= ui
-                    .add(
-                        egui::TextEdit::singleline(&mut c.description)
-                            .hint_text("what changed"),
-                    )
+                    .add(egui::TextEdit::singleline(&mut c.description).hint_text("what changed"))
                     .changed();
                 hint_label(
                     ui,
@@ -1108,8 +1109,9 @@ fn show_add_event_wizard(ui: &mut Ui, state: &mut BuilderState) {
             });
 
             let preview = preview_narrative(w, &systems, &worlds, &routes, &regions);
-            ui.label(RichText::new("Narrative").strong())
-                .on_hover_text("Optional prose. Leave blank to use the auto-generated preview below.");
+            ui.label(RichText::new("Narrative").strong()).on_hover_text(
+                "Optional prose. Leave blank to use the auto-generated preview below.",
+            );
             ui.add(
                 egui::TextEdit::multiline(&mut w.narrative)
                     .desired_rows(3)

@@ -137,7 +137,9 @@ fn show_header_actions(ui: &mut Ui, state: &mut BuilderState) {
             state.recompute_relations();
         }
         ui.checkbox(&mut state.relations_auto_recompute, "Auto-rebuild on edit")
-            .on_hover_text("Regenerate the matrix automatically whenever a rule or override changes");
+            .on_hover_text(
+                "Regenerate the matrix automatically whenever a rule or override changes",
+            );
         let pairs = state.sector.relations.pairs.len();
         let facs = state.sector.factions.len();
         ui.label(format!("{facs} faction(s)  |  {pairs} pair(s)"));
@@ -237,8 +239,9 @@ fn show_matrix_grid(ui: &mut Ui, state: &mut BuilderState) {
                         .on_hover_text("Second faction in the pair — click to select the row");
                     ui.label(RichText::new("Public").strong())
                         .on_hover_text("Openly known stance (schema: public_attitude)");
-                    ui.label(RichText::new("Secret").strong())
-                        .on_hover_text("Their true stance behind closed doors (schema: secret_attitude)");
+                    ui.label(RichText::new("Secret").strong()).on_hover_text(
+                        "Their true stance behind closed doors (schema: secret_attitude)",
+                    );
                     ui.label(RichText::new("Treaty").strong())
                         .on_hover_text("Formal agreement in force (schema: treaty_status)");
                     ui.label(RichText::new("Tension").strong())
@@ -551,7 +554,9 @@ fn show_cell_editor(ui: &mut Ui, state: &mut BuilderState) {
         if pinned
             && ui
                 .button("🗑  Clear override")
-                .on_hover_text("Remove all pinned values and let this pair derive from the rules again")
+                .on_hover_text(
+                    "Remove all pinned values and let this pair derive from the rules again",
+                )
                 .clicked()
         {
             remove_override(state, &pair);
@@ -1009,7 +1014,9 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
                 }
                 if ui
                     .add(egui::DragValue::new(&mut row.delta).range(-3..=3).speed(1))
-                    .on_hover_text("Stance shift: negative warms them up, positive turns them hostile")
+                    .on_hover_text(
+                        "Stance shift: negative warms them up, positive turns them hostile",
+                    )
                     .changed()
                 {
                     changed = true;

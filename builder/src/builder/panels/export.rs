@@ -237,7 +237,10 @@ fn show_folder_row(ui: &mut Ui, state: &mut BuilderState) {
     if let Some(dir) = state.export.output_dir.as_ref() {
         ui.colored_label(Color32::DARK_GRAY, dir.to_string());
     } else {
-        ui_kit::placeholder(ui, "No folder chosen yet — pick one above to enable exports.");
+        ui_kit::placeholder(
+            ui,
+            "No folder chosen yet — pick one above to enable exports.",
+        );
     }
 
     // Live progress for the off-thread bundle export (the big sector.json write).
@@ -328,14 +331,18 @@ fn show_formats(ui: &mut Ui, state: &mut BuilderState) {
             .changed();
         changed |= ui
             .checkbox(&mut state.config.outputs.pretty_json, "Pretty-print JSON")
-            .on_hover_text("Indent JSON for human reading instead of one dense line (schema: pretty_json).")
+            .on_hover_text(
+                "Indent JSON for human reading instead of one dense line (schema: pretty_json).",
+            )
             .changed();
         changed |= ui
             .checkbox(
                 &mut state.config.outputs.write_per_system_files,
                 "One JSON file per system",
             )
-            .on_hover_text("Also write a separate JSON file for each system (schema: write_per_system_files).")
+            .on_hover_text(
+                "Also write a separate JSON file for each system (schema: write_per_system_files).",
+            )
             .changed();
         if changed {
             state.dirty = true;
@@ -346,10 +353,15 @@ fn show_formats(ui: &mut Ui, state: &mut BuilderState) {
 // ── §EX3 bitmap settings ────────────────────────────────────────────────────
 
 fn show_bitmap_settings(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "ex_bitmap", "Image (PNG) settings (§EX3)", false, |ui| {
-        let mut changed = false;
-        let bm = &mut state.config.outputs.bitmap;
-        labeled(
+    ui_kit::collapsing_section(
+        ui,
+        "ex_bitmap",
+        "Image (PNG) settings (§EX3)",
+        false,
+        |ui| {
+            let mut changed = false;
+            let bm = &mut state.config.outputs.bitmap;
+            labeled(
             ui,
             "Sector map zoom",
             "Whole-number zoom over the base sector map size, 1 to 8 (schema: sector_scale). Higher = larger, sharper image.",
@@ -359,33 +371,33 @@ fn show_bitmap_settings(ui: &mut Ui, state: &mut BuilderState) {
                     .changed();
             },
         );
-        labeled(
-            ui,
-            "System map zoom",
-            "Whole-number zoom for the per-system maps, 1 to 8 (schema: system_scale).",
-            |ui| {
-                changed |= ui
-                    .add(egui::DragValue::new(&mut bm.system_scale).range(1..=8))
-                    .changed();
-            },
-        );
-        labeled(
-            ui,
-            "Draw systems",
-            "Draw each system on the sector map (schema: render_systems).",
-            |ui| {
-                changed |= widgets::toggle(ui, &mut bm.render_systems).changed();
-            },
-        );
-        labeled(
-            ui,
-            "Shade faction areas",
-            "Tint each region with its controlling faction's colour (schema: faction_fill).",
-            |ui| {
-                changed |= widgets::toggle(ui, &mut bm.faction_fill).changed();
-            },
-        );
-        labeled(
+            labeled(
+                ui,
+                "System map zoom",
+                "Whole-number zoom for the per-system maps, 1 to 8 (schema: system_scale).",
+                |ui| {
+                    changed |= ui
+                        .add(egui::DragValue::new(&mut bm.system_scale).range(1..=8))
+                        .changed();
+                },
+            );
+            labeled(
+                ui,
+                "Draw systems",
+                "Draw each system on the sector map (schema: render_systems).",
+                |ui| {
+                    changed |= widgets::toggle(ui, &mut bm.render_systems).changed();
+                },
+            );
+            labeled(
+                ui,
+                "Shade faction areas",
+                "Tint each region with its controlling faction's colour (schema: faction_fill).",
+                |ui| {
+                    changed |= widgets::toggle(ui, &mut bm.faction_fill).changed();
+                },
+            );
+            labeled(
             ui,
             "Heatmap overlay",
             "Colour systems by a chosen metric instead of faction; Off for a plain map (schema: heatmap).",
@@ -399,10 +411,11 @@ fn show_bitmap_settings(ui: &mut Ui, state: &mut BuilderState) {
                 changed |= bm.heatmap != prev;
             },
         );
-        if changed {
-            state.dirty = true;
-        }
-    });
+            if changed {
+                state.dirty = true;
+            }
+        },
+    );
 }
 
 // ── §EX4 HTML settings ──────────────────────────────────────────────────────
@@ -425,17 +438,15 @@ fn show_html_settings(ui: &mut Ui, state: &mut BuilderState) {
             "Look of the generated web page (schema: theme).",
             |ui| {
                 let prev = html.theme;
-                ui_kit::combo("export_html_theme", title_case_slug(html.theme.as_slug()))
-                    .show_ui(ui, |ui| {
+                ui_kit::combo("export_html_theme", title_case_slug(html.theme.as_slug())).show_ui(
+                    ui,
+                    |ui| {
                         for t in HTML_THEMES {
-                            ui.selectable_value(
-                                &mut html.theme,
-                                *t,
-                                title_case_slug(t.as_slug()),
-                            )
-                            .on_hover_text(t.as_slug());
+                            ui.selectable_value(&mut html.theme, *t, title_case_slug(t.as_slug()))
+                                .on_hover_text(t.as_slug());
                         }
-                    });
+                    },
+                );
                 changed |= html.theme != prev;
             },
         );
@@ -502,42 +513,50 @@ fn show_html_settings(ui: &mut Ui, state: &mut BuilderState) {
 // ── §EX7 per-overlay export ─────────────────────────────────────────────────
 
 fn show_overlays(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "ex_overlays", "Lore & report exports (§EX7)", true, |ui| {
-        let has_dir = state.export.output_dir.is_some();
-        if !has_dir {
-            ui_kit::placeholder(
-                ui,
-                "Pick an output folder above to enable these exports.",
-            );
-        }
-        let mut clicked: Option<Overlay> = None;
-        ui.horizontal_wrapped(|ui| {
-            for overlay in OVERLAYS {
-                if ui
-                    .add_enabled(has_dir, egui::Button::new(overlay.label()))
-                    .on_hover_text("Write this report as a Markdown and a JSON file")
-                    .clicked()
-                {
-                    clicked = Some(*overlay);
-                }
+    ui_kit::collapsing_section(
+        ui,
+        "ex_overlays",
+        "Lore & report exports (§EX7)",
+        true,
+        |ui| {
+            let has_dir = state.export.output_dir.is_some();
+            if !has_dir {
+                ui_kit::placeholder(ui, "Pick an output folder above to enable these exports.");
             }
-        });
-        if let Some(overlay) = clicked {
-            run_overlay(state, overlay);
-        }
-    });
+            let mut clicked: Option<Overlay> = None;
+            ui.horizontal_wrapped(|ui| {
+                for overlay in OVERLAYS {
+                    if ui
+                        .add_enabled(has_dir, egui::Button::new(overlay.label()))
+                        .on_hover_text("Write this report as a Markdown and a JSON file")
+                        .clicked()
+                    {
+                        clicked = Some(*overlay);
+                    }
+                }
+            });
+            if let Some(overlay) = clicked {
+                run_overlay(state, overlay);
+            }
+        },
+    );
 }
 
 // ── §EX5 standalone-system export ───────────────────────────────────────────
 
 fn show_standalone_system(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "ex_standalone", "Single-system export (§EX5)", false, |ui| {
-        ui_kit::placeholder(
+    ui_kit::collapsing_section(
+        ui,
+        "ex_standalone",
+        "Single-system export (§EX5)",
+        false,
+        |ui| {
+            ui_kit::placeholder(
             ui,
             "Generate one system on its own from the saved project and write it to its own file.",
         );
-        ui.add_space(4.0);
-        labeled(
+            ui.add_space(4.0);
+            labeled(
             ui,
             "Seed",
             "Random seed for this one system; leave blank to use the project's seed (schema: seed).",
@@ -545,96 +564,104 @@ fn show_standalone_system(ui: &mut Ui, state: &mut BuilderState) {
                 ui.text_edit_singleline(&mut state.export.sys_seed);
             },
         );
-        labeled(
-            ui,
-            "Hex column (q)",
-            "Column of the hex the system sits in (schema: coord q).",
-            |ui| {
-                ui.add(egui::DragValue::new(&mut state.export.sys_coord_q));
-            },
-        );
-        labeled(
-            ui,
-            "Hex row (r)",
-            "Row of the hex the system sits in (schema: coord r).",
-            |ui| {
-                ui.add(egui::DragValue::new(&mut state.export.sys_coord_r));
-            },
-        );
-        labeled(
-            ui,
-            "System number",
-            "Which system within the hex, counting from 1 (schema: index).",
-            |ui| {
-                ui.add(egui::DragValue::new(&mut state.export.sys_index).range(1..=usize::MAX));
-            },
-        );
-        labeled(
-            ui,
-            "Also write Markdown",
-            "Write a readable Markdown file alongside the JSON.",
-            |ui| {
-                ui.checkbox(&mut state.export.sys_markdown, "");
-            },
-        );
-
-        let has_project = state.project_path.is_some();
-        let has_dir = state.export.output_dir.is_some();
-        if !has_project {
-            ui_kit::placeholder(
+            labeled(
                 ui,
-                "Open a saved project first — single-system generation reads its data files.",
+                "Hex column (q)",
+                "Column of the hex the system sits in (schema: coord q).",
+                |ui| {
+                    ui.add(egui::DragValue::new(&mut state.export.sys_coord_q));
+                },
             );
-        }
-        if ui
-            .add_enabled(
-                has_project && has_dir,
-                egui::Button::new("⬇  Generate + write system"),
-            )
-            .on_hover_text("Generate the system and write it into the chosen folder")
-            .clicked()
-        {
-            run_standalone_system(state);
-        }
-    });
+            labeled(
+                ui,
+                "Hex row (r)",
+                "Row of the hex the system sits in (schema: coord r).",
+                |ui| {
+                    ui.add(egui::DragValue::new(&mut state.export.sys_coord_r));
+                },
+            );
+            labeled(
+                ui,
+                "System number",
+                "Which system within the hex, counting from 1 (schema: index).",
+                |ui| {
+                    ui.add(egui::DragValue::new(&mut state.export.sys_index).range(1..=usize::MAX));
+                },
+            );
+            labeled(
+                ui,
+                "Also write Markdown",
+                "Write a readable Markdown file alongside the JSON.",
+                |ui| {
+                    ui.checkbox(&mut state.export.sys_markdown, "");
+                },
+            );
+
+            let has_project = state.project_path.is_some();
+            let has_dir = state.export.output_dir.is_some();
+            if !has_project {
+                ui_kit::placeholder(
+                    ui,
+                    "Open a saved project first — single-system generation reads its data files.",
+                );
+            }
+            if ui
+                .add_enabled(
+                    has_project && has_dir,
+                    egui::Button::new("⬇  Generate + write system"),
+                )
+                .on_hover_text("Generate the system and write it into the chosen folder")
+                .clicked()
+            {
+                run_standalone_system(state);
+            }
+        },
+    );
 }
 
 // ── §EX6 markdown preview ───────────────────────────────────────────────────
 
 fn show_markdown_preview(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "ex_md_preview", "Markdown preview (§EX6)", false, |ui| {
-        ui.horizontal(|ui| {
-            if ui
-                .button("🔄  Refresh preview")
-                .on_hover_text("Re-render the Markdown from the sector as it is right now")
-                .clicked()
-            {
-                state.export.md_preview = Some(sectorforge::render_sector_markdown(&state.sector));
-            }
-            if state.export.md_preview.is_some() {
-                ui.colored_label(Color32::DARK_GRAY, "live preview of the current sector");
-            }
-        });
-        let Some(md) = state.export.md_preview.as_ref() else {
-            ui_kit::placeholder(ui, "No preview yet — click Refresh preview to render one.");
-            return;
-        };
-        // §COLUMNS — the rendered markdown wants the right column's width but
-        // a capped line length stays readable; `reading_column` bounds it.
-        ui_kit::reading_column(ui, 720.0, |ui| {
-            egui::ScrollArea::vertical()
-                .id_salt("export_md_preview_scroll")
-                .max_height(420.0)
-                .show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut md.as_str())
-                            .desired_width(f32::INFINITY)
-                            .desired_rows(24)
-                            .font(egui::TextStyle::Monospace),
-                    );
-                });
-        });
-    });
+    ui_kit::collapsing_section(
+        ui,
+        "ex_md_preview",
+        "Markdown preview (§EX6)",
+        false,
+        |ui| {
+            ui.horizontal(|ui| {
+                if ui
+                    .button("🔄  Refresh preview")
+                    .on_hover_text("Re-render the Markdown from the sector as it is right now")
+                    .clicked()
+                {
+                    state.export.md_preview =
+                        Some(sectorforge::render_sector_markdown(&state.sector));
+                }
+                if state.export.md_preview.is_some() {
+                    ui.colored_label(Color32::DARK_GRAY, "live preview of the current sector");
+                }
+            });
+            let Some(md) = state.export.md_preview.as_ref() else {
+                ui_kit::placeholder(ui, "No preview yet — click Refresh preview to render one.");
+                return;
+            };
+            // §COLUMNS — the rendered markdown wants the right column's width but
+            // a capped line length stays readable; `reading_column` bounds it.
+            ui_kit::reading_column(ui, 720.0, |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("export_md_preview_scroll")
+                    .max_height(420.0)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut md.as_str())
+                                .desired_width(f32::INFINITY)
+                                .desired_rows(24)
+                                .font(egui::TextStyle::Monospace),
+                        );
+                    });
+            });
+        },
+    );
 }
 
 // ── actions ─────────────────────────────────────────────────────────────────

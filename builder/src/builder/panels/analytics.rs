@@ -168,7 +168,9 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
         }
         // Strict toggle — display-only failure gate.
         ui.checkbox(&mut state.analytics.strict, "Strict")
-            .on_hover_text("Treat every health flag as a failure, so even warnings show as errors.");
+            .on_hover_text(
+                "Treat every health flag as a failure, so even warnings show as errors.",
+            );
 
         ui.separator();
 
@@ -189,7 +191,10 @@ fn show_actions(ui: &mut Ui, state: &mut BuilderState) {
         let has_report = state.analytics.report.is_some();
         let has_dir = state.analytics.export_dir.is_some();
         if ui
-            .add_enabled(has_report && has_dir, egui::Button::new("💾  Export report"))
+            .add_enabled(
+                has_report && has_dir,
+                egui::Button::new("💾  Export report"),
+            )
             .on_hover_text(if !has_report {
                 "Run Analyze first."
             } else if !has_dir {

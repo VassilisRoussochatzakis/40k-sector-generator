@@ -545,9 +545,7 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
             ui_kit::collapsing_section(ui, ("mis_manual", idx), &title, idx == last_idx, |ui| {
                 changed |= manual_mission_editor(ui, idx, m, &existing);
                 if ui
-                    .button(
-                        RichText::new("🗑  Delete mission").color(palette::danger()),
-                    )
+                    .button(RichText::new("🗑  Delete mission").color(palette::danger()))
                     .on_hover_text("Remove this hand-written mission. This cannot be undone.")
                     .clicked()
                 {

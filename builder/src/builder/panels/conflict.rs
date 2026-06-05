@@ -324,7 +324,10 @@ fn advance_ticks_block(ui: &mut Ui, state: &mut BuilderState, scope_id: &str) {
 pub fn show_tick_log(ui: &mut Ui, state: &mut BuilderState, filter_system: Option<&str>) {
     ui.label(RichText::new("Tick log").strong());
     if state.tick_log.is_empty() {
-        ui_kit::placeholder(ui, "No ticks yet — use Advance time above to step the simulation.");
+        ui_kit::placeholder(
+            ui,
+            "No ticks yet — use Advance time above to step the simulation.",
+        );
         return;
     }
     ui.horizontal(|ui| {
@@ -556,8 +559,9 @@ fn show_conflict_readout(ui: &mut Ui, c: &ConflictState) {
                 .on_hover_text("Faction holding the ground (schema: defender).");
             ui.monospace(opt_id(&c.defender));
             ui.end_row();
-            ui.label("Visible controller")
-                .on_hover_text("Who appears to be in charge publicly (schema: visible_controller).");
+            ui.label("Visible controller").on_hover_text(
+                "Who appears to be in charge publicly (schema: visible_controller).",
+            );
             ui.monospace(opt_id(&c.visible_controller));
             ui.end_row();
             ui.label("Age")

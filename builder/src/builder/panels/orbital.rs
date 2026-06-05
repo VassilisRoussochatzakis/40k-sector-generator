@@ -120,10 +120,8 @@ pub fn show_orbital_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usiz
         ui.separator();
         ui.label(RichText::new("Blockade").strong());
         ui.label(
-            RichText::new(
-                "Whether this system is being besieged, by whom, and how hard.",
-            )
-            .color(palette::chrome_text_dim()),
+            RichText::new("Whether this system is being besieged, by whom, and how hard.")
+                .color(palette::chrome_text_dim()),
         );
 
         let mut report_working = state.sector.systems[sys_idx].blockade.clone();
@@ -260,8 +258,9 @@ fn show_assets_editor(
             for (si, stock) in asset.ship_inventory.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
                     ui.label(format!("{}.", si + 1));
-                    ui.label("Hull")
-                        .on_hover_text("Ship class name, e.g. escort or cruiser (schema: hull_class).");
+                    ui.label("Hull").on_hover_text(
+                        "Ship class name, e.g. escort or cruiser (schema: hull_class).",
+                    );
                     ui.text_edit_singleline(&mut stock.hull_class);
                     ui.label("Count")
                         .on_hover_text("How many of this hull class (schema: count).");

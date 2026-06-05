@@ -92,11 +92,13 @@ fn show_summary(ui: &mut Ui, state: &BuilderState) {
     let components = route_component_count(&state.sector, &state.sector.routes);
     ui.horizontal_wrapped(|ui| {
         ui.label(RichText::new(format!("{} route(s)", state.sector.routes.len())).strong());
-        ui.label(RichText::new(format!("· {components} connected group(s)")).color(Color32::DARK_GRAY))
-            .on_hover_text(
-                "How many separate clusters the systems form (schema: routes graph components). \
+        ui.label(
+            RichText::new(format!("· {components} connected group(s)")).color(Color32::DARK_GRAY),
+        )
+        .on_hover_text(
+            "How many separate clusters the systems form (schema: routes graph components). \
                  1 means every system can be reached from every other.",
-            );
+        );
         if state.config.generation.routes.ensure_connected_graph {
             ui.label(RichText::new("· auto-connect on").color(Color32::DARK_GRAY))
                 .on_hover_text(
@@ -344,7 +346,11 @@ fn show_tags_editor(ui: &mut Ui, route: &mut GeneratedRoute) {
             if ui.text_edit_singleline(&mut text).changed() {
                 *tag = Arc::from(text.trim());
             }
-            if ui.small_button("×").on_hover_text("Remove this tag").clicked() {
+            if ui
+                .small_button("×")
+                .on_hover_text("Remove this tag")
+                .clicked()
+            {
                 remove = Some(i);
             }
         });
@@ -393,16 +399,36 @@ fn show_controls_editor(ui: &mut Ui, state: &BuilderState, route: &mut Generated
         .striped(true)
         .num_columns(8)
         .show(ui, |ui| {
-            control_header(ui, "Faction", "Which faction this row describes (schema: faction_id).");
-            control_header(ui, "Patrol", "How heavily the faction patrols this lane (schema: patrol).");
-            control_header(ui, "Toll", "How aggressively it charges passage tolls (schema: toll).");
+            control_header(
+                ui,
+                "Faction",
+                "Which faction this row describes (schema: faction_id).",
+            );
+            control_header(
+                ui,
+                "Patrol",
+                "How heavily the faction patrols this lane (schema: patrol).",
+            );
+            control_header(
+                ui,
+                "Toll",
+                "How aggressively it charges passage tolls (schema: toll).",
+            );
             control_header(
                 ui,
                 "Blockade",
                 "How likely it is to interdict / blockade traffic (schema: interdiction).",
             );
-            control_header(ui, "Piracy", "How much piracy preys on this lane (schema: piracy).");
-            control_header(ui, "Secrecy", "How secret the faction keeps this lane (schema: secrecy).");
+            control_header(
+                ui,
+                "Piracy",
+                "How much piracy preys on this lane (schema: piracy).",
+            );
+            control_header(
+                ui,
+                "Secrecy",
+                "How secret the faction keeps this lane (schema: secrecy).",
+            );
             control_header(
                 ui,
                 "Confidence",
@@ -424,7 +450,11 @@ fn show_controls_editor(ui: &mut Ui, state: &BuilderState, route: &mut Generated
                 percent_drag(ui, &mut control.piracy);
                 percent_drag(ui, &mut control.secrecy);
                 percent_drag(ui, &mut control.confidence);
-                if ui.small_button("×").on_hover_text("Remove this faction row").clicked() {
+                if ui
+                    .small_button("×")
+                    .on_hover_text("Remove this faction row")
+                    .clicked()
+                {
                     remove = Some(i);
                 }
                 ui.end_row();
@@ -1081,135 +1111,141 @@ fn show_preview_status(ui: &mut Ui, state: &BuilderState) {
 // ── R6 hidden routes ────────────────────────────────────────────────────────
 
 fn show_hidden_routes_panel(ui: &mut Ui, state: &mut BuilderState) {
-    ui_kit::collapsing_section(ui, "route_hidden_routes", "Hidden lanes (webway, black-ship, smuggling)", false, |ui| {
-        ui.label(
+    ui_kit::collapsing_section(
+        ui,
+        "route_hidden_routes",
+        "Hidden lanes (webway, black-ship, smuggling)",
+        false,
+        |ui| {
+            ui.label(
             RichText::new("Generate covert links between chosen systems — they bypass the normal route network.")
                 .small()
                 .color(Color32::DARK_GRAY),
         );
-        labeled(
-            ui,
-            "Lane kind",
-            "Which covert lane type to build (schema: route_type).",
-            |ui| hidden_kind_combo(ui, &mut state.hidden_route_kind),
-        );
-        labeled(
-            ui,
-            "Links per system",
-            "Connect each system to this many nearest neighbours (schema: k_nearest).",
-            |ui| {
-                ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
-            },
-        );
-        ui.checkbox(
-            &mut state.hidden_route_exclude_blackout,
-            "Skip Blackout regions",
-        )
-        .on_hover_text("Don't route covert lanes through Blackout warp regions");
+            labeled(
+                ui,
+                "Lane kind",
+                "Which covert lane type to build (schema: route_type).",
+                |ui| hidden_kind_combo(ui, &mut state.hidden_route_kind),
+            );
+            labeled(
+                ui,
+                "Links per system",
+                "Connect each system to this many nearest neighbours (schema: k_nearest).",
+                |ui| {
+                    ui.add(egui::DragValue::new(&mut state.hidden_route_k_nearest).range(1..=16));
+                },
+            );
+            ui.checkbox(
+                &mut state.hidden_route_exclude_blackout,
+                "Skip Blackout regions",
+            )
+            .on_hover_text("Don't route covert lanes through Blackout warp regions");
 
-        ui.add_space(2.0);
-        ui.label(
-            RichText::new("Endpoints to link:")
-                .small()
-                .color(Color32::DARK_GRAY),
-        );
-        ui.horizontal_wrapped(|ui| {
-            if ui
-                .button("Use map selection")
-                .on_hover_text("Use the systems currently selected on the Map tab")
-                .clicked()
-            {
-                state.hidden_route_endpoints = state.selected_systems.clone();
-            }
-            if ui
-                .button("Select all")
-                .on_hover_text("Use every system in the sector")
-                .clicked()
-            {
-                state.hidden_route_endpoints =
-                    state.sector.systems.iter().map(|s| s.id.clone()).collect();
-            }
-            if ui
-                .button("Clear")
-                .on_hover_text("Deselect every endpoint")
-                .clicked()
-            {
-                state.hidden_route_endpoints.clear();
-            }
+            ui.add_space(2.0);
             ui.label(
-                RichText::new(format!("{} selected", state.hidden_route_endpoints.len()))
+                RichText::new("Endpoints to link:")
+                    .small()
                     .color(Color32::DARK_GRAY),
             );
-        });
+            ui.horizontal_wrapped(|ui| {
+                if ui
+                    .button("Use map selection")
+                    .on_hover_text("Use the systems currently selected on the Map tab")
+                    .clicked()
+                {
+                    state.hidden_route_endpoints = state.selected_systems.clone();
+                }
+                if ui
+                    .button("Select all")
+                    .on_hover_text("Use every system in the sector")
+                    .clicked()
+                {
+                    state.hidden_route_endpoints =
+                        state.sector.systems.iter().map(|s| s.id.clone()).collect();
+                }
+                if ui
+                    .button("Clear")
+                    .on_hover_text("Deselect every endpoint")
+                    .clicked()
+                {
+                    state.hidden_route_endpoints.clear();
+                }
+                ui.label(
+                    RichText::new(format!("{} selected", state.hidden_route_endpoints.len()))
+                        .color(Color32::DARK_GRAY),
+                );
+            });
 
-        egui::ScrollArea::vertical()
-            .max_height(160.0)
-            .show(ui, |ui| {
-                for sys in &state.sector.systems {
-                    let mut selected = state.hidden_route_endpoints.contains(&sys.id);
-                    if ui
-                        .checkbox(&mut selected, format!("{} — {}", sys.id, sys.name))
-                        .changed()
-                    {
-                        if selected {
-                            state.hidden_route_endpoints.insert(sys.id.clone());
-                        } else {
-                            state.hidden_route_endpoints.remove(&sys.id);
+            egui::ScrollArea::vertical()
+                .max_height(160.0)
+                .show(ui, |ui| {
+                    for sys in &state.sector.systems {
+                        let mut selected = state.hidden_route_endpoints.contains(&sys.id);
+                        if ui
+                            .checkbox(&mut selected, format!("{} — {}", sys.id, sys.name))
+                            .changed()
+                        {
+                            if selected {
+                                state.hidden_route_endpoints.insert(sys.id.clone());
+                            } else {
+                                state.hidden_route_endpoints.remove(&sys.id);
+                            }
                         }
+                    }
+                });
+
+            ui.horizontal_wrapped(|ui| {
+                if ui
+                    .button("➕  Build hidden lanes")
+                    .on_hover_text("Create the covert links between the selected endpoints")
+                    .clicked()
+                {
+                    let cfg = sectorforge::hidden_routes::HiddenRoutesConfig {
+                        kind: state.hidden_route_kind,
+                        endpoints: state.hidden_route_endpoints.iter().cloned().collect(),
+                        k_nearest: state.hidden_route_k_nearest.max(1),
+                        exclude_blackout_regions: state.hidden_route_exclude_blackout,
+                    };
+                    let new_routes = sectorforge::hidden_routes::configured_hidden_routes(
+                        &state.sector.systems,
+                        &state.sector.factions,
+                        state.sector.regions.as_ref(),
+                        &state.sector.routes,
+                        &cfg,
+                    );
+                    if new_routes.is_empty() {
+                        state.modal = Some(ModalKind::Message(
+                            "No hidden routes added; endpoints may be too few or already linked."
+                                .into(),
+                        ));
+                    } else {
+                        let mut routes = state.sector.routes.clone();
+                        routes.extend(new_routes);
+                        routes.sort_by(|a, b| a.id.cmp(&b.id));
+                        replace_routes(state, routes);
+                    }
+                }
+                if ui
+                    .button("🗑  Remove lanes of this kind")
+                    .on_hover_text("Delete every route of the selected lane kind")
+                    .clicked()
+                {
+                    let kind = state.hidden_route_kind;
+                    let mut routes = state.sector.routes.clone();
+                    let before = routes.len();
+                    routes.retain(|route| route.route_type != kind);
+                    if routes.len() == before {
+                        state.modal = Some(ModalKind::Message(
+                            "No matching hidden routes found.".into(),
+                        ));
+                    } else {
+                        replace_routes(state, routes);
                     }
                 }
             });
-
-        ui.horizontal_wrapped(|ui| {
-            if ui
-                .button("➕  Build hidden lanes")
-                .on_hover_text("Create the covert links between the selected endpoints")
-                .clicked()
-            {
-                let cfg = sectorforge::hidden_routes::HiddenRoutesConfig {
-                    kind: state.hidden_route_kind,
-                    endpoints: state.hidden_route_endpoints.iter().cloned().collect(),
-                    k_nearest: state.hidden_route_k_nearest.max(1),
-                    exclude_blackout_regions: state.hidden_route_exclude_blackout,
-                };
-                let new_routes = sectorforge::hidden_routes::configured_hidden_routes(
-                    &state.sector.systems,
-                    &state.sector.factions,
-                    state.sector.regions.as_ref(),
-                    &state.sector.routes,
-                    &cfg,
-                );
-                if new_routes.is_empty() {
-                    state.modal = Some(ModalKind::Message(
-                        "No hidden routes added; endpoints may be too few or already linked."
-                            .into(),
-                    ));
-                } else {
-                    let mut routes = state.sector.routes.clone();
-                    routes.extend(new_routes);
-                    routes.sort_by(|a, b| a.id.cmp(&b.id));
-                    replace_routes(state, routes);
-                }
-            }
-            if ui
-                .button("🗑  Remove lanes of this kind")
-                .on_hover_text("Delete every route of the selected lane kind")
-                .clicked()
-            {
-                let kind = state.hidden_route_kind;
-                let mut routes = state.sector.routes.clone();
-                let before = routes.len();
-                routes.retain(|route| route.route_type != kind);
-                if routes.len() == before {
-                    state.modal = Some(ModalKind::Message(
-                        "No matching hidden routes found.".into(),
-                    ));
-                } else {
-                    replace_routes(state, routes);
-                }
-            }
-        });
-    });
+        },
+    );
 }
 
 fn hidden_kind_combo(ui: &mut Ui, value: &mut RouteType) {
@@ -1235,9 +1271,11 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
         false,
         |ui| {
             ui.label(
-                RichText::new("Bridge routes link otherwise-isolated clusters so no system is stranded.")
-                    .small()
-                    .color(Color32::DARK_GRAY),
+                RichText::new(
+                    "Bridge routes link otherwise-isolated clusters so no system is stranded.",
+                )
+                .small()
+                .color(Color32::DARK_GRAY),
             );
             let mut enabled = state.config.generation.routes.ensure_connected_graph;
             if ui
@@ -1272,7 +1310,9 @@ fn show_ensure_connected(ui: &mut Ui, state: &mut BuilderState) {
             }
             if ui
                 .button("▶  Connect now")
-                .on_hover_text("Add the bridge routes needed to join every cluster into one network")
+                .on_hover_text(
+                    "Add the bridge routes needed to join every cluster into one network",
+                )
                 .clicked()
             {
                 let (routes, added) = ensure_connected_routes(state, state.sector.routes.clone());

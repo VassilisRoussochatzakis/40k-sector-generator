@@ -287,7 +287,10 @@ fn optional_faction_combo(
         .map(|f| faction_name(factions, f))
         .unwrap_or_else(|| "(unclaimed)".into());
     ui_kit::combo(id_salt, label).show_ui(ui, |ui| {
-        if ui.selectable_label(current.is_none(), "(unclaimed)").clicked() {
+        if ui
+            .selectable_label(current.is_none(), "(unclaimed)")
+            .clicked()
+        {
             *current = None;
         }
         for (fid, name) in factions {

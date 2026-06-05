@@ -90,10 +90,9 @@ mod tests;
 pub use nav::EntityRef;
 pub use types::{
     validate_toml, BuilderTab, ConfirmAction, ControlOverlay, HealthLevel, HistoryAnchorKind,
-    HistoryWizardState,
-    JobHandle, MapTool, MapViewCache, ModalKind, OpenTomlBuffer, PartialRegenRect,
-    PendingBulkRename, PendingCollision, PendingPlace, PendingRegionRename, PendingRename,
-    PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemBitmapPreview,
+    HistoryWizardState, JobHandle, MapTool, MapViewCache, ModalKind, OpenTomlBuffer,
+    PartialRegenRect, PendingBulkRename, PendingCollision, PendingPlace, PendingRegionRename,
+    PendingRename, PendingWorldRename, SectorContextMenu, SectorMenuTarget, SystemBitmapPreview,
     SystemContextMenu, SystemMenuTarget, TickLogEntry, TickLogScope, TomlEditorState,
     DEFAULT_COMMAND_LOG_CAPACITY, DEFAULT_VALIDATION_DEBOUNCE_MS,
 };

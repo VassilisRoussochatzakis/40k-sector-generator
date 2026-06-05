@@ -158,7 +158,9 @@ fn show_profile_row(ui: &mut Ui, state: &mut BuilderState) {
 fn show_score_row(ui: &mut Ui, state: &mut BuilderState) {
     ui.horizontal_wrapped(|ui| {
         if widgets::primary_button(ui, "▶  Score sector")
-            .on_hover_text("Grade the current sector against the target profile and refresh the metric bands")
+            .on_hover_text(
+                "Grade the current sector against the target profile and refresh the metric bands",
+            )
             .clicked()
         {
             rescore(state);
@@ -443,7 +445,9 @@ fn show_add_override_row(ui: &mut Ui, state: &mut BuilderState) {
         let can_add = !pick.is_empty() && !already.iter().any(|m| *m == pick);
         if ui
             .add_enabled(can_add, egui::Button::new("➕  Add"))
-            .on_hover_text("Start tuning the chosen metric, seeded from this profile's built-in band")
+            .on_hover_text(
+                "Start tuning the chosen metric, seeded from this profile's built-in band",
+            )
             .clicked()
         {
             let seed = seed_target(state.interestingness_profile, pick.as_str());

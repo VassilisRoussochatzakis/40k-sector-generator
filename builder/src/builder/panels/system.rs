@@ -106,8 +106,10 @@ fn system_state_label(state: SystemState) -> &'static str {
 pub fn show(ui: &mut Ui, state: &mut BuilderState) {
     ui.heading("System");
     ui.label(
-        RichText::new("Inspect and edit one system — its star, worlds, factions, and storyline markers.")
-            .color(Color32::DARK_GRAY),
+        RichText::new(
+            "Inspect and edit one system — its star, worlds, factions, and storyline markers.",
+        )
+        .color(Color32::DARK_GRAY),
     );
     ui.add_space(4.0);
 
@@ -267,7 +269,9 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
                 .color(palette::chrome_text_dim())
                 .monospace(),
         )
-        .on_hover_text("Unique system id (schema: id) — used by routes, presence, and saved files.");
+        .on_hover_text(
+            "Unique system id (schema: id) — used by routes, presence, and saved files.",
+        );
         if pinned {
             ui.colored_label(palette::warning(), "📌 Pinned")
                 .on_hover_text("Pinned systems are protected from regeneration and reseeding.");
@@ -847,8 +851,9 @@ fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize
             .map(|t| t.to_string())
             .collect::<Vec<_>>()
             .join("\n");
-        ui.label("Tags")
-            .on_hover_text("Free-form labels, comma-separated (schema: tags). Used for filtering and flavour.");
+        ui.label("Tags").on_hover_text(
+            "Free-form labels, comma-separated (schema: tags). Used for filtering and flavour.",
+        );
         let (tags_buf, tags_resp) =
             crate::builder::panels::persistent_singleline(ui, tags_key, &tags_src);
         let tags_changed = tags_resp.lost_focus();
@@ -1158,17 +1163,17 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
 fn show_overlays_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
     ui_kit::collapsing_section(ui, "sys_overlays", "Overlays at a glance", false, |ui| {
         ui.label(
-            RichText::new("Quick read of extra layers on this system — edit each in its own section or tab.")
-                .small()
-                .color(palette::chrome_text_dim()),
+            RichText::new(
+                "Quick read of extra layers on this system — edit each in its own section or tab.",
+            )
+            .small()
+            .color(palette::chrome_text_dim()),
         );
         ui.add_space(2.0);
         let sys = &state.sector.systems[sys_idx];
-        let has_blockade =
-            !sectorforge::orbital_assets::BlockadeReport::is_default(&sys.blockade);
+        let has_blockade = !sectorforge::orbital_assets::BlockadeReport::is_default(&sys.blockade);
         let has_conflict = !sectorforge::conflict::ConflictState::is_default(&sys.conflict);
-        let has_archetype =
-            !sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype);
+        let has_archetype = !sectorforge::archetypes::ArchetypeState::is_default(&sys.archetype);
         ui.label(format!("Orbital assets: {}", sys.orbital_assets.len()));
         ui.label(format!(
             "Blockade present: {}",
@@ -1658,8 +1663,9 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
         });
 
         ui.separator();
-        ui.label("Rename all selected")
-            .on_hover_text("Tokens: {n} = sequence number, {id} = system id, {name} = current name");
+        ui.label("Rename all selected").on_hover_text(
+            "Tokens: {n} = sequence number, {id} = system id, {name} = current name",
+        );
         let pattern = ui.data_mut(|d| {
             d.get_temp_mut_or::<String>(egui::Id::new("bulk_rename_pat"), "Sys-{n}".into())
                 .clone()
@@ -1735,8 +1741,9 @@ fn show_bulk_ops(ui: &mut Ui, state: &mut BuilderState) {
         });
 
         ui.separator();
-        ui.label("Reseed worlds for all selected")
-            .on_hover_text("Drops each selected system's worlds and re-rolls them. Pinned systems are skipped.");
+        ui.label("Reseed worlds for all selected").on_hover_text(
+            "Drops each selected system's worlds and re-rolls them. Pinned systems are skipped.",
+        );
         if ui
             .button("🔄 Reseed worlds")
             .on_hover_text("Re-roll worlds for every selected system")

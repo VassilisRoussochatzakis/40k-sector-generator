@@ -141,7 +141,10 @@ fn slot_picker(
             }
             SlotKind::Snapshot => {
                 if snap_names.is_empty() {
-                    ui_kit::placeholder(ui, "no snapshots yet — take one from the Project tab first");
+                    ui_kit::placeholder(
+                        ui,
+                        "no snapshots yet — take one from the Project tab first",
+                    );
                 } else {
                     let current = snap.clone().unwrap_or_default();
                     ui_kit::combo(
@@ -206,8 +209,7 @@ fn slot_kind_label(kind: SlotKind) -> &'static str {
 }
 
 fn load_sector_file(path: Utf8PathBuf) -> Result<LoadedFile, String> {
-    let text =
-        std::fs::read_to_string(&path).map_err(|e| format!("Couldn't open {path}: {e}"))?;
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("Couldn't open {path}: {e}"))?;
     let sector: GeneratedSector = serde_json::from_str(&text)
         .map_err(|e| format!("{path} isn't a valid sector file: {e}"))?;
     Ok(LoadedFile { path, sector })
@@ -313,11 +315,10 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
         let has_report = state.diff.report.is_some();
         let has_dir = state.diff.export_dir.is_some();
         if ui
-            .add_enabled(
-                has_report && has_dir,
-                egui::Button::new("💾  Export diff"),
+            .add_enabled(has_report && has_dir, egui::Button::new("💾  Export diff"))
+            .on_hover_text(
+                "Write the diff as a Markdown report and a JSON file to the chosen folder",
             )
-            .on_hover_text("Write the diff as a Markdown report and a JSON file to the chosen folder")
             .clicked()
         {
             export(state);

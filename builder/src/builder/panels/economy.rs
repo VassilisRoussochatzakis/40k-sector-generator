@@ -287,15 +287,14 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                 .as_ref()
                 .map(|id| id.to_string())
                 .unwrap_or_else(|| "(none)".into());
-            ui_kit::combo("econ_world_picker", label)
-                .show_ui(ui, |ui| {
-                    for (id, line) in &world_options {
-                        let active = selected.as_ref() == Some(id);
-                        if ui.selectable_label(active, line).clicked() {
-                            state.selected_world_id = Some(id.clone());
-                        }
+            ui_kit::combo("econ_world_picker", label).show_ui(ui, |ui| {
+                for (id, line) in &world_options {
+                    let active = selected.as_ref() == Some(id);
+                    if ui.selectable_label(active, line).clicked() {
+                        state.selected_world_id = Some(id.clone());
                     }
-                });
+                }
+            });
             if let Some(id) = state.selected_world_id.clone() {
                 if ui
                     .button("Open in World tab  →")
@@ -325,10 +324,7 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
             .find(|w| w.world_id == world_id)
             .cloned()
         else {
-            ui_kit::placeholder(
-                ui,
-                "That world has no economy figures — try re-deriving.",
-            );
+            ui_kit::placeholder(ui, "That world has no economy figures — try re-deriving.");
             return;
         };
 
@@ -498,14 +494,18 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                 ui.label(RichText::new("System").strong());
                 ui.label(RichText::new("Tithe").strong())
                     .on_hover_text("Tithe-grade owed to the Administratum (schema: tithe_status).");
-                ui.label(RichText::new("Supply").strong())
-                    .on_hover_text("How exposed the system's supply lines are (schema: supply_risk).");
-                ui.label(RichText::new("Priority").strong())
-                    .on_hover_text("Strategic importance to high command (schema: strategic_priority).");
-                ui.label(RichText::new("Surplus").strong())
-                    .on_hover_text("Resources this system produces a surplus of (schema: surplus_resources).");
-                ui.label(RichText::new("Shortage").strong())
-                    .on_hover_text("Resources this system is short on (schema: shortage_resources).");
+                ui.label(RichText::new("Supply").strong()).on_hover_text(
+                    "How exposed the system's supply lines are (schema: supply_risk).",
+                );
+                ui.label(RichText::new("Priority").strong()).on_hover_text(
+                    "Strategic importance to high command (schema: strategic_priority).",
+                );
+                ui.label(RichText::new("Surplus").strong()).on_hover_text(
+                    "Resources this system produces a surplus of (schema: surplus_resources).",
+                );
+                ui.label(RichText::new("Shortage").strong()).on_hover_text(
+                    "Resources this system is short on (schema: shortage_resources).",
+                );
                 ui.label(RichText::new("Actions").strong());
                 ui.end_row();
 
@@ -577,7 +577,9 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                         if (active_tithe || active_supply || active_prio)
                             && ui
                                 .button(RichText::new("↺  Back to auto").color(palette::danger()))
-                                .on_hover_text("Drop your tithe / supply / priority overrides for this system")
+                                .on_hover_text(
+                                    "Drop your tithe / supply / priority overrides for this system",
+                                )
                                 .clicked()
                         {
                             state.system_tithe_overrides.remove(&id);
@@ -729,9 +731,8 @@ fn show_lifeline_panel(ui: &mut Ui, state: &mut BuilderState) {
 fn show_heatmap_picker(ui: &mut Ui, state: &mut BuilderState) {
     ui_kit::section(ui, "Map heatmap", |ui| {
         ui.horizontal_wrapped(|ui| {
-            ui.label("Shade map by:").on_hover_text(
-                "Tint the map by an economy figure (schema: map_heatmap_mode).",
-            );
+            ui.label("Shade map by:")
+                .on_hover_text("Tint the map by an economy figure (schema: map_heatmap_mode).");
             let current = state.map_heatmap_mode;
             ui_kit::combo("econ_heatmap_mode", heatmap_human(current)).show_ui(ui, |ui| {
                 for mode in E7_MODES {
@@ -914,11 +915,16 @@ fn show_world_type_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool
 
 fn show_tech_rows(ui: &mut Ui, cfg: &mut EconomyConfig, changed: &mut bool) {
     ui.collapsing(
-        format!("Output multiplier by tech level ({})", cfg.by_tech_level.len()),
+        format!(
+            "Output multiplier by tech level ({})",
+            cfg.by_tech_level.len()
+        ),
         |ui| {
             ui.label(
-                RichText::new("Per tech level, a multiplier on that world's output (schema: by_tech_level).")
-                    .color(Color32::DARK_GRAY),
+                RichText::new(
+                    "Per tech level, a multiplier on that world's output (schema: by_tech_level).",
+                )
+                .color(Color32::DARK_GRAY),
             );
             let mut remove: Option<String> = None;
             for (key, v) in cfg.by_tech_level.iter_mut() {

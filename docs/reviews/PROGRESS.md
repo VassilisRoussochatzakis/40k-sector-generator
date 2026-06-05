@@ -17,7 +17,7 @@ sequence". Update this file whenever a finding moves status.
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
 | B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
-| C export/validate/worlds/cli | 13 | 3 (C1,C-S2,C6) | 0 | 10 | 0 |
+| C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 4 (E1,E2,E3,E-S1) | 0 | 13 | 0 |
 | F viewer + gui-core | 15 | 0 | 0 | 15 | 0 |
@@ -40,7 +40,7 @@ sequence". Update this file whenever a finding moves status.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
      B11 ✅ · A1 ✅ · C6 ✅. Remaining splits: E4/E7, F3/F8 (D3/D5 deferred).
    - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
-     (B-S1/B-S2, E-S3, C2 / **C3 next**, F-S1).
+     (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
 
 ## Detailed log
 
@@ -240,6 +240,30 @@ then re-verified here in the main thread.
   clean**. (A rust-analyzer E0432 flurry on `worlds.rs:11` during the carve was a
   stale-index false alarm — cargo resolves the re-export.) MAP.md + GUIDE.md
   updated.
+
+- **C3 (emit-triple dedup)** — ✅ DONE. Collapsed the
+  `if let Some(dir) = out { write+println } else if json { print_json } else
+  { render_markdown }` triple into a single `common::emit_report<R: Serialize>(
+  out, json, report, write_dir, render_md)` helper. Converted **13** call sites
+  (the 12 the review flagged — analyze, economy, history, hooks,
+  interestingness, missions, personae, prose, regions, relations, sites,
+  search — **plus** `diff.rs`, the review's "variant": it fits the same helper
+  by passing `args.out.as_ref()` / `args.json`, so no special-case was needed).
+  Each runner's `write_*` call **and** its verbatim `"Wrote …"` confirmation
+  stay inside the per-runner `write_dir` closure (the filenames differ), so CLI
+  **stdout is byte-identical by construction** — `print!("{md}")` ≡
+  `print!("{}", md)`, same branch order, same `?` error path. `print_json` is
+  now called only inside `emit_report`; the 13 runners swapped their
+  `common::print_json` import for `common::emit_report` (the 4 that also import
+  `load_or_regenerate` kept it). **Not in scope** (correctly): `compose.rs`
+  (2-way `json`/write branch, different "Composed" message) and `validate.rs`
+  (report printers) — neither is the out/json/md triple. **Re-verified in main
+  thread:** check clean, lib 191/191, **it 93/93** (incl. the CLI stdout tests
+  `economy_tests`/`hooks_tests`/`personae_tests`/`relations_tests` +
+  `cli_smoke`/`cli_gui_parity`), golden 15/15 byte-identical, workspace clippy
+  `-D warnings` clean. Pure dedup — no file moved, so MAP.md/GUIDE.md untouched.
+  (C2 — the sibling `(project,sector)` resolve-match dedup — intentionally left
+  open; C3's helper signature is independent of it.)
 
 ### Open decisions / notes
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via

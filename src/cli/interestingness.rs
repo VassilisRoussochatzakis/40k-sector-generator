@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::{load_or_regenerate, print_json};
+use super::common::{emit_report, load_or_regenerate};
 
 pub(crate) fn run_interestingness(
     project: Option<&Utf8PathBuf>,
@@ -19,14 +19,17 @@ pub(crate) fn run_interestingness(
         cfg.profile = parse_interestingness_profile(p)?;
     }
     let report = sectorforge::derive_interestingness_with(&sec, &cfg);
-    if let Some(dir) = &out {
-        sectorforge::write_interestingness(dir, &report)?;
-        println!("Wrote {dir}/interestingness.md and {dir}/interestingness.json");
-    } else if json {
-        print_json(&report)?;
-    } else {
-        print!("{}", sectorforge::interestingness::render_markdown(&report));
-    }
+    emit_report(
+        out,
+        json,
+        &report,
+        |dir| {
+            sectorforge::write_interestingness(dir, &report)?;
+            println!("Wrote {dir}/interestingness.md and {dir}/interestingness.json");
+            Ok(())
+        },
+        || sectorforge::interestingness::render_markdown(&report),
+    )?;
     Ok(ExitCode::SUCCESS)
 }
 

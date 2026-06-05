@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub(crate) fn run_regions(
     project: &Utf8PathBuf,
@@ -19,14 +19,16 @@ pub(crate) fn run_regions(
         input.config.generation.sector_height,
         &cfg,
     );
-    if let Some(dir) = out {
-        sectorforge::write_regions(dir, &input.config.project.id, &regs)?;
-        println!("Wrote {dir}/regions.md and {dir}/regions.json");
-    } else if json {
-        print_json(&regs)?;
-    } else {
-        let md = sectorforge::regions::render_markdown(&input.config.project.id, &regs);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &regs,
+        |dir| {
+            sectorforge::write_regions(dir, &input.config.project.id, &regs)?;
+            println!("Wrote {dir}/regions.md and {dir}/regions.json");
+            Ok(())
+        },
+        || sectorforge::regions::render_markdown(&input.config.project.id, &regs),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

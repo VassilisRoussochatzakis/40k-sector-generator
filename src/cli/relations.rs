@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub(crate) fn run_relations(
     project: Option<&Utf8PathBuf>,
@@ -36,14 +36,16 @@ pub(crate) fn run_relations(
         seed: sec.seed.to_string(),
         matrix,
     };
-    if let Some(dir) = out {
-        sectorforge::write_relations(dir, &report)?;
-        println!("Wrote {dir}/relations.md and {dir}/relations.json");
-    } else if json {
-        print_json(&report)?;
-    } else {
-        let md = sectorforge::relations::render_markdown(&report);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &report,
+        |dir| {
+            sectorforge::write_relations(dir, &report)?;
+            println!("Wrote {dir}/relations.md and {dir}/relations.json");
+            Ok(())
+        },
+        || sectorforge::relations::render_markdown(&report),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

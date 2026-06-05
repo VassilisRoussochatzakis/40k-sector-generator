@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub struct DiffArgs {
     pub before: Option<Utf8PathBuf>,
@@ -41,14 +41,16 @@ pub(crate) fn run_diff(args: DiffArgs) -> Result<ExitCode, sectorforge::SectorEr
             ));
         }
     };
-    if let Some(dir) = &args.out {
-        sectorforge::write_diff(dir, &diff)?;
-        println!("Wrote {dir}/diff.md and {dir}/diff.json");
-    } else if args.json {
-        print_json(&diff)?;
-    } else {
-        let md = sectorforge::render_diff_markdown(&diff);
-        print!("{md}");
-    }
+    emit_report(
+        args.out.as_ref(),
+        args.json,
+        &diff,
+        |dir| {
+            sectorforge::write_diff(dir, &diff)?;
+            println!("Wrote {dir}/diff.md and {dir}/diff.json");
+            Ok(())
+        },
+        || sectorforge::render_diff_markdown(&diff),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

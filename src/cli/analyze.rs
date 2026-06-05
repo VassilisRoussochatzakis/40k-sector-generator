@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub(crate) fn run_analyze(
     project: Option<&Utf8PathBuf>,
@@ -31,15 +31,17 @@ pub(crate) fn run_analyze(
         }
     };
     let analysis = sectorforge::analyze_sector_with(&sec, &cfg);
-    if let Some(dir) = out {
-        sectorforge::write_analysis(dir, &analysis)?;
-        println!("Wrote {dir}/analysis.md and {dir}/analysis.json");
-    } else if json {
-        print_json(&analysis)?;
-    } else {
-        let md = sectorforge::render_analysis_markdown(&analysis);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &analysis,
+        |dir| {
+            sectorforge::write_analysis(dir, &analysis)?;
+            println!("Wrote {dir}/analysis.md and {dir}/analysis.json");
+            Ok(())
+        },
+        || sectorforge::render_analysis_markdown(&analysis),
+    )?;
     let has_flags = !analysis.health_flags.is_empty();
     if strict && has_flags {
         return Ok(ExitCode::from(1));

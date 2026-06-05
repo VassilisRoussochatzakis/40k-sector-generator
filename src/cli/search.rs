@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub fn run_search(
     project: &Utf8PathBuf,
@@ -30,15 +30,17 @@ pub fn run_search(
         }
         return Ok(ExitCode::from(1));
     }
-    if let Some(dir) = out {
-        sectorforge::write_search_outcome(dir, &outcome)?;
-        println!("Wrote {dir}/search.md and {dir}/search.json");
-    } else if json {
-        print_json(&outcome)?;
-    } else {
-        let md = sectorforge::search::render_outcome_markdown(&outcome);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &outcome,
+        |dir| {
+            sectorforge::write_search_outcome(dir, &outcome)?;
+            println!("Wrote {dir}/search.md and {dir}/search.json");
+            Ok(())
+        },
+        || sectorforge::search::render_outcome_markdown(&outcome),
+    )?;
     if strict && outcome.winning.is_none() {
         return Ok(ExitCode::from(1));
     }

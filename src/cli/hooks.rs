@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::{load_or_regenerate, print_json};
+use super::common::{emit_report, load_or_regenerate};
 
 pub(crate) fn run_hooks(
     project: Option<&Utf8PathBuf>,
@@ -19,14 +19,16 @@ pub(crate) fn run_hooks(
         ..Default::default()
     };
     let report = sectorforge::derive_hooks_with(&sec, &cfg);
-    if let Some(dir) = &out {
-        sectorforge::write_hooks(dir, &report, &cfg)?;
-        println!("Wrote {dir}/hooks.md and {dir}/hooks.json");
-    } else if json {
-        print_json(&report)?;
-    } else {
-        let md = sectorforge::hooks::render_markdown(&report, &cfg);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &report,
+        |dir| {
+            sectorforge::write_hooks(dir, &report, &cfg)?;
+            println!("Wrote {dir}/hooks.md and {dir}/hooks.json");
+            Ok(())
+        },
+        || sectorforge::hooks::render_markdown(&report, &cfg),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

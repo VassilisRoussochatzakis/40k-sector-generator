@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub(crate) fn run_personae(
     project: Option<&Utf8PathBuf>,
@@ -29,14 +29,16 @@ pub(crate) fn run_personae(
         }
     };
     let report = sectorforge::derive_personae_with(&sec, &cfg);
-    if let Some(dir) = out {
-        sectorforge::write_personae(dir, &report)?;
-        println!("Wrote {dir}/personae.md and {dir}/personae.json");
-    } else if json {
-        print_json(&report)?;
-    } else {
-        let md = sectorforge::personae::render_markdown(&report);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &report,
+        |dir| {
+            sectorforge::write_personae(dir, &report)?;
+            println!("Wrote {dir}/personae.md and {dir}/personae.json");
+            Ok(())
+        },
+        || sectorforge::personae::render_markdown(&report),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

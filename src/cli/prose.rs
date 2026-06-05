@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::{load_or_regenerate, print_json};
+use super::common::{emit_report, load_or_regenerate};
 
 pub(crate) fn run_prose(
     project: Option<&Utf8PathBuf>,
@@ -38,14 +38,16 @@ pub(crate) fn run_prose(
         ..base_cfg
     };
     let report = sectorforge::derive_prose_with(&sec, &cfg);
-    if let Some(dir) = out {
-        sectorforge::write_prose(dir, &report)?;
-        println!("Wrote {dir}/gazetteer.md and {dir}/gazetteer.json");
-    } else if json {
-        print_json(&report)?;
-    } else {
-        let md = sectorforge::prose::render_markdown(&report);
-        print!("{md}");
-    }
+    emit_report(
+        out,
+        json,
+        &report,
+        |dir| {
+            sectorforge::write_prose(dir, &report)?;
+            println!("Wrote {dir}/gazetteer.md and {dir}/gazetteer.json");
+            Ok(())
+        },
+        || sectorforge::prose::render_markdown(&report),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

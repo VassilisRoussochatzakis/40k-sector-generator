@@ -20,6 +20,30 @@ pub fn to_json_pretty<T: Serialize>(value: &T) -> Result<String, sectorforge::Se
     })
 }
 
+/// Emit a derived report to one of the three CLI sinks (C3): write a `--out`
+/// directory, print JSON to stdout (`--json`), or print rendered Markdown to
+/// stdout (the default). Exactly one branch runs.
+///
+/// `write_dir` performs the directory write **and** prints its own `"Wrote …"`
+/// confirmation — the written filenames differ per report, so that line stays
+/// with the caller. `render_md` produces the Markdown for the default sink.
+pub fn emit_report<R: Serialize>(
+    out: Option<&Utf8PathBuf>,
+    json: bool,
+    report: &R,
+    write_dir: impl FnOnce(&Utf8PathBuf) -> Result<(), sectorforge::SectorError>,
+    render_md: impl FnOnce() -> String,
+) -> Result<(), sectorforge::SectorError> {
+    if let Some(dir) = out {
+        write_dir(dir)?;
+    } else if json {
+        print_json(report)?;
+    } else {
+        print!("{}", render_md());
+    }
+    Ok(())
+}
+
 pub fn print_validation_report(report: &sectorforge::ValidationReport) {
     println!("Validation: {}", if report.ok { "OK" } else { "FAILED" });
     println!(

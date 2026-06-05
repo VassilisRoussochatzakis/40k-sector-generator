@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use camino::Utf8PathBuf;
 
-use super::common::print_json;
+use super::common::emit_report;
 
 pub(crate) fn run_sites(
     project: Option<&Utf8PathBuf>,
@@ -31,13 +31,16 @@ pub(crate) fn run_sites(
     };
     cfg.player_edition = player;
     let report = sectorforge::derive_sites_with(&sec, &cfg);
-    if let Some(dir) = out {
-        sectorforge::write_sites(dir, &report, &cfg)?;
-        println!("Wrote {dir}/sites.md and {dir}/sites.json");
-    } else if json {
-        print_json(&report)?;
-    } else {
-        print!("{}", sectorforge::sites::render_markdown(&report, &cfg));
-    }
+    emit_report(
+        out,
+        json,
+        &report,
+        |dir| {
+            sectorforge::write_sites(dir, &report, &cfg)?;
+            println!("Wrote {dir}/sites.md and {dir}/sites.json");
+            Ok(())
+        },
+        || sectorforge::sites::render_markdown(&report, &cfg),
+    )?;
     Ok(ExitCode::SUCCESS)
 }

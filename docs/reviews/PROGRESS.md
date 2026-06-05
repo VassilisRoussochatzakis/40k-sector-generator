@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 0 | 0 | 15 | 0 |
+| F viewer + gui-core | 15 | 1 (F3) | 0 | 14 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -38,8 +38,8 @@ sequence". Update this file whenever a finding moves status.
    - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
-     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only). Remaining splits:
-     F3/F8 (D3/D5 deferred).
+     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only).
+     Remaining splits: F8 (F-S3/D5 deferred).
    - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
      (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
 
@@ -323,6 +323,41 @@ then re-verified here in the main thread.
   logic-line diff vs `git HEAD:world.rs` shows only added `use` lines (zero logic
   change), builder **317/317**, `clippy --workspace --all-targets -- -D warnings`
   clean, golden **15/15 byte-identical**. MAP.md + GUIDE.md repointed.
+
+### 2026-06-05 — step 5, wave 3 (god-file split — F3)
+
+- **F3 (`sector_view.rs` split, split-only)** — ✅ DONE. Split the 1711-LOC
+  `gui-core/src/sector_view.rs` into a `sector_view/` directory module (4 files,
+  1769 LOC; the +58 is per-file imports + the 20 `pub(super)` prefixes + module
+  docs): `mod.rs` (19 — doc + `mod` decls + the 5 `pub use` re-exports that keep
+  the public surface at `sector_view::`), `cache.rs` (123 — `SectorMapCache` +
+  impl), `view.rs` (895 — the `SectorView` 27-field struct + `SectorClick` +
+  the monolithic 810-LOC `show()`), `render.rs` (730 — `SectorGeom` + impl,
+  `point_segment_distance`, `paint_system_rings`, all hex math / paint / label
+  helpers, the 4 `*_MIN_VISIBLE_PX` consts, and the moved `#[cfg(test)]`
+  geometry tests). **Verbatim carve** — slices taken at item boundaries via
+  `sed` so bodies are byte-identical by construction; `view.rs`/`cache.rs`
+  bodies **diff-clean vs `git HEAD`**, `render.rs` differs in **exactly 20
+  lines**, each only a `fn X(` → `pub(super) fn X(` prefix (the helpers `show()`
+  calls cross-module). The 4 internal-only helpers (`hex_center_xy`,
+  `region_label_font_px`, `region_label_anchor`, `region_label_text`) stayed
+  private; `SectorGeom`/`paint_system_rings` kept `pub`,
+  `point_segment_distance` kept `pub(crate)`; nothing newly fully-`pub`. Submodule
+  `use` blocks rewrote the former `super::{heatmap,map_theme,palette,…}` →
+  `crate::…` (one level deeper now); two now-unused imports (`Arc`, `RouteId`,
+  both used only fully-qualified in the struct) trimmed from `view.rs`.
+  **F-S3 NOT done** (the 27-field `Default`/builder collapse + the `show()`
+  body decomposition into `render_routes`/`render_systems`/… ) — parked behind
+  an owner decision per the review's own note that body splits can alter the
+  map snapshots. **Re-verified in main thread:** `cargo check --workspace
+  --all-targets` clean (downstream builder/viewer resolve the preserved
+  `sector_view::` re-exports), `cargo clippy --workspace --all-targets -- -D
+  warnings` clean, **gui-core `map_snapshots_match_goldens` passes UN-blessed**
+  (no render drift), gui-core lib **30/30** (incl the 5 relocated geometry
+  tests under `sector_view::render::tests`), golden **15/15 byte-identical**,
+  `sectorforge` lib **191/191**. MAP.md + GUIDE.md repointed (mod.rs for the
+  whole-widget rows; render.rs for the flourish / font-px / hit_route /
+  `paint_system_rings` item links).
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

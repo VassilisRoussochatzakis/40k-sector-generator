@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 8 (E1,E2,E3,E4,E6,E7,E9,E-S1) | 0 | 9 | 0 |
+| E builder panels | 17 | 9 (E1,E2,E3,E4,E6,E7,E9,E13,E-S1) | 0 | 8 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -859,6 +859,20 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
   **scoped borrow that ends before** those calls, so only the shown fields are
   cloned, not the whole Vec (`focus_anchor` already re-reads by index). Builder
   **317/317**, clippy clean.
+
+- **E13 (`7ede957`) — `mark_catalog_dirty` helper.** ✅ DONE. Seven catalog
+  panels' `on_catalog_edited` hand-rolled the `state.dirty = true; if let
+  Some(rel) = config.inputs.X.clone() { insert(rel) } else { insert(DEFAULT_X
+  .into()) }` fallback. Added `BuilderState::mark_catalog_dirty(Option<String>,
+  &str)` in `state/derivations.rs` (beside `mark_validation_dirty`; both set
+  transient save-tracking state, **off** the command bus — not document state, so
+  no §R4 bus violation) and collapsed all seven to one-liners (personae,
+  relations, missions, hooks, prose, history, sites). Two-phase borrow permits
+  `state.mark_catalog_dirty(state.config.inputs.X.clone(), …)`. _Count note:_ the
+  review's "6 panels / 12 inserts" counted raw `dirty_files.insert` calls; the
+  actual Some/else-default shape is **7** panels — all converted. The other
+  `dirty_files.insert` sites (factions/routes/regions/files/theme/worlds_editor)
+  are a different shape and were left alone. Builder **317/317**, clippy clean.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

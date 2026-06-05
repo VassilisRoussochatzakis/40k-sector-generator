@@ -377,7 +377,8 @@ helper.
 | [builder/src/builder/panels/world/](../builder/src/builder/panels/world/) | WORLD tab §W1..§W7 inspector, split (E4) into `mod.rs` (orchestration + `EnumPicker`/`combo_enum` pickers + tests), `identity.rs`, `environment.rs`, `features.rs` (§W5 weighted features), `factions.rs` (presence), `claims.rs` (§W7), `overlays.rs` (control/overlays/chronicle/regen) |
 | [builder/src/builder/panels/routes.rs](../builder/src/builder/panels/routes.rs) | ROUTES tab — Phase B §R1..§R7 route editor |
 | [builder/src/builder/panels/factions.rs](../builder/src/builder/panels/factions.rs) | FACTIONS tab — §F1..§F7 faction roster editor |
-| [builder/src/builder/panels/control.rs](../builder/src/builder/panels/control.rs) | CONTROL tab — Phase C §C1..§C8 presence/dominance/control-state |
+| [builder/src/builder/panels/control/mod.rs](../builder/src/builder/panels/control/mod.rs) | CONTROL tab — Phase C §C1..§C8 presence/dominance/control-state + §CL3/§CL4 |
+| [builder/src/builder/panels/control/claims.rs](../builder/src/builder/panels/control/claims.rs) | CONTROL tab — §CL1/§CL2 per-world claims list + `filter_bar` (§E10) |
 | [builder/src/builder/panels/economy.rs](../builder/src/builder/panels/economy.rs) | ECONOMY tab — Phase C §E1..§E7 |
 | [builder/src/builder/panels/relations.rs](../builder/src/builder/panels/relations.rs) | RELATIONS tab — Phase C §REL1..§REL9 |
 | [builder/src/builder/panels/regions.rs](../builder/src/builder/panels/regions.rs) | REGIONS tab — Phase C §REG1..§REG7 |

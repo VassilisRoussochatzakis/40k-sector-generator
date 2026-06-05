@@ -2989,7 +2989,7 @@ Tests:
 
 #### C1–C8 + CL1–CL4 control panel (DONE)
 
-Phase B §12 + Phase C §11. The CONTROL tab in [builder/src/builder/panels/control.rs](builder/src/builder/panels/control.rs) now hosts the full §C1..§C8 presence / dominance / control-state surface alongside the §CL1..§CL4 claims editor.
+Phase B §12 + Phase C §11. The CONTROL tab in [builder/src/builder/panels/control/mod.rs](builder/src/builder/panels/control/mod.rs) now hosts the full §C1..§C8 presence / dominance / control-state surface alongside the §CL3/§CL4 claims editors. The §CL1/§CL2 per-world claims list (`show_world_list` / `show_world_row` / `show_add_claim_row`) + the shared `filter_bar` helper were carved into [builder/src/builder/panels/control/claims.rs](builder/src/builder/panels/control/claims.rs) (§E10).
 
 | Piece | Where it lives |
 |---|---|
@@ -3006,7 +3006,7 @@ Phase B §12 + Phase C §11. The CONTROL tab in [builder/src/builder/panels/cont
 | CL3 Contested flag | `contested_worlds` aggregates `BTreeSet<FactionId>` per world; the `§CL3 — Contested (n)` collapsing header lists every contested world with a deep-link, and the per-world row paints a `CONTESTED` badge when `distinct.len() > 1`. The world list also exposes a `contested only` checkbox. |
 | CL4 bulk convert | `show_bulk_convert` — faction Y + claim X + target Z dropdowns with a live `matches: N` counter. `apply_bulk_convert` walks every world in the sector and rewrites `claim_type` in place; the apply button is disabled when X = Z or the count is zero. |
 
-Tests live in [builder/src/builder/panels/control.rs](builder/src/builder/panels/control.rs):
+Tests live in [builder/src/builder/panels/control/mod.rs](builder/src/builder/panels/control/mod.rs):
 
 * `cl3_contested_when_distinct_claimants_gt_1`, `cl4_bulk_match_count_predicate` cover the claims surface.
 * `build_overlay_returns_none_for_off`, `build_overlay_power_projection_keys_systems_with_power`, `build_overlay_influence_field_handles_empty_sector` cover the §C7 / §C8 overlay helpers.

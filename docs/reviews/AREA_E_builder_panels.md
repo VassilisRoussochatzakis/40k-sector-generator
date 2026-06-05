@@ -18,7 +18,7 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 | E7    | MED  | ✅ Confirmed   | L      | `system.rs` 2033 LOC god-file                          |
 | E8    | —    | 🟢 Non-issue   | —      | "twice per frame" false — site 2 is collapsed-gated + dominated|
 | E9    | MED  | ✅ Confirmed   | S      | `chronicle.events.clone()` ×2 per frame                |
-| E10   | MED  | ✅ Confirmed   | M      | Filter/list block ~273 lines in `control.rs`           |
+| E10   | MED  | ✅ Resolved    | M      | Filter/list block ~273 lines in `control.rs`           |
 | E11   | LOW  | ⚠️ Partial     | M      | `context_menu.rs` 1152 LOC (not 177); 5 large render fns|
 | E12   | LOW  | ✅ Resolved    | M      | `search.rs::show` fn is ~307 lines (matches review)    |
 | E13   | LOW  | ✅ Confirmed   | S      | Catalog dirty boilerplate ×6 panels (12 total sites)   |
@@ -311,8 +311,18 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E10 — Filter/list block >273 lines in `control.rs`
 
+> ✅ **RESOLVED 2026-06-05.** (a) Extracted `filter_bar(ui, salt, hint) -> String`
+> encapsulating the `Id`-keyed `ui.data_mut` get/store/re-read cycle (behaviour-
+> identical — returns the freshly-stored value). (b) `git mv control.rs
+> control/mod.rs` and carved the §CL1/§CL2 list block (`show_world_list` +
+> `show_world_row` + `show_add_claim_row` + `filter_bar`) into a new
+> `control/claims.rs`; §CL3/§CL4 stay in `mod.rs`. Verbatim carve (byte-diff vs
+> HEAD: only the `claim_chip_colours` repath differs); `claim_label`/`CLAIM_TYPES`
+> read via `super::` (no `pub(super)` raise). Builder lib 319/319, workspace clippy
+> clean. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** MED / P2
-- **Status:** ✅ Confirmed
+- **Status:** ✅ Confirmed → ✅ Resolved
 - **Location:** `builder/src/builder/panels/control.rs:1203` (`fn show_world_list`), `:1288` (`fn show_world_row`), `:1393` (`fn show_add_claim_row`) — combined ~273 lines (review said ">150-line filter/list fns"; actual is larger)
 - **Evidence:** `show_world_list` (1203–1287, ~84 lines) contains a full filter bar with two temp-data round-trips; `show_world_row` (1288–1392, ~104 lines) is the per-world chip-row renderer; `show_add_claim_row` (1393–1478, ~85 lines) is the add-claim form.
 - **Why it matters:** The filter-bar pattern (text input → store in `ui.data` → read back → filter list) repeats in multiple panels. Extracting it reduces per-frame `ui.data_mut` round-trips and makes the filter behavior consistent (e.g., debounce, clear button).

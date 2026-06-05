@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 14 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E12,E13,E14,E-S1,E-S3*) | 0 | 3 | 0 |
+| E builder panels | 17 | 15 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E12,E13,E14,E-S1,E-S3*) | 0 | 2 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -947,6 +947,48 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
     (world/claims, world/factions, world/features — all their EditWorld sites
     converted). No file moved → MAP.md untouched; GUIDE.md §R4 detail-editor note
     extended.
+
+### 2026-06-05 — step 5, wave 13 (AREA_E E10 — filter_bar + control/ dir module)
+
+- **E10 (`filter_bar` + `control/claims.rs`) — ✅ DONE.** Two parts.
+  - **(a) `filter_bar` helper.** The §CL1 per-world claims list hand-rolled the
+    `Id`-keyed `ui.data_mut` get → `TextEdit` → store-on-change → re-read-from-temp
+    filter cycle. Extracted `fn filter_bar(ui, salt, hint) -> String` (in
+    `control/claims.rs`) that does the get/render/store and **returns** the current
+    value; `show_world_list` now captures that return and drops the redundant
+    second `data_mut` re-read. **Behaviour-identical:** `filter_bar` stores the
+    freshly-typed value before returning it, so the returned string equals exactly
+    what the old store-then-re-read produced (proved by diff: only the filter-cycle
+    lines changed; the rows-build / scroll-area / `only_contested` handling are
+    untouched). The `only_contested` checkbox keeps its original inline get/store +
+    re-read (out of scope; left exactly as-is).
+  - **(b) `control.rs` → `control/` dir module.** `git mv control.rs
+    control/mod.rs` and carved the §CL1/§CL2 claims block —
+    `show_world_list` (now `pub(super)`, called by the parent `show`), plus the
+    private `show_world_row` + `show_add_claim_row` + the new `filter_bar` — into a
+    new `control/claims.rs`. §CL3 (`contested_worlds`/`show_contested_summary`) and
+    §CL4 (`show_bulk_convert`/`count_bulk_matches`/`apply_bulk_convert`) **stay in
+    `mod.rs`** (not named by the finding; moving them would widen the visibility
+    surface for no gain). The §C presence/system/power editors stay in `mod.rs`.
+  - **Verbatim carve (proved by byte-diff vs `git HEAD`):** `show_world_row` +
+    `show_add_claim_row` are byte-identical except the **one** repath
+    `super::presence_widgets::claim_chip_colours` → `claim_chip_colours` (now a
+    `use crate::builder::panels::presence_widgets::claim_chip_colours`).
+    `claim_label` / `CLAIM_TYPES` stay private in `mod.rs` and are read by the child
+    via `use super::{…}` (ancestor privates are visible to descendants — **no
+    `pub(super)` raise needed**). The only other `mod.rs` change: `FactionClaim`
+    moved from the module-level `use` (its sole non-test consumer
+    `show_add_claim_row` left) into the `#[cfg(test)]` module's import, killing a
+    real `unused_imports` warning.
+  - **Visibility audit:** no external caller of the three claims fns (grep — the
+    `factions.rs::show_filter_bar` and `world/claims.rs::show_add_claim_row`
+    namesakes are unrelated). `panels/mod.rs`'s `pub mod control;` resolves to the
+    dir unchanged; `show` / `build_overlay_cells` keep their `pub(crate)` surface.
+  - **Verification:** `cargo check -p sectorforge-builder --all-targets` clean;
+    `cargo clippy --workspace --all-targets -- -D warnings` clean; builder lib
+    **319/319** (control's relocated tests still run). Builder-only — golden + map
+    snapshots unaffected (not run). MAP.md repointed `control.rs` → `control/mod.rs`
+    + added the `control/claims.rs` row.
 
 ### 2026-06-05 — step 5, wave 13 (AREA_E E12 — search.rs::show split)
 

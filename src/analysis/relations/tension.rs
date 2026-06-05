@@ -6,8 +6,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::config::Stance;
-use super::derive::canonical_pair;
+use super::derive::canonical_pair_idx;
 use crate::sector_model::{GeneratedFaction, GeneratedSector};
+use crate::FxMap;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct CooccurStats {
@@ -24,8 +25,9 @@ pub(super) struct CooccurStats {
 
 pub(super) fn build_cooccurrence(
     sector: &GeneratedSector,
-) -> BTreeMap<(String, String), CooccurStats> {
-    let mut out: BTreeMap<(String, String), CooccurStats> = BTreeMap::new();
+    idx: &FxMap<&str, u32>,
+) -> BTreeMap<(u32, u32), CooccurStats> {
+    let mut out: BTreeMap<(u32, u32), CooccurStats> = BTreeMap::new();
     for sys in &sector.systems {
         for world in sector.get_worlds_for_system(sys) {
             for i in 0..world.factions.len() {
@@ -34,7 +36,7 @@ pub(super) fn build_cooccurrence(
                     let pb = &world.factions[j];
                     let a = pa.faction_id.as_str();
                     let b = pb.faction_id.as_str();
-                    bump_cooccur(&mut out, a, b, |s| {
+                    bump_cooccur(&mut out, idx, a, b, |s| {
                         s.same_system_worlds += 1;
                         s.economic_dependency +=
                             pa.dimensions.economic.min(pb.dimensions.economic).mul_add(
@@ -54,7 +56,7 @@ pub(super) fn build_cooccurrence(
                         }
                     });
                     if world.control.contested {
-                        bump_cooccur(&mut out, a, b, |s| s.contested_worlds += 1);
+                        bump_cooccur(&mut out, idx, a, b, |s| s.contested_worlds += 1);
                     }
                 }
             }
@@ -62,6 +64,7 @@ pub(super) fn build_cooccurrence(
                 for j in (i + 1)..world.claims.len() {
                     bump_cooccur(
                         &mut out,
+                        idx,
                         world.claims[i].faction_id.as_str(),
                         world.claims[j].faction_id.as_str(),
                         |s| s.claim_conflicts += 1,
@@ -81,7 +84,7 @@ pub(super) fn build_cooccurrence(
             let ids: Vec<&str> = sys_ids.into_iter().collect();
             for i in 0..ids.len() {
                 for j in (i + 1)..ids.len() {
-                    bump_cooccur(&mut out, ids[i], ids[j], |s| s.active_warzones += 1);
+                    bump_cooccur(&mut out, idx, ids[i], ids[j], |s| s.active_warzones += 1);
                 }
             }
         }
@@ -93,6 +96,7 @@ pub(super) fn build_cooccurrence(
                 let b = &route.controls[j];
                 bump_cooccur(
                     &mut out,
+                    idx,
                     a.faction_id.as_str(),
                     b.faction_id.as_str(),
                     |s| {
@@ -124,26 +128,52 @@ pub(super) fn build_cooccurrence(
     out
 }
 
-fn bump_cooccur<F>(out: &mut BTreeMap<(String, String), CooccurStats>, a: &str, b: &str, f: F)
-where
+fn bump_cooccur<F>(
+    out: &mut BTreeMap<(u32, u32), CooccurStats>,
+    idx: &FxMap<&str, u32>,
+    a: &str,
+    b: &str,
+    f: F,
+) where
     F: FnOnce(&mut CooccurStats),
 {
     if a == b {
         return;
     }
-    let key = canonical_pair(a, b);
-    let entry = out.entry(key).or_default();
+    // Skip ids not in the faction catalogue: such entries were never read by the
+    // lookup path (which only queries `sector.factions` ids), so dropping them
+    // is observably identical to the old string-keyed map.
+    let (Some(&ia), Some(&ib)) = (idx.get(a), idx.get(b)) else {
+        return;
+    };
+    let entry = out.entry(canonical_pair_idx(ia, ib)).or_default();
     f(entry);
+}
+
+/// Resolve the co-occurrence stats for an id pair through the faction index,
+/// returning the default (all-zero) accumulator when either id is absent or the
+/// pair never co-occurred. Shared by `tension_of` and `build_relation` (B6).
+pub(super) fn cooccur_stats(
+    cooccur: &BTreeMap<(u32, u32), CooccurStats>,
+    idx: &FxMap<&str, u32>,
+    a_id: &str,
+    b_id: &str,
+) -> CooccurStats {
+    idx.get(a_id)
+        .zip(idx.get(b_id))
+        .and_then(|(&ia, &ib)| cooccur.get(&canonical_pair_idx(ia, ib)))
+        .copied()
+        .unwrap_or_default()
 }
 
 pub(super) fn tension_of(
     a: &GeneratedFaction,
     b: &GeneratedFaction,
     stance: Stance,
-    cooccur: &BTreeMap<(String, String), CooccurStats>,
+    cooccur: &BTreeMap<(u32, u32), CooccurStats>,
+    idx: &FxMap<&str, u32>,
 ) -> f32 {
-    let key = canonical_pair(&a.id, &b.id);
-    let stats = cooccur.get(&key).copied().unwrap_or_default();
+    let stats = cooccur_stats(cooccur, idx, &a.id, &b.id);
     let stance_bonus = match stance {
         Stance::AtWar => 40.0,
         Stance::Hostile => 25.0,

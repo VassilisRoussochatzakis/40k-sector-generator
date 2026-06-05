@@ -18,10 +18,11 @@ use super::tables::{
     cross_kinds, default_disposition_delta, default_kind_stance, ideological_distance,
     is_hidden_kind, is_merchant_kind, IMPERIAL_KINDS, MERCHANT_KINDS,
 };
-use super::tension::{build_cooccurrence, tension_of, CooccurStats};
+use super::tension::{build_cooccurrence, cooccur_stats, tension_of, CooccurStats};
 use crate::errors::SectorError;
 use crate::rng::stage_rng;
 use crate::sector_model::{GeneratedFaction, GeneratedSector};
+use crate::FxMap;
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 
@@ -72,8 +73,18 @@ pub fn derive_with_threshold(
     if facs.len() < 2 {
         return RelationsMatrix::default();
     }
+    // B6: faction-id → index map, so the hot co-occurrence path keys on
+    // `(u32, u32)` instead of allocating two `String`s per pair-event/lookup.
+    // The map is lookup-only (never iterated for output), so the integer keys
+    // do not affect emission order.
+    let idx: FxMap<&str, u32> = all_facs
+        .iter()
+        .enumerate()
+        .map(|(i, f)| (f.id.as_str(), i as u32))
+        .collect();
+
     // Build co-occurrence weights for tension.
-    let cooccur = build_cooccurrence(sector);
+    let cooccur = build_cooccurrence(sector, &idx);
 
     let mut pairs: Vec<FactionRelation> = Vec::with_capacity(facs.len() * (facs.len() - 1) / 2);
     for i in 0..facs.len() {
@@ -83,7 +94,7 @@ pub fn derive_with_threshold(
             let (lo_id, _hi_id) = canonical_pair(&a.id, &b.id);
             let (lo, hi) = if lo_id == a.id { (a, b) } else { (b, a) };
 
-            let rel = compute_pair(&sector.seed, lo, hi, cfg, &cooccur);
+            let rel = compute_pair(&sector.seed, lo, hi, cfg, &cooccur, &idx);
             pairs.push(rel);
         }
     }
@@ -103,7 +114,8 @@ fn compute_pair(
     a: &GeneratedFaction,
     b: &GeneratedFaction,
     cfg: &RelationsConfig,
-    cooccur: &BTreeMap<(String, String), CooccurStats>,
+    cooccur: &BTreeMap<(u32, u32), CooccurStats>,
+    idx: &FxMap<&str, u32>,
 ) -> FactionRelation {
     // 1) Explicit pair override (id-based) wins outright.
     for ov in &cfg.pair_overrides {
@@ -118,6 +130,7 @@ fn compute_pair(
                     .clone()
                     .unwrap_or_else(|| format!("Override: {}", ov.stance.label())),
                 cooccur,
+                idx,
                 rel_override,
             );
         }
@@ -175,7 +188,7 @@ fn compute_pair(
     let stance = base_stance.shift(delta + perturb);
 
     let rel_override = matching_relation_override(cfg, a, b);
-    build_relation(a, b, stance, cause, cooccur, rel_override)
+    build_relation(a, b, stance, cause, cooccur, idx, rel_override)
 }
 
 fn build_relation(
@@ -183,13 +196,11 @@ fn build_relation(
     b: &GeneratedFaction,
     base_stance: Stance,
     mut cause: String,
-    cooccur: &BTreeMap<(String, String), CooccurStats>,
+    cooccur: &BTreeMap<(u32, u32), CooccurStats>,
+    idx: &FxMap<&str, u32>,
     rel_override: Option<&RelationOverride>,
 ) -> FactionRelation {
-    let stats = cooccur
-        .get(&canonical_pair(&a.id, &b.id))
-        .copied()
-        .unwrap_or_default();
+    let stats = cooccur_stats(cooccur, idx, &a.id, &b.id);
     let mut a_to_b = directional_view(a, b, base_stance, stats);
     let mut b_to_a = directional_view(b, a, base_stance, stats);
     let mut treaty_status = treaty_status_of(a, b, base_stance, stats);
@@ -220,7 +231,7 @@ fn build_relation(
         a_to_b,
         b_to_a,
         cause,
-        tension: tension_of(a, b, secret_stance, cooccur),
+        tension: tension_of(a, b, secret_stance, cooccur, idx),
     }
 }
 
@@ -512,6 +523,16 @@ pub(super) fn canonical_pair(a: &str, b: &str) -> (String, String) {
         (a.to_string(), b.to_string())
     } else {
         (b.to_string(), a.to_string())
+    }
+}
+
+/// Allocation-free canonical key for the co-occurrence map, keyed on faction
+/// indices instead of id strings (B6). Order-independent, like `canonical_pair`.
+pub(super) fn canonical_pair_idx(a: u32, b: u32) -> (u32, u32) {
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
     }
 }
 

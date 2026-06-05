@@ -213,7 +213,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.route_type_distribution = sector
         .routes
         .iter()
-        .map(|r| format!("{}", r.route_type).into())
+        .map(|r| Arc::from(r.route_type.as_slug()))
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
@@ -221,7 +221,7 @@ pub fn analyze_with(sector: &GeneratedSector, cfg: &AnalyzeConfig) -> SectorAnal
     a.route_stability_distribution = sector
         .routes
         .iter()
-        .map(|r| format!("{}", r.stability).into())
+        .map(|r| Arc::from(r.stability.as_slug()))
         .fold(BTreeMap::new(), |mut m, k| {
             *m.entry(k).or_insert(0) += 1;
             m
@@ -268,9 +268,7 @@ fn compute_faction_balance(sector: &GeneratedSector) -> FactionBalance {
         })
         .collect();
     shares.sort_by(|a, b| {
-        b.share
-            .partial_cmp(&a.share)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        crate::analysis::cmp_f32_desc(a.share, b.share)
             .then_with(|| a.faction_id.cmp(&b.faction_id))
     });
     FactionBalance {
@@ -328,11 +326,11 @@ fn compute_world_stats(sector: &GeneratedSector) -> WorldStats {
             }
             total_claims += w.claims.len() as u32;
             for c in &w.claims {
-                let key: Arc<str> = format!("{}", c.claim_type).into();
+                let key: Arc<str> = Arc::from(c.claim_type.as_slug());
                 *claim_counts.entry(key).or_insert(0) += 1;
             }
             for p in &w.factions {
-                let key: Arc<str> = format!("{}", p.dominance).into();
+                let key: Arc<str> = Arc::from(p.dominance.as_slug());
                 *dominance_counts.entry(key).or_insert(0) += 1;
             }
         }
@@ -350,7 +348,7 @@ fn compute_system_state_counts(sector: &GeneratedSector) -> BTreeMap<Arc<str>, u
     let mut out: BTreeMap<Arc<str>, u32> = BTreeMap::new();
     for sys in sector.systems.iter() {
         if let Some(state) = sys.control.state {
-            let key: Arc<str> = format!("{}", state).into();
+            let key: Arc<str> = Arc::from(state.as_slug());
             *out.entry(key).or_insert(0) += 1;
         }
     }

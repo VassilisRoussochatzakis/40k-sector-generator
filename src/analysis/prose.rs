@@ -197,10 +197,7 @@ fn sector_overview(
         .factions
         .iter()
         .max_by(|a, b| {
-            a.power
-                .total_projection()
-                .partial_cmp(&b.power.total_projection())
-                .unwrap_or(std::cmp::Ordering::Equal)
+            crate::analysis::cmp_f32_asc(a.power.total_projection(), b.power.total_projection())
         })
         .map(|f| {
             faction_names

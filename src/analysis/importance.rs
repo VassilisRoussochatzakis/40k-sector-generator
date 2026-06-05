@@ -148,7 +148,7 @@ pub fn compute_display_buckets(
         .enumerate()
         .map(|(i, f)| (i, display_importance(f)))
         .collect();
-    ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    ranked.sort_by(|a, b| crate::analysis::cmp_f32_desc(a.1, b.1));
 
     let max_imp = ranked.first().map(|(_, v)| *v).unwrap_or(0.0);
     let cutoff = (max_imp * minor_fraction).max(0.0);
@@ -191,9 +191,7 @@ pub fn compute_display_buckets(
         })
         .collect();
     aggregates.sort_by(|a, b| {
-        b.importance()
-            .partial_cmp(&a.importance())
-            .unwrap_or(std::cmp::Ordering::Equal)
+        crate::analysis::cmp_f32_desc(a.importance(), b.importance())
             .then_with(|| aggregate_label_cmp(a, b))
     });
 

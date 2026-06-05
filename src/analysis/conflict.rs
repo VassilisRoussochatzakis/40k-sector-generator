@@ -72,9 +72,7 @@ pub fn derive_world_conflict(w: &GeneratedWorld) -> ConflictState {
         .map(|p| (p.faction_id.as_str(), p.dimensions.local_control_score()))
         .collect();
     ranked.sort_by(|a, b| {
-        b.1.partial_cmp(&a.1)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| a.0.cmp(b.0))
+        crate::analysis::cmp_f32_desc(a.1, b.1).then_with(|| a.0.cmp(b.0))
     });
     let top = ranked.first().copied();
     let second = ranked.get(1).copied();

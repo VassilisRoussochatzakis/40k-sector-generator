@@ -1,8 +1,6 @@
 //! Per-route emission: warp-instability hazards, concealed-passage discoveries,
 //! pirate/interdictor control consolidation.
 
-use std::cmp::Ordering;
-
 use crate::sector_model::{GeneratedRoute, RouteStability, RouteType};
 
 use super::build::build_event;
@@ -83,9 +81,7 @@ pub(super) fn emit_route_events(
         .iter()
         .filter(|c| c.interdiction >= 60.0 || c.piracy >= 60.0)
         .max_by(|a, b| {
-            (a.interdiction + a.piracy)
-                .partial_cmp(&(b.interdiction + b.piracy))
-                .unwrap_or(Ordering::Equal)
+            crate::analysis::cmp_f32_asc(a.interdiction + a.piracy, b.interdiction + b.piracy)
         })
     {
         let kind = EventKind::Blockade;

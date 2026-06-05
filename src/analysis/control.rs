@@ -24,10 +24,7 @@ fn score_then_id(
     b_score: f32,
     b_id: &FactionId,
 ) -> std::cmp::Ordering {
-    a_score
-        .partial_cmp(&b_score)
-        .unwrap_or(std::cmp::Ordering::Equal)
-        .then_with(|| b_id.cmp(a_id))
+    crate::analysis::cmp_f32_asc(a_score, b_score).then_with(|| b_id.cmp(a_id))
 }
 
 /// Derive multi-dimensional presence scores for a single (kind, disposition,
@@ -378,9 +375,7 @@ pub fn derive_world_control(world: &GeneratedWorld) -> WorldControlSummary {
         })
         .collect();
     scored.sort_by(|a, b| {
-        b.1.partial_cmp(&a.1)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| a.0.cmp(&b.0))
+        crate::analysis::cmp_f32_desc(a.1, b.1).then_with(|| a.0.cmp(&b.0))
     });
 
     let pick_dim = |f: fn(&PresenceDimensions) -> f32| -> Option<FactionId> {
@@ -496,9 +491,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
         .map(|(faction_id, score)| ScoredFaction { faction_id, score })
         .collect();
     top.sort_by(|a, b| {
-        b.score
-            .partial_cmp(&a.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        crate::analysis::cmp_f32_desc(a.score, b.score)
             .then(a.faction_id.cmp(&b.faction_id))
     });
     top.truncate(5);

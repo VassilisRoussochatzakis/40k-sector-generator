@@ -50,6 +50,7 @@ so downstream crates and existing `crate::foo::Item` paths see no change.
 | File | Purpose |
 |---|---|
 | [src/model/sector_model/mod.rs](../src/model/sector_model/mod.rs) | Output DTOs with Serialize/Deserialize |
+| [src/model/sector_model/routes_view.rs](../src/model/sector_model/routes_view.rs) | Route render vocabulary split out of the DTO file (§A1): `RoutePattern`/`strides`, `RouteViewMode`, `stable_pattern_hash`, render impl-methods of `RouteType`/`RouteKind`/`GeneratedRoute` (re-exported at the `sector_model` root) |
 | [src/model/sector_model/mutation.rs](../src/model/sector_model/mutation.rs) | `swap_systems` + in-place mutators used by the builder command bus |
 | [src/model/ids.rs](../src/model/ids.rs) | Typed `SystemId` / `WorldId` / `RouteId` / `FactionId` |
 | [src/model/errors.rs](../src/model/errors.rs) | Top-level `SectorError` (thiserror) |

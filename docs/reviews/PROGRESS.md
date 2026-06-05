@@ -15,7 +15,7 @@ sequence". Update this file whenever a finding moves status.
 
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
-| A `src/model` + generation | 12 | 0 | 0 | 12 | 0 |
+| A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
 | B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
 | C export/validate/worlds/cli | 13 | 2 (C1,C-S2) | 0 | 11 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
@@ -191,6 +191,29 @@ then re-verified here in the main thread.
   code; cargo compiles it clean.
 
   **B11 finding now fully closed** (both god-modules split).
+- **A1 (model render-vocab split)** — ✅ DONE. Extracted the route **render
+  vocabulary** out of the `src/model/sector_model/mod.rs` DTO god-file (1490 →
+  1272 LOC) into a new sibling `routes_view.rs` (235 LOC): `RoutePattern` +
+  `strides`, `RouteViewMode` (+`enum_slug!`+`Display`), the private
+  `stable_pattern_hash`, and the render impl-methods split out of the mixed
+  impl blocks — `RouteType::{pattern,patterns,pattern_for_key,pattern_key}`,
+  `RouteKind::patterns`, `RouteStability::pattern_key`,
+  `GeneratedRoute::{pattern,pattern_with_salt}`. The DTO/identity halves
+  (enums + serde + `kind`/`label`/`Display` + `RouteType::is_hidden`, judged
+  legend-not-render) **stay** in `mod.rs`. Inherent impls legally live in the
+  new module; `pub use routes_view::{RoutePattern, RouteViewMode}` keeps
+  `crate::sector_model::*` paths intact (consumers: export render_core, gui-core
+  info_panel/legend, viewer settings). No private→`pub(super)` bumps needed
+  (the `GeneratedRoute` fields read were already `pub`). **Re-verified in main
+  thread:** golden **15/15 byte-identical**, gui-core **map snapshots pass
+  un-blessed** (`map_snapshots_match_goldens`), lib 191/191, `cargo clippy
+  --workspace` clean. (A rust-analyzer E0599/E0432 flurry on export `routes.rs`/
+  `legend.rs` was a stale-index false alarm — `cargo check -p sectorforge`
+  compiles those exact files and passed.)
+
+  _Not done:_ **A5** (157-pub-field visibility tightening) is the *other* AREA_A
+  god-file item but is a wide cascade into builder/viewer/tests, not a clean
+  split — left for an owner decision like D-S3/D5.
 
 ### Open decisions / notes
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via

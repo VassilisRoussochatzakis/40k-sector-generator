@@ -3704,6 +3704,7 @@ across runs, so a regression check is a diff away.
 | [src/gen/generation/mod.rs](src/gen/generation/mod.rs) | Placement, systems, worlds, factions, routes, and `SectorProgress` callback events, including cooperative cancellation for GUI preview jobs. `build_system` is the unit reused by sector + standalone APIs |
 | [src/gen/random_sector.rs](src/gen/random_sector.rs) | RANDOM.md engine: `SectorSize`, `mint_seed`, `build_random_config` (rolls a complete fully-enabled `AppConfig` from a `"config"` RNG stage), and `generate_random_sector` (scaffold `_full` → write synthesised config → load → validate → generate → run the five post-gen derivations). Returns `RandomReport` |
 | [src/model/sector_model/mod.rs](src/model/sector_model/mod.rs) | Output DTOs (`GeneratedSector` etc.) with `Serialize` + `Deserialize` |
+| [src/model/sector_model/routes_view.rs](src/model/sector_model/routes_view.rs) | Route render vocabulary (§A1 split out of the DTO god-file): `RoutePattern` + `strides`, `RouteViewMode`, `stable_pattern_hash`, and the render impl-methods of `RouteType`/`RouteKind`/`GeneratedRoute`; re-exported at the `sector_model` root so consumer import paths are unchanged. |
 | [src/analysis/control.rs](src/analysis/control.rs) | Faction presence → dimension scores, claims, multi-winner control summaries, and per-faction `PowerProfile` aggregation |
 | [src/validate/validation.rs](src/validate/validation.rs) | All pre-generation checks |
 | [src/validate/invariants.rs](src/validate/invariants.rs) | Spec §11.11 post-generation invariants |

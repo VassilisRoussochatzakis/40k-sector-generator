@@ -372,7 +372,7 @@ helper.
 | [builder/src/builder/panels/preferences.rs](../builder/src/builder/panels/preferences.rs) | §P6 preferences panel: recent-projects MRU |
 | [builder/src/builder/panels/conflict_resolver.rs](../builder/src/builder/panels/conflict_resolver.rs) | §P5 dialog when the file watcher detects an external change |
 | [builder/src/builder/panels/generation.rs](../builder/src/builder/panels/generation.rs) | §6 generation panel (G1..G6) |
-| [builder/src/builder/panels/world.rs](../builder/src/builder/panels/world.rs) | WORLD tab — Phase B §W1..§W7 inspector |
+| [builder/src/builder/panels/world/](../builder/src/builder/panels/world/) | WORLD tab §W1..§W7 inspector, split (E4) into `mod.rs` (orchestration + `EnumPicker`/`combo_enum` pickers + tests), `identity.rs`, `environment.rs`, `features.rs` (§W5 weighted features), `factions.rs` (presence), `claims.rs` (§W7), `overlays.rs` (control/overlays/chronicle/regen) |
 | [builder/src/builder/panels/routes.rs](../builder/src/builder/panels/routes.rs) | ROUTES tab — Phase B §R1..§R7 route editor |
 | [builder/src/builder/panels/factions.rs](../builder/src/builder/panels/factions.rs) | FACTIONS tab — §F1..§F7 faction roster editor |
 | [builder/src/builder/panels/control.rs](../builder/src/builder/panels/control.rs) | CONTROL tab — Phase C §C1..§C8 presence/dominance/control-state |

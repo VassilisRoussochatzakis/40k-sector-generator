@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 5 (B-S3,B7,B9,B11,B12) | 0 | 9 | 0 |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 5 (E1,E2,E3,E7,E-S1) | 0 | 12 | 0 |
+| E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
 | F viewer + gui-core | 15 | 0 | 0 | 15 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -38,7 +38,7 @@ sequence". Update this file whenever a finding moves status.
    - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
-     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅. Remaining splits: E4 (split-only),
+     B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only). Remaining splits:
      F3/F8 (D3/D5 deferred).
    - Remaining dedup: AREA_B perf (B1/B3/B5/B6), trait/macro dedup
      (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
@@ -303,7 +303,35 @@ then re-verified here in the main thread.
     touches no `sectorforge` code, so output is provably unaffected). MAP.md +
     GUIDE.md link/structure refs repointed `system.rs` → `system/` module.
 
+- **E4 (`world.rs` split, split-only)** — ✅ DONE. Split the 1608-LOC
+  `builder/src/builder/panels/world.rs` into a `world/` directory module (7
+  files, 1762 LOC; the +154 is per-file imports + the `pub(super)` prefix
+  pushing four `show_*_section` signatures past 100 cols so rustfmt wrapped the
+  param list — no body changed): `mod.rs` (386 — doc/imports, `show` +
+  roster/inspector/header, the `EnumPicker` trait + 7 impls + `combo_enum` kept
+  PRIVATE since child modules may read ancestor privates, and the tests),
+  `identity.rs` (265), `environment.rs` (122 — environment + society),
+  `features.rs` (321 — §W5 features + weights + coupling warnings),
+  `factions.rs` (204 — presence + `INFLUENCE_TIERS`/`DOMINANCE_STATES`),
+  `claims.rs` (197 — §W7 + `claim_chip_colours` + `CLAIM_TYPES`), `overlays.rs`
+  (267 — control/overlays/chronicle/regen). Only `show` stays `pub(crate)`
+  (sole external consumer: `nav.rs`); cross-boundary section fns raised to
+  `pub(super)`; nothing newly `pub`. `panels/mod.rs` unchanged. Carve delegated
+  to `panel-implementer`, **re-verified in main thread**: no `cargo fmt` leak
+  (git shows only `world.rs`→`world/`), all **9 `format!("{…:?}")` sites
+  byte-identical** (the deferred slug swap), an independent whitespace-normalised
+  logic-line diff vs `git HEAD:world.rs` shows only added `use` lines (zero logic
+  change), builder **317/317**, `clippy --workspace --all-targets -- -D warnings`
+  clean, golden **15/15 byte-identical**. MAP.md + GUIDE.md repointed.
+
 ### Open decisions / notes
+- **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**
+  The review's other half of E4 — replacing the 9 `format!("{v:?}")` / `{self:?}`
+  key sites in `world/` with a stable `as_slug()` — is **not** done. Those
+  Debug-repr strings are load-bearing keys (the feature-weight lookup + the
+  `EnumPicker::debug_key` storage keys); a slug whose value differs from the Rust
+  variant name would change them. Left for an owner decision (like A5 / D-S3·D5),
+  per "don't swap behaviour without asking."
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via
   PR #3 (`2b274ea`).** Landed as `7a06824` (AREA_D), `56b587b` (E1/E2/E3),
   `5055f3a` (G2), `1b01f28` (C1), `688a378` (B-S3), `7c446bf` (this tracker).

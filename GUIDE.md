@@ -2931,12 +2931,12 @@ by `session::SessionFile` round-trip.
 
 #### W1–W7 world panel (DONE)
 
-Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) is the per-world inspector — every `GeneratedWorld` field reachable, enum pickers driven by the canonical `*::VARIANTS` lists in [src/worlds.rs](src/worlds.rs), pinning side-table (Q1), single-world re-roll, weighted features picker, inline coupling warnings, and a claims chip-row.
+Phase B §8. The WORLD tab in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) is the per-world inspector — every `GeneratedWorld` field reachable, enum pickers driven by the canonical `*::VARIANTS` lists in [src/worlds.rs](src/worlds.rs), pinning side-table (Q1), single-world re-roll, weighted features picker, inline coupling warnings, and a claims chip-row.
 
 | Piece | Where it lives |
 |---|---|
-| W1 inspector | [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays summary (§28 / §32), the §SU1/§SU2 surface-region editor ([builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs)), and the §W4 re-roll collapse. |
-| W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
+| W1 inspector | [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) — collapsing sections for Identity (id / index / source_row_index / name / orbit / pinned), Classification (star_colour / world_type), Environment (atmosphere / temperature / biosphere), Society (population / tech_level / government), Notable features (§W5), Coupling warnings (§W6), Tags + Notes, Faction presence (read-only deep-link to FACTIONS), Claims chip-row (§W7), Control summary (§11 read-only), Overlays summary (§28 / §32), the §SU1/§SU2 surface-region editor ([builder/src/builder/panels/surface_regions.rs](builder/src/builder/panels/surface_regions.rs)), and the §W4 re-roll collapse. |
+| W2 enum pickers | `combo_enum::<E>` in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs) walks `E::VARIANTS` and labels via `E::display_name()`. Eliminates drift from the legacy `viewer/src/editor/enums.rs` string arrays — every variant added to the enum appears in the picker automatically. Audit guard: `enum_picker_variants_match_worlds_authoritative_set`. |
 | W3 pinned toggle | Identity section checkbox writes `BuilderState::pinned_worlds`. Honoured by §W4 re-roll (refuses pinned), §G4 `apply_preview` is system-scoped today; future per-world overlap reuses the same set. |
 | W4 re-roll | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) `BuilderState::regenerate_world(&WorldId)` — synthesises a `ProjectInput` from in-memory catalogs, builds the pool via `world_pool::build_pool` + `apply_authored_features`, then calls the new `sectorforge::generation::regenerate_world_payload` helper in [src/gen/generation/mod.rs](src/gen/generation/mod.rs) which picks a candidate and features deterministically from the per-world stage RNG, with `BuilderState::world_reroll_counter` mixed into the discriminator. Pinned worlds refuse. |
 | W5 features picker | `show_features_section` searchable multi-select. Weight previews are computed by `feature_weights_for_world` which sums per-world-type, per-star-colour, and global tiers of the pool's `FeaturePool` — empty when no worlds catalog is loaded. Already-present features are hidden from the add list. |
@@ -2945,7 +2945,7 @@ Phase B §8. The WORLD tab in [builder/src/builder/panels/world.rs](builder/src/
 
 Tests:
 
-* `coupling_flags_dead_world_with_population`, `coupling_flags_uninhabited_with_government`, `coupling_silent_on_normal_world`, `pinned_world_refuses_regen`, `enum_picker_variants_match_worlds_authoritative_set` in [builder/src/builder/panels/world.rs](builder/src/builder/panels/world.rs).
+* `coupling_flags_dead_world_with_population`, `coupling_flags_uninhabited_with_government`, `coupling_silent_on_normal_world`, `pinned_world_refuses_regen`, `enum_picker_variants_match_worlds_authoritative_set` in [builder/src/builder/panels/world/mod.rs](builder/src/builder/panels/world/mod.rs).
 
 #### R1–R7 route panel (DONE)
 

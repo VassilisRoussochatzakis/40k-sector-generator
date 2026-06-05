@@ -113,7 +113,7 @@ impl<'a> SectorView<'a> {
         let dark_map = is_dark(theme.bg);
         let framed = rect.width() > 260.0 && rect.height() > 200.0;
         if framed && dark_map {
-            paint_star_dust(&painter, rect);
+            paint_star_dust(&painter, rect, self.cache);
         }
 
         // System-id keyed hex coords for heatmap lookup (still needed if cache not present)

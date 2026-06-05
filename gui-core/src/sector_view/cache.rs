@@ -2,10 +2,11 @@
 //! centroids, and pre-resolved system labels / faction styles. Split verbatim
 //! from the former `sector_view.rs` god-file (AREA_F F3).
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-use egui::Pos2;
+use egui::{Pos2, Shape};
 
 use sectorforge::ids::{FactionId, SystemId};
 use sectorforge::sector_model::{GeneratedSector, HexCoord};
@@ -13,6 +14,15 @@ use sectorforge::subsectors::Subsector;
 
 use crate::palette::{faction_style_by_id, FactionStyle};
 use crate::visual_tokens::MapRegionOverlay;
+
+/// Memoized §BEAUTY star-dust shapes for one map rect (F10). Deterministic in the
+/// rect only, so it is rebuilt just when the rect's rounded position/size changes
+/// — not the per-frame hash loop the inline paint did.
+pub struct StarDust {
+    /// Rounded `(min.x, min.y, width, height)` the `shapes` were built for.
+    pub key: (u32, u32, u32, u32),
+    pub shapes: Vec<Shape>,
+}
 
 pub struct SectorMapCache {
     pub hex_subsector: HashMap<(i32, i32), String>,
@@ -30,6 +40,10 @@ pub struct SectorMapCache {
     /// the O(N) `faction_style_by_id` scan that was firing per-route + per
     /// system in info_panel / control panels.
     pub faction_style_index: BTreeMap<FactionId, FactionStyle>,
+    /// F10: lazily-memoized star-dust shapes for the current map rect (live-only
+    /// void flourish). Interior-mutable so the render path can fill it through the
+    /// shared `&SectorMapCache` it holds; rebuilt only when the rect changes.
+    pub star_dust: RefCell<Option<StarDust>>,
 }
 
 impl SectorMapCache {
@@ -94,6 +108,7 @@ impl SectorMapCache {
             region_centroids,
             system_label_cache,
             faction_style_index,
+            star_dust: RefCell::new(None),
         }
     }
 

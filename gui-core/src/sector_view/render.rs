@@ -5,7 +5,7 @@
 //! raised to `pub(super)`; `SectorGeom`/`paint_system_rings`/
 //! `point_segment_distance` keep their original public visibility.
 
-use egui::{Color32, FontId, Pos2, Stroke, Ui, Vec2};
+use egui::{Color32, FontId, Pos2, Shape, Stroke, Ui, Vec2};
 
 use sectorforge::ids::{RouteId, SystemId};
 use sectorforge::sector_model::{GeneratedSector, HexCoord};
@@ -14,7 +14,7 @@ use crate::map_theme::RenderMapTheme;
 use crate::palette::darken;
 use crate::visual_tokens::MapSystemGlyph;
 
-use super::cache::SectorMapCache;
+use super::cache::{SectorMapCache, StarDust};
 
 const SYSTEM_LABEL_MIN_VISIBLE_PX: f32 = 3.0;
 const SYSTEM_PIP_MIN_VISIBLE_PX: f32 = 3.0;
@@ -32,7 +32,42 @@ pub(super) fn is_dark(bg: Color32) -> bool {
 /// hashed from a stable index (never RNG), so the dust does not shimmer
 /// frame-to-frame or move when the sector regenerates. Live-only — the golden
 /// PNG/SVG exporters never call this.
-pub(super) fn paint_star_dust(painter: &egui::Painter, rect: egui::Rect) {
+pub(super) fn paint_star_dust(
+    painter: &egui::Painter,
+    rect: egui::Rect,
+    cache: Option<&SectorMapCache>,
+) {
+    // F10: the field is a pure function of `rect`, so memoize the built shapes per
+    // rect on the cache and just re-`extend` the painter each frame instead of
+    // re-running the hash loop. Without a cache (export-style callers don't reach
+    // here anyway) fall back to building once.
+    let key = (
+        rect.left() as u32,
+        rect.top() as u32,
+        rect.width() as u32,
+        rect.height() as u32,
+    );
+    match cache {
+        Some(cache) => {
+            let mut slot = cache.star_dust.borrow_mut();
+            if slot.as_ref().map(|s| s.key) != Some(key) {
+                *slot = Some(StarDust {
+                    key,
+                    shapes: build_star_dust(rect),
+                });
+            }
+            if let Some(s) = slot.as_ref() {
+                painter.extend(s.shapes.iter().cloned());
+            }
+        }
+        None => painter.extend(build_star_dust(rect)),
+    }
+}
+
+/// Build the deterministic star-dust shapes for `rect`. Byte-identical to the
+/// former inline `painter.circle_filled` loop (same order, positions, colors), so
+/// memoizing it touches no golden bytes (F10).
+fn build_star_dust(rect: egui::Rect) -> Vec<Shape> {
     // One pseudo-random float in `[0,1)` from a 32-bit integer (an fmix32 finaliser).
     fn hash01(mut x: u32) -> f32 {
         x ^= x >> 16;
@@ -44,6 +79,7 @@ pub(super) fn paint_star_dust(painter: &egui::Painter, rect: egui::Rect) {
     }
     // Density tracks area but is capped so a maximised window stays cheap.
     let n = ((rect.area() / 2200.0) as u32).clamp(70, 540);
+    let mut shapes = Vec::with_capacity(n as usize);
     for i in 0..n {
         let fx = hash01(i.wrapping_mul(2_654_435_761).wrapping_add(1));
         let fy = hash01(i.wrapping_mul(40_503).wrapping_add(7));
@@ -55,19 +91,28 @@ pub(super) fn paint_star_dust(painter: &egui::Painter, rect: egui::Rect) {
         if roll > 0.91 {
             // A handful of brighter "stars" with a faint halo.
             let a = 80 + (hash01(i.wrapping_mul(97).wrapping_add(5)) * 60.0) as u8;
-            painter.circle_filled(pos, 1.4, Color32::from_rgba_unmultiplied(234, 228, 238, a));
-            painter.circle_filled(
+            shapes.push(Shape::circle_filled(
+                pos,
+                1.4,
+                Color32::from_rgba_unmultiplied(234, 228, 238, a),
+            ));
+            shapes.push(Shape::circle_filled(
                 pos,
                 3.0,
                 Color32::from_rgba_unmultiplied(234, 228, 238, a / 5),
-            );
+            ));
         } else {
             // Dim dust — the bulk of the field.
             let a = 22 + (roll * 58.0) as u8;
             let s = 0.6 + roll * 0.6;
-            painter.circle_filled(pos, s, Color32::from_rgba_unmultiplied(222, 216, 230, a));
+            shapes.push(Shape::circle_filled(
+                pos,
+                s,
+                Color32::from_rgba_unmultiplied(222, 216, 230, a),
+            ));
         }
     }
+    shapes
 }
 
 /// §BEAUTY — a soft radial vignette: a triangle fan from a transparent centre to

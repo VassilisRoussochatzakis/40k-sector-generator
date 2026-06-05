@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 13 (F1,F2,F-S1,F-S2,F3,F4,F5,F6,F7,F8,F9,F11,F12) | 0 | 2 | 0 |
+| F viewer + gui-core | 15 | 14 (F1,F2,F-S1,F-S2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12) | 0 | 1 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -668,6 +668,38 @@ preference.
     **8/8**; golden **15/15 byte-identical** (no existing mutation op changed);
     gui-core **31/31** + `map_snapshots_match_goldens` **un-blessed**. MAP.md
     updated (mutation.rs row).
+
+### 2026-06-05 — step 5, wave 9 (AREA_F render-path memo — F10)
+
+- **F10 (star-dust memo)** — ✅ DONE (star-dust half; centers half declined with
+  analysis). `gui-core/src/sector_view/{cache,render,view}.rs`.
+  - **Star-dust memoized.** `paint_star_dust` split into a pure
+    `build_star_dust(rect) -> Vec<Shape>` + a memoizing painter. Added
+    `StarDust { key, shapes }` + `SectorMapCache.star_dust: RefCell<Option<StarDust>>`
+    (interior-mutable because the render path holds the cache by shared ref —
+    `SectorView::cache: Option<&_>`, and `show(self)` can't take `&mut`). The field
+    is a pure function of the rect, so it rebuilds only when the rounded rect
+    `(min.x, min.y, w, h)` changes instead of re-running the per-frame hash loop;
+    the painter just re-`extend`s the stored shapes.
+  - **Byte-identical → NO re-bless.** `build_star_dust` pushes the exact same
+    `Shape::circle_filled`s in the same order the inline `painter.circle_filled`
+    loop produced, so the paint list / tessellation is unchanged.
+    `map_snapshots_match_goldens` passes **un-blessed** — the pre-approved
+    `UPDATE_MAP_SNAPSHOTS` re-bless was **not needed** (no golden churn).
+  - **`centers` half deliberately NOT done.** The per-frame `centers`
+    `HashMap<&str, Pos2>` (view.rs) is a function of the live view transform
+    (`hex_size` + pan `origin`) **and** the dynamic `drag_override`, so it cannot
+    be cached across frames — every pan/zoom/drag changes it. The review itself
+    flags "only the static (non-drag) centers can be cached", but even those move
+    with the view transform, so a cross-frame cache would invalidate constantly
+    for no gain. Left as-is, documented.
+  - **Honest benefit note:** the saving is the per-frame hash loop only — the
+    shape tessellation/paint cost (the bulk) is unchanged in egui's immediate
+    mode. Marginal but real; bounded, byte-identical, no snapshot risk.
+  - **Verification:** workspace clippy `-D warnings` clean;
+    `map_snapshots_match_goldens` **un-blessed pass**; gui-core lib **31/31**;
+    golden **15/15 byte-identical** (star-dust is live-only — export goldens never
+    reach it). MAP.md updated (cache.rs row).
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

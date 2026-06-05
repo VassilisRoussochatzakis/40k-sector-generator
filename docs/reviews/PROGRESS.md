@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
+| E builder panels | 17 | 7 (E1,E2,E3,E4,E6,E7,E-S1) | 0 | 10 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -831,6 +831,22 @@ order at the first remaining perf item (B1; B7/B4-adjacent/B9/B12 already done).
   clippy `-D warnings` clean, lib **193/193**, golden **15/15 byte-identical**
   (sector.md carries both reports), hooks integration **6/6**.
   - **B-S2 merge-half deliberately NOT done — owner decision (see notes).**
+
+### 2026-06-05 — step 5, wave 12 (AREA_E builder panels — warm-ups)
+
+AREA_B done (perf bucket + B4; B-S2 closed-as-designed; B-S1/B8/B10 deferred).
+Owner picked AREA_E next. Leading with the file's S-effort safe warm-ups —
+builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
+(none touch the gui-core render path). Gate per commit: `cargo clippy --workspace
+--all-targets -D warnings` clean + builder lib **317/317**.
+
+- **E6 (`a9c82d0`) — shared `SYSTEM_STATES` const.** ✅ DONE. The byte-identical
+  `const SYSTEM_STATES: &[SystemState]` in `panels/control.rs` + `panels/history.rs`
+  hoisted to one `pub(crate) const` in `panels/mod.rs`; both read it via
+  `super::SYSTEM_STATES`. `SystemState` import stays live in each file (their
+  label/key/parse match fns still use it). _Not folded in:_ `system_state_label`
+  is **also** duplicated in both files, but it's not part of E6's finding — left
+  alone (no scope creep). Builder **317/317**, clippy clean.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

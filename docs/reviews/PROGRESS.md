@@ -16,7 +16,7 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | 1 (A1) | 0 | 11 | 0 |
-| B `src/analysis` | 14 | 8 (B-S3,B1,B5,B6,B7,B9,B11,B12) | 0 | 6 | 0 |
+| B `src/analysis` | 14 | 9 (B-S3,B1,B3,B5,B6,B7,B9,B11,B12) | 0 | 5 | 0 |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
@@ -41,8 +41,8 @@ sequence". Update this file whenever a finding moves status.
      B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only) ·
      F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
      API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
-   - Remaining dedup: AREA_B perf (**B1 ✅**, **B5 ✅**, **B6 ✅**, B3),
-     trait/macro dedup (B-S1/B-S2, E-S3, C2, F-S1); **C3 ✅** (this session).
+   - Remaining dedup: AREA_B perf (**B1/B3/B5/B6 ✅ — all done**), trait/macro
+     dedup (B-S1/B-S2/B4, E-S3, C2, F-S1); **C3 ✅** (this session).
    - **Wave 4 — AREA_F semantic-color sweep** (viewer chrome, no snapshot
      exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
      ~25-site `Color32::from_rgb` → `palette::warning/danger/success` sweep).
@@ -794,6 +794,28 @@ order at the first remaining perf item (B1; B7/B4-adjacent/B9/B12 already done).
   **Verification:** clippy `-D warnings` clean, lib **192/192**, golden **15/15
   byte-identical**, economy integration **7/7**. No file moved — MAP.md/GUIDE.md
   untouched.
+
+- **B3 (`e5c4be1`) — kind/disposition rules indexed off the pair loop.** ✅ DONE.
+  `src/analysis/relations/derive.rs` (+ a lib test in `relations/mod.rs`).
+  `compute_pair` rescanned `cfg.kind_rules` + `cfg.disposition_rules` per pair —
+  O(F²·R). Added a `RuleIndex` built once in `derive_with_threshold`: intern the
+  kind/disposition strings appearing in rules and key small `BTreeMap`s on the
+  canonical `(u32, u32)` pair (reusing B6's `canonical_pair_idx`), so each pair
+  does two lookups instead of two scans. **Semantics preserved exactly:**
+  kind = first-match-wins (`entry().or_insert` keeps the first rule per canonical
+  key); disposition = sum-all + cause-concat in cfg order (a `Vec` per key in push
+  order); a string absent from every rule is never interned, and a missing index
+  entry is precisely the scan's "no match" (a kind/disposition matching no rule
+  cannot satisfy a match) → the built-in fallbacks (`default_kind_stance` /
+  `default_disposition_delta`) fire unchanged. **Net gap closed:** goldens only
+  exercise the *fallback* path (no fixture sets user rules), so added
+  `user_rules_index_preserves_first_match_and_sum_order` asserting
+  `cause == "KFIRST; D1; D2"` — proves first-kind-rule-wins + both disposition
+  causes appended in order, independent of the seed-derived stance perturbation.
+  **Verification:** clippy `-D warnings` clean, lib **193/193** (+1), golden
+  **15/15 byte-identical**, relations integration **6/6**. Pure perf —
+  MAP.md/GUIDE.md untouched.
+  - **AREA_B perf bucket (B1/B3/B5/B6) now fully closed.**
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

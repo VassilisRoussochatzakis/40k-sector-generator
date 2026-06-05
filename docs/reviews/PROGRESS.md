@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 7 (F3,F5,F6,F8,F9,F11,F12) | 0 | 8 | 0 |
+| F viewer + gui-core | 15 | 8 (F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 7 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -47,6 +47,9 @@ sequence". Update this file whenever a finding moves status.
      exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
      ~25-site `Color32::from_rgb` → `palette::warning/danger/success` sweep).
      See log below.
+   - **Wave 5 — AREA_F hot-path cache** (render-equivalent, snapshot-gated):
+     F4 ✅ (planner + editor map `SectorView { cache: None }` → real
+     `SectorMapCache`). See log below.
 
 ## Detailed log
 
@@ -447,6 +450,39 @@ byte-identical**, viewer **7/7**, gui-core `map_snapshots_match_goldens` passing
   (system-not-found error, wishes "WINNER" success) into the same sweep even
   though they are not `from_rgb` — they are the same theme-unaware status-color
   class and pair with amber siblings in the same widget.
+
+### 2026-06-05 — step 5, wave 5 (AREA_F hot-path cache — F4)
+
+- **F4 (`9519b2a`)** — `app/planner_view.rs` + `editor/map_panel.rs` +
+  `editor/state.rs`. Both maps built `SectorView { cache: None, .. }`, forcing
+  the gui-core render down the O(regions·hexes) hex→region fallback scan per
+  visible hex per frame (~1280 iters/frame on a 20-region 8×8, on every mouse
+  move). Fixes:
+  - **planner** — threaded the App's already-maintained `sector_map_cache`
+    (rebuilt on load/edit alongside `app.sector`) into the SectorView. One-liner.
+  - **editor** — added a transient `EditorState.map_cache: Option<SectorMapCache>`,
+    built lazily in `show_map` and invalidated to `None` on every sector change
+    via `set_sector` / `mark_dirty`. **Audited all editor sector-mutation paths**
+    (factions/routes/system/world/settings/dialogs/map/generation/wishes panels)
+    — every one routes through `set_sector` or `mark_dirty`, so the cache rides
+    the **same dirty signal** the App→editor sync already depends on; no stale
+    window is introduced that didn't already exist for the sync. Editor passes
+    `subsectors: None`, so the cache is built with `&[]`.
+  - **Render-equivalence (why goldens stay green):** the cache's
+    `hex_region`/`hex_system`/centroid/label tables are built from the *same*
+    `sector.regions`/`systems` the fallback scans — pure memoization, identical
+    output. The gui-core `map_snapshots` golden was already blessed via the
+    cache path (`render.rs` builds a `SectorMapCache`), so it passes **un-blessed**
+    after the change. Transient view state, not document state — stored directly
+    on `EditorState` (no command bus in the viewer; carve-out analogous to the
+    builder's transient-UI-state rule).
+  - **Verification:** `cargo check` + `clippy --workspace --all-targets -D
+    warnings` clean, viewer **7/7**, gui-core `map_snapshots_match_goldens`
+    **un-blessed pass**, golden **15/15 byte-identical**. No file moved, so
+    MAP.md/GUIDE.md untouched.
+  - **Not done (separate findings):** F10 (memoize `centers`/star-dust into the
+    cache — gui-core render-path, owner-gated) and the `App`/editor stack
+    unification F1/F-S1 the cache duplication ultimately stems from.
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

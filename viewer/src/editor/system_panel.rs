@@ -2,10 +2,12 @@
 
 use egui::{RichText, Ui};
 
+use sectorforge::sector_model::empty_world;
+
 use crate::palette;
 
 use super::enums::{star_colour_name, STAR_COLOUR_CODES};
-use super::state::{empty_world, EditorState, Selection};
+use super::state::{EditorState, Selection};
 use super::ui_helpers::{combo_str, dim, label, section, text_field};
 
 pub(crate) fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {

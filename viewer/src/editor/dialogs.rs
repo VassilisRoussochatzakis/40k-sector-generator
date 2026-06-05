@@ -159,7 +159,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 } else {
                     title
                 };
-                let sector = super::state::empty_sector(
+                let sector = sectorforge::sector_model::empty_sector(
                     name.trim(),
                     display_title.trim(),
                     seed.trim(),
@@ -307,7 +307,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                 } else {
                     None
                 };
-                let sys = super::state::empty_system(
+                let sys = sectorforge::sector_model::empty_system(
                     id.clone(),
                     index,
                     name.trim().to_string(),

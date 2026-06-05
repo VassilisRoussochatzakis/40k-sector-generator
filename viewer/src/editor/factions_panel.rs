@@ -6,7 +6,9 @@ use std::collections::BTreeSet;
 
 use egui::{RichText, Ui};
 
-use super::state::{empty_faction, EditorState, FactionSort};
+use sectorforge::sector_model::empty_faction;
+
+use super::state::{EditorState, FactionSort};
 use super::ui_helpers::{
     combo_kv_id, combo_str_id, dim, label, section, text_field, text_field_id,
 };

@@ -9,6 +9,9 @@ use crate::ids::{FactionId, RouteId, SystemId, WorldId};
 mod routes_view;
 pub use routes_view::{RoutePattern, RouteViewMode};
 
+mod scaffold;
+pub use scaffold::{empty_faction, empty_route, empty_sector, empty_system, empty_world};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct HexCoord {
     pub q: i32,

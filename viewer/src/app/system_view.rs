@@ -4,7 +4,7 @@ use egui::{RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use sectorforge::ids::SystemId;
 
-use super::{editor, info_panel, palette, App, PendingExport, View};
+use super::{info_panel, palette, App, PendingExport, View};
 use crate::editor::state::SectorEditTool;
 use crate::system_view::{SystemClick, SystemLayout, SystemSelection, SystemView};
 
@@ -189,7 +189,8 @@ impl App {
             return None;
         };
         let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
-        let mut world = editor::state::empty_world(sys.index, next, format!("Planet {next}"));
+        let mut world =
+            sectorforge::sector_model::empty_world(sys.index, next, format!("Planet {next}"));
         if let Some(star) = &sys.star {
             world.world.star_colour = star.colour_name.clone();
             world.world.star_colour_code = star.colour_code.clone();

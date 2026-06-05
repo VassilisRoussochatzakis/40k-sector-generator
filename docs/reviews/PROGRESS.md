@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 10 (F2,F-S2,F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 5 | 0 |
+| F viewer + gui-core | 15 | 10 (F2,F-S2,F3,F4,F5,F6,F8,F9,F11,F12) | 1 (F-S1) | 4 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -543,6 +543,43 @@ byte-identical**, viewer **7/7**, gui-core `map_snapshots_match_goldens` passing
     passing **un-blessed** (form widget, not the map render — confirmed no
     exposure); viewer **7/7**; builder **317/317**; golden **15/15
     byte-identical**. MAP.md updated (widgets.rs row); no file moved.
+
+### 2026-06-05 — step 5, wave 7 (AREA_F stack unification — F1/F-S1, increment 1)
+
+F1/F-S1 (the two parallel viewer editing stacks — `App.sector`+`live_dirty`
+vs `EditorState.sector`+`editor.dirty`, bridged every frame at `app/mod.rs:193`
+and reverse-synced at `lifecycle.rs:224` / `app/sector_view.rs:658`) is the
+dominant viewer hazard and a **large cascade with no golden/snapshot net**
+(runtime write paths). Doing it as **compiler-checked increments**, each
+committed, rather than one blind sweep — per the proportionate-refactor
+preference.
+
+- **Increment 1 — `empty_*` ctors → `sectorforge` (part c).** ✅ DONE. The
+  review's "extract the `empty_*` constructors into `sectorforge` (pure domain
+  logic, not UI)" half is the safe, self-contained foundation and is independent
+  of the dual-stack coupling. Moved `empty_sector` / `empty_system` /
+  `empty_world` / `empty_route` / `empty_faction` **verbatim** out of
+  `viewer/src/editor/state.rs` into a new `src/model/sector_model/scaffold.rs`
+  (`pub fn`, re-exported at `sector_model::`). These are blank-DTO constructors
+  with no RNG and no UI dep — distinct from the sibling `mutation.rs` (mutate an
+  *existing* sector under the invariant contract); `scaffold` only *constructs* a
+  fresh internally-consistent blank. The 8 call sites + 3 panel `use` lines
+  re-pointed from `editor::state::` / `super::state::` to
+  `sectorforge::sector_model::`; `state.rs` trimmed its now-unused
+  sector_model/ids imports and the test module imports `empty_sector` from the
+  crate. Two `super::{editor}` module imports (`app/system_view.rs`,
+  `app/sector_view.rs`) dropped (used only for the moved ctors).
+  - **Golden-safe:** these ctors are viewer-only — no generation/export path
+    calls them — so adding the `pub fn`s changes no existing code path. Verified:
+    workspace clippy `-D warnings` clean, `sectorforge` lib **191/191**, golden
+    **15/15 byte-identical**, viewer **7/7**, gui-core **31/31** +
+    `map_snapshots_match_goldens` **un-blessed**.
+  - **Remaining (parts a/b — the unification proper):** make `EditorState` the
+    single source of truth, demote `App.sector` to a derived read-snapshot
+    (bridge-rebuilt only), reroute the App live-edit ops to mutate
+    `editor.sector`, collapse `live_dirty`/`editor.dirty` → one flag and the two
+    save paths → one write fn. Higher risk, no automated net — planned as
+    follow-up increments. MAP.md updated (scaffold.rs row).
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

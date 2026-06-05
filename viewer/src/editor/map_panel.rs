@@ -224,7 +224,8 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 if let Some(sector) = state.sector.as_mut() {
                     let route_id = sectorforge::ids::route_id(&from, &to);
                     if !sector.routes.iter().any(|r| r.id == route_id) {
-                        let mut route = super::state::empty_route(from.clone(), to.clone());
+                        let mut route =
+                            sectorforge::sector_model::empty_route(from.clone(), to.clone());
                         let from_coord = sector
                             .systems
                             .iter()

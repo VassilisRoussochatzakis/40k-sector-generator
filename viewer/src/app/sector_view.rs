@@ -6,7 +6,7 @@ use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel, Ui};
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::{GeneratedSector, GeneratedSystem, SystemKind};
 
-use super::{editor, info_panel, palette, App, PendingExport, View};
+use super::{info_panel, palette, App, PendingExport, View};
 use crate::editor::state::SectorEditTool;
 use crate::sector_view::{SectorClick, SectorView};
 
@@ -488,7 +488,7 @@ impl App {
             .unwrap_or(0)
             + 1;
         let id = sectorforge::ids::system_id(index);
-        let sys = editor::state::empty_system(
+        let sys = sectorforge::sector_model::empty_system(
             id.clone(),
             index,
             format!("System {index}"),
@@ -585,7 +585,7 @@ impl App {
             self.export_status = "route endpoint missing".into();
             return;
         };
-        let mut route = editor::state::empty_route(from, to);
+        let mut route = sectorforge::sector_model::empty_route(from, to);
         route.distance = sectorforge::sector_model::hex_distance(a, b);
         self.sector_selected = None;
         self.sector_selected_route = Some(route.id.clone());

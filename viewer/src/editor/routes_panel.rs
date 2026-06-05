@@ -2,10 +2,10 @@
 
 use egui::{RichText, Ui};
 
-use sectorforge::sector_model::{HexCoord, RouteStability, RouteType};
+use sectorforge::sector_model::{empty_route, HexCoord, RouteStability, RouteType};
 
 use super::enums::{ROUTE_STABILITIES, ROUTE_TYPES};
-use super::state::{empty_route, EditorState, RouteEndpoint};
+use super::state::{EditorState, RouteEndpoint};
 use super::ui_helpers::{combo_kv, combo_kv_id, dim, label, section};
 use sectorforge::ids::SystemId;
 

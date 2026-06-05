@@ -217,3 +217,88 @@ fn fixture_project() -> Utf8PathBuf {
 fn fixture_world_data_dir() -> Utf8PathBuf {
     fixture_project().join("data/worlds")
 }
+
+// ── G2 content goldens (IMPROVEMENT_REVIEW G2 / G-S3) ────────────────────────
+// Byte-level pin of the exported `sector.json` / `sector.md` for the fixed m42
+// fixture + seed. Mirrors `golden_png.rs`, but commits the *full* blessed file
+// (not just a blake3 hash) so a drift surfaces the exact renamed field / dropped
+// markdown row under `git diff tests/goldens/`. This is the safety net the A–F
+// god-file splits (serialisation / markdown rendering) are gated on.
+//
+// Bless / refresh after an intentional output change:
+//   UPDATE_GOLDEN_JSON=1 UPDATE_GOLDEN_MD=1 cargo test --test it -- golden
+
+fn goldens_dir() -> Utf8PathBuf {
+    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/goldens")
+}
+
+/// Export the memoized fixture sector to a tempdir and return the raw
+/// `(sector.json, sector.md)` bytes-as-text exactly as written to disk.
+fn export_fixture_text() -> (String, String) {
+    let sector = fixture_sector();
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+    sectorforge::export_sector(sector, &text_export_config(), &tmp_path).unwrap();
+    let json = fs::read_to_string(tmp_path.join("sector.json")).unwrap();
+    let md = fs::read_to_string(tmp_path.join("sector.md")).unwrap();
+    (json, md)
+}
+
+/// Compare `actual` against the committed golden `file_name`. With the `env`
+/// gate set, (re)writes the golden and returns. On drift, reports the first
+/// differing line rather than dumping the whole multi-KB file.
+fn assert_content_golden(file_name: &str, env: &str, actual: &str) {
+    let path = goldens_dir().join(file_name);
+    if std::env::var_os(env).is_some() {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, actual).unwrap();
+        return;
+    }
+    let expected = fs::read_to_string(&path).unwrap_or_else(|_| {
+        panic!("missing golden {file_name}; bless with `{env}=1 cargo test --test it -- golden`")
+    });
+    if expected != actual {
+        let (line, exp_l, act_l) = first_line_diff(&expected, actual);
+        panic!(
+            "{file_name} drifted from the committed golden at line {line}:\n  \
+             golden: {exp_l:?}\n  actual: {act_l:?}\n(golden {} bytes, actual {} \
+             bytes). If intentional, rerun with `{env}=1 cargo test --test it -- \
+             golden` and review `git diff tests/goldens/`.",
+            expected.len(),
+            actual.len(),
+        );
+    }
+}
+
+/// First line (1-based) at which two texts diverge, with both lines. Only
+/// called once a byte-level difference is known to exist.
+fn first_line_diff(expected: &str, actual: &str) -> (usize, String, String) {
+    let mut e = expected.lines();
+    let mut a = actual.lines();
+    let mut n = 0;
+    loop {
+        n += 1;
+        match (e.next(), a.next()) {
+            (Some(el), Some(al)) if el == al => continue,
+            (el, al) => {
+                return (
+                    n,
+                    el.unwrap_or("<end of file>").to_string(),
+                    al.unwrap_or("<end of file>").to_string(),
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn sector_json_matches_committed_golden() {
+    let (json, _md) = export_fixture_text();
+    assert_content_golden("sector_m42_default.json", "UPDATE_GOLDEN_JSON", &json);
+}
+
+#[test]
+fn sector_md_matches_committed_golden() {
+    let (_json, md) = export_fixture_text();
+    assert_content_golden("sector_m42_default.md", "UPDATE_GOLDEN_MD", &md);
+}

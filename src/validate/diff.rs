@@ -367,15 +367,10 @@ fn diff_economy(
     let mut deltas: Vec<EconomyBalanceChange> = Vec::new();
     if before.economy.enabled || after.economy.enabled {
         for k in crate::economy::RESOURCE_KEYS {
-            let pull = |s: &crate::economy::EconomyReport| match *k {
-                "ore" => s.sector_balance.ore,
-                "promethium" => s.sector_balance.promethium,
-                "foodstuffs" => s.sector_balance.foodstuffs,
-                "manufactured" => s.sector_balance.manufactured,
-                "archeotech" => s.sector_balance.archeotech,
-                "recruits" => s.sector_balance.recruits,
-                _ => 0.0,
-            };
+            // C1/C-S2: reuse the canonical `ResourceVector::get` instead of a
+            // parallel match — a new resource added to `RESOURCE_KEYS` is then
+            // picked up here automatically instead of silently diffing as 0.0.
+            let pull = |s: &crate::economy::EconomyReport| s.sector_balance.get(k);
             let b = pull(&before.economy);
             let a = pull(&after.economy);
             let d = a - b;

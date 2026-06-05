@@ -282,8 +282,9 @@ fn show_native(ui: &mut egui::Ui, editor: &mut DataEditor) {
     }
 }
 
-/// Generic enum dropdown: shows a `ComboBox` over `variants`, binding
-/// the current `Option<T>` value (None = unset).
+/// Generic enum dropdown over `variants`, binding the current `Option<T>` (None =
+/// the unset `—` sentinel). Forwards to the shared [`crate::widgets::enum_combo`]
+/// (F2) with this editor's hover policy: no tooltips.
 fn enum_combo<T, F>(
     ui: &mut egui::Ui,
     id: impl std::hash::Hash,
@@ -295,24 +296,5 @@ where
     T: Clone + PartialEq,
     F: Fn(&T) -> String,
 {
-    let current_label = value
-        .as_ref()
-        .map(&label_of)
-        .unwrap_or_else(|| "—".to_string());
-    let mut changed = false;
-    crate::ui_kit::combo(id, current_label).show_ui(ui, |ui| {
-        if ui.selectable_label(value.is_none(), "—").clicked() && value.is_some() {
-            *value = None;
-            changed = true;
-        }
-        for v in variants {
-            let label = label_of(v);
-            let selected = value.as_ref() == Some(v);
-            if ui.selectable_label(selected, label).clicked() && !selected {
-                *value = Some(v.clone());
-                changed = true;
-            }
-        }
-    });
-    changed
+    crate::widgets::enum_combo(ui, id, value, variants, label_of, |_| None, None)
 }

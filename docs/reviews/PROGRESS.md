@@ -20,7 +20,7 @@ sequence". Update this file whenever a finding moves status.
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | 6 (E1,E2,E3,E4,E7,E-S1) | 0 | 11 | 0 |
-| F viewer + gui-core | 15 | 8 (F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 7 | 0 |
+| F viewer + gui-core | 15 | 9 (F2,F3,F4,F5,F6,F8,F9,F11,F12) | 0 | 6 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
 ## Execution sequence (README order)
@@ -50,6 +50,10 @@ sequence". Update this file whenever a finding moves status.
    - **Wave 5 — AREA_F hot-path cache** (render-equivalent, snapshot-gated):
      F4 ✅ (planner + editor map `SectorView { cache: None }` → real
      `SectorMapCache`). See log below.
+   - **Wave 6 — AREA_F cross-crate widget dedup** (form widget, no snapshot
+     exposure): F2 ✅ (the duplicated `enum_combo` hoisted to
+     `gui_core::widgets::enum_combo`; viewer + builder keep thin forwarders).
+     See log below.
 
 ## Detailed log
 
@@ -483,6 +487,48 @@ byte-identical**, viewer **7/7**, gui-core `map_snapshots_match_goldens` passing
   - **Not done (separate findings):** F10 (memoize `centers`/star-dust into the
     cache — gui-core render-path, owner-gated) and the `App`/editor stack
     unification F1/F-S1 the cache duplication ultimately stems from.
+
+### 2026-06-05 — step 5, wave 6 (AREA_F cross-crate widget dedup — F2)
+
+- **F2 (`enum_combo` dedup)** — ✅ DONE. The structurally-identical `enum_combo`
+  in `viewer/src/data_editor.rs:287` (`F: Fn(&T) -> String`, no tooltips) and
+  `builder/src/builder/panels/worlds_editor.rs:363` (`F: Fn(&T) -> &'static str`,
+  `T: Debug`, **two** extra hovers: the `—` sentinel "Any — leave this field
+  unset" + per-variant `format!("key: {v:?}")`) collapsed onto one shared
+  `pub fn enum_combo` in `gui-core/src/widgets.rs`. **Cross-crate, sequential**
+  (gui-core ← builder/viewer): added the widget, converted viewer, then builder,
+  `cargo check` after each.
+  - **Signature decision** — the shared widget takes `label_of: Fn(&T) -> W where
+    W: Into<egui::WidgetText>` (covers **both** the `String` and `&'static str`
+    label closures the review flagged), plus a `hover_of: Fn(&T) -> Option<String>`
+    and a `none_hover: Option<&str>` so each caller supplies its **own** tooltip
+    policy. The widget carries **no `Debug` bound** — the builder's `{v:?}` key
+    lives in its forwarder's closure, so the bound stays at the call boundary,
+    not in gui-core.
+  - **Builder UX preserved (not silently dropped)** — per the review's "the
+    builder's extra Debug hover is a behavioural superset … do NOT silently change
+    builder UX", both builder hovers are kept verbatim via its forwarder
+    (`|v| Some(format!("key: {v:?}"))` + `Some("Any — leave this field unset")`).
+    The viewer forwarder passes `|_| None, None` → byte-for-byte its old
+    no-tooltip behaviour.
+  - **Minimal-diff shape** — each panel keeps its original `fn enum_combo`
+    signature as a **3-line forwarder**, so all **18 call sites (9+9) are
+    untouched**. Viewer reaches the widget via a new `widgets` entry on the
+    `pub use sectorforge_gui_core::{…}` re-export (matches the existing
+    `crate::ui_kit` idiom); builder via `use sectorforge_gui_core::{…, widgets}`.
+  - **Scope** — `enum_combo` only, as instructed. The sibling
+    `builder/.../map/theme.rs:617` `enum_combo<E: Copy>` is a **different shape**
+    (non-`Option`, `Copy` enum) — left alone. The larger `edit_rows`/worlds-grid
+    widget dedup the review also mentions stays a separate follow-up.
+  - **No clippy-ban impact** — gui-core has no `clippy.toml`; `enum_combo` uses
+    `ComboBox`/`selectable_label`/`on_hover_text`, none of the
+    `Painter`/`Shape`/`Mesh` primitives the builder/viewer `clippy.toml` ban.
+  - **Verification:** `cargo clippy --workspace --all-targets -- -D warnings`
+    clean; gui-core **31/31** (new `enum_combo_headless` test exercising both
+    hover policies, +1 over the prior 30) with `map_snapshots_match_goldens`
+    passing **un-blessed** (form widget, not the map render — confirmed no
+    exposure); viewer **7/7**; builder **317/317**; golden **15/15
+    byte-identical**. MAP.md updated (widgets.rs row); no file moved.
 
 ### Open decisions / notes
 - **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**

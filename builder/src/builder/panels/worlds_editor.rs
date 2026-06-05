@@ -16,7 +16,7 @@ use sectorforge::worlds::{
     TechLevel, Temperature, WorldType,
 };
 use sectorforge::worlds_toml::{WorldsConfig, DEFAULT_FILENAME as WORLDS_TOML_FILENAME};
-use sectorforge_gui_core::{palette, ui_kit};
+use sectorforge_gui_core::{palette, ui_kit, widgets};
 
 use crate::builder::project_io;
 use crate::builder::state::ConfirmAction;
@@ -360,6 +360,11 @@ pub(crate) fn delete_gen_row(state: &mut BuilderState, idx: usize) {
 /// the unset `—` sentinel). `label_of` maps a variant to its friendly display
 /// label (forwarding to each enum's inherent `display_name`); the raw schema key
 /// stays reachable on each item's hover. Returns whether the selection changed.
+///
+/// Forwards to the shared [`widgets::enum_combo`] (F2) with this panel's hover
+/// policy: the `—` sentinel explains the unset option and each variant exposes its
+/// raw `{v:?}` schema key (the source of the `Debug` bound, which the shared widget
+/// itself does not require).
 fn enum_combo<T, F>(
     ui: &mut egui::Ui,
     id: impl std::hash::Hash,
@@ -371,32 +376,15 @@ where
     T: Clone + PartialEq + std::fmt::Debug,
     F: Fn(&T) -> &'static str,
 {
-    let current = value.as_ref().map(&label_of).unwrap_or("—");
-    let mut changed = false;
-    ui_kit::combo(id, current).show_ui(ui, |ui| {
-        if ui
-            .selectable_label(value.is_none(), "—")
-            .on_hover_text("Any — leave this field unset")
-            .clicked()
-            && value.is_some()
-        {
-            *value = None;
-            changed = true;
-        }
-        for v in variants {
-            let selected = value.as_ref() == Some(v);
-            if ui
-                .selectable_label(selected, label_of(v))
-                .on_hover_text(format!("key: {v:?}"))
-                .clicked()
-                && !selected
-            {
-                *value = Some(v.clone());
-                changed = true;
-            }
-        }
-    });
-    changed
+    widgets::enum_combo(
+        ui,
+        id,
+        value,
+        variants,
+        label_of,
+        |v| Some(format!("key: {v:?}")),
+        Some("Any — leave this field unset"),
+    )
 }
 
 /// §PF3 validation: serialise then re-parse the config, returning the first

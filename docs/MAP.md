@@ -231,7 +231,7 @@ exist and both backends import them.
 | [gui-core/src/ui_kit.rs](../gui-core/src/ui_kit.rs) | §UO shared chrome widgets — `section`/`collapsing_section`/`field`/`combo`/`kv` (kv is the §BEAUTY aligned ledger), text helpers, responsive columns |
 | [gui-core/src/design.rs](../gui-core/src/design.rs) | §DESIGN form tokens — spacing/radius/elevation/motion/type scale, accent ramp, `vertical_gradient`, `FONT_DISPLAY`/`display_family` |
 | [gui-core/src/card.rs](../gui-core/src/card.rs) | §BEAUTY `selectable_plate` — hand-painted hover/selection-animated roster + nav row |
-| [gui-core/src/widgets.rs](../gui-core/src/widgets.rs) | §BEAUTY bespoke painted controls — `primary_button` (brass) + `toggle`/`toggle_with_label` (sliding) |
+| [gui-core/src/widgets.rs](../gui-core/src/widgets.rs) | §BEAUTY bespoke painted controls — `primary_button` (brass) + `toggle`/`toggle_with_label` (sliding); shared `enum_combo` (F2) — generic `Option<T>` enum dropdown over `ui_kit::combo` with per-caller hover policy (viewer data editor + builder worlds panel) |
 | [gui-core/src/modal.rs](../gui-core/src/modal.rs) | §BEAUTY `scrim(ctx, open)` — fading modal backdrop (dims + inerts page) returning the eased entrance factor |
 | [gui-core/src/fonts.rs](../gui-core/src/fonts.rs) | §BEAUTY §5.5 custom-font registration (`install`); opt-in `bundled-fonts` feature, `FontData::from_static` from `assets/fonts/` |
 | [gui-core/tests/map_snapshots.rs](../gui-core/tests/map_snapshots.rs) | Snapshot tests for shared map rendering |

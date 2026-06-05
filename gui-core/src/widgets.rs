@@ -275,6 +275,60 @@ pub fn ghost_button(ui: &mut Ui, label: &str) -> Response {
     response
 }
 
+/// Generic enum dropdown: a [`crate::ui_kit::combo`] over `variants`, binding the
+/// current `Option<T>` (`None` = the unset `—` sentinel). `label_of` maps a
+/// variant to its display label (a `String` or `&'static str` both work);
+/// `hover_of` optionally returns per-variant tooltip text (`|_| None` for none);
+/// `none_hover` optionally adds a tooltip to the `—` sentinel. Returns whether the
+/// selection changed.
+///
+/// Shared (F2) by the viewer's `worlds.toml` data editor and the builder's worlds
+/// panel — each wraps this with its own hover policy. The widget itself carries no
+/// `Debug` bound: a caller wanting `{v:?}` keys supplies that in its `hover_of`.
+pub fn enum_combo<T, L, W>(
+    ui: &mut Ui,
+    id: impl std::hash::Hash,
+    value: &mut Option<T>,
+    variants: &[T],
+    label_of: L,
+    hover_of: impl Fn(&T) -> Option<String>,
+    none_hover: Option<&str>,
+) -> bool
+where
+    T: Clone + PartialEq,
+    L: Fn(&T) -> W,
+    W: Into<egui::WidgetText>,
+{
+    let current = value
+        .as_ref()
+        .map(&label_of)
+        .map(Into::into)
+        .unwrap_or_else(|| egui::WidgetText::from("—"));
+    let mut changed = false;
+    crate::ui_kit::combo(id, current).show_ui(ui, |ui| {
+        let mut none_item = ui.selectable_label(value.is_none(), "—");
+        if let Some(h) = none_hover {
+            none_item = none_item.on_hover_text(h);
+        }
+        if none_item.clicked() && value.is_some() {
+            *value = None;
+            changed = true;
+        }
+        for v in variants {
+            let selected = value.as_ref() == Some(v);
+            let mut item = ui.selectable_label(selected, label_of(v));
+            if let Some(h) = hover_of(v) {
+                item = item.on_hover_text(h);
+            }
+            if item.clicked() && !selected {
+                *value = Some(v.clone());
+                changed = true;
+            }
+        }
+    });
+    changed
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -288,6 +342,26 @@ mod tests {
             let mut on = false;
             let _ = toggle(ui, &mut on);
             let _ = toggle_with_label(ui, &mut on, "Faction fill");
+        });
+    }
+
+    #[test]
+    fn enum_combo_headless() {
+        egui::__run_test_ui(|ui| {
+            // viewer-style: String labels, no tooltips.
+            let mut a: Option<u8> = None;
+            let _ = enum_combo(ui, "a", &mut a, &[1u8, 2, 3], |v| v.to_string(), |_| None, None);
+            // builder-style: &'static str labels + per-variant + sentinel hover.
+            let mut b: Option<u8> = Some(2);
+            let _ = enum_combo(
+                ui,
+                "b",
+                &mut b,
+                &[1u8, 2, 3],
+                |_| "x",
+                |v| Some(format!("key: {v:?}")),
+                Some("Any"),
+            );
         });
     }
 }

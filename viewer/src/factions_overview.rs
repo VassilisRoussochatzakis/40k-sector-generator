@@ -60,6 +60,7 @@ pub(crate) struct FactionDesignerState {
     new_governments: String,
     new_features: String,
     status: String,
+    status_is_error: bool,
 }
 
 impl Default for FactionDesignerState {
@@ -77,7 +78,22 @@ impl Default for FactionDesignerState {
             new_governments: join_static_list(p.governments),
             new_features: join_static_list(p.features),
             status: String::new(),
+            status_is_error: false,
         }
+    }
+}
+
+impl FactionDesignerState {
+    /// Set a non-error status message (clears the error flag).
+    fn set_status_ok(&mut self, msg: impl Into<String>) {
+        self.status = msg.into();
+        self.status_is_error = false;
+    }
+
+    /// Set an error status message (sets the error flag for danger coloring).
+    fn set_status_err(&mut self, msg: impl Into<String>) {
+        self.status = msg.into();
+        self.status_is_error = true;
     }
 }
 
@@ -365,7 +381,7 @@ pub(crate) fn show_designer(
     ui.horizontal_wrapped(|ui| {
         if ui.button(RichText::new("START SCRATCH")).clicked() {
             state.rows.clear();
-            state.status = "designer rows cleared".into();
+            state.set_status_ok("designer rows cleared");
         }
         if ui
             .button(RichText::new("REPLACE FROM OUTPUT"))
@@ -373,7 +389,8 @@ pub(crate) fn show_designer(
             .clicked()
         {
             state.rows = designer_rows_from_sector_output(sector);
-            state.status = format!("loaded {} rows from output", state.rows.len());
+            let n = state.rows.len();
+            state.set_status_ok(format!("loaded {n} rows from output"));
         }
         if ui
             .button(RichText::new("APPEND FROM OUTPUT"))
@@ -381,7 +398,7 @@ pub(crate) fn show_designer(
             .clicked()
         {
             let added = append_output_rows(state, sector);
-            state.status = format!("appended {added} output rows");
+            state.set_status_ok(format!("appended {added} output rows"));
         }
         if ui
             .button(RichText::new("SAVE TOML..."))
@@ -389,14 +406,19 @@ pub(crate) fn show_designer(
             .clicked()
         {
             match choose_and_save_designer_toml(state, sector, project_dir) {
-                Ok(Some(path)) => state.status = format!("saved {}", path),
+                Ok(Some(path)) => state.set_status_ok(format!("saved {path}")),
                 Ok(None) => {}
-                Err(e) => state.status = format!("save failed: {e}"),
+                Err(e) => state.set_status_err(format!("save failed: {e}")),
             }
         }
     });
     if !state.status.is_empty() {
-        ui.label(RichText::new(&state.status).color(egui::Color32::from_rgb(235, 200, 90)));
+        let status_color = if state.status_is_error {
+            palette::danger()
+        } else {
+            palette::success()
+        };
+        ui.label(RichText::new(&state.status).color(status_color));
     }
 
     ui.add_space(10.0);
@@ -563,9 +585,9 @@ fn show_designer_builder(ui: &mut Ui, state: &mut FactionDesignerState) {
                         .last()
                         .map(|row| row.id.as_str())
                         .unwrap_or_default();
-                    state.status = format!("added {added}");
+                    state.set_status_ok(format!("added {added}"));
                 }
-                Err(e) => state.status = e.to_string(),
+                Err(e) => state.set_status_err(e.to_string()),
             }
         }
     });
@@ -630,7 +652,7 @@ fn show_designer_rows(ui: &mut Ui, state: &mut FactionDesignerState) {
 
     if let Some(i) = remove {
         let removed = state.rows.remove(i);
-        state.status = format!("removed {}", removed.id);
+        state.set_status_ok(format!("removed {}", removed.id));
     }
 }
 

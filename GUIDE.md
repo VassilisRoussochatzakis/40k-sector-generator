@@ -2593,6 +2593,26 @@ Catalog editors (`factions.rs`, `relations.rs`, `personae.rs`, `hooks.rs`,
 `sites.rs`, `missions.rs`, `prose.rs`) remain intentionally off-bus — they edit
 the TOML mirrors in `data_catalogs.*`, not the live sector.
 
+*Clone-mutate-dispatch helpers (review E-S3).* The simple `EditWorld` /
+`EditSystem` call sites that just clone the target, tweak one or two fields, and
+dispatch are collapsed onto two helpers on `BuilderState` in
+[state/generation_ops.rs](builder/src/builder/state/generation_ops.rs):
+`edit_world(WorldId, impl FnOnce(&mut GeneratedWorld)) -> Result<(), BuilderError>`
+and `edit_system(SystemId, impl FnOnce(&mut GeneratedSystem)) -> …`. Each looks
+the entity up, clones it, runs the closure on the clone, and commits via
+`run(EditWorld/EditSystem { before: None, .. })` — the bus still captures the
+prior payload on `apply`, so this **wraps** the command bus, it is not a §R4
+bypass. The helpers **return** the error rather than surfacing it; each panel
+keeps its own `ModalKind::Message` text (they differ: "Edit failed" / "World edit
+failed" / "System edit failed" / …). 16 of the 26 sites use them; the remaining
+10 stay hand-written because they don't fit a single clone→mutate→dispatch: the
+WORLD-tab classification/environment/society editors and the INTEL editors build
+the draft *across* egui render closures (mutation interleaved with the UI), the
+duplicate-world path grafts a *different* source world's payload, the bulk-ops
+loops carry a no-op-skip filter fused with the clone, and CONTROL's presence-row
+removal touches the transient `dominance_locked` side-table off the edited
+draft.
+
 **Region edits + chronicle recompute on-bus (IMPROVEMENT_REVIEW D1 / D2 / D11).**
 Warp-region structural edits previously wrote `sector.regions` directly, off the
 undo log (the file comment cited §D3, which is the god-file refactor tag, not a

@@ -7,8 +7,6 @@ use sectorforge::sector_model::{
     DominanceState, FactionInfluence, PresenceDimensions, WorldFactionPresence,
 };
 use sectorforge_gui_core::ui_kit;
-
-use crate::builder::command::BuilderCommand;
 use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
@@ -53,12 +51,8 @@ pub(super) fn show_factions_section(
         if let Some(i) = remove_idx {
             // §R4: remove the presence via EditWorld on a world clone.
             let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            draft.factions.remove(i);
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: wid,
-                before: None,
-                after: Box::new(draft),
+            if let Err(e) = state.edit_world(wid, |w| {
+                w.factions.remove(i);
             }) {
                 state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
@@ -178,23 +172,19 @@ pub(super) fn show_add_presence_row(
         {
             // §R4: add the presence via EditWorld on a world clone.
             let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            draft.factions.push(WorldFactionPresence {
-                faction_id: buf.faction.clone(),
-                subfaction_id: None,
-                subfaction_name: None,
-                force_id: None,
-                force_name: None,
-                influence: buf.tier,
-                relationship_to_government: "neutral".into(),
-                dimensions: PresenceDimensions::default(),
-                dominance: buf.dominance,
-                intel_confidence: 100,
-            });
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: wid,
-                before: None,
-                after: Box::new(draft),
+            if let Err(e) = state.edit_world(wid, |w| {
+                w.factions.push(WorldFactionPresence {
+                    faction_id: buf.faction.clone(),
+                    subfaction_id: None,
+                    subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
+                    influence: buf.tier,
+                    relationship_to_government: "neutral".into(),
+                    dimensions: PresenceDimensions::default(),
+                    dominance: buf.dominance,
+                    intel_confidence: 100,
+                });
             }) {
                 state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }

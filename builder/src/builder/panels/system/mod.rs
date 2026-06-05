@@ -460,14 +460,7 @@ fn show_control_section(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize) {
             // `sector` that bypassed the command bus). EditSystem explicitly
             // covers the control summary; the setter is a plain field write with
             // no cascade, so the clone-mutate-dispatch shape is exact.
-            let mut draft = state.sector.systems[sys_idx].clone();
-            draft.control.state = current;
-            let cmd = BuilderCommand::EditSystem {
-                system: id,
-                before: None,
-                after: Box::new(draft),
-            };
-            if let Err(e) = state.run(cmd) {
+            if let Err(e) = state.edit_system(id, |sys| sys.control.state = current) {
                 state.modal = Some(ModalKind::Message(format!("Control update failed: {e}")));
             }
         }

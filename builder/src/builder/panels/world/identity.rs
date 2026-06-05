@@ -226,17 +226,13 @@ pub(super) fn show_tags_notes_section(
         if tags_changed {
             // §R4: commit tags via EditWorld on a world clone.
             let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            draft.tags = tags_buf
-                .split(',')
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .map(Arc::from)
-                .collect();
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: wid,
-                before: None,
-                after: Box::new(draft),
+            if let Err(e) = state.edit_world(wid, |w| {
+                w.tags = tags_buf
+                    .split(',')
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .map(Arc::from)
+                    .collect();
             }) {
                 state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }
@@ -245,17 +241,13 @@ pub(super) fn show_tags_notes_section(
         if notes_changed {
             // §R4: commit notes via EditWorld on a world clone.
             let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            draft.notes = notes_buf
-                .lines()
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .map(Arc::from)
-                .collect();
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: wid,
-                before: None,
-                after: Box::new(draft),
+            if let Err(e) = state.edit_world(wid, |w| {
+                w.notes = notes_buf
+                    .lines()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .map(Arc::from)
+                    .collect();
             }) {
                 state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
             }

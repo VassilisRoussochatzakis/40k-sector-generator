@@ -4,8 +4,6 @@ use egui::{RichText, Ui};
 
 use sectorforge::sector_model::{ClaimType, FactionClaim};
 use sectorforge_gui_core::ui_kit;
-
-use crate::builder::command::BuilderCommand;
 use crate::builder::state::{EntityRef, ModalKind};
 use crate::builder::BuilderState;
 
@@ -57,12 +55,8 @@ pub(super) fn show_claims_section(
             if let Some(i) = remove {
                 // §R4: remove the claim via EditWorld on a world clone.
                 let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-                draft.claims.remove(i);
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
+                if let Err(e) = state.edit_world(wid, |w| {
+                    w.claims.remove(i);
                 }) {
                     state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }
@@ -148,16 +142,12 @@ pub(super) fn show_add_claim_row(
             if let (Some(fid), Some(kind)) = (buf.faction.clone(), buf.claim_type) {
                 // §R4: add the claim via EditWorld on a world clone.
                 let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-                draft.claims.push(FactionClaim {
-                    faction_id: fid,
-                    claim_type: kind,
-                    strength: buf.strength,
-                });
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
+                if let Err(e) = state.edit_world(wid, |w| {
+                    w.claims.push(FactionClaim {
+                        faction_id: fid,
+                        claim_type: kind,
+                        strength: buf.strength,
+                    });
                 }) {
                     state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }

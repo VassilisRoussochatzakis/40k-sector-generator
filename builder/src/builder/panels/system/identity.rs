@@ -153,14 +153,7 @@ pub(super) fn show_identity_section(ui: &mut Ui, state: &mut BuilderState, sys_i
                 // and the validation pump pick it up (was a direct field
                 // write). `worlds` rides through the system clone unchanged.
                 let sys_id = state.sector.systems[sys_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].clone();
-                draft.kind = kind_choice;
-                let cmd = BuilderCommand::EditSystem {
-                    system: sys_id,
-                    before: None,
-                    after: Box::new(draft),
-                };
-                if let Err(e) = state.run(cmd) {
+                if let Err(e) = state.edit_system(sys_id, |sys| sys.kind = kind_choice) {
                     state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
                 } else {
                     ui.data_mut(|d| d.remove::<SystemKind>(kind_choice_key));
@@ -384,19 +377,14 @@ pub(super) fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys
             // §R4: tags edit rides an EditSystem clone (was a direct
             // `systems[i].tags` write) so it lands on the undo log.
             let sys_id = state.sector.systems[sys_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].clone();
-            draft.tags = tags_buf
-                .split(',')
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .map(Arc::from)
-                .collect();
-            let cmd = BuilderCommand::EditSystem {
-                system: sys_id,
-                before: None,
-                after: Box::new(draft),
-            };
-            if let Err(e) = state.run(cmd) {
+            if let Err(e) = state.edit_system(sys_id, |sys| {
+                sys.tags = tags_buf
+                    .split(',')
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .map(Arc::from)
+                    .collect();
+            }) {
                 state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
             } else {
                 crate::builder::panels::persistent_text_clear(ui, tags_key);
@@ -406,19 +394,14 @@ pub(super) fn show_tags_notes_section(ui: &mut Ui, state: &mut BuilderState, sys
             // §R4: notes edit rides an EditSystem clone (was a direct
             // `systems[i].notes` write) so it lands on the undo log.
             let sys_id = state.sector.systems[sys_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].clone();
-            draft.notes = notes_buf
-                .lines()
-                .map(|s| s.trim())
-                .filter(|s| !s.is_empty())
-                .map(Arc::from)
-                .collect();
-            let cmd = BuilderCommand::EditSystem {
-                system: sys_id,
-                before: None,
-                after: Box::new(draft),
-            };
-            if let Err(e) = state.run(cmd) {
+            if let Err(e) = state.edit_system(sys_id, |sys| {
+                sys.notes = notes_buf
+                    .lines()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .map(Arc::from)
+                    .collect();
+            }) {
                 state.modal = Some(ModalKind::Message(format!("System edit failed: {e}")));
             } else {
                 crate::builder::panels::persistent_text_clear(ui, notes_key);

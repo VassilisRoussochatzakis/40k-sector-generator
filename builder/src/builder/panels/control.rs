@@ -628,23 +628,19 @@ fn show_add_presence_row(
             // §R4 (CTL-2): add-presence routes through EditWorld so the new row
             // is undoable.
             let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            draft.factions.push(WorldFactionPresence {
-                faction_id: buf.faction.clone(),
-                subfaction_id: None,
-                subfaction_name: None,
-                force_id: None,
-                force_name: None,
-                influence: buf.tier,
-                relationship_to_government: "neutral".into(),
-                dimensions: PresenceDimensions::default(),
-                dominance: DominanceState::default(),
-                intel_confidence: 100,
-            });
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: id,
-                before: None,
-                after: Box::new(draft),
+            if let Err(e) = state.edit_world(id, |w| {
+                w.factions.push(WorldFactionPresence {
+                    faction_id: buf.faction.clone(),
+                    subfaction_id: None,
+                    subfaction_name: None,
+                    force_id: None,
+                    force_name: None,
+                    influence: buf.tier,
+                    relationship_to_government: "neutral".into(),
+                    dimensions: PresenceDimensions::default(),
+                    dominance: DominanceState::default(),
+                    intel_confidence: 100,
+                });
             }) {
                 state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }
@@ -716,13 +712,7 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
             // so the control-state change is undoable. The system's worlds
             // ride through the clone unchanged.
             let id = state.sector.systems[sys_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].clone();
-            draft.control.state = ns;
-            if let Err(e) = state.run(BuilderCommand::EditSystem {
-                system: id,
-                before: None,
-                after: Box::new(draft),
-            }) {
+            if let Err(e) = state.edit_system(id, |sys| sys.control.state = ns) {
                 state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }
         }
@@ -777,13 +767,8 @@ fn show_system_control_editor(ui: &mut Ui, state: &mut BuilderState) {
                 // `primary_factions_locked` table is UI lock state (direct).
                 state.primary_factions_locked.remove(&system_id);
                 let id = state.sector.systems[sys_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].clone();
-                draft.primary_factions = derived.clone();
-                if let Err(e) = state.run(BuilderCommand::EditSystem {
-                    system: id,
-                    before: None,
-                    after: Box::new(draft),
-                }) {
+                if let Err(e) = state.edit_system(id, |sys| sys.primary_factions = derived.clone())
+                {
                     state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
                 }
             }
@@ -1360,14 +1345,10 @@ fn show_world_row(
         if let Some(i) = remove {
             // §R4 (CTL-5): claim removal routes through EditWorld so it is
             // undoable.
-            let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            if i < draft.claims.len() {
-                draft.claims.remove(i);
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: id,
-                    before: None,
-                    after: Box::new(draft),
+            if i < state.sector.systems[sys_idx].worlds[w_idx].claims.len() {
+                let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
+                if let Err(e) = state.edit_world(id, |w| {
+                    w.claims.remove(i);
                 }) {
                     state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
                 }
@@ -1446,16 +1427,12 @@ fn show_add_claim_row(
         {
             // §R4 (CTL-5): claim add routes through EditWorld so it is undoable.
             let id = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-            let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-            draft.claims.push(FactionClaim {
-                faction_id: buf.faction.clone(),
-                claim_type: buf.claim_type,
-                strength: buf.strength,
-            });
-            if let Err(e) = state.run(BuilderCommand::EditWorld {
-                world: id,
-                before: None,
-                after: Box::new(draft),
+            if let Err(e) = state.edit_world(id, |w| {
+                w.claims.push(FactionClaim {
+                    faction_id: buf.faction.clone(),
+                    claim_type: buf.claim_type,
+                    strength: buf.strength,
+                });
             }) {
                 state.modal = Some(ModalKind::Message(format!("Edit failed: {e}")));
             }

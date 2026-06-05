@@ -19,7 +19,7 @@ sequence". Update this file whenever a finding moves status.
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
-| E builder panels | 17 | 11 (E1,E2,E3,E4,E6,E7,E8*,E9,E13,E14,E-S1) | 0 | 6 | 0 |
+| E builder panels | 17 | 12 (E1,E2,E3,E4,E6,E7,E8*,E9,E13,E14,E-S1,E-S3*) | 0 | 5 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | 1 (G2) | 0 | 12 | 0 |
 
@@ -42,8 +42,9 @@ sequence". Update this file whenever a finding moves status.
      F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
      API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
    - Remaining dedup: AREA_B perf (**B1/B3/B5/B6 ✅ — all done**), **B4 ✅**;
-     trait/macro dedup (B-S1, B-S2 merge-half — both owner-gated; E-S3, C2,
-     F-S1); **C3 ✅** (this session).
+     trait/macro dedup (B-S1, B-S2 merge-half — both owner-gated; **E-S3 ✅**
+     (16/26 sites; 10 divergent left by design), C2, F-S1); **C3 ✅** (this
+     session).
    - **Wave 4 — AREA_F semantic-color sweep** (viewer chrome, no snapshot
      exposure): F6 ✅ · F9 ✅ · F11 ✅ · F12 ✅ (warm-ups) · F5 ✅ (the
      ~25-site `Color32::from_rgb` → `palette::warning/danger/success` sweep).
@@ -898,6 +899,54 @@ builder-only, **no sectorforge emission / no golden / no map-snapshot exposure**
   shows the cheap idle-frame site-1 union-find matters, memoize site 1 only, keyed
   on an existing derivation fingerprint — but that is speculative, not warranted
   now.) AREA_E file row + section updated to 🟢 Non-issue.
+
+### 2026-06-05 — step 5, wave 11 (AREA_E E-S3 — edit_world/edit_system helpers)
+
+- **E-S3 (`edit_world` / `edit_system`) — ✅ DONE (partial-by-design).** Added two
+  helpers on `BuilderState` in `state/generation_ops.rs` (beside
+  `find_world_indices`): `edit_world(WorldId, impl FnOnce(&mut GeneratedWorld))
+  -> Result<(), BuilderError>` and `edit_system(SystemId, impl FnOnce(&mut
+  GeneratedSystem)) -> …`. Each looks the entity up by id, clones it, runs the
+  closure on the clone, and dispatches `EditWorld`/`EditSystem { before: None,
+  after }` through `self.run`. A stale id maps to
+  `MutationError::{WorldNotFound,SystemNotFound}` — byte-identical to what
+  `run(EditX)` itself returns. This **wraps** the command bus (§R4-safe), not a
+  bypass.
+  - **Pre-checks (both passed, gating the design):** (1) **every** one of the 16
+    `EditWorld` + 10 `EditSystem` dispatch sites already passes `before: None`
+    (grep-verified) — the bus captures the prior payload on `apply`, so no site
+    needed the old snapshot; standardizing on `before: None` in the helper is
+    safe. (2) The modal text **differs** across sites ("Edit failed" ×6 control /
+    "World edit failed" ×8 / "System edit failed" ×5 / "Intel edit failed" /
+    "Control flip failed" / "Control update failed" / "Duplicate world failed"),
+    so the helper does **not** bake a fixed string — it **returns** the error and
+    each caller keeps its exact `ModalKind::Message`.
+  - **Converted 16 of 26** sites (10 `EditWorld` + 6 `EditSystem`) to one-liners:
+    control.rs CTL-2/3a/3b/5a/5b, world/features, world/identity tags+notes,
+    world/factions ×2, world/claims ×2, system/identity kind+tags+notes,
+    system/mod control-flip. (CTL-5a's `if i < draft.claims.len()` guard moved to
+    read the live world — equivalent, since `draft` was a fresh clone.)
+  - **Left 10 sites hand-written + noted (genuinely divergent, not clean
+    clone→mutate→dispatch):** the WORLD-tab **classification / environment /
+    society** editors + both **INTEL** editors build the draft *across* egui
+    render closures (mutation interleaved with the UI, dispatch gated on a
+    `changed`/`dirty` flag) — they'd need a redundant double-clone to fit;
+    **system_map duplicate-world** grafts a *different* source world's full
+    payload (not a mutation of the target); the **3 bulk_ops loops** carry a
+    no-op-skip filter fused into `find().filter().cloned()` (lifting it would
+    change the shape); **control.rs CTL-1** reads the **edited** removed
+    presence's `faction_id` to update the transient `dominance_locked` side-table,
+    which can't move out of the draft closure (an edit + the removal can hit the
+    same index). All 10 retain their original behaviour and modal text.
+  - **Verification:** workspace `clippy --all-targets -- -D warnings` clean;
+    builder lib **317 → 319** (added `edit_world_round_trip` +
+    `edit_system_round_trip` in `state/tests.rs`: one undoable command per call,
+    undo restores the pre-edit payload, stale id → `…NotFound`). Builder-only
+    change — no `sectorforge`/`gui-core` source touched, so golden + map snapshots
+    are unaffected (not run). Three now-unused `BuilderCommand` imports removed
+    (world/claims, world/factions, world/features — all their EditWorld sites
+    converted). No file moved → MAP.md untouched; GUIDE.md §R4 detail-editor note
+    extended.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

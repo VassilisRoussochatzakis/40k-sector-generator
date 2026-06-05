@@ -738,3 +738,84 @@ fn ld2_snapshot_revert_invalidates_all_derived() {
         "reverting the sector invalidates the derived overlay"
     );
 }
+
+// ── §E-S3: edit_world / edit_system clone-mutate-dispatch helpers ─────────
+
+/// The helper clones the target, runs the closure, and commits one
+/// `EditWorld` — so the edit lands on the undo log (one command) and undo
+/// restores the prior payload. A stale id surfaces `WorldNotFound`, matching
+/// what `run(EditWorld)` returns directly.
+#[test]
+fn edit_world_round_trip() {
+    let mut s = seeded();
+    let sys_id = s.sector.systems[0].id.clone();
+    s.run(BuilderCommand::AddWorld {
+        system: sys_id,
+        name: "terra".into(),
+        result_id: None,
+    })
+    .unwrap();
+    let wid = s.sector.systems[0].worlds.last().unwrap().id.clone();
+    let log_before = s.command_log.len();
+
+    s.edit_world(wid.clone(), |w| w.tags = vec!["hive".into()])
+        .unwrap();
+    assert_eq!(
+        s.command_log.len(),
+        log_before + 1,
+        "edit_world commits exactly one undoable command"
+    );
+    let (si, wi) = s.find_world_indices(&wid).unwrap();
+    assert_eq!(s.sector.systems[si].worlds[wi].tags.len(), 1);
+
+    s.undo().unwrap();
+    let (si, wi) = s.find_world_indices(&wid).unwrap();
+    assert!(
+        s.sector.systems[si].worlds[wi].tags.is_empty(),
+        "undo restores the pre-edit world"
+    );
+
+    let err = s.edit_world(WorldId::new("no-such-world"), |_| {}).unwrap_err();
+    assert!(matches!(
+        err,
+        crate::builder::errors::BuilderError::Mutation(
+            sectorforge::sector_model::mutation::MutationError::WorldNotFound(_)
+        )
+    ));
+}
+
+/// System counterpart: one `EditSystem` per call, undoable, stale id →
+/// `SystemNotFound`.
+#[test]
+fn edit_system_round_trip() {
+    let mut s = seeded();
+    let sys_id = s.sector.systems[0].id.clone();
+    let log_before = s.command_log.len();
+
+    s.edit_system(sys_id.clone(), |sys| sys.notes = vec!["pinned".into()])
+        .unwrap();
+    assert_eq!(
+        s.command_log.len(),
+        log_before + 1,
+        "edit_system commits exactly one undoable command"
+    );
+    let idx = s.system_index_by_id(&sys_id).unwrap();
+    assert_eq!(s.sector.systems[idx].notes.len(), 1);
+
+    s.undo().unwrap();
+    let idx = s.system_index_by_id(&sys_id).unwrap();
+    assert!(
+        s.sector.systems[idx].notes.is_empty(),
+        "undo restores the pre-edit system"
+    );
+
+    let err = s
+        .edit_system(SystemId::new("no-such-system"), |_| {})
+        .unwrap_err();
+    assert!(matches!(
+        err,
+        crate::builder::errors::BuilderError::Mutation(
+            sectorforge::sector_model::mutation::MutationError::SystemNotFound(_)
+        )
+    ));
+}

@@ -68,8 +68,18 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E-S3 — `EditWorld` / `EditSystem` clone-mutate-dispatch idiom
 
+> ✅ **RESOLVED 2026-06-05** — added `BuilderState::edit_world` / `edit_system`
+> (clone → run closure → dispatch `EditWorld`/`EditSystem` with `before: None`)
+> in [generation_ops.rs](../../builder/src/builder/state/generation_ops.rs).
+> Converted **16 of the 26** call sites (10 `EditWorld` + 6 `EditSystem`); the
+> other **10** are genuinely divergent and left hand-written + noted (UI-built
+> drafts, full-payload graft, no-op-skip bulk loops, the `dominance_locked`
+> side-table). Helpers **return** the bus error so each site keeps its exact
+> modal text (the strings differ). Round-trip tests added. See
+> [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** HIGH / P1 #3
-- **Status:** ⚠️ Partial
+- **Status:** ⚠️ Partial → ✅ Resolved (partial-by-design)
 - **Count (E-S3):** `BuilderCommand::EditWorld` has **16 call sites** in panels (not 26); `BuilderCommand::EditSystem` has **10 call sites** (matches review's ×9 approximately). `ModalKind::Message(format!(...))` appears **119 times** across all of `builder/src/` (23 within panels alone was understated; the full 119 figure includes the entire builder). The review's ×26 likely double-counted the `command.rs` application arm plus viewer; actual panel-only EditWorld = 16.
 - **Evidence:** Canonical pattern in `world.rs:1077–1082`:
   ```rust

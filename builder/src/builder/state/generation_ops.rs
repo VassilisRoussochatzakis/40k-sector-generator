@@ -5,6 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::invariants::check_sector;
+use sectorforge::sector_model::mutation::MutationError;
+use sectorforge::sector_model::{GeneratedSystem, GeneratedWorld};
 use sectorforge::SectorError;
 
 use super::super::command::BuilderCommand;
@@ -94,6 +96,58 @@ impl BuilderState {
     /// §W1 / §W4: locate a world by id, returning `(system_idx, world_idx)`.
     pub fn find_world_indices(&self, id: &WorldId) -> Option<(usize, usize)> {
         self.index.worlds.get(id).copied()
+    }
+
+    /// §E-S3: clone the world `world`, run `f` on the clone, and commit it via
+    /// [`BuilderCommand::EditWorld`] (`before: None` — the bus captures the
+    /// prior payload on apply, so undo/redo are exact). This collapses the
+    /// clone-mutate-dispatch idiom the WORLD / CONTROL panels repeat: a caller
+    /// writes `state.edit_world(wid, |w| { … })?` instead of cloning by hand,
+    /// boxing the draft, and spelling `before: None`.
+    ///
+    /// The bus error is **returned**, not surfaced — each call site keeps its
+    /// own `ModalKind::Message` text (they differ: "Edit failed" vs "World edit
+    /// failed" vs …), so this helper never touches `self.modal`. A stale id maps
+    /// to [`MutationError::WorldNotFound`], matching what `run(EditWorld)` would
+    /// itself return for a missing world.
+    pub fn edit_world(
+        &mut self,
+        world: WorldId,
+        f: impl FnOnce(&mut GeneratedWorld),
+    ) -> Result<(), BuilderError> {
+        let (si, wi) = self
+            .find_world_indices(&world)
+            .ok_or_else(|| MutationError::WorldNotFound(world.to_string()))?;
+        let mut draft = self.sector.systems[si].worlds[wi].clone();
+        f(&mut draft);
+        self.run(BuilderCommand::EditWorld {
+            world,
+            before: None,
+            after: Box::new(draft),
+        })
+    }
+
+    /// §E-S3: system counterpart to [`Self::edit_world`]. Clones system
+    /// `system`, runs `f` on the clone, and commits via
+    /// [`BuilderCommand::EditSystem`] (`before: None`; the `worlds` vector rides
+    /// through the clone unchanged — only system-scope fields are meant to be
+    /// touched). The bus error is returned so each caller keeps its own modal
+    /// text; a stale id maps to [`MutationError::SystemNotFound`].
+    pub fn edit_system(
+        &mut self,
+        system: SystemId,
+        f: impl FnOnce(&mut GeneratedSystem),
+    ) -> Result<(), BuilderError> {
+        let si = self
+            .system_index_by_id(&system)
+            .ok_or_else(|| MutationError::SystemNotFound(system.to_string()))?;
+        let mut draft = self.sector.systems[si].clone();
+        f(&mut draft);
+        self.run(BuilderCommand::EditSystem {
+            system,
+            before: None,
+            after: Box::new(draft),
+        })
     }
 
     /// §W4: redraw the payload (`WorldDto`, source row, tags) for the given

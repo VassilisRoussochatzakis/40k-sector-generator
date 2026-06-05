@@ -7,8 +7,6 @@ use egui::{Color32, Ui};
 use sectorforge::worlds::{NotableFeature, StarColour, WorldType};
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
-
-use crate::builder::command::BuilderCommand;
 use crate::builder::state::ModalKind;
 use crate::builder::BuilderState;
 
@@ -117,17 +115,13 @@ pub(super) fn show_features_section(
             // one EditWorld so the feature edit is undoable.
             if remove.is_some() || add.is_some() {
                 let wid = state.sector.systems[sys_idx].worlds[w_idx].id.clone();
-                let mut draft = state.sector.systems[sys_idx].worlds[w_idx].clone();
-                if let Some(i) = remove {
-                    draft.world.notable_features.remove(i);
-                }
-                if let Some(key) = add {
-                    draft.world.notable_features.push(key);
-                }
-                if let Err(e) = state.run(BuilderCommand::EditWorld {
-                    world: wid,
-                    before: None,
-                    after: Box::new(draft),
+                if let Err(e) = state.edit_world(wid, |w| {
+                    if let Some(i) = remove {
+                        w.world.notable_features.remove(i);
+                    }
+                    if let Some(key) = add {
+                        w.world.notable_features.push(key);
+                    }
                 }) {
                     state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
                 }

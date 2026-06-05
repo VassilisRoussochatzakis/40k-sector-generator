@@ -104,44 +104,59 @@ fn influence_scale(i: FactionInfluence) -> f32 {
     }
 }
 
+/// Mutable refs to every presence dimension, in declaration order — single
+/// source of the field list for the per-field arithmetic helpers below (B5).
+fn dimension_fields_mut(d: &mut PresenceDimensions) -> [&mut f32; 10] {
+    [
+        &mut d.admin,
+        &mut d.military,
+        &mut d.orbital,
+        &mut d.economic,
+        &mut d.industrial,
+        &mut d.ideological,
+        &mut d.covert,
+        &mut d.logistics,
+        &mut d.legitimacy,
+        &mut d.visibility,
+    ]
+}
+
+fn dimension_fields(d: &PresenceDimensions) -> [f32; 10] {
+    [
+        d.admin,
+        d.military,
+        d.orbital,
+        d.economic,
+        d.industrial,
+        d.ideological,
+        d.covert,
+        d.logistics,
+        d.legitimacy,
+        d.visibility,
+    ]
+}
+
 fn scale_dimensions(d: &mut PresenceDimensions, k: f32) {
-    d.admin *= k;
-    d.military *= k;
-    d.orbital *= k;
-    d.economic *= k;
-    d.industrial *= k;
-    d.ideological *= k;
-    d.covert *= k;
-    d.logistics *= k;
-    d.legitimacy *= k;
-    d.visibility *= k.max(0.3);
+    // visibility floors its multiplier at 0.3 (a heavily-shrunk faction never
+    // goes fully invisible); the other nine scale linearly by `k`.
+    let scaled_visibility = d.visibility * k.max(0.3);
+    for f in dimension_fields_mut(d) {
+        *f *= k;
+    }
+    d.visibility = scaled_visibility;
 }
 
 fn clamp_dimensions(d: &mut PresenceDimensions) {
-    let c = |x: &mut f32| *x = x.clamp(0.0, 100.0);
-    c(&mut d.admin);
-    c(&mut d.military);
-    c(&mut d.orbital);
-    c(&mut d.economic);
-    c(&mut d.industrial);
-    c(&mut d.ideological);
-    c(&mut d.covert);
-    c(&mut d.logistics);
-    c(&mut d.legitimacy);
-    c(&mut d.visibility);
+    for f in dimension_fields_mut(d) {
+        *f = f.clamp(0.0, 100.0);
+    }
 }
 
 fn add_dimensions(a: &mut PresenceDimensions, b: PresenceDimensions) {
-    a.admin += b.admin;
-    a.military += b.military;
-    a.orbital += b.orbital;
-    a.economic += b.economic;
-    a.industrial += b.industrial;
-    a.ideological += b.ideological;
-    a.covert += b.covert;
-    a.logistics += b.logistics;
-    a.legitimacy += b.legitimacy;
-    a.visibility += b.visibility;
+    let bs = dimension_fields(&b);
+    for (f, bf) in dimension_fields_mut(a).into_iter().zip(bs) {
+        *f += bf;
+    }
 }
 
 fn apply_disposition(d: &mut PresenceDimensions, disposition: &str) {

@@ -487,14 +487,12 @@ fn friction_for(r: &GeneratedRoute) -> f32 {
 }
 
 fn add(a: &ResourceVector, b: &ResourceVector) -> ResourceVector {
-    ResourceVector {
-        ore: a.ore + b.ore,
-        promethium: a.promethium + b.promethium,
-        foodstuffs: a.foodstuffs + b.foodstuffs,
-        manufactured: a.manufactured + b.manufactured,
-        archeotech: a.archeotech + b.archeotech,
-        recruits: a.recruits + b.recruits,
+    let mut out = a.clone();
+    let bs = b.fields();
+    for (o, bf) in out.fields_mut().into_iter().zip(bs) {
+        *o += bf;
     }
+    out
 }
 
 /// §12 stability nudge: increase `famine_or_resource_stress` on every world

@@ -125,13 +125,34 @@ impl ResourceVector {
             _ => 0.0,
         }
     }
-    pub(super) fn scale(mut self, f: f32) -> Self {
-        self.ore *= f;
-        self.promethium *= f;
-        self.foodstuffs *= f;
-        self.manufactured *= f;
-        self.archeotech *= f;
-        self.recruits *= f;
+    /// Mutable refs to every resource field, in declaration order — single
+    /// source of the field list for `scale` and the `add` free fn (B5).
+    pub(super) fn fields_mut(&mut self) -> [&mut f32; 6] {
+        [
+            &mut self.ore,
+            &mut self.promethium,
+            &mut self.foodstuffs,
+            &mut self.manufactured,
+            &mut self.archeotech,
+            &mut self.recruits,
+        ]
+    }
+
+    pub(super) fn fields(&self) -> [f32; 6] {
+        [
+            self.ore,
+            self.promethium,
+            self.foodstuffs,
+            self.manufactured,
+            self.archeotech,
+            self.recruits,
+        ]
+    }
+
+    pub(super) fn scale(mut self, factor: f32) -> Self {
+        for f in self.fields_mut() {
+            *f *= factor;
+        }
         self
     }
 }
@@ -221,44 +242,57 @@ impl StrategicOutput {
         }
     }
 
-    pub(super) fn add_assign(&mut self, other: &Self) {
-        self.food += other.food;
-        self.ore += other.ore;
-        self.manufacturing += other.manufacturing;
-        self.arms += other.arms;
-        self.ships += other.ships;
-        self.pilgrimage += other.pilgrimage;
-        self.psyker_tithe += other.psyker_tithe;
-        self.manpower += other.manpower;
-        self.knowledge += other.knowledge;
-        self.xenos_value += other.xenos_value;
+    /// Mutable refs to every score field, in declaration order. Single source
+    /// of the field list for the per-field arithmetic helpers (B5) — adding a
+    /// field here flows it into `add_assign` / `scale` / `clamp_scores` at once.
+    fn fields_mut(&mut self) -> [&mut f32; 10] {
+        [
+            &mut self.food,
+            &mut self.ore,
+            &mut self.manufacturing,
+            &mut self.arms,
+            &mut self.ships,
+            &mut self.pilgrimage,
+            &mut self.psyker_tithe,
+            &mut self.manpower,
+            &mut self.knowledge,
+            &mut self.xenos_value,
+        ]
     }
 
-    pub(super) fn scale(mut self, f: f32) -> Self {
-        self.food *= f;
-        self.ore *= f;
-        self.manufacturing *= f;
-        self.arms *= f;
-        self.ships *= f;
-        self.pilgrimage *= f;
-        self.psyker_tithe *= f;
-        self.manpower *= f;
-        self.knowledge *= f;
-        self.xenos_value *= f;
+    fn fields(&self) -> [f32; 10] {
+        [
+            self.food,
+            self.ore,
+            self.manufacturing,
+            self.arms,
+            self.ships,
+            self.pilgrimage,
+            self.psyker_tithe,
+            self.manpower,
+            self.knowledge,
+            self.xenos_value,
+        ]
+    }
+
+    pub(super) fn add_assign(&mut self, other: &Self) {
+        let others = other.fields();
+        for (f, o) in self.fields_mut().into_iter().zip(others) {
+            *f += o;
+        }
+    }
+
+    pub(super) fn scale(mut self, factor: f32) -> Self {
+        for f in self.fields_mut() {
+            *f *= factor;
+        }
         self
     }
 
     pub(super) fn clamp_scores(mut self) -> Self {
-        self.food = self.food.clamp(0.0, 100.0);
-        self.ore = self.ore.clamp(0.0, 100.0);
-        self.manufacturing = self.manufacturing.clamp(0.0, 100.0);
-        self.arms = self.arms.clamp(0.0, 100.0);
-        self.ships = self.ships.clamp(0.0, 100.0);
-        self.pilgrimage = self.pilgrimage.clamp(0.0, 100.0);
-        self.psyker_tithe = self.psyker_tithe.clamp(0.0, 100.0);
-        self.manpower = self.manpower.clamp(0.0, 100.0);
-        self.knowledge = self.knowledge.clamp(0.0, 100.0);
-        self.xenos_value = self.xenos_value.clamp(0.0, 100.0);
+        for f in self.fields_mut() {
+            *f = f.clamp(0.0, 100.0);
+        }
         self
     }
 

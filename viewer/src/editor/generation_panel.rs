@@ -280,6 +280,7 @@ pub(crate) fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
                 .add(
                     egui::Button::new("APPLY PREVIEW")
                         .min_size(egui::vec2(330.0, 40.0))
+                        // Affirmative call-to-action fill, not a status color (AREA_F F5).
                         .fill(egui::Color32::from_rgb(0, 100, 0)),
                 )
                 .clicked()
@@ -297,7 +298,7 @@ pub(crate) fn show_generation_settings(ui: &mut Ui, state: &mut EditorState) {
             });
         } else if let Some(error) = &state.preview_error {
             ui.add_space(10.0);
-            ui.colored_label(egui::Color32::from_rgb(180, 80, 80), error);
+            ui.colored_label(crate::palette::danger(), error);
         }
     });
     if changed && state.auto_generate {

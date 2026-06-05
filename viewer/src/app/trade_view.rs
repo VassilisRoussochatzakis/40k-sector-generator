@@ -1,5 +1,5 @@
 use crate::{palette, App};
-use egui::{Color32, RichText, ScrollArea};
+use egui::{RichText, ScrollArea};
 
 pub fn ui(app: &mut App, ctx: &egui::Context) {
     let Some(sector) = app.sector.clone() else {
@@ -84,7 +84,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     ui.add_space(10.0);
                     ui.label(
                         RichText::new("TITHE / SUPPLY STRESS")
-                            .color(Color32::from_rgb(235, 190, 90))
+                            .color(palette::warning())
                             .strong(),
                     );
                     egui::Grid::new("tithe_supply_stress")
@@ -160,7 +160,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     ui.add_space(10.0);
                     ui.label(
                         RichText::new("STRANDED WORLDS")
-                            .color(Color32::from_rgb(235, 90, 90))
+                            .color(palette::danger())
                             .strong(),
                     );
                     for w in stranded {

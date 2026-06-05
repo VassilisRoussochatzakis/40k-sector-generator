@@ -36,6 +36,7 @@ impl App {
             egui::TopBottomPanel::top("preview_banner")
                 .frame(
                     egui::Frame::none()
+                        // Preview-mode banner background fill, not a status color (AREA_F F5).
                         .fill(egui::Color32::from_rgb(0, 80, 0))
                         .inner_margin(4.0),
                 )
@@ -201,6 +202,7 @@ impl App {
                     ui.label(RichText::new(&region.name).strong().size(18.0));
                     ui.add_space(4.0);
                     ui.label(
+                        // Data-viz: region-kind hue, not a UI status color (AREA_F F5).
                         RichText::new(region.kind.label())
                             .color(egui::Color32::from_rgb(220, 160, 60)),
                     );
@@ -321,17 +323,17 @@ impl App {
                         if let Some(start) = self.pending_route_start.as_ref() {
                             ui.label(
                                 RichText::new(format!("ROUTE FROM {}", start.to_uppercase()))
-                                    .color(Color32::from_rgb(235, 200, 90)),
+                                    .color(palette::warning()),
                             );
                         }
                     }
                     if self.live_dirty {
-                        ui.label(RichText::new("UNSAVED").color(Color32::from_rgb(235, 200, 90)));
+                        ui.label(RichText::new("UNSAVED").color(palette::warning()));
                     }
                     if self.sector_pick_export {
                         ui.label(
                             RichText::new("◉ click a system hex to pick for PNG export")
-                                .color(Color32::from_rgb(235, 200, 90)),
+                                .color(palette::warning()),
                         );
                         if ui.button(RichText::new("CANCEL PICK")).clicked() {
                             self.sector_pick_export = false;

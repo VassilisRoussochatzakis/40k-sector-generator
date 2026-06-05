@@ -83,7 +83,7 @@ pub(crate) fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
 
         if let Some(win) = &outcome.winning {
             ui.colored_label(
-                egui::Color32::GREEN,
+                crate::palette::success(),
                 format!("WINNER: candidate #{} (seed {})", win.n, win.seed),
             );
             if ui.button("APPLY WINNING SEED").clicked() {
@@ -91,7 +91,7 @@ pub(crate) fn show_wishes(ui: &mut Ui, state: &mut EditorState) {
             }
         } else {
             ui.colored_label(
-                egui::Color32::from_rgb(235, 180, 50),
+                crate::palette::warning(),
                 "No perfect match found.",
             );
         }

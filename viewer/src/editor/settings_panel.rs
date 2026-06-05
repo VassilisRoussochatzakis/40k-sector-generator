@@ -57,7 +57,7 @@ pub(crate) fn show_settings(ui: &mut Ui, state: &mut EditorState) {
 
     if sector.width != sector.height {
         ui.colored_label(
-            egui::Color32::from_rgb(235, 180, 50),
+            crate::palette::warning(),
             "⚠ IRREGULAR DIMENSIONS: Joining sectors in a Segmentum usually requires square (H=W) sectors.",
         );
     }

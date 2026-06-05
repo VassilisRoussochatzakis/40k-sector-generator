@@ -68,7 +68,7 @@ pub(crate) fn show(
     if a.low_confidence {
         ui.label(
             RichText::new("⚠ low-confidence sector (few systems)")
-                .color(Color32::from_rgb(235, 200, 90)),
+                .color(palette::warning()),
         );
         ui.add_space(6.0);
     }
@@ -132,7 +132,7 @@ pub(crate) fn show(
                     "Articulation points: {}",
                     c.articulation_point_ids.join(", ")
                 ))
-                .color(Color32::from_rgb(235, 200, 90)),
+                .color(palette::warning()),
             );
         }
         if !c.isolated_system_ids.is_empty() {
@@ -171,8 +171,8 @@ pub(crate) fn show(
         } else {
             for f in &a.health_flags {
                 let color = match f.severity {
-                    FlagSeverity::Error => Color32::from_rgb(235, 90, 90),
-                    FlagSeverity::Warning => Color32::from_rgb(240, 200, 90),
+                    FlagSeverity::Error => palette::danger(),
+                    FlagSeverity::Warning => palette::warning(),
                     FlagSeverity::Info => palette::chrome_text_dim(),
                     _ => palette::chrome_text_dim(),
                 };

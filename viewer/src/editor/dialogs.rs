@@ -115,7 +115,7 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
 
                     if irregular_dimensions {
                         ui.colored_label(
-                            egui::Color32::from_rgb(235, 180, 50),
+                            crate::palette::warning(),
                             "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
                         );
                     }

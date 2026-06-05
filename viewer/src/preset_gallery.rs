@@ -5,7 +5,7 @@
 //! prints the next-step CLI invocation in a status line.
 
 use camino::Utf8PathBuf;
-use egui::{Color32, RichText, ScrollArea, Ui};
+use egui::{RichText, ScrollArea, Ui};
 use thiserror::Error;
 
 use sectorforge::presets::{self, PresetEntry};
@@ -111,7 +111,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
 
                 if state.irregular_dimensions {
                     ui.colored_label(
-                        Color32::from_rgb(235, 180, 50),
+                        palette::warning(),
                         "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
                     );
                 }
@@ -155,7 +155,7 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         Some(Ok(v)) => v,
         Some(Err(e)) => {
             ui.label(
-                RichText::new(format!("load failed: {e}")).color(Color32::from_rgb(235, 90, 90)),
+                RichText::new(format!("load failed: {e}")).color(palette::danger()),
             );
             return;
         }
@@ -242,9 +242,9 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
     if !state.status.is_empty() {
         ui.add_space(8.0);
         let color = if state.status.starts_with("OK") {
-            Color32::from_rgb(120, 220, 130)
+            palette::success()
         } else {
-            Color32::from_rgb(235, 90, 90)
+            palette::danger()
         };
         ui.label(RichText::new(&state.status).color(color));
         ui.label(

@@ -77,6 +77,7 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                             ui.label(RichText::new(&r.id));
                             ui.label(RichText::new(&r.name));
                             ui.label(
+                                // Data-viz: region-kind hue, not a UI status color (AREA_F F5).
                                 RichText::new(r.kind.label())
                                     .color(Color32::from_rgb(220, 160, 60)),
                             );

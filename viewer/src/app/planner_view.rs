@@ -1,4 +1,4 @@
-use egui::{Color32, RichText, ScrollArea, SidePanel};
+use egui::{RichText, ScrollArea, SidePanel};
 
 use sectorforge::sector_model::GeneratedSector;
 
@@ -254,7 +254,7 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
 
     if !app.planner.status.is_empty() {
         ui.add_space(6.0);
-        ui.label(RichText::new(&app.planner.status).color(Color32::from_rgb(235, 90, 90)));
+        ui.label(RichText::new(&app.planner.status).color(palette::danger()));
     }
 
     ui.add_space(10.0);
@@ -309,8 +309,8 @@ fn draw_planner_panel(ui: &mut egui::Ui, app: &mut App, sector: &GeneratedSector
             ui.label(RichText::new("HAZARDS").color(palette::chrome_text_dim()));
             for h in &plan.hazards {
                 let color = match h.severity {
-                    Severity::Danger => Color32::from_rgb(235, 90, 90),
-                    Severity::Caution => Color32::from_rgb(240, 200, 90),
+                    Severity::Danger => palette::danger(),
+                    Severity::Caution => palette::warning(),
                     Severity::Info => palette::chrome_text_dim(),
                 };
                 ui.label(

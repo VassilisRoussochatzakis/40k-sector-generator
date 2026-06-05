@@ -25,7 +25,7 @@ pub(crate) enum DataEditorError {
     Toml(#[from] toml::de::Error),
 }
 
-use egui::{Color32, RichText, ScrollArea};
+use egui::{RichText, ScrollArea};
 
 #[derive(Default)]
 pub(crate) struct DataEditor {
@@ -111,7 +111,7 @@ pub(crate) fn show(ui: &mut egui::Ui, editor: &mut DataEditor) {
             RichText::new(format!("{row_count} rows")).color(super::palette::chrome_text_dim()),
         );
         if editor.dirty {
-            ui.label(RichText::new("• unsaved").color(Color32::from_rgb(240, 200, 90)));
+            ui.label(RichText::new("• unsaved").color(super::palette::warning()));
         }
     });
 

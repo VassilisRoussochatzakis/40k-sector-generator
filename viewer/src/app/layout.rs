@@ -1,6 +1,6 @@
 use crate::app::palette;
 use crate::app::{App, View};
-use egui::{Color32, RichText, TopBottomPanel};
+use egui::{RichText, TopBottomPanel};
 use sectorforge::sector_model::RouteViewMode;
 
 pub struct TopBar<'a> {
@@ -209,7 +209,7 @@ fn draw_top_bar(app: &mut App, ctx: &egui::Context) {
 
                 if !app.export_status.is_empty() {
                     ui.label(
-                        RichText::new(&app.export_status).color(Color32::from_rgb(235, 200, 90)),
+                        RichText::new(&app.export_status).color(palette::warning()),
                     );
                 }
             });

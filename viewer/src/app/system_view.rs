@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use egui::{Color32, RichText, ScrollArea, SidePanel, TopBottomPanel};
+use egui::{RichText, ScrollArea, SidePanel, TopBottomPanel};
 
 use sectorforge::ids::SystemId;
 
@@ -143,14 +143,14 @@ impl App {
                         }
                     }
                     if self.live_dirty {
-                        ui.label(RichText::new("UNSAVED").color(Color32::from_rgb(235, 200, 90)));
+                        ui.label(RichText::new("UNSAVED").color(palette::warning()));
                     }
                 });
             });
         ScrollArea::both().show(ui, |ui| {
             let sys_clone = self.system_by_id(system_id.as_str()).cloned();
             let Some(sys) = sys_clone else {
-                ui.label(RichText::new("system not found").color(Color32::RED));
+                ui.label(RichText::new("system not found").color(palette::danger()));
                 return;
             };
             let (_resp, click) = SystemView {

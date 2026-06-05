@@ -343,6 +343,7 @@ fn super_map(
                     let fill = if let Some(star) = &sys.star {
                         palette::star_color(&star.colour_code)
                     } else {
+                        // Data-viz: starless-system fallback dot, not a status color (AREA_F F5).
                         Color32::from_rgb(140, 140, 150)
                     };
                     palette::paint_circle_filled(ui, rect, p, 3.2, fill);

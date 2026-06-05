@@ -8,6 +8,8 @@ use sectorforge::sector_model::{
     GenerationManifest, HexCoord, RouteStability, RouteType, SystemKind, WorldDto,
 };
 
+use crate::sector_view::SectorMapCache;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FactionSort {
     #[default]
@@ -130,6 +132,12 @@ pub struct EditorState {
     pub preview_timer: Option<f64>,
     pub preview_revision: u64,
     pub preview_error: Option<String>,
+    /// Transient per-sector render cache for the editor map (AREA_F F4). Lazily
+    /// built in `map_panel::show_map`, invalidated (`None`) on any sector change
+    /// via `set_sector` / `mark_dirty`, so the `SectorView` render avoids the
+    /// O(regions·hexes) per-frame hex→region fallback scan that `cache: None`
+    /// took. Transient view state — not part of the saved document.
+    pub map_cache: Option<SectorMapCache>,
 }
 
 impl Default for EditorState {
@@ -162,6 +170,7 @@ impl Default for EditorState {
             preview_timer: None,
             preview_revision: 0,
             preview_error: None,
+            map_cache: None,
         }
     }
 }
@@ -177,6 +186,7 @@ impl EditorState {
         self.project_input = project_input;
         self.loaded_from = source_path;
         self.dirty = false;
+        self.map_cache = None;
         self.selection = Selection::None;
         self.tab = Tab::Map;
         self.dialog = Dialog::None;
@@ -200,6 +210,8 @@ impl EditorState {
 
     pub(crate) fn mark_dirty(&mut self) {
         self.dirty = true;
+        // Sector mutated — drop the stale editor map render cache (AREA_F F4).
+        self.map_cache = None;
     }
 
     pub(crate) fn schedule_preview(&mut self, due_time: f64) {

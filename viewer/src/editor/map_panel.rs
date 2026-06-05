@@ -8,7 +8,7 @@ use egui::{Pos2, Rect, RichText, Sense, Stroke, Ui, Vec2};
 
 use sectorforge::ids::SystemId;
 use sectorforge::sector_model::HexCoord;
-use sectorforge_gui_core::sector_view::{SectorGeom, SectorView};
+use sectorforge_gui_core::sector_view::{SectorGeom, SectorMapCache, SectorView};
 
 use crate::palette::{self, HEX_OUTLINE};
 
@@ -46,11 +46,21 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
         None
     };
 
+    // F4: build (or reuse) the per-sector render cache so the SectorView render
+    // skips the O(regions·hexes) hex→region fallback scan every frame. Invalidated
+    // to `None` on any sector change via `EditorState::{set_sector,mark_dirty}`.
+    // Editor passes `subsectors: None`, so the cache is built with no subsectors.
+    if state.map_cache.is_none() {
+        let cache = state.sector.as_ref().map(|s| SectorMapCache::new(s, &[]));
+        state.map_cache = cache;
+    }
+
     {
         let sector = state
             .sector
             .as_ref()
             .expect("sector presence checked above");
+        let cache = state.map_cache.as_ref();
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
             SectorView {
                 sector,
@@ -60,7 +70,7 @@ pub(crate) fn show_map(ui: &mut Ui, state: &mut EditorState) {
                 path_route_ids: None,
                 path_waypoints: None,
                 subsectors: None,
-                cache: None,
+                cache,
                 selected_subsector: None,
                 heatmap: None,
                 empty_hex_clicks: false,

@@ -97,7 +97,9 @@ pub fn ui(app: &mut App, ctx: &egui::Context) {
                     path_route_ids: Some(&path_routes),
                     path_waypoints: Some(&path_waypoints),
                     subsectors: Some(app.subsectors.as_slice()),
-                    cache: None,
+                    // F4: reuse the App's prebuilt cache (kept in sync with
+                    // `app.sector` on load/edit) instead of the per-frame fallback.
+                    cache: app.sector_map_cache.as_ref(),
                     selected_subsector: None,
                     heatmap: None,
                     empty_hex_clicks: false,

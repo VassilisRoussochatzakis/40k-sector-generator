@@ -38,7 +38,7 @@ pub(super) fn show_features_section(
                 .world
                 .notable_features
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| s.as_ref().to_string())
                 .collect();
             if cur.is_empty() {
                 ui_kit::placeholder(ui, "None yet — pick from the list below.");
@@ -79,14 +79,16 @@ pub(super) fn show_features_section(
                 .world
                 .notable_features
                 .iter()
-                .map(|s| s.to_string())
+                .map(|s| s.as_ref().to_string())
                 .collect();
             egui::ScrollArea::vertical()
                 .max_height(180.0)
                 .show(ui, |ui| {
                     for v in NotableFeature::VARIANTS {
                         let display = v.display_name();
-                        let key = format!("{v:?}");
+                        // Storage/lookup key = the stable variant name via `AsRef<str>`
+                        // (rename-safe single source; byte-equal to the old `{v:?}` form).
+                        let key = v.as_ref().to_string();
                         if !needle.is_empty()
                             && !display.to_lowercase().contains(&needle)
                             && !key.to_lowercase().contains(&needle)
@@ -202,7 +204,7 @@ pub(super) fn feature_weights_for_world(
     let mut out: BTreeMap<String, f64> = BTreeMap::new();
     let mut push = |list: &[sectorforge::world_pool::WeightedFeature]| {
         for wf in list {
-            let k = format!("{:?}", wf.feature);
+            let k = wf.feature.as_ref().to_string();
             let entry = out.entry(k).or_insert(0.0);
             *entry += wf.weight;
         }
@@ -235,7 +237,7 @@ pub(super) fn feature_weights_for_world(
 pub(super) fn feature_display_name(key: &str) -> String {
     NotableFeature::VARIANTS
         .iter()
-        .find(|v| format!("{v:?}") == key)
+        .find(|v| v.as_ref() == key)
         .map(|v| v.display_name().to_string())
         .unwrap_or_else(|| key.to_string())
 }

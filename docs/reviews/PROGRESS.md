@@ -15,7 +15,7 @@ sequence". Update this file whenever a finding moves status.
 
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
-| A `src/model` + generation | 12 | 9 (A1,A3,A4,A6,A8,A9,A10,A11,A12) | 0 | 2 (A2,A7) | 1 (A5) |
+| A `src/model` + generation | 12 | 10 (A1,A2,A3,A4,A6,A8,A9,A10,A11,A12) | 0 | 1 (A7) | 1 (A5) |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
@@ -1226,6 +1226,67 @@ golden-gated item (feeds `seed_hash`/`settings_digest`). Verified together:
   (BTreeMap accessor index, M) — next. **A5** (157-pub-field visibility, L) stays
   ⏸️ owner-gated like D-S3/D5 (wide builder/viewer/tests cascade, not a clean
   split). No file moved → MAP.md/GUIDE.md untouched.
+
+### 2026-06-05 — step 5, wave 15 (AREA_A A2 — WorldDto real-enum refactor, via workflow)
+
+Owner chose **do A2 via a workflow** + **A7 maintained index** (AskUserQuestion).
+A2 first. The DTO `WorldDto` (`<GeneratedWorld>.world`) held 10 stringly-typed
+`Arc<str>` fields; replaced with the 9 real `worlds.rs` enums so a renamed
+variant is a compile error in every consumer instead of a silent
+string-comparison mismatch (the finding's core). **JSON byte-stable** via a
+serde shim. ~150 sites across all 4 crates.
+
+- **Foundation (main thread, golden-critical).** `sector_model/mod.rs`: `WorldDto`
+  now holds `StarColour/WorldType/Atmosphere/Temperature/Biosphere/Population/
+  TechLevel/Government` + `Vec<NotableFeature>`, with `#[serde(into = "WorldDtoRaw",
+  try_from = "WorldDtoRaw")]`. The private `WorldDtoRaw` is the **original wire
+  schema** (incl. the `star_colour` `short_name()` / `star_colour_code` `code()`
+  split, which collapses into one `StarColour` in memory) so `sector.json` is
+  unchanged byte-for-byte. `From<WorldDto> for WorldDtoRaw` mirrors the old
+  `From<&World>` serialize derivations exactly; `TryFrom<WorldDtoRaw>` parses back —
+  star_colour from the **code** (`StarColour: FromStr` parses "O"/"B"/…),
+  world_type/government/notable_feature via the `taxonomy::parse_*_variant` fns,
+  and atmosphere/temperature/biosphere/population/tech_level via a new
+  `find_by_display(VARIANTS, s)` helper. **Why not `FromStr` for those 5:** their
+  hand-written `FromStr` accepts the *spaced* display form ("Densely Populated"),
+  but the wire string is the `{:?}` variant name ("DenselyPopulated") — caught by
+  the new round-trip unit test, which initially failed `invalid population:
+  "DenselyPopulated"`. `find_by_display` matches against each enum's `Display`,
+  the exact inverse of the serialize side. `From<&World>` is now a field clone.
+  Added `world_dto_serde_round_trips_through_wire_shim` (lib 194→**195**).
+- **Site sweep (workflow `wf_17b26311-9f1`, 39 agents, ~147 sites).** One agent per
+  file applied the conversion rules: literal compares / `match` against
+  variant-name strings → **enum compares / matches** (the rename-safe win, incl.
+  exhaustive `match` dropping now-unreachable `_ =>` arms in `control.rs`);
+  `.to_string()` / `.short_name()` / `.code()` only where a string is genuinely
+  consumed (display, `format!`, `Arc<str>` map keys); construction literals →
+  variants (dropping the `star_colour_code` field). Agents edited blind (tree
+  mid-refactor); the compiler was the oracle in the straggler pass.
+- **Straggler fixes (main thread).** (1) Anomalous **test fixtures** carried
+  non-variant garbage strings (`Population "Massive"`, `TechLevel "Imperial"`,
+  `Government "Imperial"/"ImperialCommander"`, `Biosphere "Standard"`,
+  `star_colour "amber"/"Y"`) — mapped to real variants
+  (ExtremelyDense/High/MilitaryGovernor/Thriving/…); these fixtures are not
+  asserted on, tests stay green. (2) **`combo_enum`/`EnumPicker`** in
+  `builder/.../world/mod.rs` was the one genuine **cross-file API redesign** the
+  sweep couldn't do in isolation: re-signed `combo_enum<E>(.., &mut E)` (was
+  `&mut Arc<str>`) operating on the enum directly, dropped the now-dead
+  `debug_key` round-trip + the `Arc` import. (3) `subsectors/summary.rs`
+  `any_capital_like` re-signed to `Item = &'a str` (the chained tags `&Arc<str>`
+  + `notable_features` `&NotableFeature` no longer share a type; both `.as_ref()`
+  to `&str`). (4) one clippy `iter().any(==)` → `contains` in `orbital_assets.rs`.
+- **Latent pre-existing bug left as-is (behaviour-preserving):**
+  `summary.rs::score_world_as_capital` `matches!` tests government against
+  "Republic"/"Corporate"/"Imperial"/"Federation"/"Theocracy" — **none are real
+  `Government` variants**, so that +3 capital bonus was dead before and stays
+  dead (kept a string compare; not A2's scope to change behaviour).
+- **Verification:** `cargo check --workspace --all-targets` clean; `cargo clippy
+  --workspace --all-targets -- -D warnings` clean; **golden 15/15 byte-identical**
+  (the serde shim proof); lib **195/195**, `it` **93/93**, builder **319/319**,
+  viewer **8/8**, gui-core **31/31** + `map_snapshots_match_goldens` un-blessed.
+  All 37 changed `.rs` files rustfmt-clean. No file moved → MAP.md untouched.
+- **Next:** A7 (maintained BTreeMap index — owner-chosen full fix). A5 still
+  ⏸️ owner-gated.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

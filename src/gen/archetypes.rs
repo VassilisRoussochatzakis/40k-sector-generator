@@ -251,7 +251,7 @@ fn apply_necron_phase(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId, 
             {
                 has_tomb = true;
             }
-            if w.world.world_type.as_ref() == "TombWorld" {
+            if w.world.world_type == crate::worlds::WorldType::TombWorld {
                 has_tomb = true;
             }
             for p in &w.factions {
@@ -295,7 +295,7 @@ fn apply_tyranid_front(sector: &mut GeneratedSector, kinds: &BTreeMap<FactionId,
                 let kind = kinds.get(&p.faction_id).map(|s| s.as_ref()).unwrap_or("");
                 if kind == "tyranid" {
                     max_score = max_score.max(p.dimensions.local_control_score());
-                    if w.world.population.as_ref() == "Uninhabited"
+                    if w.world.population == crate::worlds::Population::Uninhabited
                         && p.dimensions.local_control_score() >= 60.0
                     {
                         consumed = true;
@@ -521,9 +521,9 @@ mod tests {
     };
 
     fn world_with(
-        world_type: &str,
+        world_type: crate::worlds::WorldType,
         presences: Vec<(&str, PresenceDimensions)>,
-        pop: &str,
+        pop: crate::worlds::Population,
     ) -> GeneratedWorld {
         GeneratedWorld {
             id: "sys-0001-w1".into(),
@@ -532,15 +532,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "amber".into(),
-                star_colour_code: "A".into(),
-                world_type: world_type.into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Thriving".into(),
-                population: pop.into(),
-                tech_level: "High".into(),
-                government: "MagistrateCouncil".into(),
+                star_colour: crate::worlds::StarColour::White,
+                world_type,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: pop,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MagistrateCouncil,
                 notable_features: vec![],
             },
             factions: presences
@@ -647,7 +646,7 @@ mod tests {
     #[test]
     fn dormant_necron_with_low_visibility() {
         let w = world_with(
-            "TombWorld",
+            crate::worlds::WorldType::TombWorld,
             vec![(
                 "tomb",
                 PresenceDimensions {
@@ -656,7 +655,7 @@ mod tests {
                     ..Default::default()
                 },
             )],
-            "Uninhabited",
+            crate::worlds::Population::Uninhabited,
         );
         let mut s = sector_of(vec![w], vec![("tomb", "necron")]);
         apply_all(&mut s);
@@ -666,7 +665,7 @@ mod tests {
     #[test]
     fn imperial_stack_detects_two_co_sovereigns() {
         let w = world_with(
-            "ForgeWorld",
+            crate::worlds::WorldType::ForgeWorld,
             vec![
                 (
                     "imp",
@@ -687,7 +686,7 @@ mod tests {
                     },
                 ),
             ],
-            "DenselyPopulated",
+            crate::worlds::Population::DenselyPopulated,
         );
         let mut s = sector_of(vec![w], vec![("imp", "imperial"), ("mech", "mechanicus")]);
         apply_all(&mut s);

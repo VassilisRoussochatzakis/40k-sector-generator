@@ -2,11 +2,16 @@
 
 use egui::{RichText, Ui};
 
+use sectorforge::worlds::{
+    Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
+    Temperature, WorldType,
+};
+
 use crate::palette;
 
 use super::enums::{
-    star_colour_name, ATMOSPHERES, BIOSPHERES, GOVERNMENTS, NOTABLE_FEATURES, POPULATIONS,
-    STAR_COLOUR_CODES, TECH_LEVELS, TEMPERATURES, WORLD_TYPES,
+    ATMOSPHERES, BIOSPHERES, GOVERNMENTS, NOTABLE_FEATURES, POPULATIONS, STAR_COLOUR_CODES,
+    TECH_LEVELS, TEMPERATURES, WORLD_TYPES,
 };
 use super::state::{EditorState, Selection};
 use super::ui_helpers::{combo_str, dim, label, section, text_field_id};
@@ -52,13 +57,14 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
 
     ui.add_space(6.0);
     section(ui, "STAR COLOUR (display)");
-    let mut star_code = w.world.star_colour_code.to_string();
+    let mut star_code = w.world.star_colour.code().to_string();
     if combo_str(ui, "w_star_code", &mut star_code, STAR_COLOUR_CODES) {
-        w.world.star_colour_code = star_code.into();
-        w.world.star_colour = star_colour_name(&w.world.star_colour_code).into();
+        if let Ok(sc) = star_code.parse::<StarColour>() {
+            w.world.star_colour = sc;
+        }
         dirty = true;
     }
-    dim(ui, &format!("({})", w.world.star_colour));
+    dim(ui, &format!("({})", w.world.star_colour.short_name()));
 
     ui.add_space(6.0);
     section(ui, "CLASSIFICATION");
@@ -68,7 +74,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.world_type.to_string();
             if combo_str(ui, "w_type", &mut val, WORLD_TYPES) {
-                w.world.world_type = val.into();
+                w.world.world_type =
+                    parse_variant(WorldType::VARIANTS, &val, w.world.world_type.clone());
                 true
             } else {
                 false
@@ -85,7 +92,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.atmosphere.to_string();
             if combo_str(ui, "w_atm", &mut val, ATMOSPHERES) {
-                w.world.atmosphere = val.into();
+                w.world.atmosphere =
+                    parse_variant(Atmosphere::VARIANTS, &val, w.world.atmosphere.clone());
                 true
             } else {
                 false
@@ -99,7 +107,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.temperature.to_string();
             if combo_str(ui, "w_temp", &mut val, TEMPERATURES) {
-                w.world.temperature = val.into();
+                w.world.temperature =
+                    parse_variant(Temperature::VARIANTS, &val, w.world.temperature.clone());
                 true
             } else {
                 false
@@ -113,7 +122,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.biosphere.to_string();
             if combo_str(ui, "w_bio", &mut val, BIOSPHERES) {
-                w.world.biosphere = val.into();
+                w.world.biosphere =
+                    parse_variant(Biosphere::VARIANTS, &val, w.world.biosphere.clone());
                 true
             } else {
                 false
@@ -130,7 +140,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.population.to_string();
             if combo_str(ui, "w_pop", &mut val, POPULATIONS) {
-                w.world.population = val.into();
+                w.world.population =
+                    parse_variant(Population::VARIANTS, &val, w.world.population.clone());
                 true
             } else {
                 false
@@ -144,7 +155,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.tech_level.to_string();
             if combo_str(ui, "w_tech", &mut val, TECH_LEVELS) {
-                w.world.tech_level = val.into();
+                w.world.tech_level =
+                    parse_variant(TechLevel::VARIANTS, &val, w.world.tech_level.clone());
                 true
             } else {
                 false
@@ -158,7 +170,8 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         |ui| {
             let mut val = w.world.government.to_string();
             if combo_str(ui, "w_gov", &mut val, GOVERNMENTS) {
-                w.world.government = val.into();
+                w.world.government =
+                    parse_variant(Government::VARIANTS, &val, w.world.government.clone());
                 true
             } else {
                 false
@@ -177,7 +190,7 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         ui.horizontal(|ui| {
             let mut val = feat.to_string();
             if combo_str(ui, &format!("w_feat_{i}"), &mut val, NOTABLE_FEATURES) {
-                *feat = val.into();
+                *feat = parse_variant(NotableFeature::VARIANTS, &val, feat.clone());
                 dirty = true;
             }
             if ui.small_button(RichText::new("x")).clicked() {
@@ -190,7 +203,7 @@ pub(crate) fn show_world_inspector(ui: &mut Ui, state: &mut EditorState) {
         dirty = true;
     }
     if ui.button(RichText::new("+ ADD FEATURE")).clicked() {
-        w.world.notable_features.push("Prosperous".into());
+        w.world.notable_features.push(NotableFeature::Prosperous);
         dirty = true;
     }
 
@@ -212,4 +225,17 @@ fn row(ui: &mut Ui, k: &str, mut body: impl FnMut(&mut Ui) -> bool, dirty: &mut 
             *dirty = true;
         }
     });
+}
+
+/// Map a combo-box selection (a CamelCase variant-name string, as produced by
+/// the enum's `Display`) back to the matching `worlds.rs` enum variant. The
+/// dropdown option lists in [`super::enums`] are exactly those variant names, so
+/// the lookup is total in practice; `fallback` (the unchanged current value) is
+/// only returned for a defensive non-match.
+fn parse_variant<T: std::fmt::Display + Clone>(variants: &[T], s: &str, fallback: T) -> T {
+    variants
+        .iter()
+        .find(|v| v.to_string() == s)
+        .cloned()
+        .unwrap_or(fallback)
 }

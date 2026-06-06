@@ -125,11 +125,11 @@ fn emit_sampled_subsector_events(ctx: &EmitContext, out: &mut Vec<HistoryEvent>,
         let idx = (i * systems.len()) / emit_count;
         let sys = systems[idx];
         let capital_world = sys.worlds.iter().max_by(|a, b| {
-            population_rank(a.world.population.as_ref())
-                .cmp(&population_rank(b.world.population.as_ref()))
+            population_rank(&a.world.population.to_string())
+                .cmp(&population_rank(&b.world.population.to_string()))
                 .then_with(|| {
-                    tech_rank(a.world.tech_level.as_ref())
-                        .cmp(&tech_rank(b.world.tech_level.as_ref()))
+                    tech_rank(&a.world.tech_level.to_string())
+                        .cmp(&tech_rank(&b.world.tech_level.to_string()))
                 })
                 .then_with(|| a.id.cmp(&b.id))
         });

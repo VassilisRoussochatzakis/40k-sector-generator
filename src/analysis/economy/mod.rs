@@ -39,9 +39,12 @@ mod tests {
         GenerationManifest, HexCoord, RouteStability, RouteType, SystemControlSummary,
         WorldControlSummary, WorldDto,
     };
+    use crate::worlds::{
+        Atmosphere, Biosphere, Government, Population, StarColour, Temperature, TechLevel, WorldType,
+    };
     use std::collections::BTreeMap as Map;
 
-    fn world(id: &str, world_type: &str, tech: &str, pop_tag: &str) -> GeneratedWorld {
+    fn world(id: &str, world_type: WorldType, tech: TechLevel, pop_tag: &str) -> GeneratedWorld {
         GeneratedWorld {
             id: id.into(),
             index: 1,
@@ -49,15 +52,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "G".into(),
-                star_colour_code: "G".into(),
-                world_type: world_type.into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Standard".into(),
-                population: "Standard".into(),
-                tech_level: tech.into(),
-                government: "ImperialCommander".into(),
+                star_colour: StarColour::Yellow,
+                world_type,
+                atmosphere: Atmosphere::Breathable,
+                temperature: Temperature::Temperate,
+                biosphere: Biosphere::Thriving,
+                population: Population::DenselyPopulated,
+                tech_level: tech,
+                government: Government::MilitaryGovernor,
                 notable_features: vec![],
             },
             factions: vec![],
@@ -157,8 +159,8 @@ mod tests {
             "sys-0001",
             vec![world(
                 "wrld-0001-1",
-                "HiveWorld",
-                "Imperial",
+                WorldType::HiveWorld,
+                TechLevel::Standard,
                 "population:massive",
             )],
         )]);
@@ -173,8 +175,8 @@ mod tests {
             "sys-0001",
             vec![world(
                 "wrld-0001-1",
-                "HiveWorld",
-                "Imperial",
+                WorldType::HiveWorld,
+                TechLevel::Standard,
                 "population:massive",
             )],
         )]);
@@ -188,11 +190,21 @@ mod tests {
         let s = sector(vec![
             sys(
                 "sys-0001",
-                vec![world("a", "HiveWorld", "Imperial", "population:massive")],
+                vec![world(
+                    "a",
+                    WorldType::HiveWorld,
+                    TechLevel::Standard,
+                    "population:massive",
+                )],
             ),
             sys(
                 "sys-0002",
-                vec![world("b", "AgriWorld", "Imperial", "population:standard")],
+                vec![world(
+                    "b",
+                    WorldType::AgriWorld,
+                    TechLevel::Standard,
+                    "population:standard",
+                )],
             ),
         ]);
         let a = derive(&s);
@@ -210,14 +222,19 @@ mod tests {
                 "sys-0001",
                 vec![world(
                     "agri",
-                    "AgriWorld",
-                    "Standard",
+                    WorldType::AgriWorld,
+                    TechLevel::Standard,
                     "population:standard",
                 )],
             ),
             sys(
                 "sys-0002",
-                vec![world("hive", "HiveWorld", "Standard", "population:massive")],
+                vec![world(
+                    "hive",
+                    WorldType::HiveWorld,
+                    TechLevel::Standard,
+                    "population:massive",
+                )],
             ),
         ]);
         s.routes = vec![route("route-1", "sys-0001", "sys-0002")];

@@ -574,7 +574,7 @@ fn count_world_type_dominant(
     let mut n = 0u32;
     for sys in &sector.systems {
         for w in sector.get_worlds_for_system(sys) {
-            if w.world.world_type.as_ref() != world_type {
+            if w.world.world_type.to_string().as_str() != world_type {
                 continue;
             }
             if let Some(fid) = dominant_faction_id {

@@ -52,12 +52,12 @@ pub fn system_summary(
     for w in &sys.worlds {
         legend_row(
             ui,
-            world_type_color(&w.world.world_type),
+            world_type_color(&w.world.world_type.to_string()),
             &format!(
                 "{}  {}  {}",
                 w.orbit,
                 short(&w.name.to_uppercase(), 16),
-                short(&w.world.world_type.to_uppercase(), 14),
+                short(&w.world.world_type.to_string().to_uppercase(), 14),
             ),
         );
     }

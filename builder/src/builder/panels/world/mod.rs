@@ -8,8 +8,6 @@
 //! warnings (§W6) are inline non-blocking heuristics. Claims chip-row (§W7)
 //! shows every entry in `world.claims` with quick deep-links to the faction.
 
-use std::sync::Arc;
-
 use egui::{Color32, RichText, Ui};
 
 use sectorforge::worlds::{
@@ -211,7 +209,6 @@ fn show_header(ui: &mut Ui, state: &mut BuilderState, sys_idx: usize, w_idx: usi
 trait EnumPicker: Sized + Clone + PartialEq + 'static {
     fn variants() -> &'static [Self];
     fn display(&self) -> &'static str;
-    fn debug_key(&self) -> String;
 }
 
 impl EnumPicker for WorldType {
@@ -221,9 +218,6 @@ impl EnumPicker for WorldType {
     fn display(&self) -> &'static str {
         self.display_name()
     }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
-    }
 }
 impl EnumPicker for Atmosphere {
     fn variants() -> &'static [Self] {
@@ -231,9 +225,6 @@ impl EnumPicker for Atmosphere {
     }
     fn display(&self) -> &'static str {
         self.display_name()
-    }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
     }
 }
 impl EnumPicker for Temperature {
@@ -243,9 +234,6 @@ impl EnumPicker for Temperature {
     fn display(&self) -> &'static str {
         self.display_name()
     }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
-    }
 }
 impl EnumPicker for Biosphere {
     fn variants() -> &'static [Self] {
@@ -253,9 +241,6 @@ impl EnumPicker for Biosphere {
     }
     fn display(&self) -> &'static str {
         self.display_name()
-    }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
     }
 }
 impl EnumPicker for Population {
@@ -265,9 +250,6 @@ impl EnumPicker for Population {
     fn display(&self) -> &'static str {
         self.display_name()
     }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
-    }
 }
 impl EnumPicker for TechLevel {
     fn variants() -> &'static [Self] {
@@ -275,9 +257,6 @@ impl EnumPicker for TechLevel {
     }
     fn display(&self) -> &'static str {
         self.display_name()
-    }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
     }
 }
 impl EnumPicker for Government {
@@ -287,30 +266,16 @@ impl EnumPicker for Government {
     fn display(&self) -> &'static str {
         self.display_name()
     }
-    fn debug_key(&self) -> String {
-        format!("{self:?}")
-    }
 }
 
-fn combo_enum<E: EnumPicker>(ui: &mut Ui, salt: &str, target: &mut Arc<str>) -> bool {
-    let current_key = target.to_string();
-    let mut selected = E::variants()
-        .iter()
-        .find(|v| v.debug_key() == current_key)
-        .cloned()
-        .unwrap_or_else(|| E::variants()[0].clone());
-    let prev = selected.clone();
-    ui_kit::combo(salt, selected.display()).show_ui(ui, |ui| {
+fn combo_enum<E: EnumPicker>(ui: &mut Ui, salt: &str, target: &mut E) -> bool {
+    let prev = target.clone();
+    ui_kit::combo(salt, target.display()).show_ui(ui, |ui| {
         for v in E::variants() {
-            ui.selectable_value(&mut selected, v.clone(), v.display());
+            ui.selectable_value(target, v.clone(), v.display());
         }
     });
-    if selected != prev {
-        *target = Arc::from(selected.debug_key().as_str());
-        true
-    } else {
-        false
-    }
+    *target != prev
 }
 
 #[cfg(test)]
@@ -322,15 +287,14 @@ mod tests {
 
     fn world_dto() -> WorldDto {
         WorldDto {
-            star_colour: Arc::from("yellow"),
-            star_colour_code: Arc::from("G"),
-            world_type: Arc::from("AgriWorld"),
-            atmosphere: Arc::from("Breathable"),
-            temperature: Arc::from("Temperate"),
-            biosphere: Arc::from("Thriving"),
-            population: Arc::from("DenselyPopulated"),
-            tech_level: Arc::from("Standard"),
-            government: Arc::from("ImperialWorld"),
+            star_colour: sectorforge::worlds::StarColour::Yellow,
+            world_type: WorldType::AgriWorld,
+            atmosphere: Atmosphere::Breathable,
+            temperature: Temperature::Temperate,
+            biosphere: Biosphere::Thriving,
+            population: Population::DenselyPopulated,
+            tech_level: TechLevel::Standard,
+            government: Government::MilitaryGovernor,
             notable_features: Vec::new(),
         }
     }
@@ -338,7 +302,7 @@ mod tests {
     #[test]
     fn coupling_flags_dead_world_with_population() {
         let mut dto = world_dto();
-        dto.world_type = Arc::from("DeadWorld");
+        dto.world_type = WorldType::DeadWorld;
         let warns = coupling_warnings(&dto);
         assert!(warns.iter().any(|w| w.contains("DeadWorld")));
     }
@@ -346,7 +310,7 @@ mod tests {
     #[test]
     fn coupling_flags_uninhabited_with_government() {
         let mut dto = world_dto();
-        dto.population = Arc::from("Uninhabited");
+        dto.population = Population::Uninhabited;
         let warns = coupling_warnings(&dto);
         assert!(warns.iter().any(|w| w.contains("government")));
     }

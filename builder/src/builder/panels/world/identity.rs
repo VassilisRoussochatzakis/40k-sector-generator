@@ -137,7 +137,7 @@ pub(super) fn show_classification_section(
             "Star colour",
             "Spectral class of the system's star (schema: star_colour_code). Sets the light and habitable band.",
             |ui| {
-                let current_code = draft.world.star_colour_code.to_string();
+                let current_code = draft.world.star_colour.code().to_string();
                 let mut selected = StarColour::VARIANTS
                     .iter()
                     .copied()
@@ -158,8 +158,7 @@ pub(super) fn show_classification_section(
                     }
                 });
                 if selected != prev {
-                    draft.world.star_colour_code = Arc::from(selected.code());
-                    draft.world.star_colour = Arc::from(selected.short_name());
+                    draft.world.star_colour = selected;
                     changed = true;
                 }
             },

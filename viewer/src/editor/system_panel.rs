@@ -107,7 +107,7 @@ pub(crate) fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
                         "{:>2}  {}  {}",
                         w.orbit,
                         truncate(&w.name, 18),
-                        truncate(&w.world.world_type, 14)
+                        truncate(&w.world.world_type.to_string(), 14)
                     )),
                 )
                 .clicked()
@@ -144,11 +144,12 @@ pub(crate) fn show_system_inspector(ui: &mut Ui, state: &mut EditorState) {
         let next = sys.worlds.iter().map(|w| w.index).max().unwrap_or(0) + 1;
         let mut w = empty_world(sys_index, next, format!("World {next}"));
         if let Some(star) = &sys.star {
-            w.world.star_colour = star.colour_name.clone();
-            w.world.star_colour_code = star.colour_code.clone();
+            w.world.star_colour = star
+                .colour_code
+                .parse()
+                .unwrap_or(sectorforge::worlds::StarColour::White);
         } else {
-            w.world.star_colour = "white".into();
-            w.world.star_colour_code = "W".into();
+            w.world.star_colour = sectorforge::worlds::StarColour::White;
         }
         sys.worlds.push(w);
         dirty = true;

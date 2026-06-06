@@ -41,7 +41,7 @@ pub(super) fn system_supply_risk(
     }
     if let Some(sys) = sys_ref {
         for world in &sys.worlds {
-            for resource in strategic_needs_for_world(&world.world.world_type) {
+            for resource in strategic_needs_for_world(&world.world.world_type.to_string()) {
                 if sy.strategic_output.get(resource) >= SELF_SUFFICIENCY_OUTPUT {
                     continue;
                 }

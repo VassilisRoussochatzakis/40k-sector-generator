@@ -43,7 +43,7 @@ pub(super) fn resolve_system_owners(
         // Find capital-like and highest-pop worlds (sec §10.4.1 bonuses).
         let mut max_pop_world: Option<(&GeneratedWorld, i32)> = None;
         for w in sector.get_worlds_for_system(sys) {
-            let rank = population_rank(&w.world.population);
+            let rank = population_rank(w.world.population.to_string());
             if rank > 0 {
                 inhabited = true;
             }
@@ -70,8 +70,12 @@ pub(super) fn resolve_system_owners(
                     ownership_influence_weight(p.influence);
             }
             // Capital-like world bonus.
-            let capital_like =
-                any_capital_like(w.tags.iter().chain(w.world.notable_features.iter()));
+            let capital_like = any_capital_like(
+                w.tags
+                    .iter()
+                    .map(|t| t.as_ref())
+                    .chain(w.world.notable_features.iter().map(|f| f.as_ref())),
+            );
             if capital_like {
                 if let Some(owner) = inferred_owner.as_ref() {
                     *scores.entry(owner.clone()).or_default() += 4;
@@ -214,22 +218,25 @@ pub(super) fn populate_summary(params: SummaryParams) {
         for w in &sector.get_worlds_for_system(sys) {
             *summary
                 .world_type_counts
-                .entry(w.world.world_type.clone())
+                .entry(w.world.world_type.to_string().into())
                 .or_default() += 1;
             *summary
                 .population_counts
-                .entry(w.world.population.clone())
+                .entry(w.world.population.to_string().into())
                 .or_default() += 1;
             *summary
                 .tech_level_counts
-                .entry(w.world.tech_level.clone())
+                .entry(w.world.tech_level.to_string().into())
                 .or_default() += 1;
             *summary
                 .government_counts
-                .entry(w.world.government.clone())
+                .entry(w.world.government.to_string().into())
                 .or_default() += 1;
             for feat in &w.world.notable_features {
-                *summary.feature_counts.entry(feat.clone()).or_default() += 1;
+                *summary
+                    .feature_counts
+                    .entry(feat.to_string().into())
+                    .or_default() += 1;
             }
             for tag in &w.tags {
                 *summary.tag_counts.entry(tag.clone()).or_default() += 1;
@@ -520,12 +527,12 @@ fn pick_primary_system(
         let worlds = sector.get_worlds_for_system(sys);
         let max_pop = worlds
             .iter()
-            .map(|w| population_rank(&w.world.population))
+            .map(|w| population_rank(w.world.population.to_string()))
             .max()
             .unwrap_or(0);
         let max_tech = worlds
             .iter()
-            .map(|w| tech_rank(&w.world.tech_level))
+            .map(|w| tech_rank(w.world.tech_level.to_string()))
             .max()
             .unwrap_or(0);
         // ... (rest of logic)
@@ -601,13 +608,13 @@ pub(super) fn pick_capital(
         let max_pop = sector
             .get_worlds_for_system(sys)
             .iter()
-            .map(|w| population_rank(&w.world.population))
+            .map(|w| population_rank(w.world.population.to_string()))
             .max()
             .unwrap_or(0);
         let max_tech = sector
             .get_worlds_for_system(sys)
             .iter()
-            .map(|w| tech_rank(&w.world.tech_level))
+            .map(|w| tech_rank(w.world.tech_level.to_string()))
             .max()
             .unwrap_or(0);
         let max_prosperity = sector
@@ -619,7 +626,7 @@ pub(super) fn pick_capital(
         let inhabited_worlds = sector
             .get_worlds_for_system(sys)
             .iter()
-            .filter(|w| population_rank(&w.world.population) > 0)
+            .filter(|w| population_rank(w.world.population.to_string()) > 0)
             .count();
 
         // Best world inside this system.
@@ -713,18 +720,23 @@ fn score_world_as_capital(
     controlling_faction: Option<&str>,
     stable_deg: i32,
 ) -> i32 {
-    let pop = population_rank(&w.world.population);
+    let pop = population_rank(w.world.population.to_string());
     let prosperity = inferred_prosperity_rank(sys, w, 0, stable_deg);
-    let tech = tech_rank(&w.world.tech_level);
+    let tech = tech_rank(w.world.tech_level.to_string());
     let mut score = pop * 8 + prosperity * 7 + tech * 4;
 
-    let capital_like = any_capital_like(w.tags.iter().chain(w.world.notable_features.iter()));
+    let capital_like = any_capital_like(
+        w.tags
+            .iter()
+            .map(|t| t.as_ref())
+            .chain(w.world.notable_features.iter().map(|f| f.as_ref())),
+    );
     if capital_like {
         score += 10;
     }
-    let gov = &w.world.government;
+    let gov = w.world.government.to_string();
     if matches!(
-        gov.as_ref(),
+        gov.as_str(),
         "Republic" | "Corporate" | "Imperial" | "Federation" | "Theocracy"
     ) {
         score += 3;
@@ -750,16 +762,17 @@ fn inferred_prosperity_rank(
     route_degree: i32,
     stable_deg: i32,
 ) -> i32 {
-    let pop = population_rank(&w.world.population);
-    let tech = tech_rank(&w.world.tech_level);
+    let pop = population_rank(w.world.population.to_string());
+    let tech = tech_rank(w.world.tech_level.to_string());
     let lower = |s: &str| s.to_ascii_lowercase();
     let mut bonus = 0;
     let tokens = w
         .tags
         .iter()
-        .chain(w.world.notable_features.iter())
-        .chain(sys.tags.iter())
-        .map(|t| lower(t))
+        .map(|t| t.as_ref())
+        .chain(w.world.notable_features.iter().map(|f| f.as_ref()))
+        .chain(sys.tags.iter().map(|t| t.as_ref()))
+        .map(lower)
         .collect::<Vec<_>>();
     if tokens.iter().any(|t| {
         t.contains("trade")
@@ -806,8 +819,8 @@ fn is_capital_like_tag(tag: &str) -> bool {
 }
 
 /// Any tag in `iter` matches `is_capital_like_tag`.
-fn any_capital_like<'a, S: AsRef<str> + 'a, I: IntoIterator<Item = &'a S>>(iter: I) -> bool {
-    iter.into_iter().any(|t| is_capital_like_tag(t.as_ref()))
+fn any_capital_like<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> bool {
+    iter.into_iter().any(is_capital_like_tag)
 }
 
 pub(super) fn population_rank(value: impl AsRef<str>) -> i32 {

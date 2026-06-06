@@ -795,7 +795,7 @@ fn pick_traits(
             .world
             .notable_features
             .iter()
-            .map(|s| s.to_ascii_lowercase())
+            .map(|s| s.as_ref().to_ascii_lowercase())
             .collect::<Vec<_>>()
             .join(" ");
         for trait_name in pool {
@@ -1408,15 +1408,14 @@ mod tests {
                 orbit: 1,
                 source_row_index: 0,
                 world: WorldDto {
-                    star_colour: "Y".into(),
-                    star_colour_code: "Y".into(),
-                    world_type: "HiveWorld".into(),
-                    atmosphere: "Breathable".into(),
-                    temperature: "Temperate".into(),
-                    biosphere: "Standard".into(),
-                    population: "Massive".into(),
-                    tech_level: "Imperial".into(),
-                    government: "ImperialCommander".into(),
+                    star_colour: crate::worlds::StarColour::Yellow,
+                    world_type: crate::worlds::WorldType::HiveWorld,
+                    atmosphere: crate::worlds::Atmosphere::Breathable,
+                    temperature: crate::worlds::Temperature::Temperate,
+                    biosphere: crate::worlds::Biosphere::Thriving,
+                    population: crate::worlds::Population::ExtremelyDense,
+                    tech_level: crate::worlds::TechLevel::High,
+                    government: crate::worlds::Government::MilitaryGovernor,
                     notable_features: vec![],
                 },
                 factions: vec![WorldFactionPresence {

@@ -104,7 +104,10 @@ fn merge_endpoints(a: Aggregate, b: Aggregate) -> Aggregate {
 fn endpoint_has_tag(sys: &GeneratedSystem, needle: &str) -> bool {
     sys.worlds.iter().any(|w| {
         w.tags.iter().any(|t| t.contains(needle))
-            || w.world.notable_features.iter().any(|f| f.contains(needle))
+            || w.world
+                .notable_features
+                .iter()
+                .any(|f| f.as_ref().contains(needle))
     })
 }
 
@@ -273,15 +276,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "amber".into(),
-                star_colour_code: "A".into(),
-                world_type: "AgriWorld".into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Thriving".into(),
-                population: "DenselyPopulated".into(),
-                tech_level: "High".into(),
-                government: "MagistrateCouncil".into(),
+                star_colour: crate::worlds::StarColour::White,
+                world_type: crate::worlds::WorldType::AgriWorld,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::DenselyPopulated,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MagistrateCouncil,
                 notable_features: vec![],
             },
             factions: presences

@@ -1610,8 +1610,13 @@ catalogue (~1000 entries on the bundled data set) would generate
 C(n,2) ≈ 500k pairs and >60 MB of JSON; filtering on actual sector
 presence reduces this to the meaningful subset.
 
-Each `GeneratedWorld` wraps a `WorldDto` view of `worlds::World` — variant
-names are stable (e.g. `"HiveWorld"`) — and also carries `claims`
+Each `GeneratedWorld` wraps a `WorldDto` view of `worlds::World` — it holds the
+real `worlds.rs` enums (`WorldType`, `Atmosphere`, … `Vec<NotableFeature>`), so a
+renamed variant is a compile error in every consumer (A2). The on-disk
+`sector.json` schema is unchanged: `WorldDto` (de)serializes through the private
+`WorldDtoRaw` shim (`#[serde(into/try_from)]`), which keeps the legacy string
+fields incl. the `star_colour` `short_name()` / `star_colour_code` `code()`
+split. `GeneratedWorld` also carries `claims`
 (per-faction legal/military/religious claims), a `control`
 multi-winner snapshot, `regions`
 ([src/gen/surface_region.rs](src/gen/surface_region.rs) §1 NEXT: named

@@ -20,8 +20,8 @@ pub(super) fn emit_world_events(
     let foundation_text = format!(
         "Records place the founding of {} in this era; the world was settled as {} and registered {}.",
         w.name,
-        article_phrase(&w.world.world_type),
-        article_phrase(&w.world.government),
+        article_phrase(&w.world.world_type.to_string()),
+        article_phrase(&w.world.government.to_string()),
     );
     buf.push((
         EventKind::Foundation,

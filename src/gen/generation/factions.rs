@@ -339,13 +339,13 @@ fn faction_weight_for_world(f: &FactionDef, world: &GeneratedWorld) -> f64 {
     let mut w = f.weight;
     if f.preferred_world_types
         .iter()
-        .any(|s| s == world.world.world_type.as_ref())
+        .any(|s| s.as_str() == world.world.world_type.to_string().as_str())
     {
         w *= 1.5;
     }
     if f.preferred_governments
         .iter()
-        .any(|s| s == world.world.government.as_ref())
+        .any(|s| s.as_str() == world.world.government.to_string().as_str())
     {
         w *= 1.4;
     }

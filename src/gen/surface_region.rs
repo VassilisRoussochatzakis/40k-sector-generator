@@ -79,65 +79,47 @@ impl core::fmt::Display for RegionKind {
 /// worlds).
 #[must_use]
 pub fn derive_regions(w: &GeneratedWorld) -> Vec<SurfaceRegion> {
-    let wt = w.world.world_type.as_ref();
-    let pop = w.world.population.as_ref();
-    if pop == "Uninhabited" && !matches!(wt, "TombWorld" | "DeadWorld" | "WarpLostWorld") {
+    use crate::worlds::{Population, WorldType};
+    let wt = w.world.world_type.clone();
+    let pop = w.world.population.clone();
+    if pop == Population::Uninhabited
+        && !matches!(wt, WorldType::TombWorld | WorldType::DeadWorld | WorldType::WarpLostWorld)
+    {
         return Vec::new();
     }
 
     let kinds: Vec<(RegionKind, u8, &'static str)> = match wt {
-        "HiveWorld" => vec![
+        WorldType::HiveWorld => vec![
             (RegionKind::Capital, 25, "Sector Capital"),
             (RegionKind::Hive, 45, "Primary Hive"),
             (RegionKind::Underhive, 25, "Underhive"),
             (RegionKind::Wilderness, 5, "Outer Wastes"),
         ],
-        "CivilisedWorld" | "Civilised" => vec![
-            (RegionKind::Capital, 30, "Capital Conurbation"),
-            (RegionKind::AgriBelt, 30, "Agri Belt"),
-            (RegionKind::Hideout, 10, "Outback Settlements"),
-            (RegionKind::Wilderness, 30, "Wild Continents"),
-        ],
-        "ForgeWorld" => vec![
+        WorldType::ForgeWorld => vec![
             (RegionKind::ForgeComplex, 50, "Primary Forge"),
             (RegionKind::Capital, 15, "Magos Spire"),
             (RegionKind::Underhive, 15, "Servitor Underworks"),
             (RegionKind::Wilderness, 20, "Slag Plains"),
         ],
-        "AgriWorld" => vec![
+        WorldType::AgriWorld => vec![
             (RegionKind::AgriBelt, 70, "Agri Belt"),
             (RegionKind::Capital, 10, "Provincial Capital"),
             (RegionKind::Wilderness, 20, "Wild Districts"),
         ],
-        "ShrineWorld" => vec![
+        WorldType::ShrineWorld => vec![
             (RegionKind::ShrineContinent, 55, "Pilgrim Continent"),
             (RegionKind::CardinalSpire, 25, "Cardinal Spire"),
             (RegionKind::Hideout, 5, "Heretic Cells"),
             (RegionKind::Wilderness, 15, "Outer Cloisters"),
         ],
-        "CardinalWorld" => vec![
-            (RegionKind::CardinalSpire, 60, "Cardinal Palace"),
-            (RegionKind::Capital, 20, "Sector Adjudication"),
-            (RegionKind::Underhive, 20, "Penitent Quarter"),
-        ],
-        "KnightWorld" => vec![
-            (RegionKind::KnightHousehold, 50, "Knight Household"),
-            (RegionKind::AgriBelt, 30, "Tithe Lands"),
-            (RegionKind::Wilderness, 20, "Wilds"),
-        ],
-        "TombWorld" => vec![
+        WorldType::TombWorld => vec![
             (RegionKind::TombComplex, 60, "Inner Tomb"),
             (RegionKind::Wilderness, 40, "Surface Wastes"),
         ],
-        "DeathWorld" => vec![
+        WorldType::DeathWorld => vec![
             (RegionKind::Capital, 15, "Garrison"),
             (RegionKind::Wilderness, 75, "Death-World Biome"),
             (RegionKind::Hideout, 10, "Cult Cells"),
-        ],
-        "FortressWorld" => vec![
-            (RegionKind::Capital, 35, "Fortress Garrison"),
-            (RegionKind::ForgeComplex, 15, "Armoury"),
-            (RegionKind::Wilderness, 50, "Outer Ranges"),
         ],
         _ => vec![
             (RegionKind::Capital, 30, "Capital"),
@@ -266,7 +248,13 @@ mod tests {
         WorldDto, WorldFactionPresence,
     };
 
-    fn mk_world(world_type: &str, presences: Vec<(&str, PresenceDimensions)>) -> GeneratedWorld {
+    fn mk_world(
+        world_type: crate::worlds::WorldType,
+        presences: Vec<(&str, PresenceDimensions)>,
+    ) -> GeneratedWorld {
+        use crate::worlds::{
+            Atmosphere, Biosphere, Government, Population, StarColour, TechLevel, Temperature,
+        };
         GeneratedWorld {
             id: "sys-0001-w1".into(),
             index: 1,
@@ -274,15 +262,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "amber".into(),
-                star_colour_code: "A".into(),
-                world_type: world_type.into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Thriving".into(),
-                population: "DenselyPopulated".into(),
-                tech_level: "High".into(),
-                government: "MagistrateCouncil".into(),
+                star_colour: StarColour::White,
+                world_type,
+                atmosphere: Atmosphere::Breathable,
+                temperature: Temperature::Temperate,
+                biosphere: Biosphere::Thriving,
+                population: Population::DenselyPopulated,
+                tech_level: TechLevel::High,
+                government: Government::MagistrateCouncil,
                 notable_features: vec![],
             },
             factions: presences
@@ -314,7 +301,7 @@ mod tests {
     #[test]
     fn hive_world_splits_into_four_regions() {
         let w = mk_world(
-            "HiveWorld",
+            crate::worlds::WorldType::HiveWorld,
             vec![(
                 "imperial",
                 PresenceDimensions {
@@ -333,7 +320,7 @@ mod tests {
     #[test]
     fn genestealer_cult_dominates_underhive_even_when_imperial_owns_capital() {
         let w = mk_world(
-            "HiveWorld",
+            crate::worlds::WorldType::HiveWorld,
             vec![
                 (
                     "imperial",

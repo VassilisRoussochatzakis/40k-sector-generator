@@ -1,10 +1,10 @@
 //! WORLD tab — notable features (§W5) and coupling warnings (§W6).
 
-use std::sync::Arc;
-
 use egui::{Color32, Ui};
 
-use sectorforge::worlds::{NotableFeature, StarColour, WorldType};
+use sectorforge::worlds::{
+    Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel, WorldType,
+};
 use sectorforge_gui_core::palette;
 use sectorforge_gui_core::ui_kit;
 use crate::builder::state::ModalKind;
@@ -33,7 +33,7 @@ pub(super) fn show_features_section(
             // §R4: gather the requested mutation (one remove or one add per
             // frame), then apply it to a clone and dispatch one EditWorld below.
             let mut remove: Option<usize> = None;
-            let mut add: Option<Arc<str>> = None;
+            let mut add: Option<NotableFeature> = None;
             let cur: Vec<String> = state.sector.systems[sys_idx].worlds[w_idx]
                 .world
                 .notable_features
@@ -106,7 +106,7 @@ pub(super) fn show_features_section(
                             .on_hover_text(format!("id: {key}"))
                             .clicked()
                         {
-                            add = Some(Arc::from(key.as_str()));
+                            add = Some(v.clone());
                         }
                     }
                 });
@@ -119,8 +119,8 @@ pub(super) fn show_features_section(
                     if let Some(i) = remove {
                         w.world.notable_features.remove(i);
                     }
-                    if let Some(key) = add {
-                        w.world.notable_features.push(key);
+                    if let Some(feature) = add {
+                        w.world.notable_features.push(feature);
                     }
                 }) {
                     state.modal = Some(ModalKind::Message(format!("World edit failed: {e}")));
@@ -145,7 +145,7 @@ pub(super) fn feature_weights_for_world(
     let world_type = state.sector.systems[sys_idx].worlds[w_idx]
         .world
         .world_type
-        .clone();
+        .to_string();
     let star_colour = state.sector.systems[sys_idx]
         .star
         .as_ref()
@@ -165,7 +165,7 @@ pub(super) fn feature_weights_for_world(
         })
         .unwrap_or_default();
     let digest = crate::builder::derivation_cache::digest_input(&(
-        world_type.as_ref(),
+        world_type.as_str(),
         star_colour.as_ref(),
         worlds_sig,
     ));
@@ -197,8 +197,8 @@ pub(super) fn feature_weights_for_world(
         sectorforge::world_pool::apply_authored_features(&mut pool, features);
     }
     let world = &state.sector.systems[sys_idx].worlds[w_idx];
-    let wt: Option<WorldType> = world.world.world_type.as_ref().parse().ok();
-    let sc: Option<StarColour> = world.world.star_colour_code.as_ref().parse().ok();
+    let wt: Option<WorldType> = Some(world.world.world_type.clone());
+    let sc: Option<StarColour> = Some(world.world.star_colour);
     let mut out: BTreeMap<String, f64> = BTreeMap::new();
     let mut push = |list: &[sectorforge::world_pool::WeightedFeature]| {
         for wf in list {
@@ -268,47 +268,52 @@ pub(super) fn show_coupling_warnings(
 
 pub(super) fn coupling_warnings(dto: &sectorforge::sector_model::WorldDto) -> Vec<String> {
     let mut out = Vec::new();
-    let wt = dto.world_type.as_ref();
-    let pop = dto.population.as_ref();
-    let tech = dto.tech_level.as_ref();
-    let bio = dto.biosphere.as_ref();
-    let gov = dto.government.as_ref();
-    let atm = dto.atmosphere.as_ref();
-    let is_dense = matches!(pop, "DenselyPopulated" | "ExtremelyDense");
-    let is_uninhabited = pop == "Uninhabited";
+    let wt = &dto.world_type;
+    let pop = &dto.population;
+    let tech = &dto.tech_level;
+    let bio = &dto.biosphere;
+    let gov = &dto.government;
+    let atm = &dto.atmosphere;
+    let is_dense = matches!(pop, Population::DenselyPopulated | Population::ExtremelyDense);
+    let is_uninhabited = *pop == Population::Uninhabited;
 
-    if wt == "DeathWorld" && matches!(tech, "High" | "Archaeotech") {
+    if *wt == WorldType::DeathWorld && matches!(tech, TechLevel::High | TechLevel::Archaeotech) {
         out.push("DeathWorld with High/Archaeotech tech is unusual.".into());
     }
-    if wt == "DeadWorld" && !is_uninhabited {
+    if *wt == WorldType::DeadWorld && !is_uninhabited {
         out.push(format!("DeadWorld is normally Uninhabited (got {pop})."));
     }
-    if wt == "TombWorld" && bio == "Thriving" {
+    if *wt == WorldType::TombWorld && *bio == Biosphere::Thriving {
         out.push("TombWorld with Thriving biosphere is unusual.".into());
     }
-    if wt == "Asteroid" && is_dense {
+    if *wt == WorldType::Asteroid && is_dense {
         out.push("Asteroid with dense population is unusual.".into());
     }
-    if wt == "WarpLostWorld" && tech == "High" {
+    if *wt == WorldType::WarpLostWorld && *tech == TechLevel::High {
         out.push("Warp-Lost world with High tech is unusual.".into());
     }
-    if wt == "ForgeWorld" && matches!(tech, "Primitive" | "Low") {
+    if *wt == WorldType::ForgeWorld && matches!(tech, TechLevel::Primitive | TechLevel::Low) {
         out.push("ForgeWorld with low tech contradicts its Mechanicus role.".into());
     }
-    if wt == "FeralWorld" && matches!(tech, "High" | "Archaeotech") {
+    if *wt == WorldType::FeralWorld && matches!(tech, TechLevel::High | TechLevel::Archaeotech) {
         out.push("FeralWorld with High/Archaeotech tech is unusual.".into());
     }
-    if is_uninhabited && gov != "None" {
+    if is_uninhabited && *gov != Government::None {
         out.push(format!(
             "Uninhabited world has a government ({gov}); normally None."
         ));
     }
-    if atm == "Airless" && matches!(bio, "Thriving" | "XenoHybrid" | "XenoDominance") {
+    if *atm == Atmosphere::Airless
+        && matches!(
+            bio,
+            Biosphere::Thriving | Biosphere::XenoHybrid | Biosphere::XenoDominance
+        )
+    {
         out.push(format!(
             "Airless atmosphere with {bio} biosphere is contradictory."
         ));
     }
-    if atm == "Toxic" && bio == "Thriving" {
+    if *atm == Atmosphere::Toxic && *bio == Biosphere::Thriving {
         out.push("Toxic atmosphere with Thriving biosphere is unusual.".into());
     }
     out

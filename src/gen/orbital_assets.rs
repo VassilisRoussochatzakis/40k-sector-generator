@@ -111,16 +111,15 @@ pub fn derive_orbital_assets(sys: &GeneratedSystem) -> (Vec<OrbitalAsset>, Block
     let has_spaceyard = sys.worlds.iter().any(|w| {
         w.world
             .notable_features
-            .iter()
-            .any(|f: &Arc<str>| f.as_ref() == "MajorSpaceyard")
+            .contains(&crate::worlds::NotableFeature::MajorSpaceyard)
     });
 
     let war_zone = sys.worlds.iter().any(|w| {
         w.tags.iter().any(|t: &Arc<str>| t.ends_with(":war_zone"))
-            || w.world
-                .notable_features
-                .iter()
-                .any(|f: &Arc<str>| f.as_ref() == "WarZone" || f.as_ref() == "DaemonicCorruption")
+            || w.world.notable_features.iter().any(|f| {
+                *f == crate::worlds::NotableFeature::WarZone
+                    || *f == crate::worlds::NotableFeature::DaemonicCorruption
+            })
     });
 
     let quarantined = sys.worlds.iter().any(|w| {
@@ -265,16 +264,15 @@ mod tests {
                 orbit: 1,
                 source_row_index: 0,
                 world: WorldDto {
-                    star_colour: "amber".into(),
-                    star_colour_code: "A".into(),
-                    world_type: "ForgeWorld".into(),
-                    atmosphere: "Breathable".into(),
-                    temperature: "Temperate".into(),
-                    biosphere: "Thriving".into(),
-                    population: "DenselyPopulated".into(),
-                    tech_level: "High".into(),
-                    government: "MagistrateCouncil".into(),
-                    notable_features: vec!["MajorSpaceyard".into()],
+                    star_colour: crate::worlds::StarColour::White,
+                    world_type: crate::worlds::WorldType::ForgeWorld,
+                    atmosphere: crate::worlds::Atmosphere::Breathable,
+                    temperature: crate::worlds::Temperature::Temperate,
+                    biosphere: crate::worlds::Biosphere::Thriving,
+                    population: crate::worlds::Population::DenselyPopulated,
+                    tech_level: crate::worlds::TechLevel::High,
+                    government: crate::worlds::Government::MagistrateCouncil,
+                    notable_features: vec![crate::worlds::NotableFeature::MajorSpaceyard],
                 },
                 factions: presences
                     .into_iter()

@@ -174,7 +174,7 @@ pub fn render_system(
         let a = orbit_angle(w.index, orbit).to_radians();
         let px = cx + (r as f32 * a.cos()).round() as i32;
         let py = cy + (r as f32 * a.sin()).round() as i32;
-        let color = world_type_color(&w.world.world_type);
+        let color = world_type_color(&w.world.world_type.to_string());
         if opts.faction_fill {
             if let Some(dom) = w.control.dominant.as_deref() {
                 let style = faction_style_rgb_by_id(factions, dom);
@@ -308,14 +308,14 @@ fn draw_legend(
     draw_text(img, x0, y, "WORLDS", theme.text, body);
     y += g.line_h;
     for w in &sys.worlds {
-        let color = world_type_color(&w.world.world_type);
+        let color = world_type_color(&w.world.world_type.to_string());
         fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, color);
         draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(color, 0.5));
         let label = format!(
             "{}  {}  {}",
             w.orbit,
             short(&w.name.to_uppercase(), 12),
-            short(&w.world.world_type.to_uppercase(), 12),
+            short(&w.world.world_type.to_string().to_uppercase(), 12),
         );
         draw_text(img, x0 + swatch + swatch_gap, y, &label, theme.text, body);
         y += g.line_h;
@@ -323,9 +323,9 @@ fn draw_legend(
     y += 4 * g.scale;
 
     // Distinct world-type legend (so the color coding is unambiguous).
-    let mut seen: Vec<&str> = Vec::new();
+    let mut seen: Vec<String> = Vec::new();
     for w in &sys.worlds {
-        let t = w.world.world_type.as_ref();
+        let t = w.world.world_type.to_string();
         if !seen.contains(&t) {
             seen.push(t);
         }
@@ -334,7 +334,7 @@ fn draw_legend(
         draw_text(img, x0, y, "WORLD TYPES", theme.text, body);
         y += g.line_h;
         for t in seen {
-            let color = world_type_color(t);
+            let color = world_type_color(&t);
             fill_rect(img, x0, y + 2 * g.scale, swatch, swatch, color);
             draw_rect_outline(img, x0, y + 2 * g.scale, swatch, swatch, darken(color, 0.5));
             draw_text(
@@ -405,7 +405,7 @@ mod tests {
     use super::*;
     use crate::sector_model::*;
 
-    fn world(orbit: u8, index: usize, name: &str, ty: &str) -> GeneratedWorld {
+    fn world(orbit: u8, index: usize, name: &str, ty: crate::worlds::WorldType) -> GeneratedWorld {
         GeneratedWorld {
             id: crate::ids::WorldId::new(format!("sys-x-w{index:02}")),
             index,
@@ -413,15 +413,14 @@ mod tests {
             orbit,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "amber".into(),
-                star_colour_code: "A".into(),
-                world_type: ty.into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Thriving".into(),
-                population: "DenselyPopulated".into(),
-                tech_level: "High".into(),
-                government: "MagistrateCouncil".into(),
+                star_colour: crate::worlds::StarColour::White,
+                world_type: ty,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::DenselyPopulated,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MagistrateCouncil,
                 notable_features: vec![],
             },
             factions: vec![],
@@ -450,11 +449,11 @@ mod tests {
                 source_row_index: None,
             }),
             worlds: vec![
-                world(1, 1, "Olbia Prime", "AgriWorld"),
-                world(2, 2, "Yperion", "DeathWorld"),
-                world(3, 3, "Mourn Yperion", "DeathWorld"),
-                world(4, 4, "Tarsi", "AgriWorld"),
-                world(5, 5, "Last Meridian Inner", "AgriWorld"),
+                world(1, 1, "Olbia Prime", crate::worlds::WorldType::AgriWorld),
+                world(2, 2, "Yperion", crate::worlds::WorldType::DeathWorld),
+                world(3, 3, "Mourn Yperion", crate::worlds::WorldType::DeathWorld),
+                world(4, 4, "Tarsi", crate::worlds::WorldType::AgriWorld),
+                world(5, 5, "Last Meridian Inner", crate::worlds::WorldType::AgriWorld),
             ],
             primary_factions: vec![],
             tags: vec![],

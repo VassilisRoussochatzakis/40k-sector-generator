@@ -19,30 +19,30 @@ pub fn world_detail(ui: &mut Ui, w: &GeneratedWorld) {
     section(ui, "CLASSIFICATION");
     legend_row(
         ui,
-        world_type_color(&w.world.world_type),
-        &w.world.world_type.to_uppercase(),
+        world_type_color(&w.world.world_type.to_string()),
+        &w.world.world_type.to_string().to_uppercase(),
     );
     kv(
         ui,
         "STAR COLOUR",
         &format!(
             "{} - {}",
-            w.world.star_colour_code.to_uppercase(),
-            w.world.star_colour.to_uppercase()
+            w.world.star_colour.code().to_uppercase(),
+            w.world.star_colour.short_name().to_uppercase()
         ),
     );
     ui.add_space(8.0);
 
     section(ui, "ENVIRONMENT");
-    kv(ui, "ATMOSPHERE", &w.world.atmosphere.to_uppercase());
-    kv(ui, "TEMPERATURE", &w.world.temperature.to_uppercase());
-    kv(ui, "BIOSPHERE", &w.world.biosphere.to_uppercase());
+    kv(ui, "ATMOSPHERE", &w.world.atmosphere.to_string().to_uppercase());
+    kv(ui, "TEMPERATURE", &w.world.temperature.to_string().to_uppercase());
+    kv(ui, "BIOSPHERE", &w.world.biosphere.to_string().to_uppercase());
     ui.add_space(8.0);
 
     section(ui, "SOCIETY");
-    kv(ui, "POPULATION", &w.world.population.to_uppercase());
-    kv(ui, "TECH LEVEL", &w.world.tech_level.to_uppercase());
-    kv(ui, "GOVERNMENT", &w.world.government.to_uppercase());
+    kv(ui, "POPULATION", &w.world.population.to_string().to_uppercase());
+    kv(ui, "TECH LEVEL", &w.world.tech_level.to_string().to_uppercase());
+    kv(ui, "GOVERNMENT", &w.world.government.to_string().to_uppercase());
 
     if !w.world.notable_features.is_empty() {
         ui.add_space(8.0);

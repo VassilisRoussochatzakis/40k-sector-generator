@@ -629,12 +629,12 @@ fn seed_score(sys: &GeneratedSystem, route_degree: &BTreeMap<&str, u32>) -> i32 
     let worlds = &sys.worlds;
     let max_pop = worlds
         .iter()
-        .map(|w| population_rank(&w.world.population))
+        .map(|w| population_rank(w.world.population.to_string()))
         .max()
         .unwrap_or(0);
     let max_tech = worlds
         .iter()
-        .map(|w| tech_rank(&w.world.tech_level))
+        .map(|w| tech_rank(w.world.tech_level.to_string()))
         .max()
         .unwrap_or(0);
     deg * 4 + max_pop * 5 + max_tech * 2 + worlds.len() as i32

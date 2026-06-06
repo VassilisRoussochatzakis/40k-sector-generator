@@ -52,7 +52,7 @@ pub fn presence_dimensions(
         if def
             .preferred_world_types
             .iter()
-            .any(|s| s.as_str() == world.world.world_type.as_ref())
+            .any(|s| s.as_str() == world.world.world_type.to_string().as_str())
         {
             base.admin += 5.0;
             base.legitimacy += 5.0;
@@ -60,7 +60,7 @@ pub fn presence_dimensions(
         if def
             .preferred_governments
             .iter()
-            .any(|s| s.as_str() == world.world.government.as_ref())
+            .any(|s| s.as_str() == world.world.government.to_string().as_str())
         {
             base.admin += 5.0;
             base.legitimacy += 5.0;
@@ -192,15 +192,15 @@ fn apply_disposition(d: &mut PresenceDimensions, disposition: &str) {
     }
 }
 
-fn population_factor(pop: &str) -> f32 {
+fn population_factor(pop: &crate::worlds::Population) -> f32 {
+    use crate::worlds::Population;
     match pop {
-        "Uninhabited" => 0.10,
-        "Minimal" => 0.45,
-        "SoleSettlement" => 0.65,
-        "LightlyPopulated" => 0.85,
-        "DenselyPopulated" => 1.00,
-        "ExtremelyDense" => 1.05,
-        _ => 0.80,
+        Population::Uninhabited => 0.10,
+        Population::Minimal => 0.45,
+        Population::SoleSettlement => 0.65,
+        Population::LightlyPopulated => 0.85,
+        Population::DenselyPopulated => 1.00,
+        Population::ExtremelyDense => 1.05,
     }
 }
 
@@ -456,7 +456,7 @@ pub fn derive_system_control(sys: &GeneratedSystem) -> SystemControlSummary {
     let mut quarantined = false;
 
     for w in &sys.worlds {
-        if w.world.population.as_ref() != "Uninhabited" {
+        if w.world.population != crate::worlds::Population::Uninhabited {
             populated_worlds += 1;
         }
         for tag in &w.tags {
@@ -639,22 +639,20 @@ pub fn aggregate_faction_power(systems: &[GeneratedSystem]) -> BTreeMap<FactionI
 }
 
 fn strategic_value(w: &GeneratedWorld) -> f32 {
-    let pop: f32 = match w.world.population.as_ref() {
-        "Uninhabited" => 0.0,
-        "Minimal" => 1.0,
-        "SoleSettlement" => 2.0,
-        "LightlyPopulated" => 3.0,
-        "DenselyPopulated" => 4.0,
-        "ExtremelyDense" => 5.0,
-        _ => 1.0,
+    let pop: f32 = match w.world.population {
+        crate::worlds::Population::Uninhabited => 0.0,
+        crate::worlds::Population::Minimal => 1.0,
+        crate::worlds::Population::SoleSettlement => 2.0,
+        crate::worlds::Population::LightlyPopulated => 3.0,
+        crate::worlds::Population::DenselyPopulated => 4.0,
+        crate::worlds::Population::ExtremelyDense => 5.0,
     };
-    let tech: f32 = match w.world.tech_level.as_ref() {
-        "Primitive" => 0.0,
-        "Low" => 1.0,
-        "Standard" => 2.0,
-        "High" => 3.0,
-        "Archaeotech" | "XenoHybrid" => 4.0,
-        _ => 1.0,
+    let tech: f32 = match w.world.tech_level {
+        crate::worlds::TechLevel::Primitive => 0.0,
+        crate::worlds::TechLevel::Low => 1.0,
+        crate::worlds::TechLevel::Standard => 2.0,
+        crate::worlds::TechLevel::High => 3.0,
+        crate::worlds::TechLevel::Archaeotech | crate::worlds::TechLevel::XenoHybrid => 4.0,
     };
     (1.0_f32 + pop + tech).max(0.5)
 }
@@ -687,15 +685,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "yellow".into(),
-                star_colour_code: "G".into(),
-                world_type: "HiveWorld".into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Thriving".into(),
-                population: "DenselyPopulated".into(),
-                tech_level: "Standard".into(),
-                government: "Imperial".into(),
+                star_colour: crate::worlds::StarColour::Yellow,
+                world_type: crate::worlds::WorldType::HiveWorld,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::DenselyPopulated,
+                tech_level: crate::worlds::TechLevel::Standard,
+                government: crate::worlds::Government::MilitaryGovernor,
                 notable_features: vec![],
             },
             factions: vec![],
@@ -751,7 +748,7 @@ mod tests {
     #[test]
     fn dimensions_clamp_to_unit_range() {
         let mut world = empty_world();
-        world.world.population = "ExtremelyDense".into();
+        world.world.population = crate::worlds::Population::ExtremelyDense;
         let d = presence_dimensions(
             "tyranid",
             "hostile",

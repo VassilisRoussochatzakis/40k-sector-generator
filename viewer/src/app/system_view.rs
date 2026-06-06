@@ -189,11 +189,12 @@ impl App {
         let mut world =
             sectorforge::sector_model::empty_world(sys.index, next, format!("Planet {next}"));
         if let Some(star) = &sys.star {
-            world.world.star_colour = star.colour_name.clone();
-            world.world.star_colour_code = star.colour_code.clone();
+            world.world.star_colour = star
+                .colour_code
+                .parse()
+                .unwrap_or(sectorforge::worlds::StarColour::White);
         } else {
-            world.world.star_colour = "white".into();
-            world.world.star_colour_code = "W".into();
+            world.world.star_colour = sectorforge::worlds::StarColour::White;
         }
         sys.worlds.push(world);
         self.mark_live_sector_dirty(format!("added planet {}:{}", system_id, next));

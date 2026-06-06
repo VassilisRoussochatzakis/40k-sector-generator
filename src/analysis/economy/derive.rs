@@ -79,14 +79,14 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &EconomyConfig) -> EconomyRepo
                 .unwrap_or_default();
             let base = cfg
                 .by_world_type
-                .get(w.world.world_type.as_ref())
+                .get(w.world.world_type.to_string().as_str())
                 .cloned()
-                .unwrap_or_else(|| default_world_type_vector(&w.world.world_type));
+                .unwrap_or_else(|| default_world_type_vector(&w.world.world_type.to_string()));
             let tech = cfg
                 .by_tech_level
-                .get(w.world.tech_level.as_ref())
+                .get(w.world.tech_level.to_string().as_str())
                 .copied()
-                .unwrap_or_else(|| default_tech_multiplier(&w.world.tech_level));
+                .unwrap_or_else(|| default_tech_multiplier(&w.world.tech_level.to_string()));
             let pop = cfg
                 .by_population
                 .get(pop_tag.as_ref())
@@ -281,15 +281,19 @@ fn derive_world_strategic_output(
     cfg: &EconomyConfig,
     pop_tag: &str,
 ) -> (StrategicOutput, f32) {
-    let mut out = default_strategic_world_type(&w.world.world_type);
-    if let Some(rule) = cfg.resources.world_type.get(w.world.world_type.as_ref()) {
+    let mut out = default_strategic_world_type(&w.world.world_type.to_string());
+    if let Some(rule) = cfg
+        .resources
+        .world_type
+        .get(w.world.world_type.to_string().as_str())
+    {
         out = apply_world_type_rule(out, rule);
     }
 
     let mut multiplier = 1.0_f32;
-    let mut resilience = base_resilience(&w.world.world_type);
+    let mut resilience = base_resilience(&w.world.world_type.to_string());
     for feature in &w.world.notable_features {
-        if let Some(rule) = default_feature_rule(feature) {
+        if let Some(rule) = default_feature_rule(feature.as_ref()) {
             apply_feature_rule(&mut out, &rule);
             multiplier *= rule.trade_multiplier.unwrap_or(1.0);
             resilience += rule.supply_resilience.unwrap_or(0.0);
@@ -301,8 +305,8 @@ fn derive_world_strategic_output(
         }
     }
 
-    let tech = strategic_tech_multiplier(&w.world.tech_level);
-    let pop = strategic_population_multiplier(pop_tag, &w.world.population);
+    let tech = strategic_tech_multiplier(&w.world.tech_level.to_string());
+    let pop = strategic_population_multiplier(pop_tag, &w.world.population.to_string());
     let instability = w
         .stability
         .famine_or_resource_stress
@@ -379,7 +383,7 @@ fn derive_dependency_edges<'a>(
             .worlds
             .iter()
             .flat_map(|w| {
-                strategic_needs_for_world(&w.world.world_type)
+                strategic_needs_for_world(&w.world.world_type.to_string())
                     .iter()
                     .copied()
             })

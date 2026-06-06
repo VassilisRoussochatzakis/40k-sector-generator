@@ -8,6 +8,9 @@
 //! *construct* a fresh, internally-consistent blank value.
 
 use crate::ids::{route_id, world_id, FactionId, SystemId};
+use crate::worlds::{
+    Atmosphere, Biosphere, Government, Population, StarColour, Temperature, TechLevel, WorldType,
+};
 
 use super::{
     GeneratedFaction, GeneratedRoute, GeneratedSector, GeneratedStar, GeneratedSystem,
@@ -94,15 +97,14 @@ pub fn empty_world(system_index: usize, index: usize, name: String) -> Generated
         orbit: 1,
         source_row_index: 0,
         world: WorldDto {
-            star_colour: "white".into(),
-            star_colour_code: "W".into(),
-            world_type: "dead".into(),
-            atmosphere: "none".into(),
-            temperature: "temperate".into(),
-            biosphere: "none".into(),
-            population: "none".into(),
-            tech_level: "low".into(),
-            government: "none".into(),
+            star_colour: StarColour::White,
+            world_type: WorldType::DeadWorld,
+            atmosphere: Atmosphere::Airless,
+            temperature: Temperature::Temperate,
+            biosphere: Biosphere::Nonexistent,
+            population: Population::Uninhabited,
+            tech_level: TechLevel::Low,
+            government: Government::None,
             notable_features: Vec::new(),
         },
         factions: Vec::new(),

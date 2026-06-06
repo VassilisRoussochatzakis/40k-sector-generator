@@ -5,6 +5,10 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::ids::{FactionId, RouteId, SystemId, WorldId};
+use crate::worlds::{
+    Atmosphere, Biosphere, Government, NotableFeature, Population, StarColour, TechLevel,
+    Temperature, WorldType,
+};
 
 mod routes_view;
 pub use routes_view::{RoutePattern, RouteViewMode};
@@ -244,39 +248,126 @@ pub struct GeneratedWorld {
     pub intel: crate::intel::SystemIntel,
 }
 
-/// Serializable view over `crate::worlds::World`. Variant names are stable
-/// because worlds.rs Display impls use Debug (e.g. "`HiveWorld`").
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Serializable view over `crate::worlds::World`. Holds the real `worlds.rs`
+/// enums (A2) so a renamed variant is a compile error in every consumer rather
+/// than a silent string-comparison mismatch. The on-disk JSON schema is
+/// preserved byte-for-byte by the `WorldDtoRaw` serde shim below: the stored
+/// strings stay exactly what the old stringly-typed DTO wrote (variant-name
+/// `Display` for most fields; `short_name()` + `code()` for the star colour).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(into = "WorldDtoRaw", try_from = "WorldDtoRaw")]
 pub struct WorldDto {
-    pub star_colour: Arc<str>,
-    pub star_colour_code: Arc<str>,
-    pub world_type: Arc<str>,
-    pub atmosphere: Arc<str>,
-    pub temperature: Arc<str>,
-    pub biosphere: Arc<str>,
-    pub population: Arc<str>,
-    pub tech_level: Arc<str>,
-    pub government: Arc<str>,
-    pub notable_features: Vec<Arc<str>>,
+    pub star_colour: StarColour,
+    pub world_type: WorldType,
+    pub atmosphere: Atmosphere,
+    pub temperature: Temperature,
+    pub biosphere: Biosphere,
+    pub population: Population,
+    pub tech_level: TechLevel,
+    pub government: Government,
+    pub notable_features: Vec<NotableFeature>,
+}
+
+/// On-disk wire form of [`WorldDto`] — the original stringly-typed schema. Kept
+/// private; `WorldDto`'s `#[serde(into/try_from)]` routes all (de)serialization
+/// through it so `sector.json` is unchanged. `star_colour` is the human
+/// `short_name()`; `star_colour_code` is the spectral `code()` and is the field
+/// the enum is reconstructed from on load (`StarColour: FromStr` parses codes).
+#[derive(Serialize, Deserialize)]
+struct WorldDtoRaw {
+    star_colour: Arc<str>,
+    star_colour_code: Arc<str>,
+    world_type: Arc<str>,
+    atmosphere: Arc<str>,
+    temperature: Arc<str>,
+    biosphere: Arc<str>,
+    population: Arc<str>,
+    tech_level: Arc<str>,
+    government: Arc<str>,
+    notable_features: Vec<Arc<str>>,
+}
+
+impl From<WorldDto> for WorldDtoRaw {
+    fn from(d: WorldDto) -> Self {
+        Self {
+            star_colour: Arc::from(d.star_colour.short_name()),
+            star_colour_code: Arc::from(d.star_colour.code()),
+            world_type: Arc::from(d.world_type.to_string()),
+            atmosphere: Arc::from(d.atmosphere.to_string()),
+            temperature: Arc::from(d.temperature.to_string()),
+            biosphere: Arc::from(d.biosphere.to_string()),
+            population: Arc::from(d.population.to_string()),
+            tech_level: Arc::from(d.tech_level.to_string()),
+            government: Arc::from(d.government.to_string()),
+            notable_features: d
+                .notable_features
+                .iter()
+                .map(|f| Arc::from(f.to_string()))
+                .collect(),
+        }
+    }
+}
+
+/// Find the variant in `variants` whose `Display` form equals `s`. The wire
+/// strings are exactly each enum's `Display` (= `{:?}` variant name), which is
+/// what the serialize side writes — so this is the exact inverse. Used for the
+/// enums whose hand-written `FromStr` accepts the *spaced* display form
+/// (e.g. `Population` parses "Densely Populated", not the wire "DenselyPopulated").
+fn find_by_display<T: Clone + core::fmt::Display>(variants: &[T], s: &str) -> Option<T> {
+    variants.iter().find(|v| v.to_string() == s).cloned()
+}
+
+impl TryFrom<WorldDtoRaw> for WorldDto {
+    type Error = String;
+    fn try_from(r: WorldDtoRaw) -> Result<Self, Self::Error> {
+        use crate::taxonomy::{
+            parse_government_variant, parse_notable_feature_variant, parse_world_type_variant,
+        };
+        Ok(Self {
+            // Reconstructed from the spectral `code()` field — `StarColour::FromStr`
+            // parses codes ("O"/"B"/…), not the `short_name()` display form.
+            star_colour: r
+                .star_colour_code
+                .parse()
+                .map_err(|()| format!("invalid star_colour_code: {:?}", r.star_colour_code))?,
+            world_type: parse_world_type_variant(&r.world_type)
+                .ok_or_else(|| format!("invalid world_type: {:?}", r.world_type))?,
+            atmosphere: find_by_display(Atmosphere::VARIANTS, &r.atmosphere)
+                .ok_or_else(|| format!("invalid atmosphere: {:?}", r.atmosphere))?,
+            temperature: find_by_display(Temperature::VARIANTS, &r.temperature)
+                .ok_or_else(|| format!("invalid temperature: {:?}", r.temperature))?,
+            biosphere: find_by_display(Biosphere::VARIANTS, &r.biosphere)
+                .ok_or_else(|| format!("invalid biosphere: {:?}", r.biosphere))?,
+            population: find_by_display(Population::VARIANTS, &r.population)
+                .ok_or_else(|| format!("invalid population: {:?}", r.population))?,
+            tech_level: find_by_display(TechLevel::VARIANTS, &r.tech_level)
+                .ok_or_else(|| format!("invalid tech_level: {:?}", r.tech_level))?,
+            government: parse_government_variant(&r.government)
+                .ok_or_else(|| format!("invalid government: {:?}", r.government))?,
+            notable_features: r
+                .notable_features
+                .iter()
+                .map(|s| {
+                    parse_notable_feature_variant(s)
+                        .ok_or_else(|| format!("invalid notable_feature: {s:?}"))
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        })
+    }
 }
 
 impl From<&crate::worlds::World> for WorldDto {
     fn from(world: &crate::worlds::World) -> Self {
         Self {
-            star_colour: Arc::from(world.star_colour.short_name()),
-            star_colour_code: Arc::from(world.star_colour.code()),
-            world_type: Arc::from(world.world_type.to_string()),
-            atmosphere: Arc::from(world.atmosphere.to_string()),
-            temperature: Arc::from(world.temperature.to_string()),
-            biosphere: Arc::from(world.biosphere.to_string()),
-            population: Arc::from(world.population.to_string()),
-            tech_level: Arc::from(world.tech_level.to_string()),
-            government: Arc::from(world.government.to_string()),
-            notable_features: world
-                .notable_features
-                .iter()
-                .map(|s| Arc::from(s.to_string()))
-                .collect(),
+            star_colour: world.star_colour,
+            world_type: world.world_type.clone(),
+            atmosphere: world.atmosphere.clone(),
+            temperature: world.temperature.clone(),
+            biosphere: world.biosphere.clone(),
+            population: world.population.clone(),
+            tech_level: world.tech_level.clone(),
+            government: world.government.clone(),
+            notable_features: world.notable_features.clone(),
         }
     }
 }
@@ -391,15 +482,14 @@ impl GeneratedWorld {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "yellow".into(),
-                star_colour_code: "G".into(),
-                world_type: "DeadWorld".into(),
-                atmosphere: "Airless".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Nonexistent".into(),
-                population: "Uninhabited".into(),
-                tech_level: "Standard".into(),
-                government: "None".into(),
+                star_colour: StarColour::Yellow,
+                world_type: WorldType::DeadWorld,
+                atmosphere: Atmosphere::Airless,
+                temperature: Temperature::Temperate,
+                biosphere: Biosphere::Nonexistent,
+                population: Population::Uninhabited,
+                tech_level: TechLevel::Standard,
+                government: Government::None,
                 notable_features: Vec::new(),
             },
             factions: Vec::new(),
@@ -1105,6 +1195,35 @@ mod tests {
             intel: Default::default(),
             archetype: Default::default(),
         }
+    }
+
+    #[test]
+    fn world_dto_serde_round_trips_through_wire_shim() {
+        // A2: the enum-typed DTO round-trips through the legacy stringly-typed
+        // `WorldDtoRaw` wire form, and the on-disk schema is unchanged.
+        let dto = WorldDto {
+            star_colour: StarColour::BlueWhite,
+            world_type: WorldType::HiveWorld,
+            atmosphere: Atmosphere::Tainted,
+            temperature: Temperature::Temperate,
+            biosphere: Biosphere::Thriving,
+            population: Population::DenselyPopulated,
+            tech_level: TechLevel::Standard,
+            government: Government::MilitaryGovernor,
+            notable_features: vec![NotableFeature::TradeHub, NotableFeature::HeavyIndustry],
+        };
+        // enums → wire JSON → enums is the identity.
+        let json = serde_json::to_string(&dto).expect("serialize");
+        let back: WorldDto = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(dto, back);
+        // Wire schema preserved: the legacy string fields, incl. the derived
+        // `short_name()` / `code()` star split, are exactly what the old DTO wrote.
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["star_colour"], "blue-white");
+        assert_eq!(v["star_colour_code"], "B");
+        assert_eq!(v["world_type"], "HiveWorld");
+        assert_eq!(v["government"], "MilitaryGovernor");
+        assert_eq!(v["notable_features"][0], "TradeHub");
     }
 
     #[test]

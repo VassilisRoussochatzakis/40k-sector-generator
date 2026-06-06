@@ -43,7 +43,11 @@ fn kind_map(factions: &[GeneratedFaction]) -> BTreeMap<&str, &str> {
 
 fn world_has_tag(w: &GeneratedWorld, needle: &str) -> bool {
     w.tags.iter().any(|t| t.contains(needle))
-        || w.world.notable_features.iter().any(|f| f.contains(needle))
+        || w
+            .world
+            .notable_features
+            .iter()
+            .any(|f| f.as_ref().contains(needle))
 }
 
 #[must_use]
@@ -76,7 +80,7 @@ pub fn derive_world_stability(w: &GeneratedWorld, factions: &[GeneratedFaction])
     let warp_phen = world_has_tag(w, "warp_phenomena");
     let quarantined = world_has_tag(w, "quarantined");
     let famine = world_has_tag(w, "famine");
-    let warp_lost_world = w.world.world_type.as_ref() == "WarpLostWorld";
+    let warp_lost_world = w.world.world_type == crate::worlds::WorldType::WarpLostWorld;
 
     let chaos = any_kind_starts(&["chaos_", "traitor_", "dark_mechanicum"])
         || any_kind(&["daemon", "cult"]);
@@ -298,7 +302,11 @@ mod tests {
         }
     }
 
-    fn world_with(tags: Vec<&str>, ftype: &str, factions: Vec<&str>) -> GeneratedWorld {
+    fn world_with(
+        tags: Vec<&str>,
+        ftype: crate::worlds::WorldType,
+        factions: Vec<&str>,
+    ) -> GeneratedWorld {
         GeneratedWorld {
             id: "w".into(),
             index: 1,
@@ -306,15 +314,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "amber".into(),
-                star_colour_code: "A".into(),
-                world_type: ftype.into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Thriving".into(),
-                population: "DenselyPopulated".into(),
-                tech_level: "High".into(),
-                government: "MagistrateCouncil".into(),
+                star_colour: crate::worlds::StarColour::White,
+                world_type: ftype,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::DenselyPopulated,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MagistrateCouncil,
                 notable_features: vec![],
             },
             factions: factions
@@ -348,7 +355,7 @@ mod tests {
         let factions = vec![faction("daemon1", "daemon")];
         let w = world_with(
             vec!["feature:daemonic_corruption"],
-            "DeathWorld",
+            crate::worlds::WorldType::DeathWorld,
             vec!["daemon1"],
         );
         let s = derive_world_stability(&w, &factions);
@@ -360,7 +367,7 @@ mod tests {
     #[test]
     fn tyranid_presence_drives_xenos_threat_and_fear() {
         let factions = vec![faction("hive1", "tyranid")];
-        let w = world_with(vec![], "AgriWorld", vec!["hive1"]);
+        let w = world_with(vec![], crate::worlds::WorldType::AgriWorld, vec!["hive1"]);
         let s = derive_world_stability(&w, &factions);
         assert!(s.xenos_threat >= 40.0);
         assert!(s.fear >= 20.0);
@@ -369,7 +376,7 @@ mod tests {
     #[test]
     fn quiet_imperial_world_keeps_high_public_order() {
         let factions = vec![faction("imp1", "imperial")];
-        let mut w = world_with(vec![], "AgriWorld", vec!["imp1"]);
+        let mut w = world_with(vec![], crate::worlds::WorldType::AgriWorld, vec!["imp1"]);
         w.control.control_score = 80.0;
         let s = derive_world_stability(&w, &factions);
         assert!(s.public_order >= 70.0, "{}", s.public_order);

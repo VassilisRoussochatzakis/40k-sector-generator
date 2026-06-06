@@ -220,7 +220,7 @@ impl<'a> SystemView<'a> {
         for w in &self.system.worlds {
             let orbit = i32::from(w.orbit.max(1));
             let p = world_anchor(&g, star, self.layout, orbit, w.index);
-            let color = world_type_color(&w.world.world_type);
+            let color = world_type_color(&w.world.world_type.to_string());
             if self.selected == SystemSelection::World(w.index) {
                 painter.circle_stroke(p, g.planet_r + 6.0, Stroke::new(2.0, SELECTION));
             }

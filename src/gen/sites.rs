@@ -10,7 +10,6 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
-use std::sync::Arc;
 
 use camino::Utf8Path;
 use rand::seq::SliceRandom;
@@ -182,11 +181,15 @@ pub fn derive_with(sector: &GeneratedSector, cfg: &SitesConfig) -> SitesReport {
     let mut out: Vec<WorldSite> = Vec::new();
     for sys in &sector.systems {
         for w in sector.get_worlds_for_system(sys) {
-            if cfg.skip_uninhabited && w.world.population.as_ref() == "Uninhabited" {
+            if cfg.skip_uninhabited
+                && w.world.population == crate::worlds::Population::Uninhabited
+            {
                 // Skip unless the world type still has interest (tomb / dead).
                 if !matches!(
-                    w.world.world_type.as_ref(),
-                    "TombWorld" | "DeadWorld" | "WarpLostWorld" | "DaemonWorld"
+                    w.world.world_type,
+                    crate::worlds::WorldType::TombWorld
+                        | crate::worlds::WorldType::DeadWorld
+                        | crate::worlds::WorldType::WarpLostWorld
                 ) {
                     continue;
                 }
@@ -275,9 +278,12 @@ fn emit_world_sites(
 
 // ── Candidate sites per world type ─────────────────────────────────────────────
 
-fn candidate_kinds(world_type: &str, features: &[Arc<str>]) -> Vec<SiteKind> {
+fn candidate_kinds(
+    world_type: &crate::worlds::WorldType,
+    features: &[crate::worlds::NotableFeature],
+) -> Vec<SiteKind> {
     use SiteKind::*;
-    let mut v = match world_type {
+    let mut v = match world_type.to_string().as_str() {
         "HiveWorld" => vec![
             GovernorsPalace,
             Manufactorum,
@@ -396,7 +402,7 @@ fn status_from_world(
     rng: &mut impl Rng,
 ) -> SiteStatus {
     use SiteKind::*;
-    if w.world.population.as_ref() == "Uninhabited" {
+    if w.world.population == crate::worlds::Population::Uninhabited {
         if matches!(
             kind,
             TombComplex | XenosRuin | CrashedVoidship | QuarantineZone
@@ -790,15 +796,14 @@ mod tests {
             orbit: 1,
             source_row_index: 0,
             world: WorldDto {
-                star_colour: "Y".into(),
-                star_colour_code: "Y".into(),
-                world_type: "HiveWorld".into(),
-                atmosphere: "Breathable".into(),
-                temperature: "Temperate".into(),
-                biosphere: "Standard".into(),
-                population: "Massive".into(),
-                tech_level: "Imperial".into(),
-                government: "ImperialCommander".into(),
+                star_colour: crate::worlds::StarColour::Yellow,
+                world_type: crate::worlds::WorldType::HiveWorld,
+                atmosphere: crate::worlds::Atmosphere::Breathable,
+                temperature: crate::worlds::Temperature::Temperate,
+                biosphere: crate::worlds::Biosphere::Thriving,
+                population: crate::worlds::Population::ExtremelyDense,
+                tech_level: crate::worlds::TechLevel::High,
+                government: crate::worlds::Government::MilitaryGovernor,
                 notable_features: vec![],
             },
             factions: presences,

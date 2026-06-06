@@ -298,29 +298,22 @@ impl StrategicOutput {
 
     #[must_use]
     pub fn weighted_priority_score(&self) -> f32 {
-        self.xenos_value.mul_add(
-            0.90,
-            self.knowledge.mul_add(
-                1.00,
-                self.manpower.mul_add(
-                    0.80,
-                    self.psyker_tithe.mul_add(
-                        1.10,
-                        self.pilgrimage.mul_add(
-                            0.55,
-                            self.ships.mul_add(
-                                1.20,
-                                self.arms.mul_add(
-                                    1.00,
-                                    self.manufacturing
-                                        .mul_add(0.85, self.food.mul_add(0.70, self.ore * 0.70)),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        )
+        // Per-field priority weights, indexed in `fields()` declaration order:
+        // [food, ore, manufacturing, arms, ships, pilgrimage, psyker_tithe,
+        //  manpower, knowledge, xenos_value].
+        const WEIGHTS: [f32; 10] = [0.70, 0.70, 0.85, 1.00, 1.20, 0.55, 1.10, 0.80, 1.00, 0.90];
+        let f = self.fields();
+        // Reproduces the original nested `mul_add` chain BIT-FOR-BIT (golden-stable):
+        // the innermost term is the plain multiply `ore * 0.70` (the seed accumulator),
+        // then the remaining nine terms fold in source-nesting order — food first, then
+        // manufacturing..xenos_value — each as one fused `field.mul_add(weight, acc)`.
+        // The fold is data-dependent through `acc`, so no reassociation occurs; do NOT
+        // rewrite as `iter().map(|(f, w)| f * w).sum()` (that changes FMA association).
+        let mut acc = f[1] * WEIGHTS[1]; // ore * 0.70 — innermost seed, a plain multiply
+        for i in [0usize, 2, 3, 4, 5, 6, 7, 8, 9] {
+            acc = f[i].mul_add(WEIGHTS[i], acc);
+        }
+        acc
     }
 }
 

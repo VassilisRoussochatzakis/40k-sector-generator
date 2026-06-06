@@ -2713,6 +2713,7 @@ version = "0.1.0"
 dependencies = [
  "camino",
  "clap",
+ "criterion",
  "eframe",
  "egui",
  "rfd",

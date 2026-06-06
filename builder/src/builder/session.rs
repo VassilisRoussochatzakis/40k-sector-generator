@@ -110,6 +110,7 @@ impl SessionFile {
             pinned_worlds: self.pinned_worlds,
             derivation_cache: DerivationCache::new(),
             derivations: DerivationLedger::new(),
+            derivation_jobs: super::derivation_jobs::DerivationJobs::default(),
             dirty: false,
             auto_save_path: None,
             feedback: super::state::FeedbackState::default(),

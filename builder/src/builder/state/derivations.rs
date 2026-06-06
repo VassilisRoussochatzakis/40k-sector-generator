@@ -15,6 +15,18 @@ use sectorforge::validation::validate;
 use super::types::{BuilderTab, HealthLevel};
 use super::BuilderState;
 use crate::builder::derivation_cache::{digest_input, DepClass, DerivationKind, DerivationStatus};
+use crate::builder::derivation_jobs::{
+    compute_chronicle, compute_hooks, compute_missions, compute_personae, compute_prose,
+    compute_relations, compute_sites, DerivationJobResult, DerivationPayload, InFlightDerivation,
+};
+
+/// LD3 drain disposition for one in-flight job this tick, separating a received
+/// result from a dropped channel so [`BuilderState::pump_derivation_jobs`] can
+/// borrow the in-flight map immutably while collecting, then mutate it after.
+enum DerivationDrain {
+    Result(DerivationJobResult),
+    Disconnected,
+}
 
 impl BuilderState {
     /// §V3: arm the debounced live-validation timer. Cheap — just stamps
@@ -180,13 +192,307 @@ impl BuilderState {
 
     /// LD3/LD4 — per-frame freshness pump, called from the app's
     /// `pump_active_state`. Lazily re-derives the overlay the active tab
-    /// renders if a prior mutation marked it stale, so the panel always paints
-    /// a live result. Off-tab overlays stay flagged stale (surfaced in the
-    /// status bar) until visited; a future background thread (LD3) will refresh
-    /// them ahead of time.
+    /// renders if a prior mutation marked it stale, so the panel about to paint
+    /// always reads a live result *this frame* — the synchronous fast path the
+    /// LD3 background dispatch deliberately keeps. Off-tab overlays are refreshed
+    /// off the GUI thread by [`Self::dispatch_background_derivations`].
     pub fn pump_derivations(&mut self) {
         if let Some(kind) = Self::tab_auto_derivation(self.active_tab) {
             self.ensure_fresh(kind);
+        }
+    }
+
+    /// LD3 — the eight `recompute_derivation` kinds that may run on a background
+    /// worker. `Economy` is deliberately excluded: when `feed_stability` is on
+    /// its install calls `apply_stability_nudge(&report, self.sector_mut())`,
+    /// which **mutates the sector** (per-world stability) and then invalidates
+    /// `SystemsWorlds` — a document-affecting cascade that has to happen on the
+    /// UI thread, so economy stays on the synchronous `ensure_fresh` path. The
+    /// other seven are pure: they install a derived-cache field and nothing else.
+    fn is_background_eligible(kind: DerivationKind) -> bool {
+        matches!(
+            kind,
+            DerivationKind::Relations
+                | DerivationKind::History
+                | DerivationKind::Personae
+                | DerivationKind::Hooks
+                | DerivationKind::Sites
+                | DerivationKind::Missions
+                | DerivationKind::Prose
+        )
+    }
+
+    /// LD3 — per-frame dispatch. For **every** stale background-eligible kind
+    /// (off-tab included — this is the LD3 goal: refresh overlays ahead of being
+    /// visited, not just the active tab) with no job already in flight, capture
+    /// the input fingerprint, snapshot the inputs (`Arc::clone` the sector +
+    /// clone the catalog cfg + scalars), flag the kind `deriving`, and spawn a
+    /// worker that runs the matching pure `compute_*` fn. The worker only reads
+    /// its owned snapshot, so its result is identical to the synchronous path;
+    /// [`Self::pump_derivation_jobs`] re-checks the captured fingerprint before
+    /// installing, discarding any result whose inputs drifted mid-flight.
+    ///
+    /// The active tab's `ensure_fresh` (run in [`Self::pump_derivations`]) still
+    /// recomputes that one overlay synchronously the same frame, so the visible
+    /// panel never waits on the worker. A kind already being derived in the
+    /// foreground that frame is skipped here (its fingerprint will already match
+    /// once `ensure_fresh` marks it fresh).
+    pub fn dispatch_background_derivations(&mut self, ctx: &egui::Context) {
+        use sectorforge_gui_core::jobs::spawn_job;
+        // Snapshot the stale set first; spawning marks `deriving` but does not
+        // touch `stale`, so a plain clone of the keys is a stable iteration base.
+        let stale: Vec<DerivationKind> = self
+            .derivations
+            .stale
+            .iter()
+            .copied()
+            .filter(|k| Self::is_background_eligible(*k))
+            .filter(|k| !self.derivation_jobs.has_in_flight(*k))
+            .collect();
+
+        for kind in stale {
+            let fingerprint = self.derivation_fingerprint(kind);
+            let sector = self.sector.share();
+            // Build the same inputs the synchronous `recompute_*` would, owned
+            // so they move into the worker.
+            let job = match kind {
+                DerivationKind::Relations => {
+                    let cfg = self.data_catalogs.relations.clone().unwrap_or_default();
+                    let threshold = self.config.generation.relations.min_world_presence;
+                    spawn_job(
+                        "builder-derive-relations",
+                        0,
+                        "Deriving relations…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::Relations(Box::new(
+                                compute_relations(&sector, &cfg, threshold),
+                            )))
+                        },
+                    )
+                }
+                DerivationKind::History => {
+                    let cfg = self.data_catalogs.history.clone().unwrap_or_default();
+                    spawn_job(
+                        "builder-derive-history",
+                        0,
+                        "Deriving chronicle…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::History(Box::new(
+                                compute_chronicle(&sector, &cfg),
+                            )))
+                        },
+                    )
+                }
+                DerivationKind::Personae => {
+                    let cfg = self.data_catalogs.personae.clone().unwrap_or_default();
+                    spawn_job(
+                        "builder-derive-personae",
+                        0,
+                        "Deriving personae…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::Personae(Box::new(
+                                compute_personae(&sector, &cfg),
+                            )))
+                        },
+                    )
+                }
+                DerivationKind::Hooks => {
+                    let mut cfg = self.data_catalogs.hooks.clone().unwrap_or_default();
+                    cfg.hide_hidden_hooks = self.hooks_panel.player_edition;
+                    spawn_job(
+                        "builder-derive-hooks",
+                        0,
+                        "Deriving hooks…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::Hooks(Box::new(
+                                compute_hooks(&sector, &cfg),
+                            )))
+                        },
+                    )
+                }
+                DerivationKind::Sites => {
+                    let mut cfg = self.data_catalogs.sites.clone().unwrap_or_default();
+                    cfg.player_edition = self.sites_panel.player_edition;
+                    spawn_job(
+                        "builder-derive-sites",
+                        0,
+                        "Deriving sites…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::Sites(Box::new(
+                                compute_sites(&sector, &cfg),
+                            )))
+                        },
+                    )
+                }
+                DerivationKind::Missions => {
+                    let mut cfg = self.data_catalogs.missions.clone().unwrap_or_default();
+                    cfg.player_edition = self.missions_panel.player_edition;
+                    spawn_job(
+                        "builder-derive-missions",
+                        0,
+                        "Deriving missions…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::Missions(Box::new(
+                                compute_missions(&sector, &cfg),
+                            )))
+                        },
+                    )
+                }
+                DerivationKind::Prose => {
+                    let cfg = self.data_catalogs.prose.clone().unwrap_or_default();
+                    spawn_job(
+                        "builder-derive-prose",
+                        0,
+                        "Deriving prose…",
+                        ctx.clone(),
+                        move |_| {
+                            DerivationJobResult::Done(DerivationPayload::Prose(Box::new(
+                                compute_prose(&sector, &cfg),
+                            )))
+                        },
+                    )
+                }
+                // Not background-eligible (filtered above) — unreachable.
+                _ => continue,
+            };
+            self.derivations.mark_deriving(kind);
+            self.derivation_jobs
+                .in_flight
+                .insert(kind, InFlightDerivation { job, fingerprint });
+        }
+    }
+
+    /// LD3 — per-frame drain of finished background derivations, called from the
+    /// app's `pump_active_state` alongside [`Self::pump_derivations`]. For each
+    /// in-flight job: `try_recv`. On `Empty` leave it. On `Disconnected` drop the
+    /// handle (worker failure — the kind stays stale and re-dispatches next
+    /// frame). On a result, **re-check** the live fingerprint against the one
+    /// captured at dispatch; if it changed, discard the stale result (drop the
+    /// handle, leave the kind stale so it re-dispatches against fresh inputs);
+    /// otherwise install the payload into its derived-cache field — exactly the
+    /// off-bus write the synchronous `recompute_*` performs — and
+    /// `mark_derivation_fresh` (which clears both stale and deriving).
+    ///
+    /// All ledger writes here run on the UI thread only. Returns `true` when at
+    /// least one result landed so the caller can request a repaint.
+    pub fn pump_derivation_jobs(&mut self) -> bool {
+        use std::sync::mpsc::TryRecvError;
+
+        // Collect the kinds whose jobs have produced something this tick. We
+        // resolve them via `DerivationKind::ALL` (stable order) so the drain is
+        // deterministic regardless of the in-flight map.
+        let mut ready: Vec<(DerivationKind, DerivationDrain)> = Vec::new();
+        for kind in DerivationKind::ALL {
+            let Some(slot) = self.derivation_jobs.in_flight.get(kind) else {
+                continue;
+            };
+            match slot.job.receiver.try_recv() {
+                Ok(result) => ready.push((*kind, DerivationDrain::Result(result))),
+                Err(TryRecvError::Disconnected) => {
+                    ready.push((*kind, DerivationDrain::Disconnected))
+                }
+                Err(TryRecvError::Empty) => {}
+            }
+        }
+
+        let mut landed = false;
+        for (kind, drain) in ready {
+            // Remove the in-flight slot up front; whether we install or discard,
+            // the job is done. `captured` is the dispatch-time fingerprint.
+            let Some(slot) = self.derivation_jobs.in_flight.remove(&kind) else {
+                continue;
+            };
+            let captured = slot.fingerprint;
+
+            let payload = match drain {
+                DerivationDrain::Disconnected => {
+                    // Worker thread vanished without sending — clear the
+                    // `deriving` flag and leave the kind stale so the next
+                    // dispatch retries. (No fallible derivations today; this is
+                    // the channel-drop safety net.)
+                    self.derivations.deriving.remove(&kind);
+                    continue;
+                }
+                DerivationDrain::Result(DerivationJobResult::Failed { .. }) => {
+                    self.derivations.deriving.remove(&kind);
+                    continue;
+                }
+                DerivationDrain::Result(DerivationJobResult::Done(payload)) => payload,
+            };
+
+            // LD3 stale-guard: discard a result computed from inputs that have
+            // since changed. Leave `stale` set (do NOT mark fresh) so the next
+            // dispatch recomputes against the current inputs; clear `deriving`
+            // so that dispatch is not blocked by this finished job.
+            if self.derivation_fingerprint(kind) != captured {
+                self.derivations.deriving.remove(&kind);
+                landed = true;
+                continue;
+            }
+
+            self.install_derivation_payload(payload);
+            self.mark_derivation_fresh(kind);
+            landed = true;
+        }
+        landed
+    }
+
+    /// LD3 — install a background-derived payload into its derived-cache home,
+    /// mirroring the off-bus field write the synchronous `recompute_*` performs.
+    /// Recomputed cache, not a user edit, so it is intentionally **not** routed
+    /// through `BuilderCommand` (parity with the sync `self.sector.relations = …`
+    /// / `self.*_report = …` installs).
+    ///
+    /// Note the *catalog-cascade* invalidations the sync `recompute_relations`
+    /// (`invalidate(&[RelationsCfg])`) performs are deliberately **omitted** here:
+    /// that cascade exists for the case where a `relations.toml` edit routes
+    /// straight into the recompute off the command bus, and such edits always
+    /// recompute synchronously in the panel — they never reach this background
+    /// path. A kind only lands here after becoming stale via the command bus,
+    /// which already marked every dependent (e.g. Briefing, via its own
+    /// `SystemsWorlds` / `Factions` deps) stale at invalidation time. Re-running
+    /// the cascade here would be both redundant and, off-thread, an extra ledger
+    /// write with no triggering edit.
+    fn install_derivation_payload(&mut self, payload: DerivationPayload) {
+        match payload {
+            DerivationPayload::Relations(matrix) => {
+                self.sector.relations = std::sync::Arc::new(*matrix);
+                self.dirty = true;
+                self.mark_validation_dirty();
+                self.trigger_auto_save();
+            }
+            DerivationPayload::History(chronicle) => {
+                self.sector.chronicle = *chronicle;
+                self.dirty = true;
+                self.mark_validation_dirty();
+                self.trigger_auto_save();
+            }
+            DerivationPayload::Personae(report) => {
+                self.personae_report = Some(*report);
+                self.mark_validation_dirty();
+            }
+            DerivationPayload::Hooks(report) => {
+                self.hooks_report = Some(*report);
+                self.mark_validation_dirty();
+            }
+            DerivationPayload::Sites(report) => {
+                self.sites_report = Some(*report);
+                self.mark_validation_dirty();
+            }
+            DerivationPayload::Missions(report) => {
+                self.missions_report = Some(*report);
+                self.mark_validation_dirty();
+            }
+            DerivationPayload::Prose(report) => {
+                self.prose_report = Some(*report);
+                self.mark_validation_dirty();
+            }
         }
     }
 
@@ -344,7 +650,10 @@ impl BuilderState {
     pub fn recompute_relations(&mut self) {
         let cfg = self.data_catalogs.relations.clone().unwrap_or_default();
         let threshold = self.config.generation.relations.min_world_presence;
-        let matrix = sectorforge::relations::derive_with_threshold(&self.sector, &cfg, threshold);
+        // LD3: identical inputs → identical output as the background worker,
+        // which calls this same pure fn. Install mirrors the off-bus cache
+        // write the worker's drain performs.
+        let matrix = compute_relations(&self.sector, &cfg, threshold);
         self.sector.relations = std::sync::Arc::new(matrix);
         self.dirty = true;
         self.mark_validation_dirty();
@@ -361,20 +670,9 @@ impl BuilderState {
     /// ([`Self::recompute_chronicle_undoable`]) paths share one body.
     fn compute_chronicle(&self) -> sectorforge::history::SectorChronicle {
         let cfg = self.data_catalogs.history.clone().unwrap_or_default();
-        let manual: Vec<sectorforge::history::HistoryEvent> = self
-            .sector
-            .chronicle
-            .events
-            .iter()
-            .filter(|e| e.manual)
-            .cloned()
-            .collect();
-        let mut report = sectorforge::history::derive_with(&self.sector, &cfg);
-        report.events.extend(manual);
-        report
-            .events
-            .sort_by(|a, b| a.date.cmp(&b.date).then_with(|| a.id.cmp(&b.id)));
-        report
+        // LD3: delegate to the free fn so the background worker computes the
+        // chronicle identically (manual-event preservation included).
+        compute_chronicle(&self.sector, &cfg)
     }
 
     /// §H6 passive LD4 refresh: rebuild `sector.chronicle` in place when the
@@ -429,7 +727,7 @@ impl BuilderState {
     /// preserves them across regenerates.
     pub fn recompute_personae(&mut self) {
         let cfg = self.data_catalogs.personae.clone().unwrap_or_default();
-        let report = sectorforge::personae::derive_with(&self.sector, &cfg);
+        let report = compute_personae(&self.sector, &cfg);
         self.personae_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Personae);
@@ -448,7 +746,7 @@ impl BuilderState {
     pub fn recompute_hooks(&mut self) {
         let mut cfg = self.data_catalogs.hooks.clone().unwrap_or_default();
         cfg.hide_hidden_hooks = self.hooks_panel.player_edition;
-        let report = sectorforge::hooks::derive_with(&self.sector, &cfg);
+        let report = compute_hooks(&self.sector, &cfg);
         self.hooks_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Hooks);
@@ -468,7 +766,7 @@ impl BuilderState {
     pub fn recompute_sites(&mut self) {
         let mut cfg = self.data_catalogs.sites.clone().unwrap_or_default();
         cfg.player_edition = self.sites_panel.player_edition;
-        let report = sectorforge::sites::derive_with(&self.sector, &cfg);
+        let report = compute_sites(&self.sector, &cfg);
         self.sites_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Sites);
@@ -488,7 +786,7 @@ impl BuilderState {
     pub fn recompute_missions(&mut self) {
         let mut cfg = self.data_catalogs.missions.clone().unwrap_or_default();
         cfg.player_edition = self.missions_panel.player_edition;
-        let report = sectorforge::missions::derive_with(&self.sector, &cfg);
+        let report = compute_missions(&self.sector, &cfg);
         self.missions_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Missions);
@@ -506,7 +804,7 @@ impl BuilderState {
     /// regenerates.
     pub fn recompute_prose(&mut self) {
         let cfg = self.data_catalogs.prose.clone().unwrap_or_default();
-        let report = sectorforge::prose::derive_with(&self.sector, &cfg);
+        let report = compute_prose(&self.sector, &cfg);
         self.prose_report = Some(report);
         self.mark_validation_dirty();
         self.mark_derivation_fresh(DerivationKind::Prose);
@@ -767,5 +1065,224 @@ impl BuilderState {
             self.conflict_panel.tick_log.pop_front();
         }
         self.conflict_panel.tick_log.push_back(entry);
+    }
+}
+
+#[cfg(test)]
+mod ld3_background_tests {
+    //! §39 LD3 — off-thread overlay re-derivation: pure-fn determinism
+    //! equivalence + the dispatch / drain / stale-guard lifecycle.
+
+    use super::*;
+    use sectorforge::sector_model::{GeneratedFaction, GeneratedSector};
+    use std::time::Duration;
+
+    fn gen_faction(id: &str, kind: &str, disposition: &str) -> GeneratedFaction {
+        GeneratedFaction {
+            id: id.into(),
+            name: std::sync::Arc::from(id),
+            kind: std::sync::Arc::from(kind),
+            disposition: std::sync::Arc::from(disposition),
+            subfactions: Vec::new(),
+            system_presence: vec![],
+            world_presence: vec![],
+            power: Default::default(),
+        }
+    }
+
+    /// Two-faction fixture: enough for `relations::derive_with_threshold` to
+    /// emit a pair, so a recomputed matrix is observably non-empty.
+    fn seed_state() -> BuilderState {
+        let mut state = BuilderState::new_blank("ld3-test", "LD3", "s", 4, 4);
+        state.sector = GeneratedSector::empty("ld3-test", "LD3", "s", 4, 4).into();
+        state
+            .sector
+            .factions
+            .push(gen_faction("imp", "imperial", "lawful"));
+        state
+            .sector
+            .factions
+            .push(gen_faction("chaos", "chaos_space_marine", "hostile"));
+        state
+    }
+
+    /// Bounded poll of the drain pump so a flaky/slow worker thread cannot hang
+    /// the test: drain each tick, sleep briefly, cap the iterations.
+    fn drain_until_done(state: &mut BuilderState, kind: DerivationKind) -> bool {
+        for _ in 0..200 {
+            state.pump_derivation_jobs();
+            if !state.derivations.deriving.contains(&kind)
+                && !state.derivation_jobs.has_in_flight(kind)
+            {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        false
+    }
+
+    /// Determinism: the pure `compute_relations` returns the same matrix the
+    /// synchronous `recompute_relations` installs from identical inputs, so a
+    /// value computed off-thread is byte-identical to the on-thread one.
+    #[test]
+    fn pure_compute_relations_equals_sync_recompute() {
+        let mut state = seed_state();
+        let cfg = state.data_catalogs.relations.clone().unwrap_or_default();
+        let threshold = state.config.generation.relations.min_world_presence;
+        let pure = compute_relations(&state.sector, &cfg, threshold);
+
+        state.recompute_relations();
+        let sync = state.sector.relations.as_ref();
+
+        // Equal by serialized form — the derived matrix is a pure function of
+        // its input slice, so equal inputs ⇒ equal output ⇒ same JSON.
+        assert_eq!(
+            serde_json::to_string(&pure).unwrap(),
+            serde_json::to_string(sync).unwrap(),
+            "background pure-fn result must equal the synchronous recompute"
+        );
+    }
+
+    /// LD3 dispatch: an off-tab stale eligible kind is flagged `deriving` and a
+    /// job is stored. Uses Relations while the active tab is the default
+    /// (Project), so this exercises the off-tab path specifically.
+    #[test]
+    fn dispatch_marks_deriving_and_stores_job_for_off_tab_kind() {
+        let ctx = egui::Context::default();
+        let mut state = seed_state();
+        // Prime the kind as previously-derived so `invalidate` can flag it
+        // stale (invalidate skips never-derived cold kinds).
+        state.mark_derivation_fresh(DerivationKind::Relations);
+        // A Factions-class mutation stales Relations (an off-tab overlay here).
+        state.derivations.invalidate(&[DepClass::Factions]);
+        assert!(state.derivations.is_stale(DerivationKind::Relations));
+
+        state.dispatch_background_derivations(&ctx);
+
+        assert!(
+            state.derivations.deriving.contains(&DerivationKind::Relations),
+            "dispatch must flag the off-tab kind deriving"
+        );
+        assert!(
+            state.derivation_jobs.has_in_flight(DerivationKind::Relations),
+            "dispatch must store an in-flight job for the kind"
+        );
+
+        // A second dispatch the same frame must not double-spawn.
+        state.dispatch_background_derivations(&ctx);
+        assert_eq!(
+            state.derivation_jobs.in_flight.len(),
+            1,
+            "an in-flight kind is not re-dispatched"
+        );
+
+        // Drain to completion so the worker thread is joined before the test
+        // ends (and assert the lifecycle clears).
+        assert!(drain_until_done(&mut state, DerivationKind::Relations));
+    }
+
+    /// LD3 end-to-end: invalidate an OFF-tab kind, dispatch (deriving set
+    /// becomes non-empty), then poll the drain in a bounded loop until the
+    /// result lands — asserting the overlay updated and both the stale and
+    /// deriving flags cleared.
+    #[test]
+    fn background_drain_installs_and_clears_when_fingerprint_stable() {
+        let ctx = egui::Context::default();
+        let mut state = seed_state();
+        // Start from an empty matrix and a previously-derived (now stale) kind.
+        assert!(state.sector.relations.pairs.is_empty());
+        state.mark_derivation_fresh(DerivationKind::Relations);
+        state.derivations.invalidate(&[DepClass::Factions]);
+
+        state.dispatch_background_derivations(&ctx);
+        assert!(
+            !state.derivations.deriving.is_empty(),
+            "deriving set populated after dispatch"
+        );
+
+        assert!(
+            drain_until_done(&mut state, DerivationKind::Relations),
+            "background result should land within the bounded poll"
+        );
+
+        // Overlay installed from the worker's payload.
+        assert_eq!(
+            state.sector.relations.pairs.len(),
+            1,
+            "the background-derived matrix must be installed"
+        );
+        // Both freshness flags cleared by `mark_derivation_fresh`.
+        assert!(!state.derivations.is_stale(DerivationKind::Relations));
+        assert!(!state.derivations.deriving.contains(&DerivationKind::Relations));
+        assert!(!state.derivation_jobs.has_in_flight(DerivationKind::Relations));
+        assert_eq!(
+            state.derivation_status(DerivationKind::Relations),
+            DerivationStatus::Fresh
+        );
+    }
+
+    /// LD3 stale-guard: a result whose inputs drifted between dispatch and drain
+    /// is discarded — the overlay is NOT installed and the kind stays stale so
+    /// it re-dispatches against the fresh inputs.
+    ///
+    /// Race-free by construction: we mutate an input **immediately after
+    /// dispatch**, so the captured fingerprint is already stale no matter when
+    /// the worker finishes. The only drain outcomes are then (a) the result has
+    /// arrived → the guard discards it, or (b) still in flight → keep polling.
+    /// Both converge on "overlay untouched, kind still stale, slot cleared".
+    #[test]
+    fn background_drain_discards_result_when_fingerprint_changed() {
+        let ctx = egui::Context::default();
+        let mut state = seed_state();
+        // Empty matrix to start; a stale, previously-derived Relations kind.
+        assert!(state.sector.relations.pairs.is_empty());
+        state.mark_derivation_fresh(DerivationKind::Relations);
+        state.derivations.invalidate(&[DepClass::Factions]);
+
+        state.dispatch_background_derivations(&ctx);
+        assert!(state.derivation_jobs.has_in_flight(DerivationKind::Relations));
+
+        // Drift the inputs *now*, before the result can be drained — this makes
+        // the captured dispatch-time fingerprint stale for certain.
+        state
+            .sector
+            .factions
+            .push(gen_faction("orks", "ork", "hostile"));
+        let live_fp = state.derivation_fingerprint(DerivationKind::Relations);
+        let captured_fp = state
+            .derivation_jobs
+            .in_flight
+            .get(&DerivationKind::Relations)
+            .map(|s| s.fingerprint.clone())
+            .expect("job in flight");
+        assert_ne!(
+            live_fp, captured_fp,
+            "the input mutation must change the live fingerprint vs the captured one"
+        );
+
+        // Drain until the worker finishes and the guard fires (bounded poll).
+        for _ in 0..200 {
+            state.pump_derivation_jobs();
+            if !state.derivation_jobs.has_in_flight(DerivationKind::Relations) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+
+        // The stale 2-faction result must have been discarded, not installed:
+        // the matrix is still empty.
+        assert!(
+            state.sector.relations.pairs.is_empty(),
+            "a stale-fingerprint result must not be installed"
+        );
+        // The kind stays stale so the next dispatch recomputes against the
+        // current (3-faction) inputs; the finished job slot and deriving flag
+        // are cleared.
+        assert!(
+            state.derivations.is_stale(DerivationKind::Relations),
+            "the kind stays stale so it re-dispatches against fresh inputs"
+        );
+        assert!(!state.derivation_jobs.has_in_flight(DerivationKind::Relations));
+        assert!(!state.derivations.deriving.contains(&DerivationKind::Relations));
     }
 }

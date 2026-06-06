@@ -2549,7 +2549,7 @@ mismatched versions explicitly rather than partially decoding.
 | R9 no new crates | Original builder implementation avoided new deps; after the split, builder deps live in [builder/Cargo.toml](builder/Cargo.toml), shared GUI deps in [gui-core/Cargo.toml](gui-core/Cargo.toml). |
 | R10 panel contract | [builder/src/builder/panels/mod.rs](builder/src/builder/panels/mod.rs) — every panel is `fn show(&mut Ui, &mut BuilderState)`. First concrete instance: [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) renders project / dirty / invariant / cmd-cursor / cache / jobs into the status bar. |
 
-#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 IN PROGRESS, LD4 DONE)
+#### Live derivations (§39 — LD1 DONE, LD2 DONE, LD3 DONE, LD4 DONE)
 
 The overlay tabs (economy, relations, history, personae, hooks, sites, missions,
 prose, analytics, briefing, interestingness, …) render *derived* state. Each
@@ -2657,16 +2657,45 @@ row is a focus button that jumps the inspector to the offending file or entity.
 The status bar still reads `validation_report` directly for the always-visible
 health pip.
 
-**LD3 — stale tag + refresh (background thread pending).**
+**LD3 — stale tag + background re-derivation.**
 The status bar (`render_derivations`) shows `deriv N` (cached overlays), a yellow
 `stale M` tag (hover lists the kinds), and a blue `deriving K` tag.
-`BuilderState::pump_derivations` (called each frame from `pump_active_state`)
-re-derives the active tab's stale overlay so the panel paints a live value;
-`DerivationStatus` is `Cold` / `Fresh` / `Stale` / `Deriving`. The recompute
-currently runs synchronously on the GUI thread (the derivations are cheap — §T7
-warm budget). The `deriving` ledger slot + `mark_deriving` are wired so a
-dedicated background thread (via [`gui-core::jobs::JobHandle`](gui-core/src/jobs.rs))
-can refresh off-tab overlays ahead of time without further ledger changes.
+`DerivationStatus` is `Cold` / `Fresh` / `Stale` / `Deriving`.
+
+*Active-tab fast path (synchronous).* `BuilderState::pump_derivations` (called
+each frame from `pump_active_state`) re-derives the active tab's stale overlay
+first, so the visible panel paints a live value the same frame — and the kind is
+cleared from `stale` before background dispatch reads the set, so it is never
+double-computed.
+
+*Off-thread path.* Seven background-eligible kinds — Relations, History,
+Personae, Hooks, Sites, Missions, Prose — re-derive on a worker via
+[`gui-core::jobs::JobHandle`](gui-core/src/jobs.rs).
+[derivation_jobs.rs](builder/src/builder/derivation_jobs.rs) holds the pure
+compute fns (`compute_relations`, `compute_chronicle`, …); each takes
+owned/borrowed snapshots (sector + cloned cfg + scalars) with no `&mut self` and
+is shared by the worker and the synchronous `recompute_*`, so both compute
+byte-identical output from identical inputs. `dispatch_background_derivations`
+(in [state/derivations.rs](builder/src/builder/state/derivations.rs)) snapshots
+inputs (`sector.share()` `Arc`-clone + cloned cfg) and spawns one job per stale
+off-tab kind that has no in-flight slot; `pump_derivation_jobs` drains
+`DerivationKind::ALL` deterministically and, for each `Done` result, runs a
+**fingerprint stale-guard** — the dispatch-time `derivation_fingerprint` is
+compared against the live one: a mismatch discards the result (and leaves the
+kind stale to re-dispatch against current inputs), a match installs the off-bus
+derived-cache write + `mark_derivation_fresh`. All ledger writes stay on the UI
+thread. The job store is transient UI state
+(`BuilderState::derivation_jobs: DerivationJobs`, a
+`BTreeMap<DerivationKind, InFlightDerivation>` keyed by kind), written directly —
+not a command, not serialized.
+
+*Economy stays synchronous.* Its install runs `apply_stability_nudge`, which
+mutates per-world stability and re-invalidates `SystemsWorlds` — a
+document-affecting cascade that must run on the UI thread — so economy is
+excluded from `is_background_eligible`. Tests:
+`pure_compute_relations_equals_sync_recompute`,
+`background_drain_installs_and_clears_when_fingerprint_stable`,
+`background_drain_discards_result_when_fingerprint_changed`.
 
 **LD4 — panels consume the live cache.**
 The eight overlays with a state-level `recompute_*` are kept fresh centrally by
@@ -2760,6 +2789,24 @@ Tests in [builder/src/builder/state/tests.rs](builder/src/builder/state/tests.rs
 * `undo_redo_basic_round_trip` — three `AddSystem`s, undo, redo round-trips the sector and cursor.
 * `undo_clamps_at_zero` — undoing past the start of the log is a no-op.
 
+#### U3–U6 named snapshots (DONE)
+
+Snapshots are named save points tying a `GeneratedSector` clone to a command-log
+position ([builder/src/builder/snapshot.rs](builder/src/builder/snapshot.rs)),
+created from the PROJECT tab's "Snapshot" button and listed in the history
+surface (U3). They are session state, not document state.
+
+| Piece | Where it lives |
+|---|---|
+| U4 revert + confirmation | [builder/src/builder/panels/project.rs](builder/src/builder/panels/project.rs) — the REVERT button opens a `ConfirmDestructive` modal carrying `ConfirmAction::RevertToSnapshot(name)` (sibling of `DeleteSnapshot`) rather than reverting immediately; `ConfirmAction::confirm_label()` ([state/types.rs](builder/src/builder/state/types.rs)) makes the shared dialog read "↩ Revert" vs "🗑 Delete". On confirm, `panels::project::revert_snapshot` calls `state.revert_to_snapshot` (rewinds `command_cursor`, discards later commands) and surfaces a not-found `Message`. The `apply_confirm_action` arm in [app.rs](builder/src/app.rs) dispatches it. |
+| U5 snapshot diff | Diff vs. current reuses the §27 sector-diff machinery (the DIFF tab). |
+| U6 auto-snapshot on batch ops | [builder/src/builder/panels/subsectors.rs](builder/src/builder/panels/subsectors.rs) — `recluster` and `clear_all_overrides` take an `"auto: …"`-prefixed snapshot *before* mutating. These two batch ops bypass the undo command bus (they touch transient overrides + a derived map recompute, so nothing on the undo log can reverse them); the `"auto:"` prefix distinguishes them from manual snapshots. Batch ops that already route through `state.run(BuilderCommand::...)` (bulk faction/control reassignment, `BulkEditWorlds`, `AutoAssignArchetypes`, `ReplaceRoutes`, `AdvanceConflictTicks`) are fully undoable and deliberately *not* auto-snapshotted. |
+
+Tests: `revert_snapshot_rolls_sector_back`,
+`revert_missing_snapshot_surfaces_message` (in `panels/project.rs`);
+`recluster_captures_auto_snapshot`, `clear_all_overrides_captures_auto_snapshot`
+(in `panels/subsectors.rs`).
+
 #### V1–V3 validation + invariants surface (DONE)
 
 `BuilderState` exposes both reports plus a debounced live re-validation
@@ -2799,7 +2846,21 @@ that adopts `BuilderState` as root state.
 | N3 map toolbox | [builder/src/builder/state/types.rs](builder/src/builder/state/types.rs) — `MapTool` enumerates Select / AddSystem / DeleteSystem / MoveSystem / AddRoute / RegionPaint. `BuilderState::map_tool` (default `Select`) holds the armed tool. [builder/src/builder/panels/map/mod.rs](builder/src/builder/panels/map/mod.rs) `show_toolbox` renders the selectable-label strip; the click + drag dispatcher branches on `state.map_tool` to run `BuilderCommand::{AddSystem, RemoveSystem, MoveSystem, RenameSystem, SwapSystems, AddRoute}`. |
 | N4 status bar | [builder/src/builder/panels/status.rs](builder/src/builder/panels/status.rs) — project label, `dirty` flag, tri-coloured §V3 health pip (`BuilderState::health_level()`), command-cursor position, derivation-cache entry count, and pending-job spinner. |
 
-N5 (Ctrl-K command palette) is intentionally deferred to Phase F.
+#### N5 command palette — Ctrl-K (DONE)
+
+[builder/src/builder/panels/command_palette.rs](builder/src/builder/panels/command_palette.rs)
+is a fuzzy-search palette over every builder action.
+
+| Piece | Where it lives |
+|---|---|
+| Deterministic catalog | `catalog()` builds, in stable order: every tab in canonical `BuilderTab::ALL` order as `"Go to <LABEL>"`, then a tail of app-actions + run-commands + the argument-taking `BuilderCommand` *name* routes, `sort_by` label — never `FxHashMap`-iterated. `fuzzy_score` is a case-insensitive subsequence test (contiguous runs and early starts score lower/tighter); `filter` stable-sorts by `(score, original_index)`. |
+| Action dispatch | `PaletteAction::SwitchTab(BuilderTab)` (every tab *and* each argument-taking command name → route to the owning tab where the user completes it, via transient `set_active_tab`); `RunCommand` for the two parameterless sector-wide commands `AutoAssignArchetypes` (§AR2) / `DeriveBaselineIntel` (§I3), executed through `state.run(...)`; `AppAction` for `Undo` / `Redo` / `Save` / `TakeSnapshot`. |
+| Ctrl-K wiring | [builder/src/builder/panels/shortcuts.rs](builder/src/builder/panels/shortcuts.rs) — `KeyboardShortcut::new(Modifiers::COMMAND, Key::K)` opens the palette when no modal is open, closes it when already open, no-ops when another modal owns the screen. Query / highlight / open-close live on `ModalKind::CommandPalette { query, selected }` (transient UI, §R4 carve-out); Esc / scrim-click / row-click close. Rendered from `show_modal` in [app.rs](builder/src/app.rs). |
+
+Nine tests in `command_palette::tests`, incl.
+`catalog_is_deterministic_and_tabs_lead`,
+`invoke_run_command_dispatches_through_bus`,
+`invoke_take_snapshot_records_snapshot`.
 
 #### G1–G6 generation panel (DONE)
 
@@ -3639,15 +3700,17 @@ Notable suites:
 - [tests/it/personae_tests.rs](tests/it/personae_tests.rs) — §3 dramatis personae: faction/system/world anchor validity, sector-wide name uniqueness, `max_per_world`/`max_per_system` caps, golden markdown structure, proptest determinism (TEST-001)
 - [tests/it/hooks_tests.rs](tests/it/hooks_tests.rs) — §7 plot hooks: anchor validity for system/world/route variants, id uniqueness, descending weight ordering, `hide_hidden_hooks` filter, golden markdown attribute lines, proptest determinism (TEST-001)
 - [tests/it/segmentum_tests.rs](tests/it/segmentum_tests.rs) — §14 composition (`#[ignore]`; opt-in only)
+- [builder/src/builder/smoke_test.rs](builder/src/builder/smoke_test.rs) — §T6 headless builder GUI smoke test: `builder_smoke_paints_core_tabs_and_saves` drives PROJECT / MAP / SYSTEM / WORLD through one `egui::Context::run` frame each, then asserts `save_session` to a temp `.sgforge` succeeds and is non-empty (no display server needed)
 
 Benchmarks (criterion):
 
 ```bash
 cargo bench --bench generation            # full sample
 cargo bench --bench generation -- --quick # ~10s smoke
+cargo bench -p sectorforge-builder        # builder mutation bench (§T7 / §PERF1)
 ```
 
-Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`.
+Benches in [benches/generation.rs](benches/generation.rs) cover `generate_sector` at three (square) sector sizes (10×10 / 20×20 / 30×30), `validate_project`, and `validate_sector_invariants`, plus the §42 500-system scale benches (`validate/500`, `invariants/500`, `derive_cold/500`, `derive_warm/500`). [benches/seed_search.rs](benches/seed_search.rs) adds `search/128_cand_200sys` (§PERF7).
 
 Generation builds a world candidate pool once per project load. That pool also
 caches star-colour weight totals, so per-system star selection does not rescan
@@ -3973,6 +4036,26 @@ tiny / normal / large scale matrix from the optimisation spec §5B:
 
 Run all groups: `cargo bench --bench generation`. Run one group:
 `cargo bench --bench generation -- encode_png_bytes`.
+
+The §42 builder performance targets (PERF3–PERF7) are covered at the spec's
+500-system / 128-candidate scale by additional named benches in the same two
+files: `validate/500` (PERF3), `invariants/500` (PERF4), `derive_cold/500`
+(PERF5, full overlay set re-derived per iteration), `derive_warm/500` (PERF6,
+the `Arc`-clone cache-hit return path) in [benches/generation.rs](benches/generation.rs),
+and `search/128_cand_200sys` (PERF7) in [benches/seed_search.rs](benches/seed_search.rs).
+All five met budget in the last run (validate 257 µs, invariants 2 ms, cold
+derive 411 ms, warm derive 2.6 ms, search 2.2 s).
+
+The builder's own large-sector mutation bench
+[builder/benches/builder_mutations.rs](builder/benches/builder_mutations.rs)
+(`cargo bench -p sectorforge-builder`) covers §T7 / §PERF1 on the
+`examples/big_test` fixture (200 systems / ≥400 worlds): group `command_apply`
+times `BuilderState::run` for `move_system_cheap`, `rename_system_cheap`, and
+`auto_assign_archetypes_heavy`; `invariants_check` times `check_sector`; `derive`
+times `recompute_economy` (cold) vs cache-gated `ensure_fresh` (warm). The cheap
+applies and the re-validate/re-derive budgets are met; the heavy
+`auto_assign_archetypes` apply currently measures ~1.31 ms against the <1 ms
+PERF1 budget — the one open §42 item.
 
 Four additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
 own `[[bench]]` so it runs in isolation — they exist to validate the §2.3 perf

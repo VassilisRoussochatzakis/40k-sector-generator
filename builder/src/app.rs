@@ -124,9 +124,19 @@ impl BuilderApp {
         let state = self.workspace.active_mut();
         shortcuts::handle(ctx, state);
         project_io::drain_watcher_events(state);
-        // §39 LD3/LD4: re-derive the active tab's overlay if a prior mutation
-        // left it stale, so the panel about to paint reads a live result.
+        // §39 LD3/LD4: re-derive the active tab's overlay synchronously if a
+        // prior mutation left it stale, so the panel about to paint reads a live
+        // result this frame (the fast path).
         state.pump_derivations();
+        // §39 LD3: push every *other* stale (off-tab) overlay onto a background
+        // worker so it is fresh by the time the user visits it, then drain any
+        // worker results that landed this tick. The drain's fingerprint
+        // stale-guard discards results whose inputs drifted mid-flight; a fresh
+        // install requests a repaint so the now-updated overlay paints.
+        state.dispatch_background_derivations(ctx);
+        if state.pump_derivation_jobs() {
+            ctx.request_repaint();
+        }
         if state.pump_validation() {
             ctx.request_repaint();
         }
@@ -188,6 +198,11 @@ impl BuilderApp {
         // §BEAUTY §6.7: dim + inert the page behind any open modal. Called every
         // frame (even with no modal) so the scrim fades out on close.
         let _ = sectorforge_gui_core::modal::scrim(ctx, modal.is_some());
+        // §41 (N5): the Ctrl-K command palette renders its own centered window
+        // over the scrim (it needs the raw `Context` for keyboard handling, not
+        // an outer `egui::Window`), so it is dispatched here ahead of the generic
+        // window router. No-op unless a `CommandPalette` modal is open.
+        crate::builder::panels::command_palette::show(ctx, self.workspace.active_mut());
         let Some(modal) = modal else {
             return;
         };
@@ -267,11 +282,15 @@ impl BuilderApp {
                     ui.label(body);
                     ui.colored_label(palette::danger(), "This can't be undone.");
                     ui.add_space(6.0);
+                    // §U4: the confirm button verb adapts to the action — a snapshot
+                    // revert reads "Revert", everything else reads "Delete" — so the
+                    // shared confirm window never mislabels a rollback.
+                    let confirm_label = action.confirm_label();
                     ui.horizontal(|ui| {
                         if widgets::ghost_button(ui, "Cancel").clicked() {
                             self.workspace.active_mut().feedback.modal = None;
                         }
-                        if widgets::danger_button(ui, "🗑  Delete").clicked() {
+                        if widgets::danger_button(ui, confirm_label).clicked() {
                             let state = self.workspace.active_mut();
                             apply_confirm_action(state, action);
                             state.feedback.modal = None;
@@ -292,6 +311,7 @@ fn apply_confirm_action(state: &mut BuilderState, action: crate::builder::state:
     use crate::builder::state::ConfirmAction as A;
     match action {
         A::DeleteSnapshot(name) => panels::project::delete_snapshot(state, &name),
+        A::RevertToSnapshot(name) => panels::project::revert_snapshot(state, &name),
         A::ClearSubsectorOverrides => panels::subsectors::clear_all_overrides(state),
         A::DeleteSegmentumChild(id) => panels::segmentum::delete_child(state, &id),
         A::DeleteSegmentumLink(i) => panels::segmentum::delete_link(state, i),

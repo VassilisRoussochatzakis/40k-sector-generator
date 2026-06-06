@@ -12,6 +12,7 @@ pub mod analytics_run;
 pub mod command;
 pub mod data_catalogs;
 pub mod derivation_cache;
+pub mod derivation_jobs;
 pub mod diff_run;
 pub mod errors;
 pub mod export_run;
@@ -28,6 +29,9 @@ pub mod session;
 pub mod snapshot;
 pub mod state;
 pub mod workspace;
+
+#[cfg(test)]
+mod smoke_test;
 
 pub use analytics_run::AnalyticsState;
 pub use command::BuilderCommand;

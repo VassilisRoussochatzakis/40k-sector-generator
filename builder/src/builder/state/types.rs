@@ -97,6 +97,15 @@ pub enum ModalKind {
         body: String,
         action: ConfirmAction,
     },
+    /// §41 (N5): Ctrl-K command palette. Fuzzy-searches every builder action by
+    /// name — tab switches, the parameterless sector-wide commands, and the
+    /// app-level Undo/Redo/Save/Snapshot actions. `query` is the live search
+    /// buffer; `selected` is the highlighted row index into the *filtered*
+    /// catalog. Both are transient UI state (never serialised, nothing to undo).
+    CommandPalette {
+        query: String,
+        selected: usize,
+    },
 }
 
 /// Payload for [`ModalKind::ConfirmDestructive`]: the specific non-undoable edit
@@ -107,6 +116,10 @@ pub enum ModalKind {
 pub enum ConfirmAction {
     /// PROJECT → Snapshots: delete the snapshot with this name.
     DeleteSnapshot(String),
+    /// §U4: PROJECT → Snapshots: roll the sector back to the snapshot with this
+    /// name, discarding the commands logged after it. Confirmed because the
+    /// rewind drops the redo tail and can't itself be undone.
+    RevertToSnapshot(String),
     /// SUBSECTORS: drop every manual move / capital / colour override.
     ClearSubsectorOverrides,
     /// SEGMENTUM: remove the child sector with this id from the grid.
@@ -129,6 +142,18 @@ pub enum ConfirmAction {
     DeleteRelationKindRule(usize),
     /// RELATIONS: delete the disposition rule at this index.
     DeleteRelationDispositionRule(usize),
+}
+
+impl ConfirmAction {
+    /// Label for the confirm button in the generic [`ModalKind::ConfirmDestructive`]
+    /// window. Deletes read as "Delete"; the §U4 revert reads as "Revert" so the
+    /// shared dialog never mislabels a rollback as a delete.
+    pub fn confirm_label(&self) -> &'static str {
+        match self {
+            Self::RevertToSnapshot(_) => "↩  Revert",
+            _ => "🗑  Delete",
+        }
+    }
 }
 
 /// §V3: combined health summary surfaced by the status bar. Green = clean

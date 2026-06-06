@@ -181,6 +181,15 @@ pub struct BuilderState {
     /// panels can read freshness before rendering (LD4). See
     /// [`Self::invalidate_derivations`] / [`Self::ensure_fresh`].
     pub(crate) derivations: DerivationLedger,
+    /// §39 LD3 — transient store of in-flight **off-thread** overlay
+    /// re-derivations, keyed by [`DerivationKind`]. Each slot holds the worker
+    /// [`sectorforge_gui_core::jobs::JobHandle`] plus the input fingerprint
+    /// captured at dispatch (the stale-guard). Runtime UI state only: never
+    /// serialized and never undoable — written directly (not via a
+    /// `BuilderCommand`), like the sibling `search` job slot. Dispatched in
+    /// [`Self::dispatch_background_derivations`] and drained in
+    /// [`Self::pump_derivation_jobs`].
+    pub(crate) derivation_jobs: super::derivation_jobs::DerivationJobs,
     pub(crate) dirty: bool,
     pub(crate) auto_save_path: Option<Utf8PathBuf>,
     /// Status-bar / modal feedback channel grouped on [`FeedbackState`]: the
@@ -441,6 +450,7 @@ impl BuilderState {
             pinned_worlds: BTreeSet::new(),
             derivation_cache: DerivationCache::new(),
             derivations: DerivationLedger::new(),
+            derivation_jobs: super::derivation_jobs::DerivationJobs::default(),
             dirty: false,
             auto_save_path: None,
             feedback: FeedbackState::default(),

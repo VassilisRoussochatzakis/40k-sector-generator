@@ -145,10 +145,24 @@ fn current_subsectors(state: &mut BuilderState) -> Vec<Subsector> {
     subs
 }
 
-/// §FRIENDLY_PANEL_PASS transform #7: drop every manual subsector override (the
-/// confirmed payload of [`ModalKind::ConfirmDestructive`]). These overrides bypass
-/// the undo bus, so the reset is gated behind a confirm.
+/// §SUB2 / §U6: re-cluster every system with a new target group size. This is a
+/// destructive batch op — it re-groups the whole sector at once and bypasses the
+/// undo command bus (the clustering is a derived map recompute, not a document
+/// edit) — so it auto-captures a `"auto:"` snapshot first, giving the user a
+/// fall-back point even though there is nothing on the undo log to reverse.
+pub(crate) fn recluster(state: &mut BuilderState, target: u32) {
+    state.snapshot("auto: recluster subsectors");
+    state.subsector_target_systems = target.max(1);
+    state.map_view.cache = None; // force the map to regroup on its next tick
+}
+
+/// §FRIENDLY_PANEL_PASS transform #7 / §U6: drop every manual subsector override
+/// (the confirmed payload of [`ModalKind::ConfirmDestructive`]). These overrides
+/// bypass the undo bus, so the reset is gated behind a confirm *and* captures a
+/// `"auto:"` snapshot first — wiping every manual move/capital/colour at once is a
+/// destructive batch op with nothing on the undo log to reverse it.
 pub(crate) fn clear_all_overrides(state: &mut BuilderState) {
+    state.snapshot("auto: clear subsector overrides");
     state.subsector_system_overrides.clear();
     state.subsector_capital_overrides.clear();
     state.subsector_colour_overrides.clear();
@@ -179,8 +193,7 @@ fn show_recluster_bar(ui: &mut Ui, state: &mut BuilderState, subs: &[Subsector])
             )
             .clicked()
         {
-            state.subsector_target_systems = value.max(1);
-            state.map_view.cache = None;
+            recluster(state, value.max(1));
         }
         if ui
             .button("↺  Reset target")
@@ -764,5 +777,29 @@ mod tests {
         assert!(state.subsector_capital_overrides.is_empty());
         assert!(state.subsector_colour_overrides.is_empty());
         assert!(state.subsector_manual.is_empty());
+    }
+
+    /// §U6: re-clustering is a destructive batch op that bypasses the undo bus,
+    /// so it auto-captures an `"auto:"`-prefixed snapshot before it regroups.
+    #[test]
+    fn recluster_captures_auto_snapshot() {
+        let mut state = blank(8, 8);
+        assert!(state.snapshots.is_empty());
+        super::recluster(&mut state, 3);
+        assert_eq!(state.subsector_target_systems, 3);
+        assert_eq!(state.snapshots.len(), 1, "recluster should snapshot first");
+        assert_eq!(state.snapshots[0].name, "auto: recluster subsectors");
+    }
+
+    /// §U6: clearing every override is likewise a destructive batch op off the
+    /// undo bus, so it too auto-captures an `"auto:"`-prefixed snapshot first.
+    #[test]
+    fn clear_all_overrides_captures_auto_snapshot() {
+        let mut state = blank(8, 8);
+        state.subsector_manual.insert("subsector-x".into());
+        assert!(state.snapshots.is_empty());
+        super::clear_all_overrides(&mut state);
+        assert_eq!(state.snapshots.len(), 1, "clear-all should snapshot first");
+        assert_eq!(state.snapshots[0].name, "auto: clear subsector overrides");
     }
 }

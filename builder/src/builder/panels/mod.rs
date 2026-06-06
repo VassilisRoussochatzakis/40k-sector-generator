@@ -49,6 +49,7 @@ pub mod validation;
 // §N1 router + per-tab modules.
 pub mod analytics;
 pub mod briefing;
+pub mod command_palette;
 pub mod conflict;
 pub mod control;
 pub mod diff;

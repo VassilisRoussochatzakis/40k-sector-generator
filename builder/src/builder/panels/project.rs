@@ -284,11 +284,15 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
             }
         });
     }
+    // §U4: a revert rolls the sector back and discards every command logged
+    // after the snapshot — it can't itself be undone, so it is gated behind the
+    // shared confirm dialog rather than firing on a single click.
     if let Some(name) = revert_to {
-        if !state.revert_to_snapshot(&name) {
-            state.feedback.modal =
-                Some(ModalKind::Message(format!("Snapshot '{name}' not found.")));
-        }
+        state.feedback.modal = Some(ModalKind::ConfirmDestructive {
+            title: "Revert to snapshot?".into(),
+            body: format!("Revert to “{name}”. Commands after it will be discarded."),
+            action: ConfirmAction::RevertToSnapshot(name),
+        });
     }
     // §FRIENDLY_PANEL_PASS transform #7: a snapshot is a save point that bypasses
     // the undo bus, so route deletion through a confirm rather than dropping it on
@@ -307,5 +311,67 @@ fn show_snapshots(ui: &mut egui::Ui, state: &mut BuilderState) {
 pub(crate) fn delete_snapshot(state: &mut BuilderState, name: &str) {
     if let Some(idx) = state.snapshots.iter().position(|s| s.name == name) {
         state.snapshots.remove(idx);
+    }
+}
+
+/// §U4: roll the sector back to the named snapshot (the confirmed payload of
+/// [`ModalKind::ConfirmDestructive`]). Surfaces a message if the snapshot has
+/// since been deleted out from under the modal.
+pub(crate) fn revert_snapshot(state: &mut BuilderState, name: &str) {
+    if !state.revert_to_snapshot(name) {
+        state.feedback.modal = Some(ModalKind::Message(format!("Snapshot '{name}' not found.")));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builder::command::BuilderCommand;
+    use sectorforge::sector_model::HexCoord;
+
+    fn add_system(state: &mut BuilderState, q: i32, name: &str) {
+        state
+            .run(BuilderCommand::AddSystem {
+                coord: HexCoord { q, r: 0 },
+                name: name.into(),
+                result_id: None,
+            })
+            .unwrap();
+    }
+
+    /// §U4: the confirmed revert action rolls the sector back to the snapshot
+    /// and rewinds the command cursor, discarding the command logged after it.
+    #[test]
+    fn revert_snapshot_rolls_sector_back() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 16, 16);
+        add_system(&mut state, 0, "alpha");
+        state.snapshot("base");
+        let cursor_at_snapshot = state.command_cursor;
+        add_system(&mut state, 1, "beta");
+        assert_eq!(state.sector.systems.len(), 2);
+
+        revert_snapshot(&mut state, "base");
+
+        assert_eq!(
+            state.sector.systems.len(),
+            1,
+            "revert should drop the post-snapshot system"
+        );
+        assert_eq!(state.command_cursor, cursor_at_snapshot);
+        assert!(
+            !matches!(state.feedback.modal, Some(ModalKind::Message(_))),
+            "a successful revert leaves no error message"
+        );
+    }
+
+    /// §U4: reverting to a missing snapshot is a no-op that surfaces a message
+    /// rather than mutating the sector.
+    #[test]
+    fn revert_missing_snapshot_surfaces_message() {
+        let mut state = BuilderState::new_blank("t", "T", "seed", 16, 16);
+        add_system(&mut state, 0, "alpha");
+        revert_snapshot(&mut state, "nope");
+        assert_eq!(state.sector.systems.len(), 1, "missing snapshot is a no-op");
+        assert!(matches!(state.feedback.modal, Some(ModalKind::Message(_))));
     }
 }

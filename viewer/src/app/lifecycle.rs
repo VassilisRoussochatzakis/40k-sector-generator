@@ -189,16 +189,24 @@ impl App {
         }
     }
 
+    /// Testable core of the viewer save path (G6): refresh derived manifest
+    /// counts (covers editor-panel edits that mutated the sector without going
+    /// through `mark_live_sector_dirty`) then pretty-print. Encode-only — the
+    /// caller owns mkdir + `fs::write`.
+    pub(super) fn sector_to_json_bytes(
+        sector: &mut GeneratedSector,
+    ) -> Result<String, serde_json::Error> {
+        Self::refresh_live_manifest_counts(sector);
+        serde_json::to_string_pretty(sector)
+    }
+
     pub(super) fn write_sector_to_path(&mut self, path: PathBuf) {
-        // Serialize the single source of truth (F-S1). `refresh_live_manifest_counts`
-        // covers editor-panel edits that mutated the sector without going through
-        // `mark_live_sector_dirty`.
+        // Serialize the single source of truth (F-S1).
         let Some(sector) = self.editor.sector.as_mut() else {
             self.export_status = "save failed: no sector to save".into();
             return;
         };
-        Self::refresh_live_manifest_counts(sector);
-        let text = match serde_json::to_string_pretty(sector) {
+        let text = match Self::sector_to_json_bytes(sector) {
             Ok(text) => text,
             Err(e) => {
                 self.export_status = format!("save failed: encode: {e}");
@@ -389,5 +397,48 @@ mod tests {
         });
         assert!(mid < full);
         assert!(mid > 0.12);
+    }
+
+    // G6: the viewer save path's testable core. Encode refreshes manifest
+    // counts then pretty-prints; assert it round-trips through serde and that
+    // re-encoding the decoded value is byte-identical.
+    #[test]
+    fn sector_to_json_bytes_round_trips_through_serde() {
+        use sectorforge::ids::system_id;
+        use sectorforge::sector_model::{
+            empty_sector, empty_system, empty_world, GeneratedSector, HexCoord, SystemKind,
+        };
+
+        let mut sector = empty_sector("rt", "RoundTrip", "seed-1", 8, 8);
+        let mut sys = empty_system(
+            system_id(1),
+            1,
+            "S1".into(),
+            HexCoord { q: 0, r: 0 },
+            SystemKind::Star,
+            None,
+        );
+        sys.worlds.push(empty_world(0, 0, "W1".into()));
+        sector.systems.push(sys);
+
+        let json = crate::app::App::sector_to_json_bytes(&mut sector).expect("encode");
+        // refresh_live_manifest_counts ran: manifest reflects the pushed data.
+        assert_eq!(sector.manifest.system_count, 1);
+        assert_eq!(sector.manifest.world_count, 1);
+
+        let back: GeneratedSector = serde_json::from_str(&json).expect("decode round-trip");
+        assert_eq!(&*back.id, "rt");
+        assert_eq!(back.width, 8);
+        assert_eq!(back.height, 8);
+        assert_eq!(back.systems.len(), 1);
+        assert_eq!(back.manifest.system_count, 1);
+        assert_eq!(back.manifest.world_count, 1);
+
+        // GeneratedSector has no PartialEq; compare via a byte-identical re-encode.
+        let mut back2 = back;
+        assert_eq!(
+            crate::app::App::sector_to_json_bytes(&mut back2).unwrap(),
+            json
+        );
     }
 }

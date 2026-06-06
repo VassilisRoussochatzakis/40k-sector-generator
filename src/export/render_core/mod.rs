@@ -20,6 +20,7 @@
 pub(crate) mod canvas;
 pub(crate) mod colors;
 pub(crate) mod grid;
+pub(crate) mod labels;
 pub(crate) mod options;
 pub(crate) mod routes;
 

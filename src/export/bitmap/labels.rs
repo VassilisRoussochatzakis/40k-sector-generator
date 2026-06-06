@@ -4,6 +4,7 @@ use std::collections::HashSet;
 
 use image::RgbaImage;
 
+use crate::export::render_core::labels::system_label_visible;
 use crate::map_theme::{LabelDensity, MapTheme};
 use crate::sector_model::{offset_r_neighbors, GeneratedSector};
 use crate::subsectors::Subsector;
@@ -55,25 +56,6 @@ pub(super) fn draw_system_labels(
             opts.theme.bg,
         );
         draw_text(img, tx, ty, &label, opts.theme.text_dim, scale);
-    }
-}
-
-fn system_label_visible(
-    sys: &crate::sector_model::GeneratedSystem,
-    subsectors: &[Subsector],
-    theme: &MapTheme,
-    sector: &GeneratedSector,
-) -> bool {
-    match theme.label_density {
-        LabelDensity::All => true,
-        LabelDensity::None => false,
-        LabelDensity::ImportantOnly => {
-            sector.get_worlds_for_system(sys).len() >= 4
-                || !sys.primary_factions.is_empty()
-                || subsectors.iter().any(|s| {
-                    s.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
-                })
-        }
     }
 }
 

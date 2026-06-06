@@ -2,9 +2,9 @@
 
 use std::collections::HashSet;
 
-use crate::export::render_core::RenderOptions;
+use crate::export::render_core::{labels::system_label_visible, RenderOptions};
 use crate::map_theme::{LabelDensity, MapTheme};
-use crate::sector_model::{offset_r_neighbors, GeneratedSector, GeneratedSystem};
+use crate::sector_model::{offset_r_neighbors, GeneratedSector};
 use crate::subsectors::Subsector;
 
 use super::geom::{hex_center, MapBounds};
@@ -66,25 +66,6 @@ pub(super) fn draw_system_labels(
             SYS_LABEL_FONT,
             "middle",
         );
-    }
-}
-
-fn system_label_visible(
-    sys: &GeneratedSystem,
-    subsectors: &[Subsector],
-    theme: &MapTheme,
-    sector: &GeneratedSector,
-) -> bool {
-    match theme.label_density {
-        LabelDensity::All => true,
-        LabelDensity::None => false,
-        LabelDensity::ImportantOnly => {
-            sector.get_worlds_for_system(sys).len() >= 4
-                || !sys.primary_factions.is_empty()
-                || subsectors.iter().any(|sub| {
-                    sub.summary.subsector_capital_system_id.as_deref() == Some(sys.id.as_str())
-                })
-        }
     }
 }
 

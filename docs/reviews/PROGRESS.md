@@ -17,11 +17,11 @@ sequence". Update this file whenever a finding moves status.
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | **12 (A1–A12) — AREA COMPLETE** | 0 | 0 | 0 |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
-| C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
+| C export/validate/worlds/cli | 13 | 7 (C1,C-S2,C3,C5,C6,C7,C8) | 0 | 5 (C2,C-S1,C4,C-S3) | 1 (C9†) |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | **17 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E11,E12,E13,E14,E-S1,E-S2*,E-S3*) — AREA COMPLETE** | 0 | 0 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
-| G tests | 13 | 1 (G2) | 0 | 12 | 0 |
+| G tests | 13 | 7 (G2,G3,G4,G6,G7,G8,G9) | 0 | 5 (G1,G5,G10,G-S1,G-S2) | 0 |
 
 ## Execution sequence (README order)
 
@@ -59,6 +59,48 @@ sequence". Update this file whenever a finding moves status.
      See log below.
 
 ## Detailed log
+
+### 2026-06-05 — step 5, wave 18 (AREA_C + AREA_G — planned-then-applied batch)
+
+Workflow `review-backlog-plan` produced pre-verified, line-drift-corrected
+patch specs (16 findings, output at `tasks/w5ym3e543.output`); applied the
+ready+isolated ones serially, one commit per finding on main, each gated.
+
+- **C7** ✅ `135a191` — bug: `md_cell` escaping for `|`/newline in
+  `segmentum::render_markdown` + `diff::render_markdown` table cells
+  (children/links/faction-delta/stance). Output-identical for current ids;
+  golden + diff green.
+- **C5 + C8** ✅ `1ec90ad` — collapse dead `FactionInfluence::Hidden` arm in
+  `redact_for_observer` (byte-identical fall-through) + drop now-unused import;
+  name the `20.0` observer-visibility default. `html_is_byte_stable` green.
+- **G4** ✅ `97e4fbb` — smoke-test the Html + Bitmap arms of `export_sector`
+  (only Json+Markdown were exercised).
+- **G7** ✅ `731e3fd` — proptest `system_count` independently of grid size
+  (square dims preserved).
+- **G8** ✅ `b491598` — `diff_after_ticks` now asserts `advance_sector` actually
+  evolves world conflict age/momentum/intensity (the diff markdown doesn't
+  surface it, so the finding's literal SectorDiff assertion would pass
+  vacuously — verified by the planning agent).
+- **G3** ✅ `44e370b` — un-ignore `duplicate_child_slot_is_rejected` only
+  (measured <0.1s, validate-config fast-fail; other 4 stay gated at >60s).
+- **G6** ✅ `a458483` — extract `App::sector_to_json_bytes` from the viewer save
+  path (was 0-coverage) + serde round-trip test.
+- **G9** ✅ `67a20c8` — assert `RelationMetrics` 7 u8 fields stay 0..=100 across
+  pair + both directions (was round-trip-only).
+
+Not applied:
+- **C9 †** — WON'T-FIX. Spec proposed dropping the `_ => "UNKNOWN"` wildcard in
+  `severity_tag`, but `common.rs` compiles into the **bin** while `Severity`
+  is `pub use`'d from the **lib** — across that `#[non_exhaustive]` boundary the
+  wildcard is mandatory (E0004 confirmed empirically). Keep wildcard.
+- **C3** — already on main (`c390f93`); roll-up unchanged.
+- **C2 / C-S1** (one merged fix) — ⏳ specced + ready (`resolve_sector_with_cfg<C>`
+  helper + 6-runner rewrite; economy needs post-resolution `enabled=true`),
+  stopped on a token budget. Apply serially (shares the 6 runner files).
+- **G1 / G5** — ⏳ deferred: both edit the same 4 analysis suite files with a
+  tangled import-pruning interdependency (G5 prunes imports G1 re-needs); best
+  done as one joint pass, G1-first to avoid churn.
+- **G10** — ⏳ specced: SVG blake3 pin; needs a `UPDATE_GOLDEN_SVG=1` bless step.
 
 ### 2026-06-05 — session start
 

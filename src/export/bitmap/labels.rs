@@ -4,9 +4,9 @@ use std::collections::HashSet;
 
 use image::RgbaImage;
 
-use crate::export::render_core::labels::system_label_visible;
+use crate::export::render_core::labels::{subsector_label_backed, system_label_visible};
 use crate::map_theme::{LabelDensity, MapTheme};
-use crate::sector_model::{offset_r_neighbors, GeneratedSector};
+use crate::sector_model::GeneratedSector;
 use crate::subsectors::Subsector;
 
 use super::geom::{hex_center, map_bounds, Geom, MapBounds, Rect};
@@ -162,22 +162,8 @@ pub(super) fn draw_subsector_labels(
         cands.sort_by_key(|&(_, _, d)| d);
 
         let try_place = |q: i32, r: i32, above: bool, placed: &[Rect]| -> Option<(i32, i32)> {
-            // Need same-subsector hexes covering label rect: above → NW + NE
-            // neighbors; below → SW + SE neighbors. Index per offset_r_neighbors:
-            // 0:E 1:SE 2:SW 3:W 4:NW 5:NE.
-            let nbrs = offset_r_neighbors(r);
-            if above {
-                let nw = (q + nbrs[4].0, r + nbrs[4].1);
-                let ne = (q + nbrs[5].0, r + nbrs[5].1);
-                if !cells.contains(&nw) || !cells.contains(&ne) {
-                    return None;
-                }
-            } else {
-                let se = (q + nbrs[1].0, r + nbrs[1].1);
-                let sw = (q + nbrs[2].0, r + nbrs[2].1);
-                if !cells.contains(&se) || !cells.contains(&sw) {
-                    return None;
-                }
+            if !subsector_label_backed(q, r, above, &cells) {
+                return None;
             }
             let (cx, cy) = hex_center(q, r, g);
             let block_top = if above {

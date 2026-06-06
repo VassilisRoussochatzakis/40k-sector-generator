@@ -6,6 +6,8 @@ been done about them*, against the [README](README.md) "Recommended execution
 sequence". Update this file whenever a finding moves status.
 
 **Legend:** ✅ DONE · 🔄 IN PROGRESS · ⏳ PENDING · ⏸️ DEFERRED (blocked / owner-decision)
+**Marks:** `*` = resolved-as-designed / via another finding · `†` = WON'T-FIX (owner-decided,
+language-mandated, or not byte-feasible) · `‡` = partial (byte-safe slice landed; deeper merge won't-fix)
 
 > Note: the **Status** column inside each `AREA_*.md` records whether a finding
 > *reproduced* (`✅ Confirmed` / `⚠️ Partial` / `🔄 Moved` / `🟢 Already fixed`).
@@ -16,9 +18,9 @@ sequence". Update this file whenever a finding moves status.
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | **12 (A1–A12) — AREA COMPLETE** | 0 | 0 | 0 |
-| B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
-| C export/validate/worlds/cli | 13 | 11 (C1,C-S2,C3,C5,C6,C7,C8,C2,C-S1,C4,C-S3‡) | 0 | 0 | 1 (C9†) |
-| D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
+| B `src/analysis` | 14 | **14 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B10,B11,B12,B8†,B-S1†) — AREA COMPLETE** | 0 | 0 | 0 |
+| C export/validate/worlds/cli | 13 | **13 (C1,C-S2,C3,C5,C6,C7,C8,C2,C-S1,C4,C-S3‡,C9†,C-S3-deep†) — AREA COMPLETE** | 0 | 0 | 0 |
+| D builder command + state | 14 | **14 (D1,D2,D3,D4,D5,D-S1,D-S2,D-S3,D6–D11 / D-S3·D5) — AREA COMPLETE** | 0 | 0 | 0 |
 | E builder panels | 17 | **17 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E11,E12,E13,E14,E-S1,E-S2*,E-S3*) — AREA COMPLETE** | 0 | 0 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
 | G tests | 13 | **13 (G1–G10; G-S1 via G1, G-S2 via G5, G-S3 via G2) — AREA COMPLETE** | 0 | 0 | 0 |
@@ -34,7 +36,10 @@ sequence". Update this file whenever a finding moves status.
 2. **`labeled()` extraction** (E3 / E-S1, 33 files) — ✅ DONE (this session)
 3. **C1** diff-drift fix — ✅ DONE · **`enum_slug!` macro** (B-S3, 61/62 sites) — ✅ DONE (this session)
 4. **G2 content golden** (`sector.json` / `sector.md`) — ✅ DONE (this session) · **gate cleared — A–F god-file splits now have their safety net**
-5. **Dedup waves + god-file splits** (behind G2) — 🔄 IN PROGRESS (2026-06-05)
+5. **Dedup waves + god-file splits** (behind G2) — ✅ **COMPLETE (2026-06-05, wave 21)** —
+   all areas A–G resolved; remaining owner-gated/deferred items landed or formally
+   closed won't-fix in wave 21 (B10 ✅, D-S3/D5 ✅, E4-part-a ✅; B8 †, C-S3-deeper †,
+   B-S1 † — owner-decided). See the wave-21 entry at the top of the detailed log.
    - **Wave 1 — AREA_B mechanical** (proportionate, compiler-checked, golden-gated):
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
@@ -63,6 +68,124 @@ sequence". Update this file whenever a finding moves status.
      geometry merge owner-gated). **AREA_C actionable complete.** See log below.
 
 ## Detailed log
+
+### 2026-06-05 — step 5, wave 21 (final owner-gated batch — B10, D-S3/D5, E4-a landed; B8, C-S3-deep, B-S1 won't-fix) · ALL AREAS COMPLETE
+
+Cleared the last owner-gated/deferred backlog. Orchestrated with the Workflow
+tool: a parallel SCOPE fan-out (6 read-only agents, live-source plans) → a
+decision gate (owner AskUserQuestion) → sequential implement-on-main with a
+golden gate before each commit → a 7-skeptic ADVERSARIAL-VERIFY fan-out (each
+prompted to *refute* byte-identity/behavior-preservation; all 7 returned
+`refuted=false`, high confidence) → a completeness critic. One commit per
+landed finding on `main`. Sequential-on-main (not parallel worktrees) was chosen
+deliberately so the byte-identical golden gate runs on the real merged tree
+before every commit.
+
+**Owner decisions (AskUserQuestion):** B-S1 → **won't-fix** (trait shape
+incompatible with live source); D-S3/D5 grouping → **per-panel cohesive**.
+
+**Landed (3):**
+
+- **B10** ✅ `47733b0` — `StrategicOutput::weighted_priority_score`
+  (`analysis/economy/config.rs`) 9-deep nested `mul_add` chain → `const WEIGHTS:
+  [f32; 10]` + a const-indexed fold over the existing `fields()` helper. **Bit
+  identical:** seed is the plain multiply `ore * 0.70`; the remaining nine terms
+  fold in source-nesting order, each one fused `field.mul_add(weight, acc)`,
+  data-dependent through `acc` (no reassociation, no `.sum()`). The score bands
+  into `StrategicPriority` (rendered into sector.md, serialized into sector.json,
+  both blake3-pinned). golden **17/17 byte-identical**, economy 8/8, clippy clean.
+  Adversarial: logic-diff skeptic reconstructed the FMA tree node-for-node;
+  golden-rerun skeptic re-ran from clean — both `refuted=false`.
+
+- **D-S3 / D5** ✅ `f630ca7` — split the 154-field `BuilderState` god-struct into
+  20 cohesive **transient** sub-structs (new `state/panel_state.rs`): `selection`
+  (16), `map_view` (10), `drag` (10), `feedback` (9), `generation` (4),
+  `route_bulk` (6), `hidden_routes` (4), `region_grow` (4), and the per-panel
+  `hooks/sites/missions/personae/history/briefing/interestingness/conflict/
+  relations/economy/theme_panel` + `system_view` runtimes — 102 flat fields → 20
+  group fields; top-level count **154 → 75**. Document state, derivation caches,
+  document-level overrides, the 6 already-grouped panel runtimes
+  (search/diff/…), infra, and 6 leftover singletons (prose_auto_recompute,
+  subsector_target_systems, archetype_flags, system_bitmap_preview, active_tab,
+  nav_rail_collapsed) stay flat. **Pure behavior-identical field-move** — no
+  command-bus / undo-redo / snapshot / serialization change (every moved field is
+  transient §R4 carve-out UI scratch). Each sub-struct's `Default` encodes the
+  exact prior init value; both constructors (`new_blank`, `into_state`) were
+  verified field-by-field to agree on every grouped field before collapsing to
+  `::default()` — **no constructor discrepancy**. Fully compiler-verified (Rust
+  catches every field access). 73 files (1 new + 72 reference-updates). workspace
+  check + clippy `-D warnings` clean; builder lib **319/319**. `selected_systems`
+  was placed in `SelectionState` (it is the cross-cutting multi-select set —
+  map rect-select + system bulk-ops + route-bulk — not route-bulk-local as the
+  scope first classified). Large carve delegated to `panel-implementer`, then
+  re-verified on main. Adversarial: init-value-drift skeptic reconciled 155 = 102
+  absorbed + 53 flat (0 dropped/added, all Default values byte-match pre-image);
+  bus/undo skeptic confirmed undo/snapshot/serde touch only document fields (+
+  the transient `feedback.last_save_error` status string); completeness skeptic
+  re-ran `cargo check --all-targets` exit 0 — all `refuted=false`.
+
+- **E4-part-a** ✅ `6b75468` — swapped the **five** `NotableFeature` Debug-repr
+  key sites in `panels/world/features.rs` (current-features list, "already" filter
+  set, picker key, feature-pool weight-map key, and the round-trip find in
+  `feature_display_name`) from `format!("{:?}")`/`Display` to
+  `NotableFeature::as_ref()`. `impl AsRef<str>` returns the verbatim PascalCase
+  variant name, **char-for-char identical** to the old Debug form, so the
+  in-memory UI keys are byte-identical today; the win is rename-safety (a renamed
+  variant breaks its `AsRef` arm at compile time). The scope listed 4 sites; the
+  current-features `cur` collection was a **5th** equivalent key site (feeds
+  `feature_display_name` + `weights.get`) — swapped too for one consistent source.
+  Builder-only (no golden/snapshot). check + clippy `-D warnings` clean; builder
+  lib **319/319**. Adversarial: exhaustive-variant skeptic verified all **100**
+  `AsRef` arms equal the variant name (= Debug); persistence skeptic confirmed
+  serde serializes `notable_features` via the same variant name → on-disk bytes
+  unaffected — both `refuted=false`.
+
+**Won't-fix (3) — formally closed by owner decision / live-source verification:**
+
+- **B8 †** (LOW) — `insert_top_n` O(top) scan in `search.rs`. Right fix for the
+  wrong problem size (`report_top` defaults to 5, capped at `budget` inserts;
+  the scan is dominated ~100× by per-candidate sector generation) **and** a real
+  byte-risk: the current strict-`>`/strict-`<` semantics drop a newcomer that
+  *exactly ties* the worst `total_miss` (keeping the lower-`n` incumbent); a
+  `BinaryHeap` keyed on `total_miss` alone has undefined eviction among equal
+  keys → could keep a different-`n` candidate → different surviving SET → drifted
+  bytes. Search output is **not blake3-pinned** today, so such a regression would
+  pass CI silently. No cheap byte-identical win exists. Won't-fix.
+
+- **C-S3-deeper †** (MED) — the subsector-label *placement* geometry in
+  `bitmap/labels.rs` vs `svg_export/labels.rs`. Wave-20's conclusion was
+  independently re-confirmed against live source: the two backends compute
+  **different numbers at every geometric step** — `hex_center` `(i32,i32)` rounded
+  vs `(f32,f32)` raw; `i64` centroid + integer distance vs `f32` `mul_add`/`powi`;
+  real glyph metrics (`text_size`/`GLYPH_*`) vs heuristic `chars*font*0.6`;
+  `i32` vs `f32` `Rect`/`MapBounds`. A merge needs a generic over **both** the
+  numeric type **and** the glyph-metric source (a trait rewrite), and both PNG +
+  SVG blake3 pins would have to stay identical — not achievable as a pure move,
+  and against the proportionate-refactor preference. The byte-safe slices already
+  shipped in wave 20 (`render_core::labels::{system_label_visible,
+  subsector_label_backed}`). Leave wave-20 as final. Won't-fix.
+
+- **B-S1 †** (L) — the `SectorReport` trait over the 7 report modules. Live-source
+  scope showed the proposed shape is **mathematically incompatible**: `relations`
+  `derive` returns `RelationsMatrix` (not a report; the renderable
+  `RelationsReport` is assembled in the CLI caller) and adds
+  `derive_with_threshold`; `economy` `derive` is enabled-by-default so a blanket
+  `Config::default()` would flip its output; `render_markdown` has 4 arg shapes
+  and `write_report` 3 (with `prose`'s base name `"gazetteer"` ≠ module name); the
+  `load_config_file<C>` premise is false (only economy + relations have loaders,
+  both via an intermediate `*File` type, neither used by the 7 runners). Owner
+  chose **won't-fix** over a narrow-3-module trait (little payoff) or a sweeping
+  behavioral redesign (golden risk + against the proportionate preference). The
+  dedup-able parts are already shared (`cap_per_anchor`, `cmp_f32_*`,
+  `write_md_and_json`). Won't-fix.
+
+**Verification (merged tree, post-E4):** `cargo check --workspace --all-targets`
+clean; `cargo clippy --workspace --all-targets -- -D warnings` clean; golden +
+svg_export + export_writes **20/20 byte-identical**; builder lib **319/319**.
+
+**All AREAS A–G now COMPLETE.** No open findings remain — every actionable item
+landed; the rest are owner-decided won't-fix (B8, B-S1, C-S3-deeper, C9) recorded
+above and in Open decisions.
 
 ### 2026-06-05 — step 5, wave 20 (AREA_C label dedup — C4 + C-S3)
 
@@ -1513,27 +1636,48 @@ serde shim. ~150 sites across all 4 crates.
   behavioural change to `missions.md` / `sector.json` for no functional gain. The
   `*` on the roll-up marks B-S2 as resolved via B4 + this intentional-divergence
   ruling, not a code unification. No further action.
-- **B-S1 (`SectorReport` trait, 7 modules) — OWNER-GATED, L / defer.** The
-  review itself sequences it last ("defer until other dedup is stable") and notes
-  the `render_markdown` signatures vary (some take `cfg`, some don't), needing a
-  `Render` associated type or split trait method, plus asymmetric config loading
-  (only economy + relations expose `load_*_file`). That is a structural trait
-  rewrite across 7 modules — outside the "proportionate, compiler-checked"
-  lane and the "no trait rewrites unless trivially clean" preference. Recommend
-  an explicit owner go/no-go before attempting; not started.
-- **B8 / B10 — LOW, intentionally deferred.** B8 (`insert_top_n` O(top) scan) is
-  the right fix for the wrong problem size (`report_top` defaults to 5) — defer
-  unless it grows past ~20. B10 (the 9-deep `mul_add` chain in
-  `weighted_priority_score`) is a **golden-risk** readability item: a naive dot
-  product changes the FMA associativity and breaks byte-stability; left as-is
-  (the B5 field-list pass deliberately did **not** touch it).
-- **E4 part a (`NotableFeature::as_slug()` swap) — PARKED, behaviour-sensitive.**
-  The review's other half of E4 — replacing the 9 `format!("{v:?}")` / `{self:?}`
-  key sites in `world/` with a stable `as_slug()` — is **not** done. Those
-  Debug-repr strings are load-bearing keys (the feature-weight lookup + the
-  `EnumPicker::debug_key` storage keys); a slug whose value differs from the Rust
-  variant name would change them. Left for an owner decision (like D-S3·D5),
-  per "don't swap behaviour without asking."
+- **B-S1 (`SectorReport` trait, 7 modules) — RESOLVED WON'T-FIX (owner call,
+  wave 21).** Live-source scope proved the proposed trait shape is mathematically
+  incompatible: `relations::derive` returns `RelationsMatrix` (not a report; the
+  renderable `RelationsReport` is built in the CLI caller) and adds
+  `derive_with_threshold`; `economy::derive` sets `enabled: true` so a blanket
+  `Config::default()` default would flip its output bytes; `render_markdown` has 4
+  arg shapes and `write_report` 3 (with `prose`'s base name `"gazetteer"` ≠ module
+  name); the `load_config_file<C>` premise is false (only economy + relations have
+  loaders, both via an intermediate `*File` type, neither used by the 7 runners).
+  Owner chose won't-fix over a narrow-3-module trait (little payoff) or a sweeping
+  behavioral redesign (golden risk + against the proportionate-refactor
+  preference). The safely-dedup-able parts already share helpers (`cap_per_anchor`,
+  `cmp_f32_*`, `write_md_and_json`). No further action.
+- **B10 — RESOLVED ✅ (`47733b0`, wave 21).** `weighted_priority_score` 9-deep
+  `mul_add` chain → `const WEIGHTS` + a const-indexed fold over `fields()` that
+  reproduces the FMA chain **bit-for-bit** (seed `ore * 0.70`; nine
+  `field.mul_add(weight, acc)` steps in source-nesting order, data-dependent
+  through `acc`, no reassociation). golden 17/17 byte-identical; adversarially
+  verified (`refuted=false` ×2). Did NOT use a naive dot-product `.sum()` (that
+  would change FMA associativity and break byte-stability).
+- **B8 — RESOLVED WON'T-FIX (wave 21).** `insert_top_n` O(top) scan: right fix for
+  the wrong problem size (`report_top` default 5, ≤`budget` inserts, dominated
+  ~100× by per-candidate generation) **and** a real byte-risk — the strict-`>`/
+  strict-`<` semantics drop a newcomer that *exactly ties* the worst `total_miss`;
+  a `BinaryHeap` keyed on `total_miss` alone has undefined eviction among equal
+  keys → could change the surviving SET → drifted bytes, and search output is
+  **not blake3-pinned** so it would slip past CI. No cheap byte-identical win.
+- **C-S3-deeper — RESOLVED WON'T-FIX (wave 21).** The subsector-label placement
+  geometry differs at every step across the bitmap (`i32`/real glyph metrics) and
+  svg (`f32`/heuristic widths) backends; a merge needs a generic over both the
+  numeric type and the glyph-metric source (a trait rewrite) with both PNG + SVG
+  blake3 pins held identical — not a pure move. Byte-safe slices already landed in
+  wave 20. Independently re-confirmed against live source.
+- **E4 part a (`NotableFeature` stable key) — RESOLVED ✅ (`6b75468`, wave 21).**
+  Swapped the 5 `format!("{v:?}")`/`Display` key sites in `world/features.rs` to
+  `NotableFeature::as_ref()`, which returns the verbatim PascalCase variant name —
+  **byte-identical** to the old keys today (all 100 `AsRef` arms verified char-for-
+  char = variant name = Debug), and rename-safe (a renamed variant breaks the
+  `AsRef` arm). The stale "7 `EnumPicker::debug_key` impls" half of the original
+  finding was already gone (EnumPicker refactored to `variants()`+`display()`),
+  so only the 4 doc-named sites + the equivalent `cur` site existed. Builder-only,
+  no golden exposure; adversarially verified (`refuted=false` ×2).
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via
   PR #3 (`2b274ea`).** Landed as `7a06824` (AREA_D), `56b587b` (E1/E2/E3),
   `5055f3a` (G2), `1b01f28` (C1), `688a378` (B-S3), `7c446bf` (this tracker).

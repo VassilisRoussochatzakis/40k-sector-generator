@@ -67,6 +67,17 @@ Verified 2026-06-05 against `main`; scope covers `src/export/`, `src/validate/`,
 
 ### C-S3 — bitmap vs svg_export duplicate label/layout geometry
 
+> ‡†  **PARTIAL ✅ + deeper merge WON'T-FIX (waves 20–21).** The byte-safe slices
+> landed in wave 20: `render_core::labels::{system_label_visible (C4, `a580c81`),
+> subsector_label_backed (`5cd0b00`)}`. The deeper *placement geometry* merge is
+> WON'T-FIX (wave 21): re-confirmed against live source that the bitmap (`i32`,
+> `i64` distance, real glyph metrics `text_size`/`GLYPH_*`, `2*g.scale`) and svg
+> (`f32`, `mul_add`/`powi` distance, heuristic `chars*font*0.6`, `2.0`) backends
+> compute different numbers at every step, with `i32` vs `f32` `Rect`/`MapBounds`.
+> A merge needs a generic over both the numeric type AND the glyph-metric source (a
+> trait rewrite) with both PNG + SVG blake3 pins held identical — not a pure move,
+> against the proportionate preference. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** MED / P1 structural
 - **Status:** ✅ Confirmed
 - **Location:** `src/export/bitmap/labels.rs:61–78` vs `src/export/svg_export/labels.rs:72–89`
@@ -265,6 +276,13 @@ Verified 2026-06-05 against `main`; scope covers `src/export/`, `src/validate/`,
 ---
 
 ### C9 — wildcard arm on `#[non_exhaustive]` `Severity` enum
+
+> † **WON'T-FIX (language-mandated; re-confirmed wave 21).** The review's "remove
+> the `_ => "UNKNOWN"` arm" is impossible: `mod cli` compiles into the **bin**
+> crate while `Severity` is `pub use`'d from the **lib** and is
+> `#[non_exhaustive]`, so across that crate boundary an exhaustive match is illegal
+> and the wildcard is mandatory — dropping it is `rustc E0004` (confirmed
+> empirically in waves 18–19). The wildcard stays. See [PROGRESS.md](PROGRESS.md).
 
 - **Review sev / bucket:** LOW / P3
 - **Status:** ✅ Confirmed

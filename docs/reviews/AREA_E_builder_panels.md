@@ -185,6 +185,16 @@ Dated 2026-06-05. Scope: `builder/src/builder/panels/` (45 files). Primary god-f
 
 ### E4 — `world.rs` 1625-line god-file + `format!("{:?}")` storage keys
 
+> ✅ **FULLY RESOLVED (split wave 3 + part-a wave 21, `6b75468`).** The split half
+> landed earlier (`world/` dir module). Part-a (wave 21): swapped the 5
+> `NotableFeature` Debug-repr key sites in `world/features.rs` to
+> `NotableFeature::as_ref()` — byte-identical to the old keys today (all 100 `AsRef`
+> arms verified char-for-char = variant name = Debug) and rename-safe. The "7
+> `EnumPicker::debug_key` impls" half of the original count was already gone
+> (EnumPicker refactored to `variants()`+`display()`), so only 4 doc-named sites +
+> the equivalent `cur` site existed. Builder-only; adversarially verified. See
+> [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** MED / P1.5 + P2
 - **Status:** ✅ Confirmed
 - **Location:** `builder/src/builder/panels/world.rs` (1625 lines confirmed by `wc -l`)

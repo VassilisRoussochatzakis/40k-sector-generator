@@ -23,7 +23,7 @@ All 14 findings closed. Workspace green: `cargo test --workspace` 0 failures,
 | D2 / D11 | `recompute_chronicle_undoable` dispatches `EditChronicle` through the bus for the "Regenerate chronicle" button + `history_auto_recompute` trigger (option B). The passive LD4 refresh (`recompute_chronicle`) stays off-bus so viewing the HISTORY tab never evicts the redo tail; manual events preserved on both paths. |
 | D6 | Already fixed; added a comment at the economy install pointing to the `ensure_fresh` fingerprint gate. |
 | D-S1 / D3 | **Proportionate** resolution (the trait/macro rewrite was assessed net-negative — de-enuming breaks the serialized command log, and the named "missing arm" risk is already compiler-prevented by the three exhaustive `_`-less matches). Added `system_mut`/`world_mut` helpers collapsing ~12 repeated find-or-`NotFound` chains, the `dep_classes_cover_all_variants` exhaustive test, and a co-maintenance doc note. |
-| D-S3 / D5 | **Deferred** by decision — the 154-field god-struct split is a high-churn field-move the review itself sequences *after* a G2 content-golden safety net that does not yet exist. To be done in a focused pass alongside G2. |
+| D-S3 / D5 | ✅ **DONE (wave 21, `f630ca7`)** — split the 154-field god-struct into 20 cohesive transient sub-structs (new `state/panel_state.rs`); top-level count 154→75; per-panel cohesive grouping (owner-chosen). Pure behavior-identical field-move — no command-bus / undo-redo / serialization change; both constructors verified field-by-field before collapsing to `::default()`. builder 319/319; adversarially verified. |
 
 ---
 
@@ -90,6 +90,18 @@ All 14 findings closed. Workspace green: `cargo test --workspace` 0 failures,
 ---
 
 ### D-S3 — BuilderState ~154-field god-struct
+> ✅ **RESOLVED 2026-06-05 (wave 21, `f630ca7`).** Split the 154-field
+> `BuilderState` into 20 cohesive transient sub-structs (new `state/panel_state.rs`)
+> — 102 flat fields → 20 group fields, top-level count 154 → 75. Per-panel cohesive
+> grouping (owner-chosen), following the existing SearchState/DiffState precedent.
+> Pure behavior-identical field-move; no command-bus / undo-redo / snapshot /
+> serialization change (all moved fields are transient §R4 carve-out scratch). Each
+> sub-struct's `Default` encodes the exact prior init value; both constructors
+> verified field-by-field to agree before collapsing to `::default()`. Fully
+> compiler-verified; builder 319/319; adversarially verified (init-value drift,
+> bus/undo, completeness — all `refuted=false`). Closes D5 too. See
+> [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** systemic / P2
 - **Status:** ✅ Confirmed (field count is higher than review estimated)
 - **Bus verdict (bypass findings only):** —

@@ -23,6 +23,17 @@ Verified 2026-06-05 against live `main` branch. Scope: `src/analysis/` — prima
 
 ### B-S1 — 7 report modules duplicate derive→render_markdown→write_report
 
+> † **WON'T-FIX 2026-06-05 (wave 21, owner call).** Live-source scope proved the
+> proposed `SectorReport` trait is incompatible: `relations::derive` returns
+> `RelationsMatrix` (report assembled in the CLI caller) + adds
+> `derive_with_threshold`; `economy::derive` is enabled-by-default (a blanket
+> `Config::default()` default would change its bytes); `render_markdown` has 4 arg
+> shapes / `write_report` 3 (`prose` base = `"gazetteer"`); `load_config_file<C>`
+> premise false (only economy + relations load, via an intermediate `*File` type,
+> unused by the 7 runners). Owner chose won't-fix over a narrow-3-module trait or a
+> golden-risky behavioral redesign; the dedup-able parts already share
+> `cap_per_anchor`/`cmp_f32_*`/`write_md_and_json`. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** systemic / P1 #4
 - **Status:** ✅ Confirmed
 - **Location:** `src/analysis/economy.rs`, `hooks.rs`, `interestingness.rs`, `missions.rs`, `personae.rs`, `prose.rs`, `relations.rs` (verified by pattern scan)
@@ -220,6 +231,14 @@ Verified 2026-06-05 against live `main` branch. Scope: `src/analysis/` — prima
 
 ### B8 — insert_top_n O(top) scan in search.rs
 
+> † **WON'T-FIX 2026-06-05 (wave 21).** Right fix for the wrong problem size
+> (`report_top` default 5, ≤`budget` inserts, dominated ~100× by per-candidate
+> generation) **and** a real byte-risk: the strict-`>`/strict-`<` semantics drop a
+> newcomer that exactly ties the worst `total_miss`; a `BinaryHeap` keyed on
+> `total_miss` alone has undefined tie eviction → could change the surviving SET →
+> drifted bytes, and search output is not blake3-pinned so it would slip past CI.
+> No cheap byte-identical win. See [PROGRESS.md](PROGRESS.md).
+
 - **Review sev / bucket:** LOW / P3
 - **Status:** ⚠️ Partial
 - **Location:** `src/analysis/search.rs:1305` (verified)
@@ -262,6 +281,13 @@ Verified 2026-06-05 against live `main` branch. Scope: `src/analysis/` — prima
 ---
 
 ### B10 — 9-deep mul_add chain in StrategicOutput::weighted_priority_score
+
+> ✅ **RESOLVED 2026-06-05 (wave 21, `47733b0`).** Rewrote as `const WEIGHTS:
+> [f32; 10]` + a const-indexed fold over the existing `fields()` helper that
+> reproduces the FMA chain **bit-for-bit** (seed `ore * 0.70`; nine
+> `field.mul_add(weight, acc)` in source-nesting order, data-dependent through
+> `acc`, no reassociation). golden 17/17 byte-identical; adversarially verified.
+> Used option (a) — NOT a naive `.sum()` dot product. See [PROGRESS.md](PROGRESS.md).
 
 - **Review sev / bucket:** LOW / P3
 - **Status:** ✅ Confirmed

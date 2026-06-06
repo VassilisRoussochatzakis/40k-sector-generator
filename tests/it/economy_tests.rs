@@ -7,24 +7,21 @@
 //!    balance keys, strategic outputs.
 //! 3. Golden markdown — stable headings + table rows for a fixed fixture seed.
 
-use std::sync::OnceLock;
-
-use camino::Utf8PathBuf;
+use proptest::prelude::*;
 use sectorforge::{
     economy::{self, EconomyConfig, EconomyReport, RESOURCE_KEYS, STRATEGIC_RESOURCE_KEYS},
     generate_sector, load_project, GeneratedSector,
 };
 
-fn fixture_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
+use crate::shared::{fixture_dir, fixture_sector};
 
-fn fixture_sector() -> &'static GeneratedSector {
-    static SECTOR: OnceLock<GeneratedSector> = OnceLock::new();
-    SECTOR.get_or_init(|| {
-        let input = load_project(fixture_dir()).expect("load fixture");
-        generate_sector(input).expect("generate fixture")
-    })
+/// G1: generate a fresh sector from `seed`, independent of the memoised
+/// [`fixture_sector`], so the proptest genuinely exercises seed variance
+/// rather than re-deriving on one cached sector.
+fn gen_sector(seed: &str) -> GeneratedSector {
+    let mut input = load_project(fixture_dir()).expect("load fixture");
+    input.config.generation.seed = seed.to_string();
+    generate_sector(input).expect("generate fixture")
 }
 
 fn enabled_cfg() -> EconomyConfig {
@@ -154,4 +151,30 @@ fn derive_is_deterministic_for_fixture() {
     let ja = serde_json::to_string(&a).unwrap();
     let jb = serde_json::to_string(&b).unwrap();
     assert_eq!(ja, jb, "economy report not deterministic for fixture");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 24,
+        max_shrink_iters: 32,
+        ..ProptestConfig::default()
+    })]
+
+    /// G1: vary the generation seed and confirm the economy derivation is a pure
+    /// function of the resulting sector — two independent generations from the
+    /// same seed yield byte-identical report JSON, and friction stays clamped.
+    #[test]
+    fn economy_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
+        let s1 = gen_sector(&seed);
+        let s2 = gen_sector(&seed);
+        let a = economy::derive_with(&s1, &enabled_cfg());
+        let b = economy::derive_with(&s2, &enabled_cfg());
+        prop_assert_eq!(
+            serde_json::to_string(&a).unwrap(),
+            serde_json::to_string(&b).unwrap()
+        );
+        for r in &a.routes {
+            prop_assert!(r.friction.is_finite() && (0.0..=1.5).contains(&r.friction));
+        }
+    }
 }

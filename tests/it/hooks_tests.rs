@@ -8,25 +8,22 @@
 //!    `hide_hidden_hooks`.
 //! 3. Golden markdown — stable headings + per-hook attribute lines.
 
-use std::sync::OnceLock;
-
-use camino::Utf8PathBuf;
+use proptest::prelude::*;
 use sectorforge::{
     generate_sector,
     hooks::{self, HookAnchor, HooksConfig},
     load_project, GeneratedSector,
 };
 
-fn fixture_dir() -> Utf8PathBuf {
-    Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("examples/m42_project")
-}
+use crate::shared::{fixture_dir, fixture_sector};
 
-fn fixture_sector() -> &'static GeneratedSector {
-    static SECTOR: OnceLock<GeneratedSector> = OnceLock::new();
-    SECTOR.get_or_init(|| {
-        let input = load_project(fixture_dir()).expect("load fixture");
-        generate_sector(input).expect("generate fixture")
-    })
+/// G1: generate a fresh sector from `seed`, independent of the memoised
+/// [`fixture_sector`], so the proptest genuinely exercises seed variance
+/// rather than re-deriving on one cached sector.
+fn gen_sector(seed: &str) -> GeneratedSector {
+    let mut input = load_project(fixture_dir()).expect("load fixture");
+    input.config.generation.seed = seed.to_string();
+    generate_sector(input).expect("generate fixture")
 }
 
 #[test]
@@ -154,4 +151,34 @@ fn derive_is_deterministic_for_fixture() {
     let ja = serde_json::to_string(&a).unwrap();
     let jb = serde_json::to_string(&b).unwrap();
     assert_eq!(ja, jb, "hooks report not deterministic for fixture");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 24,
+        max_shrink_iters: 32,
+        ..ProptestConfig::default()
+    })]
+
+    /// G1: vary the generation seed and confirm the hooks derivation is a pure
+    /// function of the resulting sector — two independent generations from the
+    /// same seed yield byte-identical report JSON, with weights non-increasing.
+    #[test]
+    fn hooks_derive_deterministic_across_seeds(seed in "[a-z0-9]{4,12}") {
+        let s1 = gen_sector(&seed);
+        let s2 = gen_sector(&seed);
+        let a = hooks::derive(&s1);
+        let b = hooks::derive(&s2);
+        prop_assert_eq!(
+            serde_json::to_string(&a).unwrap(),
+            serde_json::to_string(&b).unwrap()
+        );
+        let mut last: Option<u32> = None;
+        for h in &a.hooks {
+            if let Some(prev) = last {
+                prop_assert!(prev >= h.weight);
+            }
+            last = Some(h.weight);
+        }
+    }
 }

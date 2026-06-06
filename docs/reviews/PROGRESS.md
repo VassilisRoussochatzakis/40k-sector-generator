@@ -15,7 +15,7 @@ sequence". Update this file whenever a finding moves status.
 
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
-| A `src/model` + generation | 12 | 10 (A1,A2,A3,A4,A6,A8,A9,A10,A11,A12) | 0 | 1 (A7) | 1 (A5) |
+| A `src/model` + generation | 12 | 11 (A1,A2,A3,A4,A6,A7,A8,A9,A10,A11,A12) | 0 | 0 | 1 (A5) |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
@@ -1287,6 +1287,37 @@ serde shim. ~150 sites across all 4 crates.
   All 37 changed `.rs` files rustfmt-clean. No file moved → MAP.md untouched.
 - **Next:** A7 (maintained BTreeMap index — owner-chosen full fix). A5 still
   ⏸️ owner-gated.
+
+### 2026-06-05 — step 5, wave 16 (AREA_A A7 — accessor index) · AREA_A effectively complete
+
+- **A7 (`get_system`/`get_world` O(n) scans) — ✅ DONE (field-free helper, owner
+  call).** The review's literal fix (a maintained index *field* on
+  `GeneratedSector`) was put to the owner via AskUserQuestion after I surfaced its
+  real cost: a `#[serde(skip)]` field forces `lookup: Default::default(),` into
+  **~30 struct-literal sites** (mostly test fixtures) for a LOW-sev item, and any
+  on-struct cache risks staleness-on-load (serde-skip → empty after deserialize).
+  **Owner chose the field-free helper.**
+  - Added `GeneratedSector::build_system_index() -> BTreeMap<SystemId, usize>` and
+    `build_world_index() -> BTreeMap<WorldId, (usize, usize)>` (both `#[must_use]`).
+    A repeated-lookup caller builds the map **once**, turning an O(n)-per-lookup
+    scan into one O(n) build + O(log n) lookups. The map is caller-owned (dropped
+    after the loop), so it can never go stale against a mutation and nothing new is
+    serialized — sidesteps both hazards of the on-struct design. `get_system`/
+    `get_world` keep their scan for one-off use.
+  - **Wired through the two genuine repeated-lookup sites** (`export/subsectors/mod.rs`):
+    `assign_hex_grid`'s `seed_ids → coord` map and the subsector-skeleton `cells`
+    loop both did `seed_ids.iter().map(|id| sector.get_system(id))` (O(seeds·systems));
+    now build the index once and index into `sector.systems`. **Same systems →
+    byte-identical output** (export is golden-tested).
+  - Added `build_indices_resolve_to_the_same_entries_as_scans` (lib 195→**196**).
+  - **Verification:** clippy `-D warnings` clean; **golden 15/15 byte-identical**;
+    lib **196/196**, `it` **93/93**. (Also fixed a stray import-order nit in
+    `scaffold.rs` from the A2 sweep.) No file moved → MAP.md untouched.
+
+- **AREA_A is now effectively complete: 11/12 resolved; only A5 (157-pub-field
+  visibility tightening, L) stays ⏸️ owner-gated** alongside D-S3/D5 — a wide
+  builder/viewer/tests cascade, not a clean split, explicitly deferrable per the
+  review's own sequencing.
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call

@@ -436,6 +436,39 @@ impl GeneratedSector {
     pub fn all_worlds(&self) -> impl Iterator<Item = &GeneratedWorld> {
         self.systems.iter().flat_map(|s| s.worlds.iter())
     }
+
+    /// Build an `id → systems[]` index for callers that do many `get_system`
+    /// lookups in a loop, turning repeated O(n) scans into one O(n) build plus
+    /// O(log n) lookups (A7). Deliberately **not** cached on the sector — the
+    /// caller owns the map, so it can never go stale against a mutation and
+    /// nothing is serialized into `sector.json`. Build it once, reuse it across
+    /// the loop, drop it; for a one-off lookup use [`Self::get_system`].
+    #[must_use]
+    pub fn build_system_index(&self) -> BTreeMap<SystemId, usize> {
+        self.systems
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (s.id.clone(), i))
+            .collect()
+    }
+
+    /// Build an `id → (system_index, world_index)` index over every world, for
+    /// callers doing many `get_world` lookups in a loop (the O(systems × worlds)
+    /// scan is the worse of the two). See [`Self::build_system_index`] for the
+    /// ownership / staleness rationale.
+    #[must_use]
+    pub fn build_world_index(&self) -> BTreeMap<WorldId, (usize, usize)> {
+        self.systems
+            .iter()
+            .enumerate()
+            .flat_map(|(i, s)| {
+                s.worlds
+                    .iter()
+                    .enumerate()
+                    .map(move |(j, w)| (w.id.clone(), (i, j)))
+            })
+            .collect()
+    }
 }
 
 impl GeneratedSystem {
@@ -1224,6 +1257,38 @@ mod tests {
         assert_eq!(v["world_type"], "HiveWorld");
         assert_eq!(v["government"], "MilitaryGovernor");
         assert_eq!(v["notable_features"][0], "TradeHub");
+    }
+
+    #[test]
+    fn build_indices_resolve_to_the_same_entries_as_scans() {
+        // A7: the id→index maps must agree with the linear get_system/get_world
+        // scans they replace.
+        let mut sector = empty_sector("sec", "Sec", "seed", 8, 8);
+        let mut s0 = GeneratedSystem::new_at("sys-0".into(), 0, HexCoord { q: 0, r: 0 }, "S0");
+        let mut s1 = GeneratedSystem::new_at("sys-1".into(), 1, HexCoord { q: 1, r: 0 }, "S1");
+        let w0 = empty_world(0, 0, "W0".to_string());
+        let w1 = empty_world(1, 0, "W1".to_string());
+        let (w0_id, w1_id) = (w0.id.clone(), w1.id.clone());
+        s0.worlds.push(w0);
+        s1.worlds.push(w1);
+        sector.systems = vec![s0, s1];
+
+        let sidx = sector.build_system_index();
+        assert_eq!(sidx.len(), 2);
+        for s in &sector.systems {
+            let i = sidx[&s.id];
+            assert_eq!(sector.systems[i].id, s.id);
+            assert_eq!(sector.get_system(&s.id).map(|x| &x.id), Some(&s.id));
+        }
+
+        let widx = sector.build_world_index();
+        assert_eq!(widx.len(), 2);
+        for (wid, want) in [(&w0_id, (0_usize, 0_usize)), (&w1_id, (1, 0))] {
+            assert_eq!(widx.get(wid).copied(), Some(want));
+            let (i, j) = widx[wid];
+            assert_eq!(sector.systems[i].worlds[j].id, *wid);
+            assert_eq!(sector.get_world(wid).map(|x| &x.id), Some(wid));
+        }
     }
 
     #[test]

@@ -9,7 +9,7 @@
 
 use crate::ids::{route_id, world_id, FactionId, SystemId};
 use crate::worlds::{
-    Atmosphere, Biosphere, Government, Population, StarColour, Temperature, TechLevel, WorldType,
+    Atmosphere, Biosphere, Government, Population, StarColour, TechLevel, Temperature, WorldType,
 };
 
 use super::{

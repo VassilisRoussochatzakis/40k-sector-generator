@@ -224,9 +224,10 @@ pub fn build_subsectors(
     // Build initial Subsector skeletons in seed order, then we'll relabel them
     // row-major over the capital coords once capitals are picked.
     let k = seed_indices.len();
+    let system_index = sector.build_system_index();
     let mut cells: Vec<Subsector> = (0..k)
         .map(|i| {
-            let seed_sys = sector.get_system(&seed_ids[i]).expect("seed id missing");
+            let seed_sys = &sector.systems[system_index[&seed_ids[i]]];
             Subsector {
                 id: format!("subsector-tmp-{i}").into(),
                 sector_id: sector.id.clone(),
@@ -644,9 +645,13 @@ fn seed_score(sys: &GeneratedSystem, route_degree: &BTreeMap<&str, u32>) -> i32 
 /// tie-breaking on cluster index. Returns a per-hex `(q,r) → cluster_idx` map.
 fn assign_hex_grid(sector: &GeneratedSector, seed_ids: &[SystemId]) -> BTreeMap<(u32, u32), usize> {
     let mut out = BTreeMap::new();
+    let system_index = sector.build_system_index();
     let seed_coords: Vec<HexCoord> = seed_ids
         .iter()
-        .map(|id| sector.get_system(id).expect("missing sys").coord)
+        .map(|id| {
+            let i = *system_index.get(id).expect("missing sys");
+            sector.systems[i].coord
+        })
         .collect();
     for r in 0..sector.height {
         for q in 0..sector.width {

@@ -11,7 +11,10 @@ pub(super) fn place_systems(config: &AppConfig) -> Result<Vec<HexCoord>, SectorE
     let g = &config.generation;
     let width = g.sector_width as i32;
     let height = g.sector_height as i32;
-    let total_cells = (width * height) as usize;
+    // Cast each operand before multiplying: `(width * height) as usize` would
+    // multiply in `i32` first and overflow on absurd dims. (Validation caps
+    // dims well below the overflow threshold; this is defense in depth.)
+    let total_cells = (width as usize) * (height as usize);
 
     let target = g.system_count.min(total_cells);
     if target == 0 {

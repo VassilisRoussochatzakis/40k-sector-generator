@@ -84,6 +84,27 @@ fn majority_excluded_rows_is_severe_error() {
     );
 }
 
+#[test]
+fn oversized_sector_dims_fail_validation() {
+    // Regression guard: a hand-edited `sectorforge.toml` with absurd dimensions
+    // must be rejected before generation allocates a multi-gigabyte cell grid.
+    // See GEN_SECTOR_TOO_LARGE / MAX_SECTOR_DIM in src/validate/validation.rs.
+    let project = manifest_dir().join("examples/m42_project");
+    let mut input = sectorforge::load_project(project).unwrap();
+    input.config.generation.sector_width = 2000;
+    input.config.generation.sector_height = 2000;
+    let report = sectorforge::validate_project(&input).unwrap();
+    assert!(!report.ok, "2000x2000 must fail validation");
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.code == "GEN_SECTOR_TOO_LARGE"),
+        "expected GEN_SECTOR_TOO_LARGE, got {:?}",
+        report.errors
+    );
+}
+
 fn manifest_dir() -> Utf8PathBuf {
     Utf8PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
 }

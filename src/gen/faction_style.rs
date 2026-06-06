@@ -158,7 +158,11 @@ pub fn faction_style_rgb(kind: &str, id: &str, disposition: &str) -> FactionStyl
 #[must_use]
 pub fn parse_hex_rgb(s: &str) -> Option<(u8, u8, u8)> {
     let t = s.trim().trim_start_matches('#');
-    if t.len() != 6 {
+    // `t.len()` is a *byte* count; a 6-byte multibyte string (e.g. "€€") would
+    // otherwise slice mid-`char` at `&t[0..2]` below and panic. Hex digits are
+    // ASCII, so requiring ASCII rejects no valid input and guarantees the byte
+    // offsets land on `char` boundaries.
+    if t.len() != 6 || !t.is_ascii() {
         return None;
     }
     let r = u8::from_str_radix(&t[0..2], 16).ok()?;
@@ -246,6 +250,10 @@ mod tests {
         assert!(parse_hex_rgb("").is_none());
         assert!(parse_hex_rgb("#12").is_none());
         assert!(parse_hex_rgb("#XYZAAA").is_none());
+        // 6 *bytes* but non-ASCII multibyte chars: must reject, not panic on a
+        // mid-`char` slice (regression for the &t[0..2] boundary panic).
+        assert!(parse_hex_rgb("€€").is_none());
+        assert!(parse_hex_rgb("✓✓").is_none());
     }
 
     #[test]

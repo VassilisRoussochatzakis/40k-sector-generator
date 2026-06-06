@@ -55,6 +55,15 @@ pub struct WorldWorkbookValidation {
     pub key_table_counts: BTreeMap<String, usize>,
 }
 
+/// Hard upper bound on a sector's side length. Far above any real authored
+/// sector (the largest shipped example, `examples/SEC100`, is 100×100) — its
+/// only job is to reject a hand-edited or malformed `sectorforge.toml` whose
+/// absurd dimensions would otherwise allocate a multi-gigabyte cell grid and
+/// OOM-abort the process (`panic = "abort"` in release). Distinct from
+/// `MAX_CUSTOM_DIM` (80) in `crate::gen::random_sector`, which is the stricter
+/// ergonomic cap on the `random` subcommand's curated presets.
+pub const MAX_SECTOR_DIM: u32 = 1024;
+
 pub fn validate(input: &ProjectInput) -> ValidationReport {
     let mut errors: Vec<ValidationIssue> = Vec::new();
     let mut warnings: Vec<ValidationIssue> = Vec::new();
@@ -78,6 +87,19 @@ pub fn validate(input: &ProjectInput) -> ValidationReport {
             &format!(
                 "sectors must be square: sector_width ({}) must equal sector_height ({})",
                 g.sector_width, g.sector_height
+            ),
+            Severity::Error,
+        ));
+    }
+    // Reject absurd grid dimensions before generation allocates the cell grid.
+    // A malformed or hand-edited `sectorforge.toml` with a huge width/height
+    // would otherwise build a multi-gigabyte `Vec<HexCoord>` and OOM-abort.
+    if g.sector_width > MAX_SECTOR_DIM || g.sector_height > MAX_SECTOR_DIM {
+        errors.push(issue(
+            "GEN_SECTOR_TOO_LARGE",
+            &format!(
+                "sector dimensions ({} × {}) exceed the maximum supported {} per side",
+                g.sector_width, g.sector_height, MAX_SECTOR_DIM
             ),
             Severity::Error,
         ));

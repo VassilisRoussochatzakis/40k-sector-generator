@@ -84,6 +84,8 @@ const KNOWN_BORDERS: &[(&str, FactionBorder)] = &[
 const DEFAULT_FACTIONS_REL: &str = "data/factions/factions.toml";
 
 pub(crate) fn show(ui: &mut egui::Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Factions");
     ui.label(
         RichText::new("Who lives in your sector — their look, behaviour, and where they appear.")
@@ -134,6 +136,9 @@ fn show_empty_catalog(ui: &mut Ui, state: &mut BuilderState) {
         if state.config.inputs.factions.is_none() {
             state.config.inputs.factions = Some(DEFAULT_FACTIONS_REL.to_string());
         }
+        // Audit finding #8: captured by the open factions-panel session so
+        // creating the roster is undoable.
+        state.note_catalog_edit();
         state.dirty = true;
         state.dirty_files.insert(DEFAULT_FACTIONS_REL.to_string());
     }
@@ -474,6 +479,9 @@ fn show_inspector(ui: &mut Ui, state: &mut BuilderState, idx: usize) {
         let id = draft.id.clone();
         let file = state.data_catalogs.factions.as_mut().expect("checked");
         file.factions[idx] = draft;
+        // Audit finding #8: arm the coalescing session for this faction-detail
+        // edit burst so it commits as one undoable `EditCatalog` on settle.
+        state.note_catalog_edit();
         state.dirty = true;
         let rel = state
             .config
@@ -1111,6 +1119,10 @@ fn add_new_row(state: &mut BuilderState) {
     };
     file.factions.push(new);
     state.selection.faction_id = Some(FactionId::new(id.as_str()));
+    // Audit finding #8: the open catalog session (begin_catalog_session ran at
+    // the top of `show`) captures this add-row and commits it as one undoable
+    // `EditCatalog` on settle.
+    state.note_catalog_edit();
     state.dirty = true;
     let rel = state
         .config
@@ -1142,6 +1154,8 @@ fn duplicate_row(state: &mut BuilderState, id: &FactionId) {
     let new_id = copy.id.clone();
     file.factions.insert(idx + 1, copy);
     state.selection.faction_id = Some(new_id);
+    // Audit finding #8: captured by the open catalog session (see add_new_row).
+    state.note_catalog_edit();
     state.dirty = true;
     let rel = state
         .config
@@ -1153,15 +1167,34 @@ fn duplicate_row(state: &mut BuilderState, id: &FactionId) {
 }
 
 pub(crate) fn delete_row(state: &mut BuilderState, id: &FactionId) {
-    let Some(file) = state.data_catalogs.factions.as_mut() else {
+    // Audit finding #8: invoked from the delete-faction modal — *outside* a
+    // catalog panel `show`, so there is no open coalescing session to ride.
+    // Route through `edit_catalogs` for an immediate, single-entry undoable
+    // commit. No-op (and no undo entry) when the id is absent.
+    if !state
+        .data_catalogs
+        .factions
+        .as_ref()
+        .is_some_and(|f| f.factions.iter().any(|x| x.id == *id))
+    {
         return;
-    };
-    let Some(idx) = file.factions.iter().position(|f| f.id == *id) else {
+    }
+    let result = state.edit_catalogs(|snap| {
+        if let Some(file) = snap.catalogs.factions.as_mut() {
+            if let Some(idx) = file.factions.iter().position(|f| f.id == *id) {
+                file.factions.remove(idx);
+            }
+        }
+    });
+    if let Err(e) = result {
+        state.feedback.last_save_error = Some(format!("delete faction failed: {e}"));
         return;
-    };
-    file.factions.remove(idx);
-    state.selection.faction_id = file.factions.first().map(|f| f.id.clone());
-    state.dirty = true;
+    }
+    state.selection.faction_id = state
+        .data_catalogs
+        .factions
+        .as_ref()
+        .and_then(|f| f.factions.first().map(|x| x.id.clone()));
     let rel = state
         .config
         .inputs

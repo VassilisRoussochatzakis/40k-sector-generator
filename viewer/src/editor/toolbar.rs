@@ -15,7 +15,6 @@ pub(crate) fn editor_toolbar(ui: &mut Ui, state: &mut EditorState) {
                 seed: "manual".to_string(),
                 width: 8,
                 height: 8,
-                irregular_dimensions: false,
             };
         }
         if ui.button(RichText::new("OPEN")).clicked() {

@@ -40,7 +40,6 @@ pub(crate) struct PresetGalleryState {
     pub target: CreationTarget,
     pub width: u32,
     pub height: u32,
-    pub irregular_dimensions: bool,
     pub add_to_existing: bool,
     pub open_immediately: bool,
     pub pending_open: Option<Utf8PathBuf>,
@@ -107,31 +106,22 @@ pub(crate) fn show(ui: &mut Ui, state: &mut PresetGalleryState) {
         ui.add_enabled_ui(false, |ui| {
             ui.group(|ui| {
                 ui.label(RichText::new("SECTOR DIMENSIONS").color(palette::chrome_text_dim()));
-                ui.checkbox(&mut state.irregular_dimensions, "Irregular dimensions");
-
-                if state.irregular_dimensions {
-                    ui.colored_label(
-                        palette::warning(),
-                        "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
-                    );
-                }
-
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("WIDTH").color(palette::chrome_text_dim()));
                     let w_res = ui.add(egui::DragValue::new(&mut state.width).range(1..=64));
                     ui.label(RichText::new("HEIGHT").color(palette::chrome_text_dim()));
                     let h_res = ui.add(egui::DragValue::new(&mut state.height).range(1..=64));
 
-                    if !state.irregular_dimensions {
-                        if state.width == 0 {
-                            state.width = 8;
-                            state.height = 8;
-                        }
-                        if w_res.changed() {
-                            state.height = state.width;
-                        } else if h_res.changed() {
-                            state.width = state.height;
-                        }
+                    // Geometry invariant: sectors must be square. Mirror
+                    // width <-> height unconditionally.
+                    if state.width == 0 {
+                        state.width = 8;
+                        state.height = 8;
+                    }
+                    if w_res.changed() {
+                        state.height = state.width;
+                    } else if h_res.changed() {
+                        state.width = state.height;
                     }
                 });
             })

@@ -12,6 +12,7 @@
 //! tests use — over two checked-in fixtures that bracket the 500-system target:
 //!   * `big_test`         — 200 systems
 //!   * `huge_sparse_test` — 1000 systems (above the target, with ~2000 routes)
+//!
 //! The whole sector is framed (`screen_rect == map_size_px`), so nothing is
 //! viewport-culled: every system, route and hex is built each iteration — the
 //! worst-case full redraw. Subsector chrome is excluded; the PERF2 budget is

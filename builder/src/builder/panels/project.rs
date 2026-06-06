@@ -85,7 +85,7 @@ fn show_actions(ui: &mut egui::Ui, state: &mut BuilderState) {
                     title: "New Sector".to_string(),
                     seed: "seed-1".to_string(),
                     width: 8,
-                    height: 10,
+                    height: 8,
                 });
             }
             if ui

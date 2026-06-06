@@ -8,6 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::data_catalogs::CatalogSnapshot;
 use super::derivation_cache::DepClass;
 use sectorforge::archetypes::ArchetypeState;
 use sectorforge::conflict::ConflictState;
@@ -381,6 +382,22 @@ pub enum BuilderCommand {
         before: Vec<(FactionId, PowerProfile)>,
         after: BTreeMap<FactionId, PowerProfile>,
     },
+    /// Audit finding #8: a coalesced edit to the catalog-edit document slice
+    /// (the 13 `data/*.toml` mirrors + the §E1..§E3 economy override
+    /// side-tables, both captured in [`CatalogSnapshot`]). Catalog edits used to
+    /// bypass the bus and mutate `BuilderState.data_catalogs` directly, which
+    /// left them un-undoable; routing them through this variant puts a whole
+    /// edit *burst* (coalesced by [`crate::builder::BuilderState::
+    /// begin_catalog_session`]) on the undo stack as one entry.
+    ///
+    /// [`Self::apply`] / [`Self::revert`] are **no-ops on the sector** — the
+    /// catalog/override slice lives outside `GeneratedSector`, so the actual
+    /// swap happens in `BuilderState::{run,undo,redo}` right after the sector
+    /// apply/revert (it cannot borrow the sector and the catalogs at once).
+    EditCatalog {
+        before: Box<CatalogSnapshot>,
+        after: Box<CatalogSnapshot>,
+    },
 }
 
 /// D-S1/D3 dedup: collapse the "find the entity or raise `*NotFound`" chain
@@ -421,9 +438,11 @@ impl BuilderCommand {
     /// [`DepClass::SystemsWorlds`], which §39 fans out to *every* derivation;
     /// route edits to [`DepClass::Routes`]; faction-roster edits to
     /// [`DepClass::Factions`]; warp-region edits to [`DepClass::Regions`].
-    /// `relations.toml` / `economy.toml` catalog edits are not command-bus
-    /// mutations — panels invalidate those classes directly when the catalog
-    /// changes.
+    /// Catalog edits (`data/*.toml` mirrors + the economy override side-tables)
+    /// now route through [`Self::EditCatalog`] (audit finding #8) — coalesced
+    /// into one undoable burst — and classify to `SystemsWorlds` so every
+    /// catalog-derived overlay is re-invalidated; the live `recompute_*` calls
+    /// the panels make during the burst still drive the precise §39 cascade.
     ///
     /// D-S1/D3: this is one of three exhaustive `match self` blocks
     /// (`dep_classes` / [`Self::apply`] / [`Self::revert`]) maintained in
@@ -481,6 +500,14 @@ impl BuilderCommand {
             | Self::EditChronicle { .. }
             | Self::BulkEditWorlds { .. }
             | Self::DeriveBaselineIntel { .. } => &[D::SystemsWorlds],
+            // A coalesced catalog edit can touch *any* of the 13 config mirrors
+            // (economy / relations / personae / hooks / sites / missions / prose
+            // / history / factions / regions / worlds / names / routes) plus the
+            // economy override side-tables, so it must invalidate every
+            // catalog-derived overlay. §39 makes `SystemsWorlds` fan out to
+            // *all* derivations — the broadest, safe over-invalidation. Precise
+            // per-catalog classing is unnecessary here (correctness > precision).
+            Self::EditCatalog { .. } => &[D::SystemsWorlds],
         }
     }
 
@@ -932,6 +959,10 @@ impl BuilderCommand {
                 sectorforge::control::apply_faction_power(&mut sector.factions, after);
                 Ok(())
             }
+            // No-op on the sector: the catalog/override slice it carries lives
+            // outside `GeneratedSector` and is swapped in `BuilderState::run`
+            // (and `redo`) right after this returns.
+            Self::EditCatalog { .. } => Ok(()),
         }
     }
 
@@ -1291,6 +1322,9 @@ impl BuilderCommand {
                 }
                 Ok(())
             }
+            // No-op on the sector — `BuilderState::undo` restores the prior
+            // catalog/override snapshot (`before`) right after this returns.
+            Self::EditCatalog { .. } => Ok(()),
         }
     }
 }
@@ -1585,10 +1619,14 @@ mod tests {
                 before: Vec::new(),
                 after: std::collections::BTreeMap::new(),
             },
+            BuilderCommand::EditCatalog {
+                before: Box::new(crate::builder::CatalogSnapshot::default()),
+                after: Box::new(crate::builder::CatalogSnapshot::default()),
+            },
         ];
         assert_eq!(
             all.len(),
-            39,
+            40,
             "add the new BuilderCommand variant to this exhaustive list"
         );
         for cmd in &all {

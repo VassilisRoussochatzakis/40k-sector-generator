@@ -58,6 +58,8 @@ const EVENT_KINDS: &[EventKind] = &[
 ];
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("History");
     ui.add_space(2.0);
     ui.colored_label(
@@ -1478,6 +1480,10 @@ fn ensure_history_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
+    // Audit finding #8: arm the coalescing session so the history-config edit
+    // itself is undoable. (The chronicle recompute below already routes through
+    // the bus as an `EditChronicle`, a separate undo entry.)
+    state.note_catalog_edit();
     state.mark_catalog_dirty(state.config.inputs.history.clone(), DEFAULT_HISTORY_PATH);
     state.mark_validation_dirty();
     if state.history_panel.auto_recompute {

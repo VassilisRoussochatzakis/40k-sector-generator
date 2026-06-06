@@ -29,6 +29,8 @@ use crate::builder::state::{BuilderTab, EntityRef, MapTool};
 use crate::builder::BuilderState;
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Warp Regions");
     ui.label(
         RichText::new(
@@ -617,6 +619,9 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                 if state.config.inputs.regions.is_none() {
                     state.config.inputs.regions = Some("data/routes/regions.toml".into());
                 }
+                // Audit finding #8: captured by the open regions-panel session so
+                // creating the default settings is undoable.
+                state.note_catalog_edit();
                 state.dirty = true;
             }
             return;
@@ -750,6 +755,9 @@ fn show_regions_config_editor(ui: &mut Ui, state: &mut BuilderState) {
         });
         if changed {
             state.data_catalogs.regions = Some(cfg);
+            // Audit finding #8: arm the coalescing session for this region-settings
+            // burst so it commits as one undoable `EditCatalog` on settle.
+            state.note_catalog_edit();
             state.dirty = true;
             if let Some(rel) = state.config.inputs.regions.clone() {
                 state.dirty_files.insert(rel);

@@ -75,11 +75,11 @@ pub enum ModalKind {
         /// Project-relative path of the file that changed.
         rel_path: String,
     },
-    /// Confirm permanent removal of a faction row from the FACTIONS roster.
-    /// Rendered by [`crate::app`] as an outer Yes/Cancel window; on confirm it
-    /// calls [`crate::builder::panels::factions::delete_row`]. Routed through a
-    /// modal (rather than deleting inline) so a single click can't silently drop
-    /// a faction — the roster edits bypass the undo command bus.
+    /// Confirm removal of a faction row from the FACTIONS roster. Rendered by
+    /// [`crate::app`] as an outer Yes/Cancel window; on confirm it calls
+    /// [`crate::builder::panels::factions::delete_row`]. Routed through a modal
+    /// (rather than deleting inline) so a single click can't silently drop a
+    /// faction. Audit finding #8: the delete is now undoable via `EditCatalog`.
     ConfirmDeleteFaction {
         id: FactionId,
         name: String,
@@ -205,6 +205,26 @@ pub enum BuilderTab {
 }
 
 impl BuilderTab {
+    /// Audit finding #8 — does this tab host a catalog-edit panel that drives a
+    /// coalescing session (via `begin_catalog_session` / `note_catalog_edit`)?
+    /// The app uses this to flush a pending catalog burst on tab-switch so an
+    /// in-progress edit is not stranded when the user leaves the tab mid-drag.
+    pub fn is_catalog_editor(self) -> bool {
+        matches!(
+            self,
+            Self::Factions
+                | Self::Regions
+                | Self::Economy
+                | Self::Relations
+                | Self::History
+                | Self::Personae
+                | Self::Hooks
+                | Self::Sites
+                | Self::Missions
+                | Self::Prose
+        )
+    }
+
     /// Stable display label rendered in the top tab strip.
     pub fn label(self) -> &'static str {
         match self {

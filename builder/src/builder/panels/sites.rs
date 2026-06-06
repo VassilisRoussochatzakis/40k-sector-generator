@@ -76,6 +76,8 @@ const STATUS_VARIANTS: &[SiteStatus] = &[
 ];
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Sites");
     ui.add_space(2.0);
     ui.label(
@@ -682,16 +684,28 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// payload of [`ModalKind::ConfirmDestructive`]) and run the catalogue-edited
 /// bookkeeping. Manual sites bypass the undo bus.
 pub(crate) fn delete_manual(state: &mut BuilderState, idx: usize) {
+    // Audit finding #8: dispatched from the confirm modal (out of session), so
+    // commit immediately via `edit_catalogs` for one undoable entry.
+    if state
+        .data_catalogs
+        .sites
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.manual.len())
     {
-        let Some(cfg) = state.data_catalogs.sites.as_mut() else {
-            return;
-        };
-        if idx >= cfg.manual.len() {
-            return;
-        }
-        cfg.manual.remove(idx);
+        return;
     }
-    on_catalog_edited(state);
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.sites.as_mut() {
+                if idx < cfg.manual.len() {
+                    cfg.manual.remove(idx);
+                }
+            }
+        })
+        .is_ok();
+    if committed {
+        after_catalog_commit(state);
+    }
 }
 
 fn manual_site_editor(
@@ -1048,6 +1062,15 @@ fn ensure_sites_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
+    // Audit finding #8: arm the coalescing session (see personae.rs), then run
+    // the shared post-edit bookkeeping.
+    state.note_catalog_edit();
+    after_catalog_commit(state);
+}
+
+/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
+/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+fn after_catalog_commit(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.sites.clone(), DEFAULT_SITES_PATH);
     state.mark_validation_dirty();
     if state.sites_panel.auto_recompute {

@@ -74,6 +74,7 @@ pub struct FeatureWeightsCacheValue {
     pub weights: std::sync::Arc<BTreeMap<String, f64>>,
 }
 
+pub mod catalog_session;
 pub mod derivations;
 pub mod generation_ops;
 pub mod nav;
@@ -303,6 +304,23 @@ pub struct BuilderState {
     pub(crate) system_supply_overrides: BTreeMap<SystemId, sectorforge::economy::SupplyRisk>,
     /// §E3: per-system `StrategicPriority` override.
     pub(crate) system_priority_overrides: BTreeMap<SystemId, sectorforge::economy::StrategicPriority>,
+    /// Audit finding #8 — catalog-edit coalescing. When a catalog panel begins
+    /// editing it snapshots the whole catalog-edit slice here (via
+    /// [`Self::begin_catalog_session`]); every subsequent live `.as_mut()` edit
+    /// in the burst mutates `data_catalogs` / the override maps directly, then
+    /// the coalesced diff (`baseline → current`) is committed as one
+    /// `BuilderCommand::EditCatalog` when the burst settles. `None` between
+    /// bursts. Transient — never serialized.
+    pub(crate) catalog_session_baseline: Option<Box<super::data_catalogs::CatalogSnapshot>>,
+    /// Audit finding #8 — set by [`Self::note_catalog_edit`] each frame a
+    /// catalog widget reported a change, and read+reset at the top of the next
+    /// catalog-panel frame so a burst is committed only once it has *settled*
+    /// (a frame with a live baseline but no edit). Transient.
+    pub(crate) catalog_edited_this_frame: bool,
+    /// Audit finding #8 — true while a `catalog_session_baseline` holds an
+    /// uncommitted diff. Lets [`Self::flush_catalog_session`] decide whether a
+    /// settle / tab-switch needs to push an `EditCatalog`. Transient.
+    pub(crate) catalog_edit_uncommitted: bool,
     /// §35 T5: cached per-system bitmap preview texture, keyed by a digest of
     /// (system id, theme, faction_fill, scale) so the PNG renderer only re-runs
     /// when one of those changes. Never serialized (runtime-only).
@@ -485,6 +503,9 @@ impl BuilderState {
             system_tithe_overrides: BTreeMap::new(),
             system_supply_overrides: BTreeMap::new(),
             system_priority_overrides: BTreeMap::new(),
+            catalog_session_baseline: None,
+            catalog_edited_this_frame: false,
+            catalog_edit_uncommitted: false,
             system_bitmap_preview: None,
             economy_panel: EconomyPanelState::default(),
             relations_panel: RelationsPanelState::default(),

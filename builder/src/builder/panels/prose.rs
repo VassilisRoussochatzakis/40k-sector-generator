@@ -44,6 +44,8 @@ const DEFAULT_PROSE_PATH: &str = "data/prose.toml";
 const TONE_VARIANTS: &[ProseTone] = &[ProseTone::Gazetteer, ProseTone::Dispatch];
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Prose");
     ui.add_space(2.0);
     ui.colored_label(
@@ -512,6 +514,8 @@ fn ensure_prose_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
+    // Audit finding #8: arm the coalescing session (see personae.rs).
+    state.note_catalog_edit();
     state.mark_catalog_dirty(state.config.inputs.prose.clone(), DEFAULT_PROSE_PATH);
     state.mark_validation_dirty();
     if state.prose_auto_recompute {

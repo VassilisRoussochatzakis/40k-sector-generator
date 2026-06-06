@@ -78,6 +78,8 @@ const DOMINANCE_TIERS: &[DominanceTier] = &[
 ];
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Personae");
     ui.add_space(2.0);
     ui.colored_label(
@@ -573,16 +575,28 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// (confirmed payload of [`ModalKind::ConfirmDestructive`]) and run the
 /// catalogue-edited bookkeeping. Manual personae bypass the undo bus.
 pub(crate) fn delete_manual(state: &mut BuilderState, idx: usize) {
+    // Audit finding #8: dispatched from the confirm modal (out of session), so
+    // commit immediately via `edit_catalogs` for one undoable entry.
+    if state
+        .data_catalogs
+        .personae
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.manual.len())
     {
-        let Some(cfg) = state.data_catalogs.personae.as_mut() else {
-            return;
-        };
-        if idx >= cfg.manual.len() {
-            return;
-        }
-        cfg.manual.remove(idx);
+        return;
     }
-    on_catalog_edited(state);
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.personae.as_mut() {
+                if idx < cfg.manual.len() {
+                    cfg.manual.remove(idx);
+                }
+            }
+        })
+        .is_ok();
+    if committed {
+        after_catalog_commit(state);
+    }
 }
 
 /// Dropdown over the faction ids already in the project, plus an in-popup custom
@@ -823,6 +837,18 @@ fn ensure_personae_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
+    // Audit finding #8: arm the coalescing session so this burst of live edits
+    // commits as one undoable `EditCatalog`, then run the shared post-edit
+    // bookkeeping.
+    state.note_catalog_edit();
+    after_catalog_commit(state);
+}
+
+/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
+/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+/// Does **not** call `note_catalog_edit` so the discrete-delete path does not
+/// re-open a session after its own commit.
+fn after_catalog_commit(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.personae.clone(), DEFAULT_PERSONAE_PATH);
     state.mark_validation_dirty();
     if state.personae_panel.auto_recompute {

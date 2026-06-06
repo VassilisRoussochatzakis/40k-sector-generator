@@ -2511,7 +2511,7 @@ foundation layer lives in:
 | [builder/src/builder/state/derivations.rs](builder/src/builder/state/derivations.rs) | Heavy derived state on `BuilderState`: `recompute_economy`, `recompute_relations`, `recompute_chronicle`, `mark_validation_dirty`, `pump_validation`, `revalidate_now`, `synthesize_project_input`, `health_level`. Also the §39 live-derivation drivers (LD1..LD4): `derivation_fingerprint`, `invalidate_derivations`, `mark_derivation_fresh`, `ensure_fresh`, `derivation_status`, `pump_derivations`. |
 | [builder/src/builder/state/regions_ops.rs](builder/src/builder/state/regions_ops.rs) | §REG1..§REG3 warp-region overlay mutators: `add_region`, `remove_region`, `paint_region_hex`, `erase_region_hex`, `update_region`, `next_region_id`. |
 | [builder/src/builder/state/generation_ops.rs](builder/src/builder/state/generation_ops.rs) | §G2..§G5 + §S5 + §W4 wiring on `BuilderState`: `generate_system_here`, `find_world_indices`, `regenerate_world`, `reroll_seed`, `apply_preview`, `regenerate_partial`. |
-| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`), the §O1/§O2 orbital-asset commands (`SetOrbitalAssets`, `SetBlockadeReport`), and the §SU1 surface-region command (`SetSurfaceRegions`); overlay commands land with their panels in later phases. |
+| [builder/src/builder/command.rs](builder/src/builder/command.rs) | `BuilderCommand` — apply/revert pattern for every structural mutation. The surface covers system/world/route/faction add/remove/move/rename plus `ReplaceRoutes` for route inspector, bulk, hidden-route, and bridge-connector edits, the §AR1/§AR2 archetype commands (`SetArchetype`, `AutoAssignArchetypes` backed by `ArchetypeApplyFlags`), the §O1/§O2 orbital-asset commands (`SetOrbitalAssets`, `SetBlockadeReport`), and the §SU1 surface-region command (`SetSurfaceRegions`), and the data-catalog command (`EditCatalog`, which snapshots `DataCatalogs` + the economy overrides so the per-tab TOML editors are undoable — §R4); overlay commands land with their panels in later phases. |
 | [builder/src/builder/index.rs](builder/src/builder/index.rs) | `BuilderIndex` — `BTreeMap` lookup table over the sector, rebuilt after every command. |
 | [builder/src/builder/data_catalogs.rs](builder/src/builder/data_catalogs.rs) | In-memory mirrors of `worlds.toml`, `factions.toml`, `relations.toml`, `route_rules.toml`, `regions.toml`, `economy.toml`, `history.toml`, plus name tables. The GUI edits these and the saver writes them back. |
 | [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) | BLAKE3 cache primitives (`digest_input`) **and** the §39 live-derivation ledger (LD1..LD4): `DerivationKind` (16 overlays), `DepClass` (6 mutation-input classes) + the dependency table, `DerivationLedger` (per-kind fingerprints / stale set / deriving set), `DerivationStatus`. The generic key→value `DerivationCache` is flushed per command; the ledger is invalidated *precisely* by `BuilderCommand::dep_classes` (LD2). |
@@ -2576,9 +2576,9 @@ downstream of the touched inputs stale — replacing the old blanket flush. A
 system/world edit fans out to all sixteen; a route edit only to
 `{analytics, economy, hooks}`; a faction edit to the ten faction-reading
 overlays. Full-sector swaps (apply-preview, partial regen, search-seed apply,
-snapshot revert) call `invalidate_all`. `relations.toml` / `economy.toml`
-catalog edits route through `recompute_relations` / `recompute_economy`, which
-invalidate the `RelationsCfg` / `EconomyCfg` classes (→ briefing / hooks).
+snapshot revert) call `invalidate_all`. Data-catalog edits route through the
+undoable `BuilderCommand::EditCatalog` (§R4 below), classified as `SystemsWorlds`
+so every catalog-fed overlay (briefing / hooks / relations / economy …) re-derives.
 `invalidate` only flags already-derived overlays, so `stale ⊆ derived` always
 holds and the status-bar "stale" count never includes an unopened tab.
 
@@ -2595,9 +2595,25 @@ single-field edits keep using `RenameWorld` / `SetWorldOrbit` /
 classify as `SystemsWorlds` in `dep_classes()`. This closes the undo-coverage gap
 the FIELD_REVIEW audit flagged across `world.rs`, `system.rs`, `system_map.rs`,
 `control.rs`, `intel.rs`, `history.rs`, `regions.rs`, and `map/context_menu/action.rs`.
-Catalog editors (`factions.rs`, `relations.rs`, `personae.rs`, `hooks.rs`,
-`sites.rs`, `missions.rs`, `prose.rs`) remain intentionally off-bus — they edit
-the TOML mirrors in `data_catalogs.*`, not the live sector.
+
+**Catalog edits are undoable too (REVIEW.md finding #8).** The per-tab TOML
+editors (`economy.rs`, `relations.rs`, `regions.rs`, `personae.rs`, `hooks.rs`,
+`sites.rs`, `missions.rs`, `prose.rs`, `factions.rs`, `history.rs`) plus the
+economy override side-tables once mutated `data_catalogs.*` off-bus. They now
+route through a sixth coarse snapshot-replace command,
+`BuilderCommand::EditCatalog { before, after }`, whose payload is a
+`CatalogSnapshot` (the whole `DataCatalogs` + the five economy override maps).
+`apply` / `revert` are no-ops on the *sector*; the catalog swap happens in
+`BuilderState::{run, undo, redo}` immediately after the sector apply/revert
+(sequential, never co-borrowing sector + catalogs). To keep a burst of live
+field edits to one undo entry, a session baseline is captured on the first edit
+of a burst (`begin_catalog_session` / `note_catalog_edit` in
+[state/catalog_session.rs](builder/src/builder/state/catalog_session.rs)) and the
+coalesced diff commits when the burst settles or the tab switches; out-of-session
+modal deletes commit immediately via `edit_catalogs`. Disk persistence still goes
+through `mark_catalog_dirty` (the `inputs.*` path written by a "create starter"
+button is config state, not catalog state, and is intentionally outside the
+snapshot).
 
 *Clone-mutate-dispatch helpers (review E-S3).* The simple `EditWorld` /
 `EditSystem` call sites that just clone the target, tweak one or two fields, and
@@ -3635,6 +3651,7 @@ Common codes:
 |---|---|
 | `GEN_GRID_EMPTY` | `sector_width * sector_height == 0` |
 | `GEN_SECTOR_NOT_SQUARE` | `sector_width != sector_height` — every sector must be square |
+| `GEN_SECTOR_TOO_LARGE` | `sector_width` or `sector_height` exceeds `MAX_SECTOR_DIM` (1024) — guards against OOM-abort from absurd hand-edited dims |
 | `GEN_SYSTEM_COUNT_OVERFLOW` | `system_count` exceeds grid cells |
 | `GEN_WORLD_COUNT_RANGE` | `min_worlds_per_system > max_worlds_per_system` |
 | `WB_NO_USABLE_ROWS` | World data produced zero usable candidates |

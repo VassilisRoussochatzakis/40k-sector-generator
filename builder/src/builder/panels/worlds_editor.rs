@@ -337,21 +337,28 @@ fn edit_rows(
 /// `idx` (confirmed payload of [`ModalKind::ConfirmDestructive`]) and reproduce the
 /// panel's dirty bookkeeping. The worlds catalogue bypasses the undo bus.
 pub(crate) fn delete_gen_row(state: &mut BuilderState, idx: usize) {
-    let removed = state
+    // Audit finding #8: dispatched from the confirm modal (out of any catalog
+    // session), so commit immediately via `edit_catalogs` for one undoable
+    // entry. No-op (and no undo entry) when the row index is out of range.
+    if state
         .data_catalogs
         .worlds
-        .as_mut()
-        .map(|cfg| {
-            let ok = idx < cfg.generation.len();
-            if ok {
-                cfg.generation.remove(idx);
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.generation.len())
+    {
+        return;
+    }
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.worlds.as_mut() {
+                if idx < cfg.generation.len() {
+                    cfg.generation.remove(idx);
+                }
             }
-            ok
         })
-        .unwrap_or(false);
-    if removed {
+        .is_ok();
+    if committed {
         let rel = worlds_rel(state);
-        state.dirty = true;
         state.dirty_files.insert(rel);
     }
 }

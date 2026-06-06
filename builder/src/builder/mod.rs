@@ -35,7 +35,7 @@ mod smoke_test;
 
 pub use analytics_run::AnalyticsState;
 pub use command::BuilderCommand;
-pub use data_catalogs::DataCatalogs;
+pub use data_catalogs::{CatalogSnapshot, DataCatalogs};
 pub use derivation_cache::{
     digest_input, DepClass, DerivationCache, DerivationKind, DerivationLedger, DerivationStatus,
 };

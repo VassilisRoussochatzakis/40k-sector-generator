@@ -64,6 +64,8 @@ const KIND_VARIANTS: &[HookKind] = &[
 ];
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Hooks");
     ui.add_space(2.0);
     ui.colored_label(
@@ -463,16 +465,28 @@ fn show_manual_editor(ui: &mut Ui, state: &mut BuilderState) {
 /// payload of [`ModalKind::ConfirmDestructive`]) and run the catalogue-edited
 /// bookkeeping. Manual hooks bypass the undo bus.
 pub(crate) fn delete_manual(state: &mut BuilderState, idx: usize) {
+    // Audit finding #8: dispatched from the confirm modal (out of session), so
+    // commit immediately via `edit_catalogs` for one undoable entry.
+    if state
+        .data_catalogs
+        .hooks
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.manual.len())
     {
-        let Some(cfg) = state.data_catalogs.hooks.as_mut() else {
-            return;
-        };
-        if idx >= cfg.manual.len() {
-            return;
-        }
-        cfg.manual.remove(idx);
+        return;
     }
-    on_catalog_edited(state);
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.hooks.as_mut() {
+                if idx < cfg.manual.len() {
+                    cfg.manual.remove(idx);
+                }
+            }
+        })
+        .is_ok();
+    if committed {
+        after_catalog_commit(state);
+    }
 }
 
 fn manual_hook_editor(ui: &mut Ui, idx: usize, h: &mut Hook, anchors: &AnchorIds) -> bool {
@@ -944,6 +958,17 @@ fn ensure_hooks_catalog_if_needed(state: &mut BuilderState) {
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
+    // Audit finding #8: arm the coalescing session (see personae.rs), then run
+    // the shared post-edit bookkeeping.
+    state.note_catalog_edit();
+    after_catalog_commit(state);
+}
+
+/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
+/// and the out-of-session `delete_manual` (which commits via `edit_catalogs`).
+/// Does **not** call `note_catalog_edit` so the discrete-delete path does not
+/// re-open a session after its own commit.
+fn after_catalog_commit(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.hooks.clone(), DEFAULT_HOOKS_PATH);
     state.mark_validation_dirty();
     if state.hooks_panel.auto_recompute {

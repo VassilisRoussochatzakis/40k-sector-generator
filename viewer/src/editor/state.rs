@@ -66,7 +66,6 @@ pub enum Dialog {
         seed: String,
         width: u32,
         height: u32,
-        irregular_dimensions: bool,
     },
     SaveAs {
         name: String,

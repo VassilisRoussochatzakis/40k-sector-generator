@@ -2,10 +2,16 @@
 //! The builder edits these (TOML editors per §37) and serialises them back
 //! to disk on save.
 
-use sectorforge::economy::EconomyConfig;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+use sectorforge::economy::{
+    EconomyConfig, ResourceVector, StrategicOutput, StrategicPriority, SupplyRisk, TitheStatus,
+};
 use sectorforge::factions::FactionsFile;
 use sectorforge::history::HistoryConfig;
 use sectorforge::hooks::HooksConfig;
+use sectorforge::ids::{SystemId, WorldId};
 use sectorforge::missions::MissionsConfig;
 use sectorforge::names::NameTables;
 use sectorforge::personae::PersonaeConfig;
@@ -16,7 +22,7 @@ use sectorforge::routes::RouteRules;
 use sectorforge::sites::SitesConfig;
 use sectorforge::worlds_toml::WorldsConfig;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DataCatalogs {
     pub worlds: Option<WorldsConfig>,
     pub names: Option<NameTables>,
@@ -58,4 +64,24 @@ impl DataCatalogs {
     pub fn new() -> Self {
         Self::default()
     }
+}
+
+/// The full *catalog-edit* document slice that `BuilderCommand::EditCatalog`
+/// snapshots so catalog edits are undoable (audit finding #8). Bundles the 13
+/// in-memory config mirrors ([`DataCatalogs`]) **plus** the five §E1..§E3
+/// per-world / per-system economy override side-tables, which live on
+/// [`super::BuilderState`] rather than inside `DataCatalogs` but are edited from
+/// the same ECONOMY panel and must round-trip together.
+///
+/// Bundling everything into one snapshot (the "extend the snapshot" option of
+/// the feature spec, chosen over a sibling `EditEconomyOverride` command) keeps
+/// a single coalescing path and a single undo entry per edit burst.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CatalogSnapshot {
+    pub catalogs: DataCatalogs,
+    pub world_economy_overrides: BTreeMap<WorldId, ResourceVector>,
+    pub world_strategic_overrides: BTreeMap<WorldId, StrategicOutput>,
+    pub system_tithe_overrides: BTreeMap<SystemId, TitheStatus>,
+    pub system_supply_overrides: BTreeMap<SystemId, SupplyRisk>,
+    pub system_priority_overrides: BTreeMap<SystemId, StrategicPriority>,
 }

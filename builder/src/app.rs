@@ -124,6 +124,14 @@ impl BuilderApp {
         let state = self.workspace.active_mut();
         shortcuts::handle(ctx, state);
         project_io::drain_watcher_events(state);
+        // Audit finding #8: if the user has left every catalog-edit tab while a
+        // coalescing session is still open, settle it now so the burst lands as
+        // one undo entry rather than waiting for a `begin_catalog_session` frame
+        // that will not come (the panel is no longer shown). On-tab settle is
+        // handled by `begin_catalog_session` itself.
+        if !state.active_tab.is_catalog_editor() {
+            let _ = state.flush_catalog_session();
+        }
         // §39 LD3/LD4: re-derive the active tab's overlay synchronously if a
         // prior mutation left it stale, so the panel about to paint reads a live
         // result this frame (the fast path).
@@ -260,7 +268,7 @@ impl BuilderApp {
                     // read in the theme-aware danger colour; Cancel recedes as a ghost.
                     ui.colored_label(
                         palette::danger(),
-                        "Removes it from the roster. This can't be undone.",
+                        "Removes it from the roster. You can undo this (Ctrl+Z).",
                     );
                     ui.add_space(6.0);
                     ui.horizontal(|ui| {

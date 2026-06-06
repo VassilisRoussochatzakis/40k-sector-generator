@@ -108,6 +108,8 @@ const E7_MODES: &[HeatmapMode] = &[
 ];
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Economy");
     ui.add_space(2.0);
     ui.colored_label(
@@ -358,11 +360,13 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .clicked()
             {
                 state.world_economy_overrides.remove(&world_id);
+                state.note_catalog_edit();
                 state.recompute_economy();
                 return;
             }
             if changed {
                 state.world_economy_overrides.insert(world_id.clone(), vector);
+                state.note_catalog_edit();
                 state.recompute_economy();
             }
         });
@@ -420,11 +424,13 @@ fn show_world_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     .clicked()
             {
                 state.world_strategic_overrides.remove(&world_id);
+                state.note_catalog_edit();
                 state.recompute_economy();
                 return;
             }
             if changed {
                 state.world_strategic_overrides.insert(world_id.clone(), strat);
+                state.note_catalog_edit();
                 state.recompute_economy();
             }
         });
@@ -511,6 +517,7 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     );
                     if tithe != sy.tithe_status {
                         state.system_tithe_overrides.insert(id.clone(), tithe);
+                        state.note_catalog_edit();
                         state.recompute_economy();
                     }
 
@@ -527,6 +534,7 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     );
                     if supply != sy.supply_risk {
                         state.system_supply_overrides.insert(id.clone(), supply);
+                        state.note_catalog_edit();
                         state.recompute_economy();
                     }
 
@@ -543,6 +551,7 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                     );
                     if prio != sy.strategic_priority {
                         state.system_priority_overrides.insert(id.clone(), prio);
+                        state.note_catalog_edit();
                         state.recompute_economy();
                     }
 
@@ -569,6 +578,7 @@ fn show_system_override_editor(ui: &mut Ui, state: &mut BuilderState) {
                             state.system_tithe_overrides.remove(&id);
                             state.system_supply_overrides.remove(&id);
                             state.system_priority_overrides.remove(&id);
+                            state.note_catalog_edit();
                             state.recompute_economy();
                         }
                         if ui
@@ -765,6 +775,9 @@ fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
                 if state.config.inputs.economy.is_none() {
                     state.config.inputs.economy = Some("data/worlds/economy.toml".into());
                 }
+                // Audit finding #8: captured by the open economy-panel session so
+                // creating the starter rules is undoable.
+                state.note_catalog_edit();
                 state.dirty = true;
             }
             return;
@@ -819,6 +832,10 @@ fn show_economy_config_editor(ui: &mut Ui, state: &mut BuilderState) {
 
         if changed {
             state.data_catalogs.economy = Some(cfg);
+            // Audit finding #8: arm the coalescing session for this economy-rules
+            // burst (the slider/checkbox edits above) so it commits as one
+            // undoable `EditCatalog` on settle.
+            state.note_catalog_edit();
             state.dirty = true;
             if let Some(rel) = state.config.inputs.economy.clone() {
                 state.dirty_files.insert(rel);

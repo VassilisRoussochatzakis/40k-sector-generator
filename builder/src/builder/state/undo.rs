@@ -37,6 +37,16 @@ impl BuilderState {
     /// matches the spec's "soft" invariant policy outside of export.
     pub fn run(&mut self, mut cmd: BuilderCommand) -> Result<(), BuilderError> {
         cmd.apply(self.sector_mut())?;
+        // Audit finding #8: `EditCatalog::apply` is a no-op on the sector; the
+        // catalog/override slice it carries is swapped here, sequentially after
+        // the (borrowed-mut) sector apply, so the two never borrow at once. The
+        // live edits already match `after` (the panel mutated `data_catalogs`
+        // in place), so this clone is a harmless idempotent re-assign for the
+        // first apply — but it is what makes `redo` re-install the slice.
+        if let BuilderCommand::EditCatalog { after, .. } = &cmd {
+            let after = (**after).clone();
+            self.restore_catalogs(after);
+        }
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
         // LD2: stale exactly the overlays this mutation's inputs feed.
@@ -101,7 +111,18 @@ impl BuilderState {
         }
         let cmd = &self.command_log[self.command_cursor - 1];
         let classes = cmd.dep_classes();
+        // Audit finding #8: clone the prior catalog snapshot out *before*
+        // reverting the sector so we never hold a `&self.command_log` borrow and
+        // a `&mut self` borrow at once. `revert` is a no-op on the sector for
+        // `EditCatalog`; the slice restore happens right after.
+        let restore_before = match cmd {
+            BuilderCommand::EditCatalog { before, .. } => Some((**before).clone()),
+            _ => None,
+        };
         cmd.revert(&mut self.sector)?;
+        if let Some(before) = restore_before {
+            self.restore_catalogs(before);
+        }
         self.command_cursor -= 1;
         self.index = BuilderIndex::rebuild(&self.sector);
         self.derivation_cache.clear();
@@ -120,6 +141,12 @@ impl BuilderState {
         let mut cmd = self.command_log[self.command_cursor].clone();
         let classes = cmd.dep_classes();
         cmd.apply(self.sector_mut())?;
+        // Audit finding #8: re-install the catalog/override slice the redone
+        // `EditCatalog` carries (its `apply` is a no-op on the sector).
+        if let BuilderCommand::EditCatalog { after, .. } = &cmd {
+            let after = (**after).clone();
+            self.restore_catalogs(after);
+        }
         self.command_log[self.command_cursor] = cmd;
         self.command_cursor += 1;
         self.index = BuilderIndex::rebuild(&self.sector);

@@ -164,7 +164,11 @@ fn scaffold_blank(opts: &NewProjectOptions) -> Result<(), BuilderError> {
     // Build the config with `[inputs]` already pointing at every catalog the
     // wizard is about to scaffold, so the loader sees a complete project the
     // moment it reopens.
-    let mut cfg = default_app_config(&opts.id, &opts.title, &opts.seed, opts.width, opts.height);
+    // Geometry invariant: sectors must be square. Normalize to the larger side
+    // so no New-Project entry point (even a stale non-square default) can
+    // scaffold a non-square sector — the UI already locks width == height.
+    let dim = opts.width.max(opts.height);
+    let mut cfg = default_app_config(&opts.id, &opts.title, &opts.seed, dim, dim);
     cfg.inputs.factions = Some("data/factions/factions.toml".to_string());
     cfg.inputs.route_rules = Some("data/routes/route_rules.toml".to_string());
     cfg.inputs.relations = Some("data/factions/relations.toml".to_string());

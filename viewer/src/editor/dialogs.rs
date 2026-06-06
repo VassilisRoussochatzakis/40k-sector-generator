@@ -93,7 +93,6 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
             mut seed,
             mut width,
             mut height,
-            mut irregular_dimensions,
         } => {
             let mut create = false;
             let mut cancel = false;
@@ -111,14 +110,6 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     text_field(ui, &mut seed, "seed");
 
                     ui.add_space(8.0);
-                    ui.checkbox(&mut irregular_dimensions, "Irregular dimensions");
-
-                    if irregular_dimensions {
-                        ui.colored_label(
-                            crate::palette::warning(),
-                            "⚠ abnormal dimensions can cause problems in segmenta or joining sectors",
-                        );
-                    }
 
                     ui.horizontal(|ui| {
                         label(ui, "WIDTH");
@@ -126,12 +117,13 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                         label(ui, "HEIGHT");
                         let h_res = ui.add(egui::DragValue::new(&mut height).range(1..=64));
 
-                        if !irregular_dimensions {
-                            if w_res.changed() {
-                                height = width;
-                            } else if h_res.changed() {
-                                width = height;
-                            }
+                        // Geometry invariant: sectors must be square. Mirror
+                        // width <-> height unconditionally so the viewer cannot
+                        // construct a non-square sector.
+                        if w_res.changed() {
+                            height = width;
+                        } else if h_res.changed() {
+                            width = height;
                         }
                     });
 
@@ -175,7 +167,6 @@ pub(crate) fn draw_dialog(ctx: &Context, state: &mut EditorState) {
                     seed,
                     width,
                     height,
-                    irregular_dimensions,
                 };
             }
         }

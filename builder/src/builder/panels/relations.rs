@@ -66,6 +66,8 @@ const TREATIES: &[TreatyStatus] = &[
 const DEFAULT_RELATIONS_PATH: &str = "data/factions/relations.toml";
 
 pub(crate) fn show(ui: &mut Ui, state: &mut BuilderState) {
+    // Audit finding #8: open / settle the catalog-edit coalescing session.
+    state.begin_catalog_session();
     ui.heading("Relations");
     ui.add_space(2.0);
     ui.colored_label(
@@ -847,8 +849,10 @@ fn show_pair_overrides(ui: &mut Ui, state: &mut BuilderState) {
     if changed {
         on_catalog_edited(state);
     }
-    // §FRIENDLY_PANEL_PASS transform #7: pair overrides bypass the undo bus, so a
-    // 🗑 click opens a confirm rather than deleting inline.
+    // §FRIENDLY_PANEL_PASS transform #7: a 🗑 click opens a confirm rather than
+    // deleting inline. (Audit finding #8: the delete is now undoable via
+    // `EditCatalog`, but the confirm is kept as a guard against an accidental
+    // click destroying a hand-pinned override.)
     if let Some(idx) = remove_idx {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete pin?".into(),
@@ -949,8 +953,9 @@ fn show_kind_rules(ui: &mut Ui, state: &mut BuilderState) {
     if changed {
         on_catalog_edited(state);
     }
-    // §FRIENDLY_PANEL_PASS transform #7: kind rules bypass the undo bus, so a 🗑
-    // click opens a confirm rather than deleting inline.
+    // §FRIENDLY_PANEL_PASS transform #7: a 🗑 click opens a confirm rather than
+    // deleting inline. (Audit finding #8: now undoable via `EditCatalog`; the
+    // confirm remains a guard against an accidental destructive click.)
     if let Some(idx) = remove_idx {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete type rule?".into(),
@@ -1047,8 +1052,9 @@ fn show_disposition_rules(ui: &mut Ui, state: &mut BuilderState) {
     if changed {
         on_catalog_edited(state);
     }
-    // §FRIENDLY_PANEL_PASS transform #7: disposition rules bypass the undo bus, so
-    // a 🗑 click opens a confirm rather than deleting inline.
+    // §FRIENDLY_PANEL_PASS transform #7: a 🗑 click opens a confirm rather than
+    // deleting inline. (Audit finding #8: now undoable via `EditCatalog`; the
+    // confirm remains a guard against an accidental destructive click.)
     if let Some(idx) = remove_idx {
         state.feedback.modal = Some(ModalKind::ConfirmDestructive {
             title: "Delete disposition rule?".into(),
@@ -1109,49 +1115,97 @@ fn ensure_relations_catalog_if_needed(state: &mut BuilderState) {
 
 /// §FRIENDLY_PANEL_PASS transform #7: delete the pinned pair override at `idx`
 /// (confirmed payload of [`ModalKind::ConfirmDestructive`]) and run the
-/// catalogue-edited bookkeeping. Relations overrides bypass the undo bus.
+/// catalogue-edited bookkeeping. Audit finding #8: now routed through
+/// `edit_catalogs` so the delete is a single undoable `EditCatalog`.
 pub(crate) fn delete_pair_override(state: &mut BuilderState, idx: usize) {
+    // Audit finding #8: invoked from the confirm-destructive modal — outside a
+    // catalog panel `show` — so commit immediately via `edit_catalogs` (one
+    // undoable entry) rather than the coalescing session, then run the
+    // post-edit bookkeeping (without re-opening a session).
+    if state
+        .data_catalogs
+        .relations
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.pair_overrides.len())
     {
-        let Some(cfg) = state.data_catalogs.relations.as_mut() else {
-            return;
-        };
-        if idx >= cfg.pair_overrides.len() {
-            return;
-        }
-        cfg.pair_overrides.remove(idx);
+        return;
     }
-    on_catalog_edited(state);
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.relations.as_mut() {
+                if idx < cfg.pair_overrides.len() {
+                    cfg.pair_overrides.remove(idx);
+                }
+            }
+        })
+        .is_ok();
+    if committed {
+        after_catalog_commit(state);
+    }
 }
 
 /// §FRIENDLY_PANEL_PASS transform #7: delete the faction-type stance rule at `idx`.
 pub(crate) fn delete_kind_rule(state: &mut BuilderState, idx: usize) {
+    if state
+        .data_catalogs
+        .relations
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.kind_rules.len())
     {
-        let Some(cfg) = state.data_catalogs.relations.as_mut() else {
-            return;
-        };
-        if idx >= cfg.kind_rules.len() {
-            return;
-        }
-        cfg.kind_rules.remove(idx);
+        return;
     }
-    on_catalog_edited(state);
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.relations.as_mut() {
+                if idx < cfg.kind_rules.len() {
+                    cfg.kind_rules.remove(idx);
+                }
+            }
+        })
+        .is_ok();
+    if committed {
+        after_catalog_commit(state);
+    }
 }
 
 /// §FRIENDLY_PANEL_PASS transform #7: delete the disposition stance rule at `idx`.
 pub(crate) fn delete_disposition_rule(state: &mut BuilderState, idx: usize) {
+    if state
+        .data_catalogs
+        .relations
+        .as_ref()
+        .is_none_or(|cfg| idx >= cfg.disposition_rules.len())
     {
-        let Some(cfg) = state.data_catalogs.relations.as_mut() else {
-            return;
-        };
-        if idx >= cfg.disposition_rules.len() {
-            return;
-        }
-        cfg.disposition_rules.remove(idx);
+        return;
     }
-    on_catalog_edited(state);
+    let committed = state
+        .edit_catalogs(|snap| {
+            if let Some(cfg) = snap.catalogs.relations.as_mut() {
+                if idx < cfg.disposition_rules.len() {
+                    cfg.disposition_rules.remove(idx);
+                }
+            }
+        })
+        .is_ok();
+    if committed {
+        after_catalog_commit(state);
+    }
 }
 
 fn on_catalog_edited(state: &mut BuilderState) {
+    // Audit finding #8: arm the coalescing session (see personae.rs), then run
+    // the shared post-edit bookkeeping.
+    state.note_catalog_edit();
+    after_catalog_commit(state);
+}
+
+/// Post-catalog-edit bookkeeping shared by the in-session `on_catalog_edited`
+/// and the out-of-session discrete deletes (which commit via `edit_catalogs`).
+/// Tracks the catalog file path for save, arms validation, and re-derives the
+/// relations matrix when auto-recompute is on. Deliberately does **not** call
+/// `note_catalog_edit` so the discrete-delete path does not re-open a session
+/// after its own commit.
+fn after_catalog_commit(state: &mut BuilderState) {
     state.mark_catalog_dirty(state.config.inputs.relations.clone(), DEFAULT_RELATIONS_PATH);
     state.mark_validation_dirty();
     if state.relations_panel.auto_recompute {

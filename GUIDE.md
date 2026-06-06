@@ -155,6 +155,35 @@ cargo run --bin sectorforge -- generate-system \
      --out /tmp/sys-0012.json --markdown
 ```
 
+### `sectorforge generate-all [--dir <DIR>]`
+
+Batch-generate every example project under a directory (default `examples/`),
+overwriting each one's own `out/` folder. A "project" is any immediate
+subdirectory of `--dir` that contains a `sectorforge.toml`; each is generated
+with its own configured seed and formats — this is just `generate` run once per
+project, with `--out` left to each project's `[outputs].directory`.
+
+Subdirectories are processed in sorted (byte-wise) order, so uppercase names
+like `SEC100` come before lowercase ones. One project's failure is reported and
+recorded but does **not** abort the rest; the command exits non-zero if any
+project failed. A final `N/M project(s) generated` line is printed to stdout.
+
+> **Cost.** This regenerates *all* examples, including the large stress configs
+> (`SEC100`, `big_test`, `huge_sparse_test`), each of which renders all
+> configured formats **plus one PNG per system** — hundreds of systems means
+> multi-GB output and many minutes per project. Trim each project's
+> `[outputs].formats` first if you only want the fast artifacts.
+
+| Flag | Meaning |
+|---|---|
+| `--dir <DIR>` | Directory whose immediate subdirectories are sector projects (default `examples`) |
+| `--allow-warnings` | Continue a project past validation warnings (errors still block that project) |
+
+```bash
+# Regenerate every example's out/ folder.
+cargo run --bin sectorforge -- generate-all --allow-warnings
+```
+
 ### `sectorforge random` (RANDOM.md/DONE)
 
 Synthesise a **fully-complete, fully-randomised** sector from nothing but a
@@ -3786,6 +3815,7 @@ across runs, so a regression check is a diff away.
 | [src/cli/mod.rs](src/cli/mod.rs) | Clap `Cli`/`Command` definitions + per-variant `run` dispatcher |
 | [src/cli/common.rs](src/cli/common.rs) | Shared CLI helpers: `print_json`/`to_json_pretty`, validation+invariant+workbook printers, `parse_heatmap`, `load_or_regenerate`, all `log_*progress` hooks |
 | [src/cli/generate.rs](src/cli/generate.rs) | `generate` + `generate-system` runners (incl. §15 NEW2 constraint search wiring) |
+| [src/cli/generate_all.rs](src/cli/generate_all.rs) | `generate-all` runner: batch `run_generate` over every `sectorforge.toml`-bearing subdir of `--dir` (default `examples`), sorted order, continue-on-failure |
 | [src/cli/validate.rs](src/cli/validate.rs) | `validate`, `validate-sector`, `render-markdown`, `inspect-worlds` runners |
 | [src/cli/analyze.rs](src/cli/analyze.rs) | `analyze` runner — §8 NEW.md analytics dashboard |
 | [src/cli/presets.rs](src/cli/presets.rs) | `new` + `list-presets` runners |

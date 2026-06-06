@@ -13,6 +13,7 @@ mod diff;
 mod economy;
 pub mod exit_code;
 mod generate;
+mod generate_all;
 mod history;
 mod hooks;
 mod interestingness;
@@ -98,6 +99,19 @@ enum Command {
         /// excluded. Applies after `--formats` / `--light`.
         #[arg(long, value_delimiter = ',')]
         exclude: Option<Vec<String>>,
+    },
+    /// Generate every example project under a directory (default `examples/`),
+    /// overwriting each one's own `out/` folder. A project is any immediate
+    /// subdirectory containing a `sectorforge.toml`; each is generated with its
+    /// own configured seed and formats. One project's failure is reported but
+    /// does not abort the rest, and exits non-zero if any failed.
+    GenerateAll {
+        /// Directory whose immediate subdirectories are sector projects.
+        #[arg(long, default_value = "examples")]
+        dir: Utf8PathBuf,
+        /// Continue a project if its validation produced warnings (not errors).
+        #[arg(long)]
+        allow_warnings: bool,
     },
     /// Synthesise a fully-complete, fully-randomised sector from nothing but a
     /// size (RANDOM.md). Materialises a fresh project under `--out` with every
@@ -505,6 +519,10 @@ pub fn run(cli: Cli) -> Result<ExitCode, sectorforge::SectorError> {
             light,
             exclude,
         ),
+        Command::GenerateAll {
+            dir,
+            allow_warnings,
+        } => generate_all::run_generate_all(dir, allow_warnings),
         Command::Random {
             size,
             width,

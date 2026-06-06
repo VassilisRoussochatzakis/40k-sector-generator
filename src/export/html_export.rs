@@ -25,10 +25,15 @@ use camino::Utf8Path;
 use crate::config::{HtmlConfig, HtmlTheme};
 use crate::errors::SectorError;
 use crate::faction_style::faction_style_rgb_by_id;
-use crate::sector_model::{FactionInfluence, GeneratedSector};
+use crate::sector_model::GeneratedSector;
 
 const RENDERER_JS: &str = include_str!("html_export/renderer.js");
 const STYLE_CSS: &str = include_str!("html_export/style.css");
+
+/// Assumed observer visibility (0..=100) when the requesting observer has no
+/// faction presence on a world — scales other factions' per-world confidence
+/// in [`redact_for_observer`] (§C8).
+const OBSERVER_DEFAULT_VISIBILITY: f32 = 20.0;
 
 /// Write `sector.html` into `output_dir`. Returns the path that was written.
 ///
@@ -249,15 +254,13 @@ fn redact_for_observer(sector: &GeneratedSector, observer: &str, min_conf: u8) -
                 .iter()
                 .find(|p| p.faction_id == observer)
                 .map(|p| p.dimensions.visibility)
-                .unwrap_or(20.0);
+                .unwrap_or(OBSERVER_DEFAULT_VISIBILITY);
             w.factions.retain(|p| {
                 if p.faction_id == observer {
                     return true;
                 }
-                if matches!(p.influence, FactionInfluence::Hidden) {
-                    let conf = (p.dimensions.visibility * observer_vis) / 100.0;
-                    return (conf as u8) >= min_conf;
-                }
+                // Hidden and visible presences share the same confidence
+                // formula; redact below the threshold either way (§C5).
                 let conf = (p.dimensions.visibility * observer_vis) / 100.0;
                 (conf as u8) >= min_conf
             });

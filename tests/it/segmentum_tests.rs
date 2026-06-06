@@ -103,7 +103,6 @@ fn different_stitch_seed_can_change_links() {
 }
 
 #[test]
-#[ignore = "slow: full m42 composition; run with `cargo test --test it segmentum -- --ignored`"]
 fn duplicate_child_slot_is_rejected() {
     let mut file = base_file();
     file.children[1].column = 0; // collide with alpha

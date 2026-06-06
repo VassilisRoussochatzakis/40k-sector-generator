@@ -41,6 +41,18 @@ fn run_one(
     Ok(())
 }
 
+// G7: `invariants_hold_across_random_inputs` derives system_count from
+// width*height, so extreme densities are never reached. This strategy varies
+// system_count independently while keeping dims SQUARE (one `dim` feeds both
+// width and height — the sector geometry invariant), bounded by total cells.
+prop_compose! {
+    fn square_dim_and_count()(dim in 4u32..=20)
+        (system_count in 2usize..=((dim as usize) * (dim as usize)), dim in Just(dim))
+        -> (u32, usize) {
+        (dim, system_count)
+    }
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         cases: 24,
@@ -61,6 +73,16 @@ proptest! {
         let cells = (width as usize) * (height as usize);
         let system_count = (cells.saturating_mul(2) / 5).clamp(2, cells);
         run_one(&seed, width, height, system_count, min_worlds, max_worlds, density)
+            .map_err(TestCaseError::fail)?;
+    }
+
+    #[test]
+    fn invariants_hold_across_system_counts(
+        seed in "[a-z0-9]{4,12}",
+        (dim, system_count) in square_dim_and_count(),
+    ) {
+        // Square sector: width == height == dim (geometry invariant).
+        run_one(&seed, dim, dim, system_count, 1, 3, 0.2)
             .map_err(TestCaseError::fail)?;
     }
 

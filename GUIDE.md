@@ -2541,7 +2541,7 @@ mismatched versions explicitly rather than partially decoding.
 | R1 single source of truth | [builder/src/builder/state/mod.rs](builder/src/builder/state/mod.rs) — direct ownership of `GeneratedSector` behind `&mut BuilderState`; equivalent to the spec's `Rc<RefCell<>>` (GUI thread is sole writer; jobs hold cloned read-only snapshots). |
 | R2 typed IDs only | `BuilderCommand`, `BuilderIndex`, `BuilderState.pinned_*`, `SessionFile.pinned_*` all use `SystemId` / `WorldId` / `RouteId` / `FactionId` — no raw `String` IDs at panel boundaries. |
 | R3 deterministic index | `BuilderIndex` keys every map with `BTreeMap<TypedId, _>`; JSON exports stay byte-stable. |
-| R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform invariant re-check, snapshot/undo stack, auto-save trigger, and derivation-cache invalidation (generic flush + §39 ledger precise invalidation off `dep_classes`). |
+| R4 command-bus rails | `BuilderState::run` / `undo` / `redo` perform snapshot/undo stack, auto-save trigger, and derivation-cache invalidation (generic flush + §39 ledger precise invalidation off `dep_classes`). The structural invariant re-check (`check_sector`) is **not** synchronous on the hot path — `run` only arms the debounce and the re-check rides the §V3 `revalidate_now` pump a frame later (export still forces it via the §V6 gate), keeping a single apply well under 1 ms (PERF1 / §42). |
 | R5 BLAKE3 cache | [src/model/rng.rs](src/model/rng.rs) `digest_bytes` + [builder/src/builder/derivation_cache.rs](builder/src/builder/derivation_cache.rs) `digest_input` — hash canonical JSON of the input slice as cache key. |
 | R6 BuilderError variants | [builder/src/builder/errors.rs](builder/src/builder/errors.rs) — `ValidationFailed`, `InvariantViolated`, `IoFailed`, `ParseFailed`, `EntityNotFound`, `StaleSnapshot`, plus transparent `Mutation` / `Serde`. |
 | R7 off-thread runner | [gui-core/src/jobs.rs](gui-core/src/jobs.rs) — `std::thread::spawn` + `mpsc::channel` for results, revision-stamped `JobHandle`s, `Arc<Mutex<f32>>` progress, `Arc<AtomicBool>` cancel, and `Context::request_repaint` on progress and completion. Builder previews cancel superseded work and discard stale revisions before applying results. |
@@ -4052,10 +4052,20 @@ The builder's own large-sector mutation bench
 `examples/big_test` fixture (200 systems / ≥400 worlds): group `command_apply`
 times `BuilderState::run` for `move_system_cheap`, `rename_system_cheap`, and
 `auto_assign_archetypes_heavy`; `invariants_check` times `check_sector`; `derive`
-times `recompute_economy` (cold) vs cache-gated `ensure_fresh` (warm). The cheap
-applies and the re-validate/re-derive budgets are met; the heavy
-`auto_assign_archetypes` apply currently measures ~1.31 ms against the <1 ms
-PERF1 budget — the one open §42 item.
+times `recompute_economy` (cold) vs cache-gated `ensure_fresh` (warm). All
+`command_apply` medians now clear the <1 ms PERF1 budget — the synchronous
+`check_sector` invariant re-check was deferred off `run`/`undo`/`redo` to the §V3
+debounced pump, dropping the heavy `auto_assign_archetypes` apply from ~1.31 ms to
+523 µs (move 78 µs, rename 76 µs).
+
+The gui-core map-redraw bench
+[gui-core/benches/sector_view_render.rs](gui-core/benches/sector_view_render.rs)
+covers §PERF2: group `map_redraw` drives the real `SectorView` shape-build +
+tessellation headlessly (windowless `egui::Context`, whole sector framed so
+nothing is viewport-culled), measuring the CPU-side per-frame cost that decides
+whether the ~16.6 ms frame budget is reachable — 1.16 ms on `big_test` (200 sys /
+525 routes) and 7.11 ms on `huge_sparse_test` (1000 sys / 2627 routes). End-to-end
+FPS is still confirmed manually in the builder/viewer.
 
 Four additional per-finding benches (RUST_FIXES.md FU-9) live alongside, each its
 own `[[bench]]` so it runs in isolation — they exist to validate the §2.3 perf

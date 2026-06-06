@@ -18,6 +18,11 @@ image.workspace = true
 
 [dev-dependencies]
 blake3.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "sector_view_render"
+harness = false
 
 [lints]
 workspace = true

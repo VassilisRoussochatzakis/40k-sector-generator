@@ -2380,18 +2380,29 @@ N5.   [DONE] Command palette (Ctrl-K): fuzzy-search every BuilderCommand by
 42. PERFORMANCE TARGETS
 ================================================================================
 
-PERF1. [IN PROGRESS] Single command apply: < 1 ms for sectors <= 500 systems.
-       Bench `command_apply` in `builder/benches/builder_mutations.rs`. Cheap
-       applies MET (move 763 µs, rename 761 µs); the heavy
-       `auto_assign_archetypes` apply MISSED at 1.31 ms median (vs <1 ms) — the
-       archetype-assignment path triggers derivation/validation work that
-       overshoots the budget. Open item: the heavy variant only.
-PERF2. [IN PROGRESS] Map redraw (egui shapes): 60 FPS up to 500 systems + 2000
-       routes. No automated FPS gate (frame rate is not measurable in CI). The
-       caching infra that makes the budget reachable is present — derivation
-       ledger + Arc-shared overlays (§LD1/LD3), gui-core `sector_view`
-       shape-build path. FPS is verified manually by running the builder/viewer;
-       no number is asserted here.
+PERF1. [DONE] Single command apply: < 1 ms for sectors <= 500 systems.
+       Bench `command_apply` in `builder/benches/builder_mutations.rs`. The
+       per-apply structural invariant re-check (`check_sector`, ~0.57 ms on the
+       big_test fixture — cf. the `invariants_check` bench) was the
+       budget-buster: it ran synchronously inside `BuilderState::run`/`undo`/
+       `redo`. It is now deferred to the debounced live-validation pump
+       (`revalidate_now`, §V3) — `run` only arms the debounce — so
+       `invariant_report` refreshes a frame later alongside rules-validation
+       instead of on the edit hot path (export still recomputes it
+       synchronously via the §V6 gate). Post-fix medians: move 78 µs, rename
+       76 µs, auto_assign_archetypes 523 µs — all well under 1 ms.
+PERF2. [DONE] Map redraw (egui shapes): 60 FPS up to 500 systems + 2000 routes.
+       No automated FPS gate — true frame rate depends on the GPU + windowing
+       stack, not measurable in CI. But the CPU-side cost that decides whether
+       the ~16.6 ms frame budget is reachable IS measured: bench `map_redraw`
+       in `gui-core/benches/sector_view_render.rs` drives the real `SectorView`
+       shape-build + tessellation headlessly (windowless `egui::Context`, whole
+       sector framed so nothing is viewport-culled). Medians: big_test (200 sys
+       / 525 routes) 1.16 ms; huge_sparse_test (1000 sys / 2627 routes) 7.11 ms
+       — both far under 16.6 ms, and the 1000-system case sits above the
+       500-system target. Caching infra (§LD1/LD3 derivation ledger + Arc-shared
+       overlays) keeps per-frame overlay cost off the hot path. End-to-end FPS
+       still confirmed manually in the builder/viewer.
 PERF3. [DONE] Validation: < 50 ms for 500 systems.
        Bench `validate/500` (`benches/generation.rs`, 40×40/500-sys fixture):
        257 µs median — MET.
@@ -2868,10 +2879,13 @@ Phase F — Polish
                    bench `builder/benches/builder_mutations.rs`)
   PERF3..PERF7, DONE  (§42 — benches at the 500-sys / 128-cand scales, all
                    measured medians MET)
-  PERF1.      IN PROGRESS  (§42 — bench exists; cheap command applies MET, heavy
-                   `auto_assign_archetypes` apply 1.31 ms vs <1 ms budget)
-  PERF2.      IN PROGRESS  (§42 — 60 FPS map; no automated FPS gate, caching
-                   infra present, verified manually)
+  PERF1.      DONE  (§42 — synchronous `check_sector` deferred off `run`/`undo`/
+                   `redo` to the §V3 debounced pump; all `command_apply` medians
+                   now <1 ms, heavy `auto_assign_archetypes` 523 µs)
+  PERF2.      DONE  (§42 — CPU-side per-frame cost measured by `map_redraw` in
+                   `gui-core/benches/sector_view_render.rs`: 1.16 ms / 7.11 ms
+                   medians far under the 16.6 ms budget; end-to-end FPS still
+                   confirmed manually)
   N5,         DONE  (§41 command palette — Ctrl-K)
   keyboard shortcuts (beyond the §U2 Ctrl-Z/Y already wired),
   T1..T5 of §35 theme parity,

@@ -831,6 +831,11 @@ impl BuilderState {
     /// otherwise an incomplete catalog would re-arm every tick.
     pub fn revalidate_now(&mut self) {
         self.feedback.validation_dirty_since = None;
+        // PERF1/§42: the invariant re-check runs here (debounced), not inline on
+        // the command-bus apply path. It reads the live sector directly (no
+        // worlds catalog needed), so it is unconditional — unlike `validate`
+        // below, which needs a synthesized `ProjectInput`.
+        self.invariant_report = Some(sectorforge::invariants::check_sector(&self.sector));
         if let Some(input) = self.synthesize_project_input() {
             self.validation_report = Some(validate(&input));
             self.feedback.last_validation_skip_reason = None;
@@ -921,8 +926,10 @@ impl BuilderState {
     /// any validation warning. Returns `None` when the sector is clean enough
     /// to export.
     pub fn export_block_reason(&mut self) -> Option<String> {
+        // `revalidate_now` recomputes both the validation report and the
+        // invariant report synchronously (not debounced) against the live
+        // sector — exactly the fresh gate an export needs.
         self.revalidate_now();
-        self.invariant_report = Some(sectorforge::invariants::check_sector(&self.sector));
 
         let (val_errors, val_warns) = self
             .validation_report

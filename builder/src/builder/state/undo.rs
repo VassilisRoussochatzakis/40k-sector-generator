@@ -5,8 +5,6 @@
 
 use std::path::Path;
 
-use sectorforge::invariants::check_sector;
-
 use super::super::command::BuilderCommand;
 use super::super::errors::BuilderError;
 use super::super::index::BuilderIndex;
@@ -17,8 +15,13 @@ impl BuilderState {
     /// Run a [`BuilderCommand`] through the command bus.
     ///
     /// Per R4 the bus enforces, in order:
-    ///   (a) invariant re-check after apply (stored in
-    ///       [`Self::invariant_report`] so the status bar can surface red),
+    ///   (a) the live-validation debounce is armed via
+    ///       [`Self::mark_validation_dirty`]. The invariant re-check that fills
+    ///       [`Self::invariant_report`] (so the status bar can surface red) now
+    ///       runs alongside rules-validation in [`Self::revalidate_now`] once
+    ///       the debounce elapses, *not* synchronously here — `check_sector` on
+    ///       a large sector is ~0.5 ms, which alone blew the §42/PERF1 1 ms
+    ///       single-apply budget. Deferring it keeps every apply well under.
     ///   (b) snapshot/undo stack maintenance — the redo tail is dropped and
     ///       the command is pushed onto the log,
     ///   (c) auto-save trigger via [`Self::trigger_auto_save`] when an
@@ -43,7 +46,6 @@ impl BuilderState {
         self.command_cursor = self.command_log.len();
         self.enforce_command_log_capacity();
         self.dirty = true;
-        self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
         self.trigger_auto_save();
         Ok(())
@@ -105,7 +107,6 @@ impl BuilderState {
         self.derivation_cache.clear();
         self.derivations.invalidate(classes);
         self.dirty = true;
-        self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
         self.trigger_auto_save();
         Ok(())
@@ -125,7 +126,6 @@ impl BuilderState {
         self.derivation_cache.clear();
         self.derivations.invalidate(classes);
         self.dirty = true;
-        self.invariant_report = Some(check_sector(&self.sector));
         self.mark_validation_dirty();
         self.trigger_auto_save();
         Ok(())

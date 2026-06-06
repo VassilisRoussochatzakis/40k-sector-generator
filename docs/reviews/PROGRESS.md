@@ -17,11 +17,11 @@ sequence". Update this file whenever a finding moves status.
 |---|---|---|---|---|---|
 | A `src/model` + generation | 12 | **12 (A1–A12) — AREA COMPLETE** | 0 | 0 | 0 |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
-| C export/validate/worlds/cli | 13 | 7 (C1,C-S2,C3,C5,C6,C7,C8) | 0 | 5 (C2,C-S1,C4,C-S3) | 1 (C9†) |
+| C export/validate/worlds/cli | 13 | 9 (C1,C-S2,C3,C5,C6,C7,C8,C2,C-S1) | 0 | 2 (C4,C-S3) | 1 (C9†) |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
 | E builder panels | 17 | **17 (E1,E2,E3,E4,E5*,E6,E7,E8*,E9,E10,E11,E12,E13,E14,E-S1,E-S2*,E-S3*) — AREA COMPLETE** | 0 | 0 | 0 |
 | F viewer + gui-core | 15 | **15 (F1–F12, F-S1/F-S2/F-S3 — AREA COMPLETE)** | 0 | 0 | 0 |
-| G tests | 13 | 7 (G2,G3,G4,G6,G7,G8,G9) | 0 | 5 (G1,G5,G10,G-S1,G-S2) | 0 |
+| G tests | 13 | **13 (G1–G10; G-S1 via G1, G-S2 via G5, G-S3 via G2) — AREA COMPLETE** | 0 | 0 | 0 |
 
 ## Execution sequence (README order)
 
@@ -59,6 +59,54 @@ sequence". Update this file whenever a finding moves status.
      See log below.
 
 ## Detailed log
+
+### 2026-06-05 — step 5, wave 19 (AREA_C + AREA_G — wave-18 leftovers applied)
+
+Picked up the four wave-18 specs that were specced-but-not-applied (output at
+`tasks/w5ym3e543.output`). Verified each against live source before editing,
+one commit per finding-cluster on main, each gated.
+
+- **C2 / C-S1** (one merged fix) ✅ `ab5beb5` — new generic
+  `common::resolve_sector_with_cfg<C: Default>(project, sector, extract)` owns
+  the three-arm `(project,sector)` match + the single "pass exactly one of …"
+  error; the six derived-report runners
+  (analyze/economy/history/personae/relations/sites) each collapse their inline
+  17-line match to one call. `extract` runs on `ProjectInput` **before**
+  `generate_sector` consumes it; `--sector` arm returns `C::default()`. Per-runner
+  overrides preserved (economy/history `enabled=true`, sites `player_edition`).
+  Behaviour-identical, RNG path untouched. `cli` + `golden` green;
+  `cargo check --bin` clean.
+- **G5 + G1** ✅ `929a6da` — deleted the 4× duplicated private
+  `fixture_dir`/`fixture_sector` (now `crate::shared::{…}`), and added a real
+  seed-varying `*_derive_deterministic_across_seeds` proptest (24 cases, two
+  independent generations per seed) to each of the four analysis suites, plus a
+  per-suite bounds/order invariant. **Reconciled the known G1/G5 import
+  interdependency**: G5's sketch pruned `load_project`/`generate_sector`, but
+  G1's `gen_sector` re-needs them, so those imports stay — only `OnceLock`,
+  `Utf8PathBuf`, and the private fixtures are dropped. 32 suite tests green.
+- **G10** ✅ `aad8a05` — `UPDATE_GOLDEN_SVG`-gated blake3 SVG pin
+  (`svg_export_matches_pinned_blake3_hash`) mirroring golden_png.rs; blessed
+  `tests/goldens/svg_m42_default.blake3`
+  (`903e401b587b3a65668908d79a01061ad0c0b65e1da9cb21cb924166ce606278`).
+  `RenderOptions::default()` is heatmap-Off → deterministic grid-order writer.
+
+**AREA_G now COMPLETE 13/13.** The three systemic findings are the parents of
+the per-suite work just landed: **G-S1** (false "proptest" docs, all 4 suites)
+is closed by **G1**; **G-S2** (fixture boilerplate dup) by **G5**; **G-S3**
+(writer/format byte-coverage gap) was already closed by **G2** (`5055f3a`,
+content golden) and is further extended by G4 (Html/Bitmap dispatch) + G10 (SVG
+pin). The lone deliberate hold-out is `invariants_proptest.rs`'s inline
+`fixture_dir` (kept separate by design — it mutates input pre-gen).
+
+Not applied (unchanged from wave 18):
+- **C9 †** — still WON'T-FIX. Re-confirmed empirically this wave: `mod cli` lives
+  in `src/main.rs` (the **bin** crate); `Severity` is `pub use`'d from the
+  **lib** and is `#[non_exhaustive]`, so across that crate boundary the `_`
+  wildcard is mandatory (rustc E0004). Dropping it breaks the build. Reverted the
+  attempt; wildcard stays.
+
+Verification: `cargo clippy --workspace --all-targets -- -D warnings` clean;
+targeted `cli`/`golden`/analysis-suite/`svg_export` tests all green.
 
 ### 2026-06-05 — step 5, wave 18 (AREA_C + AREA_G — planned-then-applied batch)
 

@@ -1,4 +1,20 @@
 //! Output DTOs for a generated sector. Separate from worlds.rs.
+//!
+//! INVARIANT (CLAUDE.md §R4): the document-state structs in this module
+//! (`GeneratedSector`, `GeneratedSystem`, `GeneratedWorld`, `WorldDto`,
+//! `GeneratedRoute`, `GeneratedFaction`/`GeneratedSubfaction`/`GeneratedForce`,
+//! `WorldFactionPresence`, `FactionClaim`, the `*ControlSummary`s) are mutated
+//! ONLY through a `BuilderCommand` (builder command bus) or the `mutation.rs`
+//! API — never by direct field assignment from a panel, which would bypass
+//! undo/redo.
+//!
+//! Fields stay `pub` deliberately. They are read at ~1800 sites across
+//! `builder/`, `viewer/`, `gui-core/` and the tests, and Rust visibility cannot
+//! separate read from write — demoting to `pub(crate)` would block those reads
+//! too (and break the viewer's bus-less editing path). The per-struct marker
+//! below restates this invariant at the type definition; enforcement is by
+//! review, not by the compiler. See `docs/reviews/AREA_A_model_generation.md`
+//! §A5 for the measurement behind this choice.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -23,6 +39,8 @@ pub struct HexCoord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedSector {
     pub id: Arc<str>,
     pub title: Arc<str>,
@@ -139,6 +157,8 @@ impl SystemGlyph {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedSystem {
     pub id: SystemId,
     pub index: usize,
@@ -205,6 +225,8 @@ pub struct GeneratedStar {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedWorld {
     pub id: WorldId,
     pub index: usize,
@@ -256,6 +278,8 @@ pub struct GeneratedWorld {
 /// `Display` for most fields; `short_name()` + `code()` for the star colour).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(into = "WorldDtoRaw", try_from = "WorldDtoRaw")]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct WorldDto {
     pub star_colour: StarColour,
     pub world_type: WorldType,
@@ -539,6 +563,8 @@ impl GeneratedWorld {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedRoute {
     pub id: RouteId,
     pub from_system_id: SystemId,
@@ -722,6 +748,8 @@ impl core::fmt::Display for RouteStability {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedFaction {
     pub id: FactionId,
     pub name: Arc<str>,
@@ -738,6 +766,8 @@ pub struct GeneratedFaction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedSubfaction {
     pub id: FactionId,
     pub name: Arc<str>,
@@ -752,6 +782,8 @@ pub struct GeneratedSubfaction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct GeneratedForce {
     pub id: FactionId,
     pub name: Arc<str>,
@@ -763,6 +795,8 @@ pub struct GeneratedForce {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct WorldFactionPresence {
     /// Highest-level faction id (for example, `imperial`, `chaos`, `ork`).
     pub faction_id: FactionId,
@@ -1068,6 +1102,8 @@ impl core::fmt::Display for ClaimType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct FactionClaim {
     pub faction_id: FactionId,
     pub claim_type: ClaimType,
@@ -1091,6 +1127,8 @@ impl WorldControlSummary {
 
 /// Per-world multi-winner snapshot (§5.3 / §6.2).
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct WorldControlSummary {
     /// Highest local-control-score faction — the map fill (§9.1).
     pub dominant: Option<FactionId>,
@@ -1140,6 +1178,8 @@ impl core::fmt::Display for SystemState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+/// INVARIANT (§R4): document state — mutate only via `BuilderCommand` /
+/// `mutation.rs`, never by direct field write (bypasses undo/redo).
 pub struct SystemControlSummary {
     pub state: Option<SystemState>,
     pub dominant: Option<FactionId>,

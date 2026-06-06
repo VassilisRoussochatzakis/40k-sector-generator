@@ -15,7 +15,7 @@ sequence". Update this file whenever a finding moves status.
 
 | Area | Findings | ✅ Done | 🔄 In progress | ⏳ Pending | ⏸️ Deferred |
 |---|---|---|---|---|---|
-| A `src/model` + generation | 12 | 11 (A1,A2,A3,A4,A6,A7,A8,A9,A10,A11,A12) | 0 | 0 | 1 (A5) |
+| A `src/model` + generation | 12 | **12 (A1–A12) — AREA COMPLETE** | 0 | 0 | 0 |
 | B `src/analysis` | 14 | 11 (B-S2*,B-S3,B1,B3,B4,B5,B6,B7,B9,B11,B12) | 0 | 1 (B-S1) | 2 (B8,B10) |
 | C export/validate/worlds/cli | 13 | 4 (C1,C-S2,C3,C6) | 0 | 9 | 0 |
 | D builder command + state | 14 | 12 | 0 | 0 | 2 (D-S3/D5) |
@@ -39,8 +39,9 @@ sequence". Update this file whenever a finding moves status.
      B7 ✅ · B12 ✅ · B9 ✅ (this session). See log below.
    - **Wave 2+ — god-file splits** (verbatim carves behind G2):
      B11 ✅ · A1 ✅ · C6 ✅ · E7 ✅ · E4 ✅ (split-only) · F3 ✅ (split-only) ·
-     F8 ✅ (by-section). Remaining splits: none outstanding; the deferred
-     API-shape items (F-S3, D-S3/D5, A5, E4-part-a) stay owner-gated.
+     F8 ✅ (by-section). Remaining splits: none outstanding; **A5 ✅
+     (doc-only, owner-chosen)**; the deferred API-shape items (D-S3/D5,
+     E4-part-a) stay owner-gated.
    - Remaining dedup: AREA_B perf (**B1/B3/B5/B6 ✅ — all done**), **B4 ✅**;
      trait/macro dedup (B-S1, B-S2 merge-half — both owner-gated; **E-S3 ✅**
      (16/26 sites; 10 divergent left by design), C2, F-S1); **C3 ✅** (this
@@ -1314,10 +1315,49 @@ serde shim. ~150 sites across all 4 crates.
     lib **196/196**, `it` **93/93**. (Also fixed a stray import-order nit in
     `scaffold.rs` from the A2 sweep.) No file moved → MAP.md untouched.
 
-- **AREA_A is now effectively complete: 11/12 resolved; only A5 (157-pub-field
-  visibility tightening, L) stays ⏸️ owner-gated** alongside D-S3/D5 — a wide
-  builder/viewer/tests cascade, not a clean split, explicitly deferrable per the
-  review's own sequencing.
+### 2026-06-05 — step 5, wave 17 (AREA_A field-visibility — A5) · AREA_A COMPLETE 12/12
+
+- **A5 (157→156 pub-field visibility) — ✅ DONE (doc-only, owner-chosen).**
+  `src/model/sector_model/mod.rs`. The finding: the ~156 `pub` fields mean the
+  §R4 command-bus invariant cannot be enforced at the type level. **Investigated
+  read-only before touching anything; the measurement drove the choice:**
+  - **Real external §R4 write violations closeable by encapsulation: 0.** Builder
+    already routes every panel document-mutation through the bus (`state.run` →
+    `command.rs` → `BuilderState::sector_mut()`); `get_system_mut`/`get_world_mut`
+    have **0** production callers; the only `sector_mut()` users are the bus itself
+    (`undo.rs cmd.apply`), the project-load path, and 2 documented state-layer
+    derivation reconciles (E2-style off-bus passive refresh).
+  - **Viewer: 93 production `.sector` writes — by design, NOT §R4 violations.** The
+    viewer has no command bus (`editor.sector` is the single source of truth per
+    F1/F-S1); §R4 is a builder-only invariant. `pub(crate)` would break all 93.
+  - **gui-core: 0 writes** (read-only widgets). **tests/it:** whole-crate
+    `#[cfg(test)]` carve-out.
+  - **Read cascade for full encapsulation: ~1837 external field-access sites**
+    (builder 1309 / viewer 275 / gui-core 141 / tests 112). Rust visibility cannot
+    separate read from write, so `pub(crate)` blocks those reads too → option (c)
+    = ~1837 getter conversions + a setter/mutation API for the 93 viewer writes +
+    bus-body churn, to close **0** current violations. Disproportionate; mirrors
+    the D-S3/D5 deferral.
+  - **Only 3 top-level fields have 0 external reads AND 0 external writes**
+    (`id_history`, `influence_field`, `power_projection`) — freely demotable, but
+    they are *derived* fields, not the bus-mutated document fields §R4 targets, so
+    demoting them would close 0 violations (option (b) ≈ nil value).
+  - **Owner chose option (a) doc-only.** Added a module-level header on `mod.rs`
+    stating the §R4 invariant + the read/write-visibility rationale (why the fields
+    stay `pub`), and a `/// INVARIANT (§R4): …` marker on the **12 document-state
+    aggregates** (`GeneratedSector`/`GeneratedSystem`/`GeneratedWorld`, `WorldDto`,
+    `GeneratedRoute`, `GeneratedFaction`/`GeneratedSubfaction`/`GeneratedForce`,
+    `WorldFactionPresence`, `FactionClaim`, `World`/`SystemControlSummary`). Pure
+    doc comments — **byte-identical output**, enforcement stays by review.
+  - **Encapsulation model unchanged** (fields stay `pub`) → GUIDE.md intentionally
+    untouched; the §R4 bus mechanism it documents did not change.
+  - **Verification:** `cargo check --workspace --all-targets` clean; `cargo clippy
+    --workspace --all-targets -- -D warnings` clean (doc backticks satisfy
+    `doc_markdown`); **golden 15/15 byte-identical**; workspace tests green (lib
+    **196**, `it` **93**, builder **319**, gui-core **31**, viewer **8**); touched
+    file `rustfmt --check` clean. No file moved → MAP.md untouched.
+
+  **A5 closes AREA_A — 12/12.**
 
 ### Open decisions / notes
 - **B-S2 `merge_manual` alignment — RESOLVED (closed-as-designed, owner call
@@ -1349,7 +1389,7 @@ serde shim. ~150 sites across all 4 crates.
   key sites in `world/` with a stable `as_slug()` — is **not** done. Those
   Debug-repr strings are load-bearing keys (the feature-weight lookup + the
   `EnumPicker::debug_key` storage keys); a slug whose value differs from the Rust
-  variant name would change them. Left for an owner decision (like A5 / D-S3·D5),
+  variant name would change them. Left for an owner decision (like D-S3·D5),
   per "don't swap behaviour without asking."
 - **Commit cadence:** ~~accumulate~~ → **all step-1–4 work committed & merged via
   PR #3 (`2b274ea`).** Landed as `7a06824` (AREA_D), `56b587b` (E1/E2/E3),

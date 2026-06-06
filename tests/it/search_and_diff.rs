@@ -203,14 +203,33 @@ fn diff_identical_sectors_is_empty() {
 fn diff_after_ticks_reports_changes_when_conflict_state_evolves() {
     let project = fixture_project();
     let input = sectorforge::load_project(project).unwrap();
-    let (diff, _before, _after) =
+    let (diff, before, after) =
         sectorforge::diff::diff_after_ticks(input, 5, &DiffConfig::default()).unwrap();
-    // Tick advancement is allowed to produce zero observable diff if no
-    // contested worlds existed; we just assert the call succeeds and the
-    // serialisation round-trips.
+    // Markdown round-trip crash guard.
     let md = sectorforge::render_diff_markdown(&diff);
     assert!(md.starts_with("# Sector Diff"));
     assert!(md.contains("Catalog compatible"));
+    // Meaningful content check: `advance_sector` must actually evolve conflict
+    // state, so `after` differs from `before`. The diff markdown does not yet
+    // surface conflict age/momentum/intensity, so assert on the world conflict
+    // fields directly — this guards the "advance_sector silently became a
+    // no-op" regression (G8). System ordering is stable across ticks.
+    let mut conflict_evolved = 0usize;
+    for (sb, sa) in before.systems.iter().zip(after.systems.iter()) {
+        assert_eq!(sb.id, sa.id, "system ordering must be stable across ticks");
+        for (wb, wa) in sb.worlds.iter().zip(sa.worlds.iter()) {
+            if wb.conflict.age != wa.conflict.age
+                || wb.conflict.momentum != wa.conflict.momentum
+                || wb.conflict.intensity != wa.conflict.intensity
+            {
+                conflict_evolved += 1;
+            }
+        }
+    }
+    assert!(
+        conflict_evolved > 0,
+        "5 ticks of advance_sector must evolve at least one world's conflict state"
+    );
 }
 
 #[test]

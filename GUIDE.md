@@ -2087,8 +2087,8 @@ field rows:
 None of this touches the map painters or export writers, so the golden tests stay
 byte-stable throughout (§UO8 guardrail).
 
-**Semantic status colors + role buttons** (the §SPRUCE polish pass, runbook in
-[SPRUCE.md](SPRUCE.md)). A late audit found ~80 ad-hoc `Color32::from_rgb(...)`
+**Semantic status colors + role buttons** (the §SPRUCE polish pass, runbook
+archived under `old/`). A late audit found ~80 ad-hoc `Color32::from_rgb(...)`
 amber/red/green triples across ~25 panels for "unsaved", validation, health, and
 badge chrome — and under Grimdark the warm amber collided with the brass *accent*,
 so a clean status line read like a warning (SPRUCE §1 D7). The fix adds the one

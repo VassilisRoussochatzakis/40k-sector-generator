@@ -1,8 +1,8 @@
 # SPRUCE_CHANGELOG.md
 
-Agentic UI-polish pass per [SPRUCE.md](SPRUCE.md). Branch: `spruce-ui` (off `main`;
-not committed — left for review). All changes are **chrome only**; no map painter,
-export writer, or command-bus logic was touched.
+Agentic UI-polish pass per [SPRUCE.md](SPRUCE.md). Committed to `main` as `84ee826`
+(`feat(gui): theme-aware status colors + role buttons (§SPRUCE)`). All changes are
+**chrome only**; no map painter, export writer, or command-bus logic was touched.
 
 ---
 
@@ -168,8 +168,8 @@ relation-attitude hues, heatmap + chart series.
    / export). `relations::tension_text`'s 40/15 tiers collapsed onto one `warning()`
    tier (the palette has no fourth warm step — clippy's `if_same_then_else` confirmed
    the collapse). Data-viz colours stayed untouched.
-5. **Not committed.** Work sits on the `spruce-ui` branch; per repo convention
-   commits happen only when asked.
+5. **Committed to `main`.** Landed as commit `84ee826`
+   (`feat(gui): theme-aware status colors + role buttons (§SPRUCE)`).
 
 ---
 

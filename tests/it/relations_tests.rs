@@ -88,10 +88,27 @@ fn tension_and_metrics_are_within_valid_ranges() {
             p.b,
             p.tension
         );
-        // Metrics are `u8` — already 0..=255; spec uses 0..=100 ranges. Don't
-        // hard-assert the inner clamp (allow future tuning) — just ensure
-        // they round-trip through JSON.
-        let _ = serde_json::to_string(&p.metrics).expect("metric serializes");
+        // Every metric is clamped to 0..=100 in derive.rs (clamp_score /
+        // min(100)). Assert the documented bound (not the u8 0..=255 ceiling)
+        // so future tuning that overflows 100 fails loudly; round-trip too (G9).
+        for (label, m) in [
+            ("pair", &p.metrics),
+            ("a_to_b", &p.a_to_b.metrics),
+            ("b_to_a", &p.b_to_a.metrics),
+        ] {
+            for (name, v) in [
+                ("trust", m.trust),
+                ("fear", m.fear),
+                ("rivalry", m.rivalry),
+                ("ideological_distance", m.ideological_distance),
+                ("economic_dependency", m.economic_dependency),
+                ("military_pressure", m.military_pressure),
+                ("covert_activity", m.covert_activity),
+            ] {
+                assert!(v <= 100, "{} ↔ {} {label}.{name} > 100: {v}", p.a, p.b);
+            }
+            let _ = serde_json::to_string(m).expect("metric serializes");
+        }
     }
 }
 
